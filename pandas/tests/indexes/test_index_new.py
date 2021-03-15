@@ -1,6 +1,10 @@
 """
 Tests for the Index constructor conducting inference.
 """
+from datetime import (
+    date,
+    datetime,
+)
 from decimal import Decimal
 
 import numpy as np
@@ -137,6 +141,24 @@ class TestIndexConstructorInference:
         expected = Index(data, dtype=object)
         tm.assert_index_equal(Index(data), expected)
         tm.assert_index_equal(Index(np.array(data, dtype=object)), expected)
+
+    def test_constructor_datetime_inference(self):
+        # Index.__new__ inference to datetime matches Series
+
+        # mixed str/datetime
+        data = ["2012-12-31", datetime(2013, 1, 1), datetime(2013, 1, 2)]
+        result = Index(data)
+        expected = DatetimeIndex([Timestamp(x) for x in data])
+        tm.assert_index_equal(result, expected)
+
+        # date objects cast to Timestamp
+        data = [date(2020, 1, 1), Timestamp("2020-01-02 00:00:00")]
+        result = Index(data)
+        expected = DatetimeIndex([Timestamp(x) for x in data])
+        tm.assert_index_equal(result, expected)
+
+        result = Index(data[::-1])
+        tm.assert_index_equal(result, expected[::-1])
 
 
 class TestDtypeEnforced:

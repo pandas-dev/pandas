@@ -153,6 +153,16 @@ from pandas.tests.extension.decimal import (
             "category",
             pd.Categorical([pd.Period("2000", "D"), pd.Period("2001", "D")]),
         ),
+        # mixed-dtype intervals -> cast to object, dont raise TypeError
+        (
+            [pd.Interval(0, 1), pd.Interval(pd.Timestamp(0), pd.Timestamp(1))],
+            None,
+            PandasArray(
+                np.array(
+                    [pd.Interval(0, 1), pd.Interval(pd.Timestamp(0), pd.Timestamp(1))]
+                )
+            ),
+        ),
     ],
 )
 def test_array(data, dtype, expected):

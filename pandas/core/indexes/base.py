@@ -6327,13 +6327,6 @@ def _maybe_cast_data_without_dtype(subarr):
     converted : np.ndarray or ExtensionArray
     dtype : np.dtype or ExtensionDtype
     """
-    # Runtime import needed bc IntervalArray imports Index
-    from pandas.core.arrays import (
-        DatetimeArray,
-        IntervalArray,
-        PeriodArray,
-        TimedeltaArray,
-    )
 
     assert subarr.dtype == object, subarr.dtype
     inferred = lib.infer_dtype(subarr, skipna=False)
@@ -6356,38 +6349,10 @@ def _maybe_cast_data_without_dtype(subarr):
         data = np.asarray(subarr).astype(np.float64, copy=False)
         return data
 
-    elif inferred == "interval":
-        try:
-            data = IntervalArray._from_sequence(subarr, copy=False)
-            return data
-        except (ValueError, TypeError):
-            # GH27172: mixed closed Intervals --> object dtype
-            pass
-    elif inferred == "boolean":
-        # don't support boolean explicitly ATM
-        pass
-    elif inferred != "string":
-        if inferred.startswith("datetime"):
-            try:
-                data = DatetimeArray._from_sequence(subarr, copy=False)
-                return data
-            except (ValueError, OutOfBoundsDatetime):
-                # GH 27011
-                # If we have mixed timezones, just send it
-                # down the base constructor
-                pass
-
-        elif inferred.startswith("timedelta"):
-            tda = TimedeltaArray._from_sequence(subarr, copy=False)
-            return tda
-        elif inferred == "period":
-            try:
-                data = PeriodArray._from_sequence(subarr)
-                return data
-            except IncompatibleFrequency:
-                pass
-
-    return subarr
+    else:
+        alt = sanitize_array(subarr, None)
+        alt = ensure_wrapped_if_datetimelike(alt)
+        return alt
 
 
 def _try_convert_to_int_array(

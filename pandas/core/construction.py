@@ -328,7 +328,7 @@ def array(
         elif inferred_dtype == "interval":
             try:
                 return IntervalArray(data, copy=copy)
-            except ValueError:
+            except (ValueError, TypeError):
                 # We may have a mixture of `closed` here.
                 # We choose to return an ndarray, rather than raising.
                 pass
