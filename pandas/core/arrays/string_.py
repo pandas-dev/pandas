@@ -36,12 +36,10 @@ from pandas.core.dtypes.common import (
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import (
-    Categorical,
     FloatingArray,
     IntegerArray,
     PandasArray,
 )
-from pandas.core.arrays.categorical import CategoricalDtype
 from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
@@ -328,8 +326,9 @@ class StringArray(PandasArray):
             arr[mask] = "0"
             values = arr.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
-        elif isinstance(dtype, CategoricalDtype):
-            return Categorical(self, dtype=dtype, copy=copy)
+        elif isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(self, dtype=dtype, copy=copy)
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
             mask = self.isna()

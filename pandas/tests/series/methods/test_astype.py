@@ -470,11 +470,16 @@ class TestAstypeCategorical:
         with pytest.raises(TypeError, match="got an unexpected"):
             s.astype("category", categories=["a", "b"], ordered=True)
 
-    def test_astype_str_to_categorical(self):
+    def test_astype_str_to_extension_dtype(self):
         # GH-40351
         s = Series(["A", np.NaN], dtype="string")
         result = s.astype("category")
         expected = Series(["A", np.NaN], dtype="category")
+        tm.assert_series_equal(result, expected)
+
+        s = Series(["1/1/2021", "2/1/2021"], dtype="string")
+        result = s.astype("period[M]")
+        expected = Series(["1/1/2021", "2/1/2021"], dtype="period[M]")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("items", [["a", "b", "c", "a"], [1, 2, 3, 1]])
