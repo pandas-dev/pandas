@@ -771,7 +771,7 @@ def test_deprecated_bad_lines_warns(all_parsers, csv1):
     ):
         parser.read_csv(csv1, warn_bad_lines=False)
 
-        
+
 def test_malformed_second_line(all_parsers):
     # see GH14782
     parser = all_parsers
