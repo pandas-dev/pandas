@@ -327,8 +327,8 @@ class TestBlockManager:
 
         axes, blocks = tmp_mgr.axes, tmp_mgr.blocks
 
-        blocks[0].mgr_locs = np.array([0])
-        blocks[1].mgr_locs = np.array([0])
+        blocks[0].mgr_locs = BlockPlacement(np.array([0]))
+        blocks[1].mgr_locs = BlockPlacement(np.array([0]))
 
         # test trying to create block manager with overlapping ref locs
 
@@ -338,8 +338,8 @@ class TestBlockManager:
             mgr = BlockManager(blocks, axes)
             mgr._rebuild_blknos_and_blklocs()
 
-        blocks[0].mgr_locs = np.array([0])
-        blocks[1].mgr_locs = np.array([1])
+        blocks[0].mgr_locs = BlockPlacement(np.array([0]))
+        blocks[1].mgr_locs = BlockPlacement(np.array([1]))
         mgr = BlockManager(blocks, axes)
         mgr.iget(1)
 

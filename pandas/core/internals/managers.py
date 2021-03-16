@@ -240,7 +240,8 @@ class BlockManager(DataManager):
             assert isinstance(self, SingleBlockManager)  # for mypy
             blk = self.blocks[0]
             arr = blk.values[:0]
-            nb = blk.make_block_same_class(arr, placement=slice(0, 0))
+            bp = BlockPlacement(slice(0, 0))
+            nb = blk.make_block_same_class(arr, placement=bp)
             blocks = [nb]
         else:
             blocks = []
@@ -786,7 +787,7 @@ class BlockManager(DataManager):
         new_blocks: List[Block] = []
         for b in blocks:
             b = b.copy(deep=copy)
-            b.mgr_locs = inv_indexer[b.mgr_locs.indexer]
+            b.mgr_locs = BlockPlacement(inv_indexer[b.mgr_locs.indexer])
             new_blocks.append(b)
 
         axes = list(self.axes)
@@ -1053,8 +1054,9 @@ class BlockManager(DataManager):
         values = block.iget(self.blklocs[i])
 
         # shortcut for select a single-dim from a 2-dim BM
+        bp = BlockPlacement(slice(0, len(values)))
         values = maybe_coerce_values(values)
-        nb = type(block)(values, placement=slice(0, len(values)), ndim=1)
+        nb = type(block)(values, placement=bp, ndim=1)
         return SingleBlockManager(nb, self.axes[1])
 
     def iget_values(self, i: int) -> ArrayLike:
@@ -1266,7 +1268,7 @@ class BlockManager(DataManager):
             else:
                 new_mgr_locs = blk.mgr_locs.as_array.copy()
                 new_mgr_locs[new_mgr_locs >= loc] += 1
-                blk.mgr_locs = new_mgr_locs
+                blk.mgr_locs = BlockPlacement(new_mgr_locs)
 
         # Accessing public blklocs ensures the public versions are initialized
         if loc == self.blklocs.shape[0]:
@@ -1415,11 +1417,12 @@ class BlockManager(DataManager):
                     #  all(np.shares_memory(nb.values, blk.values) for nb in blocks)
                     return blocks
                 else:
+                    bp = BlockPlacement(slice(0, sllen))
                     return [
                         blk.take_nd(
                             slobj,
                             axis=0,
-                            new_mgr_locs=slice(0, sllen),
+                            new_mgr_locs=bp,
                             fill_value=fill_value,
                         )
                     ]
@@ -1456,7 +1459,7 @@ class BlockManager(DataManager):
                     # item.
                     for mgr_loc in mgr_locs:
                         newblk = blk.copy(deep=False)
-                        newblk.mgr_locs = slice(mgr_loc, mgr_loc + 1)
+                        newblk.mgr_locs = BlockPlacement(slice(mgr_loc, mgr_loc + 1))
                         blocks.append(newblk)
 
                 else:
@@ -1655,12 +1658,15 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
         array = blk._slice(indexer)
-        if array.ndim > blk.values.ndim:
+        if array.ndim > 1:
             # This will be caught by Series._get_values
             raise ValueError("dimension-expanding indexing not allowed")
 
-        block = blk.make_block_same_class(array, placement=slice(0, len(array)))
-        return type(self)(block, self.index[indexer])
+        bp = BlockPlacement(slice(0, len(array)))
+        block = blk.make_block_same_class(array, placement=bp)
+
+        new_idx = self.index[indexer]
+        return type(self)(block, new_idx)
 
     def get_slice(self, slobj: slice, axis: int = 0) -> SingleBlockManager:
         assert isinstance(slobj, slice), type(slobj)
@@ -1669,7 +1675,8 @@ class SingleBlockManager(BlockManager, SingleDataManager):
 
         blk = self._block
         array = blk._slice(slobj)
-        block = blk.make_block_same_class(array, placement=slice(0, len(array)))
+        bp = BlockPlacement(slice(0, len(array)))
+        block = blk.make_block_same_class(array, placement=bp)
         new_index = self.index._getitem_slice(slobj)
         return type(self)(block, new_index)
 
@@ -1733,7 +1740,7 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         valid for the current Block/SingleBlockManager (length, dtype, etc).
         """
         self.blocks[0].values = values
-        self.blocks[0]._mgr_locs = libinternals.BlockPlacement(slice(len(values)))
+        self.blocks[0]._mgr_locs = BlockPlacement(slice(len(values)))
 
 
 # --------------------------------------------------------------------
@@ -1985,7 +1992,8 @@ def _merge_blocks(
         new_values = new_values[argsort]
         new_mgr_locs = new_mgr_locs[argsort]
 
-        return [new_block(new_values, placement=new_mgr_locs, ndim=2)]
+        bp = BlockPlacement(new_mgr_locs)
+        return [new_block(new_values, placement=bp, ndim=2)]
 
     # can't consolidate --> no merge
     return blocks
