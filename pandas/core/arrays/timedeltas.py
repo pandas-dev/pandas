@@ -42,7 +42,6 @@ from pandas.core.dtypes.cast import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
-    is_categorical_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -53,7 +52,10 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import (
+    ABCCategorical,
+    ABCMultiIndex,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
@@ -970,7 +972,7 @@ def sequence_to_td64ns(
     elif not isinstance(data, (np.ndarray, ExtensionArray)):
         # GH#24539 e.g. xarray, dask object
         data = np.asarray(data)
-    elif is_categorical_dtype(data.dtype):
+    elif isinstance(data, ABCCategorical):
         data = data.categories.take(data.codes, fill_value=NaT)._values
         copy = False
 
