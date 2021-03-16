@@ -543,9 +543,6 @@ z
     )
     def test_to_csv_zip_arguments(self, compression, archive_name):
         # GH 26023
-        from pathlib import Path
-        from zipfile import ZipFile
-
         df = DataFrame({"ABC": [1]})
         with tm.ensure_clean("to_csv_archive_name.zip") as path:
             df.to_csv(
