@@ -225,6 +225,41 @@ In pandas 1.3.0, ``df`` continues to share data with ``values``
    np.shares_memory(df["A"], values)
 
 
+.. _whatsnew_130.notable_bug_fixes.setitem_never_inplace:
+
+Never Operate Inplace When Setting ``frame[keys] = values``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When setting multiple columns using ``frame[keys] = values`` new arrays will
+replace pre-existing arrays for these keys, which will *not* be over-written
+(:issue:`39510`).  As a result, the columns will retain the dtype(s) of ``values``,
+never casting to the dtypes of the existing arrays.
+
+.. ipython:: python
+
+   df = pd.DataFrame(range(3), columns=["A"], dtype="float64")
+   df[["A"]] = 5
+
+In the old behavior, ``5`` was cast to ``float64`` and inserted into the existing
+array backing ``df``:
+
+*pandas 1.2.x*
+
+.. code-block:: ipython
+
+   In [1]: df.dtypes
+   Out[1]:
+   A    float64
+
+In the new behavior, we get a new array, and retain an integer-dtyped ``5``:
+
+*pandas 1.3.0*
+
+.. ipython:: python
+
+   df.dtypes
+
+
 .. _whatsnew_130.notable_bug_fixes.setitem_with_bool_casting:
 
 Consistent Casting With Setting Into Boolean Series

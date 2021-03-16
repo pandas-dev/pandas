@@ -342,6 +342,10 @@ class TestDataFrameSetItem:
                 "d": [1, 1, 1],
             }
         )
+        expected["c"] = expected["c"].astype(arr.dtype)
+        expected["d"] = expected["d"].astype(arr.dtype)
+        assert expected["c"].dtype == arr.dtype
+        assert expected["d"].dtype == arr.dtype
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
@@ -381,15 +385,34 @@ class TestDataFrameSetItem:
                 [np.nan, 1, 2, np.nan, 4, 5],
                 [np.nan, 1, 2, np.nan, 4, 5],
             ],
-            columns=cols,
             dtype="object",
         )
+
         if using_array_manager:
             # setitem replaces column so changes dtype
+
+            expected.columns = cols
             expected["C"] = expected["C"].astype("int64")
             # TODO(ArrayManager) .loc still overwrites
             expected["B"] = expected["B"].astype("int64")
+        else:
+            # set these with unique columns to be extra-unambiguous
+            expected[2] = expected[2].astype(np.int64)
+            expected[5] = expected[5].astype(np.int64)
+            expected.columns = cols
+
         tm.assert_frame_equal(df, expected)
+
+    def test_setitem_frame_duplicate_columns_size_mismatch(self):
+        # GH#39510
+        cols = ["A", "B", "C"] * 2
+        df = DataFrame(index=range(3), columns=cols)
+        with pytest.raises(ValueError, match="Columns must be same length as key"):
+            df[["A"]] = (0, 3, 5)
+
+        df2 = df.iloc[:, :3]  # unique columns
+        with pytest.raises(ValueError, match="Columns must be same length as key"):
+            df2[["A"]] = (0, 3, 5)
 
     @pytest.mark.parametrize("cols", [["a", "b", "c"], ["a", "a", "a"]])
     def test_setitem_df_wrong_column_number(self, cols):
@@ -890,3 +913,47 @@ class TestDataFrameSetitemCopyViewSemantics:
 
         assert df["z"] is not foo
         tm.assert_series_equal(df["z"], expected)
+
+    def test_setitem_duplicate_columns_not_inplace(self):
+        # GH#39510
+        cols = ["A", "B"] * 2
+        df = DataFrame(0.0, index=[0], columns=cols)
+        df_copy = df.copy()
+        df_view = df[:]
+        df["B"] = (2, 5)
+
+        expected = DataFrame([[0.0, 2, 0.0, 5]], columns=cols)
+        tm.assert_frame_equal(df_view, df_copy)
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("value", [1, np.array([[1], [1]]), [[1], [1]]])
+    def test_setitem_same_dtype_not_inplace(self, value, using_array_manager, request):
+        # GH#39510
+        if not using_array_manager:
+            mark = pytest.mark.xfail(
+                reason="Setitem with same dtype still changing inplace"
+            )
+            request.node.add_marker(mark)
+
+        cols = ["A", "B"]
+        df = DataFrame(0, index=[0, 1], columns=cols)
+        df_copy = df.copy()
+        df_view = df[:]
+        df[["B"]] = value
+
+        expected = DataFrame([[0, 1], [0, 1]], columns=cols)
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df_view, df_copy)
+
+    @pytest.mark.parametrize("value", [1.0, np.array([[1.0], [1.0]]), [[1.0], [1.0]]])
+    def test_setitem_listlike_key_scalar_value_not_inplace(self, value):
+        # GH#39510
+        cols = ["A", "B"]
+        df = DataFrame(0, index=[0, 1], columns=cols)
+        df_copy = df.copy()
+        df_view = df[:]
+        df[["B"]] = value
+
+        expected = DataFrame([[0, 1.0], [0, 1.0]], columns=cols)
+        tm.assert_frame_equal(df_view, df_copy)
+        tm.assert_frame_equal(df, expected)
