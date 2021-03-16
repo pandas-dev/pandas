@@ -3,12 +3,12 @@ from io import (
     StringIO,
 )
 import os
-import sys
 from typing import Union
 
 import numpy as np
 import pytest
 
+from pandas.compat import PY38
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -364,8 +364,8 @@ def test_na_empty_elem_option(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason=("etree alpha ordered attributes <= py3.7"),
+    not PY38,
+    reason=("etree alpha ordered attributes < py 3.8"),
 )
 def test_attrs_cols_nan_output(datapath, parser):
     expected = """\
@@ -383,8 +383,8 @@ def test_attrs_cols_nan_output(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason=("etree alpha ordered attributes <= py3.7"),
+    not PY38,
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_attrs_cols_prefix(datapath, parser):
     expected = """\
@@ -541,8 +541,8 @@ def test_hierarchical_columns(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason=("etree alpha ordered attributes <= py3.7"),
+    not PY38,
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_hierarchical_attrs_columns(datapath, parser):
     expected = """\
@@ -614,8 +614,8 @@ def test_multi_index(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason=("etree alpha ordered attributes <= py3.7"),
+    not PY38,
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_multi_index_attrs_cols(datapath, parser):
     expected = """\
