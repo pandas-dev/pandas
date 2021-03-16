@@ -10,6 +10,7 @@ from numpy cimport (
     int16_t,
     int32_t,
     int64_t,
+    intp_t,
     ndarray,
     uint8_t,
     uint16_t,
@@ -31,7 +32,8 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
                Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
+        ndarray[intp_t] left_sorter, right_sorter
+        ndarray[int64_t] left_count, right_count
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
         Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
@@ -82,8 +84,8 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
                     Py_ssize_t max_groups, bint sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
-        ndarray rev
+        ndarray[int64_t] left_count, right_count
+        ndarray[intp_t] rev, left_sorter, right_sorter
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
         Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
@@ -155,7 +157,8 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
                     Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
+        ndarray[intp_t] left_sorter, right_sorter
+        ndarray[int64_t] left_count, right_count
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
         int64_t left_pos = 0, right_pos = 0
@@ -213,12 +216,16 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
             _get_result_indexer(right_sorter, right_indexer))
 
 
-cdef _get_result_indexer(ndarray[int64_t] sorter, ndarray[int64_t] indexer):
+cdef ndarray[int64_t] _get_result_indexer(
+    ndarray[intp_t] sorter, ndarray[int64_t] indexer
+):
     if len(sorter) > 0:
         # cython-only equivalent to
         #  `res = algos.take_nd(sorter, indexer, fill_value=-1)`
         res = np.empty(len(indexer), dtype=np.int64)
         take_1d_int64_int64(sorter, indexer, res, -1)
+        # FIXME: sorter is intp_t, not int64_t, opposite for indexer;
+        #  will this break on 32bit builds?
     else:
         # length-0 case
         res = np.empty(len(indexer), dtype=np.int64)
