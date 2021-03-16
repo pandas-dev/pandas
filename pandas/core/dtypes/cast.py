@@ -25,6 +25,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -107,6 +108,8 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas import Series
     from pandas.core.arrays import (
         DatetimeArray,
@@ -686,15 +689,14 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
                 if fv.tz is None:
                     return dtype, fv.asm8
 
-        # error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
-        return np.dtype(object), fill_value  # type: ignore[type-var]
+        return np.dtype("object"), fill_value
 
     elif issubclass(dtype.type, np.timedelta64):
         inferred, fv = infer_dtype_from_scalar(fill_value, pandas_dtype=True)
         if inferred == dtype:
             return dtype, fv
-        # error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
-        return np.dtype(object), fill_value  # type: ignore[type-var]
+
+        return np.dtype("object"), fill_value
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -1164,6 +1166,20 @@ def astype_td64_unit_conversion(
     return result
 
 
+@overload
+def astype_nansafe(
+    arr: np.ndarray, dtype: np.dtype, copy: bool = ..., skipna: bool = ...
+) -> np.ndarray:
+    ...
+
+
+@overload
+def astype_nansafe(
+    arr: np.ndarray, dtype: ExtensionDtype, copy: bool = ..., skipna: bool = ...
+) -> ExtensionArray:
+    ...
+
+
 def astype_nansafe(
     arr: np.ndarray, dtype: DtypeObj, copy: bool = True, skipna: bool = False
 ) -> ArrayLike:
@@ -1190,14 +1206,10 @@ def astype_nansafe(
         flags = arr.flags
         flat = arr.ravel("K")
         result = astype_nansafe(flat, dtype, copy=copy, skipna=skipna)
-        order = "F" if flags.f_contiguous else "C"
+        order: Literal["C", "F"] = "F" if flags.f_contiguous else "C"
         # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
         # attribute "reshape"
-        # error: No overload variant of "reshape" of "_ArrayOrScalarCommon" matches
-        # argument types "Tuple[int, ...]", "str"
-        return result.reshape(  # type: ignore[union-attr,call-overload]
-            arr.shape, order=order
-        )
+        return result.reshape(arr.shape, order=order)  # type: ignore[union-attr]
 
     # We get here with 0-dim from sparse
     arr = np.atleast_1d(arr)
