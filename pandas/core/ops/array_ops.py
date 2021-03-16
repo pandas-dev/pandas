@@ -195,6 +195,8 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
 
     # NB: We assume that extract_array has already been called
     #  on `left` and `right`.
+    # We need to special-case datetime64/timedelta64 dtypes (e.g. because numpy
+    # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
     lvalues = ensure_wrapped_if_datetimelike(left)
     rvalues = ensure_wrapped_if_datetimelike(right)
     rvalues = _maybe_upcast_for_op(rvalues, lvalues.shape)
