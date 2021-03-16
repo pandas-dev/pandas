@@ -2,7 +2,7 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
-from datetime import timedelta
+import datetime
 from functools import partial
 import operator
 from typing import Any
@@ -11,11 +11,13 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
+    NaTType,
     Timedelta,
     Timestamp,
     lib,
     ops as libops,
 )
+from pandas._libs.tslibs import BaseOffset
 from pandas._typing import (
     ArrayLike,
     Shape,
@@ -157,8 +159,14 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     """
     import pandas.core.computation.expressions as expressions
 
+    if isinstance(right, str):
+        # can never use numexpr
+        func = op
+    else:
+        func = partial(expressions.evaluate, op)
+
     try:
-        result = expressions.evaluate(op, left, right)
+        result = func(left, right)
     except TypeError:
         if is_cmp:
             # numexpr failed on comparison op, e.g. ndarray[float] > datetime
@@ -199,7 +207,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     rvalues = ensure_wrapped_if_datetimelike(right)
     rvalues = _maybe_upcast_for_op(rvalues, lvalues.shape)
 
-    if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
+    if should_extension_dispatch(lvalues, rvalues) or isinstance(
+        rvalues, (Timedelta, BaseOffset, Timestamp, NaTType)
+    ):
         # Timedelta is included because numexpr will fail on it, see GH#31457
         res_values = op(lvalues, rvalues)
 
@@ -243,7 +253,9 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
                 "Lengths must match to compare", lvalues.shape, rvalues.shape
             )
 
-    if should_extension_dispatch(lvalues, rvalues):
+    if should_extension_dispatch(lvalues, rvalues) or isinstance(
+        rvalues, (Timedelta, BaseOffset, Timestamp, NaTType)
+    ):
         # Call the method on lvalues
         res_values = op(lvalues, rvalues)
 
@@ -258,7 +270,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # GH#36377 going through the numexpr path would incorrectly raise
         return invalid_comparison(lvalues, rvalues, op)
 
-    elif is_object_dtype(lvalues.dtype):
+    elif is_object_dtype(lvalues.dtype) or isinstance(rvalues, str):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
@@ -444,11 +456,13 @@ def _maybe_upcast_for_op(obj, shape: Shape):
         TimedeltaArray,
     )
 
-    if type(obj) is timedelta:
+    if type(obj) is datetime.timedelta:
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
         return Timedelta(obj)
+    elif type(obj) is datetime.datetime:
+        return Timestamp(obj)
     elif isinstance(obj, np.datetime64):
         # GH#28080 numpy casts integer-dtype to datetime64 when doing
         #  array[int] + datetime64, which we do not allow

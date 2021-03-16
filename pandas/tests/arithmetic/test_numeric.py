@@ -27,6 +27,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core import ops
+from pandas.core.computation import expressions as expr
 
 
 @pytest.fixture(params=[Index, Series, tm.to_array])
@@ -127,7 +128,12 @@ class TestNumericComparisons:
         result = obj != "a"
         tm.assert_equal(result, ~expected)
 
-        msg = "Invalid comparison between dtype=float64 and str"
+        msg = "|".join(
+            [
+                "Invalid comparison between dtype=float64 and str",
+                "'<' not supported between instances of 'numpy.ndarray' and 'str'",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             obj < "a"
 
@@ -390,7 +396,7 @@ class TestDivisionByZero:
     # ------------------------------------------------------------------
 
     @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
-    def test_ser_div_ser(self, dtype1, any_real_dtype):
+    def test_ser_div_ser(self, switch_numexpr_min_elements, dtype1, any_real_dtype):
         # no longer do integer div for any ops, but deal with the 0's
         dtype2 = any_real_dtype
 
@@ -404,6 +410,11 @@ class TestDivisionByZero:
                 name=None,
             )
         expected.iloc[0:3] = np.inf
+        if first.dtype == "int64" and second.dtype == "float32":
+            # when using numexpr, the casting rules are slightly different
+            # and int64/float32 combo results in float32 instead of float64
+            if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
+                expected = expected.astype("float32")
 
         result = first / second
         tm.assert_series_equal(result, expected)
