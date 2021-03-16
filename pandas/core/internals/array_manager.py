@@ -1045,6 +1045,9 @@ class ArrayManager(DataManager):
             else np.asanyarray(indexer, dtype="int64")
         )
 
+        if not indexer.ndim == 1:
+            raise ValueError("indexer should be 1-dimensional")
+
         n = self.shape_proper[axis]
         indexer = maybe_convert_indices(indexer, n, verify=verify)
 

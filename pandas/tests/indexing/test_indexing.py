@@ -84,6 +84,8 @@ class TestFancy:
                 msgs.append("Passed array should be 1-dimensional")
         if frame_or_series is Series or indexer_sli is tm.iloc:
             msgs.append(r"Buffer has wrong number of dimensions \(expected 1, got 3\)")
+            if using_array_manager:
+                msgs.append("indexer should be 1-dimensional")
         if indexer_sli is tm.loc or (
             frame_or_series is Series and indexer_sli is tm.setitem
         ):
