@@ -630,7 +630,7 @@ cdef class BaseMultiIndexCodesEngine:
 
         Parameters
         ----------
-        target: list-like of tuples
+        target: ndarray[object] of tuples
             need not be sorted, but all must have the same length, which must be
             the same as the length of all tuples in `values`
         values : ndarray[object] of tuples
