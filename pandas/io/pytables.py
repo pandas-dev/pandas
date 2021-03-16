@@ -3963,7 +3963,9 @@ class Table(Fixed):
 
             typ = klass._get_atom(data_converted)
             kind = _dtype_to_kind(data_converted.dtype.name)
-            tz = _get_tz(data_converted.tz) if hasattr(data_converted, "tz") else None
+            tz = None
+            if getattr(data_converted, "tz", None) is not None:
+                tz = _get_tz(data_converted.tz)
 
             meta = metadata = ordered = None
             if is_categorical_dtype(data_converted.dtype):
