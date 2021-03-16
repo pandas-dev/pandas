@@ -932,6 +932,7 @@ class ArrayManager(DataManager):
                 raise ValueError(
                     f"Expected a 1D array, got an array with shape {value.shape}"
                 )
+        value = ensure_wrapped_if_datetimelike(value)
 
         # TODO self.arrays can be empty
         # assert len(value) == len(self.arrays[0])
