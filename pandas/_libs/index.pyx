@@ -259,11 +259,11 @@ cdef class IndexEngine:
         self.monotonic_inc = 0
         self.monotonic_dec = 0
 
-    def get_indexer(self, values):
+    def get_indexer(self, ndarray values):
         self._ensure_mapping_populated()
         return self.mapping.lookup(values)
 
-    def get_indexer_non_unique(self, targets):
+    def get_indexer_non_unique(self, ndarray targets):
         """
         Return an indexer suitable for taking from a non unique index
         return the labels in the same order as the target
@@ -451,11 +451,11 @@ cdef class DatetimeEngine(Int64Engine):
         except KeyError:
             raise KeyError(val)
 
-    def get_indexer_non_unique(self, targets):
+    def get_indexer_non_unique(self, ndarray targets):
         # we may get datetime64[ns] or timedelta64[ns], cast these to int64
         return super().get_indexer_non_unique(targets.view("i8"))
 
-    def get_indexer(self, values):
+    def get_indexer(self, ndarray values):
         self._ensure_mapping_populated()
         if values.dtype != self._get_box_dtype():
             return np.repeat(-1, len(values)).astype('i4')
@@ -613,7 +613,7 @@ cdef class BaseMultiIndexCodesEngine:
         lab_ints = self._extract_level_codes(target)
         return self._base.get_indexer(self, lab_ints)
 
-    def get_indexer(self, object target, object values = None,
+    def get_indexer(self, object target, ndarray values = None,
                     object method = None, object limit = None) -> np.ndarray:
         """
         Returns an array giving the positions of each value of `target` in
@@ -718,7 +718,7 @@ cdef class BaseMultiIndexCodesEngine:
 
         return self._base.get_loc(self, lab_int)
 
-    def get_indexer_non_unique(self, object target):
+    def get_indexer_non_unique(self, ndarray target):
         # This needs to be overridden just because the default one works on
         # target._values, and target can be itself a MultiIndex.
 
