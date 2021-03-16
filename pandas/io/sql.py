@@ -883,7 +883,10 @@ class SQLTable(PandasObject):
         list of str
             primary key values in incoming dataframe which already exist in database
         """
-        from sqlalchemy import and_, select
+        from sqlalchemy import (
+            and_,
+            select,
+        )
 
         cols_to_fetch = [self.table.c[key] for key in primary_keys]
         # select_stmt = select(cols_to_fetch).where(
@@ -945,18 +948,21 @@ class SQLTable(PandasObject):
         list of sqlalchemy.sql.dml.Update
             List of update queries
         """
-        from sqlalchemy import tuple_
+        from sqlalchemy import and_
 
         new_records = rows_to_update.to_dict(orient="records")
+        pk_cols = [self.table.c[key] for key in primary_keys]
+
         # TODO: Move this or remove entirely
         assert len(new_records) == len(
             keys_in_db
         ), "Mismatch between new records and existing keys"
+
         stmts = []
         for i, keys in enumerate(keys_in_db):
             stmt = (
                 self.table.update()
-                .where(tuple_(*(self.table.c[key] for key in primary_keys)).in_([keys]))
+                .where(and_(col == keys[j] for j, col in enumerate(pk_cols)))
                 .values(new_records[i])
             )
             stmts.append(stmt)
