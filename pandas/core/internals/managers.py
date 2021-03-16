@@ -1735,30 +1735,19 @@ class SingleBlockManager(BlockManager, SingleDataManager):
 # Constructor Helpers
 
 
-def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
+def create_block_manager_from_blocks(
+    blocks: List[Block], axes: List[Index]
+) -> BlockManager:
     try:
-        if len(blocks) == 1 and not isinstance(blocks[0], Block):
-            # if blocks[0] is of length 0, return empty blocks
-            if not len(blocks[0]):
-                blocks = []
-            else:
-                # It's OK if a single block is passed as values, its placement
-                # is basically "all items", but if there're many, don't bother
-                # converting, it's an error anyway.
-                blocks = [
-                    new_block(
-                        values=blocks[0], placement=slice(0, len(axes[0])), ndim=2
-                    )
-                ]
-
         mgr = BlockManager(blocks, axes)
-        mgr._consolidate_inplace()
-        return mgr
 
-    except ValueError as e:
-        blocks = [getattr(b, "values", b) for b in blocks]
-        tot_items = sum(b.shape[0] for b in blocks)
-        raise construction_error(tot_items, blocks[0].shape[1:], axes, e)
+    except ValueError as err:
+        arrays = [blk.values for blk in blocks]
+        tot_items = sum(arr.shape[0] for arr in arrays)
+        raise construction_error(tot_items, arrays[0].shape[1:], axes, err)
+
+    mgr._consolidate_inplace()
+    return mgr
 
 
 # We define this here so we can override it in tests.extension.test_numpy
