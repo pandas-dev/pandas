@@ -28,6 +28,7 @@ from pandas._typing import (
     DtypeObj,
     F,
     Scalar,
+    Shape,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -650,22 +651,16 @@ def nanmean(
         values, skipna, fill_value=0, mask=mask
     )
     dtype_sum = dtype_max
-    dtype_count = np.float64
+    dtype_count = np.dtype(np.float64)
 
     # not using needs_i8_conversion because that includes period
     if dtype.kind in ["m", "M"]:
-        # error: Incompatible types in assignment (expression has type "Type[float64]",
-        # variable has type "dtype[Any]")
-        dtype_sum = np.float64  # type: ignore[assignment]
+        dtype_sum = np.dtype(np.float64)
     elif is_integer_dtype(dtype):
-        # error: Incompatible types in assignment (expression has type "Type[float64]",
-        # variable has type "dtype[Any]")
-        dtype_sum = np.float64  # type: ignore[assignment]
+        dtype_sum = np.dtype(np.float64)
     elif is_float_dtype(dtype):
         dtype_sum = dtype
-        # error: Incompatible types in assignment (expression has type "dtype[Any]",
-        # variable has type "Type[float64]")
-        dtype_count = dtype  # type: ignore[assignment]
+        dtype_count = dtype
 
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
@@ -787,7 +782,7 @@ def get_empty_reduction_result(
 
 
 def _get_counts_nanvar(
-    value_counts: Tuple[int],
+    values_shape: Shape,
     mask: Optional[np.ndarray],
     axis: Optional[int],
     ddof: int,
@@ -799,7 +794,7 @@ def _get_counts_nanvar(
 
     Parameters
     ----------
-    values_shape : Tuple[int]
+    values_shape : Tuple[int, ...]
         shape tuple from values ndarray, used if mask is None
     mask : Optional[ndarray[bool]]
         locations in values that should be considered missing
@@ -816,7 +811,7 @@ def _get_counts_nanvar(
     d : scalar or array
     """
     dtype = get_dtype(dtype)
-    count = _get_counts(value_counts, mask, axis, dtype=dtype)
+    count = _get_counts(values_shape, mask, axis, dtype=dtype)
     # error: Unsupported operand types for - ("int" and "generic")
     # error: Unsupported operand types for - ("float" and "generic")
     d = count - dtype.type(ddof)  # type: ignore[operator]
@@ -991,11 +986,7 @@ def nansem(
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
 
-    # error: Argument 1 to "_get_counts_nanvar" has incompatible type
-    # "Tuple[int, ...]"; expected "Tuple[int]"
-    count, _ = _get_counts_nanvar(
-        values.shape, mask, axis, ddof, values.dtype  # type: ignore[arg-type]
-    )
+    count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
     var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof)
 
     return np.sqrt(var) / np.sqrt(count)
