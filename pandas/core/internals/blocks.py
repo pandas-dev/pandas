@@ -25,7 +25,6 @@ from pandas._libs import (
     writers,
 )
 from pandas._libs.internals import BlockPlacement
-from pandas._libs.tslibs import conversion
 from pandas._typing import (
     ArrayLike,
     Dtype,
@@ -43,7 +42,6 @@ from pandas.core.dtypes.cast import (
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_upcast,
-    sanitize_to_nanoseconds,
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
@@ -115,6 +113,7 @@ if TYPE_CHECKING:
         Float64Index,
         Index,
     )
+    from pandas.core.arrays import TimedeltaArray
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 # comparison is faster than is_object_dtype
@@ -934,7 +933,11 @@ class Block(PandasObject):
             return self.coerce_to_target_dtype(value).setitem(indexer, value)
 
         if self.dtype.kind in ["m", "M"]:
-            arr = self.array_values().T
+            arr = self.values
+            if self.ndim > 1:
+                # Dont transpose with ndim=1 bc we would fail to invalidate
+                #  arr.freq
+                arr = arr.T
             arr[indexer] = value
             return self
 
@@ -1168,6 +1171,7 @@ class Block(PandasObject):
             limit_area=limit_area,
         )
 
+        values = maybe_coerce_values(values)
         blocks = [self.make_block_same_class(values)]
         return self._maybe_downcast(blocks, downcast)
 
@@ -1223,6 +1227,7 @@ class Block(PandasObject):
 
         # interp each column independently
         interp_values = np.apply_along_axis(func, axis, data)
+        interp_values = maybe_coerce_values(interp_values)
 
         blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
@@ -1845,15 +1850,23 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
     Block backed by an NDArrayBackedExtensionArray
     """
 
+    values: NDArrayBackedExtensionArray
+
+    @property
+    def is_view(self) -> bool:
+        """ return a boolean if I am possibly a view """
+        # check the ndarray values of the DatetimeIndex values
+        return self.values._ndarray.base is not None
+
     def internal_values(self):
         # Override to return DatetimeArray and TimedeltaArray
-        return self.array_values()
+        return self.values
 
     def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
-        values = self.array_values()
+        values = self.values
         if is_object_dtype(dtype):
             # DTA/TDA constructor and astype can handle 2D
             values = values.astype(object)
@@ -1863,7 +1876,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
         # TODO(EA2D): this can be removed if we ever have 2D EA
-        return self.array_values().reshape(self.shape)[key]
+        return self.values.reshape(self.shape)[key]
 
     def putmask(self, mask, new) -> List[Block]:
         mask = extract_bool_array(mask)
@@ -1872,14 +1885,13 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
             return self.astype(object).putmask(mask, new)
 
         # TODO(EA2D): reshape unnecessary with 2D EAs
-        arr = self.array_values().reshape(self.shape)
-        arr = cast("NDArrayBackedExtensionArray", arr)
+        arr = self.values.reshape(self.shape)
         arr.T.putmask(mask, new)
         return [self]
 
     def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
         # TODO(EA2D): reshape unnecessary with 2D EAs
-        arr = self.array_values().reshape(self.shape)
+        arr = self.values.reshape(self.shape)
 
         cond = extract_bool_array(cond)
 
@@ -1890,7 +1902,6 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 
         # TODO(EA2D): reshape not needed with 2D EAs
         res_values = res_values.reshape(self.values.shape)
-        res_values = maybe_coerce_values(res_values)
         nb = self.make_block_same_class(res_values)
         return [nb]
 
@@ -1915,17 +1926,15 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         by apply.
         """
         # TODO(EA2D): reshape not necessary with 2D EAs
-        values = self.array_values().reshape(self.shape)
+        values = self.values.reshape(self.shape)
 
         new_values = values - values.shift(n, axis=axis)
-        new_values = maybe_coerce_values(new_values)
         return [self.make_block(new_values)]
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
-        values = self.array_values().reshape(self.shape)
+        values = self.values.reshape(self.shape)
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
-        new_values = maybe_coerce_values(new_values)
         return [self.make_block_same_class(new_values)]
 
     def fillna(
@@ -1938,25 +1947,31 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
             # TODO: don't special-case td64
             return self.astype(object).fillna(value, limit, inplace, downcast)
 
-        values = self.array_values()
+        values = self.values
         values = values if inplace else values.copy()
         new_values = values.fillna(value=value, limit=limit)
-        new_values = maybe_coerce_values(new_values)
         return [self.make_block_same_class(values=new_values)]
 
 
 class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
+    values: Union[DatetimeArray, TimedeltaArray]
+
     is_numeric = False
     _can_hold_na = True
 
     def array_values(self):
-        return ensure_wrapped_if_datetimelike(self.values)
+        return self.values
+
+    def external_values(self):
+        # NB: for dt64tz this is different from np.asarray(self.values),
+        #  since that return an object-dtype ndarray of Timestamps.
+        return self.values._ndarray
 
     @property
     def _holder(self):
-        return type(self.array_values())
+        return type(self.values)
 
     @property
     def fill_value(self):
@@ -1964,7 +1979,7 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
     def to_native_types(self, na_rep="NaT", **kwargs):
         """ convert to our native types format """
-        arr = self.array_values()
+        arr = self.values
 
         result = arr._format_native_types(na_rep=na_rep, **kwargs)
         result = result.astype(object, copy=False)
@@ -1973,14 +1988,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
-
-    def set_inplace(self, locs, values):
-        """
-        See Block.set.__doc__
-        """
-        values = conversion.ensure_datetime64ns(values, copy=False)
-
-        self.values[locs] = values
 
 
 class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
@@ -2000,20 +2007,14 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     where = DatetimeBlock.where
     putmask = DatetimeLikeBlockMixin.putmask
     fillna = DatetimeLikeBlockMixin.fillna
+    external_values = DatetimeLikeBlockMixin.external_values
+
+    # error: Incompatible types in assignment (expression has type
+    # "Callable[[NDArrayBackedExtensionBlock], bool]", base class "ExtensionBlock"
+    # defined the type as "bool")  [assignment]
+    is_view = NDArrayBackedExtensionBlock.is_view  # type: ignore[assignment]
 
     array_values = ExtensionBlock.array_values
-
-    @property
-    def is_view(self) -> bool:
-        """ return a boolean if I am possibly a view """
-        # check the ndarray values of the DatetimeIndex values
-        return self.values._data.base is not None
-
-    def external_values(self):
-        # NB: this is different from np.asarray(self.values), since that
-        #  return an object-dtype ndarray of Timestamps.
-        # Avoid FutureWarning in .astype in casting from dt64tz to dt64
-        return self.values._data
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
@@ -2170,14 +2171,10 @@ def maybe_coerce_values(values) -> ArrayLike:
     values = extract_array(values, extract_numpy=True)
 
     if isinstance(values, np.ndarray):
-        values = sanitize_to_nanoseconds(values)
+        values = ensure_wrapped_if_datetimelike(values)
 
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
-
-    elif isinstance(values.dtype, np.dtype):
-        # i.e. not datetime64tz, extract DTA/TDA -> ndarray
-        values = values._data
 
     return values
 

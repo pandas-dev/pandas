@@ -397,7 +397,7 @@ def nargsort(
     return indexer
 
 
-def nargminmax(values, method: str):
+def nargminmax(values, method: str, axis: int = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -406,6 +406,7 @@ def nargminmax(values, method: str):
     ----------
     values : ExtensionArray
     method : {"argmax", "argmin"}
+    axis: int, default 0
 
     Returns
     -------
@@ -417,11 +418,16 @@ def nargminmax(values, method: str):
     mask = np.asarray(isna(values))
     values = values._values_for_argsort()
 
-    idx = np.arange(len(values))
+    idx = np.arange(values.shape[axis])
+    if values.ndim > 1:
+        if mask.any():
+            raise NotImplementedError
+        return func(values, axis=axis)
+
     non_nans = values[~mask]
     non_nan_idx = idx[~mask]
 
-    return non_nan_idx[func(non_nans)]
+    return non_nan_idx[func(non_nans, axis=axis)]
 
 
 def _ensure_key_mapped_multiindex(

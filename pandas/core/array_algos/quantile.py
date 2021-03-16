@@ -162,6 +162,10 @@ def quantile_ea_compat(
             assert result.shape == (1,), result.shape
             result = type(orig)._from_factorized(result, orig)
 
+        elif orig.ndim == 2:
+            # i.e. DatetimeArray
+            result = type(orig)._from_factorized(result, orig)
+
         else:
             assert result.shape == (1, len(qs)), result.shape
             result = type(orig)._from_factorized(result[0], orig)
