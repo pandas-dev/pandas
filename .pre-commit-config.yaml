@@ -2,7 +2,7 @@ minimum_pre_commit_version: 2.9.2
 exclude: ^LICENSES/|\.(html|csv|svg)$
 repos:
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
-    rev: v0.2.1
+    rev: v0.3.0
     hooks:
     -   id: absolufy-imports
         files: ^pandas/
@@ -33,7 +33,7 @@ repos:
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
 -   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.8.4
+    rev: 3.9.0
     hooks:
     -   id: flake8
         additional_dependencies: [flake8-comprehensions>=3.1.0]
