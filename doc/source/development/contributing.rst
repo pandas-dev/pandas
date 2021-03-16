@@ -612,7 +612,8 @@ For comparison, a full documentation build may take 15 minutes, but a single
 section may take 15 seconds. Subsequent builds, which only process portions
 you have changed, will be faster.
 
-You can also specify to use multiple cores to speed up the documentation build::
+The build will automatically use the number of cores available on your machine
+to speed up the documentation build. You can override this::
 
     python make.py html --num-jobs 4
 
@@ -713,7 +714,7 @@ to run its checks with::
 
 without needing to have done ``pre-commit install`` beforehand.
 
-If you want to run checks on all recently commited files on upstream/master you can use::
+If you want to run checks on all recently committed files on upstream/master you can use::
 
     pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files
 

@@ -5,11 +5,9 @@ from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
     List,
     Optional,
     Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -44,10 +42,8 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
     is_period_dtype,
-    is_scalar,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import (
     DatetimeArray,
@@ -86,25 +82,22 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     @staticmethod  # type: ignore[misc]
     def wrapper(left, right):
         # Note: these only get called with left.dtype == right.dtype
-        if isinstance(
-            left, (np.ndarray, DatetimeIndexOpsMixin, ABCSeries, DatetimeLikeArrayMixin)
-        ):
-            left = left.view("i8")
-        if isinstance(
-            right,
-            (np.ndarray, DatetimeIndexOpsMixin, ABCSeries, DatetimeLikeArrayMixin),
-        ):
-            right = right.view("i8")
+        orig_left = left
+
+        left = left.view("i8")
+        right = right.view("i8")
 
         results = joinf(left, right)
         if with_indexers:
-            # dtype should be timedelta64[ns] for TimedeltaIndex
-            #  and datetime64[ns] for DatetimeIndex
-            dtype = cast(np.dtype, left.dtype).base
 
             join_index, left_indexer, right_indexer = results
-            join_index = join_index.view(dtype)
+            if not isinstance(orig_left, np.ndarray):
+                # When called from Index._intersection/_union, we have the EA
+                join_index = join_index.view(orig_left._ndarray.dtype)
+                join_index = orig_left._from_backing_data(join_index)
+
             return join_index, left_indexer, right_indexer
+
         return results
 
     return wrapper
@@ -123,7 +116,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_strings = False
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
-    _data_cls: Union[Type[DatetimeArray], Type[TimedeltaArray], Type[PeriodArray]]
     freq: Optional[BaseOffset]
     freqstr: Optional[str]
     _resolution_obj: Resolution
@@ -136,25 +128,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     )
     _hasnans = hasnans  # for index / array -agnostic code
 
-    @classmethod
-    def _simple_new(
-        cls,
-        values: Union[DatetimeArray, TimedeltaArray, PeriodArray],
-        name: Optional[Hashable] = None,
-    ):
-        assert isinstance(values, cls._data_cls), type(values)
-
-        result = object.__new__(cls)
-        result._data = values
-        result._name = name
-        result._cache = {}
-
-        # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._data
-
-        result._reset_identity()
-        return result
-
     @property
     def _is_all_dates(self) -> bool:
         return True
@@ -165,7 +138,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     @property
     def values(self) -> np.ndarray:
         # Note: PeriodArray overrides this to return an ndarray of objects.
-        return self._data._data
+        return self._data._ndarray
 
     def __array_wrap__(self, result, context=None):
         """
@@ -223,12 +196,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
-            res = self.get_loc(key)
+            self.get_loc(key)
         except (KeyError, TypeError, ValueError):
             return False
-        return bool(
-            is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
-        )
+        return True
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
@@ -618,20 +589,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     @doc(NDArrayBackedExtensionIndex.insert)
     def insert(self, loc: int, item):
-        try:
-            result = super().insert(loc, item)
-        except (ValueError, TypeError):
-            # i.e. self._data._validate_scalar raised
-            return self.astype(object).insert(loc, item)
-
-        result._data._freq = self._get_insert_freq(loc, item)
+        result = super().insert(loc, item)
+        if isinstance(result, type(self)):
+            # i.e. parent class method did not cast
+            result._data._freq = self._get_insert_freq(loc, item)
         return result
-
-    def _validate_fill_value(self, value):
-        """
-        Convert value to be insertable to ndarray.
-        """
-        return self._data._validate_setitem_value(value)
 
     # --------------------------------------------------------------------
     # Join/Set Methods
@@ -656,7 +618,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     def _wrap_joined_index(self, joined: np.ndarray, other):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-
+        assert joined.dtype == "i8" or joined.dtype == self.dtype, joined.dtype
+        joined = joined.view(self._data._ndarray.dtype)
         result = super()._wrap_joined_index(joined, other)
         result._data._freq = self._get_join_freq(other)
         return result
@@ -714,6 +677,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             # We need to invalidate the freq because Index._intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
             #  self.freq if we're not careful.
+            # At this point we should have result.dtype == self.dtype
+            #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
             return result._with_freq(None)._with_freq("infer")
 
@@ -732,13 +697,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             result = self[:0]
         else:
             lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left._values[lslice]
-            # error: Argument 1 to "_simple_new" of "DatetimeIndexOpsMixin" has
-            # incompatible type "Union[ExtensionArray, Any]"; expected
-            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"
-            result = type(self)._simple_new(left_chunk)  # type: ignore[arg-type]
+            result = left._values[lslice]
 
-        return self._wrap_setop_result(other, result)
+        return result
 
     def _can_fast_intersect(self: _T, other: _T) -> bool:
         # Note: we only get here with len(self) > 0 and len(other) > 0
@@ -811,7 +772,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            right_chunk = right._values[:loc]
+            # error: Slice index must be an integer or None
+            right_chunk = right._values[:loc]  # type: ignore[misc]
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
@@ -827,7 +789,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            right_chunk = right._values[loc:]
+            # error: Slice index must be an integer or None
+            right_chunk = right._values[loc:]  # type: ignore[misc]
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
@@ -864,7 +827,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     _join_precedence = 10
 
     def join(
-        self, other, how: str = "left", level=None, return_indexers=False, sort=False
+        self,
+        other,
+        how: str = "left",
+        level=None,
+        return_indexers: bool = False,
+        sort: bool = False,
     ):
         """
         See Index.join
