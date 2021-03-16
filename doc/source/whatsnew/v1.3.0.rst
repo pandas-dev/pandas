@@ -225,6 +225,41 @@ In pandas 1.3.0, ``df`` continues to share data with ``values``
    np.shares_memory(df["A"], values)
 
 
+.. _whatsnew_130.notable_bug_fixes.setitem_never_inplace:
+
+Never Operate Inplace When Setting ``frame[keys] = values``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When setting multiple columns using ``frame[keys] = values`` new arrays will
+replace pre-existing arrays for these keys, which will *not* be over-written
+(:issue:`39510`).  As a result, the columns will retain the dtype(s) of ``values``,
+never casting to the dtypes of the existing arrays.
+
+.. ipython:: python
+
+   df = pd.DataFrame(range(3), columns=["A"], dtype="float64")
+   df[["A"]] = 5
+
+In the old behavior, ``5`` was cast to ``float64`` and inserted into the existing
+array backing ``df``:
+
+*pandas 1.2.x*
+
+.. code-block:: ipython
+
+   In [1]: df.dtypes
+   Out[1]:
+   A    float64
+
+In the new behavior, we get a new array, and retain an integer-dtyped ``5``:
+
+*pandas 1.3.0*
+
+.. ipython:: python
+
+   df.dtypes
+
+
 .. _whatsnew_130.notable_bug_fixes.setitem_with_bool_casting:
 
 Consistent Casting With Setting Into Boolean Series
@@ -300,7 +335,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +=================+=================+=========+
 | beautifulsoup4  | 4.6.0           |         |
 +-----------------+-----------------+---------+
-| fastparquet     | 0.3.2           |         |
+| fastparquet     | 0.4.0           |    X    |
 +-----------------+-----------------+---------+
 | fsspec          | 0.7.4           |         |
 +-----------------+-----------------+---------+
@@ -372,8 +407,9 @@ Deprecations
 - Deprecated :meth:`core.window.ewm.ExponentialMovingWindow.vol` (:issue:`39220`)
 - Using ``.astype`` to convert between ``datetime64[ns]`` dtype and :class:`DatetimeTZDtype` is deprecated and will raise in a future version, use ``obj.tz_localize`` or ``obj.dt.tz_localize`` instead (:issue:`38622`)
 - Deprecated casting ``datetime.date`` objects to ``datetime64`` when used as ``fill_value`` in :meth:`DataFrame.unstack`, :meth:`DataFrame.shift`, :meth:`Series.shift`, and :meth:`DataFrame.reindex`, pass ``pd.Timestamp(dateobj)`` instead (:issue:`39767`)
-- Deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` in favour of :meth:`.Styler.format` with ``na_rep`` and ``precision`` as existing and new input arguments respectively (:issue:`40134`)
+- Deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` in favour of :meth:`.Styler.format` with ``na_rep`` and ``precision`` as existing and new input arguments respectively (:issue:`40134`, :issue:`40425`)
 - Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like; will raise if any function fails on a column in a future version (:issue:`40211`)
+- Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
 
 .. ---------------------------------------------------------------------------
 
@@ -460,7 +496,7 @@ Conversion
 - Bug in :meth:`Series.view` and :meth:`Index.view` when converting between datetime-like (``datetime64[ns]``, ``datetime64[ns, tz]``, ``timedelta64``, ``period``) dtypes (:issue:`39788`)
 - Bug in creating a :class:`DataFrame` from an empty ``np.recarray`` not retaining the original dtypes (:issue:`40121`)
 - Bug in :class:`DataFrame` failing to raise ``TypeError`` when constructing from a ``frozenset`` (:issue:`40163`)
--
+- Bug in :class:`Index` construction silently ignoring a passed ``dtype`` when the data cannot be cast to that dtype (:issue:`21311`)
 
 Strings
 ^^^^^^^
@@ -597,6 +633,7 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` returning a ``MultiIndex`` for a single value when operating on and empty ``DataFrame`` (:issue:`13483`)
 - Allow :class:`Index` to be passed to the :func:`numpy.all` function (:issue:`40180`)
 - Bug in :meth:`DataFrame.stack` not preserving ``CategoricalDtype`` in a ``MultiIndex`` (:issue:`36991`)
+- Bug in :func:`to_datetime` raising error when input sequence contains unhashable items (:issue:`39756`)
 
 Sparse
 ^^^^^^
@@ -630,6 +667,7 @@ Other
 - Bug in :class:`Styler` where multiple elements in CSS-selectors were not correctly added to ``table_styles`` (:issue:`39942`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
+- Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)
 
 
 .. ---------------------------------------------------------------------------

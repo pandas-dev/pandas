@@ -1,5 +1,7 @@
 import warnings
 
+cimport cython
+
 import numpy as np
 
 cimport numpy as cnp
@@ -47,6 +49,7 @@ cdef inline bint is_definitely_invalid_key(object val):
 _SIZE_CUTOFF = 1_000_000
 
 
+@cython.freelist(32)
 cdef class IndexEngine:
 
     cdef readonly:
