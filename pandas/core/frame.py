@@ -478,8 +478,8 @@ class DataFrame(NDFrame, OpsMixin):
         Data type to force. Only a single dtype is allowed. If None, infer.
     copy : bool or None, default None
         Copy data from inputs.
-        For dict data, passing None behaves like copy=True.  For all other
-        data types, passing None behaves like copy=False.
+        For dict data, the default of None behaves like ``copy=True``.  For DataFrame
+        or 2d ndarray input, the default of None behaves like ``copy=False``.
 
     See Also
     --------
