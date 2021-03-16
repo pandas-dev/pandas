@@ -289,7 +289,7 @@ def _convert_listlike_datetimes(
     name: Hashable = None,
     tz: Optional[Timezone] = None,
     unit: Optional[str] = None,
-    errors: Optional[str] = None,
+    errors: str = "raise",
     infer_datetime_format: bool = False,
     dayfirst: Optional[bool] = None,
     yearfirst: Optional[bool] = None,
@@ -432,7 +432,7 @@ def _array_strptime_with_fallback(
     tz,
     fmt: str,
     exact: bool,
-    errors: Optional[str],
+    errors: str,
     infer_datetime_format: bool,
 ) -> Optional[Index]:
     """
@@ -480,7 +480,7 @@ def _to_datetime_with_format(
     tz,
     fmt: str,
     exact: bool,
-    errors: Optional[str],
+    errors: str,
     infer_datetime_format: bool,
 ) -> Optional[Index]:
     """
