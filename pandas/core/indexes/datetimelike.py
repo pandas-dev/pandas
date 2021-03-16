@@ -645,7 +645,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
-        return type(self)._simple_new(arr, name=self.name)
+        return type(self)._simple_new(arr, name=self._name)
 
     @property
     def _has_complex_internals(self) -> bool:
