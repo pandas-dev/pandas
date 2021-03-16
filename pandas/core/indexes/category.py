@@ -240,7 +240,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         values: Categorical,
         name: Hashable = no_default,
     ):
-        name = self.name if name is no_default else name
+        name = self._name if name is no_default else name
 
         if values is not None:
             # In tests we only get here with Categorical objects that
@@ -375,7 +375,15 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
         value = self._require_scalar(value)
-        cat = self._data.fillna(value)
+        try:
+            cat = self._data.fillna(value)
+        except (ValueError, TypeError):
+            # invalid fill_value
+            if not self.isna().any():
+                # nothing to fill, we can get away without casting
+                return self.copy()
+            return self.astype(object).fillna(value, downcast=downcast)
+
         return type(self)._simple_new(cat, name=self.name)
 
     @doc(Index.unique)

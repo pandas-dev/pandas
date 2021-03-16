@@ -1487,6 +1487,28 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             self._left.putmask(mask, value_left)
             self._right.putmask(mask, value_right)
 
+    def insert(self: IntervalArrayT, loc: int, item: Interval) -> IntervalArrayT:
+        """
+        Return a new IntervalArray inserting new item at location. Follows
+        Python list.append semantics for negative values.  Only Interval
+        objects and NA can be inserted into an IntervalIndex
+
+        Parameters
+        ----------
+        loc : int
+        item : Interval
+
+        Returns
+        -------
+        IntervalArray
+        """
+        left_insert, right_insert = self._validate_scalar(item)
+
+        new_left = self.left.insert(loc, left_insert)
+        new_right = self.right.insert(loc, right_insert)
+
+        return self._shallow_copy(new_left, new_right)
+
     def delete(self: IntervalArrayT, loc) -> IntervalArrayT:
         if isinstance(self._left, np.ndarray):
             new_left = np.delete(self._left, loc)
