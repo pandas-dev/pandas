@@ -539,6 +539,7 @@ I/O
 - Bug in :func:`read_hdf` returning unexpected records when filtering on categorical string columns using ``where`` parameter (:issue:`39189`)
 - Bug in :func:`read_sas` raising ``ValueError`` when ``datetimes`` were null (:issue:`39725`)
 - Bug in :func:`read_excel` dropping empty values from single-column spreadsheets (:issue:`39808`)
+- Bug in :func:`read_csv` segmentation fault on malformed input (:issue:`14782`)
 
 Period
 ^^^^^^
