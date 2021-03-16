@@ -23,6 +23,7 @@ from pandas._libs import (
     internals as libinternals,
     lib,
 )
+from pandas._libs.internals import BlockPlacement
 from pandas._typing import (
     ArrayLike,
     Dtype,
@@ -801,8 +802,7 @@ class BlockManager(DataManager):
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
         elif axis == 1:
-            slicer = (slice(None), slobj)
-            new_blocks = [blk.getitem_block(slicer) for blk in self.blocks]
+            new_blocks = [blk.getitem_block_index(slobj) for blk in self.blocks]
         else:
             raise IndexError("Requested axis not found in manager")
 
@@ -1396,7 +1396,8 @@ class BlockManager(DataManager):
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
                     return []
-                return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
+                bp = BlockPlacement(slice(0, sllen))
+                return [blk.getitem_block_columns(slobj, new_mgr_locs=bp)]
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_value is None:
                     fill_value = blk.fill_value
@@ -1405,7 +1406,9 @@ class BlockManager(DataManager):
                     # GH#33597 slice instead of take, so we get
                     #  views instead of copies
                     blocks = [
-                        blk.getitem_block(slice(ml, ml + 1), new_mgr_locs=i)
+                        blk.getitem_block_columns(
+                            slice(ml, ml + 1), new_mgr_locs=BlockPlacement(i)
+                        )
                         for i, ml in enumerate(slobj)
                     ]
                     # We have
@@ -1465,13 +1468,15 @@ class BlockManager(DataManager):
                         taker = lib.maybe_indices_to_slice(taker, max_len)
 
                     if isinstance(taker, slice):
-                        nb = blk.getitem_block(taker, new_mgr_locs=mgr_locs)
+                        nb = blk.getitem_block_columns(taker, new_mgr_locs=mgr_locs)
                         blocks.append(nb)
                     elif only_slice:
                         # GH#33597 slice instead of take, so we get
                         #  views instead of copies
                         for i, ml in zip(taker, mgr_locs):
-                            nb = blk.getitem_block(slice(i, i + 1), new_mgr_locs=ml)
+                            slc = slice(i, i + 1)
+                            bp = BlockPlacement(ml)
+                            nb = blk.getitem_block_columns(slc, new_mgr_locs=bp)
                             # We have np.shares_memory(nb.values, blk.values)
                             blocks.append(nb)
                     else:
