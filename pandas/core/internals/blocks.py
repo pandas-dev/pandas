@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import wraps
 import re
 from typing import (
     TYPE_CHECKING,
@@ -30,6 +31,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     DtypeObj,
+    F,
     Shape,
     final,
 )
@@ -119,6 +121,24 @@ if TYPE_CHECKING:
 
 # comparison is faster than is_object_dtype
 _dtype_obj = np.dtype("object")
+
+
+def maybe_split(meth: F) -> F:
+    """
+    If we have a multi-column block, split and operate block-wise.  Otherwise
+    use the original method.
+    """
+
+    @wraps(meth)
+    def newfunc(self, *args, **kwargs) -> List[Block]:
+
+        if self.ndim == 1 or self.shape[0] == 1:
+            return meth(self, *args, **kwargs)
+        else:
+            # Split and operate column-by-column
+            return self.split_and_operate(meth, *args, **kwargs)
+
+    return cast(F, newfunc)
 
 
 class Block(PandasObject):
@@ -464,17 +484,16 @@ class Block(PandasObject):
             # we can't process the value, but nothing to do
             return [self] if inplace else [self.copy()]
 
-        # operate column-by-column
-        def f(mask, val, idx):
-            block = self.coerce_to_target_dtype(value)
+        elif self.ndim == 1 or self.shape[0] == 1:
+            blk = self.coerce_to_target_dtype(value)
+            # bc we have already cast, inplace=True may avoid an extra copy
+            return blk.fillna(value, limit=limit, inplace=True, downcast=None)
 
-            # slice out our block
-            if idx is not None:
-                # i.e. self.ndim == 2
-                block = block.getitem_block(slice(idx, idx + 1))
-            return block.fillna(value, limit=limit, inplace=inplace, downcast=None)
-
-        return self.split_and_operate(None, f, inplace)
+        else:
+            # operate column-by-column
+            return self.split_and_operate(
+                type(self).fillna, value, limit=limit, inplace=inplace, downcast=None
+            )
 
     @final
     def _split(self) -> List[Block]:
@@ -492,75 +511,27 @@ class Block(PandasObject):
         return new_blocks
 
     @final
-    def split_and_operate(
-        self, mask, f, inplace: bool, ignore_failures: bool = False
-    ) -> List[Block]:
+    def split_and_operate(self, func, *args, **kwargs) -> List[Block]:
         """
-        split the block per-column, and apply the callable f
-        per-column, return a new block for each. Handle
-        masking which will not change a block unless needed.
+        Split the block and apply func column-by-column.
 
         Parameters
         ----------
-        mask : 2-d boolean mask
-        f : callable accepting (1d-mask, 1d values, indexer)
-        inplace : bool
-        ignore_failures : bool, default False
+        func : Block method
+        *args
+        **kwargs
 
         Returns
         -------
-        list of blocks
+        List[Block]
         """
-        if mask is None:
-            mask = np.broadcast_to(True, shape=self.shape)
+        assert self.ndim == 2 and self.shape[0] != 1
 
-        new_values = self.values
-
-        def make_a_block(nv, ref_loc):
-            if isinstance(nv, list):
-                assert len(nv) == 1, nv
-                assert isinstance(nv[0], Block)
-                block = nv[0]
-            else:
-                # Put back the dimension that was taken from it and make
-                # a block out of the result.
-                nv = ensure_block_shape(nv, ndim=self.ndim)
-                block = self.make_block(values=nv, placement=ref_loc)
-            return block
-
-        # ndim == 1
-        if self.ndim == 1:
-            if mask.any():
-                nv = f(mask, new_values, None)
-            else:
-                nv = new_values if inplace else new_values.copy()
-            block = make_a_block(nv, self._mgr_locs)
-            return [block]
-
-        # ndim > 1
-        new_blocks = []
-        for i, ref_loc in enumerate(self._mgr_locs):
-            m = mask[i]
-            v = new_values[i]
-
-            # need a new block
-            if m.any() or m.size == 0:
-                # Apply our function; we may ignore_failures if this is a
-                #  reduction that is dropping nuisance columns GH#37827
-                try:
-                    nv = f(m, v, i)
-                except TypeError:
-                    if ignore_failures:
-                        continue
-                    else:
-                        raise
-            else:
-                nv = v if inplace else v.copy()
-
-            block = make_a_block(nv, [ref_loc])
-            new_blocks.append(block)
-
-        return new_blocks
+        res_blocks = []
+        for nb in self._split():
+            rbs = func(nb, *args, **kwargs)
+            res_blocks.extend(rbs)
+        return res_blocks
 
     def _maybe_downcast(self, blocks: List[Block], downcast=None) -> List[Block]:
 
@@ -600,13 +571,17 @@ class Block(PandasObject):
         elif dtypes != "infer":
             raise AssertionError("dtypes as dict is not supported yet")
 
-        # operate column-by-column
-        # this is expensive as it splits the blocks items-by-item
-        def f(mask, val, idx):
-            val = maybe_downcast_to_dtype(val, dtype="infer")
-            return val
+        return self._downcast_2d()
 
-        return self.split_and_operate(None, f, False)
+    @maybe_split
+    def _downcast_2d(self) -> List[Block]:
+        """
+        downcast specialized to 2D case post-validation.
+
+        Refactored to allow use of maybe_split.
+        """
+        new_values = maybe_downcast_to_dtype(self.values, dtype="infer")
+        return [self.make_block(new_values)]
 
     @final
     def astype(self, dtype, copy: bool = False, errors: str = "raise"):
@@ -735,18 +710,13 @@ class Block(PandasObject):
             #  bc _can_hold_element is incorrect.
             return [self] if inplace else [self.copy()]
 
-        if not self._can_hold_element(value):
-            if self.ndim == 2 and self.shape[0] > 1:
-                # split so that we only upcast where necessary
-                nbs = self._split()
-                res_blocks = extend_blocks(
-                    [
-                        blk.replace(to_replace, value, inplace=inplace, regex=regex)
-                        for blk in nbs
-                    ]
-                )
-                return res_blocks
+        elif self._can_hold_element(value):
+            blk = self if inplace else self.copy()
+            putmask_inplace(blk.values, mask, value)
+            blocks = blk.convert(numeric=False, copy=False)
+            return blocks
 
+        elif self.ndim == 1 or self.shape[0] == 1:
             blk = self.coerce_to_target_dtype(value)
             return blk.replace(
                 to_replace=to_replace,
@@ -755,10 +725,11 @@ class Block(PandasObject):
                 regex=regex,
             )
 
-        blk = self if inplace else self.copy()
-        putmask_inplace(blk.values, mask, value)
-        blocks = blk.convert(numeric=False, copy=False)
-        return blocks
+        else:
+            # split so that we only upcast where necessary
+            return self.split_and_operate(
+                type(self).replace, to_replace, value, inplace=inplace, regex=regex
+            )
 
     @final
     def _replace_regex(
@@ -2048,6 +2019,8 @@ class ObjectBlock(Block):
     is_object = True
     _can_hold_na = True
 
+    values: np.ndarray
+
     @property
     def is_bool(self):
         """
@@ -2056,26 +2029,15 @@ class ObjectBlock(Block):
         """
         return lib.is_bool_array(self.values.ravel("K"))
 
+    @maybe_split
     def reduce(self, func, ignore_failures: bool = False) -> List[Block]:
         """
         For object-dtype, we operate column-wise.
         """
         assert self.ndim == 2
 
-        values = self.values
-        if len(values) > 1:
-            # split_and_operate expects func with signature (mask, values, inplace)
-            def mask_func(mask, values, inplace):
-                if values.ndim == 1:
-                    values = values.reshape(1, -1)
-                return func(values)
-
-            return self.split_and_operate(
-                None, mask_func, False, ignore_failures=ignore_failures
-            )
-
         try:
-            res = func(values)
+            res = func(self.values)
         except TypeError:
             if not ignore_failures:
                 raise
@@ -2086,6 +2048,7 @@ class ObjectBlock(Block):
         res = res.reshape(1, -1)
         return [self.make_block_same_class(res)]
 
+    @maybe_split
     def convert(
         self,
         copy: bool = True,
@@ -2097,30 +2060,15 @@ class ObjectBlock(Block):
         attempt to cast any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
         """
-
-        # operate column-by-column
-        def f(mask, val, idx):
-            shape = val.shape
-            values = soft_convert_objects(
-                val.ravel(),
-                datetime=datetime,
-                numeric=numeric,
-                timedelta=timedelta,
-                copy=copy,
-            )
-            if isinstance(values, np.ndarray):
-                # TODO(EA2D): allow EA once reshape is supported
-                values = values.reshape(shape)
-
-            return values
-
-        if self.ndim == 2:
-            blocks = self.split_and_operate(None, f, False)
-        else:
-            values = f(None, self.values.ravel(), None)
-            blocks = [self.make_block(values)]
-
-        return blocks
+        res_values = soft_convert_objects(
+            self.values.ravel(),
+            datetime=datetime,
+            numeric=numeric,
+            timedelta=timedelta,
+            copy=copy,
+        )
+        res_values = ensure_block_shape(res_values, self.ndim)
+        return [self.make_block(res_values)]
 
     def _maybe_downcast(self, blocks: List[Block], downcast=None) -> List[Block]:
 
