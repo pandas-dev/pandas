@@ -2146,7 +2146,9 @@ def objects_to_datetime64ns(
             require_iso8601=require_iso8601,
             allow_mixed=allow_mixed,
         )
-        result = result.reshape(data.shape, order=order)
+        # error: No overload variant of "reshape" of "_ArrayOrScalarCommon"
+        # matches argument types "Tuple[int, ...]", "str"
+        result = result.reshape(data.shape, order=order)  # type: ignore[call-overload]
     except ValueError as err:
         try:
             values, tz_parsed = conversion.datetime_to_datetime64(data.ravel("K"))
