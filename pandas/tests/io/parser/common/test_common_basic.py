@@ -755,6 +755,7 @@ def test_encoding_surrogatepass(all_parsers):
             parser.read_csv(path)
 
 
+
 def test_deprecated_bad_lines_warns(all_parsers, csv1):
     # GH 15122
     parser = all_parsers
@@ -770,3 +771,11 @@ def test_deprecated_bad_lines_warns(all_parsers, csv1):
         "and will be removed in a future version.\n\n",
     ):
         parser.read_csv(csv1, warn_bad_lines=False)
+
+def test_malformed_second_line(all_parsers):
+    # see GH14782
+    parser = all_parsers
+    data = "\na\nb\n"
+    result = parser.read_csv(StringIO(data), skip_blank_lines=False, header=1)
+    expected = DataFrame({"a": ["b"]})
+    tm.assert_frame_equal(result, expected)
