@@ -861,22 +861,27 @@ class TestIndexing:
             assert_slice_ok(mgr, ax, slice(1, 4))
             assert_slice_ok(mgr, ax, slice(3, 0, -2))
 
-            # boolean mask
-            assert_slice_ok(mgr, ax, np.array([], dtype=np.bool_))
-            assert_slice_ok(mgr, ax, np.ones(mgr.shape[ax], dtype=np.bool_))
-            assert_slice_ok(mgr, ax, np.zeros(mgr.shape[ax], dtype=np.bool_))
+            if mgr.ndim < 2:
+                # 2D only support slice objects
 
-            if mgr.shape[ax] >= 3:
-                assert_slice_ok(mgr, ax, np.arange(mgr.shape[ax]) % 3 == 0)
-                assert_slice_ok(mgr, ax, np.array([True, True, False], dtype=np.bool_))
+                # boolean mask
+                assert_slice_ok(mgr, ax, np.array([], dtype=np.bool_))
+                assert_slice_ok(mgr, ax, np.ones(mgr.shape[ax], dtype=np.bool_))
+                assert_slice_ok(mgr, ax, np.zeros(mgr.shape[ax], dtype=np.bool_))
 
-            # fancy indexer
-            assert_slice_ok(mgr, ax, [])
-            assert_slice_ok(mgr, ax, list(range(mgr.shape[ax])))
+                if mgr.shape[ax] >= 3:
+                    assert_slice_ok(mgr, ax, np.arange(mgr.shape[ax]) % 3 == 0)
+                    assert_slice_ok(
+                        mgr, ax, np.array([True, True, False], dtype=np.bool_)
+                    )
 
-            if mgr.shape[ax] >= 3:
-                assert_slice_ok(mgr, ax, [0, 1, 2])
-                assert_slice_ok(mgr, ax, [-1, -2, -3])
+                # fancy indexer
+                assert_slice_ok(mgr, ax, [])
+                assert_slice_ok(mgr, ax, list(range(mgr.shape[ax])))
+
+                if mgr.shape[ax] >= 3:
+                    assert_slice_ok(mgr, ax, [0, 1, 2])
+                    assert_slice_ok(mgr, ax, [-1, -2, -3])
 
     @pytest.mark.parametrize("mgr", MANAGERS)
     def test_take(self, mgr):
