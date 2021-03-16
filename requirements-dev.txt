@@ -78,4 +78,3 @@ tabulate>=0.8.3
 natsort
 git+https://github.com/pydata/pydata-sphinx-theme.git@master
 numpydoc < 1.2
-tokenize_rt
