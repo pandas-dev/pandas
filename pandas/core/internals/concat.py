@@ -53,7 +53,7 @@ if TYPE_CHECKING:
     from pandas import Index
 
 
-def concatenate_array_managers(
+def _concatenate_array_managers(
     mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
@@ -111,7 +111,7 @@ def concatenate_managers(
     """
     # TODO(ArrayManager) this assumes that all managers are of the same type
     if isinstance(mgrs_indexers[0][0], ArrayManager):
-        return concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
+        return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
