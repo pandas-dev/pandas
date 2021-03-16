@@ -1,4 +1,4 @@
-.PHONY : develop build clean clean_pyc doc lint-diff black
+.PHONY : develop build clean clean_pyc doc lint-diff black test-scripts
 
 all: develop
 
@@ -25,3 +25,6 @@ doc:
 	cd doc; \
 	python make.py clean; \
 	python make.py html
+
+test-scripts:
+	pytest scripts
