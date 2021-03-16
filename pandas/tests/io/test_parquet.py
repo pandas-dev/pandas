@@ -916,7 +916,6 @@ class TestParquetPyArrow(Base):
 
 
 class TestParquetFastParquet(Base):
-    @td.skip_if_no("fastparquet", min_version="0.3.2")
     def test_basic(self, fp, df_full):
         df = df_full
 
