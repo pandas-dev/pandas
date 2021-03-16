@@ -15,7 +15,6 @@ mypy==0.812
 pre-commit>=2.9.2
 pycodestyle
 pyupgrade
-tokenize_rt
 gitpython
 gitdb
 sphinx
@@ -79,3 +78,4 @@ tabulate>=0.8.3
 natsort
 git+https://github.com/pydata/pydata-sphinx-theme.git@master
 numpydoc < 1.2
+tokenize_rt

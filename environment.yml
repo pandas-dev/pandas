@@ -27,7 +27,6 @@ dependencies:
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
-  - tokenize_rt  # for scripts/
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
@@ -116,3 +115,4 @@ dependencies:
   - pip:
     - git+https://github.com/pydata/pydata-sphinx-theme.git@master
     - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
+    - tokenize_rt  # needed for scripts/
