@@ -36,6 +36,7 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
+    ensure_int64,
     is_1d_only_ea_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
@@ -1308,7 +1309,7 @@ class BlockManager(DataManager):
 
     def reindex_indexer(
         self: T,
-        new_axis,
+        new_axis: Index,
         indexer,
         axis: int,
         fill_value=None,
@@ -1374,7 +1375,10 @@ class BlockManager(DataManager):
         return type(self).from_blocks(new_blocks, new_axes)
 
     def _slice_take_blocks_ax0(
-        self, slice_or_indexer, fill_value=lib.no_default, only_slice: bool = False
+        self,
+        slice_or_indexer: Union[slice, np.ndarray],
+        fill_value=lib.no_default,
+        only_slice: bool = False,
     ) -> List[Block]:
         """
         Slice/take blocks along axis=0.
@@ -1383,7 +1387,7 @@ class BlockManager(DataManager):
 
         Parameters
         ----------
-        slice_or_indexer : slice, ndarray[bool], or list-like of ints
+        slice_or_indexer : slice or np.ndarray[int64]
         fill_value : scalar, default lib.no_default
         only_slice : bool, default False
             If True, we always return views on existing arrays, never copies.
@@ -1402,12 +1406,11 @@ class BlockManager(DataManager):
         if self.is_single_block:
             blk = self.blocks[0]
 
-            if sl_type in ("slice", "mask"):
+            if sl_type == "slice":
                 # GH#32959 EABlock would fail since we can't make 0-width
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
                     return []
-                # TODO: tests all have isinstance(slobj, slice), other possibilities?
                 return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_value is None:
@@ -1433,7 +1436,7 @@ class BlockManager(DataManager):
                         )
                     ]
 
-        if sl_type in ("slice", "mask"):
+        if sl_type == "slice":
             blknos = self.blknos[slobj]
             blklocs = self.blklocs[slobj]
         else:
@@ -1676,9 +1679,6 @@ class SingleBlockManager(BlockManager, SingleDataManager):
 
         blk = self._block
         array = blk._slice(slobj)
-        if array.ndim > blk.values.ndim:
-            # This will be caught by Series._get_values
-            raise ValueError("dimension-expanding indexing not allowed")
         block = blk.make_block_same_class(array, placement=slice(0, len(array)))
         new_index = self.index._getitem_slice(slobj)
         return type(self)(block, new_index)
@@ -1750,30 +1750,19 @@ class SingleBlockManager(BlockManager, SingleDataManager):
 # Constructor Helpers
 
 
-def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
+def create_block_manager_from_blocks(
+    blocks: List[Block], axes: List[Index]
+) -> BlockManager:
     try:
-        if len(blocks) == 1 and not isinstance(blocks[0], Block):
-            # if blocks[0] is of length 0, return empty blocks
-            if not len(blocks[0]):
-                blocks = []
-            else:
-                # It's OK if a single block is passed as values, its placement
-                # is basically "all items", but if there're many, don't bother
-                # converting, it's an error anyway.
-                blocks = [
-                    new_block(
-                        values=blocks[0], placement=slice(0, len(axes[0])), ndim=2
-                    )
-                ]
-
         mgr = BlockManager(blocks, axes)
-        mgr._consolidate_inplace()
-        return mgr
 
-    except ValueError as e:
-        blocks = [getattr(b, "values", b) for b in blocks]
-        tot_items = sum(b.shape[0] for b in blocks)
-        raise construction_error(tot_items, blocks[0].shape[1:], axes, e)
+    except ValueError as err:
+        arrays = [blk.values for blk in blocks]
+        tot_items = sum(arr.shape[0] for arr in arrays)
+        raise construction_error(tot_items, arrays[0].shape[1:], axes, err)
+
+    mgr._consolidate_inplace()
+    return mgr
 
 
 # We define this here so we can override it in tests.extension.test_numpy
@@ -1998,10 +1987,6 @@ def _merge_blocks(
 
     if can_consolidate:
 
-        if dtype is None:
-            if len({b.dtype for b in blocks}) != 1:
-                raise AssertionError("_merge_blocks are invalid!")
-
         # TODO: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
@@ -2036,20 +2021,25 @@ def _fast_count_smallints(arr: np.ndarray) -> np.ndarray:
     return np.c_[nz, counts[nz]]
 
 
-def _preprocess_slice_or_indexer(slice_or_indexer, length: int, allow_fill: bool):
+def _preprocess_slice_or_indexer(
+    slice_or_indexer: Union[slice, np.ndarray], length: int, allow_fill: bool
+):
     if isinstance(slice_or_indexer, slice):
         return (
             "slice",
             slice_or_indexer,
             libinternals.slice_len(slice_or_indexer, length),
         )
-    elif (
-        isinstance(slice_or_indexer, np.ndarray) and slice_or_indexer.dtype == np.bool_
-    ):
-        return "mask", slice_or_indexer, slice_or_indexer.sum()
     else:
+        if (
+            not isinstance(slice_or_indexer, np.ndarray)
+            or slice_or_indexer.dtype.kind != "i"
+        ):
+            dtype = getattr(slice_or_indexer, "dtype", None)
+            raise TypeError(type(slice_or_indexer), dtype)
+
         # TODO: np.intp?
-        indexer = np.asanyarray(slice_or_indexer, dtype=np.int64)
+        indexer = ensure_int64(slice_or_indexer)
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return "fancy", indexer, len(indexer)
