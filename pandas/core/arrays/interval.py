@@ -911,9 +911,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # TODO: Could skip verify_integrity here.
         return type(self).from_arrays(left, right, closed=closed)
 
-    # error: Return type "ndarray" of "isna" incompatible with return type
-    # "ArrayLike" in supertype "ExtensionArray"
-    def isna(self) -> np.ndarray:  # type: ignore[override]
+    def isna(self) -> np.ndarray:
         return isna(self._left)
 
     def shift(
@@ -1489,6 +1487,28 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             self._left.putmask(mask, value_left)
             self._right.putmask(mask, value_right)
 
+    def insert(self: IntervalArrayT, loc: int, item: Interval) -> IntervalArrayT:
+        """
+        Return a new IntervalArray inserting new item at location. Follows
+        Python list.append semantics for negative values.  Only Interval
+        objects and NA can be inserted into an IntervalIndex
+
+        Parameters
+        ----------
+        loc : int
+        item : Interval
+
+        Returns
+        -------
+        IntervalArray
+        """
+        left_insert, right_insert = self._validate_scalar(item)
+
+        new_left = self.left.insert(loc, left_insert)
+        new_right = self.right.insert(loc, right_insert)
+
+        return self._shallow_copy(new_left, new_right)
+
     def delete(self: IntervalArrayT, loc) -> IntervalArrayT:
         if isinstance(self._left, np.ndarray):
             new_left = np.delete(self._left, loc)
@@ -1573,9 +1593,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_dtype_equal(self.dtype, values.dtype):
                 # GH#38353 instead of casting to object, operating on a
                 #  complex128 ndarray is much more performant.
-
-                # error: "ArrayLike" has no attribute "view"
-                left = self._combined.view("complex128")  # type:ignore[attr-defined]
+                left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
                 return np.in1d(left, right)
 
@@ -1618,10 +1636,7 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         # GH 19016
         # empty lists/tuples get object dtype by default, but this is
         # prohibited for IntervalArray, so coerce to integer instead
-
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return np.array([], dtype=np.int64)  # type: ignore[return-value]
+        return np.array([], dtype=np.int64)
     elif not is_list_like(values) or isinstance(values, ABCDataFrame):
         # This will raise later, but we avoid passing to maybe_convert_platform
         return values
@@ -1633,5 +1648,4 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
     else:
         values = extract_array(values, extract_numpy=True)
 
-    # error: Incompatible return value type (got "ExtensionArray", expected "ndarray")
-    return maybe_convert_platform(values)  # type: ignore[return-value]
+    return maybe_convert_platform(values)

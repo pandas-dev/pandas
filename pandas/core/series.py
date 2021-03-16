@@ -20,6 +20,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -142,6 +143,8 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas._typing import (
         TimedeltaConvertibleTypes,
         TimestampConvertibleTypes,
@@ -267,7 +270,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     )
 
     # Override cache_readonly bc Series is mutable
-    hasnans = property(
+    # error: Incompatible types in assignment (expression has type "property",
+    # base class "IndexOpsMixin" defined the type as "Callable[[IndexOpsMixin], bool]")
+    hasnans = property(  # type: ignore[assignment]
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
     __hash__ = generic.NDFrame.__hash__
@@ -404,12 +409,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif copy:
                     data = data.copy()
             else:
-                # error: Argument 3 to "sanitize_array" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
-                data = sanitize_array(
-                    data, index, dtype, copy  # type: ignore[arg-type]
-                )
+                data = sanitize_array(data, index, dtype, copy)
 
                 manager = get_option("mode.data_manager")
                 if manager == "block":
@@ -460,11 +460,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Input is now list-like, so rely on "standard" construction:
 
         # TODO: passing np.float64 to not break anything yet. See GH-17261
-
-        # error: Value of type variable "ArrayLike" of
-        # "create_series_with_explicit_dtype" cannot be "Tuple[Any, ...]"
-        s = create_series_with_explicit_dtype(  # type: ignore[type-var]
-            values, index=keys, dtype=dtype, dtype_if_empty=np.float64
+        s = create_series_with_explicit_dtype(
+            # error: Argument "index" to "create_series_with_explicit_dtype" has
+            # incompatible type "Tuple[Any, ...]"; expected "Union[ExtensionArray,
+            # ndarray, Index, None]"
+            values,
+            index=keys,  # type: ignore[arg-type]
+            dtype=dtype,
+            dtype_if_empty=np.float64,
         )
 
         # Now we just make sure the order is respected, if any
@@ -3003,10 +3006,13 @@ Keep all original rows and also all original values
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
 
-            # error: Value of type variable "ArrayLike" of
-            # "maybe_cast_to_extension_array" cannot be "List[Any]"
-            new_values = maybe_cast_to_extension_array(
-                type(self._values), new_values  # type: ignore[type-var]
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "List[Any]")
+            new_values = maybe_cast_to_extension_array(  # type: ignore[assignment]
+                # error: Argument 2 to "maybe_cast_to_extension_array" has incompatible
+                # type "List[Any]"; expected "Union[ExtensionArray, ndarray]"
+                type(self._values),
+                new_values,  # type: ignore[arg-type]
             )
         return self._constructor(new_values, index=new_index, name=new_name)
 
@@ -4225,7 +4231,7 @@ Keep all original rows and also all original values
         )
         return self._constructor(new_values, index=new_index)
 
-    def _needs_reindex_multi(self, axes, method, level):
+    def _needs_reindex_multi(self, axes, method, level) -> bool:
         """
         Check if we do need a multi reindex; this is for compat with
         higher dims.
@@ -4338,6 +4344,26 @@ Keep all original rows and also all original values
             )
         else:
             return self._set_name(index, inplace=inplace)
+
+    @overload
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: Literal[False] = ...
+    ) -> Series:
+        ...
+
+    @overload
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: bool = ...
+    ) -> Optional[Series]:
+        ...
 
     @Appender(
         """

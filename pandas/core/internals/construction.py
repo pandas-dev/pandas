@@ -45,6 +45,7 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_object_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -72,13 +73,17 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
     union_indexes,
 )
-from pandas.core.internals.array_manager import ArrayManager
+from pandas.core.internals.array_manager import (
+    ArrayManager,
+    SingleArrayManager,
+)
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     new_block,
 )
 from pandas.core.internals.managers import (
     BlockManager,
+    SingleBlockManager,
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
 )
@@ -212,15 +217,21 @@ def mgr_to_mgr(mgr, typ: str):
         if isinstance(mgr, BlockManager):
             new_mgr = mgr
         else:
-            new_mgr = arrays_to_mgr(
-                mgr.arrays, mgr.axes[0], mgr.axes[1], mgr.axes[0], typ="block"
-            )
+            if mgr.ndim == 2:
+                new_mgr = arrays_to_mgr(
+                    mgr.arrays, mgr.axes[0], mgr.axes[1], mgr.axes[0], typ="block"
+                )
+            else:
+                new_mgr = SingleBlockManager.from_array(mgr.arrays[0], mgr.index)
     elif typ == "array":
         if isinstance(mgr, ArrayManager):
             new_mgr = mgr
         else:
-            arrays = [mgr.iget_values(i).copy() for i in range(len(mgr.axes[0]))]
-            new_mgr = ArrayManager(arrays, [mgr.axes[1], mgr.axes[0]])
+            if mgr.ndim == 2:
+                arrays = [mgr.iget_values(i).copy() for i in range(len(mgr.axes[0]))]
+                new_mgr = ArrayManager(arrays, [mgr.axes[1], mgr.axes[0]])
+            else:
+                new_mgr = SingleArrayManager([mgr.internal_values()], [mgr.index])
     else:
         raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{typ}'")
     return new_mgr
@@ -249,7 +260,7 @@ def ndarray_to_mgr(
         if not len(values) and columns is not None and len(columns):
             values = np.empty((0, 1), dtype=object)
 
-    if is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
+    if is_extension_array_dtype(values) or isinstance(dtype, ExtensionDtype):
         # GH#19157
 
         if isinstance(values, np.ndarray) and values.ndim > 1:
@@ -296,6 +307,8 @@ def ndarray_to_mgr(
     )
     values = values.T
 
+    _check_values_indices_shape_match(values, index, columns)
+
     # if we don't have a dtype specified, then try to convert objects
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
@@ -317,11 +330,35 @@ def ndarray_to_mgr(
         else:
             datelike_vals = maybe_infer_to_datetimelike(values)
             datelike_vals = maybe_squeeze_dt64tz(datelike_vals)
-            block_values = [datelike_vals]
+            nb = new_block(datelike_vals, placement=slice(len(columns)), ndim=2)
+            block_values = [nb]
     else:
-        block_values = [maybe_squeeze_dt64tz(values)]
+        new_values = maybe_squeeze_dt64tz(values)
+        nb = new_block(new_values, placement=slice(len(columns)), ndim=2)
+        block_values = [nb]
+
+    if len(columns) == 0:
+        block_values = []
 
     return create_block_manager_from_blocks(block_values, [columns, index])
+
+
+def _check_values_indices_shape_match(
+    values: np.ndarray, index: Index, columns: Index
+) -> None:
+    """
+    Check that the shape implied by our axes matches the actual shape of the
+    data.
+    """
+    if values.shape[0] != len(columns):
+        # Could let this raise in Block constructor, but we get a more
+        #  helpful exception message this way.
+        if values.shape[1] == 0:
+            raise ValueError("Empty data passed with indices specified.")
+
+        passed = values.T.shape
+        implied = (len(index), len(columns))
+        raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
 
 def maybe_squeeze_dt64tz(dta: ArrayLike) -> ArrayLike:
@@ -363,19 +400,10 @@ def dict_to_mgr(
         # no obvious "empty" int column
         if missing.any() and not is_integer_dtype(dtype):
             if dtype is None or (
-                not is_extension_array_dtype(dtype)
-                # error: Argument 1 to "issubdtype" has incompatible type
-                # "Union[dtype, ExtensionDtype]"; expected "Union[dtype, None,
-                # type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any,
-                # Union[int, Sequence[int]]], List[Any], _DtypeDict, Tuple[Any,
-                # Any]]"
-                and np.issubdtype(dtype, np.flexible)  # type: ignore[arg-type]
+                isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.flexible)
             ):
                 # GH#1783
-
-                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
-                # "object"
-                nan_dtype = np.dtype(object)  # type: ignore[type-var]
+                nan_dtype = np.dtype("object")
             else:
                 # error: Incompatible types in assignment (expression has type
                 # "Union[dtype, ExtensionDtype]", variable has type "dtype")
@@ -574,9 +602,10 @@ def extract_index(data) -> Index:
             else:
                 index = ibase.default_index(lengths[0])
 
-    # error: Value of type variable "AnyArrayLike" of "ensure_index" cannot be
-    # "Optional[Index]"
-    return ensure_index(index)  # type: ignore[type-var]
+    # error: Argument 1 to "ensure_index" has incompatible type "Optional[Index]";
+    # expected "Union[Union[Union[ExtensionArray, ndarray], Index, Series],
+    # Sequence[Any]]"
+    return ensure_index(index)  # type: ignore[arg-type]
 
 
 def reorder_arrays(
@@ -679,13 +708,11 @@ def to_arrays(
 
     if not len(data):
         if isinstance(data, np.ndarray):
-            # error: Incompatible types in assignment (expression has type
-            # "Optional[Tuple[str, ...]]", variable has type "Optional[Index]")
-            columns = data.dtype.names  # type: ignore[assignment]
-            if columns is not None:
+            if data.dtype.names is not None:
                 # i.e. numpy structured array
+                columns = ensure_index(data.dtype.names)
                 arrays = [data[name] for name in columns]
-                return arrays, ensure_index(columns)
+                return arrays, columns
         return [], ensure_index([])
 
     elif isinstance(data[0], Categorical):

@@ -1,10 +1,14 @@
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.io.pytables.common import ensure_clean_path
 
 tables = pytest.importorskip("tables")
+
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture
