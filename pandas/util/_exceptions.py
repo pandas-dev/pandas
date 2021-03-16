@@ -11,6 +11,8 @@ def rewrite_exception(old_name: str, new_name: str):
     try:
         yield
     except Exception as err:
+        if not err.args:
+            raise
         msg = str(err.args[0])
         msg = msg.replace(old_name, new_name)
         args: Tuple[str, ...] = (msg,)
