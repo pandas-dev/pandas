@@ -344,7 +344,13 @@ class SeriesGroupBy(GroupBy[Series]):
             # let higher level handle
             return results
 
-        output = self._wrap_aggregated_output(results, index=None)
+        # Argument 1 to "_wrap_aggregated_output" of "SeriesGroupBy" has
+        # incompatible type "Dict[OutputKey, Union[DataFrame,
+        #  Series]]";
+        # expected "Mapping[OutputKey, Union[Series, ndarray]]"
+        output = self._wrap_aggregated_output(
+            results, index=None  # type: ignore[arg-type]
+        )
         return self.obj._constructor_expanddim(output, columns=columns)
 
     # TODO: index should not be Optional - see GH 35490
@@ -759,13 +765,28 @@ class SeriesGroupBy(GroupBy[Series]):
 
             # lab is a Categorical with categories an IntervalIndex
             lab = cut(Series(val), bins, include_lowest=True)
-            lev = lab.cat.categories
-            lab = lev.take(lab.cat.codes, allow_fill=True, fill_value=lev._na_value)
+            # error: "ndarray" has no attribute "cat"
+            lev = lab.cat.categories  # type: ignore[attr-defined]
+            # error: No overload variant of "take" of "_ArrayOrScalarCommon" matches
+            # argument types "Any", "bool", "Union[Any, float]"
+            lab = lev.take(  # type: ignore[call-overload]
+                # error: "ndarray" has no attribute "cat"
+                lab.cat.codes,  # type: ignore[attr-defined]
+                allow_fill=True,
+                # error: Item "ndarray" of "Union[ndarray, Index]" has no attribute
+                # "_na_value"
+                fill_value=lev._na_value,  # type: ignore[union-attr]
+            )
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab.dtype):
             # TODO: should we do this inside II?
-            sorter = np.lexsort((lab.left, lab.right, ids))
+
+            # error: "ndarray" has no attribute "left"
+            # error: "ndarray" has no attribute "right"
+            sorter = np.lexsort(
+                (lab.left, lab.right, ids)  # type: ignore[attr-defined]
+            )
         else:
             sorter = np.lexsort((lab, ids))
 
@@ -791,7 +812,11 @@ class SeriesGroupBy(GroupBy[Series]):
         # multi-index components
         codes = self.grouper.reconstructed_codes
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
+        # error: List item 0 has incompatible type "Union[ndarray, Any]";
+        # expected "Index"
+        levels = [ping.group_index for ping in self.grouper.groupings] + [
+            lev  # type: ignore[list-item]
+        ]
         names = self.grouper.names + [self._selection_name]
 
         if dropna:
@@ -1172,7 +1197,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
-                result = py_fallback(values)
+                # error: Incompatible types in assignment (expression has type
+                # "ExtensionArray", variable has type "ndarray")
+                result = py_fallback(values)  # type: ignore[assignment]
 
             return cast_agg_result(result, values, how)
 
