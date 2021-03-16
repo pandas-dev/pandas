@@ -87,7 +87,7 @@ def _reset_block_mgr_locs(nbs: List[Block], locs):
     Reset mgr_locs to correspond to our original DataFrame.
     """
     for nb in nbs:
-        nblocs = locs.as_array[nb.mgr_locs.indexer]
+        nblocs = locs[nb.mgr_locs.indexer]
         nb.mgr_locs = nblocs
         # Assertions are disabled for performance, but should hold:
         #  assert len(nblocs) == nb.shape[0], (len(nblocs), nb.shape)
