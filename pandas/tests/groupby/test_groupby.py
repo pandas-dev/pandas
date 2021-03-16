@@ -820,7 +820,7 @@ def test_groupby_multi_corner(df):
     tm.assert_frame_equal(agged, expected)
 
 
-def test_omit_nuisance(df, using_array_manager):
+def test_omit_nuisance(df):
     grouped = df.groupby("A")
 
     result = grouped.mean()
@@ -841,8 +841,6 @@ def test_omit_nuisance(df, using_array_manager):
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
     msg = "'DatetimeArray' does not implement reduction 'sum'"
-    if using_array_manager:
-        msg = "reduction operation 'sum' not allowed for this dtype"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
