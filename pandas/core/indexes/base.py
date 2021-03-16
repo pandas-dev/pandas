@@ -4125,13 +4125,22 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        def _get_leaf_sorter(labels):
+        def _get_leaf_sorter(labels: List[np.ndarray]) -> np.ndarray:
             """
             Returns sorter for the inner most level while preserving the
             order of higher levels.
+
+            Parameters
+            ----------
+            labels : list[np.ndarray]
+                Each ndarray has signed integer dtype, not necessarily identical.
+
+            Returns
+            -------
+            np.ndarray[np.intp]
             """
             if labels[0].size == 0:
-                return np.empty(0, dtype="int64")
+                return np.empty(0, dtype=np.intp)
 
             if len(labels) == 1:
                 return get_group_index_sorter(labels[0])
@@ -4144,7 +4153,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             starts = np.hstack(([True], tic, [True])).nonzero()[0]
             lab = ensure_int64(labels[-1])
-            return lib.get_level_sorter(lab, ensure_int64(starts))
+            return lib.get_level_sorter(lab, ensure_platform_int(starts))
 
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
             raise TypeError("Join on level between two MultiIndex objects is ambiguous")
@@ -4179,12 +4188,12 @@ class Index(IndexOpsMixin, PandasObject):
                 join_index = left[left_indexer]
 
         else:
-            left_lev_indexer = ensure_int64(left_lev_indexer)
+            left_lev_indexer = ensure_platform_int(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer, len(old_level))
             old_codes = left.codes[level]
-            new_lev_codes = algos.take_nd(
-                rev_indexer, old_codes[old_codes != -1], allow_fill=False
-            )
+
+            taker = old_codes[old_codes != -1]
+            new_lev_codes = rev_indexer.take(taker)
 
             new_codes = list(left.codes)
             new_codes[level] = new_lev_codes
