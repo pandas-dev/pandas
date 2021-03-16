@@ -56,6 +56,20 @@ from pandas.core.ops.mask_ops import (  # noqa: F401
     kleene_xor,
 )
 from pandas.core.ops.methods import add_flex_arithmetic_methods  # noqa:F401
+from pandas.core.roperator import (  # noqa:F401
+    radd,
+    rand_,
+    rdiv,
+    rdivmod,
+    rfloordiv,
+    rmod,
+    rmul,
+    ror_,
+    rpow,
+    rsub,
+    rtruediv,
+    rxor,
+)
 
 if TYPE_CHECKING:
     from pandas import (
