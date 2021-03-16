@@ -120,7 +120,7 @@ def _take_nd_ndarray(
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
-        indexer = ensure_int64(indexer, copy=False)
+        indexer = ensure_int64(indexer)
     indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
         arr, indexer, out, fill_value, allow_fill
     )
