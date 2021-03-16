@@ -6,6 +6,7 @@ from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Hashable,
     List,
     Optional,
@@ -459,7 +460,7 @@ class RangeIndex(Int64Index):
         return Int64Index._simple_new(values, name=name)
 
     def _view(self: RangeIndex) -> RangeIndex:
-        result = type(self)._simple_new(self._range, name=self.name)
+        result = type(self)._simple_new(self._range, name=self._name)
         result._cache = self._cache
         return result
 
@@ -810,7 +811,7 @@ class RangeIndex(Int64Index):
         """
         if isinstance(key, slice):
             new_range = self._range[key]
-            return self._simple_new(new_range, name=self.name)
+            return self._simple_new(new_range, name=self._name)
         elif is_integer(key):
             new_key = int(key)
             try:
@@ -900,7 +901,7 @@ class RangeIndex(Int64Index):
         ]:
             return op(self._int64index, other)
 
-        step = False
+        step: Optional[Callable] = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
@@ -913,8 +914,7 @@ class RangeIndex(Int64Index):
             # apply if we have an override
             if step:
                 with np.errstate(all="ignore"):
-                    # error: "bool" not callable
-                    rstep = step(left.step, right)  # type: ignore[operator]
+                    rstep = step(left.step, right)
 
                 # we don't have a representable op
                 # so return a base index

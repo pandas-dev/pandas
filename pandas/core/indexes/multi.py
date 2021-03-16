@@ -1716,7 +1716,7 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
-    def to_frame(self, index=True, name=None) -> DataFrame:
+    def to_frame(self, index: bool = True, name=None) -> DataFrame:
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
 
@@ -2121,7 +2121,12 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
-        self: MultiIndex, indices, axis=0, allow_fill=True, fill_value=None, **kwargs
+        self: MultiIndex,
+        indices,
+        axis: int = 0,
+        allow_fill: bool = True,
+        fill_value=None,
+        **kwargs,
     ) -> MultiIndex:
         nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
@@ -3645,7 +3650,7 @@ class MultiIndex(Index):
                 zip(*uniq_tuples), sortorder=0, names=result_names
             )
 
-    def _difference(self, other, sort):
+    def _difference(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
 
         this = self._get_unique_index()
@@ -3703,7 +3708,7 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     @doc(Index.astype)
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
         if is_categorical_dtype(dtype):
             msg = "> 1 ndim Categorical are not supported at this time"
