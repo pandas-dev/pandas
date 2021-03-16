@@ -125,7 +125,7 @@ class NumericIndex(Index):
     @doc(Index._shallow_copy)
     def _shallow_copy(self, values, name: Hashable = lib.no_default):
         if not self._can_hold_na and values.dtype.kind == "f":
-            name = self.name if name is lib.no_default else name
+            name = self._name if name is lib.no_default else name
             # Ensure we are not returning an Int64Index with float data:
             return Float64Index._simple_new(values, name=name)
         return super()._shallow_copy(values=values, name=name)
@@ -292,12 +292,9 @@ class UInt64Index(IntegerIndex):
         if is_integer_dtype(keyarr) or (
             lib.infer_dtype(keyarr, skipna=False) == "integer"
         ):
-            dtype = np.uint64
+            dtype = np.dtype(np.uint64)
 
-        # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
-        # "Optional[Type[unsignedinteger[Any]]]"; expected "Union[str, dtype[Any],
-        # None]"
-        return com.asarray_tuplesafe(keyarr, dtype=dtype)  # type: ignore[arg-type]
+        return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
 
 _float64_descr_args = {
