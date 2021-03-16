@@ -27,6 +27,7 @@ dependencies:
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
+  - tokenize_rt  # for scripts/
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
