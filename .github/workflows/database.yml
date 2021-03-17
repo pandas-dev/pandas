@@ -92,6 +92,13 @@ jobs:
     - name: Print skipped tests
       run: python ci/print_skipped.py
 
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        flags: unittests
+        name: codecov-pandas
+        fail_ci_if_error: false
+
   Linux_py37_cov:
     runs-on: ubuntu-latest
     defaults:
@@ -174,7 +181,6 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
-        files: /tmp/test_coverage.xml
         flags: unittests
         name: codecov-pandas
         fail_ci_if_error: true
