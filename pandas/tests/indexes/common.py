@@ -243,11 +243,6 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             index.copy(name=[["mario"]])
 
-    def test_copy_dtype_deprecated(self, index):
-        # GH35853
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            index.copy(dtype=object)
-
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
         # GH12309
@@ -360,7 +355,7 @@ class Base:
     @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
     def test_where(self, klass):
         i = self.create_index()
-        if isinstance(i, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+        if isinstance(i, (DatetimeIndex, TimedeltaIndex)):
             # where does not preserve freq
             i = i._with_freq(None)
 
@@ -504,10 +499,9 @@ class Base:
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 
-    def test_hasnans_isnans(self, index):
+    def test_hasnans_isnans(self, index_flat):
         # GH 11343, added tests for hasnans / isnans
-        if isinstance(index, MultiIndex):
-            return
+        index = index_flat
 
         # cases in indices doesn't include NaN
         idx = index.copy(deep=True)
@@ -611,7 +605,7 @@ class Base:
         index = self.create_index()
 
         # we don't infer UInt64
-        if isinstance(index, pd.UInt64Index):
+        if isinstance(index, UInt64Index):
             expected = index.astype("int64")
         else:
             expected = index
@@ -630,13 +624,13 @@ class Base:
     def test_map_dictlike(self, mapper):
 
         index = self.create_index()
-        if isinstance(index, pd.CategoricalIndex):
+        if isinstance(index, CategoricalIndex):
             pytest.skip(f"skipping tests for {type(index)}")
 
         identity = mapper(index.values, index)
 
         # we don't infer to UInt64 for a dict
-        if isinstance(index, pd.UInt64Index) and isinstance(identity, dict):
+        if isinstance(index, UInt64Index) and isinstance(identity, dict):
             expected = index.astype("int64")
         else:
             expected = index

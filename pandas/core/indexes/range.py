@@ -6,10 +6,12 @@ from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Hashable,
     List,
     Optional,
     Tuple,
+    Type,
 )
 import warnings
 
@@ -66,7 +68,7 @@ class RangeIndex(Int64Index):
 
     Parameters
     ----------
-    start : int (default: 0), or other RangeIndex instance
+    start : int (default: 0), range, or other RangeIndex instance
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
     step : int (default: 1)
@@ -110,12 +112,18 @@ class RangeIndex(Int64Index):
         name=None,
     ):
 
-        cls._validate_dtype(dtype)
+        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected
+        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object]]"
+        cls._validate_dtype(dtype)  # type: ignore[arg-type]
         name = maybe_extract_name(name, start, cls)
 
         # RangeIndex
         if isinstance(start, RangeIndex):
-            start = start._range
+            return start.copy(name=name)
+        elif isinstance(start, range):
             return cls._simple_new(start, name=name)
 
         # validate the arguments
@@ -153,7 +161,12 @@ class RangeIndex(Int64Index):
                 f"range, {repr(data)} was passed"
             )
 
-        cls._validate_dtype(dtype)
+        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected
+        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object]]"
+        cls._validate_dtype(dtype)  # type: ignore[arg-type]
         return cls._simple_new(data, name=name)
 
     @classmethod
@@ -163,7 +176,7 @@ class RangeIndex(Int64Index):
         assert isinstance(values, range)
 
         result._range = values
-        result.name = name
+        result._name = name
         result._cache = {}
         result._reset_identity()
         return result
@@ -171,12 +184,12 @@ class RangeIndex(Int64Index):
     # --------------------------------------------------------------------
 
     @cache_readonly
-    def _constructor(self):
+    def _constructor(self) -> Type[Int64Index]:
         """ return the class to use for construction """
         return Int64Index
 
     @cache_readonly
-    def _data(self):
+    def _data(self) -> np.ndarray:
         """
         An int array that for performance reasons is created only when needed.
 
@@ -189,7 +202,7 @@ class RangeIndex(Int64Index):
         return Int64Index._simple_new(self._data, name=self.name)
 
     @property
-    def _int64index(self):
+    def _int64index(self) -> Int64Index:
         # wrap _cached_int64index so we can be sure its name matches self.name
         res = self._cached_int64index
         res._name = self._name
@@ -237,7 +250,7 @@ class RangeIndex(Int64Index):
         "instead"
     )
 
-    @cache_readonly
+    @property
     def start(self):
         """
         The value of the `start` parameter (``0`` if this was not supplied).
@@ -260,7 +273,7 @@ class RangeIndex(Int64Index):
         )
         return self.start
 
-    @cache_readonly
+    @property
     def stop(self):
         """
         The value of the `stop` parameter.
@@ -283,7 +296,7 @@ class RangeIndex(Int64Index):
         )
         return self.stop
 
-    @cache_readonly
+    @property
     def step(self):
         """
         The value of the `step` parameter (``1`` if this was not supplied).
@@ -383,7 +396,13 @@ class RangeIndex(Int64Index):
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
-    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
+    def _get_indexer(
+        self,
+        target: Index,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
+    ):
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -413,13 +432,15 @@ class RangeIndex(Int64Index):
 
     # --------------------------------------------------------------------
 
-    def repeat(self, repeats, axis=None):
+    def repeat(self, repeats, axis=None) -> Int64Index:
         return self._int64index.repeat(repeats, axis=axis)
 
-    def delete(self, loc):
+    def delete(self, loc) -> Int64Index:
         return self._int64index.delete(loc)
 
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+    def take(
+        self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs
+    ) -> Int64Index:
         with rewrite_exception("Int64Index", type(self).__name__):
             return self._int64index.take(
                 indices,
@@ -445,7 +466,7 @@ class RangeIndex(Int64Index):
         return Int64Index._simple_new(values, name=name)
 
     def _view(self: RangeIndex) -> RangeIndex:
-        result = type(self)._simple_new(self._range, name=self.name)
+        result = type(self)._simple_new(self._range, name=self._name)
         result._cache = self._cache
         return result
 
@@ -526,7 +547,7 @@ class RangeIndex(Int64Index):
     # --------------------------------------------------------------------
     # Set Operations
 
-    def _intersection(self, other, sort=False):
+    def _intersection(self, other: Index, sort=False):
 
         if not isinstance(other, RangeIndex):
             # Int64Index
@@ -601,7 +622,7 @@ class RangeIndex(Int64Index):
             old_t, t = t, old_t - quotient * t
         return old_r, old_s, old_t
 
-    def _union(self, other, sort):
+    def _union(self, other: Index, sort):
         """
         Form the union of two Index objects and sorts if possible
 
@@ -796,7 +817,7 @@ class RangeIndex(Int64Index):
         """
         if isinstance(key, slice):
             new_range = self._range[key]
-            return self._simple_new(new_range, name=self.name)
+            return self._simple_new(new_range, name=self._name)
         elif is_integer(key):
             new_key = int(key)
             try:
@@ -814,6 +835,13 @@ class RangeIndex(Int64Index):
             )
         # fall back to Int64Index
         return super().__getitem__(key)
+
+    def _getitem_slice(self: RangeIndex, slobj: slice) -> RangeIndex:
+        """
+        Fastpath for __getitem__ when we know we have a slice.
+        """
+        res = self._range[slobj]
+        return type(self)._simple_new(res, name=self._name)
 
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
@@ -879,7 +907,7 @@ class RangeIndex(Int64Index):
         ]:
             return op(self._int64index, other)
 
-        step = False
+        step: Optional[Callable] = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 

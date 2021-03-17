@@ -64,7 +64,7 @@ _ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
 
 class TestCommon(Base):
-    # exected value created by Base._get_offset
+    # executed value created by Base._get_offset
     # are applied to 2011/01/01 09:00 (Saturday)
     # used for .apply and .rollforward
     expecteds = {
@@ -194,7 +194,7 @@ class TestCommon(Base):
             exp_warning = UserWarning
 
         # test nanosecond is preserved
-        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+        with tm.assert_produces_warning(exp_warning):
             result = func(ts)
         assert isinstance(result, Timestamp)
         if normalize is False:
@@ -231,7 +231,7 @@ class TestCommon(Base):
                 exp_warning = UserWarning
 
             # test nanosecond is preserved
-            with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            with tm.assert_produces_warning(exp_warning):
                 result = func(ts)
             assert isinstance(result, Timestamp)
             if normalize is False:

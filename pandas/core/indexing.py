@@ -1421,6 +1421,15 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(indexer, dict):
             raise IndexError("iloc cannot enlarge its target object")
 
+        if isinstance(indexer, ABCDataFrame):
+            warnings.warn(
+                "DataFrame indexer for .iloc is deprecated and will be removed in"
+                "a future version.\n"
+                "consider using .loc with a DataFrame indexer for automatic alignment.",
+                FutureWarning,
+                stacklevel=3,
+            )
+
         if not isinstance(indexer, tuple):
             indexer = _tuplify(self.ndim, indexer)
 
@@ -1508,6 +1517,12 @@ class _iLocIndexer(_LocationIndexer):
             raise IndexError("positional indexers are out-of-bounds") from err
 
     def _getitem_axis(self, key, axis: int):
+        if isinstance(key, ABCDataFrame):
+            raise IndexError(
+                "DataFrame indexer is not allowed for .iloc\n"
+                "Consider using .loc for automatic alignment."
+            )
+
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
 
@@ -1575,7 +1590,11 @@ class _iLocIndexer(_LocationIndexer):
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
-        if not take_split_path and self.obj._mgr.blocks and self.ndim > 1:
+        if (
+            not take_split_path
+            and getattr(self.obj._mgr, "blocks", False)
+            and self.ndim > 1
+        ):
             # in case of dict, keys are indices
             val = list(value.values()) if isinstance(value, dict) else value
             blk = self.obj._mgr.blocks[0]
@@ -1641,7 +1660,17 @@ class _iLocIndexer(_LocationIndexer):
                     # so the object is the same
                     index = self.obj._get_axis(i)
                     labels = index.insert(len(index), key)
-                    self.obj._mgr = self.obj.reindex(labels, axis=i)._mgr
+
+                    # We are expanding the Series/DataFrame values to match
+                    #  the length of thenew index `labels`.  GH#40096 ensure
+                    #  this is valid even if the index has duplicates.
+                    taker = np.arange(len(index) + 1, dtype=np.intp)
+                    taker[-1] = -1
+                    reindexers = {i: (labels, taker)}
+                    new_obj = self.obj._reindex_with_indexers(
+                        reindexers, allow_dups=True
+                    )
+                    self.obj._mgr = new_obj._mgr
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
 
@@ -1841,7 +1870,6 @@ class _iLocIndexer(_LocationIndexer):
             ser = value
         elif is_array_like(value) and is_exact_shape_match(ser, value):
             ser = value
-
         else:
             # set the item, possibly having a dtype change
             ser = ser.copy()
@@ -2392,7 +2420,7 @@ def is_label_like(key) -> bool:
     return not isinstance(key, slice) and not is_list_like_indexer(key)
 
 
-def need_slice(obj) -> bool:
+def need_slice(obj: slice) -> bool:
     """
     Returns
     -------
@@ -2403,57 +2431,3 @@ def need_slice(obj) -> bool:
         or obj.stop is not None
         or (obj.step is not None and obj.step != 1)
     )
-
-
-def non_reducing_slice(slice_):
-    """
-    Ensure that a slice doesn't reduce to a Series or Scalar.
-
-    Any user-passed `subset` should have this called on it
-    to make sure we're always working with DataFrames.
-    """
-    # default to column slice, like DataFrame
-    # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
-    kinds = (ABCSeries, np.ndarray, Index, list, str)
-    if isinstance(slice_, kinds):
-        slice_ = IndexSlice[:, slice_]
-
-    def pred(part) -> bool:
-        """
-        Returns
-        -------
-        bool
-            True if slice does *not* reduce,
-            False if `part` is a tuple.
-        """
-        # true when slice does *not* reduce, False when part is a tuple,
-        # i.e. MultiIndex slice
-        if isinstance(part, tuple):
-            # GH#39421 check for sub-slice:
-            return any((isinstance(s, slice) or is_list_like(s)) for s in part)
-        else:
-            return isinstance(part, slice) or is_list_like(part)
-
-    if not is_list_like(slice_):
-        if not isinstance(slice_, slice):
-            # a 1-d slice, like df.loc[1]
-            slice_ = [[slice_]]
-        else:
-            # slice(a, b, c)
-            slice_ = [slice_]  # to tuplize later
-    else:
-        slice_ = [part if pred(part) else [part] for part in slice_]
-    return tuple(slice_)
-
-
-def maybe_numeric_slice(df, slice_, include_bool: bool = False):
-    """
-    Want nice defaults for background_gradient that don't break
-    with non-numeric data. But if slice_ is passed go with that.
-    """
-    if slice_ is None:
-        dtypes = [np.number]
-        if include_bool:
-            dtypes.append(bool)
-        slice_ = IndexSlice[:, df.select_dtypes(include=dtypes).columns]
-    return slice_

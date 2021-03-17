@@ -91,7 +91,7 @@ class TestDataFrameValues:
         )
         tm.assert_numpy_array_equal(result, expected)
 
-        # two columns, homogenous
+        # two columns, homogeneous
 
         df["B"] = df["A"]
         result = df.values
