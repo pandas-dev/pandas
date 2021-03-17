@@ -4213,7 +4213,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if level == 0:  # outer most level, take the fast route
                     ngroups = 1 + new_lev_codes.max()
                     left_indexer, counts = libalgos.groupsort_indexer(
-                        new_lev_codes, ngroups
+                        ensure_int64(new_lev_codes), ngroups
                     )
 
                     # missing values are placed first; drop them!
