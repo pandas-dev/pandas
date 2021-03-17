@@ -72,7 +72,7 @@ class TestStylerHighlight:
             {"left": 0},  # test no right
             {"right": 1, "subset": ["A"]},  # test no left
             {"left": [0, 1], "axis": 0},  # test left as sequence
-            {"left": DataFrame([[0, 1], [1, 1]]), "axis": None},  # test axis with seq
+            {"left": DataFrame({"A": [0, 1], "B": [1, 1]}), "axis": None},  # test axis
             {"left": 0, "right": [0, 1], "axis": 0},  # test sequence right
         ],
     )

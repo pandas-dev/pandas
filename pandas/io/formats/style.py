@@ -45,7 +45,10 @@ import pandas as pd
 from pandas.api.types import is_list_like
 from pandas.core import generic
 import pandas.core.common as com
-from pandas.core.frame import DataFrame
+from pandas.core.frame import (
+    DataFrame,
+    Series,
+)
 from pandas.core.generic import NDFrame
 from pandas.core.indexes.api import Index
 
@@ -1916,22 +1919,13 @@ class Styler:
             left: Optional[Union[Scalar, Sequence]] = None,
             right: Optional[Union[Scalar, Sequence]] = None,
             inclusive: Union[bool, str] = True,
+            axis_: Optional[Axis] = None,
         ) -> np.ndarray:
-            def reshape(x, arg):
-                """if x is sequence check it fits axis, otherwise raise"""
-                if np.iterable(x) and not isinstance(x, str):
-                    try:
-                        return np.asarray(x).reshape(data.shape)
-                    except ValueError:
-                        raise ValueError(
-                            f"supplied '{arg}' is not correct shape for "
-                            "data over selected 'axis': got "
-                            f"{np.asarray(x).shape}, expected "
-                            f"{data.shape}"
-                        )
-                return x
+            if np.iterable(left) and not isinstance(left, str):
+                left = _validate_apply_axis_arg(left, "left", None, axis_, data)
 
-            left, right = reshape(left, "left"), reshape(right, "right")
+            if np.iterable(right) and not isinstance(right, str):
+                right = _validate_apply_axis_arg(right, "right", None, axis_, data)
 
             # get ops with correct boundary attribution
             if inclusive == "both":
@@ -1970,6 +1964,7 @@ class Styler:
             left=left,
             right=right,
             inclusive=inclusive,
+            axis_=axis,
         )
 
     @classmethod
@@ -2419,3 +2414,59 @@ def _non_reducing_slice(slice_):
     else:
         slice_ = [part if pred(part) else [part] for part in slice_]
     return tuple(slice_)
+
+
+def _validate_apply_axis_arg(
+    arg: Union[FrameOrSeries, Sequence],
+    arg_name: str,
+    dtype: Optional[Any],
+    axis: Optional[Axis],
+    data: FrameOrSeries,
+) -> np.ndarray:
+    """
+    For the apply-type methods, ``axis=None`` creates ``data`` as DataFrame, and for
+    ``axis=[1,0]`` it creates a Series. Where ``arg`` is expected as an element
+    of some operator with ``data`` we must make sure that the two are compatible shapes,
+    or raise.
+
+    Parameters
+    ----------
+    arg : sequence, Series or DataFrame
+        the user input arg
+    arg_name : string
+        name of the arg for use in error messages
+    dtype : numpy dtype, optional
+        forced numpy dtype if given
+    axis : {0,1, None}
+        axis over which apply-type method is used
+    data : Series or DataFrame
+        underling subset of Styler data on which operations are performed
+
+    Returns
+    -------
+    ndarray
+    """
+    dtype = {"dtype": dtype} if dtype else {}
+    # raise if input is wrong for axis:
+    if isinstance(arg, Series) and axis is None:
+        raise ValueError(
+            f"'{arg_name}' is a Series but underlying data for operations "
+            f"is a DataFrame since 'axis=None'"
+        )
+    elif isinstance(arg, DataFrame) and axis in [0, 1]:
+        raise ValueError(
+            f"'{arg_name}' is a DataFrame but underlying data for "
+            f"operations is a Series with 'axis={axis}'"
+        )
+    elif isinstance(arg, (Series, DataFrame)):  # align indx / cols to data
+        arg = arg.reindex_like(data, method=None).to_numpy(**dtype)
+    else:
+        arg = np.asarray(arg, **dtype)
+        assert isinstance(arg, np.ndarray)  # mypy requirement
+        if arg.shape != data.shape:  # check valid input
+            raise ValueError(
+                f"supplied '{arg_name}' is not correct shape for data over "
+                f"selected 'axis': got {arg.shape}, "
+                f"expected {data.shape}"
+            )
+    return arg
