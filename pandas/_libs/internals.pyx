@@ -13,7 +13,6 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    NPY_INT64,
     NPY_INTP,
     int64_t,
     intp_t,
@@ -328,13 +327,13 @@ cdef slice_getitem(slice slc, ind):
     else:
         # NOTE:
         # this is the C-optimized equivalent of
-        # `np.arange(s_start, s_stop, s_step, dtype=np.int64)[ind]`
-        return cnp.PyArray_Arange(s_start, s_stop, s_step, NPY_INT64)[ind]
+        # `np.arange(s_start, s_stop, s_step, dtype=np.intp)[ind]`
+        return cnp.PyArray_Arange(s_start, s_stop, s_step, NPY_INTP)[ind]
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef slice indexer_as_slice(int64_t[:] vals):
+cdef slice indexer_as_slice(intp_t[:] vals):
     cdef:
         Py_ssize_t i, n, start, stop
         int64_t d
