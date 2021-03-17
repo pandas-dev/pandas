@@ -2674,7 +2674,11 @@ class MultiIndex(Index):
         return key
 
     def _get_indexer(
-        self, target: Index, method=None, limit=None, tolerance=None
+        self,
+        target: Index,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
     ) -> np.ndarray:
 
         # empty indexer
@@ -2697,8 +2701,8 @@ class MultiIndex(Index):
                 raise NotImplementedError(
                     "tolerance not implemented yet for MultiIndex"
                 )
-            indexer = self._engine.get_indexer(
-                values=self._values, target=target, method=method, limit=limit
+            indexer = self._engine.get_indexer_with_fill(
+                target=target._values, values=self._values, method=method, limit=limit
             )
         elif method == "nearest":
             raise NotImplementedError(
@@ -2706,7 +2710,7 @@ class MultiIndex(Index):
                 "for MultiIndex; see GitHub issue 9365"
             )
         else:
-            indexer = self._engine.get_indexer(target)
+            indexer = self._engine.get_indexer(target._values)
 
         return ensure_platform_int(indexer)
 
