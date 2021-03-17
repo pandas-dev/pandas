@@ -7,6 +7,7 @@ from typing import (
     Any,
     List,
     Optional,
+    Sequence,
     Tuple,
     TypeVar,
     Union,
@@ -535,7 +536,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # List-like Methods
 
-    def _get_delete_freq(self, loc: int):
+    def _get_delete_freq(self, loc: Union[int, Sequence[int]]):
         """
         Find the `freq` for self.delete(loc).
         """

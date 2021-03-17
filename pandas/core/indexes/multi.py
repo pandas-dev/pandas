@@ -559,6 +559,7 @@ class MultiIndex(Index):
             if isinstance(tuples, Index):
                 tuples = tuples._values
 
+            tuples = cast(np.ndarray, tuples)
             arrays = list(lib.tuples_to_object_array(tuples).T)
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
@@ -1111,8 +1112,8 @@ class MultiIndex(Index):
         # Check the total number of bits needed for our representation:
         if lev_bits[0] > 64:
             # The levels would overflow a 64 bit uint - use Python integers:
-            return MultiIndexPyIntEngine(self.levels, self.codes, offsets)
-        return MultiIndexUIntEngine(self.levels, self.codes, offsets)
+            return MultiIndexPyIntEngine(list(self.levels), self.codes, offsets)
+        return MultiIndexUIntEngine(list(self.levels), self.codes, offsets)
 
     @property
     def _constructor(self) -> Callable[..., MultiIndex]:
@@ -2698,11 +2699,16 @@ class MultiIndex(Index):
                         target, method=method, limit=limit, tolerance=tolerance
                     )
 
+                # TODO: explicitly raise here?  we only have one test that
+                #  gets here, and it is checking that we raise with method="nearest"
+
         if method == "pad" or method == "backfill":
             if tolerance is not None:
                 raise NotImplementedError(
                     "tolerance not implemented yet for MultiIndex"
                 )
+            # TODO: get_indexer_with_fill docstring says values must be _sorted_
+            #  but that doesn't appear to be enforced
             indexer = self._engine.get_indexer_with_fill(
                 target=target._values, values=self._values, method=method, limit=limit
             )
@@ -2714,6 +2720,8 @@ class MultiIndex(Index):
         else:
             indexer = self._engine.get_indexer(target._values)
 
+        # Note: we only get here (in extant tests at least) with
+        #  target.nlevels == self.nlevels
         return ensure_platform_int(indexer)
 
     def get_slice_bound(

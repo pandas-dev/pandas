@@ -786,14 +786,10 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-        result = lib.maybe_convert_objects(result, try_float=False)
-        # error: Incompatible types in assignment (expression has type
-        # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
-        result = maybe_cast_result(  # type: ignore[assignment]
-            result, obj, numeric_only=True
-        )
+        converted = lib.maybe_convert_objects(result, try_float=False)
+        out = maybe_cast_result(converted, obj, numeric_only=True)
 
-        return result, counts
+        return out, counts
 
 
 class BinGrouper(BaseGrouper):

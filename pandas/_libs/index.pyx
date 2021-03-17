@@ -259,7 +259,7 @@ cdef class IndexEngine:
         self.monotonic_inc = 0
         self.monotonic_dec = 0
 
-    def get_indexer(self, ndarray values):
+    def get_indexer(self, ndarray values) -> np.ndarray:
         self._ensure_mapping_populated()
         return self.mapping.lookup(values)
 
@@ -269,6 +269,11 @@ cdef class IndexEngine:
         return the labels in the same order as the target
         and a missing indexer into the targets (which correspond
         to the -1 indices in the results
+
+        Returns
+        -------
+        indexer : np.ndarray[np.intp]
+        missing : np.ndarray[np.intp]
         """
         cdef:
             ndarray values, x
@@ -455,22 +460,22 @@ cdef class DatetimeEngine(Int64Engine):
         # we may get datetime64[ns] or timedelta64[ns], cast these to int64
         return super().get_indexer_non_unique(targets.view("i8"))
 
-    def get_indexer(self, ndarray values):
+    def get_indexer(self, ndarray values) -> np.ndarray:
         self._ensure_mapping_populated()
         if values.dtype != self._get_box_dtype():
-            return np.repeat(-1, len(values)).astype('i4')
+            return np.repeat(np.intp(-1), len(values))
         values = np.asarray(values).view('i8')
         return self.mapping.lookup(values)
 
     def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         if other.dtype != self._get_box_dtype():
-            return np.repeat(-1, len(other)).astype('i4')
+            return np.repeat(np.intp(-1), len(other))
         other = np.asarray(other).view('i8')
         return algos.pad(self._get_index_values(), other, limit=limit)
 
     def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         if other.dtype != self._get_box_dtype():
-            return np.repeat(-1, len(other)).astype('i4')
+            return np.repeat(np.intp(-1), len(other))
         other = np.asarray(other).view('i8')
         return algos.backfill(self._get_index_values(), other, limit=limit)
 
@@ -572,17 +577,17 @@ cdef class BaseMultiIndexCodesEngine:
         # integers representing labels: we will use its get_loc and get_indexer
         self._base.__init__(self, lambda: lab_ints, len(lab_ints))
 
-    def _codes_to_ints(self, codes):
+    def _codes_to_ints(self, ndarray[uint64_t] codes) -> np.ndarray:
         raise NotImplementedError("Implemented by subclass")
 
-    def _extract_level_codes(self, object target):
+    def _extract_level_codes(self, ndarray[object] target) -> np.ndarray:
         """
         Map the requested list of (tuple) keys to their integer representations
         for searching in the underlying integer index.
 
         Parameters
         ----------
-        target : list-like of keys
+        target : ndarray[object]
             Each key is a tuple, with a label for each level of the index.
 
         Returns
@@ -607,7 +612,7 @@ cdef class BaseMultiIndexCodesEngine:
 
         Returns
         -------
-        np.ndarray[int64_t, ndim=1] of the indexer of `target` into
+        np.ndarray[intp_t, ndim=1] of the indexer of `target` into
         `self.values`
         """
         lab_ints = self._extract_level_codes(target)
@@ -635,7 +640,7 @@ cdef class BaseMultiIndexCodesEngine:
             the same as the length of all tuples in `values`
         values : ndarray[object] of tuples
             must be sorted and all have the same length.  Should be the set of
-            the MultiIndex's values.  Needed only if `method` is not None
+            the MultiIndex's values.
         method: string
             "backfill" or "pad"
         limit: int or None
@@ -694,9 +699,8 @@ cdef class BaseMultiIndexCodesEngine:
             next_code += 1
 
         # get the indexer, and undo the sorting of `target.values`
-        sorted_indexer = (
-            algos.backfill if method == "backfill" else algos.pad
-        )(new_codes, new_target_codes, limit=limit).astype('int64')
+        algo = algos.backfill if method == "backfill" else algos.pad
+        sorted_indexer = algo(new_codes, new_target_codes, limit=limit).astype("int64")
         return sorted_indexer[np.argsort(target_order)]
 
     def get_loc(self, object key):
@@ -715,9 +719,7 @@ cdef class BaseMultiIndexCodesEngine:
 
         return self._base.get_loc(self, lab_int)
 
-    def get_indexer_non_unique(self, ndarray target):
-        # This needs to be overridden just because the default one works on
-        # target._values, and target can be itself a MultiIndex.
+    def get_indexer_non_unique(self, ndarray[object] target):
 
         lab_ints = self._extract_level_codes(target)
         indexer = self._base.get_indexer_non_unique(self, lab_ints)
