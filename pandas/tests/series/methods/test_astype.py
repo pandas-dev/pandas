@@ -350,6 +350,39 @@ class TestAstype:
         assert result.dtypes == np.dtype("S3")
 
 
+class TestAstypeString:
+    @pytest.mark.parametrize(
+        "data, dtype",
+        [
+            (["A", NA], "category"),
+            (["2020-10-10", "2020-10-10"], "datetime64[ns]"),
+            (["2020-10-10", "2020-10-10", NaT], "datetime64[ns]"),
+            (
+                ["2012-01-01 00:00:00-05:00", NaT],
+                "datetime64[ns, US/Eastern]",
+            ),
+            ([1, None], "UInt16"),
+            (["1/1/2021", "2/1/2021"], "period[M]"),
+            (["1/1/2021", "2/1/2021", NaT], "period[M]"),
+            (["1 Day", "59 Days", NaT], "timedelta64[ns]"),
+            # currently no way to parse BooleanArray, IntervalArray from a
+            # list of strings
+        ],
+    )
+    def test_astype_string_to_extension_dtype_roundtrip(self, data, dtype, request):
+        if dtype in ("timedelta64[ns]"):
+            mark = pytest.mark.xfail(reason="TODO fix is_extension_array_dtype GH40478")
+            request.node.add_marker(mark)
+        if NaT in data and dtype in ("period[M]", "datetime64[ns]"):
+            mark = pytest.mark.xfail(
+                reason="TODO StringArray.astype() None to dtype.na_value conversion"
+            )
+            request.node.add_marker(mark)
+        # GH-40351
+        s = Series(data, dtype=dtype)
+        tm.assert_series_equal(s, s.astype("string").astype(dtype))
+
+
 class TestAstypeCategorical:
     def test_astype_categorical_to_other(self):
         cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
