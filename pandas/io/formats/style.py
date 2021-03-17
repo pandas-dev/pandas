@@ -2367,7 +2367,7 @@ def _validate_apply_axis_arg(
         assert isinstance(arg, np.ndarray)  # mypy requirement
         if arg.shape != data.shape:  # check valid input
             raise ValueError(
-                f"supplied '{arg_name}' is not right shape for data over "
+                f"supplied '{arg_name}' is not correct shape for data over "
                 f"selected 'axis': got {arg.shape}, "
                 f"expected {data.shape}"
             )
