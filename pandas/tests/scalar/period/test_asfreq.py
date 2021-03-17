@@ -13,7 +13,7 @@ from pandas import (
 class TestFreqConversion:
     """Test frequency conversion of date objects"""
 
-    @pytest.mark.parametrize("freq", ["A", "Q", "M", "W", "B", "D"])
+    @pytest.mark.parametrize("freq", ["A", "Q", "M", "MS", "W", "B", "D"])
     def test_asfreq_near_zero(self, freq):
         # GH#19643, GH#19650
         per = Period("0001-01-01", freq=freq)
@@ -214,6 +214,7 @@ class TestFreqConversion:
         ival_M_to_S_end = Period(
             freq="S", year=2007, month=1, day=31, hour=23, minute=59, second=59
         )
+        ival_MS = Period(freq="MS", year=2007, month=1)
 
         assert ival_M.asfreq("A") == ival_M_to_A
         assert ival_M_end_of_year.asfreq("A") == ival_M_to_A
@@ -234,6 +235,13 @@ class TestFreqConversion:
         assert ival_M.asfreq("S", "E") == ival_M_to_S_end
 
         assert ival_M.asfreq("M") == ival_M
+        assert ival_M.asfreq("M") != ival_MS
+        assert ival_M.asfreq("MS") == ival_MS
+        assert ival_M.asfreq("MS") != ival_M
+        assert ival_MS.asfreq("MS") == ival_MS
+        assert ival_MS.asfreq("MS") != ival_M
+        assert ival_MS.asfreq("M") == ival_M
+        assert ival_MS.asfreq("M") != ival_MS
 
     def test_conv_weekly(self):
         # frequency conversion tests: from Weekly Frequency
@@ -268,6 +276,7 @@ class TestFreqConversion:
         ival_W_to_A = Period(freq="A", year=2007)
         ival_W_to_Q = Period(freq="Q", year=2007, quarter=1)
         ival_W_to_M = Period(freq="M", year=2007, month=1)
+        ival_W_to_MS = Period(freq="MS", year=2007, month=1)
 
         if Period(freq="D", year=2007, month=12, day=31).weekday == 6:
             ival_W_to_A_end_of_year = Period(freq="A", year=2007)
@@ -310,6 +319,7 @@ class TestFreqConversion:
         assert ival_W_end_of_quarter.asfreq("Q") == ival_W_to_Q_end_of_quarter
 
         assert ival_W.asfreq("M") == ival_W_to_M
+        assert ival_W.asfreq("MS") == ival_W_to_MS
         assert ival_W_end_of_month.asfreq("M") == ival_W_to_M_end_of_month
 
         assert ival_W.asfreq("B", "S") == ival_W_to_B_start
@@ -788,13 +798,21 @@ class TestFreqConversion:
         assert result2.ordinal == expected.ordinal
         assert result2.freq == expected.freq
 
-    def test_asfreq_MS(self):
-        initial = Period("2013")
+    @pytest.mark.parametrize(
+        "year_month", ["2013-01", "2021-02", "2022-02", "2020-07", "2027-12"])
+    def test_M_vs_MS(self, year_month):
+        year = year_month.split("-")[0]
+        initial = Period(year)
         ts0 = initial.asfreq(freq="M", how="S").to_timestamp(how="start")
-        ts1 = Period("2013-01", "MS").to_timestamp()
-        ts2 = Period("2013-01", "M").to_timestamp(how="start")
+        ts1 = Period(year_month, freq="MS").to_timestamp()
+        ts2 = Period(year_month, freq="M").to_timestamp(how="start")
+        ts3 = Period(year_month, freq="M").to_timestamp()
 
-        assert initial.asfreq(freq="M", how="S") == Period("2013-01", "M")
-        assert initial.asfreq(freq="MS", how="S") == Period("2013-01", "MS")
-        assert ts0 == ts1
+        assert initial.asfreq(freq="M", how="S") == Period(f"{year}-01", "M")
+        assert initial.asfreq(freq="M", how="S") != Period(f"{year}-01", "MS")
+        assert initial.asfreq(freq="MS", how="S") == Period(f"{year}-01", "MS")
+        assert initial.asfreq(freq="MS", how="S") != Period(f"{year}-01", "M")
+        assert initial.asfreq(freq="MS") == Period(f"{year}-12", "MS")
         assert initial.asfreq(freq="MS", how="S").to_timestamp() == ts2
+        assert ts0 == ts1
+        assert ts1 != ts3
