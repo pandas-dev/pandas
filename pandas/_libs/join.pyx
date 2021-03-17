@@ -21,6 +21,7 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs.algos import (
+    ensure_int64,
     ensure_platform_int,
     groupsort_indexer,
     take_1d_int64_int64,
@@ -223,7 +224,7 @@ cdef ndarray[int64_t] _get_result_indexer(
         # cython-only equivalent to
         #  `res = algos.take_nd(sorter, indexer, fill_value=-1)`
         res = np.empty(len(indexer), dtype=np.int64)
-        take_1d_int64_int64(sorter, indexer, res, -1)
+        take_1d_int64_int64(ensure_int64(sorter), ensure_platform_int(indexer), res, -1)
         # FIXME: sorter is intp_t, not int64_t, opposite for indexer;
         #  will this break on 32bit builds?
     else:
