@@ -316,11 +316,17 @@ class BaseWindow(SelectionMixin):
                 raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
-        inf = np.isinf(values)
+
+        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+        # "Optional[ndarray]"; expected "Union[bool, int, float, complex,
+        # _SupportsArray, Sequence[Any]]"
+        inf = np.isinf(values)  # type: ignore[arg-type]
         if inf.any():
             values = np.where(inf, np.nan, values)
 
-        return values
+        # error: Incompatible return value type (got "Optional[ndarray]",
+        # expected "ndarray")
+        return values  # type: ignore[return-value]
 
     def _insert_on_column(self, result: DataFrame, obj: DataFrame):
         # if we have an 'on' column we want to put it back into
@@ -544,7 +550,7 @@ class BaseWindowGroupby(BaseWindow):
 
     def __init__(
         self,
-        obj,
+        obj: FrameOrSeries,
         *args,
         _grouper=None,
         **kwargs,
@@ -1178,7 +1184,13 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return apply_func
 
-    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def sum(
+        self,
+        *args,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         nv.validate_window_func("sum", args, kwargs)
         if maybe_use_numba(engine):
             if self.method == "table":
@@ -1195,7 +1207,13 @@ class RollingAndExpandingMixin(BaseWindow):
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
 
-    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def max(
+        self,
+        *args,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         nv.validate_window_func("max", args, kwargs)
         if maybe_use_numba(engine):
             if self.method == "table":
@@ -1212,7 +1230,13 @@ class RollingAndExpandingMixin(BaseWindow):
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
 
-    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def min(
+        self,
+        *args,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         nv.validate_window_func("min", args, kwargs)
         if maybe_use_numba(engine):
             if self.method == "table":
@@ -1229,7 +1253,13 @@ class RollingAndExpandingMixin(BaseWindow):
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
 
-    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def mean(
+        self,
+        *args,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         nv.validate_window_func("mean", args, kwargs)
         if maybe_use_numba(engine):
             if self.method == "table":
@@ -1246,7 +1276,12 @@ class RollingAndExpandingMixin(BaseWindow):
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
 
-    def median(self, engine=None, engine_kwargs=None, **kwargs):
+    def median(
+        self,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmedian)
@@ -1317,7 +1352,13 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(window_func, name="quantile", **kwargs)
 
-    def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
+    def cov(
+        self,
+        other: Optional[FrameOrSeriesUnion] = None,
+        pairwise: Optional[bool] = None,
+        ddof: int = 1,
+        **kwargs,
+    ):
         from pandas import Series
 
         def cov_func(x, y):
@@ -1349,7 +1390,13 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply_pairwise(self._selected_obj, other, pairwise, cov_func)
 
-    def corr(self, other=None, pairwise=None, ddof=1, **kwargs):
+    def corr(
+        self,
+        other: Optional[FrameOrSeriesUnion] = None,
+        pairwise: Optional[bool] = None,
+        ddof: int = 1,
+        **kwargs,
+    ):
 
         from pandas import Series
 
@@ -1568,7 +1615,13 @@ class Rolling(RollingAndExpandingMixin):
         agg_method="apply",
     )
     def apply(
-        self, func, raw=False, engine=None, engine_kwargs=None, args=None, kwargs=None
+        self,
+        func: Callable[..., Any],
+        raw: bool = False,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         return super().apply(
             func,
@@ -1643,7 +1696,13 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="sum",
         agg_method="sum",
     )
-    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def sum(
+        self,
+        *args,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         nv.validate_rolling_func("sum", args, kwargs)
         return super().sum(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
@@ -1663,7 +1722,13 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="maximum",
         agg_method="max",
     )
-    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def max(
+        self,
+        *args,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         nv.validate_rolling_func("max", args, kwargs)
         return super().max(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
@@ -1698,7 +1763,13 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="minimum",
         agg_method="min",
     )
-    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def min(
+        self,
+        *args,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         nv.validate_rolling_func("min", args, kwargs)
         return super().min(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
@@ -1740,7 +1811,13 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="mean",
         agg_method="mean",
     )
-    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def mean(
+        self,
+        *args,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         nv.validate_rolling_func("mean", args, kwargs)
         return super().mean(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
@@ -1774,7 +1851,12 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="median",
         agg_method="median",
     )
-    def median(self, engine=None, engine_kwargs=None, **kwargs):
+    def median(
+        self,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         return super().median(engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @doc(
@@ -1822,7 +1904,7 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="standard deviation",
         agg_method="std",
     )
-    def std(self, ddof=1, *args, **kwargs):
+    def std(self, ddof: int = 1, *args, **kwargs):
         nv.validate_rolling_func("std", args, kwargs)
         return super().std(ddof=ddof, **kwargs)
 
@@ -1871,7 +1953,7 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="variance",
         agg_method="var",
     )
-    def var(self, ddof=1, *args, **kwargs):
+    def var(self, ddof: int = 1, *args, **kwargs):
         nv.validate_rolling_func("var", args, kwargs)
         return super().var(ddof=ddof, **kwargs)
 
@@ -1927,7 +2009,7 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="standard error of mean",
         agg_method="sem",
     )
-    def sem(self, ddof=1, *args, **kwargs):
+    def sem(self, ddof: int = 1, *args, **kwargs):
         return self.std(*args, **kwargs) / (self.count() - ddof).pow(0.5)
 
     @doc(
@@ -2017,7 +2099,7 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
-    def quantile(self, quantile, interpolation="linear", **kwargs):
+    def quantile(self, quantile: float, interpolation: str = "linear", **kwargs):
         return super().quantile(
             quantile=quantile,
             interpolation=interpolation,
@@ -2029,7 +2111,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -2053,7 +2135,13 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="sample covariance",
         agg_method="cov",
     )
-    def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
+    def cov(
+        self,
+        other: Optional[FrameOrSeriesUnion] = None,
+        pairwise: Optional[bool] = None,
+        ddof: int = 1,
+        **kwargs,
+    ):
         return super().cov(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
     @doc(
@@ -2061,7 +2149,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -2172,7 +2260,13 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="correlation",
         agg_method="corr",
     )
-    def corr(self, other=None, pairwise=None, ddof=1, **kwargs):
+    def corr(
+        self,
+        other: Optional[FrameOrSeriesUnion] = None,
+        pairwise: Optional[bool] = None,
+        ddof: int = 1,
+        **kwargs,
+    ):
         return super().corr(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
 

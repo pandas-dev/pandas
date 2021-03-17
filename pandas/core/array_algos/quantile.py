@@ -40,10 +40,9 @@ def quantile_compat(values: ArrayLike, qs, interpolation: str, axis: int) -> Arr
     if isinstance(values, np.ndarray):
         fill_value = na_value_for_dtype(values.dtype, compat=False)
         mask = isna(values)
-        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
+        return quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
     else:
-        result = quantile_ea_compat(values, qs, interpolation, axis)
-    return result
+        return quantile_ea_compat(values, qs, interpolation, axis)
 
 
 def quantile_with_mask(
@@ -143,10 +142,10 @@ def quantile_ea_compat(
     mask = np.asarray(values.isna())
     mask = np.atleast_2d(mask)
 
-    values, fill_value = values._values_for_factorize()
-    values = np.atleast_2d(values)
+    arr, fill_value = values._values_for_factorize()
+    arr = np.atleast_2d(arr)
 
-    result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
+    result = quantile_with_mask(arr, mask, fill_value, qs, interpolation, axis)
 
     if not is_sparse(orig.dtype):
         # shape[0] should be 1 as long as EAs are 1D
@@ -160,4 +159,5 @@ def quantile_ea_compat(
             assert result.shape == (1, len(qs)), result.shape
             result = type(orig)._from_factorized(result[0], orig)
 
-    return result
+    # error: Incompatible return value type (got "ndarray", expected "ExtensionArray")
+    return result  # type: ignore[return-value]

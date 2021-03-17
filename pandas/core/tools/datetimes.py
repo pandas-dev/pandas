@@ -147,7 +147,11 @@ def should_cache(
 
     assert 0 < unique_share < 1, "unique_share must be in next bounds: (0; 1)"
 
-    unique_elements = set(islice(arg, check_count))
+    try:
+        # We can't cache if the items are not hashable.
+        unique_elements = set(islice(arg, check_count))
+    except TypeError:
+        return False
     if len(unique_elements) > check_count * unique_share:
         do_caching = False
     return do_caching
@@ -245,7 +249,9 @@ def _convert_and_box_cache(
     from pandas import Series
 
     result = Series(arg).map(cache_array)
-    return _box_as_indexlike(result, utc=None, name=name)
+    # error: Argument 1 to "_box_as_indexlike" has incompatible type "Series"; expected
+    # "Union[ExtensionArray, ndarray]"
+    return _box_as_indexlike(result, utc=None, name=name)  # type: ignore[arg-type]
 
 
 def _return_parsed_timezone_results(result: np.ndarray, timezones, tz, name) -> Index:
@@ -283,7 +289,7 @@ def _convert_listlike_datetimes(
     name: Hashable = None,
     tz: Optional[Timezone] = None,
     unit: Optional[str] = None,
-    errors: Optional[str] = None,
+    errors: str = "raise",
     infer_datetime_format: bool = False,
     dayfirst: Optional[bool] = None,
     yearfirst: Optional[bool] = None,
@@ -362,7 +368,9 @@ def _convert_listlike_datetimes(
             result = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
             return DatetimeIndex(result, name=name)
         elif errors == "ignore":
-            result = Index(arg, name=name)
+            # error: Incompatible types in assignment (expression has type
+            # "Index", variable has type "ExtensionArray")
+            result = Index(arg, name=name)  # type: ignore[assignment]
             return result
         raise
 
@@ -382,10 +390,14 @@ def _convert_listlike_datetimes(
             require_iso8601 = not infer_datetime_format
             format = None
 
-    result = None
+    # error: Incompatible types in assignment (expression has type "None", variable has
+    # type "ExtensionArray")
+    result = None  # type: ignore[assignment]
 
     if format is not None:
-        result = _to_datetime_with_format(
+        # error: Incompatible types in assignment (expression has type
+        # "Optional[Index]", variable has type "ndarray")
+        result = _to_datetime_with_format(  # type: ignore[assignment]
             arg, orig_arg, name, tz, format, exact, errors, infer_datetime_format
         )
         if result is not None:
@@ -420,7 +432,7 @@ def _array_strptime_with_fallback(
     tz,
     fmt: str,
     exact: bool,
-    errors: Optional[str],
+    errors: str,
     infer_datetime_format: bool,
 ) -> Optional[Index]:
     """
@@ -468,7 +480,7 @@ def _to_datetime_with_format(
     tz,
     fmt: str,
     exact: bool,
-    errors: Optional[str],
+    errors: str,
     infer_datetime_format: bool,
 ) -> Optional[Index]:
     """
@@ -494,7 +506,9 @@ def _to_datetime_with_format(
 
         # fallback
         if result is None:
-            result = _array_strptime_with_fallback(
+            # error: Incompatible types in assignment (expression has type
+            # "Optional[Index]", variable has type "Optional[ndarray]")
+            result = _array_strptime_with_fallback(  # type: ignore[assignment]
                 arg, name, tz, fmt, exact, errors, infer_datetime_format
             )
             if result is not None:
@@ -510,7 +524,9 @@ def _to_datetime_with_format(
         except (ValueError, TypeError):
             raise e
 
-    return result
+    # error: Incompatible return value type (got "Optional[ndarray]", expected
+    # "Optional[Index]")
+    return result  # type: ignore[return-value]
 
 
 def _to_datetime_with_unit(arg, unit, name, tz, errors: Optional[str]) -> Index:
@@ -522,16 +538,16 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: Optional[str]) -> Index:
     # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
     # because it expects an ndarray argument
     if isinstance(arg, IntegerArray):
-        result = arg.astype(f"datetime64[{unit}]")
+        arr = arg.astype(f"datetime64[{unit}]")
         tz_parsed = None
     else:
-        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+        arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
 
     if errors == "ignore":
         # Index constructor _may_ infer to DatetimeIndex
-        result = Index(result, name=name)
+        result = Index(arr, name=name)
     else:
-        result = DatetimeIndex(result, name=name)
+        result = DatetimeIndex(arr, name=name)
 
     if not isinstance(result, DatetimeIndex):
         return result
@@ -1063,7 +1079,9 @@ def _attempt_YYYYMMDD(arg: np.ndarray, errors: Optional[str]) -> Optional[np.nda
 
     # string with NaN-like
     try:
-        mask = ~algorithms.isin(arg, list(nat_strings))
+        # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
+        # "Union[Union[ExtensionArray, ndarray], Index, Series]"
+        mask = ~algorithms.isin(arg, list(nat_strings))  # type: ignore[arg-type]
         return calc_with_mask(arg, mask)
     except (ValueError, OverflowError, TypeError):
         pass
