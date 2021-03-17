@@ -434,7 +434,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                         "by passing in a categories argument."
                     ) from err
             except ValueError as err:
-                raise  # troubleshoot 32bit failures
+
                 # TODO(EA2D)
                 raise NotImplementedError(
                     "> 1 ndim Categorical are not supported at this time"
@@ -1961,7 +1961,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        dict of categories -> indexers
+        Dict[Hashable, np.ndarray[np.intp]]
+            dict of categories -> indexers
 
         Examples
         --------
