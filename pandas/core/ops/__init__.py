@@ -306,7 +306,11 @@ def align_method_FRAME(
         left, right = left.align(
             right, join="outer", axis=axis, level=level, copy=False
         )
-        right = _maybe_align_series_as_frame(left, right, axis)
+
+        from pandas.core.internals import BlockManager
+
+        if isinstance(left._mgr, BlockManager):
+            right = _maybe_align_series_as_frame(left, right, axis)
 
     return left, right
 

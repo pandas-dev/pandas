@@ -1506,7 +1506,13 @@ class TestDatetime64DateOffsetArithmetic:
     @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])
     @pytest.mark.parametrize("box_other", [True, False])
     def test_dt64arr_add_sub_offset_array(
-        self, tz_naive_fixture, box_with_array, box_other, op, other
+        self,
+        tz_naive_fixture,
+        box_with_array,
+        box_other,
+        op,
+        other,
+        using_array_manager,
     ):
         # GH#18849
         # GH#10699 array of offsets
@@ -1522,7 +1528,10 @@ class TestDatetime64DateOffsetArithmetic:
         if box_other:
             other = tm.box_expected(other, box_with_array)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        warn = PerformanceWarning
+        if box_with_array is pd.DataFrame and not box_other and using_array_manager:
+            warn = None
+        with tm.assert_produces_warning(warn):
             res = op(dtarr, other)
 
         tm.assert_equal(res, expected)
@@ -2451,7 +2460,7 @@ class TestDatetimeIndexArithmetic:
 
     @pytest.mark.parametrize("other_box", [pd.Index, np.array])
     def test_dti_addsub_object_arraylike(
-        self, tz_naive_fixture, box_with_array, other_box
+        self, tz_naive_fixture, box_with_array, other_box, using_array_manager
     ):
         tz = tz_naive_fixture
 
@@ -2463,14 +2472,18 @@ class TestDatetimeIndexArithmetic:
         expected = DatetimeIndex(["2017-01-31", "2017-01-06"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        warn = PerformanceWarning
+        if box_with_array is pd.DataFrame and using_array_manager:
+            warn = None
+
+        with tm.assert_produces_warning(warn):
             result = dtarr + other
         tm.assert_equal(result, expected)
 
         expected = DatetimeIndex(["2016-12-31", "2016-12-29"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(warn):
             result = dtarr - other
         tm.assert_equal(result, expected)
 
