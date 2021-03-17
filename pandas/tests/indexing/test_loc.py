@@ -609,6 +609,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
         # TODO with "split" path we still actually overwrite the column
         # and therefore don't take the order of the indexer into account
+        # -> this is a bug: https://github.com/pandas-dev/pandas/issues/40480
         ser = Series([1, 2, 3], index=[3, 5, 4], dtype="int64")
         expected = DataFrame({"A": ser})
         expected["B"] = "string"
