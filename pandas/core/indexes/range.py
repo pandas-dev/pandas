@@ -396,7 +396,13 @@ class RangeIndex(Int64Index):
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
-    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
+    def _get_indexer(
+        self,
+        target: Index,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
+    ):
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -460,7 +466,7 @@ class RangeIndex(Int64Index):
         return Int64Index._simple_new(values, name=name)
 
     def _view(self: RangeIndex) -> RangeIndex:
-        result = type(self)._simple_new(self._range, name=self.name)
+        result = type(self)._simple_new(self._range, name=self._name)
         result._cache = self._cache
         return result
 
@@ -811,7 +817,7 @@ class RangeIndex(Int64Index):
         """
         if isinstance(key, slice):
             new_range = self._range[key]
-            return self._simple_new(new_range, name=self.name)
+            return self._simple_new(new_range, name=self._name)
         elif is_integer(key):
             new_key = int(key)
             try:
