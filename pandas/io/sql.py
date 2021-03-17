@@ -5,6 +5,7 @@ retrieval and to reduce dependency on DB-specific API.
 
 from contextlib import contextmanager
 from datetime import date, datetime, time
+from distutils.version import LooseVersion
 from functools import partial
 import re
 from typing import Iterator, List, Optional, Union, overload
@@ -53,6 +54,16 @@ def _is_sqlalchemy_connectable(con):
         return isinstance(con, sqlalchemy.engine.Connectable)
     else:
         return False
+
+
+def _gt14() -> bool:
+    """
+    Check if sqlalchemy.__version__ is at least 1.4.0, when several
+    deprecations were made.
+    """
+    import sqlalchemy
+
+    return LooseVersion(sqlalchemy.__version__) >= LooseVersion("1.4.0")
 
 
 def _convert_params(sql, params):
@@ -715,7 +726,10 @@ class SQLTable(PandasObject):
 
     def _execute_create(self):
         # Inserting table into database, add to MetaData object
-        self.table = self.table.tometadata(self.pd_sql.meta)
+        if _gt14():
+            self.table = self.table.to_metadata(self.pd_sql.meta)
+        else:
+            self.table = self.table.tometadata(self.pd_sql.meta)
         self.table.create()
 
     def create(self):
@@ -1409,9 +1423,17 @@ class SQLDatabase(PandasSQL):
             # Only check when name is not a number and name is not lower case
             engine = self.connectable.engine
             with self.connectable.connect() as conn:
-                table_names = engine.table_names(
-                    schema=schema or self.meta.schema, connection=conn
-                )
+                if _gt14():
+                    from sqlalchemy import inspect
+
+                    insp = inspect(conn)
+                    table_names = insp.get_table_names(
+                        schema=schema or self.meta.schema
+                    )
+                else:
+                    table_names = engine.table_names(
+                        schema=schema or self.meta.schema, connection=conn
+                    )
             if name not in table_names:
                 msg = (
                     f"The provided table name '{name}' is not found exactly as "
@@ -1426,9 +1448,15 @@ class SQLDatabase(PandasSQL):
         return self.meta.tables
 
     def has_table(self, name, schema=None):
-        return self.connectable.run_callable(
-            self.connectable.dialect.has_table, name, schema or self.meta.schema
-        )
+        if _gt14():
+            import sqlalchemy as sa
+
+            insp = sa.inspect(self.connectable)
+            return insp.has_table(name, schema or self.meta.schema)
+        else:
+            return self.connectable.run_callable(
+                self.connectable.dialect.has_table, name, schema or self.meta.schema
+            )
 
     def get_table(self, table_name, schema=None):
         schema = schema or self.meta.schema
