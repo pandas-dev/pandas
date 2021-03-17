@@ -2117,6 +2117,8 @@ def _factorize_keys(
 
     llab = rizer.factorize(lk)
     rlab = rizer.factorize(rk)
+    assert llab.dtype == np.intp, llab.dtype
+    assert rlab.dtype == np.intp, rlab.dtype
 
     count = rizer.get_count()
 
@@ -2142,13 +2144,16 @@ def _factorize_keys(
     return llab, rlab, count
 
 
-def _sort_labels(uniques: np.ndarray, left, right):
+def _sort_labels(
+    uniques: np.ndarray, left: np.ndarray, right: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    # Both returned ndarrays are np.intp
 
     llength = len(left)
     labels = np.concatenate([left, right])
 
     _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
-    new_labels = ensure_int64(new_labels)
+    assert new_labels.dtype == np.intp
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right
