@@ -1973,7 +1973,7 @@ def _get_single_indexer(join_key, index, sort: bool = False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
     left_indexer, right_indexer = libjoin.left_outer_join(
-        ensure_int64(left_key), ensure_int64(right_key), count, sort=sort
+        left_key, right_key, count, sort=sort
     )
 
     return left_indexer, right_indexer
