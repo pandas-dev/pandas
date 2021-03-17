@@ -261,9 +261,11 @@ class Block(PandasObject):
         # TODO(EA2D): reshape will be unnecessary with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
 
+    @final
     @property
     def fill_value(self):
-        return np.nan
+        # Used in reindex_indexer
+        return na_value_for_dtype(self.dtype, compat=False)
 
     @property
     def mgr_locs(self) -> BlockPlacement:
@@ -653,6 +655,7 @@ class Block(PandasObject):
         """
         return is_dtype_equal(value.dtype, self.dtype)
 
+    @final
     def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format """
         result = to_native_types(self.values, na_rep=na_rep, quoting=quoting, **kwargs)
@@ -1486,11 +1489,6 @@ class ExtensionBlock(Block):
         return type(self.values)
 
     @property
-    def fill_value(self):
-        # Used in reindex_indexer
-        return self.values.dtype.na_value
-
-    @property
     def _can_hold_na(self):
         # The default ExtensionArray._can_hold_na is True
         return self._holder._can_hold_na
@@ -1904,10 +1902,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     @property
     def _holder(self):
         return type(self.array_values())
-
-    @property
-    def fill_value(self):
-        return na_value_for_dtype(self.dtype)
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
