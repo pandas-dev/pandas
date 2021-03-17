@@ -102,43 +102,33 @@ import pandas._libs_numba.util as util
 #     __ge__ = lambda self, other: isinstance(other, NegInfinity)
 
 
-# @cython.wraparound(False)
-# @cython.boundscheck(False)
-# cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
-#     """
-#     Efficiently find the unique first-differences of the given array.
+@numba.njit
+def unique_deltas(arr: np.ndarray) -> np.ndarray:
+    """
+    Efficiently find the unique first-differences of the given array.
 
-#     Parameters
-#     ----------
-#     arr : ndarray[in64_t]
+    Parameters
+    ----------
+    arr : ndarray[in64_t]
 
-#     Returns
-#     -------
-#     ndarray[int64_t]
-#         An ordered ndarray[int64_t]
-#     """
-#     cdef:
-#         Py_ssize_t i, n = len(arr)
-#         int64_t val
-#         khiter_t k
-#         kh_int64_t *table
-#         int ret = 0
-#         list uniques = []
-#         ndarray[int64_t, ndim=1] result
+    Returns
+    -------
+    ndarray[int64_t, ndim=1]
+        An ordered ndarray[int64_t]
+    """
+    n = len(arr)
+    uniques = []
+    seen = set()
 
-#     table = kh_init_int64()
-#     kh_resize_int64(table, 10)
-#     for i in range(n - 1):
-#         val = arr[i + 1] - arr[i]
-#         k = kh_get_int64(table, val)
-#         if k == table.n_buckets:
-#             kh_put_int64(table, val, &ret)
-#             uniques.append(val)
-#     kh_destroy_int64(table)
+    for i in range(n - 1):
+        val = arr[i + 1] - arr[i]
+        if val not in seen:
+            seen.add(val)
+            uniques.append(val)
 
-#     result = np.array(uniques, dtype=np.int64)
-#     result.sort()
-#     return result
+    result = np.array(uniques, dtype=np.int64)
+    result.sort()
+    return result
 
 
 def is_lexsorted(list_of_arrays: list[np.ndarray]) -> bool:
