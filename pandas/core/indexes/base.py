@@ -4206,7 +4206,8 @@ class Index(IndexOpsMixin, PandasObject):
                 mask = new_lev_codes != -1
                 if not mask.all():
                     new_codes = [lab[mask] for lab in new_codes]
-                    left_indexer = left_indexer[mask]
+                    # error: Value of type "Optional[ndarray]" is not indexable
+                    left_indexer = left_indexer[mask]  # type: ignore[index]
 
             else:  # tie out the order with other
                 if level == 0:  # outer most level, take the fast route
@@ -4216,7 +4217,8 @@ class Index(IndexOpsMixin, PandasObject):
                     )
 
                     # missing values are placed first; drop them!
-                    left_indexer = left_indexer[counts[0] :]
+                    # error: Value of type "Optional[ndarray]" is not indexable
+                    left_indexer = left_indexer[counts[0] :]  # type: ignore[index]
                     new_codes = [lab[left_indexer] for lab in new_codes]
 
                 else:  # sort the leaves
