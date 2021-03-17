@@ -144,7 +144,10 @@ from pandas.core.aggregation import (
 )
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    ExtensionArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     extract_array,
@@ -6674,6 +6677,9 @@ class DataFrame(NDFrame, OpsMixin):
             assert right.index.equals(self.columns)
 
             right = right._values
+
+            if isinstance(right, TimedeltaArray):
+                right = right._data
 
             arrays = [
                 array_op(_left, _right)
