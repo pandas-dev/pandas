@@ -1715,6 +1715,7 @@ class _iLocIndexer(_LocationIndexer):
             com.is_null_slice(info_idx)
             and is_scalar(value)
             and not isinstance(pi, ABCDataFrame)
+            and not isinstance(self.obj._mgr, ArrayManager)
         ):
             # We can go directly through BlockManager.setitem without worrying
             #  about alignment.
