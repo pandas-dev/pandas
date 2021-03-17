@@ -966,7 +966,7 @@ class TestPivotTable:
         # GH 17013
 
         df = self.data.copy()
-        df[["D", "E", "F"]] = np.arange(len(df) * 3).reshape(len(df), 3)
+        df[["D", "E", "F"]] = np.arange(len(df) * 3).reshape(len(df), 3).astype("i8")
 
         mi_val = list(product(["bar", "foo"], ["one", "two"])) + [("All", "")]
         mi = MultiIndex.from_tuples(mi_val, names=("A", "B"))
