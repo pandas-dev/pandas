@@ -2154,7 +2154,7 @@ def objects_to_datetime64ns(
     data = np.array(data, copy=False, dtype=np.object_)
 
     flags = data.flags
-    order = "F" if flags.f_contiguous else "C"
+    order: Literal["F", "C"] = "F" if flags.f_contiguous else "C"
     try:
         result, tz_parsed = tslib.array_to_datetime(
             data.ravel("K"),
@@ -2165,9 +2165,7 @@ def objects_to_datetime64ns(
             require_iso8601=require_iso8601,
             allow_mixed=allow_mixed,
         )
-        # error: No overload variant of "reshape" of "_ArrayOrScalarCommon"
-        # matches argument types "Tuple[int, ...]", "str"
-        result = result.reshape(data.shape, order=order)  # type: ignore[call-overload]
+        result = result.reshape(data.shape, order=order)
     except ValueError as err:
         try:
             values, tz_parsed = conversion.datetime_to_datetime64(data.ravel("K"))
