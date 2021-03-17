@@ -1986,26 +1986,20 @@ cdef class YearBegin(YearOffset):
 # Quarter-Based Offset Classes
 
 cdef class QuarterOffset(SingleConstructorOffset):
-    _attributes = tuple(["n", "normalize", "month", "startingMonth"])
+    _attributes = tuple(["n", "normalize", "month"])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
-    #       point.  Also apply_index, is_on_offset, rule_code if
-    #       startingMonth vs month attr names are resolved
+    #       point. Also apply_index, is_on_offset, rule_code.
 
     # FIXME: python annotations here breaks things
-    # _default_month: int
-    # _from_name_month: int
 
     cdef readonly:
-        int month, startingMonth
+        int month
 
-    def __init__(self, n=1, normalize=False, month=None, startingMonth=None):
+    def __init__(self, n=1, normalize=False, month=None):
         BaseOffset.__init__(self, n, normalize)
 
         if month is None:
-            if startingMonth is None:
-                self.month = self._default_month
-            else:
-                self.month = startingMonth
+            self.month = self._default_month
         else:
             self.month = month
 
@@ -2136,10 +2130,10 @@ cdef class QuarterEnd(QuarterOffset):
     cdef readonly:
         int _period_dtype_code
 
-    def __init__(self, n=1, normalize=False, month=None, startingMonth=None):
+    def __init__(self, n=1, normalize=False, month=None):
         # Because QuarterEnd can be the freq for a Period, define its
         #  _period_dtype_code at construction for performance
-        QuarterOffset.__init__(self, n, normalize, month, startingMonth)
+        QuarterOffset.__init__(self, n, normalize, month)
         self._period_dtype_code = PeriodDtypeCode.Q_DEC + self.month % 12
 
 
