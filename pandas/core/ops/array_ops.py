@@ -106,8 +106,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
 
         # See GH#5284, GH#5035, GH#19448 for historical reference
         if mask.any():
-            with np.errstate(all="ignore"):
-                result[mask] = op(xrav[mask], yrav[mask])
+            result[mask] = op(xrav[mask], yrav[mask])
 
     else:
         if not is_scalar(y):
@@ -126,8 +125,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
             mask = np.where(y == 1, False, mask)
 
         if mask.any():
-            with np.errstate(all="ignore"):
-                result[mask] = op(xrav[mask], y)
+            result[mask] = op(xrav[mask], y)
 
     result = maybe_upcast_putmask(result, ~mask)
     result = result.reshape(x.shape)  # 2D compat
@@ -179,6 +177,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
 
+    Note: the caller is responsible for ensuring that numpy warnings are
+    suppressed (with np.errstate(all="ignore")) if needed.
+
     Parameters
     ----------
     left : np.ndarray or ExtensionArray
@@ -195,6 +196,8 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
 
     # NB: We assume that extract_array has already been called
     #  on `left` and `right`.
+    # We need to special-case datetime64/timedelta64 dtypes (e.g. because numpy
+    # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
     lvalues = ensure_wrapped_if_datetimelike(left)
     rvalues = ensure_wrapped_if_datetimelike(right)
     rvalues = _maybe_upcast_for_op(rvalues, lvalues.shape)
@@ -204,8 +207,7 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
         res_values = op(lvalues, rvalues)
 
     else:
-        with np.errstate(all="ignore"):
-            res_values = _na_arithmetic_op(lvalues, rvalues, op)
+        res_values = _na_arithmetic_op(lvalues, rvalues, op)
 
     return res_values
 
@@ -213,6 +215,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
 def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
+
+    Note: the caller is responsible for ensuring that numpy warnings are
+    suppressed (with np.errstate(all="ignore")) if needed.
 
     Parameters
     ----------
@@ -265,8 +270,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         with warnings.catch_warnings():
             # suppress warnings from numpy about element-wise comparison
             warnings.simplefilter("ignore", DeprecationWarning)
-            with np.errstate(all="ignore"):
-                res_values = _na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
+            res_values = _na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
 
     return res_values
 
@@ -439,11 +443,6 @@ def _maybe_upcast_for_op(obj, shape: Shape):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
-    from pandas.core.arrays import (
-        DatetimeArray,
-        TimedeltaArray,
-    )
-
     if type(obj) is timedelta:
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
@@ -453,6 +452,8 @@ def _maybe_upcast_for_op(obj, shape: Shape):
         # GH#28080 numpy casts integer-dtype to datetime64 when doing
         #  array[int] + datetime64, which we do not allow
         if isna(obj):
+            from pandas.core.arrays import DatetimeArray
+
             # Avoid possible ambiguities with pd.NaT
             obj = obj.astype("datetime64[ns]")
             right = np.broadcast_to(obj, shape)
@@ -462,6 +463,8 @@ def _maybe_upcast_for_op(obj, shape: Shape):
 
     elif isinstance(obj, np.timedelta64):
         if isna(obj):
+            from pandas.core.arrays import TimedeltaArray
+
             # wrapping timedelta64("NaT") in Timedelta returns NaT,
             #  which would incorrectly be treated as a datetime-NaT, so
             #  we broadcast and wrap in a TimedeltaArray
@@ -474,9 +477,4 @@ def _maybe_upcast_for_op(obj, shape: Shape):
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         return Timedelta(obj)
 
-    elif isinstance(obj, np.ndarray) and obj.dtype.kind == "m":
-        # GH#22390 Unfortunately we need to special-case right-hand
-        # timedelta64 dtypes because numpy casts integer dtypes to
-        # timedelta64 when operating with timedelta64
-        return TimedeltaArray._from_sequence(obj)
     return obj

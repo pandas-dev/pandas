@@ -15,6 +15,7 @@ from pandas._libs.lib import no_default
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    DtypeObj,
 )
 from pandas.util._decorators import (
     Appender,
@@ -239,7 +240,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         values: Categorical,
         name: Hashable = no_default,
     ):
-        name = self.name if name is no_default else name
+        name = self._name if name is no_default else name
 
         if values is not None:
             # In tests we only get here with Categorical objects that
@@ -374,7 +375,15 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
         value = self._require_scalar(value)
-        cat = self._data.fillna(value)
+        try:
+            cat = self._data.fillna(value)
+        except (ValueError, TypeError):
+            # invalid fill_value
+            if not self.isna().any():
+                # nothing to fill, we can get away without casting
+                return self.copy()
+            return self.astype(object).fillna(value, downcast=downcast)
+
         return type(self)._simple_new(cat, name=self.name)
 
     @doc(Index.unique)
@@ -483,15 +492,17 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return self._data._unbox_scalar(key)
 
     def _get_indexer(
-        self, target: Index, method=None, limit=None, tolerance=None
+        self,
+        target: Index,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
     ) -> np.ndarray:
 
         if self.equals(target):
             return np.arange(len(self), dtype="intp")
 
-        # error: Value of type variable "ArrayLike" of "_get_indexer_non_unique" of
-        # "CategoricalIndex" cannot be "Union[ExtensionArray, ndarray]"
-        return self._get_indexer_non_unique(target._values)[0]  # type: ignore[type-var]
+        return self._get_indexer_non_unique(target._values)[0]
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
@@ -540,7 +551,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
-    def _is_comparable_dtype(self, dtype):
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
     def take_nd(self, *args, **kwargs):

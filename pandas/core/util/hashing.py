@@ -25,7 +25,6 @@ from pandas._typing import (
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_extension_array_dtype,
     is_list_like,
 )
 from pandas.core.dtypes.generic import (
@@ -116,14 +115,10 @@ def hash_pandas_object(
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCIndex):
-        # error: Value of type variable "ArrayLike" of "hash_array" cannot be
-        # "Union[ExtensionArray, ndarray]"
-        h = hash_array(  # type: ignore[type-var]
-            obj._values, encoding, hash_key, categorize
-        ).astype("uint64", copy=False)
-        # error: Incompatible types in assignment (expression has type "Series",
-        # variable has type "ndarray")
-        h = Series(h, index=obj, dtype="uint64", copy=False)  # type: ignore[assignment]
+        h = hash_array(obj._values, encoding, hash_key, categorize).astype(
+            "uint64", copy=False
+        )
+        ser = Series(h, index=obj, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCSeries):
         h = hash_array(obj._values, encoding, hash_key, categorize).astype(
@@ -143,11 +138,7 @@ def hash_pandas_object(
             arrays = itertools.chain([h], index_iter)
             h = combine_hash_arrays(arrays, 2)
 
-        # error: Incompatible types in assignment (expression has type "Series",
-        # variable has type "ndarray")
-        h = Series(  # type: ignore[assignment]
-            h, index=obj.index, dtype="uint64", copy=False
-        )
+        ser = Series(h, index=obj.index, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCDataFrame):
         hashes = (hash_array(series._values) for _, series in obj.items())
@@ -170,15 +161,11 @@ def hash_pandas_object(
             hashes = (x for x in _hashes)
         h = combine_hash_arrays(hashes, num_items)
 
-        # error: Incompatible types in assignment (expression has type "Series",
-        # variable has type "ndarray")
-        h = Series(  # type: ignore[assignment]
-            h, index=obj.index, dtype="uint64", copy=False
-        )
+        ser = Series(h, index=obj.index, dtype="uint64", copy=False)
     else:
         raise TypeError(f"Unexpected type for hashing {type(obj)}")
-    # error: Incompatible return value type (got "ndarray", expected "Series")
-    return h  # type: ignore[return-value]
+
+    return ser
 
 
 def hash_tuples(
@@ -297,21 +284,13 @@ def hash_array(
     # hash values. (This check is above the complex check so that we don't ask
     # numpy if categorical is a subdtype of complex, as it will choke).
     if is_categorical_dtype(dtype):
-        # error: Incompatible types in assignment (expression has type "Categorical",
-        # variable has type "ndarray")
-        vals = cast("Categorical", vals)  # type: ignore[assignment]
-        # error: Argument 1 to "_hash_categorical" has incompatible type "ndarray";
-        # expected "Categorical"
-        return _hash_categorical(vals, encoding, hash_key)  # type: ignore[arg-type]
-    elif is_extension_array_dtype(dtype):
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "ExtensionArray")
-        # error: "ndarray" has no attribute "_values_for_factorize"
-        vals, _ = vals._values_for_factorize()  # type: ignore[assignment,attr-defined]
+        vals = cast("Categorical", vals)
+        return _hash_categorical(vals, encoding, hash_key)
+    elif not isinstance(vals, np.ndarray):
+        # i.e. ExtensionArray
+        vals, _ = vals._values_for_factorize()
 
-    # error: Argument 1 to "_hash_ndarray" has incompatible type "ExtensionArray";
-    # expected "ndarray"
-    return _hash_ndarray(vals, encoding, hash_key, categorize)  # type: ignore[arg-type]
+    return _hash_ndarray(vals, encoding, hash_key, categorize)
 
 
 def _hash_ndarray(

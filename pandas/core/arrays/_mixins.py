@@ -282,7 +282,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def fillna(
         self: NDArrayBackedExtensionArrayT, value=None, method=None, limit=None
     ) -> NDArrayBackedExtensionArrayT:
-        value, method = validate_fillna_kwargs(value, method)
+        value, method = validate_fillna_kwargs(
+            value, method, validate_scalar_dict_value=False
+        )
 
         mask = self.isna()
         # error: Argument 2 to "check_value_size" has incompatible type
@@ -291,8 +293,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             value, mask, len(self)  # type: ignore[arg-type]
         )
 
-        # error: "ExtensionArray" has no attribute "any"
-        if mask.any():  # type: ignore[attr-defined]
+        if mask.any():
             if method is not None:
                 # TODO: check value is None
                 # (for now) when self.ndim == 2, we assume axis=0
@@ -307,6 +308,10 @@ class NDArrayBackedExtensionArray(ExtensionArray):
                 new_values = self.copy()
                 new_values[mask] = value
         else:
+            # We validate the fill_value even if there is nothing to fill
+            if value is not None:
+                self._validate_setitem_value(value)
+
             new_values = self.copy()
         return new_values
 

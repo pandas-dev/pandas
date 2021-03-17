@@ -14,6 +14,7 @@ import numpy as np
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
+    Axis,
     FrameOrSeries,
     FrameOrSeriesUnion,
     TimedeltaConvertibleTypes,
@@ -227,7 +228,7 @@ class ExponentialMovingWindow(BaseWindow):
 
     def __init__(
         self,
-        obj,
+        obj: FrameOrSeries,
         com: Optional[float] = None,
         span: Optional[float] = None,
         halflife: Optional[Union[float, TimedeltaConvertibleTypes]] = None,
@@ -235,7 +236,7 @@ class ExponentialMovingWindow(BaseWindow):
         min_periods: int = 0,
         adjust: bool = True,
         ignore_na: bool = False,
-        axis: int = 0,
+        axis: Axis = 0,
         times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
     ):
         super().__init__(
@@ -446,7 +447,7 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame , optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -513,7 +514,7 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None

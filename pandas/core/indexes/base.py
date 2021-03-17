@@ -66,7 +66,6 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     find_common_type,
     infer_dtype_from,
-    maybe_cast_to_integer_array,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -144,6 +143,7 @@ import pandas.core.common as com
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
+    sanitize_array,
 )
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
@@ -191,8 +191,7 @@ _index_shared_docs = {}
 str_t = str
 
 
-# error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
-_o_dtype = np.dtype(object)  # type: ignore[type-var]
+_o_dtype = np.dtype("object")
 
 
 _Identity = NewType("_Identity", object)
@@ -399,29 +398,24 @@ class Index(IndexOpsMixin, PandasObject):
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
+            if isinstance(data, ABCMultiIndex):
+                data = data._values
+
             if dtype is not None:
                 # we need to avoid having numpy coerce
                 # things that look like ints/floats to ints unless
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 # GH 11836
+                data = sanitize_array(data, None, dtype=dtype, copy=copy)
 
-                # error: Argument 1 to "_maybe_cast_with_dtype" has incompatible type
-                # "Union[ndarray, Index, Series]"; expected "ndarray"
-                data = _maybe_cast_with_dtype(
-                    data, dtype, copy  # type: ignore[arg-type]
-                )
                 dtype = data.dtype
 
             if data.dtype.kind in ["i", "u", "f"]:
                 # maybe coerce to a sub-class
                 arr = data
             else:
-                # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
-                # "Type[object]"; expected "Union[str, dtype[Any], None]"
-                arr = com.asarray_tuplesafe(
-                    data, dtype=object  # type: ignore[arg-type]
-                )
+                arr = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
 
                 if dtype is None:
                     arr = _maybe_cast_data_without_dtype(arr)
@@ -456,9 +450,7 @@ class Index(IndexOpsMixin, PandasObject):
                     )
             # other iterable of some kind
 
-            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
-            # "Type[object]"; expected "Union[str, dtype[Any], None]"
-            subarr = com.asarray_tuplesafe(data, dtype=object)  # type: ignore[arg-type]
+            subarr = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
     @classmethod
@@ -665,7 +657,7 @@ class Index(IndexOpsMixin, PandasObject):
         values : the values to create the new Index, optional
         name : Label, defaults to self.name
         """
-        name = self.name if name is no_default else name
+        name = self._name if name is no_default else name
 
         return self._simple_new(values, name=name)
 
@@ -673,7 +665,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         fastpath to make a shallow copy, i.e. new object with same data.
         """
-        result = self._simple_new(self._values, name=self.name)
+        result = self._simple_new(self._values, name=self._name)
 
         result._cache = self._cache
         return result
@@ -2902,16 +2894,10 @@ class Index(IndexOpsMixin, PandasObject):
                 # <T>   | <T>    -> T
                 # <T>   | <U>    -> object
                 if not (is_integer_dtype(self.dtype) and is_integer_dtype(other.dtype)):
-                    # error: Incompatible types in assignment (expression has type
-                    # "str", variable has type "Union[dtype[Any], ExtensionDtype]")
-                    dtype = "float64"  # type: ignore[assignment]
+                    dtype = np.dtype("float64")
                 else:
                     # one is int64 other is uint64
-
-                    # error: Incompatible types in assignment (expression has type
-                    # "Type[object]", variable has type "Union[dtype[Any],
-                    # ExtensionDtype]")
-                    dtype = object  # type: ignore[assignment]
+                    dtype = np.dtype("object")
 
             left = self.astype(dtype, copy=False)
             right = other.astype(dtype, copy=False)
@@ -2993,11 +2979,7 @@ class Index(IndexOpsMixin, PandasObject):
             missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
         if len(missing) > 0:
-            # error: Value of type variable "ArrayLike" of "take_nd" cannot be
-            # "Union[ExtensionArray, ndarray]"
-            other_diff = algos.take_nd(
-                rvals, missing, allow_fill=False  # type: ignore[type-var]
-            )
+            other_diff = algos.take_nd(rvals, missing, allow_fill=False)
             result = concat_compat((lvals, other_diff))
         else:
             # error: Incompatible types in assignment (expression has type
@@ -3396,7 +3378,11 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     @final
     def get_indexer(
-        self, target, method=None, limit=None, tolerance=None
+        self,
+        target,
+        method: Optional[str_t] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
     ) -> np.ndarray:
 
         method = missing.clean_reindex_fill_method(method)
@@ -3421,7 +3407,11 @@ class Index(IndexOpsMixin, PandasObject):
         return self._get_indexer(target, method, limit, tolerance)
 
     def _get_indexer(
-        self, target: Index, method=None, limit=None, tolerance=None
+        self,
+        target: Index,
+        method: Optional[str_t] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
     ) -> np.ndarray:
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
@@ -3485,7 +3475,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _get_fill_indexer(
-        self, target: Index, method: str_t, limit=None, tolerance=None
+        self, target: Index, method: str_t, limit: Optional[int] = None, tolerance=None
     ) -> np.ndarray:
 
         target_values = target._get_engine_target()
@@ -3505,7 +3495,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _get_fill_indexer_searchsorted(
-        self, target: Index, method: str_t, limit=None
+        self, target: Index, method: str_t, limit: Optional[int] = None
     ) -> np.ndarray:
         """
         Fallback pad/backfill get_indexer that works for monotonic decreasing
@@ -3538,7 +3528,9 @@ class Index(IndexOpsMixin, PandasObject):
         return indexer
 
     @final
-    def _get_nearest_indexer(self, target: Index, limit, tolerance) -> np.ndarray:
+    def _get_nearest_indexer(
+        self, target: Index, limit: Optional[int], tolerance
+    ) -> np.ndarray:
         """
         Get the indexer for the nearest index labels; requires an index with
         values that can be subtracted from each other (e.g., not strings or
@@ -3880,7 +3872,14 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Join Methods
 
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
+    def join(
+        self,
+        other,
+        how: str_t = "left",
+        level=None,
+        return_indexers: bool = False,
+        sort: bool = False,
+    ):
         """
         Compute join_index and indexers to conform data
         structures to the new index.
@@ -3902,6 +3901,9 @@ class Index(IndexOpsMixin, PandasObject):
         other = ensure_index(other)
         self_is_mi = isinstance(self, ABCMultiIndex)
         other_is_mi = isinstance(other, ABCMultiIndex)
+
+        lindexer: Optional[np.ndarray]
+        rindexer: Optional[np.ndarray]
 
         # try to figure out the join level
         # GH3662
@@ -4000,15 +4002,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         if return_indexers:
             if join_index is self:
-                # error: Incompatible types in assignment (expression has type "None",
-                # variable has type "ndarray")
-                lindexer = None  # type: ignore[assignment]
+                lindexer = None
             else:
                 lindexer = self.get_indexer(join_index)
             if join_index is other:
-                # error: Incompatible types in assignment (expression has type "None",
-                # variable has type "ndarray")
-                rindexer = None  # type: ignore[assignment]
+                rindexer = None
             else:
                 rindexer = other.get_indexer(join_index)
             return join_index, lindexer, rindexer
@@ -4111,15 +4109,11 @@ class Index(IndexOpsMixin, PandasObject):
         left_idx = ensure_platform_int(left_idx)
         right_idx = ensure_platform_int(right_idx)
 
-        join_index = np.asarray(lvalues.take(left_idx))
+        join_array = np.asarray(lvalues.take(left_idx))
         mask = left_idx == -1
-        np.putmask(join_index, mask, rvalues.take(right_idx))
+        np.putmask(join_array, mask, rvalues.take(right_idx))
 
-        # error: Incompatible types in assignment (expression has type "Index", variable
-        # has type "ndarray")
-        join_index = self._wrap_joined_index(
-            join_index, other  # type: ignore[assignment]
-        )
+        join_index = self._wrap_joined_index(join_array, other)
 
         if return_indexers:
             return join_index, left_idx, right_idx
@@ -4283,6 +4277,9 @@ class Index(IndexOpsMixin, PandasObject):
         sv = self._get_engine_target()
         ov = other._get_engine_target()
 
+        ridx: Optional[np.ndarray]
+        lidx: Optional[np.ndarray]
+
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
             if how == "left":
@@ -4292,61 +4289,24 @@ class Index(IndexOpsMixin, PandasObject):
             elif how == "right":
                 join_index = other
                 lidx = self._left_indexer_unique(ov, sv)
-                # error: Incompatible types in assignment (expression has type "None",
-                # variable has type "ndarray")
-                ridx = None  # type: ignore[assignment]
+                ridx = None
             elif how == "inner":
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Index")
-                join_index, lidx, ridx = self._inner_indexer(  # type:ignore[assignment]
-                    sv, ov
-                )
-                # error: Argument 1 to "_wrap_joined_index" of "Index" has incompatible
-                # type "Index"; expected "ndarray"
-                join_index = self._wrap_joined_index(
-                    join_index, other  # type: ignore[arg-type]
-                )
+                join_array, lidx, ridx = self._inner_indexer(sv, ov)
+                join_index = self._wrap_joined_index(join_array, other)
             elif how == "outer":
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Index")
-                join_index, lidx, ridx = self._outer_indexer(  # type:ignore[assignment]
-                    sv, ov
-                )
-                # error: Argument 1 to "_wrap_joined_index" of "Index" has incompatible
-                # type "Index"; expected "ndarray"
-                join_index = self._wrap_joined_index(
-                    join_index, other  # type: ignore[arg-type]
-                )
+                join_array, lidx, ridx = self._outer_indexer(sv, ov)
+                join_index = self._wrap_joined_index(join_array, other)
         else:
             if how == "left":
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Index")
-                join_index, lidx, ridx = self._left_indexer(  # type: ignore[assignment]
-                    sv, ov
-                )
+                join_array, lidx, ridx = self._left_indexer(sv, ov)
             elif how == "right":
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Index")
-                join_index, ridx, lidx = self._left_indexer(  # type: ignore[assignment]
-                    ov, sv
-                )
+                join_array, ridx, lidx = self._left_indexer(ov, sv)
             elif how == "inner":
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Index")
-                join_index, lidx, ridx = self._inner_indexer(  # type:ignore[assignment]
-                    sv, ov
-                )
+                join_array, lidx, ridx = self._inner_indexer(sv, ov)
             elif how == "outer":
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Index")
-                join_index, lidx, ridx = self._outer_indexer(  # type:ignore[assignment]
-                    sv, ov
-                )
-            # error: Argument 1 to "_wrap_joined_index" of "Index" has incompatible type
-            # "Index"; expected "ndarray"
-            join_index = self._wrap_joined_index(
-                join_index, other  # type: ignore[arg-type]
-            )
+                join_array, lidx, ridx = self._outer_indexer(sv, ov)
+
+            join_index = self._wrap_joined_index(join_array, other)
 
         if return_indexers:
             lidx = None if lidx is None else ensure_platform_int(lidx)
@@ -4389,11 +4349,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
         """
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ExtensionArray")
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ndarray")
-        return self._data  # type: ignore[return-value]
+        return self._data
 
     @cache_readonly
     @doc(IndexOpsMixin.array)
@@ -4623,7 +4579,7 @@ class Index(IndexOpsMixin, PandasObject):
             # pessimization of basic indexing.
             result = getitem(key)
             # Going through simple_new for performance.
-            return type(self)._simple_new(result, name=self.name)
+            return type(self)._simple_new(result, name=self._name)
 
         if com.is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
@@ -4639,7 +4595,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return result
             # NB: Using _constructor._simple_new would break if MultiIndex
             #  didn't override __getitem__
-            return self._constructor._simple_new(result, name=self.name)
+            return self._constructor._simple_new(result, name=self._name)
         else:
             return result
 
@@ -4701,7 +4657,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = concat_compat(to_concat_vals)
         return Index(result, name=name)
 
-    def putmask(self, mask, value):
+    def putmask(self, mask, value) -> Index:
         """
         Return a new Index of the values set with the mask.
 
@@ -4714,9 +4670,7 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        # error: Value of type variable "ArrayLike" of "validate_putmask" cannot be
-        # "Union[ExtensionArray, ndarray]"
-        mask, noop = validate_putmask(self._values, mask)  # type: ignore[type-var]
+        mask, noop = validate_putmask(self._values, mask)
         if noop:
             return self.copy()
 
@@ -5600,9 +5554,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        # error: Value of type variable "AnyArrayLike" of "isin" cannot be
-        # "Union[ExtensionArray, ndarray]"
-        return algos.isin(self._values, values)  # type: ignore[type-var]
+        return algos.isin(self._values, values)
 
     def _get_string_slice(self, key: str_t):
         # this is for partial string indexing,
@@ -6023,11 +5975,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             with np.errstate(all="ignore"):
-                # error: Value of type variable "ArrayLike" of "comparison_op" cannot be
-                # "Union[ExtensionArray, ndarray]"
-                result = ops.comparison_op(
-                    self._values, other, op  # type: ignore[type-var]
-                )
+                result = ops.comparison_op(self._values, other, op)
 
         return result
 
@@ -6375,56 +6323,6 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
     return name
 
 
-def _maybe_cast_with_dtype(data: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
-    """
-    If a dtype is passed, cast to the closest matching dtype that is supported
-    by Index.
-
-    Parameters
-    ----------
-    data : np.ndarray
-    dtype : np.dtype
-    copy : bool
-
-    Returns
-    -------
-    np.ndarray
-    """
-    # we need to avoid having numpy coerce
-    # things that look like ints/floats to ints unless
-    # they are actually ints, e.g. '0' and 0.0
-    # should not be coerced
-    # GH 11836
-    if is_integer_dtype(dtype):
-        inferred = lib.infer_dtype(data, skipna=False)
-        if inferred == "integer":
-            data = maybe_cast_to_integer_array(data, dtype, copy=copy)
-        elif inferred in ["floating", "mixed-integer-float"]:
-            if isna(data).any():
-                raise ValueError("cannot convert float NaN to integer")
-
-            if inferred == "mixed-integer-float":
-                data = maybe_cast_to_integer_array(data, dtype)
-
-            # If we are actually all equal to integers,
-            # then coerce to integer.
-            try:
-                data = _try_convert_to_int_array(data, copy, dtype)
-            except ValueError:
-                data = np.array(data, dtype=np.float64, copy=copy)
-
-        elif inferred != "string":
-            data = data.astype(dtype)
-    elif is_float_dtype(dtype):
-        inferred = lib.infer_dtype(data, skipna=False)
-        if inferred != "string":
-            data = data.astype(dtype)
-    else:
-        data = np.array(data, dtype=dtype, copy=copy)
-
-    return data
-
-
 def _maybe_cast_data_without_dtype(subarr):
     """
     If we have an arraylike input but no passed dtype, try to infer
@@ -6490,12 +6388,8 @@ def _maybe_cast_data_without_dtype(subarr):
                 pass
 
         elif inferred.startswith("timedelta"):
-            # error: Incompatible types in assignment (expression has type
-            # "TimedeltaArray", variable has type "ndarray")
-            data = TimedeltaArray._from_sequence(  # type: ignore[assignment]
-                subarr, copy=False
-            )
-            return data
+            tda = TimedeltaArray._from_sequence(subarr, copy=False)
+            return tda
         elif inferred == "period":
             try:
                 data = PeriodArray._from_sequence(subarr)

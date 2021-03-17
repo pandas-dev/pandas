@@ -87,7 +87,7 @@ def _reset_block_mgr_locs(nbs: List[Block], locs):
     Reset mgr_locs to correspond to our original DataFrame.
     """
     for nb in nbs:
-        nblocs = locs.as_array[nb.mgr_locs.indexer]
+        nblocs = locs[nb.mgr_locs.indexer]
         nb.mgr_locs = nblocs
         # Assertions are disabled for performance, but should hold:
         #  assert len(nblocs) == nb.shape[0], (len(nblocs), nb.shape)
@@ -131,12 +131,7 @@ def _get_same_shape_values(
         # ExtensionArray]"; expected type "Union[int, slice, ndarray]"
         rvals = rvals[0, :]  # type: ignore[index]
 
-    # error: Incompatible return value type (got "Tuple[Union[ndarray, ExtensionArray],
-    # Union[ndarray, ExtensionArray]]", expected "Tuple[ExtensionArray,
-    # ExtensionArray]")
-    # error: Incompatible return value type (got "Tuple[Union[ndarray, ExtensionArray],
-    # Union[ndarray, ExtensionArray]]", expected "Tuple[ndarray, ndarray]")
-    return lvals, rvals  # type: ignore[return-value]
+    return lvals, rvals
 
 
 def blockwise_all(left: BlockManager, right: BlockManager, op) -> bool:

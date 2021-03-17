@@ -28,7 +28,7 @@ def test_str_cat_name(index_or_series, other):
 def test_str_cat(index_or_series):
     box = index_or_series
     # test_cat above tests "str_cat" from ndarray;
-    # here testing "str.cat" from Series/Indext to ndarray/list
+    # here testing "str.cat" from Series/Index to ndarray/list
     s = box(["a", "a", "b", "b", "c", np.nan])
 
     # single array
