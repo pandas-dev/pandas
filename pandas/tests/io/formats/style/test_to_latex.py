@@ -75,8 +75,8 @@ class TestStylerLatex:
         self.s.set_table_styles([{"selector": "column_format", "props": ":cccc"}])
 
         assert "\\begin{tabular}{rrrr}" in self.s.to_latex(column_format="rrrr")
-        self.s.set_table_styles([{"selector": "column_format", "props": ":rrrr"}])
-        assert "\\begin{tabular}{rrrr}" in self.s.to_latex()
+        self.s.set_table_styles([{"selector": "column_format", "props": ":r|r|cc"}])
+        assert "\\begin{tabular}{r|r|cc}" in self.s.to_latex()
 
     def test_position(self):
         assert "\\begin{table}[h!]" in self.s.to_latex(position="h!")
