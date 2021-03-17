@@ -17,11 +17,6 @@ jobs:
     name: macOS
     vmImage: macOS-10.14
 
-- template: ci/azure/posix.yml
-  parameters:
-    name: Linux
-    vmImage: ubuntu-16.04
-
 - template: ci/azure/windows.yml
   parameters:
     name: Windows
