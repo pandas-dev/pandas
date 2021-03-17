@@ -2029,9 +2029,9 @@ def _factorize_keys(
 
     Returns
     -------
-    array
+    np.ndarray[np.intp]
         Left (resp. right if called with `key='right'`) labels, as enumerated type.
-    array
+    np.ndarray[np.intp]
         Right (resp. left if called with `key='right'`) labels, as enumerated type.
     int
         Number of unique elements in union of left and right labels.
