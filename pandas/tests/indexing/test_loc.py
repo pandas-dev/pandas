@@ -602,15 +602,16 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame({"A": ser})
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.xfail(reason="split path wrong update - GH40480")
     def test_loc_setitem_frame_with_reindex_mixed(self):
         # same test as above, but with mixed dataframe
-        df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
-        df["B"] = "string"
-        df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
         # TODO with "split" path we still actually overwrite the column
         # and therefore don't take the order of the indexer into account
         # -> this is a bug: https://github.com/pandas-dev/pandas/issues/40480
-        ser = Series([1, 2, 3], index=[3, 5, 4], dtype="int64")
+        df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
+        df["B"] = "string"
+        df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
+        ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
         expected = DataFrame({"A": ser})
         expected["B"] = "string"
         tm.assert_frame_equal(df, expected)
