@@ -98,4 +98,9 @@ class TestAsFreq:
         index = to_datetime(["2021-01-04", "2021-01-02", "2021-01-03", "2021-01-01"])
         ts = frame_or_series(range(4), index=index)
 
-        assert len(ts.asfreq("D")) == 4
+        sorted_index = to_datetime(
+            ["2021-01-01", "2021-01-02", "2021-01-03", "2021-01-04"]
+        )
+        expected = frame_or_series([3, 1, 2, 0], index=sorted_index)
+
+        tm.assert_equal(ts.asfreq("D"), expected.asfreq("D"))
