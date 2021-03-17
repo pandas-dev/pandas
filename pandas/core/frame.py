@@ -6617,6 +6617,7 @@ class DataFrame(NDFrame, OpsMixin):
             return ops.frame_arith_method_with_reindex(self, other, op)
 
         axis = 1  # only relevant for Series other case
+        other = ops.prepare_scalar_for_op(other, (self.shape[axis],))
 
         self, other = ops.align_method_FRAME(self, other, axis, flex=True, level=None)
 

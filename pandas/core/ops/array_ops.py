@@ -194,12 +194,12 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     """
 
     # NB: We assume that extract_array has already been called
-    #  on `left` and `right`.
+    #  on `left` and `right`,
+    #  and `prepare_scalar_for_op` has already been called on `right`
     # We need to special-case datetime64/timedelta64 dtypes (e.g. because numpy
     # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
     lvalues = ensure_wrapped_if_datetimelike(left)
     rvalues = ensure_wrapped_if_datetimelike(right)
-    rvalues = _maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
@@ -422,7 +422,7 @@ def get_array_op(op):
         raise NotImplementedError(op_name)
 
 
-def _maybe_upcast_for_op(obj, shape: Shape):
+def prepare_scalar_for_op(obj, shape: Shape):
     """
     Cast non-pandas objects to pandas types to unify behavior of arithmetic
     and comparison operations.

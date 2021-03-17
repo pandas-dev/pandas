@@ -375,6 +375,7 @@ class PandasArray(
         if isinstance(other, PandasArray):
             other = other._ndarray
 
+        other = ops.prepare_scalar_for_op(other, (len(self),))
         pd_op = ops.get_array_op(op)
         result = pd_op(self._ndarray, other)
 
