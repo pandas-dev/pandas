@@ -396,7 +396,13 @@ class RangeIndex(Int64Index):
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
-    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
+    def _get_indexer(
+        self,
+        target: Index,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
+    ):
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
