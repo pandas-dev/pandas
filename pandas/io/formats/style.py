@@ -1916,16 +1916,20 @@ class Styler:
         def f(
             data: FrameOrSeries,
             props: str,
-            left: Optional[Union[Scalar, Sequence]] = None,
-            right: Optional[Union[Scalar, Sequence]] = None,
+            left: Optional[Union[Scalar, Sequence, np.ndarray, FrameOrSeries]] = None,
+            right: Optional[Union[Scalar, Sequence, np.ndarray, FrameOrSeries]] = None,
             inclusive: Union[bool, str] = True,
             axis_: Optional[Axis] = None,
         ) -> np.ndarray:
             if np.iterable(left) and not isinstance(left, str):
-                left = _validate_apply_axis_arg(left, "left", None, axis_, data)
+                left = _validate_apply_axis_arg(
+                    left, "left", None, axis_, data  # type: ignore[arg-type]
+                )
 
             if np.iterable(right) and not isinstance(right, str):
-                right = _validate_apply_axis_arg(right, "right", None, axis_, data)
+                right = _validate_apply_axis_arg(
+                    right, "right", None, axis_, data  # type: ignore[arg-type]
+                )
 
             # get ops with correct boundary attribution
             if inclusive == "both":
@@ -2417,7 +2421,7 @@ def _non_reducing_slice(slice_):
 
 
 def _validate_apply_axis_arg(
-    arg: Union[FrameOrSeries, Sequence],
+    arg: Union[FrameOrSeries, Sequence, np.ndarray],
     arg_name: str,
     dtype: Optional[Any],
     axis: Optional[Axis],
