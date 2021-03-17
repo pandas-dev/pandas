@@ -288,7 +288,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
     modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.validate_columns()
@@ -452,7 +452,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
     modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.validate_columns()
