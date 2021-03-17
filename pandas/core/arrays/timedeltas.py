@@ -42,7 +42,6 @@ from pandas.core.dtypes.cast import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
-    is_categorical_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -54,14 +53,15 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
-    ABCSeries,
-    ABCTimedeltaIndex,
+    ABCCategorical,
+    ABCMultiIndex,
 )
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import (
+    ExtensionArray,
     IntegerArray,
     datetimelike as dtl,
 )
@@ -172,7 +172,9 @@ class TimedeltaArray(dtl.TimelikeOps):
     _freq = None
 
     def __init__(self, values, dtype=TD64NS_DTYPE, freq=lib.no_default, copy=False):
-        values = extract_array(values)
+        values = extract_array(values, extract_numpy=True)
+        if isinstance(values, IntegerArray):
+            values = values.to_numpy("int64", na_value=tslibs.iNaT)
 
         inferred_freq = getattr(values, "_freq", None)
         explicit_none = freq is None
@@ -192,7 +194,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if not isinstance(values, np.ndarray):
             msg = (
                 f"Unexpected type '{type(values).__name__}'. 'values' must be a "
-                "TimedeltaArray ndarray, or Series or Index containing one of those."
+                "TimedeltaArray, ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg)
         if values.ndim not in [1, 2]:
@@ -960,19 +962,22 @@ def sequence_to_td64ns(
             # i.e. generator
             data = list(data)
         data = np.array(data, copy=False)
-    elif isinstance(data, ABCSeries):
-        data = data._values
-    elif isinstance(data, ABCTimedeltaIndex):
-        inferred_freq = data.freq
-        data = data._data._ndarray
-    elif isinstance(data, TimedeltaArray):
-        inferred_freq = data.freq
-        data = data._ndarray
-    elif isinstance(data, IntegerArray):
-        data = data.to_numpy("int64", na_value=tslibs.iNaT)
-    elif is_categorical_dtype(data.dtype):
+    elif isinstance(data, ABCMultiIndex):
+        raise TypeError("Cannot create a DatetimeArray from a MultiIndex.")
+    else:
+        data = extract_array(data, extract_numpy=True)
+
+    if isinstance(data, IntegerArray):
+        data = data.to_numpy("int64", na_value=iNaT)
+    elif not isinstance(data, (np.ndarray, ExtensionArray)):
+        # GH#24539 e.g. xarray, dask object
+        data = np.asarray(data)
+    elif isinstance(data, ABCCategorical):
         data = data.categories.take(data.codes, fill_value=NaT)._values
         copy = False
+
+    if isinstance(data, TimedeltaArray):
+        inferred_freq = data.freq
 
     # Convert whatever we have into timedelta64[ns] dtype
     if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):

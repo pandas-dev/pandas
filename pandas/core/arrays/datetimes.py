@@ -7,9 +7,11 @@ from datetime import (
     tzinfo,
 )
 from typing import (
+    TYPE_CHECKING,
     Optional,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -59,17 +61,18 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import (
-    ABCIndex,
-    ABCPandasArray,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays import (
+    ExtensionArray,
+    datetimelike as dtl,
+)
 from pandas.core.arrays._ranges import generate_regular_range
+from pandas.core.arrays.integer import IntegerArray
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 
 from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (
@@ -77,6 +80,9 @@ from pandas.tseries.offsets import (
     Day,
     Tick,
 )
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 _midnight = time(0, 0)
 
@@ -239,8 +245,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _freq = None
 
     def __init__(self, values, dtype=DT64NS_DTYPE, freq=None, copy=False):
-        if isinstance(values, (ABCSeries, ABCIndex)):
-            values = values._values
+        values = extract_array(values, extract_numpy=True)
+        if isinstance(values, IntegerArray):
+            values = values.to_numpy("int64", na_value=iNaT)
 
         inferred_freq = getattr(values, "_freq", None)
 
@@ -266,7 +273,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if not isinstance(values, np.ndarray):
             raise ValueError(
                 f"Unexpected type '{type(values).__name__}'. 'values' must be "
-                "a DatetimeArray ndarray, or Series or Index containing one of those."
+                "a DatetimeArray, ndarray, or Series or Index containing one of those."
             )
         if values.ndim not in [1, 2]:
             raise ValueError("Only 1-dimensional input arrays are supported.")
@@ -1907,6 +1914,20 @@ default 'raise'
 # Constructor Helpers
 
 
+@overload
+def sequence_to_datetimes(
+    data, allow_object: Literal[False] = ..., require_iso8601: bool = ...
+) -> DatetimeArray:
+    ...
+
+
+@overload
+def sequence_to_datetimes(
+    data, allow_object: Literal[True] = ..., require_iso8601: bool = ...
+) -> Union[np.ndarray, DatetimeArray]:
+    ...
+
+
 def sequence_to_datetimes(
     data, allow_object: bool = False, require_iso8601: bool = False
 ) -> Union[np.ndarray, DatetimeArray]:
@@ -1978,6 +1999,9 @@ def sequence_to_dt64ns(
     dtype = _validate_dt64_dtype(dtype)
     tz = timezones.maybe_get_tz(tz)
 
+    # if dtype has an embedded tz, capture it
+    tz = validate_tz_from_dtype(dtype, tz)
+
     if not hasattr(data, "dtype"):
         # e.g. list, tuple
         if np.ndim(data) == 0:
@@ -1985,23 +2009,19 @@ def sequence_to_dt64ns(
             data = list(data)
         data = np.asarray(data)
         copy = False
-    elif isinstance(data, ABCSeries):
-        data = data._values
-    if isinstance(data, ABCPandasArray):
-        data = data.to_numpy()
+    elif isinstance(data, ABCMultiIndex):
+        raise TypeError("Cannot create a DatetimeArray from a MultiIndex.")
+    else:
+        data = extract_array(data, extract_numpy=True)
 
-    if hasattr(data, "freq"):
-        # i.e. DatetimeArray/Index
+    if isinstance(data, IntegerArray):
+        data = data.to_numpy("int64", na_value=iNaT)
+    elif not isinstance(data, (np.ndarray, ExtensionArray)):
+        # GH#24539 e.g. xarray, dask object
+        data = np.asarray(data)
+
+    if isinstance(data, DatetimeArray):
         inferred_freq = data.freq
-
-    # if dtype has an embedded tz, capture it
-    tz = validate_tz_from_dtype(dtype, tz)
-
-    if isinstance(data, ABCIndex):
-        if data.nlevels > 1:
-            # Without this check, data._data below is None
-            raise TypeError("Cannot create a DatetimeArray from a MultiIndex.")
-        data = data._data
 
     # By this point we are assured to have either a numpy array or Index
     data, copy = maybe_convert_dtype(data, copy)
@@ -2045,13 +2065,14 @@ def sequence_to_dt64ns(
     if is_datetime64tz_dtype(data_dtype):
         # DatetimeArray -> ndarray
         tz = _maybe_infer_tz(tz, data.tz)
-        result = data._data
+        result = data._ndarray
 
     elif is_datetime64_dtype(data_dtype):
         # tz-naive DatetimeArray or ndarray[datetime64]
-        data = getattr(data, "_data", data)
+        data = getattr(data, "_ndarray", data)
         if data.dtype != DT64NS_DTYPE:
             data = conversion.ensure_datetime64ns(data)
+            copy = False
 
         if tz is not None:
             # Convert tz-naive to UTC
@@ -2088,7 +2109,7 @@ def sequence_to_dt64ns(
 
 
 def objects_to_datetime64ns(
-    data,
+    data: np.ndarray,
     dayfirst,
     yearfirst,
     utc=False,

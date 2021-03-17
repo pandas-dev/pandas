@@ -240,7 +240,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         values: Categorical,
         name: Hashable = no_default,
     ):
-        name = self.name if name is no_default else name
+        name = self._name if name is no_default else name
 
         if values is not None:
             # In tests we only get here with Categorical objects that
@@ -492,7 +492,11 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return self._data._unbox_scalar(key)
 
     def _get_indexer(
-        self, target: Index, method=None, limit=None, tolerance=None
+        self,
+        target: Index,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
     ) -> np.ndarray:
 
         if self.equals(target):

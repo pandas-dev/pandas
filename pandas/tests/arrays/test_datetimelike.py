@@ -13,6 +13,7 @@ from pandas._libs import (
     Timestamp,
 )
 from pandas.compat import np_version_under1p18
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -28,6 +29,8 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.datetimes import sequence_to_dt64ns
+from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
 # TODO: more freq variants
@@ -224,7 +227,7 @@ class SharedTests:
         result = arr._unbox_scalar(NaT)
         assert isinstance(result, expected)
 
-        msg = f"'value' should be a {self.dtype.__name__}."
+        msg = f"'value' should be a {self.scalar_type.__name__}."
         with pytest.raises(ValueError, match=msg):
             arr._unbox_scalar("foo")
 
@@ -614,11 +617,21 @@ class SharedTests:
         result = arr2.median(axis=1, skipna=False)
         tm.assert_equal(result, arr)
 
+    def test_from_integer_array(self):
+        arr = np.array([1, 2, 3], dtype=np.int64)
+        expected = self.array_cls(arr, dtype=self.example_dtype)
+
+        data = pd.array(arr, dtype="Int64")
+        result = self.array_cls(data, dtype=self.example_dtype)
+
+        tm.assert_extension_array_equal(result, expected)
+
 
 class TestDatetimeArray(SharedTests):
     index_cls = DatetimeIndex
     array_cls = DatetimeArray
-    dtype = Timestamp
+    scalar_type = Timestamp
+    example_dtype = "M8[ns]"
 
     @pytest.fixture
     def arr1d(self, tz_naive_fixture, freqstr):
@@ -918,7 +931,8 @@ class TestDatetimeArray(SharedTests):
 class TestTimedeltaArray(SharedTests):
     index_cls = TimedeltaIndex
     array_cls = TimedeltaArray
-    dtype = pd.Timedelta
+    scalar_type = pd.Timedelta
+    example_dtype = "m8[ns]"
 
     def test_from_tdi(self):
         tdi = TimedeltaIndex(["1 Day", "3 Hours"])
@@ -1037,7 +1051,8 @@ class TestTimedeltaArray(SharedTests):
 class TestPeriodArray(SharedTests):
     index_cls = PeriodIndex
     array_cls = PeriodArray
-    dtype = Period
+    scalar_type = Period
+    example_dtype = PeriodIndex([], freq="W").dtype
 
     @pytest.fixture
     def arr1d(self, period_index):
@@ -1304,4 +1319,101 @@ def test_period_index_construction_from_strings(klass):
     data = klass(strings)
     result = PeriodIndex(data, freq="Q")
     expected = PeriodIndex([Period(s) for s in strings])
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+def test_from_pandas_array(dtype):
+    # GH#24615
+    data = np.array([1, 2, 3], dtype=dtype)
+    arr = PandasArray(data)
+
+    cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
+
+    result = cls(arr)
+    expected = cls(data)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = cls._from_sequence(arr)
+    expected = cls._from_sequence(data)
+    tm.assert_extension_array_equal(result, expected)
+
+    func = {"M8[ns]": sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
+    result = func(arr)[0]
+    expected = func(data)[0]
+    tm.assert_equal(result, expected)
+
+    func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
+    result = func(arr).array
+    expected = func(data).array
+    tm.assert_equal(result, expected)
+
+    # Let's check the Indexes while we're here
+    idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
+    result = idx_cls(arr)
+    expected = idx_cls(data)
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.fixture(
+    params=[
+        "memoryview",
+        "array",
+        pytest.param("dask", marks=td.skip_if_no("dask.array")),
+        pytest.param("xarray", marks=td.skip_if_no("xarray")),
+    ]
+)
+def array_likes(request):
+    # GH#24539 recognize e.g xarray, dask, ...
+    arr = np.array([1, 2, 3], dtype=np.int64)
+
+    name = request.param
+    if name == "memoryview":
+        data = memoryview(arr)
+    elif name == "array":
+        # stdlib array
+        from array import array as array_stdlib
+
+        data = array_stdlib("i", arr)
+    elif name == "dask":
+        import dask.array
+
+        data = dask.array.array(arr)
+    elif name == "xarray":
+        import xarray as xr
+
+        data = xr.DataArray(arr)
+
+    return arr, data
+
+
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+def test_from_obscure_array(dtype, array_likes):
+    # GH#24539 recognize e.g xarray, dask, ...
+    # Note: we dont do this for PeriodArray bc _from_sequence won't accept
+    #  an array of integers
+    # TODO: could check with arraylike of Period objects
+    arr, data = array_likes
+
+    cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
+
+    expected = cls(arr)
+    result = cls._from_sequence(data)
+    tm.assert_extension_array_equal(result, expected)
+
+    func = {"M8[ns]": sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
+    result = func(arr)[0]
+    expected = func(data)[0]
+    tm.assert_equal(result, expected)
+
+    # FIXME: dask and memoryview both break on these
+    # func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
+    # result = func(arr).array
+    # expected = func(data).array
+    # tm.assert_equal(result, expected)
+
+    # Let's check the Indexes while we're here
+    idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
+    result = idx_cls(arr)
+    expected = idx_cls(data)
     tm.assert_index_equal(result, expected)
