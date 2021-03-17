@@ -68,6 +68,7 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
+from pandas.core.dtypes.inference import is_inferred_bool_dtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -153,7 +154,6 @@ class Block(PandasObject):
 
     __slots__ = ["_mgr_locs", "values", "ndim"]
     is_numeric = False
-    is_bool = False
     is_object = False
     is_extension = False
     _can_hold_na = False
@@ -215,6 +215,14 @@ class Block(PandasObject):
     @property
     def is_categorical(self) -> bool:
         return self._holder is Categorical
+
+    @final
+    @property
+    def is_bool(self) -> bool:
+        """
+        We can be bool if a) we are bool dtype or b) object dtype with bool objects.
+        """
+        return is_inferred_bool_dtype(self.values)
 
     def external_values(self):
         """
@@ -1800,10 +1808,6 @@ class NumericBlock(Block):
     def _can_hold_na(self):
         return self.dtype.kind not in ["b", "i", "u"]
 
-    @property
-    def is_bool(self):
-        return self.dtype.kind == "b"
-
 
 class FloatBlock(NumericBlock):
     __slots__ = ()
@@ -2030,14 +2034,6 @@ class ObjectBlock(Block):
     _can_hold_na = True
 
     values: np.ndarray
-
-    @property
-    def is_bool(self):
-        """
-        we can be a bool if we have only bool values but are of type
-        object
-        """
-        return lib.is_bool_array(self.values.ravel("K"))
 
     @maybe_split
     def reduce(self, func, ignore_failures: bool = False) -> List[Block]:
