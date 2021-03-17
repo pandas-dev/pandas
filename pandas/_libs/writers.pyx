@@ -34,7 +34,7 @@ def write_csv_rows(
     data_index : ndarray
     nlevels : int
     cols : ndarray
-    writer : object
+    writer : _csv.writer
     """
     # In crude testing, N>100 yields little marginal improvement
     cdef:

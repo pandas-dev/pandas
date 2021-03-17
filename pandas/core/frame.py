@@ -719,9 +719,7 @@ class DataFrame(NDFrame, OpsMixin):
                     values, columns, index, columns, dtype=None, typ=manager
                 )
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "List[ExtensionArray]")
-                values = construct_2d_arraylike_from_scalar(  # type: ignore[assignment]
+                arr2d = construct_2d_arraylike_from_scalar(
                     data,
                     len(index),
                     len(columns),
@@ -730,11 +728,10 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
                 mgr = ndarray_to_mgr(
-                    # error: "List[ExtensionArray]" has no attribute "dtype"
-                    values,
+                    arr2d,
                     index,
                     columns,
-                    dtype=values.dtype,  # type: ignore[attr-defined]
+                    dtype=arr2d.dtype,
                     copy=False,
                     typ=manager,
                 )
