@@ -799,8 +799,9 @@ class TestFreqConversion:
         assert result2.freq == expected.freq
 
     @pytest.mark.parametrize(
-        "year_month", ["2013-01", "2021-02", "2022-02", "2020-07", "2027-12"])
-    def test_M_vs_MS(self, year_month):
+        "year_month", ["2013-01", "2021-02", "2022-02", "2020-07", "2027-12"]
+    )
+    def test_asfreq_M_vs_MS(self, year_month):
         year = year_month.split("-")[0]
         initial = Period(year)
         ts0 = initial.asfreq(freq="M", how="S").to_timestamp(how="start")
