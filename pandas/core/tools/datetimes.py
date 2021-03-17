@@ -147,7 +147,11 @@ def should_cache(
 
     assert 0 < unique_share < 1, "unique_share must be in next bounds: (0; 1)"
 
-    unique_elements = set(islice(arg, check_count))
+    try:
+        # We can't cache if the items are not hashable.
+        unique_elements = set(islice(arg, check_count))
+    except TypeError:
+        return False
     if len(unique_elements) > check_count * unique_share:
         do_caching = False
     return do_caching
@@ -285,7 +289,7 @@ def _convert_listlike_datetimes(
     name: Hashable = None,
     tz: Optional[Timezone] = None,
     unit: Optional[str] = None,
-    errors: Optional[str] = None,
+    errors: str = "raise",
     infer_datetime_format: bool = False,
     dayfirst: Optional[bool] = None,
     yearfirst: Optional[bool] = None,
@@ -428,7 +432,7 @@ def _array_strptime_with_fallback(
     tz,
     fmt: str,
     exact: bool,
-    errors: Optional[str],
+    errors: str,
     infer_datetime_format: bool,
 ) -> Optional[Index]:
     """
@@ -476,7 +480,7 @@ def _to_datetime_with_format(
     tz,
     fmt: str,
     exact: bool,
-    errors: Optional[str],
+    errors: str,
     infer_datetime_format: bool,
 ) -> Optional[Index]:
     """
@@ -534,25 +538,19 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: Optional[str]) -> Index:
     # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
     # because it expects an ndarray argument
     if isinstance(arg, IntegerArray):
-        result = arg.astype(f"datetime64[{unit}]")
+        arr = arg.astype(f"datetime64[{unit}]")
         tz_parsed = None
     else:
-        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+        arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
 
     if errors == "ignore":
         # Index constructor _may_ infer to DatetimeIndex
-
-        # error: Incompatible types in assignment (expression has type "Index", variable
-        # has type "ExtensionArray")
-        result = Index(result, name=name)  # type: ignore[assignment]
+        result = Index(arr, name=name)
     else:
-        # error: Incompatible types in assignment (expression has type "DatetimeIndex",
-        # variable has type "ExtensionArray")
-        result = DatetimeIndex(result, name=name)  # type: ignore[assignment]
+        result = DatetimeIndex(arr, name=name)
 
     if not isinstance(result, DatetimeIndex):
-        # error: Incompatible return value type (got "ExtensionArray", expected "Index")
-        return result  # type: ignore[return-value]
+        return result
 
     # GH#23758: We may still need to localize the result with tz
     # GH#25546: Apply tz_parsed first (from arg), then tz (from caller)

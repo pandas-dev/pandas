@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     from pandas import Interval
     from pandas.core.arrays.base import ExtensionArray
     from pandas.core.frame import DataFrame
-    from pandas.core.generic import NDFrame  # noqa: F401
+    from pandas.core.generic import NDFrame
     from pandas.core.groupby.generic import (
         DataFrameGroupBy,
         SeriesGroupBy,

@@ -250,7 +250,7 @@ class ExtensionIndex(Index):
         result = self._data[key]
         if isinstance(result, type(self._data)):
             if result.ndim == 1:
-                return type(self)(result, name=self.name)
+                return type(self)(result, name=self._name)
             # Unpack to ndarray for MPL compat
 
             result = result._ndarray
@@ -430,7 +430,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
             new_arr = arr._from_backing_data(new_vals)
             return type(self)._simple_new(new_arr, name=self.name)
 
-    def putmask(self, mask, value):
+    def putmask(self, mask, value) -> Index:
         res_values = self._data.copy()
         try:
             res_values.putmask(mask, value)
