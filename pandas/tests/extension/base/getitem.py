@@ -245,6 +245,26 @@ class BaseGetitemTests(BaseExtensionTests):
         result = data[slice(1)]  # scalar
         assert isinstance(result, type(data))
 
+    def test_getitem_ellipsis_and_slice(self, data):
+        # GH#40353 this is called from getitem_block_index
+        result = data[..., :]
+        self.assert_extension_array_equal(result, data)
+
+        result = data[:, ...]
+        self.assert_extension_array_equal(result, data)
+
+        result = data[..., :3]
+        self.assert_extension_array_equal(result, data[:3])
+
+        result = data[:3, ...]
+        self.assert_extension_array_equal(result, data[:3])
+
+        result = data[..., ::2]
+        self.assert_extension_array_equal(result, data[::2])
+
+        result = data[::2, ...]
+        self.assert_extension_array_equal(result, data[::2])
+
     def test_get(self, data):
         # GH 20882
         s = pd.Series(data, index=[2 * i for i in range(len(data))])
