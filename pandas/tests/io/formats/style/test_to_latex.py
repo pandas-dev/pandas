@@ -81,14 +81,14 @@ class TestStylerLatex:
     def test_position(self):
         assert "\\begin{table}[h!]" in self.s.to_latex(position="h!")
         assert "\\end{table}" in self.s.to_latex(position="h!")
-        self.s.set_table_styles([{"selector": "position", "props": ":h!"}])
-        assert "\\begin{table}[h!]" in self.s.to_latex()
+        self.s.set_table_styles([{"selector": "position", "props": ":b!"}])
+        assert "\\begin{table}[b!]" in self.s.to_latex()
         assert "\\end{table}" in self.s.to_latex()
 
     def test_label(self):
         assert "\\label{text}" in self.s.to_latex(label="text")
-        self.s.set_table_styles([{"selector": "label", "props": ":{text}"}])
-        assert "\\label{text}" in self.s.to_latex()
+        self.s.set_table_styles([{"selector": "label", "props": ":{more §text}"}])
+        assert "\\label{more :text}" in self.s.to_latex()
 
     @pytest.mark.parametrize("label", [(None, ""), ("text", "\\label{text}")])
     @pytest.mark.parametrize("position", [(None, ""), ("h!", "{table}[h!]")])
