@@ -7,9 +7,11 @@ from datetime import (
     tzinfo,
 )
 from typing import (
+    TYPE_CHECKING,
     Optional,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -78,6 +80,9 @@ from pandas.tseries.offsets import (
     Day,
     Tick,
 )
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 _midnight = time(0, 0)
 
@@ -1907,6 +1912,20 @@ default 'raise'
 
 # -------------------------------------------------------------------
 # Constructor Helpers
+
+
+@overload
+def sequence_to_datetimes(
+    data, allow_object: Literal[False] = ..., require_iso8601: bool = ...
+) -> DatetimeArray:
+    ...
+
+
+@overload
+def sequence_to_datetimes(
+    data, allow_object: Literal[True] = ..., require_iso8601: bool = ...
+) -> Union[np.ndarray, DatetimeArray]:
+    ...
 
 
 def sequence_to_datetimes(
