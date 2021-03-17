@@ -209,12 +209,19 @@ class TestStylerMatplotlibDep:
         [
             (DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"]), 1),
             (DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"]), 0),
-            (Series([1, 2], index=["X", "Y"]), None),
-            (Series([1, 2], index=["X", "Y"]), 1),
-            (Series([1, 2], index=["A", "B"]), 0),
         ],
     )
-    def test_background_gradient_gmap_wrong_series_dataframe(self, gmap, axis):
-        # test giving a gmap in DataFrame or Series form but with wrong axis
+    def test_background_gradient_gmap_wrong_dataframe(self, gmap, axis):
+        # test giving a gmap in DataFrame but with wrong axis
         df = DataFrame([[0, 0], [0, 0]], columns=["A", "B"], index=["X", "Y"])
-        df.style.background_gradient(axis=axis, gmap=gmap)._compute()
+        msg = "'gmap' is a DataFrame but underlying data for operations is a Series"
+        with pytest.raises(ValueError, match=msg):
+            df.style.background_gradient(gmap=gmap, axis=axis)._compute()
+
+    def test_background_gradient_gmap_wrong_series(self):
+        # test giving a gmap in Series form but with wrong axis
+        df = DataFrame([[0, 0], [0, 0]], columns=["A", "B"], index=["X", "Y"])
+        msg = "'gmap' is a Series but underlying data for operations is a DataFrame"
+        gmap = Series([1, 2], index=["X", "Y"])
+        with pytest.raises(ValueError, match=msg):
+            df.style.background_gradient(gmap=gmap, axis=None)._compute()

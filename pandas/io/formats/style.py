@@ -1505,6 +1505,7 @@ class Styler:
             vmin=vmin,
             vmax=vmax,
             gmap=gmap,
+            axis_=axis,
         )
         return self
 
@@ -1518,23 +1519,15 @@ class Styler:
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
         gmap: Optional[Sequence] = None,
+        axis_: Optional[Axis] = None,
     ):
         """
         Color background in a range according to the data or a gradient map
         """
         if gmap is None:  # the data is used the gmap
             gmap = s.to_numpy(dtype=float)
-        elif isinstance(gmap, (Series, DataFrame)):  # align indx / cols to data
-            gmap = gmap.reindex_like(s, method=None).to_numpy(dtype=float)
-        else:
-            gmap = np.asarray(gmap, dtype=float)
-            assert isinstance(gmap, np.ndarray)  # mypy requirement
-            if gmap.shape != s.shape:  # check valid input
-                raise ValueError(
-                    "supplied 'gmap' is not right shape for data over "
-                    f"selected 'axis': got {gmap.shape}, "
-                    f"expected {s.shape}"
-                )
+        else:  # else validate gmap against the underlying data
+            gmap = _validate_apply_axis_arg(gmap, "gmap", float, axis_, s)
 
         with _mpl(Styler.background_gradient) as (plt, colors):
             smin = np.nanmin(gmap) if vmin is None else vmin
@@ -2323,3 +2316,59 @@ def _non_reducing_slice(slice_):
     else:
         slice_ = [part if pred(part) else [part] for part in slice_]
     return tuple(slice_)
+
+
+def _validate_apply_axis_arg(
+    arg: Union[FrameOrSeries, Sequence],
+    arg_name: str,
+    dtype: Optional[Any],
+    axis: Optional[Axis],
+    data: FrameOrSeries,
+) -> np.ndarray:
+    """
+    For the apply-type methods, ``axis=None`` creates ``data`` as DataFrame, and for
+    ``axis=[1,0]`` it creates a Series. Where ``arg`` is expected as an element
+    of some operator with ``data`` we must make sure that the two are compatible shapes,
+    or raise.
+
+    Parameters
+    ----------
+    arg : sequence, Series or DataFrame
+        the user input arg
+    arg_name : string
+        name of the arg for use in error messages
+    dtype : numpy dtype, optional
+        forced numpy dtype if given
+    axis : {0,1, None}
+        axis over which apply-type method is used
+    data : Series or DataFrame
+        underling subset of Styler data on which operations are performed
+
+    Returns
+    -------
+    ndarray
+    """
+    dtype = {"dtype": dtype} if dtype else {}
+    # raise if input is wrong for axis:
+    if isinstance(arg, Series) and axis is None:
+        raise ValueError(
+            f"'{arg_name}' is a Series but underlying data for operations "
+            f"is a DataFrame since 'axis=None'"
+        )
+    elif isinstance(arg, DataFrame) and axis in [0, 1]:
+        raise ValueError(
+            f"'{arg_name}' is a DataFrame but underlying data for "
+            f"operations is a Series with 'axis={axis}'"
+        )
+    elif isinstance(arg, (Series, DataFrame)):  # align indx / cols to data
+        arg = arg.reindex_like(data, method=None).to_numpy(**dtype)
+    else:
+        arg = np.asarray(arg, **dtype)
+        assert isinstance(arg, np.ndarray)  # mypy requirement
+        if arg.shape != data.shape:  # check valid input
+            raise ValueError(
+                f"supplied '{arg_name}' is not right shape for data over "
+                f"selected 'axis': got {arg.shape}, "
+                f"expected {data.shape}"
+            )
+    return arg
