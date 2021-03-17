@@ -163,12 +163,10 @@ jobs:
         pytest pandas/tests/resample/
         pytest pandas/tests/reshape/merge
         pytest pandas/tests/series/
-
-        # indexing subset (temporary since other tests don't pass yet)
-        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_astype_assignment_with_dups
-        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_frame_setitem_multi_column
+        pytest pandas/tests/indexing/
 
         pytest pandas/tests/api/
+        pytest pandas/tests/apply/
         pytest pandas/tests/arrays/
         pytest pandas/tests/base/
         pytest pandas/tests/computation/
