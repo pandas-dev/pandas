@@ -723,9 +723,7 @@ class DataFrame(NDFrame, OpsMixin):
                     values, columns, index, columns, dtype=None, typ=manager
                 )
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "List[ExtensionArray]")
-                values = construct_2d_arraylike_from_scalar(  # type: ignore[assignment]
+                arr2d = construct_2d_arraylike_from_scalar(
                     data,
                     len(index),
                     len(columns),
@@ -734,11 +732,10 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
                 mgr = ndarray_to_mgr(
-                    # error: "List[ExtensionArray]" has no attribute "dtype"
-                    values,
+                    arr2d,
                     index,
                     columns,
-                    dtype=values.dtype,  # type: ignore[attr-defined]
+                    dtype=arr2d.dtype,
                     copy=False,
                     typ=manager,
                 )
@@ -3587,6 +3584,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
+            # bool indexer is indexing along rows
             if len(key) != len(self.index):
                 raise ValueError(
                     f"Item wrong length {len(key)} instead of {len(self.index)}!"
@@ -3598,18 +3596,72 @@ class DataFrame(NDFrame, OpsMixin):
                 # GH#39931 reindex since iloc does not align
                 value = value.reindex(self.index.take(indexer))
             self.iloc[indexer] = value
+
         else:
             if isinstance(value, DataFrame):
                 check_key_length(self.columns, key, value)
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
+
+            elif not is_list_like(value):
+                for col in key:
+                    self[col] = value
+
+            elif isinstance(value, np.ndarray) and value.ndim == 2:
+                self._iset_not_inplace(key, value)
+
+            elif np.ndim(value) > 1:
+                # list of lists
+                value = DataFrame(value).values
+                return self._setitem_array(key, value)
+
             else:
-                self.loc._ensure_listlike_indexer(key, axis=1, value=value)
-                indexer = self.loc._get_listlike_indexer(
-                    key, axis=1, raise_missing=False
-                )[1]
-                self._check_setitem_copy()
-                self.iloc[:, indexer] = value
+                self._iset_not_inplace(key, value)
+
+    def _iset_not_inplace(self, key, value):
+        # GH#39510 when setting with df[key] = obj with a list-like key and
+        #  list-like value, we iterate over those listlikes and set columns
+        #  one at a time.  This is different from dispatching to
+        #  `self.loc[:, key]= value`  because loc.__setitem__ may overwrite
+        #  data inplace, whereas this will insert new arrays.
+
+        def igetitem(obj, i: int):
+            # Note: we catch DataFrame obj before getting here, but
+            #  hypothetically would return obj.iloc[:, i]
+            if isinstance(obj, np.ndarray):
+                return obj[..., i]
+            else:
+                return obj[i]
+
+        if self.columns.is_unique:
+            if np.shape(value)[-1] != len(key):
+                raise ValueError("Columns must be same length as key")
+
+            for i, col in enumerate(key):
+                self[col] = igetitem(value, i)
+
+        else:
+
+            ilocs = self.columns.get_indexer_non_unique(key)[0]
+            if (ilocs < 0).any():
+                # key entries not in self.columns
+                raise NotImplementedError
+
+            if np.shape(value)[-1] != len(ilocs):
+                raise ValueError("Columns must be same length as key")
+
+            assert np.ndim(value) <= 2
+
+            orig_columns = self.columns
+
+            # Using self.iloc[:, i] = ... may set values inplace, which
+            #  by convention we do not do in __setitem__
+            try:
+                self.columns = Index(range(len(self.columns)))
+                for i, iloc in enumerate(ilocs):
+                    self[iloc] = igetitem(value, i)
+            finally:
+                self.columns = orig_columns
 
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
@@ -6630,7 +6682,8 @@ class DataFrame(NDFrame, OpsMixin):
         right = lib.item_from_zerodim(right)
         if not is_list_like(right):
             # i.e. scalar, faster than checking np.ndim(right) == 0
-            bm = self._mgr.apply(array_op, right=right)
+            with np.errstate(all="ignore"):
+                bm = self._mgr.apply(array_op, right=right)
             return type(self)(bm)
 
         elif isinstance(right, DataFrame):
@@ -6641,16 +6694,17 @@ class DataFrame(NDFrame, OpsMixin):
             #  _frame_arith_method_with_reindex
 
             # TODO operate_blockwise expects a manager of the same type
-            bm = self._mgr.operate_blockwise(
-                # error: Argument 1 to "operate_blockwise" of "ArrayManager" has
-                # incompatible type "Union[ArrayManager, BlockManager]"; expected
-                # "ArrayManager"
-                # error: Argument 1 to "operate_blockwise" of "BlockManager" has
-                # incompatible type "Union[ArrayManager, BlockManager]"; expected
-                # "BlockManager"
-                right._mgr,  # type: ignore[arg-type]
-                array_op,
-            )
+            with np.errstate(all="ignore"):
+                bm = self._mgr.operate_blockwise(
+                    # error: Argument 1 to "operate_blockwise" of "ArrayManager" has
+                    # incompatible type "Union[ArrayManager, BlockManager]"; expected
+                    # "ArrayManager"
+                    # error: Argument 1 to "operate_blockwise" of "BlockManager" has
+                    # incompatible type "Union[ArrayManager, BlockManager]"; expected
+                    # "BlockManager"
+                    right._mgr,  # type: ignore[arg-type]
+                    array_op,
+                )
             return type(self)(bm)
 
         elif isinstance(right, Series) and axis == 1:
@@ -6661,16 +6715,18 @@ class DataFrame(NDFrame, OpsMixin):
             # maybe_align_as_frame ensures we do not have an ndarray here
             assert not isinstance(right, np.ndarray)
 
-            arrays = [
-                array_op(_left, _right)
-                for _left, _right in zip(self._iter_column_arrays(), right)
-            ]
+            with np.errstate(all="ignore"):
+                arrays = [
+                    array_op(_left, _right)
+                    for _left, _right in zip(self._iter_column_arrays(), right)
+                ]
 
         elif isinstance(right, Series):
             assert right.index.equals(self.index)  # Handle other cases later
             right = right._values
 
-            arrays = [array_op(left, right) for left in self._iter_column_arrays()]
+            with np.errstate(all="ignore"):
+                arrays = [array_op(left, right) for left in self._iter_column_arrays()]
 
         else:
             # Remaining cases have less-obvious dispatch rules
