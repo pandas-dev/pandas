@@ -77,7 +77,7 @@ jobs:
       uses: ./.github/actions/build_pandas
 
     - name: Test
-      run: pytest -m "(single and db)" -n 2 --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml pandas/tests/io/test_sql.py
+      run: pytest -m "(single and db)" -n 2 --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml -s --cov=pandas --cov-report=xml pandas/tests/io/test_sql.py
       if: always()
 
     - name: Build Version
@@ -98,4 +98,4 @@ jobs:
       with:
         flags: unittests
         name: codecov-pandas
-        fail_ci_if_error: false
+        fail_ci_if_error: true
