@@ -4213,11 +4213,11 @@ class Index(IndexOpsMixin, PandasObject):
 
             if keep_order:  # just drop missing values. o.w. keep order
                 left_indexer = np.arange(len(left), dtype=np.intp)
+                left_indexer = cast(np.ndarray, left_indexer)
                 mask = new_lev_codes != -1
                 if not mask.all():
                     new_codes = [lab[mask] for lab in new_codes]
-                    # error: Value of type "Optional[ndarray]" is not indexable
-                    left_indexer = left_indexer[mask]  # type: ignore[index]
+                    left_indexer = left_indexer[mask]
 
             else:  # tie out the order with other
                 if level == 0:  # outer most level, take the fast route
