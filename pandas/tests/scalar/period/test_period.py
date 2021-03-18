@@ -198,10 +198,10 @@ class TestPeriodConstruction:
         assert Period("3/10/12", freq=offsets.Day()) == Period("3/10/12", freq="D")
 
         assert Period(
-            year=2005, quarter=1, freq=offsets.QuarterEnd(startingMonth=12)
+            year=2005, quarter=1, freq=offsets.QuarterEnd(month=12)
         ) == Period(year=2005, quarter=1, freq="Q")
         assert Period(
-            year=2005, quarter=2, freq=offsets.QuarterEnd(startingMonth=12)
+            year=2005, quarter=2, freq=offsets.QuarterEnd(month=12)
         ) == Period(year=2005, quarter=2, freq="Q")
 
         assert Period(year=2005, month=3, day=1, freq=offsets.Day()) == Period(
@@ -1252,7 +1252,7 @@ class TestArithmetic:
         "offset, kwd_name",
         [
             (offsets.YearEnd, "month"),
-            (offsets.QuarterEnd, "startingMonth"),
+            (offsets.QuarterEnd, "month"),
             (offsets.MonthEnd, None),
             (offsets.Week, "weekday"),
         ],
