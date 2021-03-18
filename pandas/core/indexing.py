@@ -1883,13 +1883,14 @@ class _iLocIndexer(_LocationIndexer):
         # multi-dim object
         # GH#6149 (null slice), GH#10408 (full bounds)
         if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
-            blk = ser._mgr.blocks[0]
-            if blk._can_hold_element(value) and is_scalar(value):
-                # FIXME: ExtensionBlock._can_hold_element
-                # We can do an inplace-setting, do it directly on _values
-                #  to get our underlying
-                ser._values[plane_indexer] = value
-                return
+            if not self.obj._uses_array_manager:
+                blk = ser._mgr.blocks[0]
+                if blk._can_hold_element(value) and is_scalar(value):
+                    # FIXME: ExtensionBlock._can_hold_element
+                    # We can do an inplace-setting, do it directly on _values
+                    #  to get our underlying
+                    ser._values[plane_indexer] = value
+                    return
             ser = value
         elif is_array_like(value) and is_exact_shape_match(ser, value):
             ser = value

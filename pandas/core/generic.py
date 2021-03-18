@@ -316,6 +316,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # fastpath of passing a manager doesn't check the option/manager class
         return self._constructor(new_mgr).__finalize__(self)
 
+    @property
+    def _uses_array_manager(self) -> bool_t:
+        return isinstance(self._mgr, ArrayManager)
+
     # ----------------------------------------------------------------------
     # attrs and flags
 
