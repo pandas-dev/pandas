@@ -71,8 +71,7 @@ def _evaluate_standard(op, op_str, a, b):
     """
     if _TEST_MODE:
         _store_test_result(False)
-    with np.errstate(all="ignore"):
-        return op(a, b)
+    return op(a, b)
 
 
 def _can_use_numexpr(op, op_str, a, b, dtype_check):
