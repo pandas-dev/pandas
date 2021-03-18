@@ -72,15 +72,8 @@ jobs:
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
 
-    - name: Environment Detail
-      run: |
-        conda info
-        conda list
-
     - name: Build Pandas
-      run: |
-        python setup.py build_ext -j 2
-        python -m pip install -e . --no-build-isolation --no-use-pep517
+      uses: ./.github/actions/build_pandas
 
     - name: Test
       run: pytest -m "(single and db)" -n 2 --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml pandas/tests/io/test_sql.py
@@ -98,6 +91,13 @@ jobs:
 
     - name: Print skipped tests
       run: python ci/print_skipped.py
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        flags: unittests
+        name: codecov-pandas
+        fail_ci_if_error: false
 
   Linux_py37_cov:
     runs-on: ubuntu-latest
@@ -158,15 +158,8 @@ jobs:
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
 
-    - name: Environment Detail
-      run: |
-        conda info
-        conda list
-
     - name: Build Pandas
-      run: |
-        python setup.py build_ext -j 2
-        python -m pip install -e . --no-build-isolation --no-use-pep517
+      uses: ./.github/actions/build_pandas
 
     - name: Test
       run: ci/run_tests.sh
@@ -184,3 +177,10 @@ jobs:
 
     - name: Print skipped tests
       run: python ci/print_skipped.py
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        flags: unittests
+        name: codecov-pandas
+        fail_ci_if_error: true

@@ -1,5 +1,11 @@
 import functools
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+)
 
 import numpy as np
 

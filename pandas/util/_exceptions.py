@@ -11,6 +11,8 @@ def rewrite_exception(old_name: str, new_name: str):
     try:
         yield
     except Exception as err:
+        if not err.args:
+            raise
         msg = str(err.args[0])
         msg = msg.replace(old_name, new_name)
         args: Tuple[str, ...] = (msg,)
@@ -31,7 +33,7 @@ def find_stack_level() -> int:
         if stack[n].function == "astype":
             break
 
-    while stack[n].function in ["astype", "apply", "_astype"]:
+    while stack[n].function in ["astype", "apply", "astype_array_safe", "astype_array"]:
         # e.g.
         #  bump up Block.astype -> BlockManager.astype -> NDFrame.astype
         #  bump up Datetime.Array.astype -> DatetimeIndex.astype

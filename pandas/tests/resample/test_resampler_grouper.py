@@ -7,7 +7,12 @@ import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Series,
+    TimedeltaIndex,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
@@ -67,7 +72,7 @@ def test_deferred_with_groupby():
 
     df = DataFrame(
         {
-            "date": pd.date_range(start="2016-01-01", periods=4, freq="W"),
+            "date": date_range(start="2016-01-01", periods=4, freq="W"),
             "group": [1, 1, 2, 2],
             "val": [5, 6, 7, 8],
         }
@@ -101,7 +106,7 @@ def test_getitem_multiple():
     # GH 13174
     # multiple calls after selection causing an issue with aliasing
     data = [{"id": 1, "buyer": "A"}, {"id": 2, "buyer": "B"}]
-    df = DataFrame(data, index=pd.date_range("2016-01-01", periods=2))
+    df = DataFrame(data, index=date_range("2016-01-01", periods=2))
     r = df.groupby("id").resample("1D")
     result = r["buyer"].count()
     expected = Series(
@@ -121,7 +126,7 @@ def test_getitem_multiple():
 def test_groupby_resample_on_api_with_getitem():
     # GH 17813
     df = DataFrame(
-        {"id": list("aabbb"), "date": pd.date_range("1-1-2016", periods=5), "data": 1}
+        {"id": list("aabbb"), "date": date_range("1-1-2016", periods=5), "data": 1}
     )
     exp = df.set_index("date").groupby("id").resample("2D")["data"].sum()
     result = df.groupby("id").resample("2D", on="date")["data"].sum()
@@ -135,7 +140,7 @@ def test_groupby_with_origin():
     start, end = "1/1/2000 00:00:00", "1/31/2000 00:00"
     middle = "1/15/2000 00:00:00"
 
-    rng = pd.date_range(start, end, freq="1231min")  # prime number
+    rng = date_range(start, end, freq="1231min")  # prime number
     ts = Series(np.random.randn(len(rng)), index=rng)
     ts2 = ts[middle:end]
 
@@ -173,7 +178,7 @@ def test_nearest():
 
     # GH 17496
     # Resample nearest
-    index = pd.date_range("1/1/2000", periods=3, freq="T")
+    index = date_range("1/1/2000", periods=3, freq="T")
     result = Series(range(3), index=index).resample("20s").nearest()
 
     expected = Series(
@@ -258,7 +263,7 @@ def test_apply():
 
 def test_apply_with_mutated_index():
     # GH 15169
-    index = pd.date_range("1-1-2015", "12-31-15", freq="D")
+    index = date_range("1-1-2015", "12-31-15", freq="D")
     df = DataFrame(data={"col1": np.random.rand(len(index))}, index=index)
 
     def f(x):
@@ -333,7 +338,7 @@ def test_median_duplicate_columns():
     df = DataFrame(
         np.random.randn(20, 3),
         columns=list("aaa"),
-        index=pd.date_range("2012-01-01", periods=20, freq="s"),
+        index=date_range("2012-01-01", periods=20, freq="s"),
     )
     df2 = df.copy()
     df2.columns = ["a", "b", "c"]
@@ -347,11 +352,11 @@ def test_apply_to_one_column_of_df():
     # GH: 36951
     df = DataFrame(
         {"col": range(10), "col1": range(10, 20)},
-        index=pd.date_range("2012-01-01", periods=10, freq="20min"),
+        index=date_range("2012-01-01", periods=10, freq="20min"),
     )
     result = df.resample("H").apply(lambda group: group.col.sum())
     expected = Series(
-        [3, 12, 21, 9], index=pd.date_range("2012-01-01", periods=4, freq="H")
+        [3, 12, 21, 9], index=date_range("2012-01-01", periods=4, freq="H")
     )
     tm.assert_series_equal(result, expected)
     result = df.resample("H").apply(lambda group: group["col"].sum())
@@ -391,4 +396,47 @@ def test_resample_groupby_agg():
     expected = resampled.sum()
     result = resampled.agg({"num": "sum"})
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
+def test_empty(keys):
+    # GH 26411
+    df = DataFrame([], columns=["a", "b"], index=TimedeltaIndex([]))
+    result = df.groupby(keys).resample(rule=pd.to_timedelta("00:00:01")).mean()
+    expected = DataFrame(columns=["a", "b"]).set_index(keys, drop=False)
+    if len(keys) == 1:
+        expected.index.name = keys[0]
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("consolidate", [True, False])
+def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
+    # https://github.com/pandas-dev/pandas/issues/39329
+
+    dates = date_range("2020-01-01", periods=15, freq="D")
+    df1 = DataFrame({"key": "A", "date": dates, "col1": range(15), "col_object": "val"})
+    df2 = DataFrame({"key": "B", "date": dates, "col1": range(15)})
+    df = pd.concat([df1, df2], ignore_index=True)
+    if consolidate:
+        df = df._consolidate()
+
+    result = df.groupby(["key"]).resample("W", on="date").min()
+    idx = pd.MultiIndex.from_arrays(
+        [
+            ["A"] * 3 + ["B"] * 3,
+            pd.to_datetime(["2020-01-05", "2020-01-12", "2020-01-19"] * 2),
+        ],
+        names=["key", "date"],
+    )
+    expected = DataFrame(
+        {
+            "key": ["A"] * 3 + ["B"] * 3,
+            "date": pd.to_datetime(["2020-01-01", "2020-01-06", "2020-01-13"] * 2),
+            "col1": [0, 5, 12] * 2,
+            "col_object": ["val"] * 3 + [np.nan] * 3,
+        },
+        index=idx,
+    )
     tm.assert_frame_equal(result, expected)

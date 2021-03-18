@@ -8,7 +8,11 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import Any, AnyArrayLike, ArrayLike
+from pandas._typing import (
+    Any,
+    AnyArrayLike,
+    ArrayLike,
+)
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -18,7 +22,10 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 
 if TYPE_CHECKING:
     from pandas.core.frame import DataFrame
@@ -228,7 +235,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
 # Indexer Conversion
 
 
-def maybe_convert_indices(indices, n: int):
+def maybe_convert_indices(indices, n: int, verify: bool = True):
     """
     Attempt to convert indices into valid, positive indices.
 
@@ -241,6 +248,8 @@ def maybe_convert_indices(indices, n: int):
         Array of indices that we are to convert.
     n : int
         Number of elements in the array that we are indexing.
+    verify : bool, default True
+        Check that all entries are between 0 and n - 1, inclusive.
 
     Returns
     -------
@@ -266,9 +275,10 @@ def maybe_convert_indices(indices, n: int):
         indices = indices.copy()
         indices[mask] += n
 
-    mask = (indices >= n) | (indices < 0)
-    if mask.any():
-        raise IndexError("indices are out-of-bounds")
+    if verify:
+        mask = (indices >= n) | (indices < 0)
+        if mask.any():
+            raise IndexError("indices are out-of-bounds")
     return indices
 
 
@@ -332,12 +342,14 @@ def length_of_indexer(indexer, target=None) -> int:
             # GH#25774
             return indexer.sum()
         return len(indexer)
+    elif isinstance(indexer, range):
+        return (indexer.stop - indexer.start) // indexer.step
     elif not is_list_like_indexer(indexer):
         return 1
     raise AssertionError("cannot find the length of the indexer")
 
 
-def deprecate_ndim_indexing(result, stacklevel=3):
+def deprecate_ndim_indexing(result, stacklevel: int = 3):
     """
     Helper function to raise the deprecation warning for multi-dimensional
     indexing on 1D Series/Index.

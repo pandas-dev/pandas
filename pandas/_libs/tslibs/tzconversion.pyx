@@ -19,13 +19,24 @@ import numpy as np
 import pytz
 
 cimport numpy as cnp
-from numpy cimport int64_t, intp_t, ndarray, uint8_t
+from numpy cimport (
+    int64_t,
+    intp_t,
+    ndarray,
+    uint8_t,
+)
 
 cnp.import_array()
 
-from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, HOUR_NANOS
+from pandas._libs.tslibs.ccalendar cimport (
+    DAY_NANOS,
+    HOUR_NANOS,
+)
 from pandas._libs.tslibs.nattype cimport NPY_NAT
-from pandas._libs.tslibs.np_datetime cimport dt64_to_dtstruct, npy_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport (
+    dt64_to_dtstruct,
+    npy_datetimestruct,
+)
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
     get_utcoffset,

@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING, Dict, Hashable, List, Optional, Set
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Hashable,
+    List,
+    Optional,
+    Set,
+)
 
 import matplotlib.lines as mlines
 import matplotlib.patches as patches
@@ -22,7 +29,10 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 def scatter_matrix(
@@ -236,7 +246,7 @@ def andrews_curves(
             # appropriately. Take a copy of amplitudes as otherwise numpy
             # deletes the element from amplitudes itself.
             coeffs = np.delete(np.copy(amplitudes), 0)
-            coeffs.resize(int((coeffs.size + 1) / 2), 2)
+            coeffs = np.resize(coeffs, (int((coeffs.size + 1) / 2), 2))
 
             # Generate the harmonics and arguments for the sin and cos
             # functions.
