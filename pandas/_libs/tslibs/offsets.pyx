@@ -2007,6 +2007,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         self.month = state.pop("month")
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
+        self._cache = {}
 
     @classmethod
     def _from_name(cls, suffix=None):
