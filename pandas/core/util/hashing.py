@@ -25,7 +25,6 @@ from pandas._typing import (
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_extension_array_dtype,
     is_list_like,
 )
 from pandas.core.dtypes.generic import (
@@ -119,7 +118,7 @@ def hash_pandas_object(
         h = hash_array(obj._values, encoding, hash_key, categorize).astype(
             "uint64", copy=False
         )
-        h = Series(h, index=obj, dtype="uint64", copy=False)
+        ser = Series(h, index=obj, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCSeries):
         h = hash_array(obj._values, encoding, hash_key, categorize).astype(
@@ -139,7 +138,7 @@ def hash_pandas_object(
             arrays = itertools.chain([h], index_iter)
             h = combine_hash_arrays(arrays, 2)
 
-        h = Series(h, index=obj.index, dtype="uint64", copy=False)
+        ser = Series(h, index=obj.index, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCDataFrame):
         hashes = (hash_array(series._values) for _, series in obj.items())
@@ -162,10 +161,11 @@ def hash_pandas_object(
             hashes = (x for x in _hashes)
         h = combine_hash_arrays(hashes, num_items)
 
-        h = Series(h, index=obj.index, dtype="uint64", copy=False)
+        ser = Series(h, index=obj.index, dtype="uint64", copy=False)
     else:
         raise TypeError(f"Unexpected type for hashing {type(obj)}")
-    return h
+
+    return ser
 
 
 def hash_tuples(
@@ -286,7 +286,8 @@ def hash_array(
     if is_categorical_dtype(dtype):
         vals = cast("Categorical", vals)
         return _hash_categorical(vals, encoding, hash_key)
-    elif is_extension_array_dtype(dtype):
+    elif not isinstance(vals, np.ndarray):
+        # i.e. ExtensionArray
         vals, _ = vals._values_for_factorize()
 
     return _hash_ndarray(vals, encoding, hash_key, categorize)

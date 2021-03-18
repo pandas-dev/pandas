@@ -633,28 +633,28 @@ class FrameApply(Apply):
         obj = self.obj
         axis = self.axis
 
-        # TODO: Avoid having to change state
-        self.obj = self.obj if self.axis == 0 else self.obj.T
-        self.axis = 0
-
-        result = None
         try:
-            result = super().agg()
+            if axis == 1:
+                result = FrameRowApply(
+                    obj.T,
+                    self.orig_f,
+                    self.raw,
+                    self.result_type,
+                    self.args,
+                    self.kwargs,
+                ).agg()
+                result = result.T if result is not None else result
+            else:
+                result = super().agg()
         except TypeError as err:
             exc = TypeError(
                 "DataFrame constructor called with "
                 f"incompatible data and dtype: {err}"
             )
             raise exc from err
-        finally:
-            self.obj = obj
-            self.axis = axis
-
-        if axis == 1:
-            result = result.T if result is not None else result
 
         if result is None:
-            result = self.obj.apply(self.orig_f, axis, args=self.args, **self.kwargs)
+            result = obj.apply(self.orig_f, axis, args=self.args, **self.kwargs)
 
         return result
 
@@ -1016,7 +1016,11 @@ class SeriesApply(Apply):
 
         with np.errstate(all="ignore"):
             if isinstance(f, np.ufunc):
-                return f(obj)
+                # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+                # "Series"; expected "Union[Union[int, float, complex, str, bytes,
+                # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+                # Sequence[Sequence[Any]], _SupportsArray]"
+                return f(obj)  # type: ignore[arg-type]
 
             # row-wise access
             if is_extension_array_dtype(obj.dtype) and hasattr(obj._values, "map"):

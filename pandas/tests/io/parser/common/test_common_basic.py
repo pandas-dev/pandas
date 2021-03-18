@@ -356,7 +356,7 @@ def test_escapechar(all_parsers):
     # https://stackoverflow.com/questions/13824840/feature-request-for-
     # pandas-read-csv
     data = '''SEARCH_TERM,ACTUAL_URL
-"bra tv bord","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
+"bra tv board","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
 "tv p\xc3\xa5 hjul","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
 "SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals series","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''  # noqa
 
@@ -753,3 +753,12 @@ def test_encoding_surrogatepass(all_parsers):
         tm.assert_frame_equal(df, expected)
         with pytest.raises(UnicodeDecodeError, match="'utf-8' codec can't decode byte"):
             parser.read_csv(path)
+
+
+def test_malformed_second_line(all_parsers):
+    # see GH14782
+    parser = all_parsers
+    data = "\na\nb\n"
+    result = parser.read_csv(StringIO(data), skip_blank_lines=False, header=1)
+    expected = DataFrame({"a": ["b"]})
+    tm.assert_frame_equal(result, expected)
