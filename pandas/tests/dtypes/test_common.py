@@ -518,14 +518,6 @@ def test_is_numeric_dtype():
     assert com.is_numeric_dtype(pd.Index([1, 2.0]))
 
 
-def test_is_string_like_dtype():
-    assert not com.is_string_like_dtype(object)
-    assert not com.is_string_like_dtype(pd.Series([1, 2]))
-
-    assert com.is_string_like_dtype(str)
-    assert com.is_string_like_dtype(np.array(["a", "b"]))
-
-
 def test_is_float_dtype():
     assert not com.is_float_dtype(str)
     assert not com.is_float_dtype(int)
