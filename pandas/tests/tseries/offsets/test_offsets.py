@@ -320,7 +320,7 @@ class TestCommon(Base):
             "BYearBegin": Timestamp("2010-01-01 09:00:00"),
             "YearEnd": Timestamp("2010-12-31 09:00:00"),
             "BYearEnd": Timestamp("2010-12-31 09:00:00"),
-            "QuarterBegin": Timestamp("2011-01-01 09:00:00"),
+            "QuarterBegin": Timestamp("2010-10-01 09:00:00"),
             "BQuarterBegin": Timestamp("2010-10-01 09:00:00"),
             "QuarterEnd": Timestamp("2010-12-31 09:00:00"),
             "BQuarterEnd": Timestamp("2010-12-31 09:00:00"),
