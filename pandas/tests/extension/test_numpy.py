@@ -16,6 +16,8 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
@@ -27,6 +29,9 @@ import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.internals import managers
 from pandas.tests.extension import base
+
+# TODO(ArrayManager) PandasArray
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def _extract_array_patched(obj):

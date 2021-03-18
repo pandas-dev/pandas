@@ -689,7 +689,10 @@ class ArrayManager(DataManager):
         copy : bool, default False
             Whether to copy the blocks
         """
-        return self._get_data_subset(lambda arr: is_numeric_dtype(arr.dtype))
+        return self._get_data_subset(
+            lambda arr: is_numeric_dtype(arr.dtype)
+            or getattr(arr.dtype, "_is_numeric", False)
+        )
 
     def copy(self: T, deep=True) -> T:
         """

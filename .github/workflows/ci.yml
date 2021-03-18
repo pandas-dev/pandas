@@ -172,6 +172,7 @@ jobs:
         pytest pandas/tests/computation/
         pytest pandas/tests/config/
         pytest pandas/tests/dtypes/
+        pytest pandas/tests/extension/
         pytest pandas/tests/generic/
         pytest pandas/tests/indexes/
         pytest pandas/tests/io/test_* -m "not slow and not clipboard"
