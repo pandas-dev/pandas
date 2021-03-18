@@ -655,7 +655,7 @@ Properties
     BQuarterEnd.normalize
     BQuarterEnd.rule_code
     BQuarterEnd.n
-    BQuarterEnd.startingMonth
+    BQuarterEnd.month
 
 Methods
 ~~~~~~~
@@ -690,7 +690,7 @@ Properties
     BQuarterBegin.normalize
     BQuarterBegin.rule_code
     BQuarterBegin.n
-    BQuarterBegin.startingMonth
+    BQuarterBegin.month
 
 Methods
 ~~~~~~~
@@ -725,7 +725,7 @@ Properties
     QuarterEnd.normalize
     QuarterEnd.rule_code
     QuarterEnd.n
-    QuarterEnd.startingMonth
+    QuarterEnd.month
 
 Methods
 ~~~~~~~
@@ -760,7 +760,7 @@ Properties
     QuarterBegin.normalize
     QuarterBegin.rule_code
     QuarterBegin.n
-    QuarterBegin.startingMonth
+    QuarterBegin.month
 
 Methods
 ~~~~~~~
