@@ -5,8 +5,6 @@ import dateutil
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -34,9 +32,6 @@ class TestDatetimeConcat:
         assert (result.iloc[:10]["time"] == rng).all()
         assert (result.iloc[10:]["time"] == rng).all()
 
-    # TODO(ArrayManager) concat with mixed managers
-    # (or, fix DataFrame.from_records to honor option)
-    @td.skip_array_manager_not_yet_implemented
     def test_concat_datetime_datetime64_frame(self):
         # GH#2624
         rows = []
@@ -51,7 +46,6 @@ class TestDatetimeConcat:
         # it works!
         concat([df1, df2_obj])
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_concat_datetime_timezone(self):
         # GH 18523
         idx1 = date_range("2011-01-01", periods=3, freq="H", tz="Europe/Paris")

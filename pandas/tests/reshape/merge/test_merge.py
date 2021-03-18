@@ -9,8 +9,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
@@ -1387,7 +1385,6 @@ class TestMerge:
         expected = expected.reindex(columns=["a", "key", "b"])
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite test
     def test_merge_readonly(self):
         # https://github.com/pandas-dev/pandas/issues/27943
         data1 = DataFrame(
