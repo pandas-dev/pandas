@@ -804,16 +804,13 @@ class TestFreqConversion:
     def test_asfreq_M_vs_MS(self, year_month):
         year = year_month.split("-")[0]
         initial = Period(year)
-        ts0 = initial.asfreq(freq="M", how="S").to_timestamp(how="start")
-        ts1 = Period(year_month, freq="MS").to_timestamp()
-        ts2 = Period(year_month, freq="M").to_timestamp(how="start")
-        ts3 = Period(year_month, freq="M").to_timestamp()
+        ts0 = Period(year_month, freq="MS").to_timestamp()
+        ts1 = Period(year_month, freq="M").to_timestamp()
 
         assert initial.asfreq(freq="M", how="S") == Period(f"{year}-01", "M")
         assert initial.asfreq(freq="M", how="S") != Period(f"{year}-01", "MS")
         assert initial.asfreq(freq="MS", how="S") == Period(f"{year}-01", "MS")
         assert initial.asfreq(freq="MS", how="S") != Period(f"{year}-01", "M")
-        assert initial.asfreq(freq="MS") == Period(f"{year}-12", "MS")
-        assert initial.asfreq(freq="MS", how="S").to_timestamp() == ts2
+        assert initial.asfreq(freq="M", how="E") == Period(f"{year}-12", "M")
+        assert initial.asfreq(freq="MS", how="E") == Period(f"{year}-12", "MS")
         assert ts0 == ts1
-        assert ts1 != ts3
