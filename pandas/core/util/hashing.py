@@ -275,7 +275,7 @@ def hash_array(
     Returns
     -------
     ndarray[np.uint64, ndim=1]
-        hash values, same length as the vals
+        Hashed values, same length as the vals.
     """
     if not hasattr(vals, "dtype"):
         raise TypeError("must pass a ndarray-like")
