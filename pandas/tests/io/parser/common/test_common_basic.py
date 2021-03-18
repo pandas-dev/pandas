@@ -11,7 +11,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import Timestamp
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -21,6 +20,7 @@ from pandas import (
     DataFrame,
     Index,
     Series,
+    Timestamp,
     compat,
 )
 import pandas._testing as tm
@@ -753,3 +753,12 @@ def test_encoding_surrogatepass(all_parsers):
         tm.assert_frame_equal(df, expected)
         with pytest.raises(UnicodeDecodeError, match="'utf-8' codec can't decode byte"):
             parser.read_csv(path)
+
+
+def test_malformed_second_line(all_parsers):
+    # see GH14782
+    parser = all_parsers
+    data = "\na\nb\n"
+    result = parser.read_csv(StringIO(data), skip_blank_lines=False, header=1)
+    expected = DataFrame({"a": ["b"]})
+    tm.assert_frame_equal(result, expected)

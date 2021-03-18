@@ -376,7 +376,8 @@ class PandasArray(
             other = other._ndarray
 
         pd_op = ops.get_array_op(op)
-        result = pd_op(self._ndarray, other)
+        with np.errstate(all="ignore"):
+            result = pd_op(self._ndarray, other)
 
         if op is divmod or op is ops.rdivmod:
             a, b = result

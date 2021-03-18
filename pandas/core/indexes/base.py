@@ -657,7 +657,7 @@ class Index(IndexOpsMixin, PandasObject):
         values : the values to create the new Index, optional
         name : Label, defaults to self.name
         """
-        name = self.name if name is no_default else name
+        name = self._name if name is no_default else name
 
         return self._simple_new(values, name=name)
 
@@ -665,7 +665,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         fastpath to make a shallow copy, i.e. new object with same data.
         """
-        result = self._simple_new(self._values, name=self.name)
+        result = self._simple_new(self._values, name=self._name)
 
         result._cache = self._cache
         return result
@@ -3378,7 +3378,11 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     @final
     def get_indexer(
-        self, target, method=None, limit=None, tolerance=None
+        self,
+        target,
+        method: Optional[str_t] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
     ) -> np.ndarray:
 
         method = missing.clean_reindex_fill_method(method)
@@ -3403,7 +3407,11 @@ class Index(IndexOpsMixin, PandasObject):
         return self._get_indexer(target, method, limit, tolerance)
 
     def _get_indexer(
-        self, target: Index, method=None, limit=None, tolerance=None
+        self,
+        target: Index,
+        method: Optional[str_t] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
     ) -> np.ndarray:
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
@@ -3467,7 +3475,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _get_fill_indexer(
-        self, target: Index, method: str_t, limit=None, tolerance=None
+        self, target: Index, method: str_t, limit: Optional[int] = None, tolerance=None
     ) -> np.ndarray:
 
         target_values = target._get_engine_target()
@@ -3487,7 +3495,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _get_fill_indexer_searchsorted(
-        self, target: Index, method: str_t, limit=None
+        self, target: Index, method: str_t, limit: Optional[int] = None
     ) -> np.ndarray:
         """
         Fallback pad/backfill get_indexer that works for monotonic decreasing
@@ -3520,7 +3528,9 @@ class Index(IndexOpsMixin, PandasObject):
         return indexer
 
     @final
-    def _get_nearest_indexer(self, target: Index, limit, tolerance) -> np.ndarray:
+    def _get_nearest_indexer(
+        self, target: Index, limit: Optional[int], tolerance
+    ) -> np.ndarray:
         """
         Get the indexer for the nearest index labels; requires an index with
         values that can be subtracted from each other (e.g., not strings or
@@ -4569,7 +4579,7 @@ class Index(IndexOpsMixin, PandasObject):
             # pessimization of basic indexing.
             result = getitem(key)
             # Going through simple_new for performance.
-            return type(self)._simple_new(result, name=self.name)
+            return type(self)._simple_new(result, name=self._name)
 
         if com.is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
@@ -4585,7 +4595,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return result
             # NB: Using _constructor._simple_new would break if MultiIndex
             #  didn't override __getitem__
-            return self._constructor._simple_new(result, name=self.name)
+            return self._constructor._simple_new(result, name=self._name)
         else:
             return result
 
