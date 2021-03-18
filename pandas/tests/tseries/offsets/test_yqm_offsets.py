@@ -436,11 +436,11 @@ class TestBMonthEnd(Base):
 
 class TestQuarterBegin(Base):
     def test_repr(self):
-        expected = "<QuarterBegin: month=1, startingMonth=0>"
+        expected = "<QuarterBegin: month=1>"
         assert repr(QuarterBegin()) == expected
-        expected = "<QuarterBegin: month=3, startingMonth=0>"
+        expected = "<QuarterBegin: month=3>"
         assert repr(QuarterBegin(month=3)) == expected
-        expected = "<QuarterBegin: month=1, startingMonth=0>"
+        expected = "<QuarterBegin: month=1>"
         assert repr(QuarterBegin(month=1)) == expected
 
     def test_is_anchored(self):
@@ -546,11 +546,11 @@ class TestQuarterEnd(Base):
     _offset = QuarterEnd
 
     def test_repr(self):
-        expected = "<QuarterEnd: month=3, startingMonth=0>"
+        expected = "<QuarterEnd: month=3>"
         assert repr(QuarterEnd()) == expected
-        expected = "<QuarterEnd: month=3, startingMonth=0>"
+        expected = "<QuarterEnd: month=3>"
         assert repr(QuarterEnd(month=3)) == expected
-        expected = "<QuarterEnd: month=1, startingMonth=0>"
+        expected = "<QuarterEnd: month=1>"
         assert repr(QuarterEnd(month=1)) == expected
 
     def test_is_anchored(self):
@@ -693,12 +693,12 @@ class TestBQuarterBegin(Base):
     _offset = BQuarterBegin
 
     def test_repr(self):
-        expected = "<BusinessQuarterBegin: month=1, startingMonth=0>"
+        expected = "<BusinessQuarterBegin: month=1>"
         assert repr(BQuarterBegin()) == expected
-        expected = "<BusinessQuarterBegin: month=3, startingMonth=0>"
-        assert repr(BQuarterBegin(startingMonth=3)) == expected
-        expected = "<BusinessQuarterBegin: month=1, startingMonth=0>"
-        assert repr(BQuarterBegin(startingMonth=1)) == expected
+        expected = "<BusinessQuarterBegin: month=3>"
+        assert repr(BQuarterBegin(month=3)) == expected
+        expected = "<BusinessQuarterBegin: month=1>"
+        assert repr(BQuarterBegin(month=1)) == expected
 
     def test_is_anchored(self):
         assert BQuarterBegin(month=1).is_anchored()
@@ -818,12 +818,12 @@ class TestBQuarterEnd(Base):
     _offset = BQuarterEnd
 
     def test_repr(self):
-        expected = "<BusinessQuarterEnd: month=3, startingMonth=0>"
+        expected = "<BusinessQuarterEnd: month=3>"
         assert repr(BQuarterEnd()) == expected
-        expected = "<BusinessQuarterEnd: month=3, startingMonth=0>"
-        assert repr(BQuarterEnd(startingMonth=3)) == expected
-        expected = "<BusinessQuarterEnd: month=1, startingMonth=0>"
-        assert repr(BQuarterEnd(startingMonth=1)) == expected
+        expected = "<BusinessQuarterEnd: month=3>"
+        assert repr(BQuarterEnd(month=3)) == expected
+        expected = "<BusinessQuarterEnd: month=1>"
+        assert repr(BQuarterEnd(month=1)) == expected
 
     def test_is_anchored(self):
         assert BQuarterEnd(month=1).is_anchored()
