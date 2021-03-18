@@ -30,7 +30,7 @@ fi
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
 
-PYTEST_AM_CMD = "PANDAS_DATA_MANAGER=array ${XVFB}pytest -m \"$PATTERN and arraymanager\" -n $PYTEST_WORKERS  --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
+PYTEST_AM_CMD="PANDAS_DATA_MANAGER=array ${XVFB}pytest -m \"$PATTERN and arraymanager\" -n $PYTEST_WORKERS  --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
 
 echo $PYTEST_AM_CMD
 sh -c "$PYTEST_AM_CMD"
