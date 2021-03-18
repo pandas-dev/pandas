@@ -936,6 +936,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         df[["B"]] = value
 
         expected = DataFrame([[0, 1], [0, 1]], columns=cols, dtype=np.intp)
+        assert (expected.dtypes == np.intp).all()  # troubleshoot 32bit builds
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(df_view, df_copy)
 
