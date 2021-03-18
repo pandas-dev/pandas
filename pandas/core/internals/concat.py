@@ -4,6 +4,7 @@ import copy
 import itertools
 from typing import (
     TYPE_CHECKING,
+    Any,
     Dict,
     List,
     Sequence,
@@ -31,7 +32,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
 )
 from pandas.core.dtypes.concat import (
-    concat_arrays,
+    cast_to_common_type,
     concat_compat,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -45,7 +46,10 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
 )
-from pandas.core.internals.array_manager import ArrayManager
+from pandas.core.internals.array_manager import (
+    ArrayManager,
+    NullArrayProxy,
+)
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     new_block,
@@ -95,6 +99,93 @@ def _concatenate_array_managers(
         assert concat_axis == 0
         arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
         return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
+
+
+def concat_arrays(to_concat: List[Any]) -> ArrayLike:
+    """
+    Alternative for concat_compat but specialized for use in the ArrayManager.
+
+    Differences: only deals with 1D arrays (no axis keyword), assumes
+    ensure_wrapped_if_datetimelike and does not skip empty arrays to determine
+    the dtype.
+    In addition ensures that all NullArrayProxies get replaced with actual
+    arrays.
+
+    Parameters
+    ----------
+    to_concat : list of arrays
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+    """
+    # ignore the all-NA proxies to determine the resulting dtype
+    to_concat_no_proxy = [x for x in to_concat if not isinstance(x, NullArrayProxy)]
+
+    kinds = {obj.dtype.kind for obj in to_concat_no_proxy}
+    single_dtype = len({x.dtype for x in to_concat_no_proxy}) == 1
+    any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat_no_proxy)
+
+    if any_ea:
+        if not single_dtype:
+            target_dtype = find_common_type([x.dtype for x in to_concat_no_proxy])
+            to_concat = [
+                arr.to_array(target_dtype)
+                if isinstance(arr, NullArrayProxy)
+                else cast_to_common_type(arr, target_dtype)
+                for arr in to_concat
+            ]
+        else:
+            target_dtype = to_concat_no_proxy[0].dtype
+            to_concat = [
+                arr.to_array(target_dtype) if isinstance(arr, NullArrayProxy) else arr
+                for arr in to_concat
+            ]
+
+        if isinstance(to_concat[0], ExtensionArray):
+            cls = type(to_concat[0])
+            return cls._concat_same_type(to_concat)
+        else:
+            return np.concatenate(to_concat)
+
+    if not single_dtype:
+        if any(kind in ["m", "M"] for kind in kinds):
+            # multiple types, need to coerce to object
+            target_dtype = np.dtype(object)
+        else:
+            target_dtype = np.find_common_type(
+                [arr.dtype for arr in to_concat_no_proxy], []
+            )
+    else:
+        target_dtype = to_concat_no_proxy[0].dtype
+
+    if target_dtype.kind in ["m", "M"]:
+        # for datetimelike use DatetimeArray/TimedeltaArray concatenation
+        # don't use arr.astype(target_dtype, copy=False), because that doesn't
+        # work for DatetimeArray/TimedeltaArray (returns ndarray)
+        to_concat = [
+            arr.to_array(target_dtype) if isinstance(arr, NullArrayProxy) else arr
+            for arr in to_concat
+        ]
+        return type(to_concat_no_proxy[0])._concat_same_type(to_concat, axis=0)
+
+    to_concat = [
+        arr.to_array(target_dtype)
+        if isinstance(arr, NullArrayProxy)
+        else arr.astype(target_dtype, copy=False)
+        for arr in to_concat
+    ]
+
+    result = np.concatenate(to_concat)
+
+    # TODO decide on exact behaviour (we shouldn't do this only for empty result)
+    # see https://github.com/pandas-dev/pandas/issues/39817
+    if len(result) == 0:
+        # all empties -> check for bool to not coerce to float
+        if len(kinds) != 1:
+            if "b" in kinds:
+                result = result.astype(object)
+    return result
 
 
 def concatenate_managers(
