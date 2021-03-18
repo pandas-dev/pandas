@@ -12,6 +12,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 
 import numpy as np
@@ -1338,10 +1339,12 @@ class NullArrayProxy:
         np.ndarray or ExtensionArray
         """
         if is_extension_array_dtype(dtype):
+            dtype = cast(ExtensionDtype, dtype)
             empty = dtype.construct_array_type()._from_sequence([], dtype=dtype)
             indexer = -np.ones(self.n, dtype=np.intp)
             return empty.take(indexer, allow_fill=True)
         else:
+            dtype = cast(np.dtype, dtype)
             # when introducing missing values, int becomes float, bool becomes object
             dtype = ensure_dtype_can_hold_na(dtype)
             fill_value = na_value_for_dtype(dtype)
