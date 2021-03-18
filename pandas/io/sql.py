@@ -9,6 +9,7 @@ from datetime import (
     datetime,
     time,
 )
+from distutils.version import LooseVersion
 from functools import partial
 import re
 from typing import (
@@ -75,6 +76,16 @@ def _is_sqlalchemy_connectable(con):
         return isinstance(con, sqlalchemy.engine.Connectable)
     else:
         return False
+
+
+def _gt14() -> bool:
+    """
+    Check if sqlalchemy.__version__ is at least 1.4.0, when several
+    deprecations were made.
+    """
+    import sqlalchemy
+
+    return LooseVersion(sqlalchemy.__version__) >= LooseVersion("1.4.0")
 
 
 def _convert_params(sql, params):
@@ -823,7 +834,10 @@ class SQLTable(PandasObject):
 
     def _execute_create(self):
         # Inserting table into database, add to MetaData object
-        self.table = self.table.tometadata(self.pd_sql.meta)
+        if _gt14():
+            self.table = self.table.to_metadata(self.pd_sql.meta)
+        else:
+            self.table = self.table.tometadata(self.pd_sql.meta)
         self.table.create()
 
     def create(self):
@@ -898,7 +912,9 @@ class SQLTable(PandasObject):
                 mask = isna(d)
                 d[mask] = None
 
-            data_list[i] = d
+            # error: No overload variant of "__setitem__" of "list" matches
+            # argument types "int", "ndarray"
+            data_list[i] = d  # type: ignore[call-overload]
 
         return column_names, data_list
 
@@ -1545,7 +1561,13 @@ class SQLDatabase(PandasSQL):
         """
         if dtype:
             if not is_dict_like(dtype):
-                dtype = {col_name: dtype for col_name in frame}
+                # error: Value expression in dictionary comprehension has incompatible
+                # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
+                # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+                # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
+                # dtype[Any], Type[object]]"
+                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
             else:
                 dtype = cast(dict, dtype)
 
@@ -1588,9 +1610,17 @@ class SQLDatabase(PandasSQL):
             # Only check when name is not a number and name is not lower case
             engine = self.connectable.engine
             with self.connectable.connect() as conn:
-                table_names = engine.table_names(
-                    schema=schema or self.meta.schema, connection=conn
-                )
+                if _gt14():
+                    from sqlalchemy import inspect
+
+                    insp = inspect(conn)
+                    table_names = insp.get_table_names(
+                        schema=schema or self.meta.schema
+                    )
+                else:
+                    table_names = engine.table_names(
+                        schema=schema or self.meta.schema, connection=conn
+                    )
             if name not in table_names:
                 msg = (
                     f"The provided table name '{name}' is not found exactly as "
@@ -1605,9 +1635,15 @@ class SQLDatabase(PandasSQL):
         return self.meta.tables
 
     def has_table(self, name: str, schema: Optional[str] = None):
-        return self.connectable.run_callable(
-            self.connectable.dialect.has_table, name, schema or self.meta.schema
-        )
+        if _gt14():
+            import sqlalchemy as sa
+
+            insp = sa.inspect(self.connectable)
+            return insp.has_table(name, schema or self.meta.schema)
+        else:
+            return self.connectable.run_callable(
+                self.connectable.dialect.has_table, name, schema or self.meta.schema
+            )
 
     def get_table(self, table_name: str, schema: Optional[str] = None):
         schema = schema or self.meta.schema
@@ -2022,7 +2058,13 @@ class SQLiteDatabase(PandasSQL):
         """
         if dtype:
             if not is_dict_like(dtype):
-                dtype = {col_name: dtype for col_name in frame}
+                # error: Value expression in dictionary comprehension has incompatible
+                # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
+                # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+                # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
+                # dtype[Any], Type[object]]"
+                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
             else:
                 dtype = cast(dict, dtype)
 
