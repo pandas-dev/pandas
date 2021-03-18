@@ -966,7 +966,8 @@ class Styler:
 
         Notes
         -----
-        The elements of the output of ``func`` should be CSS styles as strings or,
+        The elements of the output of ``func`` should be CSS styles as strings, in the
+        format 'attribute: value; attribute2: value2; ...' or,
         if nothing is to be applied to that element, an empty string or ``None``.
 
         This is similar to ``DataFrame.apply``, except that ``axis=None``
@@ -1023,8 +1024,9 @@ class Styler:
 
         Notes
         -----
-        The output of ``func`` should be a CSS style as string or, if nothing is to be
-        applied, an empty string or ``None``.
+        The elements of the output of ``func`` should be CSS styles as strings, in the
+        format 'attribute: value; attribute2: value2; ...' or,
+        if nothing is to be applied to that element, an empty string or ``None``.
 
         Examples
         --------
@@ -1158,12 +1160,6 @@ class Styler:
         See Also
         --------
         Styler.use: Set the styles on the current ``Styler``.
-
-        Notes
-        -----
-        Since *version 1.3.0* styles must be exported **before** rendering. Any final,
-        or intermediate render (for example in Jupyter Notebook cells) will apply and
-        localise the styles to the data, and prevent exporting.
         """
         return self._todo
 
