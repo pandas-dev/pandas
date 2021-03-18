@@ -209,7 +209,7 @@ def box_expected(expected, box_cls, transpose=True):
     if box_cls is pd.array:
         if isinstance(expected, pd.RangeIndex):
             # pd.array would return an IntegerArray
-            expected = PandasArray(expected._values)
+            expected = PandasArray(np.asarray(expected._values))
         else:
             expected = pd.array(expected)
     elif box_cls is pd.Index:
