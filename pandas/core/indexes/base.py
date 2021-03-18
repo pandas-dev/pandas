@@ -38,6 +38,7 @@ from pandas._libs.lib import (
 )
 from pandas._libs.tslibs import (
     IncompatibleFrequency,
+    NaTType,
     OutOfBoundsDatetime,
     Timestamp,
     tz_compare,
@@ -2371,7 +2372,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Null Handling Methods
 
-    _na_value = np.nan
+    _na_value: Union[float, NaTType] = np.nan
     """The expected NA value to use with this index."""
 
     @cache_readonly
