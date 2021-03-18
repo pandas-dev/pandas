@@ -10,7 +10,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import Timestamp
 from pandas.compat import (
     IS64,
     np_datetime64_compat,
@@ -29,6 +28,7 @@ from pandas import (
     RangeIndex,
     Series,
     TimedeltaIndex,
+    Timestamp,
     UInt64Index,
     date_range,
     isna,

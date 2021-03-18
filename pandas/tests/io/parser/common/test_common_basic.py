@@ -11,7 +11,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import Timestamp
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -21,6 +20,7 @@ from pandas import (
     DataFrame,
     Index,
     Series,
+    Timestamp,
     compat,
 )
 import pandas._testing as tm

@@ -1157,7 +1157,7 @@ class TestToDatetimeUnit:
         tm.assert_index_equal(result, expected)
 
         msg = "cannot convert input 11111111 with the unit 'D'"
-        with pytest.raises(tslib.OutOfBoundsDatetime, match=msg):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(values, unit="D", errors="raise", cache=cache)
 
         values = [1420043460000, iNaT, NaT, np.nan, "NaT"]
@@ -1171,7 +1171,7 @@ class TestToDatetimeUnit:
         tm.assert_index_equal(result, expected)
 
         msg = "cannot convert input 1420043460000 with the unit 's'"
-        with pytest.raises(tslib.OutOfBoundsDatetime, match=msg):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(values, errors="raise", unit="s", cache=cache)
 
         # if we have a string, then we raise a ValueError
@@ -1179,7 +1179,7 @@ class TestToDatetimeUnit:
         for val in ["foo", Timestamp("20130101")]:
             try:
                 to_datetime(val, errors="raise", unit="s", cache=cache)
-            except tslib.OutOfBoundsDatetime as err:
+            except OutOfBoundsDatetime as err:
                 raise AssertionError("incorrect exception raised") from err
             except ValueError:
                 pass
@@ -2347,7 +2347,7 @@ class TestOrigin:
             ("random_string", ValueError),
             ("epoch", ValueError),
             ("13-24-1990", ValueError),
-            (datetime(1, 1, 1), tslib.OutOfBoundsDatetime),
+            (datetime(1, 1, 1), OutOfBoundsDatetime),
         ],
     )
     def test_invalid_origins(self, origin, exc, units, units_from_epochs):
