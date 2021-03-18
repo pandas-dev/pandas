@@ -557,9 +557,8 @@ class MultiIndex(Index):
             arrays = [[]] * len(names)
         elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
-                tuples = tuples._values
+                tuples = np.asarray(tuples._values)
 
-            tuples = cast(np.ndarray, tuples)
             arrays = list(lib.tuples_to_object_array(tuples).T)
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
@@ -1112,8 +1111,8 @@ class MultiIndex(Index):
         # Check the total number of bits needed for our representation:
         if lev_bits[0] > 64:
             # The levels would overflow a 64 bit uint - use Python integers:
-            return MultiIndexPyIntEngine(list(self.levels), self.codes, offsets)
-        return MultiIndexUIntEngine(list(self.levels), self.codes, offsets)
+            return MultiIndexPyIntEngine(self.levels, self.codes, offsets)
+        return MultiIndexUIntEngine(self.levels, self.codes, offsets)
 
     @property
     def _constructor(self) -> Callable[..., MultiIndex]:

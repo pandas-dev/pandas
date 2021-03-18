@@ -73,9 +73,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             arr = np.asarray(arr, dtype=object)  # type: ignore[assignment]
         mask = isna(arr)
         convert = not np.all(mask)
-        ndarr = np.asarray(arr)
         try:
-            result = lib.map_infer_mask(ndarr, f, mask.view(np.uint8), convert)
+            result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.
             # The user may want to be warned by this, instead of getting NaN
