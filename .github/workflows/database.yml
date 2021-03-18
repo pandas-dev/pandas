@@ -20,8 +20,12 @@ jobs:
       run:
         shell: bash -l {0}
 
+    strategy:
+      matrix:
+        ENV_FILE: [ci/deps/actions-37-locale.yaml, ci/deps/actions-37-cov.yaml]
+      fail-fast: false
+
     env:
-      ENV_FILE: ci/deps/actions-37-locale.yaml
       LOCALE_OVERRIDE: zh_CN.UTF-8
       COVERAGE: true
 
@@ -77,7 +81,7 @@ jobs:
       uses: ./.github/actions/build_pandas
 
     - name: Test
-      run: pytest -m "(single and db)" -n 2 --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml -s --cov=pandas --cov-report=xml pandas/tests/io/test_sql.py
+      run: pytest -m "(single and db)" -n 2 --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml -s --cov=pandas --cov-report=xml pandas/tests/io
       if: always()
 
     - name: Build Version
