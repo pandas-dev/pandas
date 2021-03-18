@@ -10,6 +10,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Union,
 )
@@ -45,12 +46,12 @@ _INT64_MAX = np.iinfo(np.int64).max
 def get_indexer_indexer(
     target: Index,
     level: Union[str, int, List[str], List[int]],
-    ascending: bool,
+    ascending: Union[Sequence[Union[bool, int]], Union[bool, int]],
     kind: str,
     na_position: str,
     sort_remaining: bool,
     key: IndexKeyFunc,
-) -> Optional[np.array]:
+) -> Optional[np.ndarray]:
     """
     Helper method that return the indexer according to input parameters for
     the sort_index method of DataFrame and Series.
@@ -566,7 +567,9 @@ def get_indexer_dict(
 # sorting levels...cleverly?
 
 
-def get_group_index_sorter(group_index, ngroups: int):
+def get_group_index_sorter(
+    group_index: np.ndarray, ngroups: int | None = None
+) -> np.ndarray:
     """
     algos.groupsort_indexer implements `counting sort` and it is at least
     O(ngroups), where
@@ -580,10 +583,17 @@ def get_group_index_sorter(group_index, ngroups: int):
     groupby operations. e.g. consider:
         df.groupby(key)[col].transform('first')
     """
+    if ngroups is None:
+        # error: Incompatible types in assignment (expression has type "number[Any]",
+        # variable has type "Optional[int]")
+        ngroups = 1 + group_index.max()  # type: ignore[assignment]
     count = len(group_index)
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
-    do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))
+    # error: Unsupported operand types for * ("float" and "None")
+    do_groupsort = count > 0 and (
+        (alpha + beta * ngroups) < (count * np.log(count))  # type: ignore[operator]
+    )
     if do_groupsort:
         sorter, _ = algos.groupsort_indexer(ensure_int64(group_index), ngroups)
         return ensure_platform_int(sorter)

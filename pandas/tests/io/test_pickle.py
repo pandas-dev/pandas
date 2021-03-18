@@ -54,6 +54,10 @@ from pandas.tseries.offsets import (
 lzma = import_lzma()
 
 
+# TODO(ArrayManager) pickling
+pytestmark = td.skip_array_manager_not_yet_implemented
+
+
 @pytest.fixture(scope="module")
 def current_pickle_data():
     # our current version pickle data
@@ -428,7 +432,7 @@ class TestProtocol:
 @pytest.mark.parametrize(
     ["pickle_file", "excols"],
     [
-        ("test_py27.pkl", pd.Index(["a", "b", "c"])),
+        ("test_py27.pkl", Index(["a", "b", "c"])),
         (
             "test_mi_py27.pkl",
             pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),

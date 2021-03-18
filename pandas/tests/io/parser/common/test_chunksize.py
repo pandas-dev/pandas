@@ -143,7 +143,10 @@ def test_read_chunksize_jagged_names(all_parsers):
     parser = all_parsers
     data = "\n".join(["0"] * 7 + [",".join(["0"] * 10)])
 
-    expected = DataFrame([[0] + [np.nan] * 9] * 7 + [[0] * 10])
+    # error: List item 0 has incompatible type "float"; expected "int"
+    expected = DataFrame(
+        [[0] + [np.nan] * 9] * 7 + [[0] * 10]  # type: ignore[list-item]
+    )
     with parser.read_csv(StringIO(data), names=range(10), chunksize=4) as reader:
         result = concat(reader)
     tm.assert_frame_equal(result, expected)
@@ -193,7 +196,7 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers, request):
         # 2021-02-21 this occasionally fails on the CI with an unexpected
         #  ResourceWarning that we have been unable to track down,
         #  see GH#38630
-        if "ResourceError" not in str(err) or parser.engine != "python":
+        if "ResourceWarning" not in str(err) or parser.engine != "python":
             raise
 
         # Check the main assertion of the test before re-raising

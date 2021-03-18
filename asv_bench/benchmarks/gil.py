@@ -125,6 +125,7 @@ class ParallelTake1D:
 
 
 class ParallelKth:
+    # This depends exclusively on code in _libs/, could go in libs.py
 
     number = 1
     repeat = 5

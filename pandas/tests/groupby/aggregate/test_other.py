@@ -8,6 +8,8 @@ from functools import partial
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -210,7 +212,7 @@ def test_aggregate_api_consistency():
     expected.columns = MultiIndex.from_product([["C", "D"], ["mean", "sum"]])
 
     msg = r"Column\(s\) \['r', 'r2'\] do not exist"
-    with pytest.raises(SpecificationError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         grouped[["D", "C"]].agg({"r": np.sum, "r2": np.mean})
 
 
@@ -225,7 +227,7 @@ def test_agg_dict_renaming_deprecation():
         )
 
     msg = r"Column\(s\) \['ma'\] do not exist"
-    with pytest.raises(SpecificationError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         df.groupby("A")[["B", "C"]].agg({"ma": "max"})
 
     msg = r"nested renamer is not supported"
@@ -412,6 +414,7 @@ def test_agg_callables():
         tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) columns with ndarrays
 def test_agg_over_numpy_arrays():
     # GH 3788
     df = DataFrame(
@@ -436,7 +439,7 @@ def test_agg_over_numpy_arrays():
 def test_agg_tzaware_non_datetime_result(as_period):
     # discussed in GH#29589, fixed in GH#29641, operating on tzaware values
     #  with function that is not dtype-preserving
-    dti = pd.date_range("2012-01-01", periods=4, tz="UTC")
+    dti = date_range("2012-01-01", periods=4, tz="UTC")
     if as_period:
         dti = dti.tz_localize(None).to_period("D")
 

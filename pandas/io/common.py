@@ -583,11 +583,31 @@ def get_handle(
     Returns the dataclass IOHandles
     """
     # Windows does not default to utf-8. Set to utf-8 for a consistent behavior
-    encoding_passed, encoding = encoding, encoding or "utf-8"
+    encoding = encoding or "utf-8"
 
     # read_csv does not know whether the buffer is opened in binary/text mode
     if _is_binary_mode(path_or_buf, mode) and "b" not in mode:
         mode += "b"
+
+    # valdiate errors
+    if isinstance(errors, str):
+        errors = errors.lower()
+    if errors not in (
+        None,
+        "strict",
+        "ignore",
+        "replace",
+        "xmlcharrefreplace",
+        "backslashreplace",
+        "namereplace",
+        "surrogateescape",
+        "surrogatepass",
+    ):
+        raise ValueError(
+            f"Invalid value for `encoding_errors` ({errors}). Please see "
+            + "https://docs.python.org/3/library/codecs.html#error-handlers "
+            + "for valid values."
+        )
 
     # open URLs
     ioargs = _get_filepath_or_buffer(
@@ -625,6 +645,9 @@ def get_handle(
                 )
             else:
                 handle = gzip.GzipFile(
+                    # error: Argument "fileobj" to "GzipFile" has incompatible type
+                    # "Union[str, Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+                    # TextIOWrapper, mmap]]"; expected "Optional[IO[bytes]]"
                     fileobj=handle,  # type: ignore[arg-type]
                     mode=ioargs.mode,
                     **compression_args,
@@ -633,6 +656,10 @@ def get_handle(
         # BZ Compression
         elif compression == "bz2":
             handle = bz2.BZ2File(
+                # Argument 1 to "BZ2File" has incompatible type "Union[str,
+                # Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper,
+                # mmap]]"; expected "Union[Union[str, bytes, _PathLike[str],
+                # _PathLike[bytes]], IO[bytes]]"
                 handle,  # type: ignore[arg-type]
                 mode=ioargs.mode,
                 **compression_args,
@@ -670,9 +697,6 @@ def get_handle(
         # Check whether the filename is to be opened in binary mode.
         # Binary mode does not support 'encoding' and 'newline'.
         if ioargs.encoding and "b" not in ioargs.mode:
-            if errors is None and encoding_passed is None:
-                # ignore errors when no encoding is specified
-                errors = "replace"
             # Encoding
             handle = open(
                 handle,
@@ -690,6 +714,9 @@ def get_handle(
     is_wrapped = False
     if is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
         handle = TextIOWrapper(
+            # error: Argument 1 to "TextIOWrapper" has incompatible type
+            # "Union[IO[bytes], IO[Any], RawIOBase, BufferedIOBase, TextIOBase, mmap]";
+            # expected "IO[bytes]"
             handle,  # type: ignore[arg-type]
             encoding=ioargs.encoding,
             errors=errors,
@@ -752,6 +779,10 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         kwargs_zip: Dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
         kwargs_zip.update(kwargs)
 
+        # error: Argument 1 to "__init__" of "ZipFile" has incompatible type
+        # "Union[_PathLike[str], Union[str, Union[IO[Any], RawIOBase, BufferedIOBase,
+        # TextIOBase, TextIOWrapper, mmap]]]"; expected "Union[Union[str,
+        # _PathLike[str]], IO[bytes]]"
         super().__init__(file, mode, **kwargs_zip)  # type: ignore[arg-type]
 
     def write(self, data):
@@ -849,6 +880,8 @@ def _maybe_memory_map(
         handles.append(handle)
 
     try:
+        # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
+        # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
         wrapped = cast(mmap.mmap, _MMapWrapper(handle))  # type: ignore[arg-type]
         handle.close()
         handles.remove(handle)

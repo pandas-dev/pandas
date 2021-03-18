@@ -354,7 +354,9 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         Ratio of non-sparse points to total (dense) data points.
         """
-        return np.mean([column.array.density for _, column in self._parent.items()])
+        # error: Incompatible return value type (got "number", expected "float")
+        tmp = np.mean([column.array.density for _, column in self._parent.items()])
+        return tmp  # type: ignore[return-value]
 
     @staticmethod
     def _prep_index(data, index, columns):

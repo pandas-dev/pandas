@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - numpy>=1.16.5, <1.20 # gh-39513
+  - numpy>=1.16.5
   - python=3
   - python-dateutil>=2.7.3
   - pytz
@@ -23,7 +23,7 @@ dependencies:
   - flake8
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.800
+  - mypy=0.812
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
@@ -113,5 +113,5 @@ dependencies:
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - natsort  # DataFrame.sort_values
   - pip:
-    - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@2488b7defbd3d753dd5fcfc890fc4a7e79d25103
+    - git+https://github.com/pydata/pydata-sphinx-theme.git@master
     - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI

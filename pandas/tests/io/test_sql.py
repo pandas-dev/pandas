@@ -52,12 +52,14 @@ import pandas._testing as tm
 
 import pandas.io.sql as sql
 from pandas.io.sql import (
+    _gt14,
     read_sql_query,
     read_sql_table,
 )
 
 try:
     import sqlalchemy
+    from sqlalchemy import inspect
     from sqlalchemy.ext import declarative
     from sqlalchemy.orm import session as sa_session
     import sqlalchemy.schema
@@ -675,7 +677,7 @@ class _TestSQLApi(PandasSQLTest):
         query = "SELECT * FROM iris_view WHERE SepalLength < 0.0"
         with_batch = sql.read_sql_query(query, self.conn, chunksize=5)
         without_batch = sql.read_sql_query(query, self.conn)
-        tm.assert_frame_equal(pd.concat(with_batch), without_batch)
+        tm.assert_frame_equal(concat(with_batch), without_batch)
 
     def test_to_sql(self):
         sql.to_sql(self.test_frame1, "test_frame1", self.conn)
@@ -1487,7 +1489,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pandasSQL = sql.SQLDatabase(temp_conn)
         pandasSQL.to_sql(temp_frame, "temp_frame")
 
-        assert temp_conn.has_table("temp_frame")
+        if _gt14():
+            insp = inspect(temp_conn)
+            assert insp.has_table("temp_frame")
+        else:
+            assert temp_conn.has_table("temp_frame")
 
     def test_drop_table(self):
         temp_conn = self.connect()
@@ -1499,11 +1505,18 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pandasSQL = sql.SQLDatabase(temp_conn)
         pandasSQL.to_sql(temp_frame, "temp_frame")
 
-        assert temp_conn.has_table("temp_frame")
+        if _gt14():
+            insp = inspect(temp_conn)
+            assert insp.has_table("temp_frame")
+        else:
+            assert temp_conn.has_table("temp_frame")
 
         pandasSQL.drop_table("temp_frame")
 
-        assert not temp_conn.has_table("temp_frame")
+        if _gt14():
+            assert not insp.has_table("temp_frame")
+        else:
+            assert not temp_conn.has_table("temp_frame")
 
     def test_roundtrip(self):
         self._roundtrip()
@@ -1592,7 +1605,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 )
 
         # GH11216
-        df = pd.read_sql_query("select * from types_test_data", self.conn)
+        df = read_sql_query("select * from types_test_data", self.conn)
         if not hasattr(df, "DateColWithTz"):
             pytest.skip("no column with datetime with time zone")
 
@@ -1602,7 +1615,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         col = df.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
 
-        df = pd.read_sql_query(
+        df = read_sql_query(
             "select * from types_test_data", self.conn, parse_dates=["DateColWithTz"]
         )
         if not hasattr(df, "DateColWithTz"):
@@ -1612,11 +1625,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert str(col.dt.tz) == "UTC"
         check(df.DateColWithTz)
 
-        df = pd.concat(
+        df = concat(
             list(
-                pd.read_sql_query(
-                    "select * from types_test_data", self.conn, chunksize=1
-                )
+                read_sql_query("select * from types_test_data", self.conn, chunksize=1)
             ),
             ignore_index=True,
         )
@@ -1845,9 +1856,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         tm.assert_frame_equal(result, df)
 
     def _get_index_columns(self, tbl_name):
-        from sqlalchemy.engine import reflection
+        from sqlalchemy import inspect
 
-        insp = reflection.Inspector.from_engine(self.conn)
+        insp = inspect(self.conn)
+
         ixs = insp.get_indexes(tbl_name)
         ixs = [i["column_names"] for i in ixs]
         return ixs
@@ -2851,7 +2863,7 @@ class TestXMySQL(MySQLMixIn):
         sql.to_sql(frame, name="test", con=self.conn)
         query = "select * from test"
         chunksize = 5
-        chunk_gen = pd.read_sql_query(
+        chunk_gen = read_sql_query(
             sql=query, con=self.conn, chunksize=chunksize, index_col="index"
         )
         chunk_df = next(chunk_gen)

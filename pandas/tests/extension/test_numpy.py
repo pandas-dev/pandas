@@ -20,11 +20,24 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
 )
+from pandas.core.dtypes.generic import ABCPandasArray
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray
+from pandas.core.internals import managers
 from pandas.tests.extension import base
+
+
+def _extract_array_patched(obj):
+    if isinstance(obj, (pd.Index, pd.Series)):
+        obj = obj._values
+    if isinstance(obj, ABCPandasArray):
+        # TODO for reasons unclear, we get here in a couple of tests
+        #  with PandasArray._typ *not* patched
+        obj = obj.to_numpy()
+
+    return obj
 
 
 @pytest.fixture(params=["float", "object"])
@@ -51,6 +64,7 @@ def allow_in_pandas(monkeypatch):
     """
     with monkeypatch.context() as m:
         m.setattr(PandasArray, "_typ", "extension")
+        m.setattr(managers, "_extract_array", _extract_array_patched)
         yield
 
 
@@ -291,11 +305,6 @@ class TestBooleanReduce(BaseNumPyTests, base.BaseBooleanReduceTests):
 
 class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     @skip_nested
-    def test_fillna_scalar(self, data_missing):
-        # Non-scalar "scalar" values.
-        super().test_fillna_scalar(data_missing)
-
-    @skip_nested
     def test_fillna_series(self, data_missing):
         # Non-scalar "scalar" values.
         super().test_fillna_series(data_missing)
@@ -411,7 +420,28 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     def test_setitem_loc_iloc_slice(self, data):
         super().test_setitem_loc_iloc_slice(data)
 
+    def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        result = pd.DataFrame(index=df.index)
+
+        # because result has object dtype, the attempt to do setting inplace
+        #  is successful, and object dtype is retained
+        key = full_indexer(df)
+        result.loc[key, "data"] = df["data"]
+
+        # base class method has expected = df; PandasArray behaves oddly because
+        #  we patch _typ for these tests.
+        if data.dtype.numpy_dtype != object:
+            if not isinstance(key, slice) or key != slice(None):
+                expected = pd.DataFrame({"data": data.to_numpy()})
+        self.assert_frame_equal(result, expected)
+
 
 @skip_nested
 class TestParsing(BaseNumPyTests, base.BaseParsingTests):
+    pass
+
+
+class Test2DCompat(BaseNumPyTests, base.Dim2CompatTests):
     pass
