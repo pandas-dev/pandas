@@ -7,8 +7,18 @@ TODO: these should be split among the indexer tests
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas import DataFrame, Index, Period, Series, Timestamp, date_range, period_range
+from pandas import (
+    DataFrame,
+    Index,
+    Period,
+    Series,
+    Timestamp,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -138,6 +148,10 @@ class TestPartialSetting:
         df.at[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager)
+    # df.loc[0] = Series(1, index=range(4)) case creates float columns
+    # instead of object dtype
+    @td.skip_array_manager_not_yet_implemented
     def test_partial_setting_mixed_dtype(self):
 
         # in a mixed dtype environment, try to preserve dtypes

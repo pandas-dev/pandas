@@ -1,25 +1,42 @@
 """
 Utility functions related to concat.
 """
-from typing import Any, List, cast
+from typing import (
+    Any,
+    List,
+    cast,
+)
 
 import numpy as np
 
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+)
 
-from pandas.core.dtypes.cast import ensure_dtype_can_hold_na, find_common_type
+from pandas.core.dtypes.cast import (
+    ensure_dtype_can_hold_na,
+    find_common_type,
+)
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_sparse,
 )
-from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCSeries
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.generic import (
+    ABCCategoricalIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
-from pandas.core.construction import array, ensure_wrapped_if_datetimelike
+from pandas.core.construction import (
+    array as pd_array,
+    ensure_wrapped_if_datetimelike,
+)
 
 
 class NullArrayProxy:
@@ -106,9 +123,12 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         # are not coming from Index/Series._values), eg in BlockManager.quantile
         arr = ensure_wrapped_if_datetimelike(arr)
 
-    if is_extension_array_dtype(dtype) and isinstance(arr, np.ndarray):
-        # numpy's astype cannot handle ExtensionDtypes
-        return array(arr, dtype=dtype, copy=False)
+    if isinstance(dtype, ExtensionDtype):
+        if isinstance(arr, np.ndarray):
+            # numpy's astype cannot handle ExtensionDtypes
+            return pd_array(arr, dtype=dtype, copy=False)
+        return arr.astype(dtype, copy=False)
+
     return arr.astype(dtype, copy=False)
 
 
@@ -153,7 +173,7 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
 
     all_empty = not len(non_empties)
     single_dtype = len({x.dtype for x in to_concat}) == 1
-    any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
+    any_ea = any(isinstance(x.dtype, ExtensionDtype) for x in to_concat)
 
     if any_ea:
         # we ignore axis here, as internally concatting with EAs is always
@@ -472,7 +492,7 @@ def _concat_datetime(to_concat, axis=0):
 
     result = type(to_concat_no_proxy[0])._concat_same_type(to_concat, axis=axis)
 
-    if result.ndim == 2 and is_extension_array_dtype(result.dtype):
+    if result.ndim == 2 and isinstance(result.dtype, ExtensionDtype):
         # TODO(EA2D): kludge not necessary with 2D EAs
         assert result.shape[0] == 1
         result = result[0]

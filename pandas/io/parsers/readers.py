@@ -5,27 +5,54 @@ from collections import abc
 import csv
 import sys
 from textwrap import fill
-from typing import Any, Dict, List, Optional, Set, Type
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Type,
+)
 import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import DtypeArg, FilePathOrBuffer, StorageOptions, Union
-from pandas.errors import AbstractMethodError, ParserWarning
+from pandas._typing import (
+    DtypeArg,
+    FilePathOrBuffer,
+    StorageOptions,
+    Union,
+)
+from pandas.errors import (
+    AbstractMethodError,
+    ParserWarning,
+)
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_file_like, is_float, is_integer, is_list_like
+from pandas.core.dtypes.common import (
+    is_file_like,
+    is_float,
+    is_integer,
+    is_list_like,
+)
 
 from pandas.core import generic
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
 
 from pandas.io.common import validate_header_arg
-from pandas.io.parsers.base_parser import ParserBase, is_index_col, parser_defaults
+from pandas.io.parsers.base_parser import (
+    ParserBase,
+    is_index_col,
+    parser_defaults,
+)
 from pandas.io.parsers.c_parser_wrapper import CParserWrapper
-from pandas.io.parsers.python_parser import FixedWidthFieldParser, PythonParser
+from pandas.io.parsers.python_parser import (
+    FixedWidthFieldParser,
+    PythonParser,
+)
 
 _doc_read_csv_and_table = (
     r"""
@@ -269,11 +296,24 @@ encoding : str, optional
     Encoding to use for UTF when reading/writing (ex. 'utf-8'). `List of Python
     standard encodings
     <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
+
     .. versionchanged:: 1.2
 
        When ``encoding`` is ``None``, ``errors="replace"`` is passed to
        ``open()``. Otherwise, ``errors="strict"`` is passed to ``open()``.
        This behavior was previously only the case for ``engine="python"``.
+
+    .. versionchanged:: 1.3
+
+       ``encoding_errors`` is a new argument. ``encoding`` has no longer an
+       influence on how encoding errors are handled.
+
+encoding_errors : str, optional, default "strict"
+    How encoding errors are treated. `List of possible values
+    <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
+
+    .. versionadded:: 1.3
+
 dialect : str or csv.Dialect, optional
     If provided, this parameter will override values (default or not) for the
     following parameters: `delimiter`, `doublequote`, `escapechar`,
@@ -488,6 +528,7 @@ def read_csv(
     escapechar=None,
     comment=None,
     encoding=None,
+    encoding_errors: Optional[str] = "strict",
     dialect=None,
     # Error Handling
     error_bad_lines=True,
@@ -572,6 +613,7 @@ def read_table(
     # Error Handling
     error_bad_lines=True,
     warn_bad_lines=True,
+    encoding_errors: Optional[str] = "strict",
     # Internal
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],

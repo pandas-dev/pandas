@@ -25,6 +25,9 @@ def test_assert_attr_equal_different_nulls(nulls_fixture, nulls_fixture2):
     elif is_float(nulls_fixture) and is_float(nulls_fixture2):
         # we consider float("nan") and np.float64("nan") to be equivalent
         assert tm.assert_attr_equal("na_value", obj, obj2)
+    elif type(nulls_fixture) is type(nulls_fixture2):
+        # e.g. Decimal("NaN")
+        assert tm.assert_attr_equal("na_value", obj, obj2)
     else:
         with pytest.raises(AssertionError, match='"na_value" are different'):
             tm.assert_attr_equal("na_value", obj, obj2)
