@@ -163,11 +163,9 @@ jobs:
         pytest pandas/tests/resample/
         pytest pandas/tests/reshape/merge
         pytest pandas/tests/series/
+        pytest pandas/tests/indexing/
 
-        # indexing subset (temporary since other tests don't pass yet)
-        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_astype_assignment_with_dups
-        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_frame_setitem_multi_column
-
+        pytest pandas/tests/test_*
         pytest pandas/tests/api/
         pytest pandas/tests/apply/
         pytest pandas/tests/arrays/
@@ -175,8 +173,10 @@ jobs:
         pytest pandas/tests/computation/
         pytest pandas/tests/config/
         pytest pandas/tests/dtypes/
+        pytest pandas/tests/extension/
         pytest pandas/tests/generic/
         pytest pandas/tests/indexes/
+        pytest pandas/tests/internals/
         pytest pandas/tests/io/test_* -m "not slow and not clipboard"
         pytest pandas/tests/io/excel/ -m "not slow and not clipboard"
         pytest pandas/tests/io/formats/ -m "not slow and not clipboard"
