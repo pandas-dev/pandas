@@ -630,6 +630,7 @@ Reshaping
 - Allow :class:`Index` to be passed to the :func:`numpy.all` function (:issue:`40180`)
 - Bug in :meth:`DataFrame.stack` not preserving ``CategoricalDtype`` in a ``MultiIndex`` (:issue:`36991`)
 - Bug in :func:`to_datetime` raising error when input sequence contains unhashable items (:issue:`39756`)
+- Bug in :meth:`Series.explode` preserving index when ``ignore_index`` was ``True`` and values were scalars (:issue:`40487`)
 
 Sparse
 ^^^^^^
