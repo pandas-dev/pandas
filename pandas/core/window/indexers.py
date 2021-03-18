@@ -113,8 +113,15 @@ class VariableWindowIndexer(BaseIndexer):
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
+        # error: Argument 6 to "calculate_variable_window_bounds" has incompatible
+        # type "Optional[ndarray]"; expected "ndarray"
         return calculate_variable_window_bounds(
-            num_values, self.window_size, min_periods, center, closed, self.index_array
+            num_values,
+            self.window_size,
+            min_periods,
+            center,
+            closed,
+            self.index_array,  # type: ignore[arg-type]
         )
 
 

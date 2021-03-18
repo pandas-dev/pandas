@@ -16,6 +16,7 @@ from typing import (
     Optional,
     Sequence,
     Union,
+    cast,
 )
 
 import numpy as np
@@ -46,6 +47,8 @@ if TYPE_CHECKING:
 
 
 class CSVFormatter:
+    cols: np.ndarray
+
     def __init__(
         self,
         formatter: DataFrameFormatter,
@@ -140,9 +143,7 @@ class CSVFormatter:
     def has_mi_columns(self) -> bool:
         return bool(isinstance(self.obj.columns, ABCMultiIndex))
 
-    def _initialize_columns(
-        self, cols: Optional[Sequence[Hashable]]
-    ) -> Sequence[Hashable]:
+    def _initialize_columns(self, cols: Optional[Sequence[Hashable]]) -> np.ndarray:
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:
@@ -159,10 +160,7 @@ class CSVFormatter:
         # update columns to include possible multiplicity of dupes
         # and make sure cols is just a list of labels
         new_cols = self.obj.columns
-        if isinstance(new_cols, ABCIndex):
-            return new_cols._format_native_types(**self._number_format)
-        else:
-            return list(new_cols)
+        return new_cols._format_native_types(**self._number_format)
 
     def _initialize_chunksize(self, chunksize: Optional[int]) -> int:
         if chunksize is None:
@@ -218,7 +216,9 @@ class CSVFormatter:
             else:
                 return self.header
         else:
-            return self.cols
+            # self.cols is an ndarray derived from Index._format_native_types,
+            #  so its entries are strings, i.e. hashable
+            return cast(Sequence[Hashable], self.cols)
 
     @property
     def encoded_labels(self) -> List[Hashable]:
