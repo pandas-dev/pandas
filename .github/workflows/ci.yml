@@ -176,6 +176,7 @@ jobs:
         pytest pandas/tests/extension/
         pytest pandas/tests/generic/
         pytest pandas/tests/indexes/
+        pytest pandas/tests/internals/
         pytest pandas/tests/io/test_* -m "not slow and not clipboard"
         pytest pandas/tests/io/excel/ -m "not slow and not clipboard"
         pytest pandas/tests/io/formats/ -m "not slow and not clipboard"
