@@ -665,7 +665,7 @@ class TestPeriodIndexArithmetic:
         "offset, kwd_name",
         [
             (pd.offsets.YearEnd, "month"),
-            (pd.offsets.QuarterEnd, "startingMonth"),
+            (pd.offsets.QuarterEnd, "month"),
             (pd.offsets.MonthEnd, None),
             (pd.offsets.Week, "weekday"),
         ],
@@ -839,8 +839,8 @@ class TestPeriodIndexArithmetic:
         pi = PeriodIndex([Period("2015Q1"), Period("2016Q2")])
         offs = box(
             [
-                pd.offsets.QuarterEnd(n=1, startingMonth=12),
-                pd.offsets.QuarterEnd(n=-2, startingMonth=12),
+                pd.offsets.QuarterEnd(n=1, month=12),
+                pd.offsets.QuarterEnd(n=-2, month=12),
             ]
         )
         expected = PeriodIndex([Period("2015Q2"), Period("2015Q4")])
@@ -870,8 +870,8 @@ class TestPeriodIndexArithmetic:
         pi = PeriodIndex([Period("2015Q1"), Period("2016Q2")])
         other = box(
             [
-                pd.offsets.QuarterEnd(n=1, startingMonth=12),
-                pd.offsets.QuarterEnd(n=-2, startingMonth=12),
+                pd.offsets.QuarterEnd(n=1, month=12),
+                pd.offsets.QuarterEnd(n=-2, month=12),
             ]
         )
 
