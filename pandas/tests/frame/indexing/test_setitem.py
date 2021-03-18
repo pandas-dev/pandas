@@ -935,7 +935,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         df_view = df[:]
         df[["B"]] = value
 
-        expected = DataFrame([[0, 1], [0, 1]], columns=cols)
+        expected = DataFrame([[0, 1], [0, 1]], columns=cols, dtype=np.intp)
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(df_view, df_copy)
 
