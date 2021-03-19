@@ -231,7 +231,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     # NB: We assume extract_array has already been called on left and right
     lvalues = ensure_wrapped_if_datetimelike(left)
-    rvalues = right
+    rvalues = ensure_wrapped_if_datetimelike(right)
 
     rvalues = lib.item_from_zerodim(rvalues)
     if isinstance(rvalues, list):
