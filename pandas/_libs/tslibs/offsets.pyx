@@ -1994,21 +1994,34 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
     cdef readonly:
         int month
+        int startingMonth  # Backwards compatibility
 
-    def __init__(self, n=1, normalize=False, month=None):
+    def __init__(self, n=1, normalize=False, month=None,
+                 *, startingMonth=None):  # Backwards compatibility
         BaseOffset.__init__(self, n, normalize)
+
+        # Backwards compatibility
+        if month and startingMonth and month != startingMonth:
+            raise TypeError("Offset received both month and startingMonth")
+        elif month is None and startingMonth is not None:
+            warnings.warn(
+                "startingMonth is deprecated, use month instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            month = startingMonth
 
         month = month if month is not None else self._default_month
         self.month = month
 
         if month < 1 or month > 12:
-            raise ValueError("Month must go from 1 to 12")
+            raise ValueError("Month must go from 1 to 12.")
 
     cpdef __setstate__(self, state):
         try:
             self.month = state.pop("month")
         except:
-            self.month = state.pop("startingMonth")  # for legacy pickles
+            self.month = state.pop("startingMonth")  # For legacy pickles
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
         self._cache = {}
