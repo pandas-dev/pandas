@@ -9,7 +9,6 @@ import pytest
 import pytz
 
 from pandas import (
-    NA,
     Categorical,
     DataFrame,
     DatetimeIndex,

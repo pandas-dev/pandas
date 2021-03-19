@@ -72,7 +72,6 @@ from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
-    notna,
 )
 
 import pandas.core.algorithms as algos
