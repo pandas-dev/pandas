@@ -228,7 +228,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
         # Check magic number
         self._path_or_buf.seek(0)
-        self._cached_page = self._path_or_buf.read(288)
+        self._cached_page = cast(bytes, self._path_or_buf.read(288))
         if self._cached_page[0 : len(const.magic)] != const.magic:
             raise ValueError("magic number mismatch (not a SAS file?)")
 
@@ -302,9 +302,11 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         )
 
         # Read the rest of the header into cached_page.
-        buf = self._path_or_buf.read(self.header_length - 288)
+        buf = cast(bytes, self._path_or_buf.read(self.header_length - 288))
         self._cached_page += buf
-        if len(self._cached_page) != self.header_length:
+        # error: Argument 1 to "len" has incompatible type "Optional[bytes]";
+        #  expected "Sized"
+        if len(self._cached_page) != self.header_length:  # type: ignore[arg-type]
             raise ValueError("The SAS7BDAT file appears to be truncated.")
 
         self._page_length = self._read_int(
@@ -399,7 +401,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
     def _parse_metadata(self) -> None:
         done = False
         while not done:
-            self._cached_page = self._path_or_buf.read(self._page_length)
+            self._cached_page = cast(bytes, self._path_or_buf.read(self._page_length))
             if len(self._cached_page) <= 0:
                 break
             if len(self._cached_page) != self._page_length:
@@ -760,7 +762,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
     def _read_next_page(self):
         self._current_page_data_subheader_pointers = []
-        self._cached_page = self._path_or_buf.read(self._page_length)
+        self._cached_page = cast(bytes, self._path_or_buf.read(self._page_length))
         if len(self._cached_page) <= 0:
             return True
         elif len(self._cached_page) != self._page_length:
