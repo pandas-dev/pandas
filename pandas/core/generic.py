@@ -6524,6 +6524,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         value, dtype_if_empty=object
                     )
                     value = value.reindex(self.index, copy=False)
+
                     # GH-40498: Indices to not apply fillna to are marked with NaN,
                     # but that will still cause other missing values to be replaced
                     # with NaN (which is problematic if those aren't NaN)
@@ -6537,6 +6538,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         "or Series, but you passed a "
                         f'"{type(value).__name__}"'
                     )
+                
                 new_data = self._mgr.fillna(
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
