@@ -10,9 +10,9 @@ import hashlib
 import string
 from typing import (
     TYPE_CHECKING,
+    List,
     Optional,
     Tuple,
-    List,
     cast,
 )
 import warnings
@@ -307,9 +307,7 @@ def merge_ordered(
         check = set(left_by).difference(left.columns)
         if len(check) != 0:
             raise KeyError(f"{check} not found in left columns")
-        result, _ = _groupby_and_merge(
-            left_by, left, right, lambda x, y: _merger(x, y)
-        )
+        result, _ = _groupby_and_merge(left_by, left, right, lambda x, y: _merger(x, y))
     elif right_by is not None:
         if isinstance(right_by, str):
             right_by = [right_by]
