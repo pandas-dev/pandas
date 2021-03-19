@@ -898,7 +898,9 @@ class Window(BaseWindow):
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
 
-    Rolling window `apply` function that uses mutliple columns as input using `method='table'`.
+    Rolling window `apply` function that uses mutliple columns as input using
+    `method='table'`. The apply function multiplies A with B and summs all rows
+    (dot product).
 
     >>> df = pd.DataFrame({'A': range(5), 'B': range(5,0,-1)})
 
@@ -909,7 +911,8 @@ class Window(BaseWindow):
     3  3  2
     4  4  1
 
-    >>> df.rolling(3,  method='table').apply(lambda M: (M[:,0] * M[:,1]).sum(axis=0), engine='numba', raw=True)
+    >>> apply_func = lambda M: (M[:,0] * M[:,1]).sum(axis=0)
+    >>> df.rolling(3,  method='table').apply(apply_func, engine='numba', raw=True)
 
           A     B
     0   NaN   NaN
@@ -918,8 +921,8 @@ class Window(BaseWindow):
     3  16.0  16.0
     4  16.0  16.0
 
-    `method='table'` requires the use of the engine='numba' which in turn requires `raw=True`.
-    Therefore the apply function is provided a numpy.ndarray as input.
+    `method='table'` requires the use of the engine='numba' which in turn requires
+    `raw=True`. Therefore the apply function is provided a numpy.ndarray as input.
     """
 
     _attributes = [
