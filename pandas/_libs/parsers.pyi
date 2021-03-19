@@ -1,5 +1,5 @@
 from typing import (
-    Any,
+    Hashable,
     Literal,
 )
 
@@ -30,9 +30,9 @@ class TextReader:
         self,
         source,
         delimiter: bytes | str = ...,  # single-character only
-        header=0,
-        header_start=0,
-        header_end=0,
+        header=...,
+        header_start=...,
+        header_end=...,
         index_col=...,
         names=...,
         tokenize_chunksize: int = ...,  # int64_t
@@ -47,7 +47,7 @@ class TextReader:
         comment=...,
         decimal: bytes | str = ...,  # single-character only
         thousands: bytes | str | None = ...,  # single-character only
-        dtype: Dtype | dict[Any, Dtype] = ...,
+        dtype: Dtype | dict[Hashable, Dtype] = ...,
         usecols=...,
         error_bad_lines: bool = ...,
         warn_bad_lines: bool = ...,
@@ -74,4 +74,4 @@ class TextReader:
 
     def close(self) -> None: ...
 
-    def read(self, rows: int | None = None) -> dict[int, ArrayLike]: ...
+    def read(self, rows: int | None = ...) -> dict[int, ArrayLike]: ...
