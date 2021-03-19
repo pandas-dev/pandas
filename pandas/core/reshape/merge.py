@@ -10,6 +10,7 @@ import hashlib
 import string
 from typing import (
     TYPE_CHECKING,
+    Hashable,
     List,
     Optional,
     Tuple,
@@ -976,7 +977,7 @@ class _MergeOperation:
         other_index: Index,
         indexer,
         how: str = "left",
-    ) -> np.ndarray:
+    ) -> Index:
         """
         Create a join index by rearranging one index to match another
 
@@ -1474,10 +1475,10 @@ def restore_dropped_levels_multijoin(
     left: MultiIndex,
     right: MultiIndex,
     dropped_level_names,
-    join_index: MultiIndex,
+    join_index: Index,
     lindexer: np.ndarray,
     rindexer: np.ndarray,
-) -> Tuple[List[Index], np.ndarray, List[str]]:
+) -> Tuple[List[Index], np.ndarray, List[Hashable]]:
     """
     *this is an internal non-public method*
 
@@ -1495,7 +1496,7 @@ def restore_dropped_levels_multijoin(
         right index
     dropped_level_names : str array
         list of non-common level names
-    join_index : MultiIndex
+    join_index : Index
         the index of the join between the
         common levels of left and right
     lindexer : intp array
@@ -1509,8 +1510,8 @@ def restore_dropped_levels_multijoin(
         levels of combined multiindexes
     labels : intp array
         labels of combined multiindexes
-    names : str array
-        names of combined multiindexes
+    names : List[Hashable]
+        names of combined multiindex levels
 
     """
 
@@ -1578,6 +1579,7 @@ class _OrderedMerge(_MergeOperation):
         right_index: bool = False,
         axis: int = 1,
         suffixes: Suffixes = ("_x", "_y"),
+        copy: bool = True,
         fill_method: Optional[str] = None,
         how: str = "outer",
     ):
@@ -1674,6 +1676,7 @@ class _AsOfMerge(_OrderedMerge):
         right_by=None,
         axis: int = 1,
         suffixes: Suffixes = ("_x", "_y"),
+        copy: bool = True,
         fill_method: Optional[str] = None,
         how: str = "asof",
         tolerance=None,
