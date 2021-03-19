@@ -1363,5 +1363,24 @@ def ensure_uint64(arr):
         return np.array(arr, dtype=np.uint64)
 
 
+# ----------------------------------------------------------------------
+# take_1d, take_2d
+# ----------------------------------------------------------------------
+
+
+@numba.jit
+def take_1d(
+    values: np.ndarray, indexer: np.ndarray, out: np.ndarray, fill_value=np.nan
+) -> None:
+    n = indexer.shape[0]
+
+    for i in range(n):
+        idx = indexer[i]
+        if idx == -1:
+            out[i] = fill_value
+        else:
+            out[i] = values[idx]
+
+
 # # generated from template
 # include "algos_take_helper.pxi"
