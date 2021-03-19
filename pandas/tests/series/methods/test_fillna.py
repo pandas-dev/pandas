@@ -9,6 +9,7 @@ import pytest
 import pytz
 
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
     DatetimeIndex,
@@ -619,6 +620,16 @@ class TestSeriesFillNA:
 
         expected = x.fillna(value=0)
         tm.assert_series_equal(y, expected)
+
+    def test_fillna_does_not_modify_other_missing_vals(
+        self, unique_nulls_fixture, unique_nulls_fixture2
+    ):
+        # GH-40498
+        missing_val1, missing_val2 = unique_nulls_fixture, unique_nulls_fixture2
+        ser = Series([1, missing_val1, missing_val2, ""])
+        result = ser.fillna({2: 0})
+        expected = Series([1, missing_val1, 0, ""])
+        tm.assert_series_equal(result, expected)
 
     # ---------------------------------------------------------------
     # CategoricalDtype
