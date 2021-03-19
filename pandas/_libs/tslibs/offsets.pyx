@@ -1990,7 +1990,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
     #       point. Also apply_index, is_on_offset, rule_code.
 
-    # FIXME: python annotations here breaks things
+    # FIXME: python annotation here breaks things
 
     cdef readonly:
         int month
@@ -2005,7 +2005,10 @@ cdef class QuarterOffset(SingleConstructorOffset):
             raise ValueError("Month must go from 1 to 12")
 
     cpdef __setstate__(self, state):
-        self.month = state.pop("month")
+        try:
+            self.month = state.pop("month")
+        except:
+            self.month = state.pop("startingMonth")  # for legacy pickles
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
         self._cache = {}
