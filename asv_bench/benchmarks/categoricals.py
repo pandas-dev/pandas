@@ -246,6 +246,9 @@ class Contains:
         self.c = self.ci.values
         self.key = self.ci.categories[0]
 
+        # numba warm-up
+        self.key in self.ci
+
     def time_categorical_index_contains(self):
         self.key in self.ci
 
