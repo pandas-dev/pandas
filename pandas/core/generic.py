@@ -6524,11 +6524,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         value, dtype_if_empty=object
                     )
                     value = value.reindex(self.index, copy=False)
-                    print(value)
                     # GH-40498: Indices to not apply fillna to are marked with NaN,
-                    # but that will still cause other missing values to be replaced with NaN,
+                    # but that will still cause other missing values to be replaced with NaN
                     value.loc[self.isna() & value.isna()] = self
-                    # print(value)
                     value = value._values
                 elif not is_list_like(value):
                     pass
