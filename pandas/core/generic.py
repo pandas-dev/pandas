@@ -6538,7 +6538,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         "or Series, but you passed a "
                         f'"{type(value).__name__}"'
                     )
-                
+
                 new_data = self._mgr.fillna(
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
