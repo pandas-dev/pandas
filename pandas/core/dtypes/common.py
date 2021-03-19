@@ -1120,15 +1120,7 @@ def is_numeric_v_string_like(a: ArrayLike, b):
 
     Examples
     --------
-    >>> is_numeric_v_string_like(1, 1)
-    False
-    >>> is_numeric_v_string_like("foo", "foo")
-    False
-    >>> is_numeric_v_string_like(1, "foo")  # non-array numeric
-    False
     >>> is_numeric_v_string_like(np.array([1]), "foo")
-    True
-    >>> is_numeric_v_string_like("foo", np.array([1]))  # symmetric check
     True
     >>> is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
     True
