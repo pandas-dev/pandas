@@ -1840,7 +1840,7 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     _attributes = tuple(["n", "normalize", "month"])
 
-    # _default_month: int  # FIXME: python annotation here breaks things
+    # FIXME: python annotation here breaks things
 
     cdef readonly:
         int month
@@ -1998,10 +1998,11 @@ cdef class QuarterOffset(SingleConstructorOffset):
     def __init__(self, n=1, normalize=False, month=None):
         BaseOffset.__init__(self, n, normalize)
 
-        if month is None:
-            self.month = self._default_month
-        else:
-            self.month = month
+        month = month if month is not None else self._default_month
+        self.month = month
+
+        if month < 1 or month > 12:
+            raise ValueError("Month must go from 1 to 12")
 
     cpdef __setstate__(self, state):
         self.month = state.pop("month")
