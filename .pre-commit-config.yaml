@@ -50,10 +50,6 @@ repos:
     rev: 5.7.0
     hooks:
     -   id: isort
--   repo: https://github.com/MarcoGorelli/no-string-hints
-    rev: v0.1.7
-    hooks:
-    -   id: no-string-hints
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.10.0
     hooks:
@@ -111,12 +107,6 @@ repos:
             pandas/tests/io/excel/test_writers\.py
             |pandas/tests/io/pytables/common\.py
             |pandas/tests/io/pytables/test_store\.py$
-    -   id: no-pandas-api-types
-        name: Check code for instances of pd.api.types
-        entry: (pd|pandas)\.api\.types\.
-        language: pygrep
-        types: [python]
-        files: ^pandas/tests/
     -   id: non-standard-imports
         name: Check for non-standard imports
         language: pygrep
@@ -128,6 +118,11 @@ repos:
 
             # Check for imports from collections.abc instead of `from collections import abc`
             |from\ collections\.abc\ import
+
+            # Numpy
+            |from\ numpy\ import\ random
+            |from\ numpy\.random\ import
+        types: [python]
     -   id: non-standard-imports-in-tests
         name: Check for non-standard imports in test suite
         language: pygrep
@@ -143,26 +138,17 @@ repos:
 
             # Check for use of pandas.testing instead of tm
             |pd\.testing\.
+
+            # Check for pd.api.types instead of from pandas.api.types import ...
+            |(pd|pandas)\.api\.types\.
         types: [python]
         files: ^pandas/tests/
-    -   id: non-standard-numpy-random-related-imports
-        name: Check for non-standard numpy.random-related imports excluding pandas/_testing.py
-        language: pygrep
-        exclude: pandas/_testing.py
+    -   id: np-bool-and-np-object
+        name: Check for use of np.bool/np.object instead of np.bool_/np.object_
         entry: |
             (?x)
-            # Check for imports from np.random.<method> instead of `from numpy import random` or `from numpy.random import <method>`
-            from\ numpy\ import\ random
-            |from\ numpy.random\ import
-        types: [python]
-    -   id: np-bool
-        name: Check for use of np.bool instead of np.bool_
-        entry: np\.bool[^_8]
-        language: pygrep
-        types_or: [python, cython, rst]
-    -   id: np-object
-        name: Check for use of np.object instead of np.object_
-        entry: np\.object[^_8]
+            np\.bool[^_8]
+            |np\.object[^_8]
         language: pygrep
         types_or: [python, cython, rst]
     -   id: pip-to-conda
