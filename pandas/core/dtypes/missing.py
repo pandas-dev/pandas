@@ -35,7 +35,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_string_dtype,
-    is_string_like_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -258,7 +257,7 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> np.ndarray:
     dtype = values.dtype
     shape = values.shape
 
-    if is_string_like_dtype(dtype):
+    if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
     else:
         result = np.empty(shape, dtype=bool)

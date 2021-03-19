@@ -1100,7 +1100,7 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
 
 
 # This exists to silence numpy deprecation warnings, see GH#29553
-def is_numeric_v_string_like(a, b):
+def is_numeric_v_string_like(a: ArrayLike, b):
     """
     Check if we are comparing a string-like object to a numeric ndarray.
     NumPy doesn't like to compare such objects, especially numeric arrays
@@ -1108,7 +1108,7 @@ def is_numeric_v_string_like(a, b):
 
     Parameters
     ----------
-    a : array-like, scalar
+    a : array-like
         The first object to check.
     b : array-like, scalar
         The second object to check.
@@ -1120,15 +1120,7 @@ def is_numeric_v_string_like(a, b):
 
     Examples
     --------
-    >>> is_numeric_v_string_like(1, 1)
-    False
-    >>> is_numeric_v_string_like("foo", "foo")
-    False
-    >>> is_numeric_v_string_like(1, "foo")  # non-array numeric
-    False
     >>> is_numeric_v_string_like(np.array([1]), "foo")
-    True
-    >>> is_numeric_v_string_like("foo", np.array([1]))  # symmetric check
     True
     >>> is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
     True
@@ -1142,17 +1134,15 @@ def is_numeric_v_string_like(a, b):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    is_a_numeric_array = is_a_array and is_numeric_dtype(a)
-    is_b_numeric_array = is_b_array and is_numeric_dtype(b)
-    is_a_string_array = is_a_array and is_string_like_dtype(a)
-    is_b_string_array = is_b_array and is_string_like_dtype(b)
+    is_a_numeric_array = is_a_array and a.dtype.kind in ("u", "i", "f", "c", "b")
+    is_b_numeric_array = is_b_array and b.dtype.kind in ("u", "i", "f", "c", "b")
+    is_a_string_array = is_a_array and a.dtype.kind in ("S", "U")
+    is_b_string_array = is_b_array and b.dtype.kind in ("S", "U")
 
-    is_a_scalar_string_like = not is_a_array and isinstance(a, str)
     is_b_scalar_string_like = not is_b_array and isinstance(b, str)
 
     return (
         (is_a_numeric_array and is_b_scalar_string_like)
-        or (is_b_numeric_array and is_a_scalar_string_like)
         or (is_a_numeric_array and is_b_string_array)
         or (is_b_numeric_array and is_a_string_array)
     )
@@ -1303,37 +1293,6 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     return _is_dtype_type(
         arr_or_dtype, classes_and_not_datetimelike(np.number, np.bool_)
     )
-
-
-def is_string_like_dtype(arr_or_dtype) -> bool:
-    """
-    Check whether the provided array or dtype is of a string-like dtype.
-
-    Unlike `is_string_dtype`, the object dtype is excluded because it
-    is a mixed dtype.
-
-    Parameters
-    ----------
-    arr_or_dtype : array-like
-        The array or dtype to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array or dtype is of the string dtype.
-
-    Examples
-    --------
-    >>> is_string_like_dtype(str)
-    True
-    >>> is_string_like_dtype(object)
-    False
-    >>> is_string_like_dtype(np.array(['a', 'b']))
-    True
-    >>> is_string_like_dtype(pd.Series([1, 2]))
-    False
-    """
-    return _is_dtype(arr_or_dtype, lambda dtype: dtype.kind in ("S", "U"))
 
 
 def is_float_dtype(arr_or_dtype) -> bool:
