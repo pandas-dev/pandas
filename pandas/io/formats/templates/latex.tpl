@@ -41,7 +41,7 @@
 {% endif %}
 {% for row in body %}
 {% for c in row %}{% if not loop.first %} & {% endif %}
-  {%- if c.type == 'th' %}{{parse_header(c)}}{% else %}{{parse_cell(c.cellstyle, c.display_value)}}{% endif %}
+  {%- if c.type == 'th' %}{{parse_header(c)}}{% else %}{{parse_cell(c.cellstyle, c.display_value, convert_css)}}{% endif %}
 {%- endfor %} \\
 {% endfor %}
 {% set bottomrule = parse_table(table_styles, 'bottomrule') %}

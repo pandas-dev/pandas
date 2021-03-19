@@ -7,6 +7,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 import copy
 from functools import partial
+import re
 from typing import (
     Any,
     Callable,
@@ -322,6 +323,7 @@ class Styler:
         label: Optional[str] = None,
         caption: Optional[str] = None,
         encoding: Optional[str] = None,
+        convert_css: bool = False,
     ):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
@@ -349,6 +351,12 @@ class Styler:
             The LaTeX table caption placed in location: `\\caption{<caption>}`.
         encoding : str, default "utf-8"
             Character encoding setting.
+        convert_css : bool, default False
+            Convert simple cell-styles from CSS to LaTeX format. Any CSS not found in
+            conversion table is dropped. A style can be forced by adding option
+            `--latex`.
+
+        .. versionadded:: TODO
 
         Returns
         -------
@@ -488,7 +496,7 @@ class Styler:
         if caption:
             self.set_caption(caption)
 
-        latex = self.render(latex=True)
+        latex = self.render(latex=True, convert_css=convert_css)
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     @doc(
@@ -978,14 +986,22 @@ class Styler:
 
         return self
 
-    def render(self, latex: bool = False, **kwargs) -> str:
+    def render(self, latex: bool = False, convert_css: bool = False, **kwargs) -> str:
         """
         Render the ``Styler`` including all applied styles to HTML.
 
         Parameters
         ----------
-        latex : bool
+        latex : bool, default False
             Output in latex format rather than HTML.
+
+        convert_css : bool, default False
+            If ``True`` converts CSS format to other specified output format, such as
+            LaTeX, or if ``False``, interprets Styler in local render format. Only
+            used if specified output format is something other than HTML.
+
+        .. versionadded:: TODO
+
         **kwargs
             Any additional keyword arguments are passed
             through to ``self.template.render``.
@@ -1020,6 +1036,10 @@ class Styler:
         * table_styles
         * caption
         * table_attributes
+
+        **Conversions**
+
+        TODO notes.
         """
         self._compute()
         # TODO: namespace all the pandas keys
@@ -1032,6 +1052,8 @@ class Styler:
             template.globals["parse_table"] = _parse_latex_table_styles
             template.globals["parse_cell"] = _parse_latex_cell_styles
             template.globals["parse_header"] = _parse_latex_header_span
+            if convert_css:
+                d.update({"convert_css": True})
         else:  # standard CSS-HTML
             d = self._translate()
             template = self.template
@@ -2604,7 +2626,9 @@ def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]
     return None
 
 
-def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
+def _parse_latex_cell_styles(
+    styles: CSSList, display_value: str, convert_css: bool = False
+) -> str:
     r"""
     Build a recursive latex chain of commands based on CSS list values, nested around
     `display_value`.
@@ -2624,6 +2648,8 @@ def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
     `styles=[('Huge', '--wrap'), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
     {\Huge \cellcolor[rgb]{0,1,1}{display_value}}
     """
+    if convert_css:
+        styles = _parse_latex_css_conversion(styles)
     for style in styles[::-1]:  # in reverse for most recently applied style
         if "--wrap" in str(style[1]):
             display_value = (
@@ -2656,3 +2682,67 @@ def _parse_latex_header_span(cell: Dict) -> str:
             rowspan = int(rowspan[: rowspan.find('"')])
             return f"\\multirow{{{rowspan}}}{{*}}{{{cell['display_value']}}}"
     return cell["display_value"]
+
+
+def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
+    """
+    Accept list of CSS attribute value pairs and convert to equivalent LaTeX
+    command options pairs.
+
+    Ignore conversion if tagged with `--latex` option
+
+    Removed if no conversion found.
+    """
+
+    def font_weight(value):
+        if value == "bold" or value == "bolder":
+            return ("textbf", "")
+        return None
+
+    def font_style(value):
+        if value == "italic":
+            return ("textit", "")
+        elif value == "oblique":
+            return ("textsl", "")
+        return None
+
+    def color(value, command):
+        if value[0] == "#" and len(value) == 7:  # color is hex code
+            return (
+                command,
+                f"[rgb]{{{int(value[1:3], 16)/255:.3f}, "
+                f"{int(value[3:5], 16)/255:.3f}, "
+                f"{int(value[5:], 16)/255:.3f}}}",
+            )
+        elif value[:4] == "rgba":  # color is rgb with alpha
+            print("VALUE IS", value)
+            r = int(re.search("(?<=\\()[0-9\\s]+(?=,)", value)[0].strip())
+            g = int(re.findall("(?<=,)[0-9\\s]+(?=,)", value)[0].strip())
+            b = int(re.findall("(?<=,)[0-9\\s]+(?=,)", value)[1].strip())
+            # a = re.search('(?<=,)[0-9\\s]+(?=\\))', value)[0].strip()
+            return command, f"[rgb]{{{r/255:.3f}, {g/255:.3f}, {b/255:.3f}}}"
+        elif value[:3] == "rgb":  # color is rgb
+            r = int(re.search("(?<=\\()[0-9\\s]+(?=,)", value)[0].strip())
+            g = int(re.search("(?<=,)[0-9\\s]+(?=,)", value)[0].strip())
+            b = int(re.search("(?<=,)[0-9\\s]+(?=\\))", value)[0].strip())
+            return command, f"[rgb]{{{r/255:.3f}, {g/255:.3f}, {b/255:.3f}}}"
+        else:
+            return command, f"{{{value}}}"  # color is likely string-named
+
+    CONVERTED_STYLES = {
+        "font-weight": font_weight,
+        "background-color": partial(color, command="cellcolor"),
+        "color": partial(color, command="color"),
+        "font-style": font_style,
+    }
+
+    c_styles = []
+    for style in styles:
+        if "--latex" in style[1]:
+            # return the style without conversion but lose --latex option
+            c_styles.append((style[0], style[1].replace("--latex", "")))
+        if style[0] in CONVERTED_STYLES.keys():
+            c_style = CONVERTED_STYLES[style[0]](style[1])
+            c_styles.extend([c_style] if c_style is not None else [])
+
+    return c_styles

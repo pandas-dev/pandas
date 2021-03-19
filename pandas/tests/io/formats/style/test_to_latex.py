@@ -11,6 +11,7 @@ pytest.importorskip("jinja2")
 
 from pandas.io.formats.style import (
     _parse_latex_cell_styles,
+    _parse_latex_css_conversion,
     _parse_latex_header_span,
     _parse_latex_table_styles,
     _parse_latex_table_wrapping,
@@ -307,3 +308,39 @@ B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
             overwrite=False,
         )
         assert _parse_latex_table_wrapping(self.s.table_styles, None) is True
+
+    @pytest.mark.parametrize(
+        "css, expected",
+        [
+            ([("color", "red")], [("color", "{red}")]),
+            (
+                [("color", "rgb(128, 128, 128 )")],
+                [("color", "[rgb]{0.502, 0.502, 0.502}")],
+            ),
+            (
+                [("color", "rgba(128,128,128,1)")],
+                [("color", "[rgb]{0.502, 0.502, 0.502}")],
+            ),
+            ([("color", "#FF00FF")], [("color", "[rgb]{1.000, 0.000, 1.000}")]),
+            ([("font-weight", "bold")], [("textbf", "")]),
+            ([("font-weight", "bolder")], [("textbf", "")]),
+            ([("font-weight", "normal")], []),
+            ([("background-color", "red")], [("cellcolor", "{red}")]),
+            (
+                [("background-color", "#FF00FF")],
+                [("cellcolor", "[rgb]{1.000, 0.000, 1.000}")],
+            ),
+            ([("font-style", "italic")], [("textit", "")]),
+            ([("font-style", "oblique")], [("textsl", "")]),
+            ([("font-style", "normal")], []),
+        ],
+    )
+    def test_parse_latex_css_conversion(self, css, expected):
+        result = _parse_latex_css_conversion(css)
+        assert result == expected
+
+    def test_parse_latex_css_conversion_option(self):
+        css = [("command", "option--wrap--latex")]
+        expected = [("command", "option--wrap")]
+        result = _parse_latex_css_conversion(css)
+        assert result == expected
