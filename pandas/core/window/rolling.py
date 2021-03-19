@@ -903,6 +903,8 @@ class Window(BaseWindow):
     (dot product).
 
     >>> df = pd.DataFrame({'A': range(5), 'B': range(5,0,-1)})
+
+    >>> df
        A  B
     0  0  5
     1  1  4
