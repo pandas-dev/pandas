@@ -26,19 +26,31 @@ jobs:
   pool:
     vmImage: ubuntu-18.04
 
+  container: quay.io/pypa/manylinux2014_i686
+
   steps:
     - script: |
-        docker pull quay.io/pypa/manylinux2014_i686
-        docker run -v $(pwd):/pandas quay.io/pypa/manylinux2014_i686 \
-        /bin/bash -xc "cd pandas && \
-        /opt/python/cp37-cp37m/bin/python -m venv ~/virtualenvs/pandas-dev && \
-        . ~/virtualenvs/pandas-dev/bin/activate && \
-        python -m pip install --no-deps -U pip wheel setuptools && \
-        pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines && \
-        python setup.py build_ext -q -j2 && \
-        python -m pip install --no-build-isolation -e . && \
-        pytest -m 'not slow and not network and not clipboard' pandas --junitxml=test-data.xml"
-      displayName: 'Run 32-bit manylinux2014 Docker Build / Tests'
+        /opt/python/cp37-cp37m/bin/python -m venv ~/virtualenvs/pandas-dev
+        . ~/virtualenvs/pandas-dev/bin/activate
+        python -m pip install --no-deps -U pip wheel setuptools
+        pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines
+      displayName: 'Setup Environment'
+
+    - script: |
+        . ~/virtualenvs/pandas-dev/bin/activate
+        python setup.py build_ext -q -j2
+        python -m pip install --no-build-isolation -e .
+      displayName: 'Build pandas'
+
+    - script: |
+        . ~/virtualenvs/pandas-dev/bin/activate
+        pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+      displayName: 'Build Version'
+
+    - script: |
+        . ~/virtualenvs/pandas-dev/bin/activate
+        pytest -m -n 2 'not slow and not network and not clipboard' pandas --junitxml=test-data.xml"
+      displayName: 'Run Tests'
 
     - task: PublishTestResults@2
       condition: succeededOrFailed()
