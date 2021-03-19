@@ -162,7 +162,7 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
             cls,
             n=st.integers(-24, 24),
             normalize=st.booleans(),
-            startingMonth=st.integers(min_value=1, max_value=12),
+            month=st.integers(min_value=1, max_value=12),
         ),
     )
 
