@@ -97,6 +97,7 @@ from pandas.core.arrays import (
     FloatingArray,
     IntegerArray,
     PandasArray,
+    TimedeltaArray,
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -260,9 +261,11 @@ class Block(PandasObject):
         # TODO(EA2D): reshape will be unnecessary with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
 
+    @final
     @property
     def fill_value(self):
-        return np.nan
+        # Used in reindex_indexer
+        return na_value_for_dtype(self.dtype, compat=False)
 
     @property
     def mgr_locs(self) -> BlockPlacement:
@@ -652,24 +655,11 @@ class Block(PandasObject):
         """
         return is_dtype_equal(value.dtype, self.dtype)
 
+    @final
     def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format """
-        values = self.values
-
-        mask = isna(values)
-        itemsize = writers.word_len(na_rep)
-
-        if not self.is_object and not quoting and itemsize:
-            values = values.astype(str)
-            if values.dtype.itemsize / np.dtype("U1").itemsize < itemsize:
-                # enlarge for the na_rep
-                values = values.astype(f"<U{itemsize}")
-        else:
-            values = np.array(values, dtype="object")
-
-        values[mask] = na_rep
-        values = values.astype(object, copy=False)
-        return self.make_block(values)
+        result = to_native_types(self.values, na_rep=na_rep, quoting=quoting, **kwargs)
+        return self.make_block(result)
 
     # block actions #
     @final
@@ -1499,11 +1489,6 @@ class ExtensionBlock(Block):
         return type(self.values)
 
     @property
-    def fill_value(self):
-        # Used in reindex_indexer
-        return self.values.dtype.na_value
-
-    @property
     def _can_hold_na(self):
         # The default ExtensionArray._can_hold_na is True
         return self._holder._can_hold_na
@@ -1564,15 +1549,6 @@ class ExtensionBlock(Block):
 
     def array_values(self) -> ExtensionArray:
         return self.values
-
-    def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
-        """override to use ExtensionArray astype for the conversion"""
-        values = self.values
-        mask = isna(values)
-
-        new_values = np.asarray(values.astype(object))
-        new_values[mask] = na_rep
-        return self.make_block(new_values)
 
     def take_nd(
         self,
@@ -1808,41 +1784,6 @@ class NumericBlock(Block):
 class FloatBlock(NumericBlock):
     __slots__ = ()
 
-    def to_native_types(
-        self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
-    ):
-        """ convert to our native types format """
-        values = self.values
-
-        # see gh-13418: no special formatting is desired at the
-        # output (important for appropriate 'quoting' behaviour),
-        # so do not pass it through the FloatArrayFormatter
-        if float_format is None and decimal == ".":
-            mask = isna(values)
-
-            if not quoting:
-                values = values.astype(str)
-            else:
-                values = np.array(values, dtype="object")
-
-            values[mask] = na_rep
-            values = values.astype(object, copy=False)
-            return self.make_block(values)
-
-        from pandas.io.formats.format import FloatArrayFormatter
-
-        formatter = FloatArrayFormatter(
-            values,
-            na_rep=na_rep,
-            float_format=float_format,
-            decimal=decimal,
-            quoting=quoting,
-            fixed_width=False,
-        )
-        res = formatter.get_result_as_array()
-        res = res.astype(object, copy=False)
-        return self.make_block(res)
-
 
 class NDArrayBackedExtensionBlock(HybridMixin, Block):
     """
@@ -1962,18 +1903,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     def _holder(self):
         return type(self.array_values())
 
-    @property
-    def fill_value(self):
-        return na_value_for_dtype(self.dtype)
-
-    def to_native_types(self, na_rep="NaT", **kwargs):
-        """ convert to our native types format """
-        arr = self.array_values()
-
-        result = arr._format_native_types(na_rep=na_rep, **kwargs)
-        result = result.astype(object, copy=False)
-        return self.make_block(result)
-
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
@@ -1999,7 +1928,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
     internal_values = Block.internal_values
     _can_hold_element = DatetimeBlock._can_hold_element
-    to_native_types = DatetimeBlock.to_native_types
     diff = DatetimeBlock.diff
     where = DatetimeBlock.where
     putmask = DatetimeLikeBlockMixin.putmask
@@ -2316,3 +2244,75 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
             # We can't, and don't need to, reshape.
             values = np.asarray(values).reshape(1, -1)
     return values
+
+
+def to_native_types(
+    values: ArrayLike,
+    *,
+    na_rep="nan",
+    quoting=None,
+    float_format=None,
+    decimal=".",
+    **kwargs,
+) -> np.ndarray:
+    """ convert to our native types format """
+    values = ensure_wrapped_if_datetimelike(values)
+
+    if isinstance(values, (DatetimeArray, TimedeltaArray)):
+        result = values._format_native_types(na_rep=na_rep, **kwargs)
+        result = result.astype(object, copy=False)
+        return result
+
+    elif isinstance(values, ExtensionArray):
+        mask = isna(values)
+
+        new_values = np.asarray(values.astype(object))
+        new_values[mask] = na_rep
+        return new_values
+
+    elif values.dtype.kind == "f":
+        # see GH#13418: no special formatting is desired at the
+        # output (important for appropriate 'quoting' behaviour),
+        # so do not pass it through the FloatArrayFormatter
+        if float_format is None and decimal == ".":
+            mask = isna(values)
+
+            if not quoting:
+                values = values.astype(str)
+            else:
+                values = np.array(values, dtype="object")
+
+            values[mask] = na_rep
+            values = values.astype(object, copy=False)
+            return values
+
+        from pandas.io.formats.format import FloatArrayFormatter
+
+        formatter = FloatArrayFormatter(
+            values,
+            na_rep=na_rep,
+            float_format=float_format,
+            decimal=decimal,
+            quoting=quoting,
+            fixed_width=False,
+        )
+        res = formatter.get_result_as_array()
+        res = res.astype(object, copy=False)
+        return res
+
+    else:
+
+        mask = isna(values)
+        itemsize = writers.word_len(na_rep)
+
+        if values.dtype != _dtype_obj and not quoting and itemsize:
+            values = values.astype(str)
+            if values.dtype.itemsize / np.dtype("U1").itemsize < itemsize:
+                # enlarge for the na_rep
+                values = values.astype(f"<U{itemsize}")
+        else:
+            values = np.array(values, dtype="object")
+
+        values[mask] = na_rep
+        values = values.astype(object, copy=False)
+        return values
