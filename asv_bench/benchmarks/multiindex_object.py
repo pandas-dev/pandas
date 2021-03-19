@@ -101,7 +101,7 @@ class Integer:
                 (1045, -843),
             ]
         )
-    
+
         # numba warm-up
         self.mi_int[:10].is_monotonic
 
