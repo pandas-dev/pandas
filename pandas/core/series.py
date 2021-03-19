@@ -4737,8 +4737,8 @@ Keep all original rows and also all original values
         dtype: bool
         """
         if inclusive:
-            lmask = self >= left
-            rmask = self <= right
+            lmask = self > left
+            rmask = self < right
         else:
             lmask = self > left
             rmask = self < right
