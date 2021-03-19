@@ -40,7 +40,7 @@ _ALLOWED_DTYPES = {
 }
 
 # the minimum prod shape that we will use numexpr
-_MIN_ELEMENTS = 100000
+_MIN_ELEMENTS = 1000000
 
 
 def set_use_numexpr(v=True):
