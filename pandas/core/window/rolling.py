@@ -898,7 +898,7 @@ class Window(BaseWindow):
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
 
-    Rolling window apply function that uses mutliple columns as input using
+    Rolling window apply function that uses multiple columns as input using
     method='table'. The apply function multiplies A with B and summs all rows
     (dot product).
 
