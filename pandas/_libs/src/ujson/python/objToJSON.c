@@ -144,6 +144,7 @@ typedef struct __PyObjectEncoder {
 enum PANDAS_FORMAT { SPLIT, RECORDS, INDEX, COLUMNS, VALUES };
 
 int PdBlock_iterNext(JSOBJ, JSONTypeContext *);
+static Py_ssize_t get_attr_length(PyObject *obj, char *attr);
 
 void *initObjToJSON(void) {
     PyObject *mod_pandas;
@@ -272,6 +273,17 @@ static PyObject *get_sub_attr(PyObject *obj, char *attr, char *subAttr) {
     return ret;
 }
 
+static int is_simple_frame(PyObject *obj) {
+    PyObject *mgr = PyObject_GetAttrString(obj, "_mgr");
+    if (!mgr) {
+        return 0;
+    }
+    int ret = (get_attr_length(mgr, "blocks") <= 1);
+
+    Py_DECREF(mgr);
+    return ret;
+}
+
 static Py_ssize_t get_attr_length(PyObject *obj, char *attr) {
     PyObject *tmp = PyObject_GetAttrString(obj, attr);
     Py_ssize_t ret;
@@ -286,17 +298,6 @@ static Py_ssize_t get_attr_length(PyObject *obj, char *attr) {
         return 0;
     }
 
-    return ret;
-}
-
-static int is_simple_frame(PyObject *obj) {
-    PyObject *mgr = PyObject_GetAttrString(obj, "_mgr");
-    if (!mgr) {
-        return 0;
-    }
-    int ret = (get_attr_length(mgr, "blocks") <= 1);
-
-    Py_DECREF(mgr);
     return ret;
 }
 
