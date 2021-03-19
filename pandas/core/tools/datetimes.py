@@ -307,9 +307,9 @@ def _convert_listlike_datetimes(
         None or string for the Index name
     tz : object
         None or 'utc'
-    unit : string
+    unit : str
         None or string of the frequency of the passed data
-    errors : string
+    errors : str
         error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'
     infer_datetime_format : bool, default False
         inferring format behavior from to_datetime
@@ -529,7 +529,7 @@ def _to_datetime_with_format(
     return result  # type: ignore[return-value]
 
 
-def _to_datetime_with_unit(arg, unit, name, tz, errors: Optional[str]) -> Index:
+def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
     """
     to_datetime specalized to the case where a 'unit' is passed.
     """
@@ -1035,7 +1035,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     return values
 
 
-def _attempt_YYYYMMDD(arg: np.ndarray, errors: Optional[str]) -> Optional[np.ndarray]:
+def _attempt_YYYYMMDD(arg: np.ndarray, errors: str) -> Optional[np.ndarray]:
     """
     try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
     arg is a passed in as an object dtype, but could really be ints/strings

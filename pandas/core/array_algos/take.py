@@ -184,9 +184,6 @@ def take_1d(
 
     Note: similarly to `take_nd`, this function assumes that the indexer is
     a valid(ated) indexer with no out of bound indices.
-
-    TODO(ArrayManager): mainly useful for ArrayManager, otherwise can potentially
-    be removed again if we don't end up with ArrayManager.
     """
     if not isinstance(arr, np.ndarray):
         # ExtensionArray -> dispatch to their method

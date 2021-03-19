@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.internals import BlockPlacement
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -37,6 +38,10 @@ from pandas.core.internals import (
     make_block,
 )
 from pandas.core.internals.blocks import new_block
+
+# this file contains BlockManager specific tests
+# TODO(ArrayManager) factor out interleave_dtype tests
+pytestmark = td.skip_array_manager_invalid_test
 
 
 @pytest.fixture(params=[new_block, make_block])
