@@ -911,7 +911,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         indices: Union[ArrayLike, Sequence[int]],
         axis: int = 0,
-        allow_fill: bool = False,
+        allow_fill: bool = True,
         fill_value=None,
         **kwargs,
     ):
