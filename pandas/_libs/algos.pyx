@@ -963,6 +963,7 @@ def rank_1d(
     assert <Py_ssize_t>len(labels) == N
     out = np.empty(N)
     grp_sizes = np.ones(N)
+
     # If all 0 labels, can short-circuit later label
     # comparisons
     check_labels = np.any(labels)
@@ -1026,6 +1027,7 @@ def rank_1d(
     if rank_t is object:
         for i in range(N):
             at_end = i == N - 1
+
             # dups and sum_ranks will be incremented each loop where
             # the value / group remains the same, and should be reset
             # when either of those change
@@ -1033,20 +1035,23 @@ def rank_1d(
             dups += 1
             sum_ranks += i - grp_start + 1
 
+            next_val_diff = at_end or are_diff(masked_vals[lexsort_indexer[i]],
+                                    masked_vals[lexsort_indexer[i+1]])
+
+            # We'll need this check later anyway to determine group size, so just
+            # compute it here since shortcircuiting won't help
+            group_changed = at_end or (check_labels and
+                                       (labels[lexsort_indexer[i]]
+                                        != labels[lexsort_indexer[i+1]]))
+
             # Update out only when there is a transition of values or labels.
             # When a new value or group is encountered, go back #dups steps(
             # the number of occurrence of current value) and assign the ranks
             # based on the starting index of the current group (grp_start)
             # and the current index
-            next_val_diff = at_end or are_diff(masked_vals[lexsort_indexer[i]],
-                                    masked_vals[lexsort_indexer[i+1]])
+            if (next_val_diff or group_changed
+                    or (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]])):
 
-            if (next_val_diff
-                    or (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]])
-                    or (check_labels
-                        and (labels[lexsort_indexer[i]]
-                             != labels[lexsort_indexer[i+1]]))
-            ):
                 # if keep_na, check for missing values and assign back
                 # to the result where appropriate
                 set_as_na = keep_na and mask[lexsort_indexer[i]]
@@ -1092,10 +1097,7 @@ def rank_1d(
                 # decrement that from their position. fill in the size of each
                 # group encountered (used by pct calculations later). also be
                 # sure to reset any of the items helping to calculate dups
-                if (at_end or
-                        (check_labels
-                         and (labels[lexsort_indexer[i]]
-                              != labels[lexsort_indexer[i+1]]))):
+                if group_changed:
                     if tiebreak != TIEBREAK_DENSE:
                         for j in range(grp_start, i + 1):
                             grp_sizes[lexsort_indexer[j]] = \
@@ -1112,6 +1114,7 @@ def rank_1d(
         with nogil:
             for i in range(N):
                 at_end = i == N - 1
+
                 # dups and sum_ranks will be incremented each loop where
                 # the value / group remains the same, and should be reset
                 # when either of those change
@@ -1119,14 +1122,20 @@ def rank_1d(
                 dups += 1
                 sum_ranks += i - grp_start + 1
 
+                next_val_diff = at_end or (masked_vals[lexsort_indexer[i]]
+                                    != masked_vals[lexsort_indexer[i+1]])
+
+                # We'll need this check later anyway to determine group size, so just
+                # compute it here since shortcircuiting won't help
+                group_changed = at_end or (check_labels and
+                                       (labels[lexsort_indexer[i]]
+                                        != labels[lexsort_indexer[i+1]]))
+
                 # Update out only when there is a transition of values or labels.
                 # When a new value or group is encountered, go back #dups steps(
                 # the number of occurrence of current value) and assign the ranks
                 # based on the starting index of the current group (grp_start)
                 # and the current index
-                next_val_diff = at_end or (masked_vals[lexsort_indexer[i]]
-                                    != masked_vals[lexsort_indexer[i+1]])
-
                 if (next_val_diff
                         or (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]])
                         or (check_labels
@@ -1137,8 +1146,8 @@ def rank_1d(
                     # to the result where appropriate
                     set_as_na = keep_na and mask[lexsort_indexer[i]]
 
-                    # For all cases except TIEBREAK_FIRST when not setting
-                    # nulls, we set the same value at each index
+                    # For all cases except TIEBREAK_FIRST and a non-null value,
+                    # we set the same value at each index
                     if set_as_na:
                         computed_rank = NaN
                         grp_na_count = dups
@@ -1178,9 +1187,7 @@ def rank_1d(
                     # decrement that from their position. fill in the size of each
                     # group encountered (used by pct calculations later). also be
                     # sure to reset any of the items helping to calculate dups
-                    if at_end or (check_labels and
-                                  (labels[lexsort_indexer[i]]
-                                   != labels[lexsort_indexer[i+1]])):
+                    if group_changed:
                         if tiebreak != TIEBREAK_DENSE:
                             for j in range(grp_start, i + 1):
                                 grp_sizes[lexsort_indexer[j]] = \
