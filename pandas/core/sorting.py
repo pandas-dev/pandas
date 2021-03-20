@@ -582,6 +582,16 @@ def get_group_index_sorter(
     Both algorithms are `stable` sort and that is necessary for correctness of
     groupby operations. e.g. consider:
         df.groupby(key)[col].transform('first')
+
+    Parameters
+    ----------
+    group_index : np.ndarray
+        signed integer dtype
+    ngroups : int or None, default None
+
+    Returns
+    -------
+    np.ndarray[np.intp]
     """
     if ngroups is None:
         # error: Incompatible types in assignment (expression has type "number[Any]",
@@ -596,9 +606,10 @@ def get_group_index_sorter(
     )
     if do_groupsort:
         sorter, _ = algos.groupsort_indexer(ensure_int64(group_index), ngroups)
-        return ensure_platform_int(sorter)
+        # sorter _should_ already be intp, but mypy is not yet able to verify
     else:
-        return group_index.argsort(kind="mergesort")
+        sorter = group_index.argsort(kind="mergesort")
+    return ensure_platform_int(sorter)
 
 
 def compress_group_index(group_index, sort: bool = True):
