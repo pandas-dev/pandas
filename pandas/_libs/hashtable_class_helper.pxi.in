@@ -747,6 +747,7 @@ cdef class StringHashTable(HashTable):
             kh_destroy_str(self.table)
             self.table = NULL
 
+    def sizeof(self, deep: bool = False) -> int:
         overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
         for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
         for_pairs =  self.table.n_buckets * (sizeof(char *) +      # keys
