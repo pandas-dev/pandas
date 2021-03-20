@@ -11,18 +11,33 @@ internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we
 hack around pandas by using UserDicts.
 """
-from collections import UserDict, abc
+from __future__ import annotations
+
+from collections import (
+    UserDict,
+    abc,
+)
 import itertools
 import numbers
 import random
 import string
 import sys
-from typing import Any, Mapping, Type
+from typing import (
+    Any,
+    Mapping,
+    Type,
+)
 
 import numpy as np
 
+from pandas.core.dtypes.common import pandas_dtype
+
 import pandas as pd
-from pandas.api.extensions import ExtensionArray, ExtensionDtype
+from pandas.api.extensions import (
+    ExtensionArray,
+    ExtensionDtype,
+)
+from pandas.api.types import is_bool_dtype
 
 
 class JSONDtype(ExtensionDtype):
@@ -31,7 +46,7 @@ class JSONDtype(ExtensionDtype):
     na_value: Mapping[str, Any] = UserDict()
 
     @classmethod
-    def construct_array_type(cls) -> Type["JSONArray"]:
+    def construct_array_type(cls) -> Type[JSONArray]:
         """
         Return the array type associated with this dtype.
 
@@ -68,6 +83,16 @@ class JSONArray(ExtensionArray):
         return cls([UserDict(x) for x in values if x != ()])
 
     def __getitem__(self, item):
+        if isinstance(item, tuple):
+            if len(item) > 1:
+                if item[0] is Ellipsis:
+                    item = item[1:]
+                elif item[-1] is Ellipsis:
+                    item = item[:-1]
+            if len(item) > 1:
+                raise IndexError("too many indices for array.")
+            item = item[0]
+
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, slice) and item == slice(None):
@@ -78,7 +103,7 @@ class JSONArray(ExtensionArray):
             return type(self)(self.data[item])
         else:
             item = pd.api.indexers.check_array_indexer(self, item)
-            if pd.api.types.is_bool_dtype(item.dtype):
+            if is_bool_dtype(item.dtype):
                 return self._from_sequence([x for x, m in zip(self, item) if m])
             # integer
             return type(self)([self.data[i] for i in item])
@@ -160,30 +185,34 @@ class JSONArray(ExtensionArray):
         # NumPy has issues when all the dicts are the same length.
         # np.array([UserDict(...), UserDict(...)]) fails,
         # but np.array([{...}, {...}]) works, so cast.
+        from pandas.core.arrays.string_ import StringDtype
 
+        dtype = pandas_dtype(dtype)
         # needed to add this check for the Series constructor
         if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
+        elif isinstance(dtype, StringDtype):
+            value = self.astype(str)  # numpy doesn'y like nested dicts
+            return dtype.construct_array_type()._from_sequence(value, copy=False)
+
         return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
     def unique(self):
         # Parent method doesn't work since np.array will try to infer
         # a 2-dim object.
-        return type(self)(
-            [dict(x) for x in list({tuple(d.items()) for d in self.data})]
-        )
+        return type(self)([dict(x) for x in {tuple(d.items()) for d in self.data}])
 
     @classmethod
     def _concat_same_type(cls, to_concat):
-        data = list(itertools.chain.from_iterable([x.data for x in to_concat]))
+        data = list(itertools.chain.from_iterable(x.data for x in to_concat))
         return cls(data)
 
     def _values_for_factorize(self):
         frozen = self._values_for_argsort()
         if len(frozen) == 0:
-            # _factorize_array expects 1-d array, this is a len-0 2-d array.
+            # factorize_array expects 1-d array, this is a len-0 2-d array.
             frozen = frozen.ravel()
         return frozen, ()
 

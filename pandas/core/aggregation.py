@@ -3,14 +3,104 @@ aggregation.py contains utility functions to handle multiple named and lambda
 kwarg aggregations in groupby and DataFrame/Series aggregation
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from functools import partial
-from typing import Any, DefaultDict, List, Sequence, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    DefaultDict,
+    Dict,
+    Hashable,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
-from pandas.core.dtypes.common import is_dict_like, is_list_like
+from pandas._typing import (
+    AggFuncType,
+    FrameOrSeries,
+)
 
+from pandas.core.dtypes.common import (
+    is_dict_like,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import ABCSeries
+
+from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
+
+if TYPE_CHECKING:
+    from pandas.core.series import Series
+
+
+def reconstruct_func(
+    func: Optional[AggFuncType], **kwargs
+) -> Tuple[bool, Optional[AggFuncType], Optional[List[str]], Optional[List[int]]]:
+    """
+    This is the internal function to reconstruct func given if there is relabeling
+    or not and also normalize the keyword to get new order of columns.
+
+    If named aggregation is applied, `func` will be None, and kwargs contains the
+    column and aggregation function information to be parsed;
+    If named aggregation is not applied, `func` is either string (e.g. 'min') or
+    Callable, or list of them (e.g. ['min', np.max]), or the dictionary of column name
+    and str/Callable/list of them (e.g. {'A': 'min'}, or {'A': [np.min, lambda x: x]})
+
+    If relabeling is True, will return relabeling, reconstructed func, column
+    names, and the reconstructed order of columns.
+    If relabeling is False, the columns and order will be None.
+
+    Parameters
+    ----------
+    func: agg function (e.g. 'min' or Callable) or list of agg functions
+        (e.g. ['min', np.max]) or dictionary (e.g. {'A': ['min', np.max]}).
+    **kwargs: dict, kwargs used in is_multi_agg_with_relabel and
+        normalize_keyword_aggregation function for relabelling
+
+    Returns
+    -------
+    relabelling: bool, if there is relabelling or not
+    func: normalized and mangled func
+    columns: list of column names
+    order: list of columns indices
+
+    Examples
+    --------
+    >>> reconstruct_func(None, **{"foo": ("col", "min")})
+    (True, defaultdict(<class 'list'>, {'col': ['min']}), ('foo',), array([0]))
+
+    >>> reconstruct_func("min")
+    (False, 'min', None, None)
+    """
+    relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
+    columns: Optional[List[str]] = None
+    order: Optional[List[int]] = None
+
+    if not relabeling:
+        if isinstance(func, list) and len(func) > len(set(func)):
+
+            # GH 28426 will raise error if duplicated function names are used and
+            # there is no reassigned name
+            raise SpecificationError(
+                "Function names must be unique if there is no new column names "
+                "assigned"
+            )
+        elif func is None:
+            # nicer error message
+            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
+
+    if relabeling:
+        func, columns, order = normalize_keyword_aggregation(kwargs)
+
+    return relabeling, func, columns, order
 
 
 def is_multi_agg_with_relabel(**kwargs) -> bool:
@@ -91,7 +181,9 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
 
     # get the new index of columns by comparison
     col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
-    return aggspec, columns, col_idx_order
+    # error: Incompatible return value type (got "Tuple[defaultdict[Any, Any],
+    # Any, ndarray]", expected "Tuple[Dict[Any, Any], List[str], List[int]]")
+    return aggspec, columns, col_idx_order  # type: ignore[return-value]
 
 
 def _make_unique_kwarg_list(
@@ -196,3 +288,113 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
         mangled_aggspec = _managle_lambda_list(agg_spec)
 
     return mangled_aggspec
+
+
+def relabel_result(
+    result: FrameOrSeries,
+    func: Dict[str, List[Union[Callable, str]]],
+    columns: Iterable[Hashable],
+    order: Iterable[int],
+) -> Dict[Hashable, Series]:
+    """
+    Internal function to reorder result if relabelling is True for
+    dataframe.agg, and return the reordered result in dict.
+
+    Parameters:
+    ----------
+    result: Result from aggregation
+    func: Dict of (column name, funcs)
+    columns: New columns name for relabelling
+    order: New order for relabelling
+
+    Examples:
+    ---------
+    >>> result = DataFrame({"A": [np.nan, 2, np.nan],
+    ...       "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]})  # doctest: +SKIP
+    >>> funcs = {"A": ["max"], "C": ["max"], "B": ["mean", "min"]}
+    >>> columns = ("foo", "aab", "bar", "dat")
+    >>> order = [0, 1, 2, 3]
+    >>> _relabel_result(result, func, columns, order)  # doctest: +SKIP
+    dict(A=Series([2.0, NaN, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
+         C=Series([NaN, 6.0, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
+         B=Series([NaN, NaN, 2.5, 4.0], index=["foo", "aab", "bar", "dat"]))
+    """
+    reordered_indexes = [
+        pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
+    ]
+    reordered_result_in_dict: Dict[Hashable, Series] = {}
+    idx = 0
+
+    reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
+    for col, fun in func.items():
+        s = result[col].dropna()
+
+        # In the `_aggregate`, the callable names are obtained and used in `result`, and
+        # these names are ordered alphabetically. e.g.
+        #           C2   C1
+        # <lambda>   1  NaN
+        # amax     NaN  4.0
+        # max      NaN  4.0
+        # sum     18.0  6.0
+        # Therefore, the order of functions for each column could be shuffled
+        # accordingly so need to get the callable name if it is not parsed names, and
+        # reorder the aggregated result for each column.
+        # e.g. if df.agg(c1=("C2", sum), c2=("C2", lambda x: min(x))), correct order is
+        # [sum, <lambda>], but in `result`, it will be [<lambda>, sum], and we need to
+        # reorder so that aggregated values map to their functions regarding the order.
+
+        # However there is only one column being used for aggregation, not need to
+        # reorder since the index is not sorted, and keep as is in `funcs`, e.g.
+        #         A
+        # min   1.0
+        # mean  1.5
+        # mean  1.5
+        if reorder_mask:
+            fun = [
+                com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
+            ]
+            col_idx_order = Index(s.index).get_indexer(fun)
+            s = s[col_idx_order]
+
+        # assign the new user-provided "named aggregation" as index names, and reindex
+        # it based on the whole user-provided names.
+        s.index = reordered_indexes[idx : idx + len(fun)]
+        reordered_result_in_dict[col] = s.reindex(columns, copy=False)
+        idx = idx + len(fun)
+    return reordered_result_in_dict
+
+
+def validate_func_kwargs(
+    kwargs: dict,
+) -> Tuple[List[str], List[Union[str, Callable[..., Any]]]]:
+    """
+    Validates types of user-provided "named aggregation" kwargs.
+    `TypeError` is raised if aggfunc is not `str` or callable.
+
+    Parameters
+    ----------
+    kwargs : dict
+
+    Returns
+    -------
+    columns : List[str]
+        List of user-provied keys.
+    func : List[Union[str, callable[...,Any]]]
+        List of user-provided aggfuncs
+
+    Examples
+    --------
+    >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
+    (['one', 'two'], ['min', 'max'])
+    """
+    tuple_given_message = "func is expected but received {} in **kwargs."
+    columns = list(kwargs)
+    func = []
+    for col_func in kwargs.values():
+        if not (isinstance(col_func, str) or callable(col_func)):
+            raise TypeError(tuple_given_message.format(type(col_func).__name__))
+        func.append(col_func)
+    if not columns:
+        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
+        raise TypeError(no_arg_message)
+    return columns, func

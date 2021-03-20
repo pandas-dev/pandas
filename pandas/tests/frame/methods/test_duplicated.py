@@ -3,7 +3,11 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -30,7 +34,7 @@ def test_duplicated_do_not_fail_on_wide_dataframes():
     # calculation. Actual values doesn't matter here, though usually it's all
     # False in this case
     assert isinstance(result, Series)
-    assert result.dtype == np.bool
+    assert result.dtype == np.bool_
 
 
 @pytest.mark.parametrize(

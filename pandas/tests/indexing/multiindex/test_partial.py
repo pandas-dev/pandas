@@ -1,7 +1,16 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Float64Index, Int64Index, MultiIndex
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    Float64Index,
+    Int64Index,
+    MultiIndex,
+    date_range,
+    to_datetime,
+)
 import pandas._testing as tm
 
 
@@ -107,6 +116,9 @@ class TestMultiIndexPartial:
         with pytest.raises(KeyError, match=r"\('a', 'foo'\)"):
             df.loc[("a", "foo"), :]
 
+    # TODO(ArrayManager) rewrite test to not use .values
+    # exp.loc[2000, 4].values[:] select multiple columns -> .values is not a view
+    @td.skip_array_manager_invalid_test
     def test_partial_set(self, multiindex_year_month_day_dataframe_random_data):
         # GH #397
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -171,9 +183,9 @@ class TestMultiIndexPartial:
         # assert (self.ymd.loc[2000]['A'] == 0).all()
 
         # Pretty sure the second (and maybe even the first) is already wrong.
-        with pytest.raises(Exception):
+        with pytest.raises(KeyError, match="6"):
             ymd.loc[(2000, 6)]
-        with pytest.raises(Exception):
+        with pytest.raises(KeyError, match="(2000, 6)"):
             ymd.loc[(2000, 6), 0]
 
     # ---------------------------------------------------------------------
@@ -207,6 +219,45 @@ class TestMultiIndexPartial:
         expected.loc["foo"] = 0
         expected.loc["bar"] = 0
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "indexer, exp_idx, exp_values",
+        [
+            (slice("2019-2", None), [to_datetime("2019-02-01")], [2, 3]),
+            (
+                slice(None, "2019-2"),
+                date_range("2019", periods=2, freq="MS"),
+                [0, 1, 2, 3],
+            ),
+        ],
+    )
+    def test_partial_getitem_loc_datetime(self, indexer, exp_idx, exp_values):
+        # GH: 25165
+        date_idx = date_range("2019", periods=2, freq="MS")
+        df = DataFrame(
+            list(range(4)),
+            index=MultiIndex.from_product([date_idx, [0, 1]], names=["x", "y"]),
+        )
+        expected = DataFrame(
+            exp_values,
+            index=MultiIndex.from_product([exp_idx, [0, 1]], names=["x", "y"]),
+        )
+        result = df[indexer]
+        tm.assert_frame_equal(result, expected)
+        result = df.loc[indexer]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc(axis=0)[indexer]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[indexer, :]
+        tm.assert_frame_equal(result, expected)
+
+        df2 = df.swaplevel(0, 1).sort_index()
+        expected = expected.swaplevel(0, 1).sort_index()
+
+        result = df2.loc[:, indexer, :]
+        tm.assert_frame_equal(result, expected)
 
 
 def test_loc_getitem_partial_both_axis():

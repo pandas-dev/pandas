@@ -5,25 +5,37 @@ from cython import Py_ssize_t
 
 from cpython.slice cimport PySlice_GetIndicesEx
 
+
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport NPY_INT64, int64_t
+from numpy cimport (
+    NPY_INTP,
+    int64_t,
+    intp_t,
+    ndarray,
+)
+
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
+from pandas._libs.util cimport is_integer_object
 
+
+@cython.final
+@cython.freelist(32)
 cdef class BlockPlacement:
     # __slots__ = '_as_slice', '_as_array', '_len'
     cdef:
         slice _as_slice
-        object _as_array
+        ndarray _as_array  # Note: this still allows `None`; will be intp_t
         bint _has_slice, _has_array, _is_known_slice_like
 
-    def __init__(self, val):
+    def __cinit__(self, val):
         cdef:
             slice slc
 
@@ -32,7 +44,7 @@ cdef class BlockPlacement:
         self._has_slice = False
         self._has_array = False
 
-        if isinstance(val, int):
+        if is_integer_object(val):
             slc = slice(val, val + 1, 1)
             self._as_slice = slc
             self._has_slice = True
@@ -43,13 +55,13 @@ cdef class BlockPlacement:
                 self._as_slice = slc
                 self._has_slice = True
             else:
-                arr = np.empty(0, dtype=np.int64)
+                arr = np.empty(0, dtype=np.intp)
                 self._as_array = arr
                 self._has_array = True
         else:
             # Cython memoryview interface requires ndarray to be writeable.
-            arr = np.require(val, dtype=np.int64, requirements='W')
-            assert arr.ndim == 1
+            arr = np.require(val, dtype=np.intp, requirements='W')
+            assert arr.ndim == 1, arr.shape
             self._as_array = arr
             self._has_array = True
 
@@ -115,8 +127,8 @@ cdef class BlockPlacement:
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
             # NOTE: this is the C-optimized equivalent of
-            #  `np.arange(start, stop, step, dtype=np.int64)`
-            self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INT64)
+            #  `np.arange(start, stop, step, dtype=np.intp)`
+            self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INTP)
             self._has_array = True
 
         return self._as_array
@@ -153,12 +165,12 @@ cdef class BlockPlacement:
             np.concatenate([self.as_array] + [o.as_array for o in others])
         )
 
-    cdef iadd(self, other):
+    cdef BlockPlacement iadd(self, other):
         cdef:
             slice s = self._ensure_has_slice()
             Py_ssize_t other_int, start, stop, step, l
 
-        if isinstance(other, int) and s is not None:
+        if is_integer_object(other) and s is not None:
             other_int = <Py_ssize_t>other
 
             if other_int == 0:
@@ -203,7 +215,7 @@ cdef slice slice_canonize(slice s):
     Convert slice to canonical bounded form.
     """
     cdef:
-        Py_ssize_t start = 0, stop = 0, step = 1, length
+        Py_ssize_t start = 0, stop = 0, step = 1
 
     if s.step is None:
         step = 1
@@ -235,7 +247,7 @@ cdef slice slice_canonize(slice s):
             if stop > start:
                 stop = start
 
-    if start < 0 or (stop < 0 and s.stop is not None):
+    if start < 0 or (stop < 0 and s.stop is not None and step > 0):
         raise ValueError("unbounded slice")
 
     if stop < 0:
@@ -315,13 +327,13 @@ cdef slice_getitem(slice slc, ind):
     else:
         # NOTE:
         # this is the C-optimized equivalent of
-        # `np.arange(s_start, s_stop, s_step, dtype=np.int64)[ind]`
-        return cnp.PyArray_Arange(s_start, s_stop, s_step, NPY_INT64)[ind]
+        # `np.arange(s_start, s_stop, s_step, dtype=np.intp)[ind]`
+        return cnp.PyArray_Arange(s_start, s_stop, s_step, NPY_INTP)[ind]
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef slice indexer_as_slice(int64_t[:] vals):
+cdef slice indexer_as_slice(intp_t[:] vals):
     cdef:
         Py_ssize_t i, n, start, stop
         int64_t d
@@ -431,13 +443,13 @@ def get_blkno_placements(blknos, group: bool = True):
     """
     Parameters
     ----------
-    blknos : array of int64
+    blknos : np.ndarray[int64]
     group : bool, default True
 
     Returns
     -------
     iterator
-        yield (BlockPlacement, blkno)
+        yield (blkno, BlockPlacement)
     """
     blknos = ensure_int64(blknos)
 

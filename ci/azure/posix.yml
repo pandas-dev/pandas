@@ -9,65 +9,12 @@ jobs:
   strategy:
     matrix:
       ${{ if eq(parameters.name, 'macOS') }}:
-        py36_macos:
-          ENV_FILE: ci/deps/azure-macos-36.yaml
-          CONDA_PY: "36"
-          PATTERN: "not slow and not network"
-
-      ${{ if eq(parameters.name, 'Linux') }}:
-        py36_minimum_versions:
-          ENV_FILE: ci/deps/azure-36-minimum_versions.yaml
-          CONDA_PY: "36"
-          PATTERN: "not slow and not network and not clipboard"
-
-        py36_locale_slow_old_np:
-          ENV_FILE: ci/deps/azure-36-locale_slow.yaml
-          CONDA_PY: "36"
-          PATTERN: "slow"
-          # pandas does not use the language (zh_CN), but should support different encodings (utf8)
-          # we should test with encodings different than utf8, but doesn't seem like Ubuntu supports any
-          LANG: "zh_CN.utf8"
-          LC_ALL: "zh_CN.utf8"
-          EXTRA_APT: "language-pack-zh-hans"
-
-        py36_locale:
-          ENV_FILE: ci/deps/azure-36-locale.yaml
-          CONDA_PY: "36"
-          PATTERN: "not slow and not network"
-          LANG: "it_IT.utf8"
-          LC_ALL: "it_IT.utf8"
-          EXTRA_APT: "language-pack-it xsel"
-
-        #py36_32bit:
-        #  ENV_FILE: ci/deps/azure-36-32bit.yaml
-        #  CONDA_PY: "36"
-        #  PATTERN: "not slow and not network and not clipboard"
-        #  BITS32: "yes"
-
-        py37_locale:
-          ENV_FILE: ci/deps/azure-37-locale.yaml
+        py37_macos:
+          ENV_FILE: ci/deps/azure-macos-37.yaml
           CONDA_PY: "37"
           PATTERN: "not slow and not network"
-          LANG: "zh_CN.utf8"
-          LC_ALL: "zh_CN.utf8"
-          EXTRA_APT: "language-pack-zh-hans xsel"
-
-        py37_np_dev:
-          ENV_FILE: ci/deps/azure-37-numpydev.yaml
-          CONDA_PY: "37"
-          PATTERN: "not slow and not network"
-          TEST_ARGS: "-W error"
-          PANDAS_TESTING_MODE: "deprecate"
-          EXTRA_APT: "xsel"
 
   steps:
-    - script: |
-        if [ "$(uname)" == "Linux" ]; then
-          sudo apt-get update
-          sudo apt-get install -y libc6-dev-i386 $EXTRA_APT
-        fi
-      displayName: 'Install extra packages'
-
     - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
       displayName: 'Set conda path'
 

@@ -2,13 +2,14 @@ from datetime import time
 
 import numpy as np
 
+from pandas._typing import StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.io.excel._base import _BaseExcelReader
+from pandas.io.excel._base import BaseExcelReader
 
 
-class _XlrdReader(_BaseExcelReader):
-    def __init__(self, filepath_or_buffer):
+class XlrdReader(BaseExcelReader):
+    def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
         """
         Reader using xlrd engine.
 
@@ -16,10 +17,12 @@ class _XlrdReader(_BaseExcelReader):
         ----------
         filepath_or_buffer : string, path object or Workbook
             Object to be parsed.
+        storage_options : dict, optional
+            passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
         """
         err_msg = "Install xlrd >= 1.0.0 for Excel support"
         import_optional_dependency("xlrd", extra=err_msg)
-        super().__init__(filepath_or_buffer)
+        super().__init__(filepath_or_buffer, storage_options=storage_options)
 
     @property
     def _workbook_class(self):
@@ -41,18 +44,20 @@ class _XlrdReader(_BaseExcelReader):
         return self.book.sheet_names()
 
     def get_sheet_by_name(self, name):
+        self.raise_if_bad_sheet_by_name(name)
         return self.book.sheet_by_name(name)
 
     def get_sheet_by_index(self, index):
+        self.raise_if_bad_sheet_by_index(index)
         return self.book.sheet_by_index(index)
 
     def get_sheet_data(self, sheet, convert_float):
         from xlrd import (
-            xldate,
+            XL_CELL_BOOLEAN,
             XL_CELL_DATE,
             XL_CELL_ERROR,
-            XL_CELL_BOOLEAN,
             XL_CELL_NUMBER,
+            xldate,
         )
 
         epoch1904 = self.book.datemode

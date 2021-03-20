@@ -6,8 +6,11 @@ Eventually, we'll want to parametrize the type and support
 multiple dtypes. Not all methods are implemented yet, and the
 current implementation is not efficient.
 """
+from __future__ import annotations
+
 import copy
 import itertools
+import operator
 from typing import Type
 
 import numpy as np
@@ -20,6 +23,8 @@ from pandas.api.extensions import (
     register_extension_dtype,
     take,
 )
+from pandas.api.types import is_scalar
+from pandas.core.arraylike import OpsMixin
 
 
 @register_extension_dtype
@@ -31,7 +36,7 @@ class ArrowBoolDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type["ArrowBoolArray"]:
+    def construct_array_type(cls) -> Type[ArrowBoolArray]:
         """
         Return the array type associated with this dtype.
 
@@ -55,7 +60,7 @@ class ArrowStringDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type["ArrowStringArray"]:
+    def construct_array_type(cls) -> Type[ArrowStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -66,7 +71,9 @@ class ArrowStringDtype(ExtensionDtype):
         return ArrowStringArray
 
 
-class ArrowExtensionArray(ExtensionArray):
+class ArrowExtensionArray(OpsMixin, ExtensionArray):
+    _data: pa.ChunkedArray
+
     @classmethod
     def from_scalars(cls, values):
         arr = pa.chunked_array([pa.array(np.asarray(values))])
@@ -85,7 +92,7 @@ class ArrowExtensionArray(ExtensionArray):
         return f"{type(self).__name__}({repr(self._data)})"
 
     def __getitem__(self, item):
-        if pd.api.types.is_scalar(item):
+        if is_scalar(item):
             return self._data.to_pandas()[item]
         else:
             vals = self._data.to_pandas()[item]
@@ -106,8 +113,23 @@ class ArrowExtensionArray(ExtensionArray):
     def dtype(self):
         return self._dtype
 
+    def _logical_method(self, other, op):
+        if not isinstance(other, type(self)):
+            raise NotImplementedError()
+
+        result = op(np.array(self._data), np.array(other._data))
+        return ArrowBoolArray(
+            pa.chunked_array([pa.array(result, mask=pd.isna(self._data.to_pandas()))])
+        )
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return False
+
+        return self._logical_method(other, operator.eq)
+
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return sum(
             x.size
             for chunk in self._data.chunks
@@ -140,23 +162,25 @@ class ArrowExtensionArray(ExtensionArray):
     def __invert__(self):
         return type(self).from_scalars(~self._data.to_pandas())
 
-    def _reduce(self, method, skipna=True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if skipna:
             arr = self[~self.isna()]
         else:
             arr = self
 
         try:
-            op = getattr(arr, method)
+            op = getattr(arr, name)
         except AttributeError as err:
             raise TypeError from err
         return op(**kwargs)
 
     def any(self, axis=0, out=None):
-        return self._data.to_pandas().any()
+        # Explicitly return a plain bool to reproduce GH-34660
+        return bool(self._data.to_pandas().any())
 
     def all(self, axis=0, out=None):
-        return self._data.to_pandas().all()
+        # Explicitly return a plain bool to reproduce GH-34660
+        return bool(self._data.to_pandas().all())
 
 
 class ArrowBoolArray(ArrowExtensionArray):

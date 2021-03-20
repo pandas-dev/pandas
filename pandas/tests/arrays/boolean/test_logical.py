@@ -14,8 +14,8 @@ class TestLogicalOps(BaseOpsUtil):
         a = pd.array([True, False, None], dtype="boolean")
         op = getattr(a, all_logical_operators)
 
-        tm.assert_extension_array_equal(op(True), op(np.bool(True)))
-        tm.assert_extension_array_equal(op(False), op(np.bool(False)))
+        tm.assert_extension_array_equal(op(True), op(np.bool_(True)))
+        tm.assert_extension_array_equal(op(False), op(np.bool_(False)))
 
     def get_op_from_name(self, op_name):
         short_opname = op_name.strip("_")
@@ -46,7 +46,7 @@ class TestLogicalOps(BaseOpsUtil):
     def test_logical_length_mismatch_raises(self, all_logical_operators):
         op_name = all_logical_operators
         a = pd.array([True, False, None], dtype="boolean")
-        msg = "Lengths must match"
+        msg = "Lengths must match to compare"
 
         with pytest.raises(ValueError, match=msg):
             getattr(a, op_name)([True, False])
@@ -205,9 +205,7 @@ class TestLogicalOps(BaseOpsUtil):
             a, pd.array([True, False, None], dtype="boolean")
         )
 
-    @pytest.mark.parametrize(
-        "other", [True, False, pd.NA, [True, False, None] * 3],
-    )
+    @pytest.mark.parametrize("other", [True, False, pd.NA, [True, False, None] * 3])
     def test_no_masked_assumptions(self, other, all_logical_operators):
         # The logical operations should not assume that masked values are False!
         a = pd.arrays.BooleanArray(

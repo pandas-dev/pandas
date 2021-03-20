@@ -2,21 +2,43 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
+from __future__ import annotations
+
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
-from warnings import catch_warnings, simplefilter, warn
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
+from warnings import (
+    catch_warnings,
+    simplefilter,
+    warn,
+)
 
 import numpy as np
 
-from pandas._libs import Timestamp, algos, hashtable as htable, iNaT, lib
-from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj
+from pandas._libs import (
+    algos,
+    hashtable as htable,
+    iNaT,
+    lib,
+)
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    DtypeObj,
+    FrameOrSeriesUnion,
+)
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     infer_dtype_from_array,
-    maybe_promote,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -45,20 +67,40 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
+    ABCDatetimeArray,
     ABCExtensionArray,
     ABCIndex,
-    ABCIndexClass,
     ABCMultiIndex,
+    ABCRangeIndex,
     ABCSeries,
+    ABCTimedeltaArray,
 )
-from pandas.core.dtypes.missing import isna, na_value_for_dtype
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+)
 
-from pandas.core.construction import array, extract_array
+from pandas.core.array_algos.take import take_nd
+from pandas.core.construction import (
+    array as pd_array,
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import Series
+    from pandas import (
+        Categorical,
+        DataFrame,
+        Index,
+        Series,
+    )
+    from pandas.core.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
 
 _shared_docs: Dict[str, str] = {}
 
@@ -66,9 +108,7 @@ _shared_docs: Dict[str, str] = {}
 # --------------- #
 # dtype access    #
 # --------------- #
-def _ensure_data(
-    values, dtype: Optional[DtypeObj] = None
-) -> Tuple[np.ndarray, DtypeObj]:
+def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
     """
     routine to ensure that our data is of the correct
     input dtype for lower-level routines
@@ -84,8 +124,6 @@ def _ensure_data(
     Parameters
     ----------
     values : array-like
-    dtype : pandas_dtype, optional
-        coerce to this dtype
 
     Returns
     -------
@@ -98,30 +136,31 @@ def _ensure_data(
         values = extract_array(values, extract_numpy=True)
 
     # we check some simple dtypes first
-    if is_object_dtype(dtype):
-        return ensure_object(np.asarray(values)), np.dtype("object")
-    elif is_object_dtype(values) and dtype is None:
+    if is_object_dtype(values):
         return ensure_object(np.asarray(values)), np.dtype("object")
 
     try:
-        if is_bool_dtype(values) or is_bool_dtype(dtype):
+        if is_bool_dtype(values):
             # we are actually coercing to uint64
             # until our algos support uint8 directly (see TODO)
             return np.asarray(values).astype("uint64"), np.dtype("bool")
-        elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
+        elif is_signed_integer_dtype(values):
             return ensure_int64(values), np.dtype("int64")
-        elif is_unsigned_integer_dtype(values) or is_unsigned_integer_dtype(dtype):
+        elif is_unsigned_integer_dtype(values):
             return ensure_uint64(values), np.dtype("uint64")
-        elif is_float_dtype(values) or is_float_dtype(dtype):
+        elif is_float_dtype(values):
             return ensure_float64(values), np.dtype("float64")
-        elif is_complex_dtype(values) or is_complex_dtype(dtype):
+        elif is_complex_dtype(values):
 
             # ignore the fact that we are casting to float
             # which discards complex parts
             with catch_warnings():
                 simplefilter("ignore", np.ComplexWarning)
                 values = ensure_float64(values)
-            return values, np.dtype("float64")
+            # error: Incompatible return value type (got "Tuple[ExtensionArray,
+            # dtype[floating[_64Bit]]]", expected "Tuple[ndarray, Union[dtype[Any],
+            # ExtensionDtype]]")
+            return values, np.dtype("float64")  # type: ignore[return-value]
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
@@ -129,38 +168,36 @@ def _ensure_data(
         return ensure_object(values), np.dtype("object")
 
     # datetimelike
-    vals_dtype = getattr(values, "dtype", None)
-    if needs_i8_conversion(vals_dtype) or needs_i8_conversion(dtype):
-        if is_period_dtype(vals_dtype) or is_period_dtype(dtype):
+    if needs_i8_conversion(values.dtype):
+        if is_period_dtype(values.dtype):
             from pandas import PeriodIndex
 
-            values = PeriodIndex(values)
-            dtype = values.dtype
-        elif is_timedelta64_dtype(vals_dtype) or is_timedelta64_dtype(dtype):
+            values = PeriodIndex(values)._data
+        elif is_timedelta64_dtype(values.dtype):
             from pandas import TimedeltaIndex
 
-            values = TimedeltaIndex(values)
-            dtype = values.dtype
+            values = TimedeltaIndex(values)._data
         else:
             # Datetime
-            if values.ndim > 1 and is_datetime64_ns_dtype(vals_dtype):
+            if values.ndim > 1 and is_datetime64_ns_dtype(values.dtype):
                 # Avoid calling the DatetimeIndex constructor as it is 1D only
                 # Note: this is reached by DataFrame.rank calls GH#27027
                 # TODO(EA2D): special case not needed with 2D EAs
                 asi8 = values.view("i8")
                 dtype = values.dtype
-                return asi8, dtype
+                # error: Incompatible return value type (got "Tuple[Any,
+                # Union[dtype, ExtensionDtype, None]]", expected
+                # "Tuple[ndarray, Union[dtype, ExtensionDtype]]")
+                return asi8, dtype  # type: ignore[return-value]
 
             from pandas import DatetimeIndex
 
-            values = DatetimeIndex(values)
-            dtype = values.dtype
-
+            values = DatetimeIndex(values)._data
+        dtype = values.dtype
         return values.asi8, dtype
 
-    elif is_categorical_dtype(vals_dtype) and (
-        is_categorical_dtype(dtype) or dtype is None
-    ):
+    elif is_categorical_dtype(values.dtype):
+        values = cast("Categorical", values)
         values = values.codes
         dtype = pandas_dtype("category")
 
@@ -168,10 +205,13 @@ def _ensure_data(
         # until our algos support int* directly (not all do)
         values = ensure_int64(values)
 
-        return values, dtype
+        # error: Incompatible return value type (got "Tuple[ExtensionArray,
+        # Union[dtype[Any], ExtensionDtype]]", expected "Tuple[ndarray,
+        # Union[dtype[Any], ExtensionDtype]]")
+        return values, dtype  # type: ignore[return-value]
 
     # we have failed, return object
-    values = np.asarray(values, dtype=np.object)
+    values = np.asarray(values, dtype=object)
     return ensure_object(values), np.dtype("object")
 
 
@@ -191,32 +231,42 @@ def _reconstruct_data(
     -------
     ExtensionArray or np.ndarray
     """
-    if is_extension_array_dtype(dtype):
-        values = dtype.construct_array_type()._from_sequence(values)
+    if isinstance(values, ABCExtensionArray) and values.dtype == dtype:
+        # Catch DatetimeArray/TimedeltaArray
+        return values
+
+    if not isinstance(dtype, np.dtype):
+        # i.e. ExtensionDtype
+        cls = dtype.construct_array_type()
+        if isinstance(values, cls) and values.dtype == dtype:
+            return values
+
+        values = cls._from_sequence(values)
     elif is_bool_dtype(dtype):
         values = values.astype(dtype, copy=False)
 
         # we only support object dtypes bool Index
-        if isinstance(original, ABCIndexClass):
+        if isinstance(original, ABCIndex):
             values = values.astype(object, copy=False)
     elif dtype is not None:
         if is_datetime64_dtype(dtype):
-            dtype = "datetime64[ns]"
+            dtype = np.dtype("datetime64[ns]")
         elif is_timedelta64_dtype(dtype):
-            dtype = "timedelta64[ns]"
+            dtype = np.dtype("timedelta64[ns]")
 
         values = values.astype(dtype, copy=False)
 
     return values
 
 
-def _ensure_arraylike(values):
+def _ensure_arraylike(values) -> ArrayLike:
     """
     ensure that we are arraylike if not already
     """
     if not is_array_like(values):
         inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string"]:
+        if inferred in ["mixed", "string", "mixed-integer"]:
+            # "mixed-integer" to ensure we do not cast ["ss", 42] to str GH#22160
             if isinstance(values, tuple):
                 values = list(values)
             values = construct_1d_object_array_from_listlike(values)
@@ -234,11 +284,11 @@ _hashtables = {
 }
 
 
-def _get_hashtable_algo(values):
+def _get_hashtable_algo(values: np.ndarray):
     """
     Parameters
     ----------
-    values : arraylike
+    values : np.ndarray
 
     Returns
     -------
@@ -252,31 +302,32 @@ def _get_hashtable_algo(values):
     return htable, values
 
 
-def _get_values_for_rank(values):
+def _get_values_for_rank(values: ArrayLike):
     if is_categorical_dtype(values):
-        values = values._values_for_rank()
+        values = cast("Categorical", values)._values_for_rank()
 
     values, _ = _ensure_data(values)
     return values
 
 
-def _get_data_algo(values):
+def get_data_algo(values: ArrayLike):
     values = _get_values_for_rank(values)
 
-    ndtype = _check_object_for_strings(values)
+    # error: Argument 1 to "_check_object_for_strings" has incompatible type
+    # "ExtensionArray"; expected "ndarray"
+    ndtype = _check_object_for_strings(values)  # type: ignore[arg-type]
     htable = _hashtables.get(ndtype, _hashtables["object"])
 
     return htable, values
 
 
-def _check_object_for_strings(values) -> str:
+def _check_object_for_strings(values: np.ndarray) -> str:
     """
     Check if we can use string hashtable instead of object hashtable.
 
     Parameters
     ----------
     values : ndarray
-    ndtype : str
 
     Returns
     -------
@@ -303,7 +354,8 @@ def unique(values):
     Hash table-based unique. Uniques are returned in order
     of appearance. This does NOT sort.
 
-    Significantly faster than numpy.unique. Includes NA values.
+    Significantly faster than numpy.unique for long enough sequences.
+    Includes NA values.
 
     Parameters
     ----------
@@ -420,48 +472,78 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
-        values = construct_1d_object_array_from_listlike(list(values))
-        # TODO: could use ensure_arraylike here
+        values = _ensure_arraylike(list(values))
+    elif isinstance(values, ABCMultiIndex):
+        # Avoid raising in extract_array
+        values = np.array(values)
+    else:
+        values = extract_array(values, extract_numpy=True)
 
+    comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
-    if is_categorical_dtype(comps):
-        # TODO(extension)
-        # handle categoricals
-        return comps.isin(values)  # type: ignore
+    if is_extension_array_dtype(comps.dtype):
+        # error: Incompatible return value type (got "Series", expected "ndarray")
+        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute "isin"
+        return comps.isin(values)  # type: ignore[return-value,union-attr]
 
-    comps, dtype = _ensure_data(comps)
-    values, _ = _ensure_data(values, dtype=dtype)
+    elif needs_i8_conversion(comps.dtype):
+        # Dispatch to DatetimeLikeArrayMixin.isin
+        return pd_array(comps).isin(values)
+    elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps.dtype):
+        # e.g. comps are integers and values are datetime64s
+        return np.zeros(comps.shape, dtype=bool)
+        # TODO: not quite right ... Sparse/Categorical
+    elif needs_i8_conversion(values.dtype):
+        return isin(comps, values.astype(object))
 
-    # faster for larger cases to use np.in1d
-    f = htable.ismember_object
+    elif is_extension_array_dtype(values.dtype):
+        return isin(np.asarray(comps), np.asarray(values))
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
-    if len(comps) > 1_000_000 and not is_object_dtype(comps):
-        f = np.in1d
-    elif is_integer_dtype(comps):
-        try:
-            values = values.astype("int64", copy=False)
-            comps = comps.astype("int64", copy=False)
-            f = htable.ismember_int64
-        except (TypeError, ValueError, OverflowError):
-            values = values.astype(object)
-            comps = comps.astype(object)
+    # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
+    # in1d is faster for small sizes
+    if len(comps) > 1_000_000 and len(values) <= 26 and not is_object_dtype(comps):
+        # If the values include nan we need to check for nan explicitly
+        # since np.nan it not equal to np.nan
+        if isna(values).any():
 
-    elif is_float_dtype(comps):
-        try:
-            values = values.astype("float64", copy=False)
-            comps = comps.astype("float64", copy=False)
-            f = htable.ismember_float64
-        except (TypeError, ValueError):
-            values = values.astype(object)
-            comps = comps.astype(object)
+            def f(c, v):
+                return np.logical_or(np.in1d(c, v), np.isnan(c))
+
+        else:
+            f = np.in1d
+
+    else:
+        # error: List item 0 has incompatible type "Union[Any, dtype[Any],
+        # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
+        # Any]]"
+        # error: List item 1 has incompatible type "Union[Any, ExtensionDtype]";
+        # expected "Union[dtype[Any], None, type, _SupportsDType, str, Tuple[Any,
+        # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]"
+        # error: List item 1 has incompatible type "Union[dtype[Any], ExtensionDtype]";
+        # expected "Union[dtype[Any], None, type, _SupportsDType, str, Tuple[Any,
+        # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]"
+        common = np.find_common_type(
+            [values.dtype, comps.dtype], []  # type: ignore[list-item]
+        )
+        values = values.astype(common, copy=False)
+        comps = comps.astype(common, copy=False)
+        name = common.name
+        if name == "bool":
+            name = "uint8"
+        f = getattr(htable, f"ismember_{name}")
 
     return f(comps, values)
 
 
-def _factorize_array(
-    values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None,
+def factorize_array(
+    values: np.ndarray,
+    na_sentinel: int = -1,
+    size_hint: Optional[int] = None,
+    na_value=None,
+    mask: Optional[np.ndarray] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
@@ -489,7 +571,7 @@ def _factorize_array(
     codes : ndarray
     uniques : ndarray
     """
-    hash_klass, values = _get_data_algo(values)
+    hash_klass, values = get_data_algo(values)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
@@ -525,10 +607,9 @@ def _factorize_array(
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: int = -1,
+    na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-    dropna: bool = True,
-) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
+) -> Tuple[np.ndarray, Union[np.ndarray, Index]]:
     """
     Encode the object as an enumerated type or categorical variable.
 
@@ -540,8 +621,11 @@ def factorize(
     Parameters
     ----------
     {values}{sort}
-    na_sentinel : int, default -1
-        Value to mark "not found".
+    na_sentinel : int or None, default -1
+        Value to mark "not found". If None, will not drop the NaN
+        from the uniques of the values.
+
+        .. versionchanged:: 1.1.2
     {size_hint}\
 
     Returns
@@ -604,8 +688,8 @@ def factorize(
     >>> codes
     array([0, 0, 1]...)
     >>> uniques
-    [a, c]
-    Categories (3, object): [a, b, c]
+    ['a', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
     Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.
@@ -619,6 +703,22 @@ def factorize(
     array([0, 0, 1]...)
     >>> uniques
     Index(['a', 'c'], dtype='object')
+
+    If NaN is in the values, and we want to include NaN in the uniques of the
+    values, it can be achieved by setting ``na_sentinel=None``.
+
+    >>> values = np.array([1, 2, 1, np.nan])
+    >>> codes, uniques = pd.factorize(values)  # default: na_sentinel=-1
+    >>> codes
+    array([ 0,  1,  0, -1])
+    >>> uniques
+    array([1., 2.])
+
+    >>> codes, uniques = pd.factorize(values, na_sentinel=None)
+    >>> codes
+    array([0, 1, 0, 2])
+    >>> uniques
+    array([ 1.,  2., nan])
     """
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
@@ -629,22 +729,49 @@ def factorize(
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
 
+    if isinstance(values, ABCRangeIndex):
+        return values.factorize(sort=sort)
+
     values = _ensure_arraylike(values)
     original = values
+    if not isinstance(values, ABCMultiIndex):
+        values = extract_array(values, extract_numpy=True)
 
-    if is_extension_array_dtype(values.dtype):
-        values = extract_array(values)
+    # GH35667, if na_sentinel=None, we will not dropna NaNs from the uniques
+    # of values, assign na_sentinel=-1 to replace code value for NaN.
+    dropna = True
+    if na_sentinel is None:
+        na_sentinel = -1
+        dropna = False
+
+    if (
+        isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
+        and values.freq is not None
+    ):
+        codes, uniques = values.factorize(sort=sort)
+        if isinstance(original, ABCIndex):
+            uniques = original._shallow_copy(uniques, name=None)
+        elif isinstance(original, ABCSeries):
+            from pandas import Index
+
+            uniques = Index(uniques)
+        return codes, uniques
+
+    if not isinstance(values.dtype, np.dtype):
+        # i.e. ExtensionDtype
         codes, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
     else:
         values, dtype = _ensure_data(values)
 
         if original.dtype.kind in ["m", "M"]:
-            na_value = na_value_for_dtype(original.dtype)
+            # Note: factorize_array will cast NaT bc it has a __int__
+            #  method, but will not cast the more-correct dtype.type("nat")
+            na_value = iNaT
         else:
             na_value = None
 
-        codes, uniques = _factorize_array(
+        codes, uniques = factorize_array(
             values, na_sentinel=na_sentinel, size_hint=size_hint, na_value=na_value
         )
 
@@ -664,7 +791,12 @@ def factorize(
     uniques = _reconstruct_data(uniques, dtype, original)
 
     # return original tenor
-    if isinstance(original, ABCIndexClass):
+    if isinstance(original, ABCIndex):
+        if original.dtype.kind in ["m", "M"] and isinstance(uniques, np.ndarray):
+            original._data = cast(
+                "Union[DatetimeArray, TimedeltaArray]", original._data
+            )
+            uniques = type(original._data)._simple_new(uniques, dtype=original.dtype)
         uniques = original._shallow_copy(uniques, name=None)
     elif isinstance(original, ABCSeries):
         from pandas import Index
@@ -681,7 +813,7 @@ def value_counts(
     normalize: bool = False,
     bins=None,
     dropna: bool = True,
-) -> "Series":
+) -> Series:
     """
     Compute a histogram of the counts of non-null values.
 
@@ -740,7 +872,7 @@ def value_counts(
             counts = result._values
 
         else:
-            keys, counts = _value_counts_arraylike(values, dropna)
+            keys, counts = value_counts_arraylike(values, dropna)
 
             result = Series(counts, index=keys, name=name)
 
@@ -748,13 +880,13 @@ def value_counts(
         result = result.sort_values(ascending=ascending)
 
     if normalize:
-        result = result / float(counts.sum())
+        result = result / counts.sum()
 
     return result
 
 
-# Called once from SparseArray
-def _value_counts_arraylike(values, dropna: bool):
+# Called once from SparseArray, otherwise could be private
+def value_counts_arraylike(values, dropna: bool):
     """
     Parameters
     ----------
@@ -787,18 +919,12 @@ def _value_counts_arraylike(values, dropna: bool):
         f = getattr(htable, f"value_count_{ndtype}")
         keys, counts = f(values, dropna)
 
-        mask = isna(values)
-        if not dropna and mask.any():
-            if not isna(keys).any():
-                keys = np.insert(keys, 0, np.NaN)
-                counts = np.insert(counts, 0, mask.sum())
-
     keys = _reconstruct_data(keys, original.dtype, original)
 
     return keys, counts
 
 
-def duplicated(values, keep="first") -> np.ndarray:
+def duplicated(values: ArrayLike, keep: Union[str, bool] = "first") -> np.ndarray:
     """
     Return boolean ndarray denoting duplicate values.
 
@@ -823,7 +949,7 @@ def duplicated(values, keep="first") -> np.ndarray:
     return f(values, keep=keep)
 
 
-def mode(values, dropna: bool = True) -> "Series":
+def mode(values, dropna: bool = True) -> Series:
     """
     Returns the mode(s) of an array.
 
@@ -841,6 +967,7 @@ def mode(values, dropna: bool = True) -> "Series":
     mode : Series
     """
     from pandas import Series
+    import pandas.core.indexes.base as ibase
 
     values = _ensure_arraylike(values)
     original = values
@@ -867,17 +994,18 @@ def mode(values, dropna: bool = True) -> "Series":
         warn(f"Unable to sort modes: {err}")
 
     result = _reconstruct_data(result, original.dtype, original)
-    return Series(result)
+    # Ensure index is type stable (should always use int index)
+    return Series(result, index=ibase.default_index(len(result)))
 
 
 def rank(
-    values,
+    values: ArrayLike,
     axis: int = 0,
     method: str = "average",
     na_option: str = "keep",
     ascending: bool = True,
     pct: bool = False,
-):
+) -> np.ndarray:
     """
     Rank the values along a given axis.
 
@@ -905,6 +1033,7 @@ def rank(
         values = _get_values_for_rank(values)
         ranks = algos.rank_1d(
             values,
+            labels=np.zeros(len(values), dtype=np.int64),
             ties_method=method,
             ascending=ascending,
             na_option=na_option,
@@ -926,7 +1055,12 @@ def rank(
     return ranks
 
 
-def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
+def checked_add_with_arr(
+    arr: np.ndarray,
+    b,
+    arr_mask: Optional[np.ndarray] = None,
+    b_mask: Optional[np.ndarray] = None,
+) -> np.ndarray:
     """
     Perform array addition that checks for underflow and overflow.
 
@@ -939,9 +1073,9 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
     ----------
     arr : array addend.
     b : array or scalar addend.
-    arr_mask : boolean array or None
+    arr_mask : np.ndarray[bool] or None, default None
         array indicating which elements to exclude from checking
-    b_mask : boolean array or boolean or None
+    b_mask : np.ndarray[bool] or None, default None
         array or scalar indicating which element(s) to exclude from checking
 
     Returns
@@ -991,11 +1125,10 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
         to_raise = ((np.iinfo(np.int64).max - b2 < arr) & not_nan).any()
     else:
         to_raise = (
-            ((np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]).any()
-            or (
-                (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
-            ).any()
-        )
+            (np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]
+        ).any() or (
+            (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
+        ).any()
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
@@ -1082,7 +1215,9 @@ def quantile(x, q, interpolation_method="fraction"):
     else:
         q = np.asarray(q, np.float64)
         result = [_get_score(x) for x in q]
-        result = np.array(result, dtype=np.float64)
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "List[Any]")
+        result = np.array(result, dtype=np.float64)  # type: ignore[assignment]
         return result
 
 
@@ -1099,6 +1234,9 @@ class SelectN:
 
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
+
+    def compute(self, method: str) -> FrameOrSeriesUnion:
+        raise NotImplementedError
 
     def nlargest(self):
         return self.compute("nlargest")
@@ -1132,7 +1270,7 @@ class SelectNSeries(SelectN):
     nordered : Series
     """
 
-    def compute(self, method):
+    def compute(self, method: str) -> Series:
 
         n = self.n
         dtype = self.obj.dtype
@@ -1146,10 +1284,8 @@ class SelectNSeries(SelectN):
 
         # slow method
         if n >= len(self.obj):
-            reverse_it = self.keep == "last" or method == "nlargest"
             ascending = method == "nsmallest"
-            slc = np.s_[::-1] if reverse_it else np.s_[:]
-            return dropped[slc].sort_values(ascending=ascending).head(n)
+            return dropped.sort_values(ascending=ascending).head(n)
 
         # fast method
         arr, pandas_dtype = _ensure_data(dropped.values)
@@ -1206,7 +1342,7 @@ class SelectNFrame(SelectN):
         columns = list(columns)
         self.columns = columns
 
-    def compute(self, method):
+    def compute(self, method: str) -> DataFrame:
 
         from pandas import Int64Index
 
@@ -1293,208 +1429,11 @@ class SelectNFrame(SelectN):
 # ---- #
 
 
-def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
-    def wrapper(arr, indexer, out, fill_value=np.nan):
-        if arr_dtype is not None:
-            arr = arr.view(arr_dtype)
-        if out_dtype is not None:
-            out = out.view(out_dtype)
-        if fill_wrap is not None:
-            fill_value = fill_wrap(fill_value)
-        f(arr, indexer, out, fill_value=fill_value)
-
-    return wrapper
-
-
-def _convert_wrapper(f, conv_dtype):
-    def wrapper(arr, indexer, out, fill_value=np.nan):
-        arr = arr.astype(conv_dtype)
-        f(arr, indexer, out, fill_value=fill_value)
-
-    return wrapper
-
-
-def _take_2d_multi_object(arr, indexer, out, fill_value, mask_info):
-    # this is not ideal, performance-wise, but it's better than raising
-    # an exception (best to optimize in Cython to avoid getting here)
-    row_idx, col_idx = indexer
-    if mask_info is not None:
-        (row_mask, col_mask), (row_needs, col_needs) = mask_info
-    else:
-        row_mask = row_idx == -1
-        col_mask = col_idx == -1
-        row_needs = row_mask.any()
-        col_needs = col_mask.any()
-    if fill_value is not None:
-        if row_needs:
-            out[row_mask, :] = fill_value
-        if col_needs:
-            out[:, col_mask] = fill_value
-    for i in range(len(row_idx)):
-        u_ = row_idx[i]
-        for j in range(len(col_idx)):
-            v = col_idx[j]
-            out[i, j] = arr[u_, v]
-
-
-def _take_nd_object(arr, indexer, out, axis: int, fill_value, mask_info):
-    if mask_info is not None:
-        mask, needs_masking = mask_info
-    else:
-        mask = indexer == -1
-        needs_masking = mask.any()
-    if arr.dtype != out.dtype:
-        arr = arr.astype(out.dtype)
-    if arr.shape[axis] > 0:
-        arr.take(ensure_platform_int(indexer), axis=axis, out=out)
-    if needs_masking:
-        outindexer = [slice(None)] * arr.ndim
-        outindexer[axis] = mask
-        out[tuple(outindexer)] = fill_value
-
-
-_take_1d_dict = {
-    ("int8", "int8"): algos.take_1d_int8_int8,
-    ("int8", "int32"): algos.take_1d_int8_int32,
-    ("int8", "int64"): algos.take_1d_int8_int64,
-    ("int8", "float64"): algos.take_1d_int8_float64,
-    ("int16", "int16"): algos.take_1d_int16_int16,
-    ("int16", "int32"): algos.take_1d_int16_int32,
-    ("int16", "int64"): algos.take_1d_int16_int64,
-    ("int16", "float64"): algos.take_1d_int16_float64,
-    ("int32", "int32"): algos.take_1d_int32_int32,
-    ("int32", "int64"): algos.take_1d_int32_int64,
-    ("int32", "float64"): algos.take_1d_int32_float64,
-    ("int64", "int64"): algos.take_1d_int64_int64,
-    ("int64", "float64"): algos.take_1d_int64_float64,
-    ("float32", "float32"): algos.take_1d_float32_float32,
-    ("float32", "float64"): algos.take_1d_float32_float64,
-    ("float64", "float64"): algos.take_1d_float64_float64,
-    ("object", "object"): algos.take_1d_object_object,
-    ("bool", "bool"): _view_wrapper(algos.take_1d_bool_bool, np.uint8, np.uint8),
-    ("bool", "object"): _view_wrapper(algos.take_1d_bool_object, np.uint8, None),
-    ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
-        algos.take_1d_int64_int64, np.int64, np.int64, np.int64
-    ),
-}
-
-_take_2d_axis0_dict = {
-    ("int8", "int8"): algos.take_2d_axis0_int8_int8,
-    ("int8", "int32"): algos.take_2d_axis0_int8_int32,
-    ("int8", "int64"): algos.take_2d_axis0_int8_int64,
-    ("int8", "float64"): algos.take_2d_axis0_int8_float64,
-    ("int16", "int16"): algos.take_2d_axis0_int16_int16,
-    ("int16", "int32"): algos.take_2d_axis0_int16_int32,
-    ("int16", "int64"): algos.take_2d_axis0_int16_int64,
-    ("int16", "float64"): algos.take_2d_axis0_int16_float64,
-    ("int32", "int32"): algos.take_2d_axis0_int32_int32,
-    ("int32", "int64"): algos.take_2d_axis0_int32_int64,
-    ("int32", "float64"): algos.take_2d_axis0_int32_float64,
-    ("int64", "int64"): algos.take_2d_axis0_int64_int64,
-    ("int64", "float64"): algos.take_2d_axis0_int64_float64,
-    ("float32", "float32"): algos.take_2d_axis0_float32_float32,
-    ("float32", "float64"): algos.take_2d_axis0_float32_float64,
-    ("float64", "float64"): algos.take_2d_axis0_float64_float64,
-    ("object", "object"): algos.take_2d_axis0_object_object,
-    ("bool", "bool"): _view_wrapper(algos.take_2d_axis0_bool_bool, np.uint8, np.uint8),
-    ("bool", "object"): _view_wrapper(algos.take_2d_axis0_bool_object, np.uint8, None),
-    ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
-        algos.take_2d_axis0_int64_int64, np.int64, np.int64, fill_wrap=np.int64
-    ),
-}
-
-_take_2d_axis1_dict = {
-    ("int8", "int8"): algos.take_2d_axis1_int8_int8,
-    ("int8", "int32"): algos.take_2d_axis1_int8_int32,
-    ("int8", "int64"): algos.take_2d_axis1_int8_int64,
-    ("int8", "float64"): algos.take_2d_axis1_int8_float64,
-    ("int16", "int16"): algos.take_2d_axis1_int16_int16,
-    ("int16", "int32"): algos.take_2d_axis1_int16_int32,
-    ("int16", "int64"): algos.take_2d_axis1_int16_int64,
-    ("int16", "float64"): algos.take_2d_axis1_int16_float64,
-    ("int32", "int32"): algos.take_2d_axis1_int32_int32,
-    ("int32", "int64"): algos.take_2d_axis1_int32_int64,
-    ("int32", "float64"): algos.take_2d_axis1_int32_float64,
-    ("int64", "int64"): algos.take_2d_axis1_int64_int64,
-    ("int64", "float64"): algos.take_2d_axis1_int64_float64,
-    ("float32", "float32"): algos.take_2d_axis1_float32_float32,
-    ("float32", "float64"): algos.take_2d_axis1_float32_float64,
-    ("float64", "float64"): algos.take_2d_axis1_float64_float64,
-    ("object", "object"): algos.take_2d_axis1_object_object,
-    ("bool", "bool"): _view_wrapper(algos.take_2d_axis1_bool_bool, np.uint8, np.uint8),
-    ("bool", "object"): _view_wrapper(algos.take_2d_axis1_bool_object, np.uint8, None),
-    ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
-        algos.take_2d_axis1_int64_int64, np.int64, np.int64, fill_wrap=np.int64
-    ),
-}
-
-_take_2d_multi_dict = {
-    ("int8", "int8"): algos.take_2d_multi_int8_int8,
-    ("int8", "int32"): algos.take_2d_multi_int8_int32,
-    ("int8", "int64"): algos.take_2d_multi_int8_int64,
-    ("int8", "float64"): algos.take_2d_multi_int8_float64,
-    ("int16", "int16"): algos.take_2d_multi_int16_int16,
-    ("int16", "int32"): algos.take_2d_multi_int16_int32,
-    ("int16", "int64"): algos.take_2d_multi_int16_int64,
-    ("int16", "float64"): algos.take_2d_multi_int16_float64,
-    ("int32", "int32"): algos.take_2d_multi_int32_int32,
-    ("int32", "int64"): algos.take_2d_multi_int32_int64,
-    ("int32", "float64"): algos.take_2d_multi_int32_float64,
-    ("int64", "int64"): algos.take_2d_multi_int64_int64,
-    ("int64", "float64"): algos.take_2d_multi_int64_float64,
-    ("float32", "float32"): algos.take_2d_multi_float32_float32,
-    ("float32", "float64"): algos.take_2d_multi_float32_float64,
-    ("float64", "float64"): algos.take_2d_multi_float64_float64,
-    ("object", "object"): algos.take_2d_multi_object_object,
-    ("bool", "bool"): _view_wrapper(algos.take_2d_multi_bool_bool, np.uint8, np.uint8),
-    ("bool", "object"): _view_wrapper(algos.take_2d_multi_bool_object, np.uint8, None),
-    ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
-        algos.take_2d_multi_int64_int64, np.int64, np.int64, fill_wrap=np.int64
-    ),
-}
-
-
-def _get_take_nd_function(
-    ndim: int, arr_dtype, out_dtype, axis: int = 0, mask_info=None
+def take(
+    arr, indices: np.ndarray, axis: int = 0, allow_fill: bool = False, fill_value=None
 ):
-    if ndim <= 2:
-        tup = (arr_dtype.name, out_dtype.name)
-        if ndim == 1:
-            func = _take_1d_dict.get(tup, None)
-        elif ndim == 2:
-            if axis == 0:
-                func = _take_2d_axis0_dict.get(tup, None)
-            else:
-                func = _take_2d_axis1_dict.get(tup, None)
-        if func is not None:
-            return func
-
-        tup = (out_dtype.name, out_dtype.name)
-        if ndim == 1:
-            func = _take_1d_dict.get(tup, None)
-        elif ndim == 2:
-            if axis == 0:
-                func = _take_2d_axis0_dict.get(tup, None)
-            else:
-                func = _take_2d_axis1_dict.get(tup, None)
-        if func is not None:
-            func = _convert_wrapper(func, out_dtype)
-            return func
-
-    def func2(arr, indexer, out, fill_value=np.nan):
-        indexer = ensure_int64(indexer)
-        _take_nd_object(
-            arr, indexer, out, axis=axis, fill_value=fill_value, mask_info=mask_info
-        )
-
-    return func2
-
-
-def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None):
     """
     Take elements from an array.
-
-    .. versionadded:: 0.23.0
 
     Parameters
     ----------
@@ -1513,7 +1452,7 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
 
         * True: negative values in `indices` indicate
           missing values. These values are set to `fill_value`. Any other
-          other negative values raise a ``ValueError``.
+          negative values raise a ``ValueError``.
 
     fill_value : any, optional
         Fill value to use for NA-indices when `allow_fill` is True.
@@ -1574,7 +1513,7 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     if allow_fill:
         # Pandas style, -1 means NA
         validate_indices(indices, arr.shape[axis])
-        result = take_1d(
+        result = take_nd(
             arr, indices, axis=axis, allow_fill=True, fill_value=fill_value
         )
     else:
@@ -1583,174 +1522,12 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     return result
 
 
-def take_nd(
-    arr, indexer, axis: int = 0, out=None, fill_value=np.nan, allow_fill: bool = True
-):
-    """
-    Specialized Cython take which sets NaN values in one pass
-
-    This dispatches to ``take`` defined on ExtensionArrays. It does not
-    currently dispatch to ``SparseArray.take`` for sparse ``arr``.
-
-    Parameters
-    ----------
-    arr : array-like
-        Input array.
-    indexer : ndarray
-        1-D array of indices to take, subarrays corresponding to -1 value
-        indices are filed with fill_value
-    axis : int, default 0
-        Axis to take from
-    out : ndarray or None, default None
-        Optional output array, must be appropriate type to hold input and
-        fill_value together, if indexer has any -1 value entries; call
-        maybe_promote to determine this type for any fill_value
-    fill_value : any, default np.nan
-        Fill value to replace -1 values with
-    allow_fill : boolean, default True
-        If False, indexer is assumed to contain no -1 values so no filling
-        will be done.  This short-circuits computation of a mask.  Result is
-        undefined if allow_fill == False and -1 is present in indexer.
-
-    Returns
-    -------
-    subarray : array-like
-        May be the same type as the input, or cast to an ndarray.
-    """
-    mask_info = None
-
-    if is_extension_array_dtype(arr):
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
-
-    arr = extract_array(arr)
-    arr = np.asarray(arr)
-
-    if indexer is None:
-        indexer = np.arange(arr.shape[axis], dtype=np.int64)
-        dtype, fill_value = arr.dtype, arr.dtype.type()
-    else:
-        indexer = ensure_int64(indexer, copy=False)
-        if not allow_fill:
-            dtype, fill_value = arr.dtype, arr.dtype.type()
-            mask_info = None, False
-        else:
-            # check for promotion based on types only (do this first because
-            # it's faster than computing a mask)
-            dtype, fill_value = maybe_promote(arr.dtype, fill_value)
-            if dtype != arr.dtype and (out is None or out.dtype != dtype):
-                # check if promotion is actually required based on indexer
-                mask = indexer == -1
-                needs_masking = mask.any()
-                mask_info = mask, needs_masking
-                if needs_masking:
-                    if out is not None and out.dtype != dtype:
-                        raise TypeError("Incompatible type for fill_value")
-                else:
-                    # if not, then depromote, set fill_value to dummy
-                    # (it won't be used but we don't want the cython code
-                    # to crash when trying to cast it to dtype)
-                    dtype, fill_value = arr.dtype, arr.dtype.type()
-
-    flip_order = False
-    if arr.ndim == 2:
-        if arr.flags.f_contiguous:
-            flip_order = True
-
-    if flip_order:
-        arr = arr.T
-        axis = arr.ndim - axis - 1
-        if out is not None:
-            out = out.T
-
-    # at this point, it's guaranteed that dtype can hold both the arr values
-    # and the fill_value
-    if out is None:
-        out_shape_ = list(arr.shape)
-        out_shape_[axis] = len(indexer)
-        out_shape = tuple(out_shape_)
-        if arr.flags.f_contiguous and axis == arr.ndim - 1:
-            # minor tweak that can make an order-of-magnitude difference
-            # for dataframes initialized directly from 2-d ndarrays
-            # (s.t. df.values is c-contiguous and df._mgr.blocks[0] is its
-            # f-contiguous transpose)
-            out = np.empty(out_shape, dtype=dtype, order="F")
-        else:
-            out = np.empty(out_shape, dtype=dtype)
-
-    func = _get_take_nd_function(
-        arr.ndim, arr.dtype, out.dtype, axis=axis, mask_info=mask_info
-    )
-    func(arr, indexer, out, fill_value)
-
-    if flip_order:
-        out = out.T
-    return out
-
-
-take_1d = take_nd
-
-
-def take_2d_multi(arr, indexer, fill_value=np.nan):
-    """
-    Specialized Cython take which sets NaN values in one pass.
-    """
-    # This is only called from one place in DataFrame._reindex_multi,
-    #  so we know indexer is well-behaved.
-    assert indexer is not None
-    assert indexer[0] is not None
-    assert indexer[1] is not None
-
-    row_idx, col_idx = indexer
-
-    row_idx = ensure_int64(row_idx)
-    col_idx = ensure_int64(col_idx)
-    indexer = row_idx, col_idx
-    mask_info = None
-
-    # check for promotion based on types only (do this first because
-    # it's faster than computing a mask)
-    dtype, fill_value = maybe_promote(arr.dtype, fill_value)
-    if dtype != arr.dtype:
-        # check if promotion is actually required based on indexer
-        row_mask = row_idx == -1
-        col_mask = col_idx == -1
-        row_needs = row_mask.any()
-        col_needs = col_mask.any()
-        mask_info = (row_mask, col_mask), (row_needs, col_needs)
-
-        if not (row_needs or col_needs):
-            # if not, then depromote, set fill_value to dummy
-            # (it won't be used but we don't want the cython code
-            # to crash when trying to cast it to dtype)
-            dtype, fill_value = arr.dtype, arr.dtype.type()
-
-    # at this point, it's guaranteed that dtype can hold both the arr values
-    # and the fill_value
-    out_shape = len(row_idx), len(col_idx)
-    out = np.empty(out_shape, dtype=dtype)
-
-    func = _take_2d_multi_dict.get((arr.dtype.name, out.dtype.name), None)
-    if func is None and arr.dtype != out.dtype:
-        func = _take_2d_multi_dict.get((out.dtype.name, out.dtype.name), None)
-        if func is not None:
-            func = _convert_wrapper(func, out.dtype)
-    if func is None:
-
-        def func(arr, indexer, out, fill_value=np.nan):
-            _take_2d_multi_object(
-                arr, indexer, out, fill_value=fill_value, mask_info=mask_info
-            )
-
-    func(arr, indexer, out=out, fill_value=fill_value)
-    return out
-
-
 # ------------ #
 # searchsorted #
 # ------------ #
 
 
-def searchsorted(arr, value, side="left", sorter=None):
+def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
     """
     Find indices where elements should be inserted to maintain order.
 
@@ -1799,7 +1576,7 @@ def searchsorted(arr, value, side="left", sorter=None):
 
     if (
         isinstance(arr, np.ndarray)
-        and is_integer_dtype(arr)
+        and is_integer_dtype(arr.dtype)
         and (is_integer(value) or is_integer_dtype(value))
     ):
         # if `arr` and `value` have different dtypes, `arr` would be
@@ -1818,19 +1595,15 @@ def searchsorted(arr, value, side="left", sorter=None):
         if is_scalar(value):
             value = dtype.type(value)
         else:
-            value = array(value, dtype=dtype)
+            value = pd_array(value, dtype=dtype)
     elif not (
         is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
     ):
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
-        value_ser = array([value]) if is_scalar(value) else array(value)
-        value = value_ser[0] if is_scalar(value) else value_ser
-        if isinstance(value, Timestamp) and value.tzinfo is None:
-            value = value.to_datetime64()
+        arr = ensure_wrapped_if_datetimelike(arr)
 
-    result = arr.searchsorted(value, side=side, sorter=sorter)
-    return result
+    return arr.searchsorted(value, side=side, sorter=sorter)
 
 
 # ---- #
@@ -1847,10 +1620,10 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
 
     Parameters
     ----------
-    arr : ndarray
+    arr : ndarray or ExtensionArray
     n : int
         number of periods
-    axis : int
+    axis : {0, 1}
         axis to shift on
     stacklevel : int
         The stacklevel for the lost dtype warning.
@@ -1859,24 +1632,27 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     -------
     shifted
     """
-    from pandas.core.arrays import PandasDtype
 
     n = int(n)
     na = np.nan
     dtype = arr.dtype
 
-    if dtype.kind == "b":
+    is_bool = is_bool_dtype(dtype)
+    if is_bool:
         op = operator.xor
     else:
         op = operator.sub
 
     if isinstance(dtype, PandasDtype):
         # PandasArray cannot necessarily hold shifted versions of itself.
-        arr = np.asarray(arr)
+        arr = arr.to_numpy()
         dtype = arr.dtype
 
-    if is_extension_array_dtype(dtype):
+    if not isinstance(dtype, np.dtype):
+        # i.e ExtensionDtype
         if hasattr(arr, f"__{op.__name__}__"):
+            if axis != 0:
+                raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:
             warn(
@@ -1889,66 +1665,61 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
             dtype = arr.dtype
 
     is_timedelta = False
-    is_bool = False
     if needs_i8_conversion(arr.dtype):
-        dtype = np.float64
+        dtype = np.int64
         arr = arr.view("i8")
         na = iNaT
         is_timedelta = True
 
-    elif is_bool_dtype(dtype):
+    elif is_bool:
+        # We have to cast in order to be able to hold np.nan
         dtype = np.object_
-        is_bool = True
 
     elif is_integer_dtype(dtype):
-        dtype = np.float64
+        # We have to cast in order to be able to hold np.nan
+
+        # int8, int16 are incompatible with float64,
+        # see https://github.com/cython/cython/issues/2646
+        if arr.dtype.name in ["int8", "int16"]:
+            dtype = np.float32
+        else:
+            dtype = np.float64
+
+    orig_ndim = arr.ndim
+    if orig_ndim == 1:
+        # reshape so we can always use algos.diff_2d
+        arr = arr.reshape(-1, 1)
+        # TODO: require axis == 0
 
     dtype = np.dtype(dtype)
     out_arr = np.empty(arr.shape, dtype=dtype)
 
-    na_indexer = [slice(None)] * arr.ndim
+    na_indexer = [slice(None)] * 2
     na_indexer[axis] = slice(None, n) if n >= 0 else slice(n, None)
     out_arr[tuple(na_indexer)] = na
 
-    if arr.ndim == 2 and arr.dtype.name in _diff_special:
+    if arr.dtype.name in _diff_special:
         # TODO: can diff_2d dtype specialization troubles be fixed by defining
         #  out_arr inside diff_2d?
-        algos.diff_2d(arr, out_arr, n, axis)
+        algos.diff_2d(arr, out_arr, n, axis, datetimelike=is_timedelta)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
         #  a tuple, ditto for lag_indexer.
-        _res_indexer = [slice(None)] * arr.ndim
+        _res_indexer = [slice(None)] * 2
         _res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)
         res_indexer = tuple(_res_indexer)
 
-        _lag_indexer = [slice(None)] * arr.ndim
+        _lag_indexer = [slice(None)] * 2
         _lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
         lag_indexer = tuple(_lag_indexer)
 
-        # need to make sure that we account for na for datelike/timedelta
-        # we don't actually want to subtract these i8 numbers
-        if is_timedelta:
-            res = arr[res_indexer]
-            lag = arr[lag_indexer]
-
-            mask = (arr[res_indexer] == na) | (arr[lag_indexer] == na)
-            if mask.any():
-                res = res.copy()
-                res[mask] = 0
-                lag = lag.copy()
-                lag[mask] = 0
-
-            result = res - lag
-            result[mask] = na
-            out_arr[res_indexer] = result
-        elif is_bool:
-            out_arr[res_indexer] = arr[res_indexer] ^ arr[lag_indexer]
-        else:
-            out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
+        out_arr[res_indexer] = op(arr[res_indexer], arr[lag_indexer])
 
     if is_timedelta:
-        out_arr = out_arr.astype("int64").view("timedelta64[ns]")
+        out_arr = out_arr.view("timedelta64[ns]")
 
+    if orig_ndim == 1:
+        out_arr = out_arr[:, 0]
     return out_arr
 
 
@@ -2012,32 +1783,34 @@ def safe_sort(
             "Only list-like objects are allowed to be passed to safe_sort as values"
         )
 
-    if not isinstance(values, np.ndarray) and not is_extension_array_dtype(values):
+    if not isinstance(values, (np.ndarray, ABCExtensionArray)):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
-        values = np.asarray(values, dtype=dtype)
-
-    def sort_mixed(values):
-        # order ints before strings, safe in py3
-        str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
-        nums = np.sort(values[~str_pos])
-        strs = np.sort(values[str_pos])
-        return np.concatenate([nums, np.asarray(strs, dtype=object)])
+        # error: Argument "dtype" to "asarray" has incompatible type "Union[dtype[Any],
+        # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+        # _DTypeDict, Tuple[Any, Any]]]"
+        values = np.asarray(values, dtype=dtype)  # type: ignore[arg-type]
 
     sorter = None
+
     if (
         not is_extension_array_dtype(values)
         and lib.infer_dtype(values, skipna=False) == "mixed-integer"
     ):
-        # unorderable in py3 if mixed str/int
-        ordered = sort_mixed(values)
+        ordered = _sort_mixed(values)
     else:
         try:
             sorter = values.argsort()
             ordered = values.take(sorter)
         except TypeError:
-            # try this anyway
-            ordered = sort_mixed(values)
+            # Previous sorters failed or were not applicable, try `_sort_mixed`
+            # which would work, but which fails for special case of 1d arrays
+            # with tuples.
+            if values.size and isinstance(values[0], tuple):
+                ordered = _sort_tuples(values)
+            else:
+                ordered = _sort_mixed(values)
 
     # codes:
 
@@ -2056,15 +1829,15 @@ def safe_sort(
 
     if sorter is None:
         # mixed types
-        hash_klass, values = _get_data_algo(values)
+        hash_klass, values = get_data_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))
 
     if na_sentinel == -1:
-        # take_1d is faster, but only works for na_sentinels of -1
+        # take_nd is faster, but only works for na_sentinels of -1
         order2 = sorter.argsort()
-        new_codes = take_1d(order2, codes, fill_value=-1)
+        new_codes = take_nd(order2, codes, fill_value=-1)
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
         else:
@@ -2084,3 +1857,54 @@ def safe_sort(
         np.putmask(new_codes, mask, na_sentinel)
 
     return ordered, ensure_platform_int(new_codes)
+
+
+def _sort_mixed(values):
+    """ order ints before strings in 1d arrays, safe in py3 """
+    str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
+    nums = np.sort(values[~str_pos])
+    strs = np.sort(values[str_pos])
+    return np.concatenate([nums, np.asarray(strs, dtype=object)])
+
+
+def _sort_tuples(values: np.ndarray) -> np.ndarray:
+    """
+    Convert array of tuples (1d) to array or array (2d).
+    We need to keep the columns separately as they contain different types and
+    nans (can't use `np.sort` as it may fail when str and nan are mixed in a
+    column as types cannot be compared).
+    """
+    from pandas.core.internals.construction import to_arrays
+    from pandas.core.sorting import lexsort_indexer
+
+    arrays, _ = to_arrays(values, None)
+    indexer = lexsort_indexer(arrays, orders=True)
+    return values[indexer]
+
+
+def union_with_duplicates(lvals: np.ndarray, rvals: np.ndarray) -> np.ndarray:
+    """
+    Extracts the union from lvals and rvals with respect to duplicates and nans in
+    both arrays.
+
+    Parameters
+    ----------
+    lvals: np.ndarray
+        left values which is ordered in front.
+    rvals: np.ndarray
+        right values ordered after lvals.
+
+    Returns
+    -------
+    np.ndarray containing the unsorted union of both arrays
+    """
+    indexer = []
+    l_count = value_counts(lvals, dropna=False)
+    r_count = value_counts(rvals, dropna=False)
+    l_count, r_count = l_count.align(r_count, fill_value=0)
+    unique_array = unique(np.append(lvals, rvals))
+    if is_extension_array_dtype(lvals) or is_extension_array_dtype(rvals):
+        unique_array = pd_array(unique_array)
+    for i, value in enumerate(unique_array):
+        indexer += [i] * int(max(l_count[value], r_count[value]))
+    return unique_array.take(indexer)

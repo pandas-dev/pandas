@@ -3,10 +3,21 @@ Table Schema builders
 
 https://specs.frictionlessdata.io/json-table-schema/
 """
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Optional,
+    cast,
+)
 import warnings
 
 import pandas._libs.json as json
-from pandas._typing import DtypeObj
+from pandas._typing import (
+    DtypeObj,
+    FrameOrSeries,
+    JSONSerializable,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -23,6 +34,9 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import DataFrame
 import pandas.core.common as com
+
+if TYPE_CHECKING:
+    from pandas.core.indexes.multi import MultiIndex
 
 loads = json.loads
 
@@ -103,7 +117,10 @@ def convert_pandas_type_to_json_field(arr):
         name = "values"
     else:
         name = arr.name
-    field = {"name": name, "type": as_json_table_type(dtype)}
+    field: Dict[str, JSONSerializable] = {
+        "name": name,
+        "type": as_json_table_type(dtype),
+    }
 
     if is_categorical_dtype(dtype):
         cats = dtype.categories
@@ -182,7 +199,12 @@ def convert_json_field_to_pandas_type(field):
     raise ValueError(f"Unsupported or invalid field type: {typ}")
 
 
-def build_table_schema(data, index=True, primary_key=None, version=True):
+def build_table_schema(
+    data: FrameOrSeries,
+    index: bool = True,
+    primary_key: Optional[bool] = None,
+    version: bool = True,
+) -> Dict[str, JSONSerializable]:
     """
     Create a Table schema from ``data``.
 
@@ -233,11 +255,12 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     if index is True:
         data = set_default_names(data)
 
-    schema = {}
+    schema: Dict[str, Any] = {}
     fields = []
 
     if index:
         if data.index.nlevels > 1:
+            data.index = cast("MultiIndex", data.index)
             for level, name in zip(data.index.levels, data.index.names):
                 new_field = convert_pandas_type_to_json_field(level)
                 new_field["name"] = name
@@ -309,10 +332,6 @@ def parse_table_schema(json, precise_float):
         field["name"]: convert_json_field_to_pandas_type(field)
         for field in table["schema"]["fields"]
     }
-
-    # Cannot directly use as_type with timezone data on object; raise for now
-    if any(str(x).startswith("datetime64[ns, ") for x in dtypes.values()):
-        raise NotImplementedError('table="orient" can not yet read timezone data')
 
     # No ISO constructor for Timedelta as of yet, so need to raise
     if "timedelta64" in dtypes.values():

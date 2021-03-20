@@ -5,12 +5,20 @@ ExtensionArrays.
 from datetime import timedelta
 from functools import partial
 import operator
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, lib, ops as libops
-from pandas._typing import ArrayLike
+from pandas._libs import (
+    Timedelta,
+    Timestamp,
+    lib,
+    ops as libops,
+)
+from pandas._typing import (
+    ArrayLike,
+    Shape,
+)
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -22,12 +30,21 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer_dtype,
     is_list_like,
+    is_numeric_v_string_like,
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
@@ -39,8 +56,6 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         y = construct_1d_object_array_from_listlike(y)
 
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
-        # Note: these checks can be for ABCIndex and not ABCIndexClass
-        #  because that is the only object-dtype class.
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
 
@@ -55,7 +70,7 @@ def comp_method_OBJECT_ARRAY(op, x, y):
     return result.reshape(x.shape)
 
 
-def masked_arith_op(x: np.ndarray, y, op):
+def _masked_arith_op(x: np.ndarray, y, op):
     """
     If the given arithmetic operation fails, attempt it again on
     only the non-null elements of the input array(s).
@@ -72,7 +87,11 @@ def masked_arith_op(x: np.ndarray, y, op):
     assert isinstance(x, np.ndarray), type(x)
     if isinstance(y, np.ndarray):
         dtype = find_common_type([x.dtype, y.dtype])
-        result = np.empty(x.size, dtype=dtype)
+        # error: Argument "dtype" to "empty" has incompatible type
+        # "Union[dtype, ExtensionDtype]"; expected "Union[dtype, None, type,
+        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"
+        result = np.empty(x.size, dtype=dtype)  # type: ignore[arg-type]
 
         if len(x) != len(y):
             raise ValueError(x.shape, y.shape)
@@ -84,16 +103,9 @@ def masked_arith_op(x: np.ndarray, y, op):
         yrav = y.ravel()
         mask = notna(xrav) & ymask.ravel()
 
-        if yrav.shape != mask.shape:
-            # FIXME: GH#5284, GH#5035, GH#19448
-            # Without specifically raising here we get mismatched
-            # errors in Py3 (TypeError) vs Py2 (ValueError)
-            # Note: Only = an issue in DataFrame case
-            raise ValueError("Cannot broadcast operands together.")
-
+        # See GH#5284, GH#5035, GH#19448 for historical reference
         if mask.any():
-            with np.errstate(all="ignore"):
-                result[mask] = op(xrav[mask], yrav[mask])
+            result[mask] = op(xrav[mask], yrav[mask])
 
     else:
         if not is_scalar(y):
@@ -112,22 +124,14 @@ def masked_arith_op(x: np.ndarray, y, op):
             mask = np.where(y == 1, False, mask)
 
         if mask.any():
-            with np.errstate(all="ignore"):
-                result[mask] = op(xrav[mask], y)
+            result[mask] = op(xrav[mask], y)
 
-    result, _ = maybe_upcast_putmask(result, ~mask, np.nan)
+    result = maybe_upcast_putmask(result, ~mask)
     result = result.reshape(x.shape)  # 2D compat
     return result
 
 
-def define_na_arithmetic_op(op, str_rep: str):
-    def na_op(x, y):
-        return na_arithmetic_op(x, y, op, str_rep)
-
-    return na_op
-
-
-def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = False):
+def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     """
     Return the result of evaluating op on the passed in values.
 
@@ -137,7 +141,6 @@ def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = Fal
     ----------
     left : np.ndarray
     right : np.ndarray or scalar
-    str_rep : str or None
     is_cmp : bool, default False
         If this a comparison operation.
 
@@ -152,14 +155,14 @@ def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = Fal
     import pandas.core.computation.expressions as expressions
 
     try:
-        result = expressions.evaluate(op, str_rep, left, right)
+        result = expressions.evaluate(op, left, right)
     except TypeError:
         if is_cmp:
             # numexpr failed on comparison op, e.g. ndarray[float] > datetime
             #  In this case we do not fall back to the masked op, as that
             #  will handle complex numbers incorrectly, see GH#32047
             raise
-        result = masked_arith_op(left, right, op)
+        result = _masked_arith_op(left, right, op)
 
     if is_cmp and (is_scalar(result) or result is NotImplemented):
         # numpy returned a scalar instead of operating element-wise
@@ -169,9 +172,12 @@ def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = Fal
     return missing.dispatch_fill_zeros(op, left, right, result)
 
 
-def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
+def arithmetic_op(left: ArrayLike, right: Any, op):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
+
+    Note: the caller is responsible for ensuring that numpy warnings are
+    suppressed (with np.errstate(all="ignore")) if needed.
 
     Parameters
     ----------
@@ -180,7 +186,6 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
         Cannot be a DataFrame or Index.  Series is *not* excluded.
     op : {operator.add, operator.sub, ...}
         Or one of the reversed variants from roperator.
-    str_rep : str
 
     Returns
     -------
@@ -190,25 +195,28 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
 
     # NB: We assume that extract_array has already been called
     #  on `left` and `right`.
-    lvalues = maybe_upcast_datetimelike_array(left)
-    rvalues = maybe_upcast_for_op(right, lvalues.shape)
+    # We need to special-case datetime64/timedelta64 dtypes (e.g. because numpy
+    # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
+    lvalues = ensure_wrapped_if_datetimelike(left)
+    rvalues = ensure_wrapped_if_datetimelike(right)
+    rvalues = _maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
         res_values = op(lvalues, rvalues)
 
     else:
-        with np.errstate(all="ignore"):
-            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep)
+        res_values = _na_arithmetic_op(lvalues, rvalues, op)
 
     return res_values
 
 
-def comparison_op(
-    left: ArrayLike, right: Any, op, str_rep: Optional[str] = None,
-) -> ArrayLike:
+def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
+
+    Note: the caller is responsible for ensuring that numpy warnings are
+    suppressed (with np.errstate(all="ignore")) if needed.
 
     Parameters
     ----------
@@ -222,8 +230,8 @@ def comparison_op(
     ndarray or ExtensionArray
     """
     # NB: We assume extract_array has already been called on left and right
-    lvalues = maybe_upcast_datetimelike_array(left)
-    rvalues = right
+    lvalues = ensure_wrapped_if_datetimelike(left)
+    rvalues = ensure_wrapped_if_datetimelike(right)
 
     rvalues = lib.item_from_zerodim(rvalues)
     if isinstance(rvalues, list):
@@ -250,12 +258,15 @@ def comparison_op(
         else:
             res_values = np.zeros(lvalues.shape, dtype=bool)
 
+    elif is_numeric_v_string_like(lvalues, rvalues):
+        # GH#36377 going through the numexpr path would incorrectly raise
+        return invalid_comparison(lvalues, rvalues, op)
+
     elif is_object_dtype(lvalues.dtype):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        with np.errstate(all="ignore"):
-            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep, is_cmp=True)
+        res_values = _na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
 
     return res_values
 
@@ -340,7 +351,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         right = construct_1d_object_array_from_listlike(right)
 
     # NB: We assume extract_array has already been called on left and right
-    lvalues = maybe_upcast_datetimelike_array(left)
+    lvalues = ensure_wrapped_if_datetimelike(left)
     rvalues = right
 
     if should_extension_dispatch(lvalues, rvalues):
@@ -361,12 +372,13 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
 
         res_values = na_logical_op(lvalues, rvalues, op)
-        res_values = filler(res_values)  # type: ignore
+        # error: Cannot call function of unknown type
+        res_values = filler(res_values)  # type: ignore[operator]
 
     return res_values
 
 
-def get_array_op(op, str_rep: Optional[str] = None):
+def get_array_op(op):
     """
     Return a binary array operation corresponding to the given operator op.
 
@@ -374,48 +386,41 @@ def get_array_op(op, str_rep: Optional[str] = None):
     ----------
     op : function
         Binary operator from operator or roperator module.
-    str_rep : str or None, default None
-        str_rep to pass to arithmetic_op
 
     Returns
     -------
-    function
+    functools.partial
     """
-    op_name = op.__name__.strip("_")
+    if isinstance(op, partial):
+        # We get here via dispatch_to_series in DataFrame case
+        # TODO: avoid getting here
+        return op
+
+    op_name = op.__name__.strip("_").lstrip("r")
+    if op_name == "arith_op":
+        # Reached via DataFrame._combine_frame
+        return op
+
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
-        return partial(comparison_op, op=op, str_rep=str_rep)
+        return partial(comparison_op, op=op)
     elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
         return partial(logical_op, op=op)
+    elif op_name in {
+        "add",
+        "sub",
+        "mul",
+        "truediv",
+        "floordiv",
+        "mod",
+        "divmod",
+        "pow",
+    }:
+        return partial(arithmetic_op, op=op)
     else:
-        return partial(arithmetic_op, op=op, str_rep=str_rep)
+        raise NotImplementedError(op_name)
 
 
-def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:
-    """
-    If we have an ndarray that is either datetime64 or timedelta64, wrap in EA.
-
-    Parameters
-    ----------
-    obj : ndarray or ExtensionArray
-
-    Returns
-    -------
-    ndarray or ExtensionArray
-    """
-    if isinstance(obj, np.ndarray):
-        if obj.dtype.kind == "m":
-            from pandas.core.arrays import TimedeltaArray
-
-            return TimedeltaArray._from_sequence(obj)
-        if obj.dtype.kind == "M":
-            from pandas.core.arrays import DatetimeArray
-
-            return DatetimeArray._from_sequence(obj)
-
-    return obj
-
-
-def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
+def _maybe_upcast_for_op(obj, shape: Shape):
     """
     Cast non-pandas objects to pandas types to unify behavior of arithmetic
     and comparison operations.
@@ -434,8 +439,6 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
-    from pandas.core.arrays import DatetimeArray, TimedeltaArray
-
     if type(obj) is timedelta:
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
@@ -445,6 +448,8 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
         # GH#28080 numpy casts integer-dtype to datetime64 when doing
         #  array[int] + datetime64, which we do not allow
         if isna(obj):
+            from pandas.core.arrays import DatetimeArray
+
             # Avoid possible ambiguities with pd.NaT
             obj = obj.astype("datetime64[ns]")
             right = np.broadcast_to(obj, shape)
@@ -454,6 +459,8 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
 
     elif isinstance(obj, np.timedelta64):
         if isna(obj):
+            from pandas.core.arrays import TimedeltaArray
+
             # wrapping timedelta64("NaT") in Timedelta returns NaT,
             #  which would incorrectly be treated as a datetime-NaT, so
             #  we broadcast and wrap in a TimedeltaArray
@@ -466,9 +473,4 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         return Timedelta(obj)
 
-    elif isinstance(obj, np.ndarray) and obj.dtype.kind == "m":
-        # GH#22390 Unfortunately we need to special-case right-hand
-        # timedelta64 dtypes because numpy casts integer dtypes to
-        # timedelta64 when operating with timedelta64
-        return TimedeltaArray._from_sequence(obj)
     return obj

@@ -1,27 +1,50 @@
+from __future__ import annotations
+
 import importlib
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from pandas._config import get_option
 
-from pandas.util._decorators import Appender, Substitution
+from pandas._typing import IndexLabel
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+)
 
-from pandas.core.dtypes.common import is_integer, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.base import PandasObject
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 def hist_series(
     self,
     by=None,
     ax=None,
-    grid=True,
-    xlabelsize=None,
-    xrot=None,
-    ylabelsize=None,
-    yrot=None,
-    figsize=None,
-    bins=10,
-    backend=None,
+    grid: bool = True,
+    xlabelsize: Optional[int] = None,
+    xrot: Optional[float] = None,
+    ylabelsize: Optional[int] = None,
+    yrot: Optional[float] = None,
+    figsize: Optional[Tuple[int, int]] = None,
+    bins: Union[int, Sequence[int]] = 10,
+    backend: Optional[str] = None,
+    legend: bool = False,
     **kwargs,
 ):
     """
@@ -58,6 +81,11 @@ def hist_series(
 
         .. versionadded:: 1.0.0
 
+    legend : bool, default False
+        Whether to show the legend.
+
+        .. versionadded:: 1.1.0
+
     **kwargs
         To be passed to the actual plotting function.
 
@@ -82,26 +110,28 @@ def hist_series(
         yrot=yrot,
         figsize=figsize,
         bins=bins,
+        legend=legend,
         **kwargs,
     )
 
 
 def hist_frame(
-    data,
-    column=None,
+    data: DataFrame,
+    column: IndexLabel = None,
     by=None,
-    grid=True,
-    xlabelsize=None,
-    xrot=None,
-    ylabelsize=None,
-    yrot=None,
+    grid: bool = True,
+    xlabelsize: Optional[int] = None,
+    xrot: Optional[float] = None,
+    ylabelsize: Optional[int] = None,
+    yrot: Optional[float] = None,
     ax=None,
-    sharex=False,
-    sharey=False,
-    figsize=None,
-    layout=None,
-    bins=10,
-    backend=None,
+    sharex: bool = False,
+    sharey: bool = False,
+    figsize: Optional[Tuple[int, int]] = None,
+    layout: Optional[Tuple[int, int]] = None,
+    bins: Union[int, Sequence[int]] = 10,
+    backend: Optional[str] = None,
+    legend: bool = False,
     **kwargs,
 ):
     """
@@ -154,6 +184,7 @@ def hist_frame(
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
+
     backend : str, default None
         Backend to use instead of the backend specified in the option
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
@@ -161,6 +192,11 @@ def hist_frame(
         ``pd.options.plotting.backend``.
 
         .. versionadded:: 1.0.0
+
+    legend : bool, default False
+        Whether to show the legend.
+
+        .. versionadded:: 1.1.0
 
     **kwargs
         All other plotting keyword arguments to be passed to
@@ -203,6 +239,7 @@ def hist_frame(
         sharey=sharey,
         figsize=figsize,
         layout=layout,
+        legend=legend,
         bins=bins,
         **kwargs,
     )
@@ -216,9 +253,9 @@ by some other columns. A box plot is a method for graphically depicting
 groups of numerical data through their quartiles.
 The box extends from the Q1 to Q3 quartile values of the data,
 with a line at the median (Q2). The whiskers extend from the edges
-of box to show the range of the data. The position of the whiskers
-is set by default to `1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box.
-Outlier points are those past the end of the whiskers.
+of box to show the range of the data. By default, they extend no more than
+`1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box, ending at the farthest
+data point within that interval. Outliers are plotted as separate dots.
 
 For further details see
 Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_.
@@ -402,7 +439,9 @@ _bar_or_line_doc = """
             - A sequence of color strings referred to by name, RGB or RGBA
                 code, which will be used for each column recursively. For
                 instance ['green','yellow'] each column's %(kind)s will be filled in
-                green or yellow, alternatively.
+                green or yellow, alternatively. If there is only a single column to
+                be plotted, then only the first color from the color list will be
+                used.
 
             - A dict of the form {column name : color}, so that each column will be
                 colored accordingly. For example, if your columns are called `a` and
@@ -522,12 +561,8 @@ def boxplot_frame_groupby(
         The layout of the plot: (rows, columns).
     sharex : bool, default False
         Whether x-axes will be shared among subplots.
-
-        .. versionadded:: 0.23.1
     sharey : bool, default True
         Whether y-axes will be shared among subplots.
-
-        .. versionadded:: 0.23.1
     backend : str, default None
         Backend to use instead of the backend specified in the option
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
@@ -547,17 +582,25 @@ def boxplot_frame_groupby(
 
     Examples
     --------
-    >>> import itertools
-    >>> tuples = [t for t in itertools.product(range(1000), range(4))]
-    >>> index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
-    >>> data = np.random.randn(len(index),4)
-    >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
-    >>>
-    >>> grouped = df.groupby(level='lvl1')
-    >>> boxplot_frame_groupby(grouped)
-    >>>
-    >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
-    >>> boxplot_frame_groupby(grouped, subplots=False)
+    You can create boxplots for grouped data and show them as separate subplots:
+
+    .. plot::
+        :context: close-figs
+
+        >>> import itertools
+        >>> tuples = [t for t in itertools.product(range(1000), range(4))]
+        >>> index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
+        >>> data = np.random.randn(len(index),4)
+        >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
+        >>> grouped = df.groupby(level='lvl1')
+        >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8,10))
+
+    The ``subplots=False`` option shows the boxplots in a single figure.
+
+    .. plot::
+        :context: close-figs
+
+        >>> grouped.boxplot(subplots=False, rot=45, fontsize=12)
     """
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame_groupby(
@@ -604,8 +647,8 @@ class PlotAccessor(PandasObject):
         - 'density' : same as 'kde'
         - 'area' : area plot
         - 'pie' : pie plot
-        - 'scatter' : scatter plot
-        - 'hexbin' : hexbin plot.
+        - 'scatter' : scatter plot (DataFrame only)
+        - 'hexbin' : hexbin plot (DataFrame only)
     ax : matplotlib axes object, default None
         An axes of the current figure.
     subplots : bool, default False
@@ -653,6 +696,26 @@ class PlotAccessor(PandasObject):
         Set the x limits of the current axes.
     ylim : 2-tuple/list
         Set the y limits of the current axes.
+    xlabel : label, optional
+        Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
+        x-column name for planar plots.
+
+        .. versionadded:: 1.1.0
+
+        .. versionchanged:: 1.2.0
+
+           Now applicable to planar plots (`scatter`, `hexbin`).
+
+    ylabel : label, optional
+        Name to use for the ylabel on y-axis. Default will show no ylabel, or the
+        y-column name for planar plots.
+
+        .. versionadded:: 1.1.0
+
+        .. versionchanged:: 1.2.0
+
+           Now applicable to planar plots (`scatter`, `hexbin`).
+
     rot : int, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
         plots).
@@ -759,6 +822,8 @@ class PlotAccessor(PandasObject):
                 ("xerr", None),
                 ("label", None),
                 ("secondary_y", False),
+                ("xlabel", None),
+                ("ylabel", None),
             ]
         elif isinstance(data, ABCDataFrame):
             arg_def = [
@@ -791,6 +856,8 @@ class PlotAccessor(PandasObject):
                 ("xerr", None),
                 ("secondary_y", False),
                 ("sort_columns", False),
+                ("xlabel", None),
+                ("ylabel", None),
             ]
         else:
             raise TypeError(
@@ -1475,7 +1542,7 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> plot = df.plot.pie(subplots=True, figsize=(6, 3))
+            >>> plot = df.plot.pie(subplots=True, figsize=(11, 6))
         """
         if (
             isinstance(self._parent, ABCDataFrame)

@@ -5,6 +5,95 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
 
+{{py:
+
+# name
+complex_types = ['complex64',
+                 'complex128']
+}}
+
+{{for name in complex_types}}
+cdef kh{{name}}_t to_kh{{name}}_t({{name}}_t val) nogil:
+    cdef kh{{name}}_t res
+    res.real = val.real
+    res.imag = val.imag
+    return res
+
+{{endfor}}
+
+
+{{py:
+
+
+# name
+c_types = ['khcomplex128_t',
+           'khcomplex64_t',
+           'float64_t',
+           'float32_t',
+           'int64_t',
+           'int32_t',
+           'int16_t',
+           'int8_t',
+           'uint64_t',
+           'uint32_t',
+           'uint16_t',
+           'uint8_t']
+}}
+
+{{for c_type in c_types}}
+
+cdef bint is_nan_{{c_type}}({{c_type}} val) nogil:
+    {{if c_type in {'khcomplex128_t', 'khcomplex64_t'} }}
+    return val.real != val.real or val.imag != val.imag
+    {{elif c_type in {'float64_t', 'float32_t'} }}
+    return val != val
+    {{else}}
+    return False
+    {{endif}}
+
+
+{{if c_type in {'khcomplex128_t', 'khcomplex64_t', 'float64_t', 'float32_t'} }}
+# are_equivalent_{{c_type}} is cimported via khash.pxd
+{{else}}
+cdef bint are_equivalent_{{c_type}}({{c_type}} val1, {{c_type}} val2) nogil:
+    return val1 == val2
+{{endif}}
+
+{{endfor}}
+
+
+{{py:
+
+# name
+cimported_types = ['complex64',
+                   'complex128',
+                   'float32',
+                   'float64',
+                   'int8',
+                   'int16',
+                   'int32',
+                   'int64',
+                   'pymap',
+                   'str',
+                   'strbox',
+                   'uint8',
+                   'uint16',
+                   'uint32',
+                   'uint64']
+}}
+
+{{for name in cimported_types}}
+from pandas._libs.khash cimport (
+    kh_destroy_{{name}},
+    kh_exist_{{name}},
+    kh_get_{{name}},
+    kh_init_{{name}},
+    kh_put_{{name}},
+    kh_resize_{{name}},
+)
+
+{{endfor}}
+
 # ----------------------------------------------------------------------
 # VectorData
 # ----------------------------------------------------------------------
@@ -19,10 +108,19 @@ from pandas._libs.missing cimport C_NA
 # but is included for completeness (rather ObjectVector is used
 # for uniques in hashtables)
 
-dtypes = [('Float64', 'float64', 'float64_t'),
+dtypes = [('Complex128', 'complex128', 'khcomplex128_t'),
+          ('Complex64', 'complex64', 'khcomplex64_t'),
+          ('Float64', 'float64', 'float64_t'),
+          ('Float32', 'float32', 'float32_t'),
           ('Int64', 'int64', 'int64_t'),
+          ('Int32', 'int32', 'int32_t'),
+          ('Int16', 'int16', 'int16_t'),
+          ('Int8', 'int8', 'int8_t'),
           ('String', 'string', 'char *'),
-          ('UInt64', 'uint64', 'uint64_t')]
+          ('UInt64', 'uint64', 'uint64_t'),
+          ('UInt32', 'uint32', 'uint32_t'),
+          ('UInt16', 'uint16', 'uint16_t'),
+          ('UInt8', 'uint8', 'uint8_t')]
 }}
 
 {{for name, dtype, c_type in dtypes}}
@@ -49,8 +147,17 @@ cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
 
 ctypedef fused vector_data:
     Int64VectorData
+    Int32VectorData
+    Int16VectorData
+    Int8VectorData
     UInt64VectorData
+    UInt32VectorData
+    UInt16VectorData
+    UInt8VectorData
     Float64VectorData
+    Float32VectorData
+    Complex128VectorData
+    Complex64VectorData
     StringVectorData
 
 cdef inline bint needs_resize(vector_data *data) nogil:
@@ -63,9 +170,18 @@ cdef inline bint needs_resize(vector_data *data) nogil:
 {{py:
 
 # name, dtype, c_type
-dtypes = [('Float64', 'float64', 'float64_t'),
+dtypes = [('Complex128', 'complex128', 'khcomplex128_t'),
+          ('Complex64', 'complex64', 'khcomplex64_t'),
+          ('Float64', 'float64', 'float64_t'),
           ('UInt64', 'uint64', 'uint64_t'),
-          ('Int64', 'int64', 'int64_t')]
+          ('Int64', 'int64', 'int64_t'),
+          ('Float32', 'float32', 'float32_t'),
+          ('UInt32', 'uint32', 'uint32_t'),
+          ('Int32', 'int32', 'int32_t'),
+          ('UInt16', 'uint16', 'uint16_t'),
+          ('Int16', 'int16', 'int16_t'),
+          ('UInt8', 'uint8', 'uint8_t'),
+          ('Int8', 'int8', 'int8_t')]
 
 }}
 
@@ -178,7 +294,7 @@ cdef class StringVector:
             Py_ssize_t n
             object val
 
-        ao = np.empty(self.data.n, dtype=np.object)
+        ao = np.empty(self.data.n, dtype=object)
         for i in range(self.data.n):
             val = self.data.data[i]
             ao[i] = val
@@ -253,23 +369,31 @@ cdef class HashTable:
 
 {{py:
 
-# name, dtype, float_group, default_na_value
-dtypes = [('Float64', 'float64', True, 'np.nan'),
-          ('UInt64', 'uint64', False, 0),
-          ('Int64', 'int64', False, 'NPY_NAT')]
+# name, dtype, c_type, to_c_type
+dtypes = [('Complex128', 'complex128', 'khcomplex128_t', 'to_khcomplex128_t'),
+          ('Float64', 'float64', 'float64_t', ''),
+          ('UInt64', 'uint64', 'uint64_t', ''),
+          ('Int64', 'int64', 'int64_t', ''),
+          ('Complex64', 'complex64', 'khcomplex64_t', 'to_khcomplex64_t'),
+          ('Float32', 'float32', 'float32_t', ''),
+          ('UInt32', 'uint32', 'uint32_t', ''),
+          ('Int32', 'int32', 'int32_t', ''),
+          ('UInt16', 'uint16', 'uint16_t', ''),
+          ('Int16', 'int16', 'int16_t', ''),
+          ('UInt8', 'uint8', 'uint8_t', ''),
+          ('Int8', 'int8', 'int8_t', '')]
 
 }}
 
 
-{{for name, dtype, float_group, default_na_value in dtypes}}
+{{for name, dtype, c_type, to_c_type in dtypes}}
 
 cdef class {{name}}HashTable(HashTable):
 
     def __cinit__(self, int64_t size_hint=1):
         self.table = kh_init_{{dtype}}()
-        if size_hint is not None:
-            size_hint = min(size_hint, _SIZE_HINT_LIMIT)
-            kh_resize_{{dtype}}(self.table, size_hint)
+        size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
+        kh_resize_{{dtype}}(self.table, size_hint)
 
     def __len__(self) -> int:
         return self.table.size
@@ -282,19 +406,34 @@ cdef class {{name}}HashTable(HashTable):
     def __contains__(self, object key):
         cdef:
             khiter_t k
-        k = kh_get_{{dtype}}(self.table, key)
+            {{c_type}} ckey
+        ckey = {{to_c_type}}(key)
+        k = kh_get_{{dtype}}(self.table, ckey)
         return k != self.table.n_buckets
 
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof({{dtype}}_t) +  # keys
-                                       sizeof(Py_ssize_t) +  # vals
-                                       sizeof(uint32_t))  # flags
+        overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
+        for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
+        for_pairs =  self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
+                                             sizeof(Py_ssize_t))   # vals
+        return overhead + for_flags + for_pairs
+
+    def get_state(self):
+        """ returns infos about the state of the hashtable"""
+        return {
+            'n_buckets' : self.table.n_buckets,
+            'size' : self.table.size,
+            'n_occupied' : self.table.n_occupied,
+            'upper_bound' : self.table.upper_bound,
+        }
 
     cpdef get_item(self, {{dtype}}_t val):
         cdef:
             khiter_t k
-        k = kh_get_{{dtype}}(self.table, val)
+            {{c_type}} cval
+        cval = {{to_c_type}}(val)
+        k = kh_get_{{dtype}}(self.table, cval)
         if k != self.table.n_buckets:
             return self.table.vals[k]
         else:
@@ -304,9 +443,9 @@ cdef class {{name}}HashTable(HashTable):
         cdef:
             khiter_t k
             int ret = 0
-
-        k = kh_put_{{dtype}}(self.table, key, &ret)
-        self.table.keys[k] = key
+            {{c_type}} ckey
+        ckey = {{to_c_type}}(key)
+        k = kh_put_{{dtype}}(self.table, ckey, &ret)
         if kh_exist_{{dtype}}(self.table, k):
             self.table.vals[k] = val
         else:
@@ -317,12 +456,12 @@ cdef class {{name}}HashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
-            {{dtype}}_t key
+            {{c_type}} key
             khiter_t k
 
         with nogil:
             for i in range(n):
-                key = keys[i]
+                key = {{to_c_type}}(keys[i])
                 k = kh_put_{{dtype}}(self.table, key, &ret)
                 self.table.vals[k] = <Py_ssize_t>values[i]
 
@@ -331,12 +470,12 @@ cdef class {{name}}HashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
-            {{dtype}}_t val
+            {{c_type}} val
             khiter_t k
 
         with nogil:
             for i in range(n):
-                val = values[i]
+                val= {{to_c_type}}(values[i])
                 k = kh_put_{{dtype}}(self.table, val, &ret)
                 self.table.vals[k] = i
 
@@ -345,13 +484,13 @@ cdef class {{name}}HashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
-            {{dtype}}_t val
+            {{c_type}} val
             khiter_t k
-            int64_t[:] locs = np.empty(n, dtype=np.int64)
+            intp_t[:] locs = np.empty(n, dtype=np.intp)
 
         with nogil:
             for i in range(n):
-                val = values[i]
+                val = {{to_c_type}}(values[i])
                 k = kh_get_{{dtype}}(self.table, val)
                 if k != self.table.n_buckets:
                     locs[i] = self.table.vals[k]
@@ -400,21 +539,21 @@ cdef class {{name}}HashTable(HashTable):
         -------
         uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse=True)
+        labels : ndarray[intp_t] (if return_inverse=True)
             The labels from values to uniques
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
-            int64_t[:] labels
+            intp_t[:] labels
             int ret = 0
-            {{dtype}}_t val, na_value2
+            {{c_type}} val, na_value2
             khiter_t k
             {{name}}VectorData *ud
             bint use_na_value, use_mask
             uint8_t[:] mask_values
 
         if return_inverse:
-            labels = np.empty(n, dtype=np.int64)
+            labels = np.empty(n, dtype=np.intp)
         ud = uniques.data
         use_na_value = na_value is not None
         use_mask = mask is not None
@@ -428,23 +567,21 @@ cdef class {{name}}HashTable(HashTable):
             # We use None, to make it optional, which requires `object` type
             # for the parameter. To please the compiler, we use na_value2,
             # which is only used if it's *specified*.
-            na_value2 = <{{dtype}}_t>na_value
+            na_value2 = {{to_c_type}}(na_value)
         else:
-            na_value2 = {{default_na_value}}
+            na_value2 = {{to_c_type}}(0)
 
         with nogil:
             for i in range(n):
-                val = values[i]
+                val = {{to_c_type}}(values[i])
 
                 if ignore_na and use_mask:
                     if mask_values[i]:
                         labels[i] = na_sentinel
                         continue
                 elif ignore_na and (
-                {{if not name.lower().startswith(("uint", "int"))}}
-                val != val or
-                {{endif}}
-                (use_na_value and val == na_value2)
+                   is_nan_{{c_type}}(val) or
+                   (use_na_value and are_equivalent_{{c_type}}(val, na_value2))
                 ):
                     # if missing values do not count as unique values (i.e. if
                     # ignore_na is True), skip the hashtable entry for them,
@@ -477,7 +614,7 @@ cdef class {{name}}HashTable(HashTable):
                     labels[i] = idx
 
         if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
+            return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
     def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
@@ -496,7 +633,7 @@ cdef class {{name}}HashTable(HashTable):
         -------
         uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse)
+        labels : ndarray[intp_t] (if return_inverse)
             The labels from values to uniques
         """
         uniques = {{name}}Vector()
@@ -531,7 +668,7 @@ cdef class {{name}}HashTable(HashTable):
         -------
         uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
-        labels : ndarray[int64]
+        labels : ndarray[intp_t]
             The labels from values to uniques
         """
         uniques_vector = {{name}}Vector()
@@ -547,31 +684,30 @@ cdef class {{name}}HashTable(HashTable):
                                  ignore_na=True, return_inverse=True)
         return labels
 
+    {{if dtype == 'int64'}}
     @cython.boundscheck(False)
     def get_labels_groupby(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int64_t[:] labels
+            intp_t[:] labels
             Py_ssize_t idx, count = 0
             int ret = 0
-            {{dtype}}_t val
+            {{c_type}} val
             khiter_t k
             {{name}}Vector uniques = {{name}}Vector()
             {{name}}VectorData *ud
 
-        labels = np.empty(n, dtype=np.int64)
+        labels = np.empty(n, dtype=np.intp)
         ud = uniques.data
 
         with nogil:
             for i in range(n):
-                val = values[i]
+                val = {{to_c_type}}(values[i])
 
                 # specific for groupby
-                {{if dtype != 'uint64'}}
                 if val < 0:
                     labels[i] = -1
                     continue
-                {{endif}}
 
                 k = kh_get_{{dtype}}(self.table, val)
                 if k != self.table.n_buckets:
@@ -591,6 +727,7 @@ cdef class {{name}}HashTable(HashTable):
         arr_uniques = uniques.to_array()
 
         return np.asarray(labels), arr_uniques
+    {{endif}}
 
 {{endfor}}
 
@@ -602,9 +739,8 @@ cdef class StringHashTable(HashTable):
 
     def __init__(self, int64_t size_hint=1):
         self.table = kh_init_str()
-        if size_hint is not None:
-            size_hint = min(size_hint, _SIZE_HINT_LIMIT)
-            kh_resize_str(self.table, size_hint)
+        size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
+        kh_resize_str(self.table, size_hint)
 
     def __dealloc__(self):
         if self.table is not NULL:
@@ -612,10 +748,20 @@ cdef class StringHashTable(HashTable):
             self.table = NULL
 
     def sizeof(self, deep=False):
-        """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof(char *) + # keys
-                                       sizeof(Py_ssize_t) + # vals
-                                       sizeof(uint32_t)) # flags
+        overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
+        for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
+        for_pairs =  self.table.n_buckets * (sizeof(char *) +      # keys
+                                             sizeof(Py_ssize_t))   # vals
+        return overhead + for_flags + for_pairs
+
+    def get_state(self):
+        """ returns infos about the state of the hashtable"""
+        return {
+            'n_buckets' : self.table.n_buckets,
+            'size' : self.table.size,
+            'n_occupied' : self.table.n_occupied,
+            'upper_bound' : self.table.upper_bound,
+        }
 
     cpdef get_item(self, str val):
         cdef:
@@ -638,7 +784,6 @@ cdef class StringHashTable(HashTable):
         v = get_c_string(key)
 
         k = kh_put_str(self.table, v, &ret)
-        self.table.keys[k] = v
         if kh_exist_str(self.table, k):
             self.table.vals[k] = val
         else:
@@ -648,8 +793,8 @@ cdef class StringHashTable(HashTable):
     def get_indexer(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
-            int64_t *resbuf = <int64_t*>labels.data
+            ndarray[intp_t] labels = np.empty(n, dtype=np.intp)
+            intp_t *resbuf = <intp_t*>labels.data
             khiter_t k
             kh_str_t *table = self.table
             const char *v
@@ -680,7 +825,7 @@ cdef class StringHashTable(HashTable):
             object val
             const char *v
             khiter_t k
-            int64_t[:] locs = np.empty(n, dtype=np.int64)
+            intp_t[:] locs = np.empty(n, dtype=np.intp)
 
         # these by-definition *must* be strings
         vecs = <const char **>malloc(n * sizeof(char *))
@@ -773,12 +918,12 @@ cdef class StringHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse=True)
+        labels : ndarray[intp_t] (if return_inverse=True)
             The labels from values to uniques
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
-            int64_t[:] labels
+            intp_t[:] labels
             int64_t[:] uindexer
             int ret = 0
             object val
@@ -788,7 +933,7 @@ cdef class StringHashTable(HashTable):
             bint use_na_value
 
         if return_inverse:
-            labels = np.zeros(n, dtype=np.int64)
+            labels = np.zeros(n, dtype=np.intp)
         uindexer = np.empty(n, dtype=np.int64)
         use_na_value = na_value is not None
 
@@ -827,13 +972,13 @@ cdef class StringHashTable(HashTable):
                     uindexer[count] = i
                     if return_inverse:
                         self.table.vals[k] = count
-                        labels[i] = <int64_t>count
+                        labels[i] = count
                     count += 1
                 elif return_inverse:
                     # k falls into a previous bucket
                     # only relevant in case we need to construct the inverse
                     idx = self.table.vals[k]
-                    labels[i] = <int64_t>idx
+                    labels[i] = idx
 
         free(vecs)
 
@@ -842,7 +987,7 @@ cdef class StringHashTable(HashTable):
             uniques.append(values[uindexer[i]])
 
         if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
+            return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
     def unique(self, ndarray[object] values, bint return_inverse=False):
@@ -915,9 +1060,8 @@ cdef class PyObjectHashTable(HashTable):
 
     def __init__(self, int64_t size_hint=1):
         self.table = kh_init_pymap()
-        if size_hint is not None:
-            size_hint = min(size_hint, _SIZE_HINT_LIMIT)
-            kh_resize_pymap(self.table, size_hint)
+        size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
+        kh_resize_pymap(self.table, size_hint)
 
     def __dealloc__(self):
         if self.table is not NULL:
@@ -937,9 +1081,23 @@ cdef class PyObjectHashTable(HashTable):
 
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof(PyObject *) +  # keys
-                                       sizeof(Py_ssize_t) +  # vals
-                                       sizeof(uint32_t))  # flags
+        overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
+        for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
+        for_pairs =  self.table.n_buckets * (sizeof(PyObject *) +  # keys
+                                             sizeof(Py_ssize_t))   # vals
+        return overhead + for_flags + for_pairs
+
+    def get_state(self):
+        """
+        returns infos about the current state of the hashtable like size,
+        number of buckets and so on.
+        """
+        return {
+            'n_buckets' : self.table.n_buckets,
+            'size' : self.table.size,
+            'n_occupied' : self.table.n_occupied,
+            'upper_bound' : self.table.upper_bound,
+        }
 
     cpdef get_item(self, object val):
         cdef:
@@ -960,7 +1118,6 @@ cdef class PyObjectHashTable(HashTable):
         hash(key)
 
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
-        # self.table.keys[k] = key
         if kh_exist_pymap(self.table, k):
             self.table.vals[k] = val
         else:
@@ -986,7 +1143,7 @@ cdef class PyObjectHashTable(HashTable):
             int ret = 0
             object val
             khiter_t k
-            int64_t[:] locs = np.empty(n, dtype=np.int64)
+            intp_t[:] locs = np.empty(n, dtype=np.intp)
 
         for i in range(n):
             val = values[i]
@@ -1036,19 +1193,19 @@ cdef class PyObjectHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse=True)
+        labels : ndarray[intp_t] (if return_inverse=True)
             The labels from values to uniques
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
-            int64_t[:] labels
+            intp_t[:] labels
             int ret = 0
             object val
             khiter_t k
             bint use_na_value
 
         if return_inverse:
-            labels = np.empty(n, dtype=np.int64)
+            labels = np.empty(n, dtype=np.intp)
         use_na_value = na_value is not None
 
         for i in range(n):
@@ -1083,7 +1240,7 @@ cdef class PyObjectHashTable(HashTable):
                 labels[i] = idx
 
         if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
+            return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
     def unique(self, ndarray[object] values, bint return_inverse=False):
@@ -1102,7 +1259,7 @@ cdef class PyObjectHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse)
+        labels : ndarray[intp_t] (if return_inverse)
             The labels from values to uniques
         """
         uniques = ObjectVector()
@@ -1135,7 +1292,7 @@ cdef class PyObjectHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64]
+        labels : ndarray[intp_t]
             The labels from values to uniques
         """
         uniques_vector = ObjectVector()

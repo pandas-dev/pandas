@@ -1,6 +1,12 @@
-from cpython.datetime cimport datetime
-
-from numpy cimport int64_t, int32_t
+from cpython.datetime cimport (
+    datetime,
+    tzinfo,
+)
+from numpy cimport (
+    int32_t,
+    int64_t,
+    ndarray,
+)
 
 from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
 
@@ -13,13 +19,17 @@ cdef class _TSObject:
         bint fold
 
 
-cdef convert_to_tsobject(object ts, object tz, object unit,
+cdef convert_to_tsobject(object ts, tzinfo tz, str unit,
                          bint dayfirst, bint yearfirst,
                          int32_t nanos=*)
 
-cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
+cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
                                             int32_t nanos=*)
 
 cdef int64_t get_datetime64_nanos(object val) except? -1
 
 cpdef datetime localize_pydatetime(datetime dt, object tz)
+cdef int64_t cast_from_unit(object ts, str unit) except? -1
+cpdef (int64_t, int) precision_from_unit(str unit)
+
+cdef int64_t normalize_i8_stamp(int64_t local_val) nogil

@@ -1,44 +1,215 @@
+minimum_pre_commit_version: 2.9.2
+exclude: ^LICENSES/|\.(html|csv|svg)$
 repos:
+-   repo: https://github.com/MarcoGorelli/absolufy-imports
+    rev: v0.3.0
+    hooks:
+    -   id: absolufy-imports
+        files: ^pandas/
 -   repo: https://github.com/python/black
-    rev: 19.10b0
+    rev: 20.8b1
     hooks:
     -   id: black
-        language_version: python3.7
+-   repo: https://github.com/codespell-project/codespell
+    rev: v2.0.0
+    hooks:
+    -   id: codespell
+        types_or: [python, rst, markdown]
+        files: ^(pandas|doc)/
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.4.0
+    hooks:
+    -   id: end-of-file-fixer
+        exclude: \.txt$
+    -   id: trailing-whitespace
+-   repo: https://github.com/cpplint/cpplint
+    rev: f7061b1 # the latest tag does not have the hook
+    hooks:
+    -   id: cpplint
+        # We don't lint all C files because we don't want to lint any that are built
+        # from Cython files nor do we want to lint C files that we didn't modify for
+        # this particular codebase (e.g. src/headers, src/klib). However,
+        # we can lint all header files since they aren't "generated" like C files are.
+        exclude: ^pandas/_libs/src/(klib|headers)/
+        args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
 -   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.7.7
+    rev: 3.9.0
     hooks:
     -   id: flake8
-        language: python_venv
         additional_dependencies: [flake8-comprehensions>=3.1.0]
     -   id: flake8
-        name: flake8-pyx
-        language: python_venv
-        files: \.(pyx|pxd)$
-        types:
-          - file
+        name: flake8 (cython)
+        types: [cython]
         args: [--append-config=flake8/cython.cfg]
     -   id: flake8
-        name: flake8-pxd
-        language: python_venv
+        name: flake8 (cython template)
         files: \.pxi\.in$
-        types:
-          - file
+        types: [text]
         args: [--append-config=flake8/cython-template.cfg]
--   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v4.3.21
+-   repo: https://github.com/PyCQA/isort
+    rev: 5.7.0
     hooks:
     -   id: isort
-        language: python_venv
-        exclude: ^pandas/__init__\.py$|^pandas/core/api\.py$
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.730
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v2.10.0
     hooks:
-     -  id: mypy
-        args:
-          # As long as a some files are excluded from check-untyped-defs
-          # we have to exclude it from the pre-commit hook as the configuration
-          # is based on modules but the hook runs on files.
-          - --no-check-untyped-defs
-          - --follow-imports
-          - skip
-        files: pandas/
+    -   id: pyupgrade
+        args: [--py37-plus, --keep-runtime-typing]
+-   repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.8.0
+    hooks:
+      - id: rst-backticks
+      - id: rst-directive-colons
+        types: [text]  # overwrite types: [rst]
+        types_or: [python, rst]
+      - id: rst-inline-touching-normal
+        types: [text]  # overwrite types: [rst]
+        types_or: [python, rst]
+-   repo: https://github.com/asottile/yesqa
+    rev: v1.2.2
+    hooks:
+    -   id: yesqa
+-   repo: local
+    hooks:
+    -   id: flake8-rst
+        name: flake8-rst
+        description: Run flake8 on code snippets in docstrings or RST files
+        language: python
+        entry: flake8-rst
+        types: [rst]
+        args: [--filename=*.rst]
+        additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
+    -   id: frame-or-series-union
+        name: Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias
+        entry: Union\[.*(Series,.*DataFrame|DataFrame,.*Series).*\]
+        language: pygrep
+        types: [python]
+        exclude: ^pandas/_typing\.py$
+    -   id: inconsistent-namespace-usage
+        name: 'Check for inconsistent use of pandas namespace in tests'
+        entry: python scripts/check_for_inconsistent_pandas_namespace.py
+        language: python
+        types: [python]
+        files: ^pandas/tests/
+    -   id: incorrect-code-directives
+        name: Check for incorrect code block or IPython directives
+        language: pygrep
+        entry: (\.\. code-block ::|\.\. ipython ::)
+        types_or: [python, cython, rst]
+    -   id: no-os-remove
+        name: Check code for instances of os.remove
+        entry: os\.remove
+        language: pygrep
+        types: [python]
+        files: ^pandas/tests/
+        exclude: |
+            (?x)^
+            pandas/tests/io/excel/test_writers\.py
+            |pandas/tests/io/pytables/common\.py
+            |pandas/tests/io/pytables/test_store\.py$
+    -   id: non-standard-imports
+        name: Check for non-standard imports
+        language: pygrep
+        entry: |
+            (?x)
+            # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
+            from\ pandas\.core\.common\ import
+            |from\ pandas\.core\ import\ common
+
+            # Check for imports from collections.abc instead of `from collections import abc`
+            |from\ collections\.abc\ import
+
+            # Numpy
+            |from\ numpy\ import\ random
+            |from\ numpy\.random\ import
+        types: [python]
+    -   id: non-standard-imports-in-tests
+        name: Check for non-standard imports in test suite
+        language: pygrep
+        entry: |
+            (?x)
+            # Check for imports from pandas._testing instead of `import pandas._testing as tm`
+            from\ pandas\._testing\ import
+            |from\ pandas\ import\ _testing\ as\ tm
+
+            # No direct imports from conftest
+            |conftest\ import
+            |import\ conftest
+
+            # Check for use of pandas.testing instead of tm
+            |pd\.testing\.
+
+            # Check for pd.api.types instead of from pandas.api.types import ...
+            |(pd|pandas)\.api\.types\.
+        types: [python]
+        files: ^pandas/tests/
+    -   id: np-bool-and-np-object
+        name: Check for use of np.bool/np.object instead of np.bool_/np.object_
+        entry: |
+            (?x)
+            np\.bool[^_8]
+            |np\.object[^_8]
+        language: pygrep
+        types_or: [python, cython, rst]
+    -   id: pip-to-conda
+        name: Generate pip dependency from conda
+        description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
+        language: python
+        entry: python scripts/generate_pip_deps_from_conda.py
+        files: ^(environment.yml|requirements-dev.txt)$
+        pass_filenames: false
+        additional_dependencies: [pyyaml]
+    -   id: title-capitalization
+        name: Validate correct capitalization among titles in documentation
+        entry: python scripts/validate_rst_title_capitalization.py
+        language: python
+        types: [rst]
+        files: ^doc/source/(development|reference)/
+    -   id: type-not-class
+        name: Check for use of foo.__class__ instead of type(foo)
+        entry: \.__class__
+        language: pygrep
+        types_or: [python, cython]
+    -   id: unwanted-patterns-bare-pytest-raises
+        name: Check for use of bare pytest raises
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pytest_raises"
+        types: [python]
+        files: ^pandas/tests/
+        exclude: ^pandas/tests/extension/
+    -   id: unwanted-patterns-private-function-across-module
+        name: Check for use of private functions across modules
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
+        types: [python]
+        exclude: ^(asv_bench|pandas/tests|doc)/
+    -   id: unwanted-patterns-private-import-across-module
+        name: Check for import of private attributes across modules
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module"
+        types: [python]
+        exclude: ^(asv_bench|pandas/tests|doc)/
+    -   id: unwanted-patterns-pytest-xfail
+        name: Check for use of pytest.xfail
+        entry: pytest\.xfail
+        language: pygrep
+        types: [python]
+        files: ^pandas/tests/
+    -   id: unwanted-patterns-strings-to-concatenate
+        name: Check for use of not concatenated strings
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate"
+        types_or: [python, cython]
+    -   id: unwanted-patterns-strings-with-wrong-placed-whitespace
+        name: Check for strings with wrong placed spaces
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
+        types_or: [python, cython]
+    -   id: unwanted-typing
+        name: Check for outdated annotation syntax and missing error codes
+        entry: |
+            (?x)
+            \#\ type:\ (?!ignore)
+            |\#\ type:\s?ignore(?!\[)
+        language: pygrep
+        types: [python]

@@ -1,9 +1,13 @@
+from datetime import datetime
 import re
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    NaT,
+)
 import pandas._testing as tm
 
 
@@ -333,64 +337,73 @@ def test_drop_duplicates_inplace():
     )
     # single column
     df = orig.copy()
-    df.drop_duplicates("A", inplace=True)
+    return_value = df.drop_duplicates("A", inplace=True)
     expected = orig[:2]
     result = df
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     df = orig.copy()
-    df.drop_duplicates("A", keep="last", inplace=True)
+    return_value = df.drop_duplicates("A", keep="last", inplace=True)
     expected = orig.loc[[6, 7]]
     result = df
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     df = orig.copy()
-    df.drop_duplicates("A", keep=False, inplace=True)
+    return_value = df.drop_duplicates("A", keep=False, inplace=True)
     expected = orig.loc[[]]
     result = df
     tm.assert_frame_equal(result, expected)
     assert len(df) == 0
+    assert return_value is None
 
     # multi column
     df = orig.copy()
-    df.drop_duplicates(["A", "B"], inplace=True)
+    return_value = df.drop_duplicates(["A", "B"], inplace=True)
     expected = orig.loc[[0, 1, 2, 3]]
     result = df
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     df = orig.copy()
-    df.drop_duplicates(["A", "B"], keep="last", inplace=True)
+    return_value = df.drop_duplicates(["A", "B"], keep="last", inplace=True)
     expected = orig.loc[[0, 5, 6, 7]]
     result = df
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     df = orig.copy()
-    df.drop_duplicates(["A", "B"], keep=False, inplace=True)
+    return_value = df.drop_duplicates(["A", "B"], keep=False, inplace=True)
     expected = orig.loc[[0]]
     result = df
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     # consider everything
     orig2 = orig.loc[:, ["A", "B", "C"]].copy()
 
     df2 = orig2.copy()
-    df2.drop_duplicates(inplace=True)
+    return_value = df2.drop_duplicates(inplace=True)
     # in this case only
     expected = orig2.drop_duplicates(["A", "B"])
     result = df2
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     df2 = orig2.copy()
-    df2.drop_duplicates(keep="last", inplace=True)
+    return_value = df2.drop_duplicates(keep="last", inplace=True)
     expected = orig2.drop_duplicates(["A", "B"], keep="last")
     result = df2
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     df2 = orig2.copy()
-    df2.drop_duplicates(keep=False, inplace=True)
+    return_value = df2.drop_duplicates(keep=False, inplace=True)
     expected = orig2.drop_duplicates(["A", "B"], keep=False)
     result = df2
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
 
 @pytest.mark.parametrize("inplace", [True, False])
@@ -425,3 +438,36 @@ def test_drop_duplicates_null_in_object_column(nulls_fixture):
     df = DataFrame([[1, nulls_fixture], [2, "a"]], dtype=object)
     result = df.drop_duplicates()
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("keep", ["first", "last", False])
+def test_drop_duplicates_series_vs_dataframe(keep):
+    # GH#14192
+    df = DataFrame(
+        {
+            "a": [1, 1, 1, "one", "one"],
+            "b": [2, 2, np.nan, np.nan, np.nan],
+            "c": [3, 3, np.nan, np.nan, "three"],
+            "d": [1, 2, 3, 4, 4],
+            "e": [
+                datetime(2015, 1, 1),
+                datetime(2015, 1, 1),
+                datetime(2015, 2, 1),
+                NaT,
+                NaT,
+            ],
+        }
+    )
+    for column in df.columns:
+        dropped_frame = df[[column]].drop_duplicates(keep=keep)
+        dropped_series = df[column].drop_duplicates(keep=keep)
+        tm.assert_frame_equal(dropped_frame, dropped_series.to_frame())
+
+
+@pytest.mark.parametrize("arg", [[1], 1, "True", [], 0])
+def test_drop_duplicates_non_boolean_ignore_index(arg):
+    # GH#38274
+    df = DataFrame({"a": [1, 2, 1, 3]})
+    msg = '^For argument "ignore_index" expected type bool, received type .*.$'
+    with pytest.raises(ValueError, match=msg):
+        df.drop_duplicates(ignore_index=arg)

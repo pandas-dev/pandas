@@ -1,3 +1,13 @@
+import warnings
+
+from cpython.datetime cimport (
+    PyDate_Check,
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+    datetime,
+    timedelta,
+)
 from cpython.object cimport (
     Py_EQ,
     Py_GE,
@@ -8,29 +18,22 @@ from cpython.object cimport (
     PyObject_RichCompare,
 )
 
-from cpython.datetime cimport (
-    PyDateTime_Check,
-    PyDateTime_IMPORT,
-    PyDelta_Check,
-    datetime,
-    timedelta,
-)
 PyDateTime_IMPORT
 
 from cpython.version cimport PY_MINOR_VERSION
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport int64_t
+
 cnp.import_array()
 
+cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_value,
     get_timedelta64_value,
 )
-cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.base cimport is_period_object
-
 
 # ----------------------------------------------------------------------
 # Constants
@@ -51,7 +54,7 @@ _nat_scalar_rules[Py_GE] = False
 # ----------------------------------------------------------------------
 
 
-def _make_nan_func(func_name, doc):
+def _make_nan_func(func_name: str, doc: str):
     def f(*args, **kwargs):
         return np.nan
     f.__name__ = func_name
@@ -59,7 +62,7 @@ def _make_nan_func(func_name, doc):
     return f
 
 
-def _make_nat_func(func_name, doc):
+def _make_nat_func(func_name: str, doc: str):
     def f(*args, **kwargs):
         return c_NaT
     f.__name__ = func_name
@@ -67,7 +70,7 @@ def _make_nat_func(func_name, doc):
     return f
 
 
-def _make_error_func(func_name, cls):
+def _make_error_func(func_name: str, cls):
     def f(*args, **kwargs):
         raise ValueError(f"NaTType does not support {func_name}")
 
@@ -110,30 +113,40 @@ cdef class _NaT(datetime):
     __array_priority__ = 100
 
     def __richcmp__(_NaT self, object other, int op):
-        cdef:
-            int ndim = getattr(other, "ndim", -1)
+        if util.is_datetime64_object(other) or PyDateTime_Check(other):
+            # We treat NaT as datetime-like for this comparison
+            return _nat_scalar_rules[op]
 
-        if ndim == -1:
+        elif util.is_timedelta64_object(other) or PyDelta_Check(other):
+            # We treat NaT as timedelta-like for this comparison
             return _nat_scalar_rules[op]
 
         elif util.is_array(other):
-            result = np.empty(other.shape, dtype=np.bool_)
-            result.fill(_nat_scalar_rules[op])
+            if other.dtype.kind in "mM":
+                result = np.empty(other.shape, dtype=np.bool_)
+                result.fill(_nat_scalar_rules[op])
+            elif other.dtype.kind == "O":
+                result = np.array([PyObject_RichCompare(self, x, op) for x in other])
+            else:
+                return NotImplemented
             return result
 
-        elif ndim == 0:
-            if util.is_datetime64_object(other):
-                return _nat_scalar_rules[op]
-            else:
-                raise TypeError(
-                    f"Cannot compare type {type(self).__name__} "
-                    f"with type {type(other).__name__}"
-                )
+        elif PyDate_Check(other):
+            # GH#39151 don't defer to datetime.date object
+            if op == Py_EQ:
+                return False
+            if op == Py_NE:
+                return True
+            warnings.warn(
+                "Comparison of NaT with datetime.date is deprecated in "
+                "order to match the standard library behavior.  "
+                "In a future version these will be considered non-comparable.",
+                FutureWarning,
+                stacklevel=1,
+            )
+            return False
 
-        # Note: instead of passing "other, self, _reverse_ops[op]", we observe
-        # that `_nat_scalar_rules` is invariant under `_reverse_ops`,
-        # rendering it unnecessary.
-        return PyObject_RichCompare(other, self, op)
+        return NotImplemented
 
     def __add__(self, other):
         if self is not c_NaT:
@@ -146,10 +159,8 @@ cdef class _NaT(datetime):
             return c_NaT
         elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
             return c_NaT
-        elif util.is_offset_object(other):
-            return c_NaT
 
-        elif util.is_integer_object(other) or is_period_object(other):
+        elif util.is_integer_object(other):
             # For Period compat
             # TODO: the integer behavior is deprecated, remove it
             return c_NaT
@@ -163,6 +174,7 @@ cdef class _NaT(datetime):
                 return result
             raise TypeError(f"Cannot add NaT to ndarray with dtype {other.dtype}")
 
+        # Includes Period, DateOffset going through here
         return NotImplemented
 
     def __sub__(self, other):
@@ -182,10 +194,8 @@ cdef class _NaT(datetime):
             return c_NaT
         elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
             return c_NaT
-        elif util.is_offset_object(other):
-            return c_NaT
 
-        elif util.is_integer_object(other) or is_period_object(other):
+        elif util.is_integer_object(other):
             # For Period compat
             # TODO: the integer behavior is deprecated, remove it
             return c_NaT
@@ -216,6 +226,7 @@ cdef class _NaT(datetime):
                 f"Cannot subtract NaT from ndarray with dtype {other.dtype}"
             )
 
+        # Includes Period, DateOffset going through here
         return NotImplemented
 
     def __pos__(self):
@@ -223,9 +234,6 @@ cdef class _NaT(datetime):
 
     def __neg__(self):
         return NaT
-
-    def __div__(self, other):
-        return _nat_divide_op(self, other)
 
     def __truediv__(self, other):
         return _nat_divide_op(self, other)
@@ -278,41 +286,35 @@ cdef class _NaT(datetime):
         # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
         return "NaT"
 
-    def __hash__(self):
-        return NPY_NAT
-
-    def __int__(self):
-        return NPY_NAT
-
-    def __long__(self):
+    def __hash__(self) -> int:
         return NPY_NAT
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> bool:
         return False
 
     @property
-    def is_month_start(self):
+    def is_month_start(self) -> bool:
         return False
 
     @property
-    def is_quarter_start(self):
+    def is_quarter_start(self) -> bool:
         return False
 
     @property
-    def is_year_start(self):
+    def is_year_start(self) -> bool:
         return False
 
     @property
-    def is_month_end(self):
+    def is_month_end(self) -> bool:
         return False
 
     @property
-    def is_quarter_end(self):
+    def is_quarter_end(self) -> bool:
         return False
 
     @property
-    def is_year_end(self):
+    def is_year_end(self) -> bool:
         return False
 
 
@@ -370,10 +372,12 @@ class NaTType(_NaT):
 
     week = property(fget=lambda self: np.nan)
     dayofyear = property(fget=lambda self: np.nan)
+    day_of_year = property(fget=lambda self: np.nan)
     weekofyear = property(fget=lambda self: np.nan)
     days_in_month = property(fget=lambda self: np.nan)
     daysinmonth = property(fget=lambda self: np.nan)
     dayofweek = property(fget=lambda self: np.nan)
+    day_of_week = property(fget=lambda self: np.nan)
 
     # inject Timedelta properties
     days = property(fget=lambda self: np.nan)
@@ -400,14 +404,12 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the month name.
 
         Returns
         -------
-        month_name : string
-
-        .. versionadded:: 0.23.0
+        str
         """,
     )
     day_name = _make_nan_func(
@@ -417,14 +419,12 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the day name.
 
         Returns
         -------
-        day_name : string
-
-        .. versionadded:: 0.23.0
+        str
         """,
     )
     # _nat_methods
@@ -433,7 +433,6 @@ class NaTType(_NaT):
     utctimetuple = _make_error_func("utctimetuple", datetime)
     timetz = _make_error_func("timetz", datetime)
     timetuple = _make_error_func("timetuple", datetime)
-    strftime = _make_error_func("strftime", datetime)
     isocalendar = _make_error_func("isocalendar", datetime)
     dst = _make_error_func("dst", datetime)
     ctime = _make_error_func("ctime", datetime)
@@ -449,6 +448,23 @@ class NaTType(_NaT):
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
+
+    strftime = _make_error_func(
+        "strftime",
+        """
+        Timestamp.strftime(format)
+
+        Return a string representing the given POSIX timestamp
+        controlled by an explicit format string.
+
+        Parameters
+        ----------
+        format : str
+            Format string to convert Timestamp to string.
+            See strftime documentation for more information on the format string:
+            https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+        """,
+    )
 
     strptime = _make_error_func(
         "strptime",
@@ -472,7 +488,7 @@ class NaTType(_NaT):
         """
         Timestamp.fromtimestamp(ts)
 
-        timestamp[, tz] -> tz's local time from POSIX timestamp.
+        Transform timestamp[, tz] to tz's local time from POSIX timestamp.
         """,
     )
     combine = _make_error_func(
@@ -480,7 +496,7 @@ class NaTType(_NaT):
         """
         Timestamp.combine(date, time)
 
-        date, time -> datetime with same date and time fields.
+        Combine date, time into datetime with same date and time fields.
         """,
     )
     utcnow = _make_error_func(
@@ -621,7 +637,7 @@ timedelta}, default 'raise'
     floor = _make_nat_func(
         "floor",
         """
-        return a new Timestamp floored to this resolution.
+        Return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
@@ -660,7 +676,7 @@ timedelta}, default 'raise'
     ceil = _make_nat_func(
         "ceil",
         """
-        return a new Timestamp ceiled to this resolution.
+        Return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
@@ -776,7 +792,7 @@ default 'raise'
     replace = _make_nat_func(
         "replace",
         """
-        implements datetime.replace, handles nanoseconds.
+        Implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------
@@ -789,7 +805,7 @@ default 'raise'
         microsecond : int, optional
         nanosecond : int, optional
         tzinfo : tz-convertible, optional
-        fold : int, optional, default is 0
+        fold : int, optional
 
         Returns
         -------

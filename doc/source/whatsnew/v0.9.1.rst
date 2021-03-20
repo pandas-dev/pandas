@@ -15,7 +15,7 @@ DataFrame.
 New features
 ~~~~~~~~~~~~
 
-  - `Series.sort`, `DataFrame.sort`, and `DataFrame.sort_index` can now be
+  - ``Series.sort``, ``DataFrame.sort``, and ``DataFrame.sort_index`` can now be
     specified in a per-column manner to support multiple sort orders (:issue:`928`)
 
     .. code-block:: ipython
@@ -34,8 +34,8 @@ New features
        1  1  0  0
        5  1  0  0
 
-  - `DataFrame.rank` now supports additional argument values for the
-    `na_option` parameter so missing values can be assigned either the largest
+  - ``DataFrame.rank`` now supports additional argument values for the
+    ``na_option`` parameter so missing values can be assigned either the largest
     or the smallest rank (:issue:`1508`, :issue:`2159`)
 
     .. ipython:: python
@@ -51,10 +51,10 @@ New features
         df.rank(na_option='bottom')
 
 
-  - DataFrame has new `where` and `mask` methods to select values according to a
+  - DataFrame has new ``where`` and ``mask`` methods to select values according to a
     given boolean mask (:issue:`2109`, :issue:`2151`)
 
-	DataFrame currently supports slicing via a boolean vector the same length as the DataFrame (inside the `[]`).
+	DataFrame currently supports slicing via a boolean vector the same length as the DataFrame (inside the ``[]``).
 	The returned DataFrame has the same number of columns as the original, but is sliced on its index.
 
         .. ipython:: python
@@ -67,8 +67,8 @@ New features
 
 	If a DataFrame is sliced with a DataFrame based boolean condition (with the same size as the original DataFrame),
 	then a DataFrame the same size (index and columns) as the original is returned, with
-	elements that do not meet the boolean condition as `NaN`. This is accomplished via
-	the new method `DataFrame.where`. In addition, `where` takes an optional `other` argument for replacement.
+	elements that do not meet the boolean condition as ``NaN``. This is accomplished via
+	the new method ``DataFrame.where``. In addition, ``where`` takes an optional ``other`` argument for replacement.
 
 	.. ipython:: python
 
@@ -78,8 +78,8 @@ New features
 
 	   df.where(df>0,-df)
 
-	Furthermore, `where` now aligns the input boolean condition (ndarray or DataFrame), such that partial selection
-	with setting is possible. This is analogous to partial setting via `.ix` (but on the contents rather than the axis labels)
+	Furthermore, ``where`` now aligns the input boolean condition (ndarray or DataFrame), such that partial selection
+	with setting is possible. This is analogous to partial setting via ``.ix`` (but on the contents rather than the axis labels)
 
 	.. ipython:: python
 
@@ -87,7 +87,7 @@ New features
    	   df2[ df2[1:4] > 0 ] = 3
 	   df2
 
-	`DataFrame.mask` is the inverse boolean operation of `where`.
+	``DataFrame.mask`` is the inverse boolean operation of ``where``.
 
 	.. ipython:: python
 
@@ -103,9 +103,9 @@ New features
 
 
   - Added option to disable pandas-style tick locators and formatters
-    using `series.plot(x_compat=True)` or `pandas.plot_params['x_compat'] =
-    True` (:issue:`2205`)
-  - Existing TimeSeries methods `at_time` and `between_time` were added to
+    using ``series.plot(x_compat=True)`` or ``pandas.plot_params['x_compat'] =
+    True`` (:issue:`2205`)
+  - Existing TimeSeries methods ``at_time`` and ``between_time`` were added to
     DataFrame (:issue:`2149`)
   - DataFrame.dot can now accept ndarrays (:issue:`2042`)
   - DataFrame.drop now supports non-unique indexes (:issue:`2101`)

@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Int64Index, TimedeltaIndex, timedelta_range
+from pandas import (
+    Int64Index,
+    TimedeltaIndex,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 from pandas.tseries.offsets import Hour
@@ -35,7 +39,7 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, tdi)
 
         result = left.union(right, sort=False)
-        expected = pd.TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
+        expected = TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
         tm.assert_index_equal(result, expected)
 
     def test_union_coverage(self):
@@ -82,7 +86,7 @@ class TestTimedeltaIndex:
         # When taking the union of two TimedeltaIndexes, we infer
         #  a freq even if the arguments don't have freq.  This matches
         #  DatetimeIndex behavior.
-        tdi = pd.timedelta_range("1 Day", periods=5)
+        tdi = timedelta_range("1 Day", periods=5)
         left = tdi[[0, 1, 3, 4]]
         right = tdi[[2, 3, 1]]
 
@@ -97,20 +101,22 @@ class TestTimedeltaIndex:
         index_1 = timedelta_range("1 day", periods=4, freq="h")
         index_2 = index_1 + pd.offsets.Hour(5)
 
-        result = index_1 & index_2
+        with tm.assert_produces_warning(FutureWarning):
+            result = index_1 & index_2
         assert len(result) == 0
 
         index_1 = timedelta_range("1 day", periods=4, freq="h")
         index_2 = index_1 + pd.offsets.Hour(1)
 
-        result = index_1 & index_2
+        with tm.assert_produces_warning(FutureWarning):
+            result = index_1 & index_2
         expected = timedelta_range("1 day 01:00:00", periods=3, freq="h")
         tm.assert_index_equal(result, expected)
         assert result.freq == expected.freq
 
     def test_intersection_equal(self, sort):
         # GH 24471 Test intersection outcome given the sort keyword
-        # for equal indicies intersection should return the original index
+        # for equal indices intersection should return the original index
         first = timedelta_range("1 day", periods=4, freq="h")
         second = timedelta_range("1 day", periods=4, freq="h")
         intersect = first.intersection(second, sort=sort)
@@ -228,7 +234,7 @@ class TestTimedeltaIndexDifference:
 
     def test_difference_sort(self, sort):
 
-        index = pd.TimedeltaIndex(
+        index = TimedeltaIndex(
             ["5 days", "3 days", "2 days", "4 days", "1 days", "0 days"]
         )
 

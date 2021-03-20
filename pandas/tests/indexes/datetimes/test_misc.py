@@ -7,14 +7,21 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets
+from pandas import (
+    DatetimeIndex,
+    Index,
+    Timedelta,
+    Timestamp,
+    date_range,
+    offsets,
+)
 import pandas._testing as tm
 
 
 class TestTimeSeries:
     def test_range_edges(self):
         # GH#13672
-        idx = pd.date_range(
+        idx = date_range(
             start=Timestamp("1970-01-01 00:00:00.000000001"),
             end=Timestamp("1970-01-01 00:00:00.000000004"),
             freq="N",
@@ -30,7 +37,9 @@ class TestTimeSeries:
         )
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+    def test_range_edges2(self):
+
+        idx = date_range(
             start=Timestamp("1970-01-01 00:00:00.000000004"),
             end=Timestamp("1970-01-01 00:00:00.000000001"),
             freq="N",
@@ -38,7 +47,9 @@ class TestTimeSeries:
         exp = DatetimeIndex([], freq="N")
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+    def test_range_edges3(self):
+
+        idx = date_range(
             start=Timestamp("1970-01-01 00:00:00.000000001"),
             end=Timestamp("1970-01-01 00:00:00.000000001"),
             freq="N",
@@ -46,7 +57,9 @@ class TestTimeSeries:
         exp = DatetimeIndex(["1970-01-01 00:00:00.000000001"], freq="N")
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+    def test_range_edges4(self):
+
+        idx = date_range(
             start=Timestamp("1970-01-01 00:00:00.000001"),
             end=Timestamp("1970-01-01 00:00:00.000004"),
             freq="U",
@@ -62,7 +75,9 @@ class TestTimeSeries:
         )
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+    def test_range_edges5(self):
+
+        idx = date_range(
             start=Timestamp("1970-01-01 00:00:00.001"),
             end=Timestamp("1970-01-01 00:00:00.004"),
             freq="L",
@@ -78,7 +93,8 @@ class TestTimeSeries:
         )
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+    def test_range_edges6(self):
+        idx = date_range(
             start=Timestamp("1970-01-01 00:00:01"),
             end=Timestamp("1970-01-01 00:00:04"),
             freq="S",
@@ -94,7 +110,8 @@ class TestTimeSeries:
         )
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+    def test_range_edges7(self):
+        idx = date_range(
             start=Timestamp("1970-01-01 00:01"),
             end=Timestamp("1970-01-01 00:04"),
             freq="T",
@@ -110,7 +127,8 @@ class TestTimeSeries:
         )
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+    def test_range_edges8(self):
+        idx = date_range(
             start=Timestamp("1970-01-01 01:00"),
             end=Timestamp("1970-01-01 04:00"),
             freq="H",
@@ -126,7 +144,8 @@ class TestTimeSeries:
         )
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+    def test_range_edges9(self):
+        idx = date_range(
             start=Timestamp("1970-01-01"), end=Timestamp("1970-01-04"), freq="D"
         )
         exp = DatetimeIndex(
@@ -137,9 +156,9 @@ class TestTimeSeries:
 
 class TestDatetime64:
     def test_datetimeindex_accessors(self):
-        dti_naive = pd.date_range(freq="D", start=datetime(1998, 1, 1), periods=365)
+        dti_naive = date_range(freq="D", start=datetime(1998, 1, 1), periods=365)
         # GH#13303
-        dti_tz = pd.date_range(
+        dti_tz = date_range(
             freq="D", start=datetime(1998, 1, 1), periods=365, tz="US/Eastern"
         )
         for dti in [dti_naive, dti_tz]:
@@ -156,8 +175,8 @@ class TestDatetime64:
             assert dti.dayofyear[0] == 1
             assert dti.dayofyear[120] == 121
 
-            assert dti.weekofyear[0] == 1
-            assert dti.weekofyear[120] == 18
+            assert dti.isocalendar().week[0] == 1
+            assert dti.isocalendar().week[120] == 18
 
             assert dti.quarter[0] == 1
             assert dti.quarter[120] == 2
@@ -192,7 +211,7 @@ class TestDatetime64:
             assert len(dti.microsecond) == 365
             assert len(dti.dayofweek) == 365
             assert len(dti.dayofyear) == 365
-            assert len(dti.weekofyear) == 365
+            assert len(dti.isocalendar()) == 365
             assert len(dti.quarter) == 365
             assert len(dti.is_month_start) == 365
             assert len(dti.is_month_end) == 365
@@ -205,6 +224,9 @@ class TestDatetime64:
 
             # non boolean accessors -> return Index
             for accessor in DatetimeIndex._field_ops:
+                if accessor in ["week", "weekofyear"]:
+                    # GH#33595 Deprecate week and weekofyear
+                    continue
                 res = getattr(dti, accessor)
                 assert len(res) == 365
                 assert isinstance(res, Index)
@@ -224,13 +246,15 @@ class TestDatetime64:
             exp = DatetimeIndex([], freq="D", tz=dti.tz, name="name")
             tm.assert_index_equal(res, exp)
 
-        dti = pd.date_range(freq="BQ-FEB", start=datetime(1998, 1, 1), periods=4)
+    def test_datetimeindex_accessors2(self):
+        dti = date_range(freq="BQ-FEB", start=datetime(1998, 1, 1), periods=4)
 
         assert sum(dti.is_quarter_start) == 0
         assert sum(dti.is_quarter_end) == 4
         assert sum(dti.is_year_start) == 0
         assert sum(dti.is_year_end) == 1
 
+    def test_datetimeindex_accessors3(self):
         # Ensure is_start/end accessors throw ValueError for CustomBusinessDay,
         bday_egypt = offsets.CustomBusinessDay(weekmask="Sun Mon Tue Wed Thu")
         dti = date_range(datetime(2013, 4, 30), periods=5, freq=bday_egypt)
@@ -238,10 +262,12 @@ class TestDatetime64:
         with pytest.raises(ValueError, match=msg):
             dti.is_month_start
 
+    def test_datetimeindex_accessors4(self):
         dti = DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-03"])
 
         assert dti.is_month_start[0] == 1
 
+    def test_datetimeindex_accessors5(self):
         tests = [
             (Timestamp("2013-06-01", freq="M").is_month_start, 1),
             (Timestamp("2013-06-01", freq="BM").is_month_start, 0),
@@ -280,12 +306,13 @@ class TestDatetime64:
         for ts, value in tests:
             assert ts == value
 
+    def test_datetimeindex_accessors6(self):
         # GH 6538: Check that DatetimeIndex and its TimeStamp elements
         # return the same weekofyear accessor close to new year w/ tz
         dates = ["2013/12/29", "2013/12/30", "2013/12/31"]
         dates = DatetimeIndex(dates, tz="Europe/Brussels")
         expected = [52, 1, 1]
-        assert dates.weekofyear.tolist() == expected
+        assert dates.isocalendar().week.tolist() == expected
         assert [d.weekofyear for d in dates] == expected
 
     # GH 12806
@@ -326,7 +353,7 @@ class TestDatetime64:
                 expected_months = calendar.month_name[1:]
 
         # GH#11128
-        dti = pd.date_range(freq="D", start=datetime(1998, 1, 1), periods=365)
+        dti = date_range(freq="D", start=datetime(1998, 1, 1), periods=365)
         english_days = [
             "Monday",
             "Tuesday",
@@ -347,7 +374,7 @@ class TestDatetime64:
         assert np.isnan(ts.day_name(locale=time_locale))
 
         # GH#12805
-        dti = pd.date_range(freq="M", start="2012", end="2013")
+        dti = date_range(freq="M", start="2012", end="2013")
         result = dti.month_name(locale=time_locale)
         expected = Index([month.capitalize() for month in expected_months])
 
@@ -372,7 +399,7 @@ class TestDatetime64:
     def test_nanosecond_field(self):
         dti = DatetimeIndex(np.arange(10))
 
-        tm.assert_index_equal(dti.nanosecond, pd.Index(np.arange(10, dtype=np.int64)))
+        tm.assert_index_equal(dti.nanosecond, Index(np.arange(10, dtype=np.int64)))
 
 
 def test_iter_readonly():
@@ -381,6 +408,15 @@ def test_iter_readonly():
     arr.setflags(write=False)
     dti = pd.to_datetime(arr)
     list(dti)
+
+
+def test_week_and_weekofyear_are_deprecated():
+    # GH#33595 Deprecate week and weekofyear
+    idx = date_range(start="2019-12-29", freq="D", periods=4)
+    with tm.assert_produces_warning(FutureWarning):
+        idx.week
+    with tm.assert_produces_warning(FutureWarning):
+        idx.weekofyear
 
 
 def test_isocalendar_returns_correct_values_close_to_new_year_with_tz():
@@ -392,6 +428,19 @@ def test_isocalendar_returns_correct_values_close_to_new_year_with_tz():
     expected_data_frame = pd.DataFrame(
         [[2013, 52, 7], [2014, 1, 1], [2014, 1, 2]],
         columns=["year", "week", "day"],
+        index=dates,
         dtype="UInt32",
     )
     tm.assert_frame_equal(result, expected_data_frame)
+
+
+def test_add_timedelta_preserves_freq():
+    # GH#37295 should hold for any DTI with freq=None or Tick freq
+    tz = "Canada/Eastern"
+    dti = date_range(
+        start=Timestamp("2019-03-26 00:00:00-0400", tz=tz),
+        end=Timestamp("2020-10-17 00:00:00-0400", tz=tz),
+        freq="D",
+    )
+    result = dti + Timedelta(days=1)
+    assert result.freq == dti.freq

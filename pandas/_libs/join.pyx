@@ -1,7 +1,7 @@
 import cython
 from cython import Py_ssize_t
-
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport (
     float32_t,
@@ -10,15 +10,18 @@ from numpy cimport (
     int16_t,
     int32_t,
     int64_t,
+    intp_t,
     ndarray,
     uint8_t,
     uint16_t,
     uint32_t,
     uint64_t,
 )
+
 cnp.import_array()
 
 from pandas._libs.algos import (
+    ensure_int64,
     ensure_platform_int,
     groupsort_indexer,
     take_1d_int64_int64,
@@ -26,11 +29,12 @@ from pandas._libs.algos import (
 
 
 @cython.boundscheck(False)
-def inner_join(const int64_t[:] left, const int64_t[:] right,
+def inner_join(const intp_t[:] left, const intp_t[:] right,
                Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
+        ndarray[intp_t] left_sorter, right_sorter
+        ndarray[int64_t] left_count, right_count
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
         Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
@@ -38,8 +42,8 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
 
     # NA group in location 0
 
-    left_sorter, left_count = groupsort_indexer(left, max_groups)
-    right_sorter, right_count = groupsort_indexer(right, max_groups)
+    left_sorter, left_count = groupsort_indexer(ensure_int64(left), max_groups)
+    right_sorter, right_count = groupsort_indexer(ensure_int64(right), max_groups)
 
     with nogil:
         # First pass, determine size of result set, do not use the NA group
@@ -77,12 +81,12 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
 
 
 @cython.boundscheck(False)
-def left_outer_join(const int64_t[:] left, const int64_t[:] right,
+def left_outer_join(const intp_t[:] left, const intp_t[:] right,
                     Py_ssize_t max_groups, bint sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
-        ndarray rev
+        ndarray[int64_t] left_count, right_count
+        ndarray[intp_t] rev, left_sorter, right_sorter
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
         Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
@@ -90,8 +94,8 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
 
     # NA group in location 0
 
-    left_sorter, left_count = groupsort_indexer(left, max_groups)
-    right_sorter, right_count = groupsort_indexer(right, max_groups)
+    left_sorter, left_count = groupsort_indexer(ensure_int64(left), max_groups)
+    right_sorter, right_count = groupsort_indexer(ensure_int64(right), max_groups)
 
     with nogil:
         # First pass, determine size of result set, do not use the NA group
@@ -150,11 +154,12 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
 
 
 @cython.boundscheck(False)
-def full_outer_join(const int64_t[:] left, const int64_t[:] right,
+def full_outer_join(const intp_t[:] left, const intp_t[:] right,
                     Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
+        ndarray[intp_t] left_sorter, right_sorter
+        ndarray[int64_t] left_count, right_count
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
         int64_t left_pos = 0, right_pos = 0
@@ -162,8 +167,8 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
 
     # NA group in location 0
 
-    left_sorter, left_count = groupsort_indexer(left, max_groups)
-    right_sorter, right_count = groupsort_indexer(right, max_groups)
+    left_sorter, left_count = groupsort_indexer(ensure_int64(left), max_groups)
+    right_sorter, right_count = groupsort_indexer(ensure_int64(right), max_groups)
 
     with nogil:
         # First pass, determine size of result set, do not use the NA group
@@ -212,12 +217,16 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
             _get_result_indexer(right_sorter, right_indexer))
 
 
-cdef _get_result_indexer(ndarray[int64_t] sorter, ndarray[int64_t] indexer):
+cdef ndarray[int64_t] _get_result_indexer(
+    ndarray[intp_t] sorter, ndarray[int64_t] indexer
+):
     if len(sorter) > 0:
         # cython-only equivalent to
         #  `res = algos.take_nd(sorter, indexer, fill_value=-1)`
         res = np.empty(len(indexer), dtype=np.int64)
-        take_1d_int64_int64(sorter, indexer, res, -1)
+        take_1d_int64_int64(ensure_int64(sorter), ensure_platform_int(indexer), res, -1)
+        # FIXME: sorter is intp_t, not int64_t, opposite for indexer;
+        #  will this break on 32bit builds?
     else:
         # length-0 case
         res = np.empty(len(indexer), dtype=np.int64)
@@ -267,7 +276,7 @@ ctypedef fused join_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def left_join_indexer_unique(join_t[:] left, join_t[:] right):
+def left_join_indexer_unique(ndarray[join_t] left, ndarray[join_t] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t] indexer
@@ -640,7 +649,11 @@ def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
 # ----------------------------------------------------------------------
 
 from pandas._libs.hashtable cimport (
-    HashTable, PyObjectHashTable, UInt64HashTable, Int64HashTable)
+    HashTable,
+    Int64HashTable,
+    PyObjectHashTable,
+    UInt64HashTable,
+)
 
 ctypedef fused asof_t:
     uint8_t

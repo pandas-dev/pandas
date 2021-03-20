@@ -4,7 +4,13 @@ import warnings
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range, to_timedelta
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+    to_timedelta,
+)
 import pandas._testing as tm
 from pandas.core.algorithms import checked_add_with_arr
 
@@ -99,6 +105,69 @@ class MixedFrameWithSeriesAxis:
 
     def time_frame_op_with_series_axis1(self, opname):
         getattr(operator, opname)(self.df, self.ser)
+
+
+class FrameWithFrameWide:
+    # Many-columns, mixed dtypes
+
+    params = [
+        [
+            # GH#32779 has discussion of which operators are included here
+            operator.add,
+            operator.floordiv,
+            operator.gt,
+        ],
+        [
+            # (n_rows, n_columns)
+            (1_000_000, 10),
+            (100_000, 100),
+            (10_000, 1000),
+            (1000, 10_000),
+        ],
+    ]
+    param_names = ["op", "shape"]
+
+    def setup(self, op, shape):
+        # we choose dtypes so as to make the blocks
+        #  a) not perfectly match between right and left
+        #  b) appreciably bigger than single columns
+        n_rows, n_cols = shape
+
+        if op is operator.floordiv:
+            # floordiv is much slower than the other operations -> use less data
+            n_rows = n_rows // 10
+
+        # construct dataframe with 2 blocks
+        arr1 = np.random.randn(n_rows, n_cols // 2).astype("f8")
+        arr2 = np.random.randn(n_rows, n_cols // 2).astype("f4")
+        df = pd.concat(
+            [pd.DataFrame(arr1), pd.DataFrame(arr2)], axis=1, ignore_index=True
+        )
+        # should already be the case, but just to be sure
+        df._consolidate_inplace()
+
+        # TODO: GH#33198 the setting here shoudlnt need two steps
+        arr1 = np.random.randn(n_rows, max(n_cols // 4, 3)).astype("f8")
+        arr2 = np.random.randn(n_rows, n_cols // 2).astype("i8")
+        arr3 = np.random.randn(n_rows, n_cols // 4).astype("f8")
+        df2 = pd.concat(
+            [pd.DataFrame(arr1), pd.DataFrame(arr2), pd.DataFrame(arr3)],
+            axis=1,
+            ignore_index=True,
+        )
+        # should already be the case, but just to be sure
+        df2._consolidate_inplace()
+
+        self.left = df
+        self.right = df2
+
+    def time_op_different_blocks(self, op, shape):
+        # blocks (and dtypes) are not aligned
+        op(self.left, self.right)
+
+    def time_op_same_blocks(self, op, shape):
+        # blocks (and dtypes) are aligned
+        op(self.left, self.left)
 
 
 class Ops:
@@ -413,7 +482,32 @@ class ApplyIndex:
         self.rng = rng
 
     def time_apply_index(self, offset):
-        offset.apply_index(self.rng)
+        self.rng + offset
+
+
+class BinaryOpsMultiIndex:
+    params = ["sub", "add", "mul", "div"]
+    param_names = ["func"]
+
+    def setup(self, func):
+        date_range = pd.date_range("20200101 00:00", "20200102 0:00", freq="S")
+        level_0_names = [str(i) for i in range(30)]
+
+        index = pd.MultiIndex.from_product([level_0_names, date_range])
+        column_names = ["col_1", "col_2"]
+
+        self.df = pd.DataFrame(
+            np.random.rand(len(index), 2), index=index, columns=column_names
+        )
+
+        self.arg_df = pd.DataFrame(
+            np.random.randint(1, 10, (len(level_0_names), 2)),
+            index=level_0_names,
+            columns=column_names,
+        )
+
+    def time_binary_op_multiindex(self, func):
+        getattr(self.df, func)(self.arg_df, level=0)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -1,4 +1,7 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 import subprocess
 import sys
 
@@ -7,17 +10,31 @@ import pytest
 
 import pandas._config.config as cf
 
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import (
+    is_platform_windows,
+    np_datetime64_compat,
+)
 import pandas.util._test_decorators as td
 
-from pandas import Index, Period, Series, Timestamp, date_range
+from pandas import (
+    Index,
+    Period,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 from pandas.plotting import (
     deregister_matplotlib_converters,
     register_matplotlib_converters,
 )
-from pandas.tseries.offsets import Day, Micro, Milli, Second
+from pandas.tseries.offsets import (
+    Day,
+    Micro,
+    Milli,
+    Second,
+)
 
 try:
     from pandas.plotting._matplotlib import converter
@@ -27,6 +44,10 @@ except ImportError:
     pass
 
 pytest.importorskip("matplotlib.pyplot")
+dates = pytest.importorskip("matplotlib.dates")
+
+
+pytestmark = pytest.mark.slow
 
 
 def test_registry_mpl_resets():
@@ -49,13 +70,13 @@ def test_timtetonum_accepts_unicode():
 
 
 class TestRegistration:
-    def test_register_by_default(self):
+    def test_dont_register_by_default(self):
         # Run in subprocess to ensure a clean state
         code = (
-            "'import matplotlib.units; "
+            "import matplotlib.units; "
             "import pandas as pd; "
             "units = dict(matplotlib.units.registry); "
-            "assert pd.Timestamp in units)'"
+            "assert pd.Timestamp not in units"
         )
         call = [sys.executable, "-c", code]
         assert subprocess.check_call(call) == 0
@@ -69,15 +90,24 @@ class TestRegistration:
         # Set to the "warn" state, in case this isn't the first test run
         register_matplotlib_converters()
         ax.plot(s.index, s.values)
+        plt.close()
 
+    @pytest.mark.xfail(
+        is_platform_windows(),
+        reason="Getting two warnings intermittently, see GH#37746",
+        strict=False,
+    )
     def test_pandas_plots_register(self):
-        pytest.importorskip("matplotlib.pyplot")
+        plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
         # Set to the "warn" state, in case this isn't the first test run
         with tm.assert_produces_warning(None) as w:
             s.plot()
 
-        assert len(w) == 0
+        try:
+            assert len(w) == 0
+        finally:
+            plt.close()
 
     def test_matplotlib_formatters(self):
         units = pytest.importorskip("matplotlib.units")
@@ -107,6 +137,7 @@ class TestRegistration:
         register_matplotlib_converters()
         with ctx:
             ax.plot(s.index, s.values)
+        plt.close()
 
     def test_registry_resets(self):
         units = pytest.importorskip("matplotlib.units")
@@ -146,16 +177,13 @@ class TestDateTimeConverter:
 
     def test_conversion(self):
         rs = self.dtc.convert(["2012-1-1"], None, None)[0]
-        xp = datetime(2012, 1, 1).toordinal()
+        xp = dates.date2num(datetime(2012, 1, 1))
         assert rs == xp
 
         rs = self.dtc.convert("2012-1-1", None, None)
         assert rs == xp
 
         rs = self.dtc.convert(date(2012, 1, 1), None, None)
-        assert rs == xp
-
-        rs = self.dtc.convert(datetime(2012, 1, 1).toordinal(), None, None)
         assert rs == xp
 
         rs = self.dtc.convert("2012-1-1", None, None)
@@ -201,19 +229,19 @@ class TestDateTimeConverter:
         assert rs[1] == xp
 
     def test_conversion_float(self):
-        decimals = 9
+        rtol = 0.5 * 10 ** -9
 
         rs = self.dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
         xp = converter.dates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
-        tm.assert_almost_equal(rs, xp, decimals)
+        tm.assert_almost_equal(rs, xp, rtol=rtol)
 
         rs = self.dtc.convert(
             Timestamp("2012-1-1 09:02:03", tz="Asia/Hong_Kong"), None, None
         )
-        tm.assert_almost_equal(rs, xp, decimals)
+        tm.assert_almost_equal(rs, xp, rtol=rtol)
 
         rs = self.dtc.convert(datetime(2012, 1, 1, 1, 2, 3), None, None)
-        tm.assert_almost_equal(rs, xp, decimals)
+        tm.assert_almost_equal(rs, xp, rtol=rtol)
 
     def test_conversion_outofbounds_datetime(self):
         # 2579
@@ -249,13 +277,13 @@ class TestDateTimeConverter:
         assert result == format_expected
 
     def test_dateindex_conversion(self):
-        decimals = 9
+        rtol = 10 ** -9
 
         for freq in ("B", "L", "S"):
             dateindex = tm.makeDateIndex(k=10, freq=freq)
             rs = self.dtc.convert(dateindex, None, None)
             xp = converter.dates.date2num(dateindex._mpl_repr())
-            tm.assert_almost_equal(rs, xp, decimals)
+            tm.assert_almost_equal(rs, xp, rtol=rtol)
 
     def test_resolution(self):
         def _assert_less(ts1, ts2):
@@ -363,3 +391,14 @@ class TestTimeDeltaConverter:
         tdc = converter.TimeSeries_TimedeltaFormatter
         result = tdc.format_timedelta_ticks(x, pos=None, n_decimals=decimal)
         assert result == format_expected
+
+    @pytest.mark.parametrize("view_interval", [(1, 2), (2, 1)])
+    def test_call_w_different_view_intervals(self, view_interval, monkeypatch):
+        # previously broke on reversed xlmits; see GH37454
+        class mock_axis:
+            def get_view_interval(self):
+                return view_interval
+
+        tdc = converter.TimeSeries_TimedeltaFormatter()
+        monkeypatch.setattr(tdc, "axis", mock_axis())
+        tdc(0.0, 0)

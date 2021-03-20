@@ -2,7 +2,11 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
-from typing import Iterable, Union
+from typing import (
+    Iterable,
+    Sequence,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -205,9 +209,39 @@ def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_ar
     validate_kwargs(fname, kwargs, compat_args)
 
 
-def validate_bool_kwarg(value, arg_name):
-    """ Ensures that argument passed in arg_name is of type bool. """
-    if not (is_bool(value) or value is None):
+def validate_bool_kwarg(value, arg_name, none_allowed=True, int_allowed=False):
+    """
+    Ensure that argument passed in arg_name can be interpreted as boolean.
+
+    Parameters
+    ----------
+    value : bool
+        Value to be validated.
+    arg_name : str
+        Name of the argument. To be reflected in the error message.
+    none_allowed : bool, default True
+        Whether to consider None to be a valid boolean.
+    int_allowed : bool, default False
+        Whether to consider integer value to be a valid boolean.
+
+    Returns
+    -------
+    value
+        The same value as input.
+
+    Raises
+    ------
+    ValueError
+        If the value is not a valid boolean.
+    """
+    good_value = is_bool(value)
+    if none_allowed:
+        good_value = good_value or value is None
+
+    if int_allowed:
+        good_value = good_value or isinstance(value, int)
+
+    if not good_value:
         raise ValueError(
             f'For argument "{arg_name}" expected type bool, received '
             f"type {type(value).__name__}."
@@ -295,13 +329,13 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
             raise TypeError(msg)
 
         msg = (
-            "Interpreting call\n\t'.{method_name}(a, b)' as "
-            "\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
+            f"Interpreting call\n\t'.{method_name}(a, b)' as "
+            f"\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
             "arguments to remove any ambiguity. In the future, using "
             "positional arguments for 'index' or 'columns' will raise "
             "a 'TypeError'."
         )
-        warnings.warn(msg.format(method_name=method_name), FutureWarning, stacklevel=4)
+        warnings.warn(msg, FutureWarning, stacklevel=4)
         out[data._get_axis_name(0)] = args[0]
         out[data._get_axis_name(1)] = args[1]
     else:
@@ -370,8 +404,10 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
     ------
     ValueError if percentiles are not in given interval([0, 1]).
     """
-    msg = "percentiles should all be in the interval [0, 1]. Try {0} instead."
     q_arr = np.asarray(q)
+    # Don't change this to an f-string. The string formatting
+    # is too expensive for cases where we don't need it.
+    msg = "percentiles should all be in the interval [0, 1]. Try {} instead."
     if q_arr.ndim == 0:
         if not 0 <= q_arr <= 1:
             raise ValueError(msg.format(q_arr / 100.0))
@@ -379,3 +415,14 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
         if not all(0 <= qs <= 1 for qs in q_arr):
             raise ValueError(msg.format(q_arr / 100.0))
     return q_arr
+
+
+def validate_ascending(
+    ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
+):
+    """Validate ``ascending`` kwargs for ``sort_index`` method."""
+    kwargs = {"none_allowed": False, "int_allowed": True}
+    if not isinstance(ascending, (list, tuple)):
+        return validate_bool_kwarg(ascending, "ascending", **kwargs)
+
+    return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]

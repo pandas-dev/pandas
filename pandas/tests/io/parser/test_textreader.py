@@ -2,7 +2,10 @@
 Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import os
 
 import numpy as np
@@ -14,14 +17,18 @@ from pandas._libs.parsers import TextReader
 from pandas import DataFrame
 import pandas._testing as tm
 
-from pandas.io.parsers import TextFileReader, read_csv
+from pandas.io.parsers import (
+    TextFileReader,
+    read_csv,
+)
 
 
 class TestTextReader:
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
         self.dirpath = datapath("io", "parser", "data")
-        self.csv1 = os.path.join(self.dirpath, "test1.csv")
+        csv1_dirpath = datapath("io", "data", "csv")
+        self.csv1 = os.path.join(csv1_dirpath, "test1.csv")
         self.csv2 = os.path.join(self.dirpath, "test2.csv")
         self.xls1 = os.path.join(self.dirpath, "test.xls")
 
@@ -30,13 +37,10 @@ class TestTextReader:
             reader = TextReader(f)
             reader.read()
 
-    def test_string_filename(self):
-        reader = TextReader(self.csv1, header=None)
-        reader.read()
-
     def test_file_handle_mmap(self):
+        # this was never using memory_map=True
         with open(self.csv1, "rb") as f:
-            reader = TextReader(f, memory_map=True, header=None)
+            reader = TextReader(f, header=None)
             reader.read()
 
     def test_StringIO(self):
@@ -338,8 +342,10 @@ a,b,c
 
     def test_empty_csv_input(self):
         # GH14867
-        df = read_csv(StringIO(), chunksize=20, header=None, names=["a", "b", "c"])
-        assert isinstance(df, TextFileReader)
+        with read_csv(
+            StringIO(), chunksize=20, header=None, names=["a", "b", "c"]
+        ) as df:
+            assert isinstance(df, TextFileReader)
 
 
 def assert_array_dicts_equal(left, right):

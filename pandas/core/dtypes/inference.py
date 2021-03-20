@@ -50,25 +50,26 @@ def is_number(obj) -> bool:
 
     Examples
     --------
-    >>> pd.api.types.is_number(1)
+    >>> from pandas.api.types import is_number
+    >>> is_number(1)
     True
-    >>> pd.api.types.is_number(7.15)
+    >>> is_number(7.15)
     True
 
     Booleans are valid because they are int subclass.
 
-    >>> pd.api.types.is_number(False)
+    >>> is_number(False)
     True
 
-    >>> pd.api.types.is_number("foo")
+    >>> is_number("foo")
     False
-    >>> pd.api.types.is_number("5")
+    >>> is_number("5")
     False
     """
     return isinstance(obj, (Number, np.number))
 
 
-def _iterable_not_string(obj) -> bool:
+def iterable_not_string(obj) -> bool:
     """
     Check if the object is an iterable but not a string.
 
@@ -83,11 +84,11 @@ def _iterable_not_string(obj) -> bool:
 
     Examples
     --------
-    >>> _iterable_not_string([1, 2, 3])
+    >>> iterable_not_string([1, 2, 3])
     True
-    >>> _iterable_not_string("foo")
+    >>> iterable_not_string("foo")
     False
-    >>> _iterable_not_string(1)
+    >>> iterable_not_string(1)
     False
     """
     return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
@@ -125,10 +126,7 @@ def is_file_like(obj) -> bool:
     if not (hasattr(obj, "read") or hasattr(obj, "write")):
         return False
 
-    if not hasattr(obj, "__iter__"):
-        return False
-
-    return True
+    return bool(hasattr(obj, "__iter__"))
 
 
 def is_re(obj) -> bool:

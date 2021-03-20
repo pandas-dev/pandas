@@ -2,7 +2,11 @@ import numpy as np
 import scipy.sparse
 
 import pandas as pd
-from pandas import MultiIndex, Series, date_range
+from pandas import (
+    MultiIndex,
+    Series,
+    date_range,
+)
 from pandas.arrays import SparseArray
 
 
@@ -32,7 +36,7 @@ class SparseSeriesToFrame:
 
 class SparseArrayConstructor:
 
-    params = ([0.1, 0.01], [0, np.nan], [np.int64, np.float64, np.object])
+    params = ([0.1, 0.01], [0, np.nan], [np.int64, np.float64, object])
     param_names = ["dense_proportion", "fill_value", "dtype"]
 
     def setup(self, dense_proportion, fill_value, dtype):
