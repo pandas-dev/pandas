@@ -2,7 +2,7 @@
 Check that test suite file doesn't use the pandas namespace inconsistently.
 
 We check for cases of ``Series`` and ``pd.Series`` appearing in the same file
-(likewise for some other common classes).
+(likewise for other pandas objects).
 
 This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
@@ -15,43 +15,50 @@ To automatically fixup a given file, you can pass `--replace`, e.g.
 though note that you may need to manually fixup some imports and that you will also
 need the additional dependency `tokenize-rt` (which is left out from the pre-commit
 hook so that it uses the same virtualenv as the other local ones).
+
+The general structure is similar to that of some plugins from
+https://github.com/asottile/pyupgrade .
 """
 
 import argparse
 import ast
+import sys
 from typing import (
     MutableMapping,
+    NamedTuple,
     Optional,
     Sequence,
     Set,
-    Tuple,
 )
 
-ERROR_MESSAGE = "Found both `pd.{name}` and `{name}` in {path}"
-EXCLUDE = {
-    "eval",  # built-in, different from `pd.eval`
-    "np",  # pd.np is deprecated but still tested
-}
-Offset = Tuple[int, int]
+ERROR_MESSAGE = (
+    "{path}:{lineno}:{col_offset}: "
+    "Found both '{prefix}.{name}' and '{name}' in {path}"
+)
+
+
+class OffsetWithNamespace(NamedTuple):
+    lineno: int
+    col_offset: int
+    namespace: str
 
 
 class Visitor(ast.NodeVisitor):
     def __init__(self) -> None:
-        self.pandas_namespace: MutableMapping[Offset, str] = {}
-        self.no_namespace: Set[str] = set()
+        self.pandas_namespace: MutableMapping[OffsetWithNamespace, str] = {}
+        self.imported_from_pandas: Set[str] = set()
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
-        if (
-            isinstance(node.value, ast.Name)
-            and node.value.id == "pd"
-            and node.attr not in EXCLUDE
-        ):
-            self.pandas_namespace[(node.lineno, node.col_offset)] = node.attr
+        if isinstance(node.value, ast.Name) and node.value.id in {"pandas", "pd"}:
+            offset_with_namespace = OffsetWithNamespace(
+                node.lineno, node.col_offset, node.value.id
+            )
+            self.pandas_namespace[offset_with_namespace] = node.attr
         self.generic_visit(node)
 
-    def visit_Name(self, node: ast.Name) -> None:
-        if node.id not in EXCLUDE:
-            self.no_namespace.add(node.id)
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        if node.module is not None and "pandas" in node.module:
+            self.imported_from_pandas.update(name.name for name in node.names)
         self.generic_visit(node)
 
 
@@ -64,9 +71,11 @@ def replace_inconsistent_pandas_namespace(visitor: Visitor, content: str) -> str
 
     tokens = src_to_tokens(content)
     for n, i in reversed_enumerate(tokens):
+        offset_with_namespace = OffsetWithNamespace(i.offset[0], i.offset[1], i.src)
         if (
-            i.offset in visitor.pandas_namespace
-            and visitor.pandas_namespace[i.offset] in visitor.no_namespace
+            offset_with_namespace in visitor.pandas_namespace
+            and visitor.pandas_namespace[offset_with_namespace]
+            in visitor.imported_from_pandas
         ):
             # Replace `pd`
             tokens[n] = i._replace(src="")
@@ -85,16 +94,28 @@ def check_for_inconsistent_pandas_namespace(
     visitor = Visitor()
     visitor.visit(tree)
 
-    inconsistencies = visitor.no_namespace.intersection(
+    inconsistencies = visitor.imported_from_pandas.intersection(
         visitor.pandas_namespace.values()
     )
+
     if not inconsistencies:
         # No inconsistent namespace usage, nothing to replace.
-        return content
+        return None
 
     if not replace:
-        msg = ERROR_MESSAGE.format(name=inconsistencies.pop(), path=path)
-        raise RuntimeError(msg)
+        inconsistency = inconsistencies.pop()
+        lineno, col_offset, prefix = next(
+            key for key, val in visitor.pandas_namespace.items() if val == inconsistency
+        )
+        msg = ERROR_MESSAGE.format(
+            lineno=lineno,
+            col_offset=col_offset,
+            prefix=prefix,
+            name=inconsistency,
+            path=path,
+        )
+        sys.stdout.write(msg)
+        sys.exit(1)
 
     return replace_inconsistent_pandas_namespace(visitor, content)
 

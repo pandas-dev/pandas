@@ -1372,9 +1372,9 @@ def array_likes(request):
         data = memoryview(arr)
     elif name == "array":
         # stdlib array
-        from array import array as array_stdlib
+        import array
 
-        data = array_stdlib("i", arr)
+        data = array.array("i", arr)
     elif name == "dask":
         import dask.array
 
