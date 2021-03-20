@@ -7958,7 +7958,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`_
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`__
         for more.
 
         To learn more about the offset strings, please see `this link

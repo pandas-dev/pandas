@@ -154,7 +154,7 @@ qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
 Notes
 -----
 See the `user guide
-<https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`_
+<https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`__
 for more.
 
 %(examples)s\
