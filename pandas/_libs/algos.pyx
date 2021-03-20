@@ -985,6 +985,8 @@ def rank_1d(
     else:
         mask = np.zeros(shape=len(masked_vals), dtype=np.uint8)
 
+    # If ascending is true and na_option == 'bottom',
+    # fill with the largest so NaN
     if ascending ^ (na_option == 'top'):
         if rank_t is object:
             nan_fill_val = Infinity()
@@ -1030,13 +1032,12 @@ def rank_1d(
 
             # dups and sum_ranks will be incremented each loop where
             # the value / group remains the same, and should be reset
-            # when either of those change
-            # Used to calculate tiebreakers
+            # when either of those change. Used to calculate tiebreakers
             dups += 1
             sum_ranks += i - grp_start + 1
 
-            next_val_diff = at_end or are_diff(masked_vals[lexsort_indexer[i]],
-                                    masked_vals[lexsort_indexer[i+1]])
+            next_val_diff = at_end or (masked_vals[lexsort_indexer[i]] !=
+                                       masked_vals[lexsort_indexer[i+1]])
 
             # We'll need this check later anyway to determine group size, so just
             # compute it here since shortcircuiting won't help
@@ -1052,7 +1053,7 @@ def rank_1d(
             if (next_val_diff or group_changed
                     or (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]])):
 
-                # if keep_na, check for missing values and assign back
+                # If keep_na, check for missing values and assign back
                 # to the result where appropriate
                 set_as_na = keep_na and mask[lexsort_indexer[i]]
 
@@ -1081,11 +1082,15 @@ def rank_1d(
                     for j in range(i - dups + 1, i + 1):
                         out[lexsort_indexer[j]] = computed_rank
 
-                # look forward to the next value (using the sorting in _as)
+                # Look forward to the next value (using the sorting in lexsort_indexer)
                 # if the value does not equal the current value then we need to
                 # reset the dups and sum_ranks, knowing that a new value is
-                # coming up. the conditional also needs to handle nan equality
+                # coming up. The conditional also needs to handle nan equality
                 # and the end of iteration
+
+                # This condition is equivalent to `next_val_diff or
+                # (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]]))`
+                # Helps potentially avoid 2 mask lookups
                 if next_val_diff or not group_changed:
                     dups = sum_ranks = 0
                     grp_vals_seen += 1
@@ -1093,8 +1098,8 @@ def rank_1d(
                 # Similar to the previous conditional, check now if we are
                 # moving to a new group. If so, keep track of the index where
                 # the new group occurs, so the tiebreaker calculations can
-                # decrement that from their position. fill in the size of each
-                # group encountered (used by pct calculations later). also be
+                # decrement that from their position. Fill in the size of each
+                # group encountered (used by pct calculations later). Also be
                 # sure to reset any of the items helping to calculate dups
                 if group_changed:
                     if tiebreak != TIEBREAK_DENSE:
@@ -1116,8 +1121,7 @@ def rank_1d(
 
                 # dups and sum_ranks will be incremented each loop where
                 # the value / group remains the same, and should be reset
-                # when either of those change
-                # Used to calculate tiebreakers
+                # when either of those change. Used to calculate tiebreakers
                 dups += 1
                 sum_ranks += i - grp_start + 1
 
@@ -1138,7 +1142,7 @@ def rank_1d(
                 if (next_val_diff or group_changed
                         or (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]])):
 
-                    # if keep_na, check for missing values and assign back
+                    # If keep_na, check for missing values and assign back
                     # to the result where appropriate
                     set_as_na = keep_na and mask[lexsort_indexer[i]]
 
@@ -1167,11 +1171,15 @@ def rank_1d(
                         for j in range(i - dups + 1, i + 1):
                             out[lexsort_indexer[j]] = computed_rank
 
-                    # look forward to the next value (using the sorting in _as)
+                    # Look forward to the next value (using the sorting in lexsort_indexer)
                     # if the value does not equal the current value then we need to
                     # reset the dups and sum_ranks, knowing that a new value is
-                    # coming up. the conditional also needs to handle nan equality
+                    # coming up. The conditional also needs to handle nan equality
                     # and the end of iteration
+
+                    # This condition is equivalent to `next_val_diff or
+                    # (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]]))`
+                    # Helps potentially avoid 2 mask lookups
                     if next_val_diff or not group_changed:
                         dups = sum_ranks = 0
                         grp_vals_seen += 1
@@ -1179,8 +1187,8 @@ def rank_1d(
                     # Similar to the previous conditional, check now if we are
                     # moving to a new group. If so, keep track of the index where
                     # the new group occurs, so the tiebreaker calculations can
-                    # decrement that from their position. fill in the size of each
-                    # group encountered (used by pct calculations later). also be
+                    # decrement that from their position. Fill in the size of each
+                    # group encountered (used by pct calculations later). Also be
                     # sure to reset any of the items helping to calculate dups
                     if group_changed:
                         if tiebreak != TIEBREAK_DENSE:
