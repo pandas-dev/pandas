@@ -23,6 +23,7 @@ GOOD_FILE_0 = (
     "from pandas import Categorical\ncat_0 = Categorical()\ncat_1 = Categorical()"
 )
 GOOD_FILE_1 = "cat_0 = pd.Categorical()\ncat_1 = pd.Categorical()"
+GOOD_FILE_2 = "from array import array\nimport pandas as pd\narr = pd.array([])"
 PATH = "t.py"
 
 
@@ -44,7 +45,7 @@ def test_inconsistent_usage(content, expected, capsys):
     assert result == expected
 
 
-@pytest.mark.parametrize("content", [GOOD_FILE_0, GOOD_FILE_1])
+@pytest.mark.parametrize("content", [GOOD_FILE_0, GOOD_FILE_1, GOOD_FILE_2])
 @pytest.mark.parametrize("replace", [True, False])
 def test_consistent_usage(content, replace):
     # should not raise
