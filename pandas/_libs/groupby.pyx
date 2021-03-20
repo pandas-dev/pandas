@@ -37,6 +37,7 @@ from pandas._libs.util cimport (
 )
 
 from pandas._libs.algos import (
+    ensure_platform_int,
     groupsort_indexer,
     rank_1d,
     take_2d_axis1_float64_float64,
@@ -150,7 +151,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     ngroups = len(counts)
     N, K = (<object>values).shape
 
-    indexer, _counts = groupsort_indexer(labels, ngroups)
+    indexer, _counts = groupsort_indexer(ensure_platform_int(labels), ngroups)
     counts[:] = _counts[1:]
 
     data = np.empty((K, N), dtype=np.float64)
