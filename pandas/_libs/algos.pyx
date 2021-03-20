@@ -985,8 +985,9 @@ def rank_1d(
     else:
         mask = np.zeros(shape=len(masked_vals), dtype=np.uint8)
 
-    # If ascending is true and na_option == 'bottom',
-    # fill with the largest so NaN
+    # If ascending and na_option == 'bottom' or descending and
+    # na_option == 'top' -> we want to rank NaN as the highest
+    # so fill with the maximum value for the type
     if ascending ^ (na_option == 'top'):
         if rank_t is object:
             nan_fill_val = Infinity()
@@ -997,6 +998,8 @@ def rank_1d(
         else:
             nan_fill_val = np.inf
         order = (masked_vals, mask, labels)
+
+    # Otherwise, fill with the lowest value of the type
     else:
         if rank_t is object:
             nan_fill_val = NegInfinity()
@@ -1036,8 +1039,8 @@ def rank_1d(
             dups += 1
             sum_ranks += i - grp_start + 1
 
-            next_val_diff = at_end or (masked_vals[lexsort_indexer[i]] !=
-                                       masked_vals[lexsort_indexer[i+1]])
+            next_val_diff = at_end or are_diff(masked_vals[lexsort_indexer[i]],
+                                               masked_vals[lexsort_indexer[i+1]])
 
             # We'll need this check later anyway to determine group size, so just
             # compute it here since shortcircuiting won't help
@@ -1058,7 +1061,7 @@ def rank_1d(
                 set_as_na = keep_na and mask[lexsort_indexer[i]]
 
                 # For all cases except TIEBREAK_FIRST when not setting
-                # nulls, we set the same value at each index
+                # nulls, we can set the same value at each index
                 if set_as_na:
                     computed_rank = NaN
                     grp_na_count = dups
