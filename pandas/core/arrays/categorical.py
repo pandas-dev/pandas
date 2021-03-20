@@ -605,7 +605,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 if true_values is None:
                     true_values = ["True", "TRUE", "true"]
 
-                cats = cats.isin(true_values)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Index")
+                cats = cats.isin(true_values)  # type: ignore[assignment]
 
         if known_categories:
             # Recode from observation order to dtype.categories order.
@@ -1443,7 +1445,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         return self._codes.nbytes + self.dtype.categories.memory_usage(deep=deep)
 
-    def isna(self):
+    def isna(self) -> np.ndarray:
         """
         Detect missing values
 
@@ -1451,7 +1453,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        a boolean array of whether my values are null
+        np.ndarray[bool] of whether my values are null
 
         See Also
         --------
@@ -1464,7 +1466,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     isnull = isna
 
-    def notna(self):
+    def notna(self) -> np.ndarray:
         """
         Inverse of isna
 
@@ -1473,7 +1475,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        a boolean array of whether my values are not null
+        np.ndarray[bool] of whether my values are not null
 
         See Also
         --------
@@ -1730,7 +1732,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise NotImplementedError(dtype)
         return self._from_backing_data(self._ndarray)
 
-    def to_dense(self):
+    def to_dense(self) -> np.ndarray:
         """
         Return my 'dense' representation
 
@@ -1799,14 +1801,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         # if key is a NaN, check if any NaN is in self.
         if is_valid_na_for_dtype(key, self.categories.dtype):
-            return self.isna().any()
+            return bool(self.isna().any())
 
         return contains(self, key, container=self._codes)
 
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed=False):
+    def _formatter(self, boxed: bool = False):
         # Defer to CategoricalFormatter's formatter.
         return None
 
@@ -1884,7 +1886,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         info = self._repr_categories_info()
         return f"Length: {len(self)}\n{info}"
 
-    def _get_repr(self, length=True, na_rep="NaN", footer=True) -> str:
+    def _get_repr(self, length: bool = True, na_rep="NaN", footer: bool = True) -> str:
         from pandas.io.formats import format as fmt
 
         formatter = fmt.CategoricalFormatter(

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     List,
@@ -75,6 +76,9 @@ from pandas.core.dtypes.missing import (
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
+
+if TYPE_CHECKING:
+    from pandas.core.arrays import DatetimeArray
 
 _shared_doc_kwargs = {
     "klass": "PeriodArray",
@@ -186,7 +190,9 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     # --------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values, dtype: Optional[Dtype] = None, freq=None, copy=False):
+    def __init__(
+        self, values, dtype: Optional[Dtype] = None, freq=None, copy: bool = False
+    ):
         freq = validate_dtype_freq(dtype, freq)
 
         if freq is not None:
@@ -250,7 +256,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+        cls, strings, *, dtype: Optional[Dtype] = None, copy: bool = False
     ) -> PeriodArray:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -448,7 +454,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         """
         return isleapyear_arr(np.asarray(self.year))
 
-    def to_timestamp(self, freq=None, how="start"):
+    def to_timestamp(self, freq=None, how: str = "start") -> DatetimeArray:
         """
         Cast to DatetimeArray/Index.
 
@@ -492,7 +498,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     # --------------------------------------------------------------------
 
-    def _time_shift(self, periods, freq=None):
+    def _time_shift(self, periods: int, freq=None) -> PeriodArray:
         """
         Shift each value by `periods`.
 
@@ -597,7 +603,9 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         return "'{}'".format
 
     @dtl.ravel_compat
-    def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
+    def _format_native_types(
+        self, na_rep="NaT", date_format=None, **kwargs
+    ) -> np.ndarray:
         """
         actually format my specific types
         """
