@@ -8,12 +8,16 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import Shape
+from pandas._typing import (
+    F,
+    Shape,
+)
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -41,7 +45,7 @@ NDArrayBackedExtensionArrayT = TypeVar(
 )
 
 
-def ravel_compat(meth):
+def ravel_compat(meth: F) -> F:
     """
     Decorator to ravel a 2D array before passing it to a cython operation,
     then reshape the result to our own shape.
@@ -58,7 +62,7 @@ def ravel_compat(meth):
         order = "F" if flags.f_contiguous else "C"
         return result.reshape(self.shape, order=order)
 
-    return method
+    return cast(F, method)
 
 
 class NDArrayBackedExtensionArray(ExtensionArray):
