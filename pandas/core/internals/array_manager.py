@@ -61,9 +61,7 @@ from pandas.core.array_algos.take import take_1d
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
-    IntervalArray,
     PandasArray,
-    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseDtype
@@ -87,6 +85,7 @@ from pandas.core.internals.base import (
 )
 from pandas.core.internals.blocks import (
     ensure_block_shape,
+    external_values,
     new_block,
     to_native_types,
 )
@@ -1203,12 +1202,7 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
 
     def external_values(self):
         """The array that Series.values returns"""
-        if isinstance(self.array, (PeriodArray, IntervalArray)):
-            return self.array.astype(object)
-        elif isinstance(self.array, (DatetimeArray, TimedeltaArray)):
-            return self.array._data
-        else:
-            return self.array
+        return external_values(self.array)
 
     def internal_values(self):
         """The array that Series._values returns"""

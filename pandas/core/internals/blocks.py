@@ -96,7 +96,9 @@ from pandas.core.arrays import (
     ExtensionArray,
     FloatingArray,
     IntegerArray,
+    IntervalArray,
     PandasArray,
+    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.base import PandasObject
@@ -217,16 +219,9 @@ class Block(PandasObject):
     def is_categorical(self) -> bool:
         return self._holder is Categorical
 
+    @final
     def external_values(self):
-        """
-        The array that Series.values returns (public attribute).
-
-        This has some historical constraints, and is overridden in block
-        subclasses to return the correct array (e.g. period returns
-        object ndarray and datetimetz a datetime64[ns] ndarray instead of
-        proper extension array).
-        """
-        return self.values
+        return external_values(self.values)
 
     def internal_values(self):
         """
@@ -1755,8 +1750,7 @@ class ObjectValuesExtensionBlock(HybridMixin, ExtensionBlock):
     Series[T].values is an ndarray of objects.
     """
 
-    def external_values(self):
-        return self.values.astype(object)
+    pass
 
 
 class NumericBlock(Block):
@@ -1940,12 +1934,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """ return a boolean if I am possibly a view """
         # check the ndarray values of the DatetimeIndex values
         return self.values._data.base is not None
-
-    def external_values(self):
-        # NB: this is different from np.asarray(self.values), since that
-        #  return an object-dtype ndarray of Timestamps.
-        # Avoid FutureWarning in .astype in casting from dt64tz to dt64
-        return self.values._data
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
@@ -2315,4 +2303,24 @@ def to_native_types(
 
         values[mask] = na_rep
         values = values.astype(object, copy=False)
+        return values
+
+
+def external_values(values: ArrayLike) -> ArrayLike:
+    """
+    The array that Series.values returns (public attribute).
+
+    This has some historical constraints, and is overridden in block
+    subclasses to return the correct array (e.g. period returns
+    object ndarray and datetimetz a datetime64[ns] ndarray instead of
+    proper extension array).
+    """
+    if isinstance(values, (PeriodArray, IntervalArray)):
+        return values.astype(object)
+    elif isinstance(values, (DatetimeArray, TimedeltaArray)):
+        # NB: for datetime64tz this is different from np.asarray(values), since
+        #  that returns an object-dtype ndarray of Timestamps.
+        # Avoid FutureWarning in .astype in casting from dt64tz to dt64
+        return values._data
+    else:
         return values
