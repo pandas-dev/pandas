@@ -1075,8 +1075,7 @@ class BlockManager(DataManager):
 
             blk.mgr_locs = bml.add(ref_loc_offset[bml.indexer])
 
-        # FIXME: use Index.delete as soon as it uses fastpath=True
-        self.axes[0] = self.items[~is_deleted]
+        self.axes[0] = self.items.delete(indexer)
         self.blocks = tuple(
             b for blkno, b in enumerate(self.blocks) if not is_blk_deleted[blkno]
         )
@@ -1208,9 +1207,7 @@ class BlockManager(DataManager):
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
 
-    def insert(
-        self, loc: int, item: Hashable, value: ArrayLike, allow_duplicates: bool = False
-    ):
+    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
         Insert item at selected position.
 
@@ -1219,17 +1216,7 @@ class BlockManager(DataManager):
         loc : int
         item : hashable
         value : np.ndarray or ExtensionArray
-        allow_duplicates: bool
-            If False, trying to insert non-unique item will raise
-
         """
-        if not allow_duplicates and item in self.items:
-            # Should this be a different kind of error??
-            raise ValueError(f"cannot insert {item}, already exists")
-
-        if not isinstance(loc, int):
-            raise TypeError("loc must be int")
-
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
 
@@ -1632,20 +1619,6 @@ class SingleBlockManager(BlockManager, SingleDataManager):
     def _blklocs(self):
         """ compat with BlockManager """
         return None
-
-    def getitem_mgr(self, indexer) -> SingleBlockManager:
-        # similar to get_slice, but not restricted to slice indexer
-        blk = self._block
-        array = blk._slice(indexer)
-        if array.ndim > 1:
-            # This will be caught by Series._get_values
-            raise ValueError("dimension-expanding indexing not allowed")
-
-        bp = BlockPlacement(slice(0, len(array)))
-        block = blk.make_block_same_class(array, placement=bp)
-
-        new_idx = self.index[indexer]
-        return type(self)(block, new_idx)
 
     def get_slice(self, slobj: slice, axis: int = 0) -> SingleBlockManager:
         assert isinstance(slobj, slice), type(slobj)

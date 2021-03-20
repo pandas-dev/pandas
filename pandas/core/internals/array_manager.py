@@ -904,7 +904,7 @@ class ArrayManager(DataManager):
             self.arrays[mgr_idx] = value_arr
         return
 
-    def insert(self, loc: int, item: Hashable, value, allow_duplicates: bool = False):
+    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
         Insert item at selected position.
 
@@ -912,18 +912,8 @@ class ArrayManager(DataManager):
         ----------
         loc : int
         item : hashable
-        value : array_like
-        allow_duplicates: bool
-            If False, trying to insert non-unique item will raise
-
+        value : np.ndarray or ExtensionArray
         """
-        if not allow_duplicates and item in self.items:
-            # Should this be a different kind of error??
-            raise ValueError(f"cannot insert {item}, already exists")
-
-        if not isinstance(loc, int):
-            raise TypeError("loc must be int")
-
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
 
@@ -1235,11 +1225,6 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
         new_array = self.array[slobj]
         new_index = self.index._getitem_slice(slobj)
         return type(self)([new_array], [new_index], verify_integrity=False)
-
-    def getitem_mgr(self, indexer) -> SingleArrayManager:
-        new_array = self.array[indexer]
-        new_index = self.index[indexer]
-        return type(self)([new_array], [new_index])
 
     def apply(self, func, **kwargs):
         if callable(func):
