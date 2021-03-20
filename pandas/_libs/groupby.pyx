@@ -19,6 +19,7 @@ from numpy cimport (
     int16_t,
     int32_t,
     int64_t,
+    intp_t,
     ndarray,
     uint8_t,
     uint16_t,
@@ -141,6 +142,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
         Py_ssize_t i, j, N, K, ngroups, size
         ndarray[int64_t] _counts
         ndarray[float64_t, ndim=2] data
+        ndarray[intp_t] indexer
         float64_t* ptr
 
     assert min_count == -1, "'min_count' only used in add and prod"
