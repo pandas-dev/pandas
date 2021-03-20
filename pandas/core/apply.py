@@ -227,11 +227,10 @@ class Apply(metaclass=abc.ABCMeta):
         func = cast(AggFuncTypeBase, func)
         try:
             result = self.transform_str_or_callable(func)
+        except TypeError:
+            raise
         except Exception as err:
-            if isinstance(err, TypeError):
-                raise err
-            else:
-                raise ValueError("Transform function failed")
+            raise ValueError("Transform function failed") from err
 
         # Functions that transform may return empty Series/DataFrame
         # when the dtype is not appropriate
