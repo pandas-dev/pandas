@@ -12,7 +12,7 @@ from pandas.core.api import (
 )
 from pandas.core.computation import expressions as expr
 
-_frame = DataFrame(np.random.randn(1000000, 4), columns=list("ABCD"), dtype="float64")
+_frame = DataFrame(np.random.randn(10000, 4), columns=list("ABCD"), dtype="float64")
 _frame2 = DataFrame(np.random.randn(100, 4), columns=list("ABCD"), dtype="float64")
 _mixed = DataFrame(
     {
