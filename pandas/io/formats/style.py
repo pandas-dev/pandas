@@ -2708,24 +2708,26 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
 
     def color(value, command):
         if value[0] == "#" and len(value) == 7:  # color is hex code
-            return (
-                command,
-                f"[rgb]{{{int(value[1:3], 16)/255:.3f}, "
-                f"{int(value[3:5], 16)/255:.3f}, "
-                f"{int(value[5:], 16)/255:.3f}}}",
-            )
+            return command, f"[HTML]{{{value[1:]}}}"
+        if value[0] == "#" and len(value) == 4:  # color is short hex code
+            return command, f"[HTML]{{{value[1]*2}{value[2]*2}{value[3]*2}}}"
         elif value[:4] == "rgba":  # color is rgb with alpha
-            print("VALUE IS", value)
-            r = int(re.search("(?<=\\()[0-9\\s]+(?=,)", value)[0].strip())
-            g = int(re.findall("(?<=,)[0-9\\s]+(?=,)", value)[0].strip())
-            b = int(re.findall("(?<=,)[0-9\\s]+(?=,)", value)[1].strip())
+            r = re.search("(?<=\\()[0-9\\s%]+(?=,)", value)[0].strip()
+            r = float(r[:-1]) / 100 if "%" in r else int(r) / 255
+            g = re.findall("(?<=,)[0-9\\s%]+(?=,)", value)[0].strip()
+            g = float(g[:-1]) / 100 if "%" in g else int(g) / 255
+            b = re.findall("(?<=,)[0-9\\s%]+(?=,)", value)[1].strip()
+            b = float(b[:-1]) / 100 if "%" in b else int(b) / 255
             # a = re.search('(?<=,)[0-9\\s]+(?=\\))', value)[0].strip()
-            return command, f"[rgb]{{{r/255:.3f}, {g/255:.3f}, {b/255:.3f}}}"
+            return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}"
         elif value[:3] == "rgb":  # color is rgb
-            r = int(re.search("(?<=\\()[0-9\\s]+(?=,)", value)[0].strip())
-            g = int(re.search("(?<=,)[0-9\\s]+(?=,)", value)[0].strip())
-            b = int(re.search("(?<=,)[0-9\\s]+(?=\\))", value)[0].strip())
-            return command, f"[rgb]{{{r/255:.3f}, {g/255:.3f}, {b/255:.3f}}}"
+            r = re.search("(?<=\\()[0-9\\s%]+(?=,)", value)[0].strip()
+            r = float(r[:-1]) / 100 if "%" in r else int(r) / 255
+            g = re.search("(?<=,)[0-9\\s%]+(?=,)", value)[0].strip()
+            g = float(g[:-1]) / 100 if "%" in g else int(g) / 255
+            b = re.search("(?<=,)[0-9\\s%]+(?=\\))", value)[0].strip()
+            b = float(b[:-1]) / 100 if "%" in b else int(b) / 255
+            return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}"
         else:
             return command, f"{{{value}}}"  # color is likely string-named
 
