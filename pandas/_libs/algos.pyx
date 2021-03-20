@@ -951,8 +951,9 @@ def rank_1d(
         ndarray[float64_t, ndim=1] grp_sizes, out
         ndarray[rank_t, ndim=1] masked_vals
         ndarray[uint8_t, ndim=1] mask
-        bint keep_na, at_end, next_val_diff, check_labels
+        bint keep_na, at_end, next_val_diff, check_labels, set_as_na
         rank_t nan_fill_val
+        float computed_rank
 
     tiebreak = tiebreakers[ties_method]
     keep_na = na_option == 'keep'
@@ -1037,11 +1038,8 @@ def rank_1d(
             # the number of occurrence of current value) and assign the ranks
             # based on the starting index of the current group (grp_start)
             # and the current index
-            if not at_end:
-                next_val_diff = are_diff(masked_vals[lexsort_indexer[i]],
-                                         masked_vals[lexsort_indexer[i+1]])
-            else:
-                next_val_diff = True
+            next_val_diff = at_end or are_diff(masked_vals[lexsort_indexer[i]],
+                                    masked_vals[lexsort_indexer[i+1]])
 
             if (next_val_diff
                     or (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]])
@@ -1051,28 +1049,32 @@ def rank_1d(
             ):
                 # if keep_na, check for missing values and assign back
                 # to the result where appropriate
-                if keep_na and mask[lexsort_indexer[i]]:
-                    for j in range(i - dups + 1, i + 1):
-                        out[lexsort_indexer[j]] = NaN
-                        grp_na_count = dups
+                set_as_na = keep_na and mask[lexsort_indexer[i]]
+
+                # For all cases except TIEBREAK_FIRST when not setting
+                # nulls, we set the same value at each index
+                if set_as_na:
+                    computed_rank = NaN
+                    grp_na_count = dups
                 elif tiebreak == TIEBREAK_AVERAGE:
-                    for j in range(i - dups + 1, i + 1):
-                        out[lexsort_indexer[j]] = sum_ranks / <float64_t>dups
+                    computed_rank = sum_ranks / <float64_t>dups
                 elif tiebreak == TIEBREAK_MIN:
-                    for j in range(i - dups + 1, i + 1):
-                        out[lexsort_indexer[j]] = i - grp_start - dups + 2
+                    computed_rank = i - grp_start - dups + 2
                 elif tiebreak == TIEBREAK_MAX:
-                    for j in range(i - dups + 1, i + 1):
-                        out[lexsort_indexer[j]] = i - grp_start + 1
-                elif tiebreak == TIEBREAK_FIRST:
+                    computed_rank = i - grp_start + 1
+                elif tiebreak == TIEBREAK_DENSE:
+                    computed_rank = grp_vals_seen
+                else:
                     for j in range(i - dups + 1, i + 1):
                         if ascending:
                             out[lexsort_indexer[j]] = j + 1 - grp_start
                         else:
-                            out[lexsort_indexer[j]] = 2 * i - j - dups + 2 - grp_start
-                elif tiebreak == TIEBREAK_DENSE:
+                            out[lexsort_indexer[j]] = \
+                                (2 * i - j - dups + 2 - grp_start)
+
+                if set_as_na or tiebreak != TIEBREAK_FIRST:
                     for j in range(i - dups + 1, i + 1):
-                        out[lexsort_indexer[j]] = grp_vals_seen
+                        out[lexsort_indexer[j]] = computed_rank
 
                 # look forward to the next value (using the sorting in _as)
                 # if the value does not equal the current value then we need to
@@ -1083,7 +1085,6 @@ def rank_1d(
                                      ^ mask[lexsort_indexer[i+1]]):
                     dups = sum_ranks = 0
                     grp_vals_seen += 1
-                    grp_tie_count += 1
 
                 # Similar to the previous conditional, check now if we are
                 # moving to a new group. If so, keep track of the index where
@@ -1102,10 +1103,9 @@ def rank_1d(
                     else:
                         for j in range(grp_start, i + 1):
                             grp_sizes[lexsort_indexer[j]] = \
-                                (grp_tie_count - (grp_na_count > 0))
+                                (grp_vals_seen - 1 - (grp_na_count > 0))
                     dups = sum_ranks = 0
                     grp_na_count = 0
-                    grp_tie_count = 0
                     grp_start = i + 1
                     grp_vals_seen = 1
     else:
@@ -1124,11 +1124,8 @@ def rank_1d(
                 # the number of occurrence of current value) and assign the ranks
                 # based on the starting index of the current group (grp_start)
                 # and the current index
-                if not at_end:
-                    next_val_diff = (masked_vals[lexsort_indexer[i]]
-                                     != masked_vals[lexsort_indexer[i+1]])
-                else:
-                    next_val_diff = True
+                next_val_diff = at_end or (masked_vals[lexsort_indexer[i]]
+                                    != masked_vals[lexsort_indexer[i+1]])
 
                 if (next_val_diff
                         or (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]])
@@ -1138,29 +1135,32 @@ def rank_1d(
                 ):
                     # if keep_na, check for missing values and assign back
                     # to the result where appropriate
-                    if keep_na and mask[lexsort_indexer[i]]:
-                        for j in range(i - dups + 1, i + 1):
-                            out[lexsort_indexer[j]] = NaN
-                            grp_na_count = dups
+                    set_as_na = keep_na and mask[lexsort_indexer[i]]
+
+                    # For all cases except TIEBREAK_FIRST when not setting
+                    # nulls, we set the same value at each index
+                    if set_as_na:
+                        computed_rank = NaN
+                        grp_na_count = dups
                     elif tiebreak == TIEBREAK_AVERAGE:
-                        for j in range(i - dups + 1, i + 1):
-                            out[lexsort_indexer[j]] = sum_ranks / <float64_t>dups
+                        computed_rank = sum_ranks / <float64_t>dups
                     elif tiebreak == TIEBREAK_MIN:
-                        for j in range(i - dups + 1, i + 1):
-                            out[lexsort_indexer[j]] = i - grp_start - dups + 2
+                        computed_rank = i - grp_start - dups + 2
                     elif tiebreak == TIEBREAK_MAX:
-                        for j in range(i - dups + 1, i + 1):
-                            out[lexsort_indexer[j]] = i - grp_start + 1
-                    elif tiebreak == TIEBREAK_FIRST:
+                        computed_rank = i - grp_start + 1
+                    elif tiebreak == TIEBREAK_DENSE:
+                        computed_rank = grp_vals_seen
+                    else:
                         for j in range(i - dups + 1, i + 1):
                             if ascending:
                                 out[lexsort_indexer[j]] = j + 1 - grp_start
                             else:
                                 out[lexsort_indexer[j]] = \
                                     (2 * i - j - dups + 2 - grp_start)
-                    elif tiebreak == TIEBREAK_DENSE:
+
+                    if set_as_na or tiebreak != TIEBREAK_FIRST:
                         for j in range(i - dups + 1, i + 1):
-                            out[lexsort_indexer[j]] = grp_vals_seen
+                            out[lexsort_indexer[j]] = computed_rank
 
                     # look forward to the next value (using the sorting in
                     # lexsort_indexer) if the value does not equal the current
@@ -1171,7 +1171,6 @@ def rank_1d(
                                          ^ mask[lexsort_indexer[i+1]]):
                         dups = sum_ranks = 0
                         grp_vals_seen += 1
-                        grp_tie_count += 1
 
                     # Similar to the previous conditional, check now if we are
                     # moving to a new group. If so, keep track of the index where
@@ -1189,10 +1188,9 @@ def rank_1d(
                         else:
                             for j in range(grp_start, i + 1):
                                 grp_sizes[lexsort_indexer[j]] = \
-                                    (grp_tie_count - (grp_na_count > 0))
+                                    (grp_vals_seen - 1 - (grp_na_count > 0))
                         dups = sum_ranks = 0
                         grp_na_count = 0
-                        grp_tie_count = 0
                         grp_start = i + 1
                         grp_vals_seen = 1
 
