@@ -158,7 +158,7 @@ def clean_interp_method(method: str, **kwargs) -> str:
     return method
 
 
-def find_valid_index(values, how: str):
+def find_valid_index(values, *, how: str) -> Optional[int]:
     """
     Retrieves the index of the first valid value.
 
@@ -256,8 +256,8 @@ def interpolate_1d(
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
-    start_nans = set(range(find_valid_index(yvalues, "first")))
-    end_nans = set(range(1 + find_valid_index(yvalues, "last"), len(valid)))
+    start_nans = set(range(find_valid_index(yvalues, how="first")))
+    end_nans = set(range(1 + find_valid_index(yvalues, how="last"), len(valid)))
     mid_nans = all_nans - start_nans - end_nans
 
     # Like the sets above, preserve_nans contains indices of invalid values,
@@ -595,8 +595,8 @@ def _interpolate_with_limit_area(
     invalid = isna(values)
 
     if not invalid.all():
-        first = find_valid_index(values, "first")
-        last = find_valid_index(values, "last")
+        first = find_valid_index(values, how="first")
+        last = find_valid_index(values, how="last")
 
         values = interpolate_2d(
             values,
