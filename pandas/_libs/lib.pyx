@@ -451,7 +451,7 @@ def fast_zip(list ndarrays) -> ndarray[object]:
     return result
 
 
-def get_reverse_indexer(const int64_t[:] indexer, Py_ssize_t length):
+def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
     """
     Reverse indexing operation.
 
@@ -459,14 +459,25 @@ def get_reverse_indexer(const int64_t[:] indexer, Py_ssize_t length):
 
         indexer_inv[indexer[x]] = x
 
-    .. note:: If indexer is not unique, only first occurrence is accounted.
+    Parameters
+    ----------
+    indexer : np.ndarray[np.intp]
+    length : int
+
+    Returns
+    -------
+    np.ndarray[np.intp]
+
+    Notes
+    -----
+    If indexer is not unique, only first occurrence is accounted.
     """
     cdef:
         Py_ssize_t i, n = len(indexer)
-        ndarray[int64_t] rev_indexer
-        int64_t idx
+        ndarray[intp_t] rev_indexer
+        intp_t idx
 
-    rev_indexer = np.empty(length, dtype=np.int64)
+    rev_indexer = np.empty(length, dtype=np.intp)
     rev_indexer[:] = -1
     for i in range(n):
         idx = indexer[i]
@@ -808,23 +819,32 @@ def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_level_sorter(const int64_t[:] label, const int64_t[:] starts):
+def get_level_sorter(
+    ndarray[int64_t, ndim=1] codes, const intp_t[:] starts
+) -> ndarray:
     """
     Argsort for a single level of a multi-index, keeping the order of higher
     levels unchanged. `starts` points to starts of same-key indices w.r.t
     to leading levels; equivalent to:
-        np.hstack([label[starts[i]:starts[i+1]].argsort(kind='mergesort')
+        np.hstack([codes[starts[i]:starts[i+1]].argsort(kind='mergesort')
             + starts[i] for i in range(len(starts) - 1)])
+
+    Parameters
+    ----------
+    codes : np.ndarray[int64_t, ndim=1]
+    starts : np.ndarray[intp, ndim=1]
+
+    Returns
+    -------
+    np.ndarray[np.int, ndim=1]
     """
     cdef:
-        int64_t l, r
-        Py_ssize_t i
-        ndarray[int64_t, ndim=1] out = np.empty(len(label), dtype=np.int64)
-        ndarray[int64_t, ndim=1] label_arr = np.asarray(label)
+        Py_ssize_t i, l, r
+        ndarray[intp_t, ndim=1] out = np.empty(len(codes), dtype=np.intp)
 
     for i in range(len(starts) - 1):
         l, r = starts[i], starts[i + 1]
-        out[l:r] = l + label_arr[l:r].argsort(kind='mergesort')
+        out[l:r] = l + codes[l:r].argsort(kind='mergesort')
 
     return out
 
@@ -1120,6 +1140,7 @@ except AttributeError:
     pass
 
 
+@cython.internal
 cdef class Seen:
     """
     Class for keeping track of the types of elements
@@ -2580,7 +2601,7 @@ def tuples_to_object_array(ndarray[object] tuples):
     return result
 
 
-def to_object_array_tuples(rows: object):
+def to_object_array_tuples(rows: object) -> np.ndarray:
     """
     Convert a list of tuples into an object array. Any subclass of
     tuple in `rows` will be casted to tuple.
@@ -2592,7 +2613,7 @@ def to_object_array_tuples(rows: object):
 
     Returns
     -------
-    numpy array of the object dtype.
+    np.ndarray[object, ndim=2]
     """
     cdef:
         Py_ssize_t i, j, n, k, tmp

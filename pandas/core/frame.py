@@ -6643,7 +6643,8 @@ class DataFrame(NDFrame, OpsMixin):
         right = lib.item_from_zerodim(right)
         if not is_list_like(right):
             # i.e. scalar, faster than checking np.ndim(right) == 0
-            bm = self._mgr.apply(array_op, right=right)
+            with np.errstate(all="ignore"):
+                bm = self._mgr.apply(array_op, right=right)
             return type(self)(bm)
 
         elif isinstance(right, DataFrame):
@@ -6654,16 +6655,17 @@ class DataFrame(NDFrame, OpsMixin):
             #  _frame_arith_method_with_reindex
 
             # TODO operate_blockwise expects a manager of the same type
-            bm = self._mgr.operate_blockwise(
-                # error: Argument 1 to "operate_blockwise" of "ArrayManager" has
-                # incompatible type "Union[ArrayManager, BlockManager]"; expected
-                # "ArrayManager"
-                # error: Argument 1 to "operate_blockwise" of "BlockManager" has
-                # incompatible type "Union[ArrayManager, BlockManager]"; expected
-                # "BlockManager"
-                right._mgr,  # type: ignore[arg-type]
-                array_op,
-            )
+            with np.errstate(all="ignore"):
+                bm = self._mgr.operate_blockwise(
+                    # error: Argument 1 to "operate_blockwise" of "ArrayManager" has
+                    # incompatible type "Union[ArrayManager, BlockManager]"; expected
+                    # "ArrayManager"
+                    # error: Argument 1 to "operate_blockwise" of "BlockManager" has
+                    # incompatible type "Union[ArrayManager, BlockManager]"; expected
+                    # "BlockManager"
+                    right._mgr,  # type: ignore[arg-type]
+                    array_op,
+                )
             return type(self)(bm)
 
         elif isinstance(right, Series) and axis == 1:
@@ -6674,16 +6676,18 @@ class DataFrame(NDFrame, OpsMixin):
             # maybe_align_as_frame ensures we do not have an ndarray here
             assert not isinstance(right, np.ndarray)
 
-            arrays = [
-                array_op(_left, _right)
-                for _left, _right in zip(self._iter_column_arrays(), right)
-            ]
+            with np.errstate(all="ignore"):
+                arrays = [
+                    array_op(_left, _right)
+                    for _left, _right in zip(self._iter_column_arrays(), right)
+                ]
 
         elif isinstance(right, Series):
             assert right.index.equals(self.index)  # Handle other cases later
             right = right._values
 
-            arrays = [array_op(left, right) for left in self._iter_column_arrays()]
+            with np.errstate(all="ignore"):
+                arrays = [array_op(left, right) for left in self._iter_column_arrays()]
 
         else:
             # Remaining cases have less-obvious dispatch rules
