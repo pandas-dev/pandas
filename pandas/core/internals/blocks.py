@@ -157,7 +157,6 @@ class Block(PandasObject):
     is_bool = False
     is_object = False
     is_extension = False
-    _can_hold_na = False
     _can_consolidate = True
     _validate_ndim = True
 
@@ -211,6 +210,17 @@ class Block(PandasObject):
         values = self.values
         values = cast(np.ndarray, values)
         return values.base is not None
+
+    @final
+    @property
+    def _can_hold_na(self) -> bool:
+        """
+        Can we store NA values in this Block?
+        """
+        dtype = self.dtype
+        if isinstance(dtype, np.dtype):
+            return dtype.kind not in ["b", "i", "u"]
+        return self.values._can_hold_na
 
     @final
     @property
@@ -1489,11 +1499,6 @@ class ExtensionBlock(Block):
         return type(self.values)
 
     @property
-    def _can_hold_na(self):
-        # The default ExtensionArray._can_hold_na is True
-        return self._holder._can_hold_na
-
-    @property
     def is_view(self) -> bool:
         """Extension arrays are never treated as views."""
         return False
@@ -1773,16 +1778,8 @@ class NumericBlock(Block):
         return can_hold_element(self.dtype, element)  # type: ignore[arg-type]
 
     @property
-    def _can_hold_na(self):
-        return self.dtype.kind not in ["b", "i", "u"]
-
-    @property
     def is_bool(self):
         return self.dtype.kind == "b"
-
-
-class FloatBlock(NumericBlock):
-    __slots__ = ()
 
 
 class NDArrayBackedExtensionBlock(HybridMixin, Block):
@@ -1894,7 +1891,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
     is_numeric = False
-    _can_hold_na = True
 
     def array_values(self):
         return ensure_wrapped_if_datetimelike(self.values)
@@ -1923,7 +1919,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
     __slots__ = ()
     is_extension = True
-    _can_hold_na = True
     is_numeric = False
 
     internal_values = Block.internal_values
@@ -1955,7 +1950,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
 class ObjectBlock(Block):
     __slots__ = ()
     is_object = True
-    _can_hold_na = True
 
     values: np.ndarray
 
@@ -2129,9 +2123,7 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
         cls = DatetimeBlock
     elif kind == "m":
         cls = TimeDeltaBlock
-    elif kind == "f":
-        cls = FloatBlock
-    elif kind in ["c", "i", "u", "b"]:
+    elif kind in ["f", "c", "i", "u", "b"]:
         cls = NumericBlock
     else:
         cls = ObjectBlock
