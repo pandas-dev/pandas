@@ -13,6 +13,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -191,16 +192,6 @@ class Block(PandasObject):
         self._mgr_locs = placement
         self.values = values
 
-    @property
-    def _holder(self):
-        """
-        The array-like that can hold the underlying values.
-
-        None for 'Block', overridden by subclasses that don't
-        use an ndarray.
-        """
-        return None
-
     @final
     @property
     def _consolidate_key(self):
@@ -227,7 +218,13 @@ class Block(PandasObject):
     @final
     @property
     def is_categorical(self) -> bool:
-        return self._holder is Categorical
+        warnings.warn(
+            "Block.is_categorical is deprecated and will be removed in a "
+            "future version.  Use isinstance(block.values, Categorical) "
+            "instead.  See https://github.com/pandas-dev/pandas/issues/40226",
+            FutureWarning,
+        )
+        return isinstance(self.values, Categorical)
 
     @final
     def external_values(self):
@@ -797,8 +794,10 @@ class Block(PandasObject):
         """
         See BlockManager._replace_list docstring.
         """
+        values = self.values
+
         # TODO: dont special-case Categorical
-        if self.is_categorical and len(algos.unique(dest_list)) == 1:
+        if isinstance(values, Categorical) and len(algos.unique(dest_list)) == 1:
             # We likely got here by tiling value inside NDFrame.replace,
             #  so un-tile here
             return self.replace(src_list, dest_list[0], inplace, regex)
@@ -813,17 +812,17 @@ class Block(PandasObject):
 
         src_len = len(pairs) - 1
 
-        if self.is_object:
+        if values.dtype == _dtype_obj:
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
-            mask = ~isna(self.values)
+            mask = ~isna(values)
             masks = [
-                compare_or_regex_search(self.values, s[0], regex=regex, mask=mask)
+                compare_or_regex_search(values, s[0], regex=regex, mask=mask)
                 for s in pairs
             ]
         else:
             # GH#38086 faster if we know we dont need to check for regex
-            masks = [missing.mask_missing(self.values, s[0]) for s in pairs]
+            masks = [missing.mask_missing(values, s[0]) for s in pairs]
 
         # error: Argument 1 to "extract_bool_array" has incompatible type
         # "Union[ExtensionArray, ndarray, bool]"; expected "Union[ExtensionArray,
@@ -1505,11 +1504,6 @@ class ExtensionBlock(Block):
         return [self.make_block(values=new_values)]
 
     @property
-    def _holder(self):
-        # For extension blocks, the holder is values-dependent.
-        return type(self.values)
-
-    @property
     def is_view(self) -> bool:
         """Extension arrays are never treated as views."""
         return False
@@ -1714,7 +1708,7 @@ class ExtensionBlock(Block):
             # NotImplementedError for class not implementing `__setitem__`
             # TypeError for SparseArray, which implements just to raise
             # a TypeError
-            result = self._holder._from_sequence(
+            result = type(self.values)._from_sequence(
                 np.where(cond, self.values, other), dtype=dtype
             )
 
@@ -1903,10 +1897,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
     def array_values(self):
         return ensure_wrapped_if_datetimelike(self.values)
-
-    @property
-    def _holder(self):
-        return type(self.array_values())
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
