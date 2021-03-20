@@ -141,7 +141,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, ngroups, size
-        ndarray[int64_t] _counts
+        ndarray[intp_t] _counts
         ndarray[float64_t, ndim=2] data
         ndarray[intp_t] indexer
         float64_t* ptr

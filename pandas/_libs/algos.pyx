@@ -201,7 +201,7 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     -------
     ndarray[intp_t, ndim=1]
         Indexer
-    ndarray[int64_t, ndim=1]
+    ndarray[intp_t, ndim=1]
         Group Counts
 
     Notes
@@ -210,8 +210,7 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     """
     cdef:
         Py_ssize_t i, loc, label, n
-        ndarray[int64_t] counts
-        ndarray[intp_t] indexer, where
+        ndarray[intp_t] indexer, where, counts
 
     counts = np.zeros(ngroups + 1, dtype=np.int64)
     n = len(index)
