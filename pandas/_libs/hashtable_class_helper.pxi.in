@@ -539,12 +539,12 @@ cdef class {{name}}HashTable(HashTable):
         -------
         uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse=True)
+        labels : ndarray[intp_t] (if return_inverse=True)
             The labels from values to uniques
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
-            int64_t[:] labels
+            intp_t[:] labels
             int ret = 0
             {{c_type}} val, na_value2
             khiter_t k
@@ -553,7 +553,7 @@ cdef class {{name}}HashTable(HashTable):
             uint8_t[:] mask_values
 
         if return_inverse:
-            labels = np.empty(n, dtype=np.int64)
+            labels = np.empty(n, dtype=np.intp)
         ud = uniques.data
         use_na_value = na_value is not None
         use_mask = mask is not None
@@ -614,7 +614,7 @@ cdef class {{name}}HashTable(HashTable):
                     labels[i] = idx
 
         if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
+            return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
     def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
@@ -633,7 +633,7 @@ cdef class {{name}}HashTable(HashTable):
         -------
         uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse)
+        labels : ndarray[intp_t] (if return_inverse)
             The labels from values to uniques
         """
         uniques = {{name}}Vector()
@@ -668,7 +668,7 @@ cdef class {{name}}HashTable(HashTable):
         -------
         uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
-        labels : ndarray[int64]
+        labels : ndarray[intp_t]
             The labels from values to uniques
         """
         uniques_vector = {{name}}Vector()
@@ -918,12 +918,12 @@ cdef class StringHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse=True)
+        labels : ndarray[intp_t] (if return_inverse=True)
             The labels from values to uniques
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
-            int64_t[:] labels
+            intp_t[:] labels
             int64_t[:] uindexer
             int ret = 0
             object val
@@ -933,7 +933,7 @@ cdef class StringHashTable(HashTable):
             bint use_na_value
 
         if return_inverse:
-            labels = np.zeros(n, dtype=np.int64)
+            labels = np.zeros(n, dtype=np.intp)
         uindexer = np.empty(n, dtype=np.int64)
         use_na_value = na_value is not None
 
@@ -972,13 +972,13 @@ cdef class StringHashTable(HashTable):
                     uindexer[count] = i
                     if return_inverse:
                         self.table.vals[k] = count
-                        labels[i] = <int64_t>count
+                        labels[i] = count
                     count += 1
                 elif return_inverse:
                     # k falls into a previous bucket
                     # only relevant in case we need to construct the inverse
                     idx = self.table.vals[k]
-                    labels[i] = <int64_t>idx
+                    labels[i] = idx
 
         free(vecs)
 
@@ -987,7 +987,7 @@ cdef class StringHashTable(HashTable):
             uniques.append(values[uindexer[i]])
 
         if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
+            return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
     def unique(self, ndarray[object] values, bint return_inverse=False):
@@ -1193,19 +1193,19 @@ cdef class PyObjectHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse=True)
+        labels : ndarray[intp_t] (if return_inverse=True)
             The labels from values to uniques
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
-            int64_t[:] labels
+            intp_t[:] labels
             int ret = 0
             object val
             khiter_t k
             bint use_na_value
 
         if return_inverse:
-            labels = np.empty(n, dtype=np.int64)
+            labels = np.empty(n, dtype=np.intp)
         use_na_value = na_value is not None
 
         for i in range(n):
@@ -1240,7 +1240,7 @@ cdef class PyObjectHashTable(HashTable):
                 labels[i] = idx
 
         if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
+            return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
     def unique(self, ndarray[object] values, bint return_inverse=False):
@@ -1259,7 +1259,7 @@ cdef class PyObjectHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse)
+        labels : ndarray[intp_t] (if return_inverse)
             The labels from values to uniques
         """
         uniques = ObjectVector()
@@ -1292,7 +1292,7 @@ cdef class PyObjectHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64]
+        labels : ndarray[intp_t]
             The labels from values to uniques
         """
         uniques_vector = ObjectVector()
