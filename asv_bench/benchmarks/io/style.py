@@ -3,7 +3,7 @@ import numpy as np
 from pandas import DataFrame
 
 
-class RenderApply:
+class Render:
 
     params = [[12, 24, 36], [12, 120]]
     param_names = ["cols", "rows"]
