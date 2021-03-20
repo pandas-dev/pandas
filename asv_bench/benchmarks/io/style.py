@@ -40,6 +40,6 @@ class RenderApply:
         self.st = self.df.style.apply(_apply_func, axis=1)
 
     def _style_classes(self):
-        classes = self.df.apply(lambda v: ("cls-1" if v > 0 else ""))
-        classes = DataFrame(classes, index=self.index, columns=self.columns)
+        classes = self.df.applymap(lambda v: ("cls-1" if v > 0 else ""))
+        classes.index, classes.columns = self.df.index, self.df.columns
         self.st = self.df.style.set_td_classes(classes)
