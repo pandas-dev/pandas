@@ -11180,7 +11180,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @final
     @doc(first_valid_index, position="last", klass=_shared_doc_kwargs["klass"])
-    def last_valid_index(self) -> Optional[Scalar]:
+    def last_valid_index(self):
         return self._find_valid_index("last")
 
 
