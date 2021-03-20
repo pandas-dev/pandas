@@ -15,6 +15,7 @@ dependencies:
   # pandas dependencies
   - botocore>=1.11
   - fsspec>=0.7.4
+  - numba
   - numpy
   - python-dateutil
   - nomkl

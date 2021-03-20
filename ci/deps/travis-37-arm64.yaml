@@ -12,6 +12,7 @@ dependencies:
 
   # pandas dependencies
   - botocore>=1.11
+  - numba
   - numpy
   - python-dateutil
   - pytz

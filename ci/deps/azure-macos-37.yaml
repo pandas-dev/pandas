@@ -18,6 +18,7 @@ dependencies:
   - lxml
   - matplotlib=2.2.3
   - nomkl
+  - numba
   - numexpr
   - numpy=1.16.5
   - openpyxl

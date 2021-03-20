@@ -27,6 +27,7 @@ dependencies:
   - lxml=4.3.0
   - matplotlib
   - nomkl
+  - numba
   - numexpr
   - openpyxl
   - pandas-gbq

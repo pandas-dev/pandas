@@ -17,6 +17,7 @@ dependencies:
   - bottleneck=1.2.*
   - lxml
   - matplotlib=3.0.0
+  - numba
   - numpy=1.16.*
   - openpyxl=3.0.0
   - python-dateutil
