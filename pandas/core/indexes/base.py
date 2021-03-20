@@ -6141,15 +6141,14 @@ class Index(IndexOpsMixin, PandasObject):
             # This call will raise
             make_invalid_op(opname)(self)
 
+    @final
     @property
     def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
         """
-        # not using "(len(self), )" to return "correct" shape if the values
-        # consists of a >1 D array (see GH-27775)
-        # overridden in MultiIndex.shape to avoid materializing the values
-        return self._values.shape
+        # See GH#27775, GH#27384 for history/reasoning in how this is defined.
+        return (len(self),)
 
 
 def ensure_index_from_sequences(sequences, names=None):
