@@ -117,10 +117,10 @@ def _take_nd_ndarray(
 ) -> np.ndarray:
 
     if indexer is None:
-        indexer = np.arange(arr.shape[axis], dtype=np.int64)
+        indexer = np.arange(arr.shape[axis], dtype=np.intp)
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
-        indexer = ensure_int64(indexer, copy=False)
+        indexer = ensure_platform_int(indexer)
     indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
         arr, indexer, out, fill_value, allow_fill
     )
@@ -177,9 +177,6 @@ def take_1d(
 
     Note: similarly to `take_nd`, this function assumes that the indexer is
     a valid(ated) indexer with no out of bound indices.
-
-    TODO(ArrayManager): mainly useful for ArrayManager, otherwise can potentially
-    be removed again if we don't end up with ArrayManager.
     """
     if not isinstance(arr, np.ndarray):
         # ExtensionArray -> dispatch to their method
@@ -271,7 +268,9 @@ def take_2d_multi(
 
 
 @functools.lru_cache(maxsize=128)
-def _get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis):
+def _get_take_nd_function_cached(
+    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: int
+):
     """
     Part of _get_take_nd_function below that doesn't need `mask_info` and thus
     can be cached (mask_info potentially contains a numpy ndarray which is not
@@ -304,7 +303,7 @@ def _get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis):
 
 
 def _get_take_nd_function(
-    ndim: int, arr_dtype, out_dtype, axis: int = 0, mask_info=None
+    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: int = 0, mask_info=None
 ):
     """
     Get the appropriate "take" implementation for the given dimension, axis
@@ -318,7 +317,7 @@ def _get_take_nd_function(
     if func is None:
 
         def func(arr, indexer, out, fill_value=np.nan):
-            indexer = ensure_int64(indexer)
+            indexer = ensure_platform_int(indexer)
             _take_nd_object(
                 arr, indexer, out, axis=axis, fill_value=fill_value, mask_info=mask_info
             )
@@ -469,7 +468,7 @@ _take_2d_multi_dict = {
 
 def _take_nd_object(
     arr: np.ndarray,
-    indexer: np.ndarray,
+    indexer: np.ndarray,  # np.ndarray[np.intp]
     out: np.ndarray,
     axis: int,
     fill_value,
@@ -545,4 +544,5 @@ def _take_preprocess_indexer_and_fill_value(
                 # to crash when trying to cast it to dtype)
                 dtype, fill_value = arr.dtype, arr.dtype.type()
 
+    indexer = ensure_platform_int(indexer)
     return indexer, dtype, fill_value, mask_info

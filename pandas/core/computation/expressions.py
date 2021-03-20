@@ -40,7 +40,7 @@ _ALLOWED_DTYPES = {
 }
 
 # the minimum prod shape that we will use numexpr
-_MIN_ELEMENTS = 10000
+_MIN_ELEMENTS = 1_000_000
 
 
 def set_use_numexpr(v=True):
@@ -71,8 +71,7 @@ def _evaluate_standard(op, op_str, a, b):
     """
     if _TEST_MODE:
         _store_test_result(False)
-    with np.errstate(all="ignore"):
-        return op(a, b)
+    return op(a, b)
 
 
 def _can_use_numexpr(op, op_str, a, b, dtype_check):
