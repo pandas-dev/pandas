@@ -1973,7 +1973,7 @@ def _get_single_indexer(join_key, index, sort: bool = False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
     left_indexer, right_indexer = libjoin.left_outer_join(
-        ensure_int64(left_key), ensure_int64(right_key), count, sort=sort
+        left_key, right_key, count, sort=sort
     )
 
     return left_indexer, right_indexer
@@ -2029,9 +2029,9 @@ def _factorize_keys(
 
     Returns
     -------
-    array
+    np.ndarray[np.intp]
         Left (resp. right if called with `key='right'`) labels, as enumerated type.
-    array
+    np.ndarray[np.intp]
         Right (resp. left if called with `key='right'`) labels, as enumerated type.
     int
         Number of unique elements in union of left and right labels.
@@ -2117,6 +2117,8 @@ def _factorize_keys(
 
     llab = rizer.factorize(lk)
     rlab = rizer.factorize(rk)
+    assert llab.dtype == np.intp, llab.dtype
+    assert rlab.dtype == np.intp, rlab.dtype
 
     count = rizer.get_count()
 
@@ -2142,13 +2144,16 @@ def _factorize_keys(
     return llab, rlab, count
 
 
-def _sort_labels(uniques: np.ndarray, left, right):
+def _sort_labels(
+    uniques: np.ndarray, left: np.ndarray, right: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    # Both returned ndarrays are np.intp
 
     llength = len(left)
     labels = np.concatenate([left, right])
 
     _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
-    new_labels = ensure_int64(new_labels)
+    assert new_labels.dtype == np.intp
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right

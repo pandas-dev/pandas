@@ -678,6 +678,16 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         * fail: raise a ValueError.
 
         .. versionadded:: 1.3.0
+    engine_kwargs : dict, optional
+        Keyword arguments to be passed into the engine.
+
+        .. versionadded:: 1.3.0
+    **kwargs : dict, optional
+        Keyword arguments to be passed into the engine.
+
+        .. deprecated:: 1.3.0
+
+            Use engine_kwargs instead.
 
     Attributes
     ----------
@@ -756,7 +766,26 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     # You also need to register the class with ``register_writer()``.
     # Technically, ExcelWriter implementations don't need to subclass
     # ExcelWriter.
-    def __new__(cls, path, engine=None, **kwargs):
+    def __new__(
+        cls,
+        path: Union[FilePathOrBuffer, ExcelWriter],
+        engine=None,
+        date_format=None,
+        datetime_format=None,
+        mode: str = "w",
+        storage_options: StorageOptions = None,
+        engine_kwargs: Optional[Dict] = None,
+        **kwargs,
+    ):
+        if kwargs:
+            if engine_kwargs is not None:
+                raise ValueError("Cannot use both engine_kwargs and **kwargs")
+            warnings.warn(
+                "Use of **kwargs is deprecated, use engine_kwargs instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         # only switch class if generic(ExcelWriter)
 
         if cls is ExcelWriter:
@@ -847,7 +876,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: Optional[str] = None,
-        **engine_kwargs,
+        engine_kwargs: Optional[Dict] = None,
+        **kwargs,
     ):
         # validate that this engine can handle the extension
         if isinstance(path, str):

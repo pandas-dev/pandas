@@ -32,6 +32,7 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
+    ensure_int64,
     is_bool_dtype,
     is_datetime64_ns_dtype,
     is_dtype_equal,
@@ -87,6 +88,7 @@ from pandas.core.internals.base import (
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     new_block,
+    to_native_types,
 )
 
 if TYPE_CHECKING:
@@ -226,6 +228,11 @@ class ArrayManager(DataManager):
                 raise ValueError(
                     "Passed arrays should be np.ndarray or ExtensionArray instances, "
                     f"got {type(arr)} instead"
+                )
+            if not arr.ndim == 1:
+                raise ValueError(
+                    "Passed arrays should be 1-dimensional, got array with "
+                    f"{arr.ndim} dimensions instead."
                 )
 
     def reduce(
@@ -628,7 +635,7 @@ class ArrayManager(DataManager):
         )
 
     def to_native_types(self, **kwargs):
-        return self.apply_with_block("to_native_types", **kwargs)
+        return self.apply(to_native_types, **kwargs)
 
     @property
     def is_mixed_type(self) -> bool:
@@ -683,7 +690,10 @@ class ArrayManager(DataManager):
         copy : bool, default False
             Whether to copy the blocks
         """
-        return self._get_data_subset(lambda arr: is_numeric_dtype(arr.dtype))
+        return self._get_data_subset(
+            lambda arr: is_numeric_dtype(arr.dtype)
+            or getattr(arr.dtype, "_is_numeric", False)
+        )
 
     def copy(self: T, deep=True) -> T:
         """
@@ -928,6 +938,7 @@ class ArrayManager(DataManager):
                 raise ValueError(
                     f"Expected a 1D array, got an array with shape {value.shape}"
                 )
+        value = ensure_wrapped_if_datetimelike(value)
 
         # TODO self.arrays can be empty
         # assert len(value) == len(self.arrays[0])
@@ -1005,11 +1016,16 @@ class ArrayManager(DataManager):
 
         else:
             validate_indices(indexer, len(self._axes[0]))
+            indexer = ensure_int64(indexer)
+            if (indexer == -1).any():
+                allow_fill = True
+            else:
+                allow_fill = False
             new_arrays = [
                 take_1d(
                     arr,
                     indexer,
-                    allow_fill=True,
+                    allow_fill=allow_fill,
                     fill_value=fill_value,
                     # if fill_value is not None else blk.fill_value
                 )
@@ -1032,6 +1048,9 @@ class ArrayManager(DataManager):
             if isinstance(indexer, slice)
             else np.asanyarray(indexer, dtype="int64")
         )
+
+        if not indexer.ndim == 1:
+            raise ValueError("indexer should be 1-dimensional")
 
         n = self.shape_proper[axis]
         indexer = maybe_convert_indices(indexer, n, verify=verify)
@@ -1080,15 +1099,24 @@ class ArrayManager(DataManager):
         unstacked : BlockManager
         """
         indexer, _ = unstacker._indexer_and_to_sort
-        new_indexer = np.full(unstacker.mask.shape, -1)
-        new_indexer[unstacker.mask] = indexer
+        if unstacker.mask.all():
+            new_indexer = indexer
+            allow_fill = False
+        else:
+            new_indexer = np.full(unstacker.mask.shape, -1)
+            new_indexer[unstacker.mask] = indexer
+            allow_fill = True
         new_indexer2D = new_indexer.reshape(*unstacker.full_shape)
+        new_indexer2D = ensure_int64(new_indexer2D)
 
         new_arrays = []
         for arr in self.arrays:
             for i in range(unstacker.full_shape[1]):
                 new_arr = take_1d(
-                    arr, new_indexer2D[:, i], allow_fill=True, fill_value=fill_value
+                    arr,
+                    new_indexer2D[:, i],
+                    allow_fill=allow_fill,
+                    fill_value=fill_value,
                 )
                 new_arrays.append(new_arr)
 
