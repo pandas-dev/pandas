@@ -217,10 +217,10 @@ class Block(PandasObject):
         """
         Can we store NA values in this Block?
         """
-        dtype = self.dtype
-        if isinstance(dtype, np.dtype):
-            return dtype.kind not in ["b", "i", "u"]
-        return self.values._can_hold_na
+        values = self.values
+        if isinstance(values, np.ndarray):
+            return values.dtype.kind not in ["b", "i", "u"]
+        return values._can_hold_na
 
     @final
     @property
