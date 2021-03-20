@@ -1952,7 +1952,7 @@ class MultiIndex(Index):
                     lev = lev.take(indexer)
 
                     # indexer to reorder the level codes
-                    indexer = ensure_int64(indexer)
+                    indexer = ensure_platform_int(indexer)
                     ri = lib.get_reverse_indexer(indexer, len(indexer))
                     level_codes = algos.take_nd(ri, level_codes)
 

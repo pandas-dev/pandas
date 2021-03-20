@@ -145,7 +145,7 @@ class _Unstacker:
         ngroups = len(obs_ids)
 
         indexer = get_group_index_sorter(comp_index, ngroups)
-
+        indexer = ensure_platform_int(indexer)
         return indexer, to_sort
 
     @cache_readonly
