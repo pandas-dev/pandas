@@ -10,8 +10,7 @@ if [[ "not network" == *"$PATTERN"* ]]; then
 fi
 
 if [ "$COVERAGE" ]; then
-    COVERAGE_FNAME="/tmp/test_coverage.xml"
-    COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
+    COVERAGE="-s --cov=pandas --cov-report=xml"
 fi
 
 # If no X server is found, we use xvfb to emulate it
@@ -30,9 +29,3 @@ fi
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
-
-if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
-    echo "uploading coverage"
-    echo "bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME"
-          bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME
-fi
