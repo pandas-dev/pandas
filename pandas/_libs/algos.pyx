@@ -951,7 +951,7 @@ def rank_1d(
         ndarray[float64_t, ndim=1] grp_sizes, out
         ndarray[rank_t, ndim=1] masked_vals
         ndarray[uint8_t, ndim=1] mask
-        bint keep_na, at_end, next_val_diff, check_labels, set_as_na
+        bint keep_na, at_end, next_val_diff, check_labels, set_as_na, group_changed
         rank_t nan_fill_val
         float computed_rank
 
@@ -1086,8 +1086,7 @@ def rank_1d(
                 # reset the dups and sum_ranks, knowing that a new value is
                 # coming up. the conditional also needs to handle nan equality
                 # and the end of iteration
-                if next_val_diff or (mask[lexsort_indexer[i]]
-                                     ^ mask[lexsort_indexer[i+1]]):
+                if next_val_diff or not group_changed:
                     dups = sum_ranks = 0
                     grp_vals_seen += 1
 
@@ -1122,32 +1121,29 @@ def rank_1d(
                 dups += 1
                 sum_ranks += i - grp_start + 1
 
-                next_val_diff = at_end or (masked_vals[lexsort_indexer[i]]
-                                    != masked_vals[lexsort_indexer[i+1]])
+                next_val_diff = at_end or (masked_vals[lexsort_indexer[i]] !=
+                                           masked_vals[lexsort_indexer[i+1]])
 
                 # We'll need this check later anyway to determine group size, so just
                 # compute it here since shortcircuiting won't help
                 group_changed = at_end or (check_labels and
-                                       (labels[lexsort_indexer[i]]
-                                        != labels[lexsort_indexer[i+1]]))
+                                           (labels[lexsort_indexer[i]]
+                                            != labels[lexsort_indexer[i+1]]))
 
                 # Update out only when there is a transition of values or labels.
                 # When a new value or group is encountered, go back #dups steps(
                 # the number of occurrence of current value) and assign the ranks
                 # based on the starting index of the current group (grp_start)
                 # and the current index
-                if (next_val_diff
-                        or (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]])
-                        or (check_labels
-                            and (labels[lexsort_indexer[i]]
-                                 != labels[lexsort_indexer[i+1]]))
-                ):
+                if (next_val_diff or group_changed
+                        or (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]])):
+
                     # if keep_na, check for missing values and assign back
                     # to the result where appropriate
                     set_as_na = keep_na and mask[lexsort_indexer[i]]
 
-                    # For all cases except TIEBREAK_FIRST and a non-null value,
-                    # we set the same value at each index
+                    # For all cases except TIEBREAK_FIRST when not setting
+                    # nulls, we set the same value at each index
                     if set_as_na:
                         computed_rank = NaN
                         grp_na_count = dups
@@ -1171,13 +1167,12 @@ def rank_1d(
                         for j in range(i - dups + 1, i + 1):
                             out[lexsort_indexer[j]] = computed_rank
 
-                    # look forward to the next value (using the sorting in
-                    # lexsort_indexer) if the value does not equal the current
-                    # value then we need to reset the dups and sum_ranks,
-                    # knowing that a new value is coming up. the conditional
-                    # also needs to handle nan equality and the end of iteration
-                    if next_val_diff or (mask[lexsort_indexer[i]]
-                                         ^ mask[lexsort_indexer[i+1]]):
+                    # look forward to the next value (using the sorting in _as)
+                    # if the value does not equal the current value then we need to
+                    # reset the dups and sum_ranks, knowing that a new value is
+                    # coming up. the conditional also needs to handle nan equality
+                    # and the end of iteration
+                    if next_val_diff or not group_changed:
                         dups = sum_ranks = 0
                         grp_vals_seen += 1
 
