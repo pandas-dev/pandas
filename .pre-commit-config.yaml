@@ -90,7 +90,6 @@ repos:
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
         language: python
         types: [python]
-        files: ^pandas/tests/
     -   id: incorrect-code-directives
         name: Check for incorrect code block or IPython directives
         language: pygrep

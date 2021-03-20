@@ -178,8 +178,8 @@ class Styler:
         if not data.index.is_unique or not data.columns.is_unique:
             raise ValueError("style is not supported for non-unique indices.")
         self.data: DataFrame = data
-        self.index: pd.Index = data.index
-        self.columns: pd.Index = data.columns
+        self.index: Index = data.index
+        self.columns: Index = data.columns
         self.table_styles = table_styles
         if not isinstance(uuid_len, int) or not uuid_len >= 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
@@ -892,7 +892,7 @@ class Styler:
             result.columns = data.columns
         else:
             result = func(data, **kwargs)
-            if not isinstance(result, pd.DataFrame):
+            if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):
                     raise TypeError(
                         f"Function {repr(func)} must return a DataFrame or ndarray "
@@ -1541,7 +1541,7 @@ class Styler:
             if s.ndim == 1:
                 return [css(rgba) for rgba in rgbas]
             else:
-                return pd.DataFrame(
+                return DataFrame(
                     [[css(rgba) for rgba in row] for row in rgbas],
                     index=s.index,
                     columns=s.columns,
@@ -1631,7 +1631,7 @@ class Styler:
         if s.ndim == 1:
             return [css(x) for x in normed]
         else:
-            return pd.DataFrame(
+            return DataFrame(
                 [[css(x) for x in row] for row in normed],
                 index=s.index,
                 columns=s.columns,

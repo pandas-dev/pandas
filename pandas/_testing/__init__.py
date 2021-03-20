@@ -207,12 +207,12 @@ def box_expected(expected, box_cls, transpose=True):
     """
     if box_cls is pd.array:
         expected = pd.array(expected)
-    elif box_cls is pd.Index:
-        expected = pd.Index(expected)
-    elif box_cls is pd.Series:
-        expected = pd.Series(expected)
-    elif box_cls is pd.DataFrame:
-        expected = pd.Series(expected).to_frame()
+    elif box_cls is Index:
+        expected = Index(expected)
+    elif box_cls is Series:
+        expected = Series(expected)
+    elif box_cls is DataFrame:
+        expected = Series(expected).to_frame()
         if transpose:
             # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
@@ -400,7 +400,7 @@ def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None)
         "x": state.rand(n) * 2 - 1,
         "y": state.rand(n) * 2 - 1,
     }
-    df = pd.DataFrame(columns, index=index, columns=sorted(columns))
+    df = DataFrame(columns, index=index, columns=sorted(columns))
     if df.index[-1] == end:
         df = df.iloc[:-1]
     return df
