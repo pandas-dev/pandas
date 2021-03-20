@@ -990,10 +990,10 @@ class DataSplitter(Generic[FrameOrSeries]):
     @cache_readonly
     def slabels(self) -> np.ndarray:
         # Sorted labels
-        return self.labels.take(self.sort_idx)
+        return self.labels.take(self._sort_idx)
 
     @cache_readonly
-    def sort_idx(self):
+    def _sort_idx(self) -> np.ndarray:  # np.ndarray[np.intp]
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 
@@ -1012,7 +1012,7 @@ class DataSplitter(Generic[FrameOrSeries]):
 
     @cache_readonly
     def sorted_data(self) -> FrameOrSeries:
-        return self.data.take(self.sort_idx, axis=self.axis)
+        return self.data.take(self._sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
         raise AbstractMethodError(self)
