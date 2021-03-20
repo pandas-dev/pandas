@@ -199,10 +199,8 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
 
     Returns
     -------
-    ndarray[intp_t, ndim=1]
-        Indexer
-    ndarray[int64_t, ndim=1]
-        Group Counts
+    tuple
+        1-d indexer ordered by groups, group counts.
 
     Notes
     -----
@@ -210,12 +208,11 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     """
     cdef:
         Py_ssize_t i, loc, label, n
-        ndarray[int64_t] counts, where
-        ndarray[intp_t] indexer
+        ndarray[int64_t] counts, where, result
 
     counts = np.zeros(ngroups + 1, dtype=np.int64)
     n = len(index)
-    indexer = np.zeros(n, dtype=np.intp)
+    result = np.zeros(n, dtype=np.int64)
     where = np.zeros(ngroups + 1, dtype=np.int64)
 
     with nogil:
@@ -231,10 +228,10 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
         # this is our indexer
         for i in range(n):
             label = index[i] + 1
-            indexer[where[label]] = i
+            result[where[label]] = i
             where[label] += 1
 
-    return indexer, counts
+    return result, counts
 
 
 @cython.boundscheck(False)

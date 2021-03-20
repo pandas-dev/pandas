@@ -1961,8 +1961,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        Dict[Hashable, np.ndarray[np.intp]]
-            dict of categories -> indexers
+        dict of categories -> indexers
 
         Examples
         --------
@@ -1980,7 +1979,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         categories = self.categories
         r, counts = libalgos.groupsort_indexer(
-            self.codes.astype("int64", copy=False), categories.size
+            self.codes.astype("int64"), categories.size
         )
         counts = counts.cumsum()
         _result = (r[start:end] for start, end in zip(counts, counts[1:]))
