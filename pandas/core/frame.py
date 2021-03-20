@@ -5080,27 +5080,43 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         ncols = len(self.columns)
-        if axis == 1 and periods != 0 and fill_value is lib.no_default and ncols > 0:
-            # We will infer fill_value to match the closest column
 
-            # Use a column that we know is valid for our column's dtype GH#38434
-            label = self.columns[0]
+        if (
+            axis == 1
+            and periods != 0
+            and ncols > 0
+            and (fill_value is lib.no_default or len(self._mgr.arrays) > 1)
+        ):
+            # Exclude single-array-with-fill_value case so we issue a FutureWarning
+            #  if an integer is passed with datetimelike dtype GH#31971
+            from pandas import concat
+
+            # tail: the data that is still in our shifted DataFrame
+            if periods > 0:
+                tail = self.iloc[:, :-periods]
+            else:
+                tail = self.iloc[:, -periods:]
+            # pin a simple Index to avoid costly casting
+            tail.columns = range(len(tail.columns))
+
+            if fill_value is not lib.no_default:
+                # GH#35488
+                # TODO(EA2D): with 2D EAs we could construct other directly
+                ser = Series(fill_value, index=self.index)
+            else:
+                # We infer fill_value to match the closest column
+                if periods > 0:
+                    ser = self.iloc[:, 0].shift(len(self))
+                else:
+                    ser = self.iloc[:, -1].shift(len(self))
+
+            width = min(abs(periods), ncols)
+            other = concat([ser] * width, axis=1)
 
             if periods > 0:
-                result = self.iloc[:, :-periods]
-                for col in range(min(ncols, abs(periods))):
-                    # TODO(EA2D): doing this in a loop unnecessary with 2D EAs
-                    # Define filler inside loop so we get a copy
-                    filler = self.iloc[:, 0].shift(len(self))
-                    result.insert(0, label, filler, allow_duplicates=True)
+                result = concat([other, tail], axis=1)
             else:
-                result = self.iloc[:, -periods:]
-                for col in range(min(ncols, abs(periods))):
-                    # Define filler inside loop so we get a copy
-                    filler = self.iloc[:, -1].shift(len(self))
-                    result.insert(
-                        len(result.columns), label, filler, allow_duplicates=True
-                    )
+                result = concat([tail, other], axis=1)
 
             result.columns = self.columns.copy()
             return result
