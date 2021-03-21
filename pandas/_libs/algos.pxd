@@ -61,4 +61,3 @@ cdef enum TiebreakEnumType:
     TIEBREAK_FIRST
     TIEBREAK_FIRST_DESCENDING
     TIEBREAK_DENSE
-
