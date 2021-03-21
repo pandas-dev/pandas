@@ -303,6 +303,7 @@ def array(
         raise ValueError(msg)
 
     if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ABCExtensionArray)):
+        # Note: we exclude np.ndarray here, will do type inference on it
         dtype = data.dtype
 
     data = extract_array(data, extract_numpy=True)
@@ -456,13 +457,30 @@ def sanitize_array(
     index: Optional[Index],
     dtype: Optional[DtypeObj] = None,
     copy: bool = False,
-    raise_cast_failure: bool = False,
+    raise_cast_failure: bool = True,
 ) -> ArrayLike:
     """
     Sanitize input data to an ndarray or ExtensionArray, copy if specified,
     coerce to the dtype if specified.
-    """
 
+    Parameters
+    ----------
+    data : Any
+    index : Index or None, default None
+    dtype : np.dtype, ExtensionDtype, or None, default None
+    copy : bool, default False
+    raise_cast_failure : bool, default True
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+
+    Notes
+    -----
+    raise_cast_failure=False is only intended to be True when called from the
+    DataFrame constructor, as the dtype keyword there may be interpreted as only
+    applying to a subset of columns, see GH#24435.
+    """
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
 
@@ -499,16 +517,19 @@ def sanitize_array(
 
     elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
         # TODO: deque, array.array
-        if isinstance(data, set):
+        if isinstance(data, (set, frozenset)):
             # Raise only for unordered sets, e.g., not for dict_keys
-            raise TypeError("Set type is unordered")
+            raise TypeError(f"'{type(data).__name__}' type is unordered")
         data = list(data)
 
         if dtype is not None:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
             subarr = maybe_convert_platform(data)
-            subarr = maybe_cast_to_datetime(subarr, dtype)
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray, List[Any]]", variable has type
+            # "ExtensionArray")
+            subarr = maybe_cast_to_datetime(subarr, dtype)  # type: ignore[assignment]
 
     elif isinstance(data, range):
         # GH#16804
@@ -521,18 +542,26 @@ def sanitize_array(
         subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
 
     else:
+        # realize e.g. generators
+        # TODO: non-standard array-likes we can convert to ndarray more efficiently?
+        data = list(data)
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
     subarr = _sanitize_ndim(subarr, data, dtype, index)
 
     if not (is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype)):
-        subarr = _sanitize_str_dtypes(subarr, data, dtype, copy)
+        # error: Argument 1 to "_sanitize_str_dtypes" has incompatible type
+        # "ExtensionArray"; expected "ndarray"
+        subarr = _sanitize_str_dtypes(
+            subarr, data, dtype, copy  # type: ignore[arg-type]
+        )
 
         is_object_or_str_dtype = is_object_dtype(dtype) or is_string_dtype(dtype)
         if is_object_dtype(subarr.dtype) and not is_object_or_str_dtype:
             inferred = lib.infer_dtype(subarr, skipna=False)
             if inferred in {"interval", "period"}:
                 subarr = array(subarr)
+                subarr = extract_array(subarr, extract_numpy=True)
 
     return subarr
 
@@ -555,11 +584,17 @@ def _sanitize_ndim(
             raise ValueError("Data must be 1-dimensional")
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
-            result = com.asarray_tuplesafe(data, dtype=object)
+
+            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
+            # "Type[object]"; expected "Union[str, dtype[Any], None]"
+            result = com.asarray_tuplesafe(data, dtype=object)  # type: ignore[arg-type]
             cls = dtype.construct_array_type()
             result = cls._from_sequence(result, dtype=dtype)
         else:
-            result = com.asarray_tuplesafe(data, dtype=dtype)
+            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
+            # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[str,
+            # dtype[Any], None]"
+            result = com.asarray_tuplesafe(data, dtype=dtype)  # type: ignore[arg-type]
     return result
 
 
@@ -578,7 +613,11 @@ def _sanitize_str_dtypes(
         # GH#19853: If data is a scalar, result has already the result
         if not lib.is_scalar(data):
             if not np.all(isna(data)):
-                data = np.array(data, dtype=dtype, copy=False)
+                # error: Argument "dtype" to "array" has incompatible type
+                # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[dtype[Any],
+                # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
+                # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+                data = np.array(data, dtype=dtype, copy=False)  # type: ignore[arg-type]
             result = np.array(data, dtype=object, copy=copy)
     return result
 
@@ -594,13 +633,18 @@ def _maybe_repeat(arr: ArrayLike, index: Optional[Index]) -> ArrayLike:
     return arr
 
 
-def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool):
+def _try_cast(
+    arr: Union[list, np.ndarray],
+    dtype: Optional[DtypeObj],
+    copy: bool,
+    raise_cast_failure: bool,
+) -> ArrayLike:
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
 
     Parameters
     ----------
-    arr : ndarray, list, tuple, iterator (catchall)
+    arr : ndarray or list
         Excludes: ExtensionArray, Series, Index.
     dtype : np.dtype, ExtensionDtype or None
     copy : bool
@@ -608,6 +652,10 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
     raise_cast_failure : bool
         If True, and if a dtype is specified, raise errors during casting.
         Otherwise an object array is returned.
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
     """
     # perf shortcut as this is the most common case
     if (
@@ -635,12 +683,19 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
         # that we can convert the data to the requested dtype.
         if is_integer_dtype(dtype):
             # this will raise if we have e.g. floats
-            maybe_cast_to_integer_array(arr, dtype)
+
+            # error: Argument 2 to "maybe_cast_to_integer_array" has incompatible type
+            # "Union[dtype, ExtensionDtype, None]"; expected "Union[ExtensionDtype, str,
+            # dtype, Type[str], Type[float], Type[int], Type[complex], Type[bool],
+            # Type[object]]"
+            maybe_cast_to_integer_array(arr, dtype)  # type: ignore[arg-type]
             subarr = arr
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)
+            if dtype is not None and dtype.kind == "M":
+                return subarr
 
-        if not isinstance(subarr, (ABCExtensionArray, ABCIndex)):
+        if not isinstance(subarr, ABCExtensionArray):
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
     except OutOfBoundsDatetime:
         # in case of out of bound datetime64 -> always raise

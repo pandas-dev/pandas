@@ -297,7 +297,7 @@ cdef class _NaT(datetime):
         # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
         return "NaT"
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return NPY_NAT
 
     @property
