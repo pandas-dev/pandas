@@ -450,7 +450,7 @@ class RangeIndex(Int64Index):
                 **kwargs,
             )
 
-    def tolist(self):
+    def tolist(self) -> list[int]:
         return list(self._range)
 
     @doc(Int64Index.__iter__)
@@ -494,13 +494,13 @@ class RangeIndex(Int64Index):
 
         return self.start + self.step * no_steps
 
-    def min(self, axis=None, skipna=True, *args, **kwargs) -> int:
+    def min(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
         """The minimum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_min(args, kwargs)
         return self._minmax("min")
 
-    def max(self, axis=None, skipna=True, *args, **kwargs) -> int:
+    def max(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
         """The maximum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_max(args, kwargs)

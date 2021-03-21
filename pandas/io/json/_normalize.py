@@ -27,7 +27,7 @@ import pandas as pd
 from pandas import DataFrame
 
 
-def convert_to_line_delimits(s):
+def convert_to_line_delimits(s: str) -> str:
     """
     Helper function that converts JSON lists to line delimited JSON.
     """
