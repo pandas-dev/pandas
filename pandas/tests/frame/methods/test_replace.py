@@ -1659,3 +1659,17 @@ class TestDataFrameReplace:
         expected = obj.copy()
         obj = obj.replace({None: np.nan})
         tm.assert_equal(obj, expected)
+
+    @pytest.mark.parametrize(
+        "s, to_replace, value, expected",
+        [
+            (DataFrame([1]), np.array([1.0]), [0], DataFrame([0])),
+            (DataFrame([1]), np.array([1]), [0], DataFrame([0])),
+            (DataFrame([1.0]), np.array([1.0]), [0], DataFrame([0.0])),
+            (DataFrame([1.0]), np.array([1]), [0], DataFrame([0.0])),
+        ],
+    )
+    def test_replace_list_with_mixed_type(self, s, to_replace, value, expected):
+        # GH#40371
+        result = s.replace(to_replace, value)
+        tm.assert_frame_equal(result, expected)

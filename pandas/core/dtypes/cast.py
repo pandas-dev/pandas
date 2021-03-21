@@ -2184,7 +2184,7 @@ def can_hold_element(dtype: np.dtype, element: Any) -> bool:
 
     if dtype.kind in ["i", "u"]:
         if tipo is not None:
-            return tipo.kind in ["i", "u"] and dtype.itemsize >= tipo.itemsize
+            return tipo.kind in ["f", "i", "u"] and dtype.itemsize >= tipo.itemsize
 
         # We have not inferred an integer from the dtype
         # check if we have a builtin int or a float equal to an int

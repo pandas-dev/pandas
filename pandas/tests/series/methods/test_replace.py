@@ -460,3 +460,17 @@ class TestSeriesReplace:
         with tm.assert_produces_warning(FutureWarning) as w:
             s.str.replace(pattern, "")
             assert re.match(msg, str(w[0].message))
+
+    @pytest.mark.parametrize(
+        "s, to_replace, value, expected",
+        [
+            (pd.Series([1]), np.array([1.0]), [0], pd.Series([0])),
+            (pd.Series([1]), np.array([1]), [0], pd.Series([0])),
+            (pd.Series([1.0]), np.array([1.0]), [0], pd.Series([0.0])),
+            (pd.Series([1.0]), np.array([1]), [0], pd.Series([0.0])),
+        ],
+    )
+    def test_replace_list_with_mixed_type(self, s, to_replace, value, expected):
+        # GH#40371
+        result = s.replace(to_replace, value)
+        tm.assert_series_equal(result, expected)
