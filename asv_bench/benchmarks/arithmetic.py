@@ -267,10 +267,6 @@ class Timeseries:
 
         self.s2 = Series(date_range("20010101", periods=N, freq="s", tz=tz))
 
-        # warm-up for numba
-
-        self.s2.diff()
-
     def time_series_timestamp_compare(self, tz):
         self.s <= self.ts
 

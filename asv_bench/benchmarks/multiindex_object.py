@@ -102,9 +102,6 @@ class Integer:
             ]
         )
 
-        # numba warm-up
-        self.mi_int[:10].is_monotonic
-
     def time_get_indexer(self):
         self.mi_int.get_indexer(self.obj_index)
 
