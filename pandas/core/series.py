@@ -4670,7 +4670,7 @@ Keep all original rows and also all original values
             self, method="isin"
         )
 
-    def between(self, left, right, inclusive=True) -> Series:
+    def between(self, left, right, inclusive="True") -> Series:
         """
         Return boolean Series equivalent to left <= series <= right.
 
@@ -4736,12 +4736,21 @@ Keep all original rows and also all original values
         3    False
         dtype: bool
         """
-        if inclusive:
+
+        if inclusive == "True" or inclusive == "both":
+            lmask = self >= left
+            rmask = self <= right
+        elif inclusive == "left":
+            lmask = self >= left
+            rmask = self < right
+        elif inclusive == "right":
+            lmask = self > left
+            rmask = self <= right
+        elif inclusive == "False" or inclusive == "neither":
             lmask = self > left
             rmask = self < right
         else:
-            lmask = self > left
-            rmask = self < right
+            print("Invalid inclusive input: string input of 'True', 'False' 'left', 'right', 'neither', or 'both' should be submitted")
 
         return lmask & rmask
 
