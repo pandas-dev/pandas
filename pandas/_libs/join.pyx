@@ -237,7 +237,7 @@ def ffill_indexer(const intp_t[:] indexer):
         ndarray[intp_t] result
         intp_t val, last_obs
 
-    result = np.empty(n, dtype=np.int64)
+    result = np.empty(n, dtype=np.intp)
     last_obs = -1
 
     for i in range(n):
