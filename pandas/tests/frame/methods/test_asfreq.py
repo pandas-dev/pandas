@@ -96,11 +96,10 @@ class TestAsFreq:
         # GH#39805
         # Test that rows are not dropped when the datetime index is out of order
         index = to_datetime(["2021-01-04", "2021-01-02", "2021-01-03", "2021-01-01"])
-        ts = frame_or_series(range(4), index=index)
+        result = frame_or_series(range(4), index=index)
 
-        sorted_index = to_datetime(
-            ["2021-01-01", "2021-01-02", "2021-01-03", "2021-01-04"]
-        )
-        expected = frame_or_series([3, 1, 2, 0], index=sorted_index)
+        expected = result.copy().reindex(sorted(index))
 
-        tm.assert_equal(ts.asfreq("D"), expected.asfreq("D"))
+        result = result.asfreq("D")
+        expected = expected.asfreq("D")
+        tm.assert_equal(result, expected)
