@@ -5,7 +5,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.base import registry as ea_registry
+from pandas.core.dtypes.base import _registry as ea_registry
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_interval_dtype,

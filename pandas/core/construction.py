@@ -33,7 +33,7 @@ from pandas._typing import (
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
-    registry,
+    _registry as registry,
 )
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
