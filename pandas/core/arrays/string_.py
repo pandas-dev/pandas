@@ -26,23 +26,29 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
+    is_datetime64_any_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
+    is_timedelta64_dtype,
     pandas_dtype,
 )
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import (
+from pandas.core.arrays import PandasArray
+from pandas.core.arrays.datetimes import DatetimeArray
+from pandas.core.arrays.floating import (
     FloatingArray,
-    IntegerArray,
-    PandasArray,
+    FloatingDtype,
 )
-from pandas.core.arrays.floating import FloatingDtype
-from pandas.core.arrays.integer import _IntegerDtype
+from pandas.core.arrays.integer import (
+    IntegerArray,
+    _IntegerDtype,
+)
+from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
@@ -329,7 +335,13 @@ class StringArray(PandasArray):
             return FloatingArray(values, mask, copy=False)
         elif is_extension_array_dtype(dtype):
             cls = dtype.construct_array_type()
-            return cls._from_sequence(self, dtype=dtype, copy=copy)
+            return cls._from_sequence_of_strings(self, dtype=dtype, copy=copy)
+        elif is_datetime64_any_dtype(dtype):
+            return DatetimeArray._from_sequence_of_strings(self, dtype=dtype, copy=copy)
+        elif is_timedelta64_dtype(dtype):
+            return TimedeltaArray._from_sequence_of_strings(
+                self, dtype=dtype, copy=copy
+            )
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
             mask = self.isna()

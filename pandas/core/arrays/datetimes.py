@@ -38,6 +38,7 @@ from pandas._libs.tslibs import (
     to_offset,
     tzconversion,
 )
+from pandas._typing import Dtype
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
@@ -65,6 +66,7 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.api import NA
 from pandas.core.arrays import (
     ExtensionArray,
     datetimelike as dtl,
@@ -333,6 +335,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
         return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _from_sequence_of_strings(
+        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+    ):
+        scalars = [NaT if s is NA else s for s in strings]
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_sequence_not_strict(

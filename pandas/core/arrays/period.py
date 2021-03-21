@@ -73,6 +73,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.api import NA
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
@@ -252,7 +253,8 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Optional[Dtype] = None, copy=False
     ) -> PeriodArray:
-        return cls._from_sequence(strings, dtype=dtype, copy=copy)
+        scalars = [NaT if s is NA else s for s in strings]
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_datetime64(cls, data, freq, tz=None) -> PeriodArray:

@@ -478,6 +478,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
         return Categorical(scalars, dtype=dtype, copy=copy)
 
+    @classmethod
+    def _from_sequence_of_strings(
+        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+    ):
+        return cls._from_sequence(scalars=strings, dtype=dtype, copy=copy)
+
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         """
         Coerce this type to another dtype

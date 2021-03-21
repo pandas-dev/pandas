@@ -35,7 +35,10 @@ from pandas._libs.tslibs.timedeltas import (
     ints_to_pytimedelta,
     parse_timedelta_unit,
 )
-from pandas._typing import NpDtype
+from pandas._typing import (
+    Dtype,
+    NpDtype,
+)
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.cast import astype_td64_unit_conversion
@@ -60,6 +63,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.api import NA
 from pandas.core.arrays import (
     ExtensionArray,
     IntegerArray,
@@ -253,6 +257,13 @@ class TimedeltaArray(dtl.TimelikeOps):
         freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
 
         return cls._simple_new(data, freq=freq)
+
+    @classmethod
+    def _from_sequence_of_strings(
+        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+    ):
+        scalars = [NaT if s is NA else s for s in strings]
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_sequence_not_strict(
