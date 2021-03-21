@@ -937,7 +937,7 @@ class TestDataFrameSetitemCopyViewSemantics:
 
         # 32bit builds end up with heterogeneous column dtypes
         expected = DataFrame(
-            {"A": np.array([0, 1], dtype=np.int64), "B": np.array([0, 1], dtype=int)}
+            {"A": np.array([0, 0], dtype=np.int64), "B": np.array([1, 1], dtype=int)}
         )
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(df_view, df_copy)
