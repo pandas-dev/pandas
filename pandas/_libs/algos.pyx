@@ -64,15 +64,6 @@ cdef:
     float64_t NaN = <float64_t>np.NaN
     int64_t NPY_NAT = get_nat()
 
-
-cdef enum TiebreakEnumType:
-    TIEBREAK_AVERAGE
-    TIEBREAK_MIN,
-    TIEBREAK_MAX
-    TIEBREAK_FIRST
-    TIEBREAK_FIRST_DESCENDING
-    TIEBREAK_DENSE
-
 tiebreakers = {
     "average": TIEBREAK_AVERAGE,
     "min": TIEBREAK_MIN,
@@ -266,7 +257,7 @@ def kth_smallest(numeric[::1] arr, Py_ssize_t k) -> numeric:
     """
     cdef:
         numeric result
-        
+
     with nogil:
         result = kth_smallest_c(&arr[0], k, arr.shape[0])
 
