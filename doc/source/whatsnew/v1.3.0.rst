@@ -225,6 +225,41 @@ In pandas 1.3.0, ``df`` continues to share data with ``values``
    np.shares_memory(df["A"], values)
 
 
+.. _whatsnew_130.notable_bug_fixes.setitem_never_inplace:
+
+Never Operate Inplace When Setting ``frame[keys] = values``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When setting multiple columns using ``frame[keys] = values`` new arrays will
+replace pre-existing arrays for these keys, which will *not* be over-written
+(:issue:`39510`).  As a result, the columns will retain the dtype(s) of ``values``,
+never casting to the dtypes of the existing arrays.
+
+.. ipython:: python
+
+   df = pd.DataFrame(range(3), columns=["A"], dtype="float64")
+   df[["A"]] = 5
+
+In the old behavior, ``5`` was cast to ``float64`` and inserted into the existing
+array backing ``df``:
+
+*pandas 1.2.x*
+
+.. code-block:: ipython
+
+   In [1]: df.dtypes
+   Out[1]:
+   A    float64
+
+In the new behavior, we get a new array, and retain an integer-dtyped ``5``:
+
+*pandas 1.3.0*
+
+.. ipython:: python
+
+   df.dtypes
+
+
 .. _whatsnew_130.notable_bug_fixes.setitem_with_bool_casting:
 
 Consistent Casting With Setting Into Boolean Series
@@ -264,6 +299,24 @@ cast to ``dtype=object`` (:issue:`38709`)
    ser
    ser2
 
+
+.. _whatsnew_130.notable_bug_fixes.rolling_var_precision:
+
+Removed artificial truncation in rolling variance and standard deviation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`core.window.Rolling.std` and :meth:`core.window.Rolling.var` will no longer
+artificially truncate results that are less than ``~1e-8`` and ``~1e-15`` respectively to
+zero (:issue:`37051`, :issue:`40448`, :issue:`39872`).
+
+However, floating point artifacts may now exist in the results when rolling over larger values.
+
+.. ipython:: python
+
+   s = pd.Series([7, 5, 5, 5])
+   s.rolling(3).var()
+
+
 .. _whatsnew_130.api_breaking.deps:
 
 Increased minimum versions for dependencies
@@ -300,7 +353,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +=================+=================+=========+
 | beautifulsoup4  | 4.6.0           |         |
 +-----------------+-----------------+---------+
-| fastparquet     | 0.3.2           |         |
+| fastparquet     | 0.4.0           |    X    |
 +-----------------+-----------------+---------+
 | fsspec          | 0.7.4           |         |
 +-----------------+-----------------+---------+
@@ -370,6 +423,7 @@ Deprecations
 - Deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` in favour of :meth:`.Styler.format` with ``na_rep`` and ``precision`` as existing and new input arguments respectively (:issue:`40134`, :issue:`40425`)
 - Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like; will raise if any function fails on a column in a future version (:issue:`40211`)
 - Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
+- Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
 
 .. ---------------------------------------------------------------------------
 
@@ -625,6 +679,7 @@ Other
 - Bug in :class:`Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
 - Bug in :meth:`Styler.background_gradient` where text-color was not determined correctly (:issue:`39888`)
 - Bug in :class:`Styler` where multiple elements in CSS-selectors were not correctly added to ``table_styles`` (:issue:`39942`)
+- Bug in :class:`.Styler` where copying from Jupyter dropped top left cell and misaligned headers (:issue:`12147`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)

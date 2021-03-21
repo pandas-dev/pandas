@@ -289,7 +289,7 @@ def _convert_listlike_datetimes(
     name: Hashable = None,
     tz: Optional[Timezone] = None,
     unit: Optional[str] = None,
-    errors: Optional[str] = None,
+    errors: str = "raise",
     infer_datetime_format: bool = False,
     dayfirst: Optional[bool] = None,
     yearfirst: Optional[bool] = None,
@@ -307,9 +307,9 @@ def _convert_listlike_datetimes(
         None or string for the Index name
     tz : object
         None or 'utc'
-    unit : string
+    unit : str
         None or string of the frequency of the passed data
-    errors : string
+    errors : str
         error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'
     infer_datetime_format : bool, default False
         inferring format behavior from to_datetime
@@ -432,7 +432,7 @@ def _array_strptime_with_fallback(
     tz,
     fmt: str,
     exact: bool,
-    errors: Optional[str],
+    errors: str,
     infer_datetime_format: bool,
 ) -> Optional[Index]:
     """
@@ -480,7 +480,7 @@ def _to_datetime_with_format(
     tz,
     fmt: str,
     exact: bool,
-    errors: Optional[str],
+    errors: str,
     infer_datetime_format: bool,
 ) -> Optional[Index]:
     """
@@ -529,7 +529,7 @@ def _to_datetime_with_format(
     return result  # type: ignore[return-value]
 
 
-def _to_datetime_with_unit(arg, unit, name, tz, errors: Optional[str]) -> Index:
+def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
     """
     to_datetime specalized to the case where a 'unit' is passed.
     """
@@ -1035,7 +1035,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     return values
 
 
-def _attempt_YYYYMMDD(arg: np.ndarray, errors: Optional[str]) -> Optional[np.ndarray]:
+def _attempt_YYYYMMDD(arg: np.ndarray, errors: str) -> Optional[np.ndarray]:
     """
     try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
     arg is a passed in as an object dtype, but could really be ints/strings

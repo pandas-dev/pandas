@@ -52,12 +52,14 @@ import pandas._testing as tm
 
 import pandas.io.sql as sql
 from pandas.io.sql import (
+    _gt14,
     read_sql_query,
     read_sql_table,
 )
 
 try:
     import sqlalchemy
+    from sqlalchemy import inspect
     from sqlalchemy.ext import declarative
     from sqlalchemy.orm import session as sa_session
     import sqlalchemy.schema
@@ -1487,7 +1489,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pandasSQL = sql.SQLDatabase(temp_conn)
         pandasSQL.to_sql(temp_frame, "temp_frame")
 
-        assert temp_conn.has_table("temp_frame")
+        if _gt14():
+            insp = inspect(temp_conn)
+            assert insp.has_table("temp_frame")
+        else:
+            assert temp_conn.has_table("temp_frame")
 
     def test_drop_table(self):
         temp_conn = self.connect()
@@ -1499,11 +1505,18 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pandasSQL = sql.SQLDatabase(temp_conn)
         pandasSQL.to_sql(temp_frame, "temp_frame")
 
-        assert temp_conn.has_table("temp_frame")
+        if _gt14():
+            insp = inspect(temp_conn)
+            assert insp.has_table("temp_frame")
+        else:
+            assert temp_conn.has_table("temp_frame")
 
         pandasSQL.drop_table("temp_frame")
 
-        assert not temp_conn.has_table("temp_frame")
+        if _gt14():
+            assert not insp.has_table("temp_frame")
+        else:
+            assert not temp_conn.has_table("temp_frame")
 
     def test_roundtrip(self):
         self._roundtrip()
@@ -1843,9 +1856,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         tm.assert_frame_equal(result, df)
 
     def _get_index_columns(self, tbl_name):
-        from sqlalchemy.engine import reflection
+        from sqlalchemy import inspect
 
-        insp = reflection.Inspector.from_engine(self.conn)
+        insp = inspect(self.conn)
+
         ixs = insp.get_indexes(tbl_name)
         ixs = [i["column_names"] for i in ixs]
         return ixs
@@ -1977,8 +1991,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         def main(connectable):
             with connectable.connect() as conn:
                 with conn.begin():
-                    foo_data = conn.run_callable(foo)
-                    conn.run_callable(bar, foo_data)
+                    if _gt14():
+                        # https://github.com/sqlalchemy/sqlalchemy/commit/
+                        #  00b5c10846e800304caa86549ab9da373b42fa5d#r48323973
+                        foo_data = foo(conn)
+                        bar(conn, foo_data)
+                    else:
+                        foo_data = conn.run_callable(foo)
+                        conn.run_callable(bar, foo_data)
 
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
