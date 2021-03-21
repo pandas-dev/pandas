@@ -530,7 +530,7 @@ class Styler:
             engine=engine,
         )
 
-    def _translate(self):
+    def _translate(self, blank=None):
         """
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`
         into a dictionary of {head, body, uuid, cellstyle}.
@@ -541,7 +541,7 @@ class Styler:
 
         DATA_CLASS = "data"
         BLANK_CLASS = "blank"
-        BLANK_VALUE = "&nbsp;"
+        BLANK_VALUE = "&nbsp;" if blank is None else blank
 
         # mapping variables
         ctx = self.ctx  # td css styles from apply() and applymap()
@@ -1001,15 +1001,18 @@ class Styler:
         """
         self._compute()
         # TODO: namespace all the pandas keys
-        d = self._translate()
-        template = self.template
+
         if latex:
+            d = self._translate(blank="")
             d = self._translate_latex(d)
             template = self.template_latex
             template.globals["parse_wrap"] = _parse_latex_table_wrapping
             template.globals["parse_table"] = _parse_latex_table_styles
             template.globals["parse_cell"] = _parse_latex_cell_styles
             template.globals["parse_header"] = _parse_latex_header_span
+        else:  # standard CSS-HTML
+            d = self._translate()
+            template = self.template
 
         d.update(kwargs)
         return template.render(**d)
