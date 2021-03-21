@@ -231,11 +231,11 @@ cdef ndarray[intp_t] _get_result_indexer(
     return res
 
 
-def ffill_indexer(const int64_t[:] indexer):
+def ffill_indexer(const intp_t[:] indexer):
     cdef:
         Py_ssize_t i, n = len(indexer)
-        ndarray[int64_t] result
-        int64_t val, last_obs
+        ndarray[intp_t] result
+        intp_t val, last_obs
 
     result = np.empty(n, dtype=np.int64)
     last_obs = -1
