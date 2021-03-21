@@ -5,10 +5,7 @@ from typing import (
     Dict,
     Optional,
     Tuple,
-    Union,
 )
-
-import numpy as np
 
 from pandas._typing import (
     Axis,
@@ -563,7 +560,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -589,7 +586,7 @@ class Expanding(RollingAndExpandingMixin):
     )
     def cov(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeriesUnion]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         ddof: int = 1,
         **kwargs,
@@ -601,7 +598,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -654,7 +651,7 @@ class Expanding(RollingAndExpandingMixin):
     )
     def corr(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeriesUnion]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         ddof: int = 1,
         **kwargs,

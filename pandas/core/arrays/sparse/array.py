@@ -818,6 +818,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if isinstance(key, tuple):
             if len(key) > 1:
+                if key[0] is Ellipsis:
+                    key = key[1:]
+                elif key[-1] is Ellipsis:
+                    key = key[:-1]
+            if len(key) > 1:
                 raise IndexError("too many indices for array.")
             key = key[0]
 
@@ -1396,7 +1401,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         out = kwargs.get("out", ())
 
         for x in inputs + out:

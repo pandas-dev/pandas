@@ -23,6 +23,7 @@ from pandas._libs import (
     internals as libinternals,
     lib,
 )
+from pandas._libs.internals import BlockPlacement
 from pandas._typing import (
     ArrayLike,
     Dtype,
@@ -35,6 +36,7 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
+    ensure_int64,
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
@@ -65,13 +67,13 @@ from pandas.core.internals.base import (
 )
 from pandas.core.internals.blocks import (
     Block,
-    CategoricalBlock,
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
     ensure_block_shape,
     extend_blocks,
     get_block_type,
+    maybe_coerce_values,
     new_block,
 )
 from pandas.core.internals.ops import (
@@ -237,7 +239,8 @@ class BlockManager(DataManager):
             assert isinstance(self, SingleBlockManager)  # for mypy
             blk = self.blocks[0]
             arr = blk.values[:0]
-            nb = blk.make_block_same_class(arr, placement=slice(0, 0))
+            bp = BlockPlacement(slice(0, 0))
+            nb = blk.make_block_same_class(arr, placement=bp)
             blocks = [nb]
         else:
             blocks = []
@@ -783,7 +786,7 @@ class BlockManager(DataManager):
         new_blocks: List[Block] = []
         for b in blocks:
             b = b.copy(deep=copy)
-            b.mgr_locs = inv_indexer[b.mgr_locs.indexer]
+            b.mgr_locs = BlockPlacement(inv_indexer[b.mgr_locs.indexer])
             new_blocks.append(b)
 
         axes = list(self.axes)
@@ -799,8 +802,7 @@ class BlockManager(DataManager):
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
         elif axis == 1:
-            slicer = (slice(None), slobj)
-            new_blocks = [blk.getitem_block(slicer) for blk in self.blocks]
+            new_blocks = [blk.getitem_block_index(slobj) for blk in self.blocks]
         else:
             raise IndexError("Requested axis not found in manager")
 
@@ -1051,7 +1053,9 @@ class BlockManager(DataManager):
         values = block.iget(self.blklocs[i])
 
         # shortcut for select a single-dim from a 2-dim BM
-        nb = type(block)(values, placement=slice(0, len(values)), ndim=1)
+        bp = BlockPlacement(slice(0, len(values)))
+        values = maybe_coerce_values(values)
+        nb = type(block)(values, placement=bp, ndim=1)
         return SingleBlockManager(nb, self.axes[1])
 
     def iget_values(self, i: int) -> ArrayLike:
@@ -1263,7 +1267,7 @@ class BlockManager(DataManager):
             else:
                 new_mgr_locs = blk.mgr_locs.as_array.copy()
                 new_mgr_locs[new_mgr_locs >= loc] += 1
-                blk.mgr_locs = new_mgr_locs
+                blk.mgr_locs = BlockPlacement(new_mgr_locs)
 
         # Accessing public blklocs ensures the public versions are initialized
         if loc == self.blklocs.shape[0]:
@@ -1291,7 +1295,7 @@ class BlockManager(DataManager):
 
     def reindex_indexer(
         self: T,
-        new_axis,
+        new_axis: Index,
         indexer,
         axis: int,
         fill_value=None,
@@ -1357,7 +1361,10 @@ class BlockManager(DataManager):
         return type(self).from_blocks(new_blocks, new_axes)
 
     def _slice_take_blocks_ax0(
-        self, slice_or_indexer, fill_value=lib.no_default, only_slice: bool = False
+        self,
+        slice_or_indexer: Union[slice, np.ndarray],
+        fill_value=lib.no_default,
+        only_slice: bool = False,
     ) -> List[Block]:
         """
         Slice/take blocks along axis=0.
@@ -1366,7 +1373,7 @@ class BlockManager(DataManager):
 
         Parameters
         ----------
-        slice_or_indexer : slice, ndarray[bool], or list-like of ints
+        slice_or_indexer : slice or np.ndarray[int64]
         fill_value : scalar, default lib.no_default
         only_slice : bool, default False
             If True, we always return views on existing arrays, never copies.
@@ -1385,13 +1392,13 @@ class BlockManager(DataManager):
         if self.is_single_block:
             blk = self.blocks[0]
 
-            if sl_type in ("slice", "mask"):
+            if sl_type == "slice":
                 # GH#32959 EABlock would fail since we can't make 0-width
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
                     return []
-                # TODO: tests all have isinstance(slobj, slice), other possibilities?
-                return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
+                bp = BlockPlacement(slice(0, sllen))
+                return [blk.getitem_block_columns(slobj, new_mgr_locs=bp)]
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_value is None:
                     fill_value = blk.fill_value
@@ -1400,23 +1407,26 @@ class BlockManager(DataManager):
                     # GH#33597 slice instead of take, so we get
                     #  views instead of copies
                     blocks = [
-                        blk.getitem_block(slice(ml, ml + 1), new_mgr_locs=i)
+                        blk.getitem_block_columns(
+                            slice(ml, ml + 1), new_mgr_locs=BlockPlacement(i)
+                        )
                         for i, ml in enumerate(slobj)
                     ]
                     # We have
                     #  all(np.shares_memory(nb.values, blk.values) for nb in blocks)
                     return blocks
                 else:
+                    bp = BlockPlacement(slice(0, sllen))
                     return [
                         blk.take_nd(
                             slobj,
                             axis=0,
-                            new_mgr_locs=slice(0, sllen),
+                            new_mgr_locs=bp,
                             fill_value=fill_value,
                         )
                     ]
 
-        if sl_type in ("slice", "mask"):
+        if sl_type == "slice":
             blknos = self.blknos[slobj]
             blklocs = self.blklocs[slobj]
         else:
@@ -1448,7 +1458,7 @@ class BlockManager(DataManager):
                     # item.
                     for mgr_loc in mgr_locs:
                         newblk = blk.copy(deep=False)
-                        newblk.mgr_locs = slice(mgr_loc, mgr_loc + 1)
+                        newblk.mgr_locs = BlockPlacement(slice(mgr_loc, mgr_loc + 1))
                         blocks.append(newblk)
 
                 else:
@@ -1460,13 +1470,15 @@ class BlockManager(DataManager):
                         taker = lib.maybe_indices_to_slice(taker, max_len)
 
                     if isinstance(taker, slice):
-                        nb = blk.getitem_block(taker, new_mgr_locs=mgr_locs)
+                        nb = blk.getitem_block_columns(taker, new_mgr_locs=mgr_locs)
                         blocks.append(nb)
                     elif only_slice:
                         # GH#33597 slice instead of take, so we get
                         #  views instead of copies
                         for i, ml in zip(taker, mgr_locs):
-                            nb = blk.getitem_block(slice(i, i + 1), new_mgr_locs=ml)
+                            slc = slice(i, i + 1)
+                            bp = BlockPlacement(ml)
+                            nb = blk.getitem_block_columns(slc, new_mgr_locs=bp)
                             # We have np.shares_memory(nb.values, blk.values)
                             blocks.append(nb)
                     else:
@@ -1491,10 +1503,21 @@ class BlockManager(DataManager):
         block_values.fill(fill_value)
         return new_block(block_values, placement=placement, ndim=block_values.ndim)
 
-    def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
+    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
         """
         Take items along any axis.
+
+        indexer : np.ndarray or slice
+        axis : int, default 1
+        verify : bool, default True
+            Check that all entries are between 0 and len(self) - 1, inclusive.
+            Pass verify=False if this check has been done by the caller.
+
+        Returns
+        -------
+        BlockManager
         """
+        # We have 6 tests that get here with a slice
         indexer = (
             np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
             if isinstance(indexer, slice)
@@ -1502,12 +1525,7 @@ class BlockManager(DataManager):
         )
 
         n = self.shape[axis]
-        if convert:
-            indexer = maybe_convert_indices(indexer, n)
-
-        if verify:
-            if ((indexer == -1) | (indexer >= n)).any():
-                raise Exception("Indices must be nonzero and less than the axis length")
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
@@ -1639,11 +1657,15 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
         array = blk._slice(indexer)
-        if array.ndim > blk.values.ndim:
+        if array.ndim > 1:
             # This will be caught by Series._get_values
             raise ValueError("dimension-expanding indexing not allowed")
-        block = blk.make_block_same_class(array, placement=slice(0, len(array)))
-        return type(self)(block, self.index[indexer])
+
+        bp = BlockPlacement(slice(0, len(array)))
+        block = blk.make_block_same_class(array, placement=bp)
+
+        new_idx = self.index[indexer]
+        return type(self)(block, new_idx)
 
     def get_slice(self, slobj: slice, axis: int = 0) -> SingleBlockManager:
         assert isinstance(slobj, slice), type(slobj)
@@ -1652,10 +1674,8 @@ class SingleBlockManager(BlockManager, SingleDataManager):
 
         blk = self._block
         array = blk._slice(slobj)
-        if array.ndim > blk.values.ndim:
-            # This will be caught by Series._get_values
-            raise ValueError("dimension-expanding indexing not allowed")
-        block = blk.make_block_same_class(array, placement=slice(0, len(array)))
+        bp = BlockPlacement(slice(0, len(array)))
+        block = blk.make_block_same_class(array, placement=bp)
         new_index = self.index._getitem_slice(slobj)
         return type(self)(block, new_index)
 
@@ -1719,37 +1739,26 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         valid for the current Block/SingleBlockManager (length, dtype, etc).
         """
         self.blocks[0].values = values
-        self.blocks[0]._mgr_locs = libinternals.BlockPlacement(slice(len(values)))
+        self.blocks[0]._mgr_locs = BlockPlacement(slice(len(values)))
 
 
 # --------------------------------------------------------------------
 # Constructor Helpers
 
 
-def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
+def create_block_manager_from_blocks(
+    blocks: List[Block], axes: List[Index]
+) -> BlockManager:
     try:
-        if len(blocks) == 1 and not isinstance(blocks[0], Block):
-            # if blocks[0] is of length 0, return empty blocks
-            if not len(blocks[0]):
-                blocks = []
-            else:
-                # It's OK if a single block is passed as values, its placement
-                # is basically "all items", but if there're many, don't bother
-                # converting, it's an error anyway.
-                blocks = [
-                    new_block(
-                        values=blocks[0], placement=slice(0, len(axes[0])), ndim=2
-                    )
-                ]
-
         mgr = BlockManager(blocks, axes)
-        mgr._consolidate_inplace()
-        return mgr
 
-    except ValueError as e:
-        blocks = [getattr(b, "values", b) for b in blocks]
-        tot_items = sum(b.shape[0] for b in blocks)
-        raise construction_error(tot_items, blocks[0].shape[1:], axes, e)
+    except ValueError as err:
+        arrays = [blk.values for blk in blocks]
+        tot_items = sum(arr.shape[0] for arr in arrays)
+        raise construction_error(tot_items, arrays[0].shape[1:], axes, err)
+
+    mgr._consolidate_inplace()
+    return mgr
 
 
 # We define this here so we can override it in tests.extension.test_numpy
@@ -1857,13 +1866,6 @@ def _form_blocks(
         object_blocks = _simple_blockify(items_dict["ObjectBlock"], np.object_)
         blocks.extend(object_blocks)
 
-    if len(items_dict["CategoricalBlock"]) > 0:
-        cat_blocks = [
-            new_block(array, klass=CategoricalBlock, placement=i, ndim=2)
-            for i, array in items_dict["CategoricalBlock"]
-        ]
-        blocks.extend(cat_blocks)
-
     if len(items_dict["ExtensionBlock"]):
         external_blocks = [
             new_block(array, klass=ExtensionBlock, placement=i, ndim=2)
@@ -1969,10 +1971,6 @@ def _merge_blocks(
 
     if can_consolidate:
 
-        if dtype is None:
-            if len({b.dtype for b in blocks}) != 1:
-                raise AssertionError("_merge_blocks are invalid!")
-
         # TODO: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
@@ -1986,7 +1984,8 @@ def _merge_blocks(
         new_values = new_values[argsort]
         new_mgr_locs = new_mgr_locs[argsort]
 
-        return [new_block(new_values, placement=new_mgr_locs, ndim=2)]
+        bp = BlockPlacement(new_mgr_locs)
+        return [new_block(new_values, placement=bp, ndim=2)]
 
     # can't consolidate --> no merge
     return blocks
@@ -1999,20 +1998,25 @@ def _fast_count_smallints(arr: np.ndarray) -> np.ndarray:
     return np.c_[nz, counts[nz]]
 
 
-def _preprocess_slice_or_indexer(slice_or_indexer, length: int, allow_fill: bool):
+def _preprocess_slice_or_indexer(
+    slice_or_indexer: Union[slice, np.ndarray], length: int, allow_fill: bool
+):
     if isinstance(slice_or_indexer, slice):
         return (
             "slice",
             slice_or_indexer,
             libinternals.slice_len(slice_or_indexer, length),
         )
-    elif (
-        isinstance(slice_or_indexer, np.ndarray) and slice_or_indexer.dtype == np.bool_
-    ):
-        return "mask", slice_or_indexer, slice_or_indexer.sum()
     else:
+        if (
+            not isinstance(slice_or_indexer, np.ndarray)
+            or slice_or_indexer.dtype.kind != "i"
+        ):
+            dtype = getattr(slice_or_indexer, "dtype", None)
+            raise TypeError(type(slice_or_indexer), dtype)
+
         # TODO: np.intp?
-        indexer = np.asanyarray(slice_or_indexer, dtype=np.int64)
+        indexer = ensure_int64(slice_or_indexer)
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return "fancy", indexer, len(indexer)

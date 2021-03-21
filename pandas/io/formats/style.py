@@ -199,9 +199,10 @@ class Styler:
         self.cell_context: Dict[str, Any] = {}
         self._todo: List[Tuple[Callable, Tuple, Dict]] = []
         self.tooltips: Optional[_Tooltips] = None
+        def_precision = get_option("display.precision")
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             Tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=None))
+        ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
         self.format(formatter=None, precision=precision, na_rep=na_rep)
@@ -219,8 +220,10 @@ class Styler:
         css_class: Optional[str] = None,
     ) -> Styler:
         """
-        Add string based tooltips that will appear in the `Styler` HTML result. These
-        tooltips are applicable only to`<td>` elements.
+        Set the DataFrame of strings on ``Styler`` generating ``:hover`` tooltips.
+
+        These string based tooltips are only applicable to ``<td>`` HTML elements,
+        and cannot be used for column or index headers.
 
         .. versionadded:: 1.3.0
 
@@ -229,7 +232,7 @@ class Styler:
         ttips : DataFrame
             DataFrame containing strings that will be translated to tooltips, mapped
             by identical column and index values that must exist on the underlying
-            `Styler` data. None, NaN values, and empty strings will be ignored and
+            Styler data. None, NaN values, and empty strings will be ignored and
             not affect the rendered HTML.
         props : list-like or str, optional
             List of (attr, value) tuples or a valid CSS string. If ``None`` adopts
@@ -416,12 +419,6 @@ class Styler:
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`
         into a dictionary of {head, body, uuid, cellstyle}.
         """
-        table_styles = self.table_styles or []
-        caption = self.caption
-        ctx = self.ctx
-        hidden_index = self.hidden_index
-        hidden_columns = self.hidden_columns
-        uuid = self.uuid
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
         INDEX_NAME_CLASS = "index_name"
@@ -430,11 +427,21 @@ class Styler:
         BLANK_CLASS = "blank"
         BLANK_VALUE = ""
 
+        # mapping variables
+        ctx = self.ctx  # td css styles from apply() and applymap()
+        cell_context = self.cell_context  # td css classes from set_td_classes()
+        cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
+
+        # copied attributes
+        table_styles = self.table_styles or []
+        caption = self.caption
+        hidden_index = self.hidden_index
+        hidden_columns = self.hidden_columns
+        uuid = self.uuid
+
         # for sparsifying a MultiIndex
         idx_lengths = _get_level_lengths(self.index)
         col_lengths = _get_level_lengths(self.columns, hidden_columns)
-
-        cell_context = self.cell_context
 
         n_rlvls = self.data.index.nlevels
         n_clvls = self.data.columns.nlevels
@@ -447,10 +454,7 @@ class Styler:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
 
-        cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
-
         head = []
-
         for r in range(n_clvls):
             # Blank for Index columns...
             row_es = [
@@ -735,20 +739,32 @@ class Styler:
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
-        Add string based CSS class names to data cells that will appear within the
-        `Styler` HTML result. These classes are added within specified `<td>` elements.
+        Set the DataFrame of strings added to the ``class`` attribute of ``<td>``
+        HTML elements.
 
         Parameters
         ----------
         classes : DataFrame
             DataFrame containing strings that will be translated to CSS classes,
-            mapped by identical column and index values that must exist on the
-            underlying `Styler` data. None, NaN values, and empty strings will
+            mapped by identical column and index key values that must exist on the
+            underlying Styler data. None, NaN values, and empty strings will
             be ignored and not affect the rendered HTML.
 
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.set_table_styles: Set the table styles included within the ``<style>``
+            HTML element.
+        Styler.set_table_attributes: Set the table attributes added to the ``<table>``
+            HTML element.
+
+        Notes
+        -----
+        Can be used in combination with ``Styler.set_table_styles`` to define an
+        internal CSS solution without reference to external CSS files.
 
         Examples
         --------
@@ -771,16 +787,16 @@ class Styler:
         Form of the output with new additional css classes,
 
         >>> df = pd.DataFrame([[1]])
-        >>> css = pd.DataFrame(["other-class"])
+        >>> css = pd.DataFrame([["other-class"]])
         >>> s = Styler(df, uuid="_", cell_ids=False).set_td_classes(css)
         >>> s.hide_index().render()
-        '<style  type="text/css" ></style>'
-        '<table id="T__" >'
+        '<style type="text/css"></style>'
+        '<table id="T__">'
         '  <thead>'
         '    <tr><th class="col_heading level0 col0" >0</th></tr>'
         '  </thead>'
         '  <tbody>'
-        '    <tr><td  class="data row0 col0 other-class" >1</td></tr>'
+        '    <tr><td class="data row0 col0 other-class" >1</td></tr>'
         '  </tbody>'
         '</table>'
         """
@@ -800,7 +816,7 @@ class Styler:
 
     def render(self, **kwargs) -> str:
         """
-        Render the built up styles to HTML.
+        Render the ``Styler`` including all applied styles to HTML.
 
         Parameters
         ----------
@@ -817,7 +833,7 @@ class Styler:
 
         Notes
         -----
-        ``Styler`` objects have defined the ``_repr_html_`` method
+        Styler objects have defined the ``_repr_html_`` method
         which automatically calls ``self.render()`` when it's the
         last item in a Notebook cell. When calling ``Styler.render()``
         directly, wrap the result in ``IPython.display.HTML`` to view
@@ -844,7 +860,7 @@ class Styler:
 
     def _update_ctx(self, attrs: DataFrame) -> None:
         """
-        Update the state of the Styler for data cells.
+        Update the state of the ``Styler`` for data cells.
 
         Collects a mapping of {index_label: [('<property>', '<value>'), ..]}.
 
@@ -904,7 +920,7 @@ class Styler:
 
     def clear(self) -> None:
         """
-        Reset the styler, removing any previously applied styles.
+        Reset the ``Styler``, removing any previously applied styles.
 
         Returns None.
         """
@@ -988,10 +1004,11 @@ class Styler:
         Parameters
         ----------
         func : function
-            ``func`` should take a Series or DataFrame (depending
-            on ``axis``), and return an object with the same shape.
-            Must return a DataFrame with identical index and
-            column labels or an ndarray with same shape as input when ``axis=None``.
+            ``func`` should take a Series if ``axis`` in [0,1] and return an object
+            of same length, also with identical index if the object is a Series.
+            ``func`` should take a DataFrame if ``axis`` is ``None`` and return either
+            an ndarray with the same shape or a DataFrame with identical columns and
+            index.
 
             .. versionchanged:: 1.3.0
 
@@ -1009,13 +1026,16 @@ class Styler:
         -------
         self : Styler
 
+        See Also
+        --------
+        Styler.where: Apply CSS-styles based on a conditional function elementwise.
+        Styler.applymap: Apply a CSS-styling function elementwise.
+
         Notes
         -----
-        The output of ``func`` should be elements having CSS style as string or,
+        The elements of the output of ``func`` should be CSS styles as strings, in the
+        format 'attribute: value; attribute2: value2; ...' or,
         if nothing is to be applied to that element, an empty string or ``None``.
-        The output shape must match the input, i.e. if
-        ``x`` is the input row, column, or table (depending on ``axis``),
-        then ``func(x).shape == x.shape`` should be ``True``.
 
         This is similar to ``DataFrame.apply``, except that ``axis=None``
         applies the function to the entire DataFrame at once,
@@ -1066,13 +1086,14 @@ class Styler:
 
         See Also
         --------
-        Styler.where: Updates the HTML representation with a style which is
-            selected in accordance with the return value of a function.
+        Styler.where: Apply CSS-styles based on a conditional function elementwise.
+        Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
         Notes
         -----
-        The output of ``func`` should be a CSS style as string or, if nothing is to be
-        applied, an empty string or ``None``.
+        The elements of the output of ``func`` should be CSS styles as strings, in the
+        format 'attribute: value; attribute2: value2; ...' or,
+        if nothing is to be applied to that element, an empty string or ``None``.
 
         Examples
         --------
@@ -1095,7 +1116,7 @@ class Styler:
         **kwargs,
     ) -> Styler:
         """
-        Apply a function elementwise.
+        Apply CSS-styles based on a conditional function elementwise.
 
         Updates the HTML representation with a style which is
         selected in accordance with the return value of a function.
@@ -1120,7 +1141,15 @@ class Styler:
 
         See Also
         --------
-        Styler.applymap: Updates the HTML representation with the result.
+        Styler.applymap: Apply a CSS-styling function elementwise.
+        Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
+
+        Examples
+        --------
+        >>> def cond(v):
+        ...     return v > 1 and v != 4
+        >>> df = pd.DataFrame([[1, 2], [3, 4]])
+        >>> df.style.where(cond, value='color:red;', other='font-size:2em;')
         """
         if other is None:
             other = ""
@@ -1157,10 +1186,9 @@ class Styler:
 
     def set_table_attributes(self, attributes: str) -> Styler:
         """
-        Set the table attributes.
+        Set the table attributes added to the ``<table>`` HTML element.
 
-        These are the items that show up in the opening ``<table>`` tag
-        in addition to automatic (by default) id.
+        These are items in addition to automatic (by default) ``id`` attribute.
 
         Parameters
         ----------
@@ -1169,6 +1197,13 @@ class Styler:
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.set_table_styles: Set the table styles included within the ``<style>``
+            HTML element.
+        Styler.set_td_classes: Set the DataFrame of strings added to the ``class``
+            attribute of ``<td>`` HTML elements.
 
         Examples
         --------
@@ -1181,9 +1216,9 @@ class Styler:
 
     def export(self) -> List[Tuple[Callable, Tuple, Dict]]:
         """
-        Export the styles to applied to the current Styler.
+        Export the styles applied to the current ``Styler``.
 
-        Can be applied to a second style with ``Styler.use``.
+        Can be applied to a second Styler with ``Styler.use``.
 
         Returns
         -------
@@ -1191,13 +1226,13 @@ class Styler:
 
         See Also
         --------
-        Styler.use: Set the styles on the current Styler.
+        Styler.use: Set the styles on the current ``Styler``.
         """
         return self._todo
 
     def use(self, styles: List[Tuple[Callable, Tuple, Dict]]) -> Styler:
         """
-        Set the styles on the current Styler.
+        Set the styles on the current ``Styler``.
 
         Possibly uses styles from ``Styler.export``.
 
@@ -1212,14 +1247,14 @@ class Styler:
 
         See Also
         --------
-        Styler.export : Export the styles to applied to the current Styler.
+        Styler.export : Export the styles to applied to the current ``Styler``.
         """
         self._todo.extend(styles)
         return self
 
     def set_uuid(self, uuid: str) -> Styler:
         """
-        Set the uuid for a Styler.
+        Set the uuid applied to ``id`` attributes of HTML elements.
 
         Parameters
         ----------
@@ -1228,13 +1263,19 @@ class Styler:
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        Almost all HTML elements within the table, and including the ``<table>`` element
+        are assigned ``id`` attributes. The format is ``T_uuid_<extra>`` where
+        ``<extra>`` is typically a more specific identifier, such as ``row1_col2``.
         """
         self.uuid = uuid
         return self
 
     def set_caption(self, caption: str) -> Styler:
         """
-        Set the caption on a Styler.
+        Set the text added to a ``<caption>`` HTML element.
 
         Parameters
         ----------
@@ -1254,9 +1295,7 @@ class Styler:
         overwrite: bool = True,
     ) -> Styler:
         """
-        Set the table styles on a Styler.
-
-        These are placed in a ``<style>`` tag before the generated HTML table.
+        Set the table styles included within the ``<style>`` HTML element.
 
         This function can be used to style the entire table, columns, rows or
         specific HTML selectors.
@@ -1296,6 +1335,13 @@ class Styler:
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.set_td_classes: Set the DataFrame of strings added to the ``class``
+            attribute of ``<td>`` HTML elements.
+        Styler.set_table_attributes: Set the table attributes added to the ``<table>``
+            HTML element.
 
         Examples
         --------
@@ -1360,7 +1406,7 @@ class Styler:
 
     def set_na_rep(self, na_rep: str) -> Styler:
         """
-        Set the missing data representation on a Styler.
+        Set the missing data representation on a ``Styler``.
 
         .. versionadded:: 1.0.0
 
@@ -1570,7 +1616,8 @@ class Styler:
 
     def set_properties(self, subset=None, **kwargs) -> Styler:
         """
-        Method to set one or more non-data dependent properties or each cell.
+        Set defined CSS-properties to each ``<td>`` HTML element within the given
+        subset.
 
         Parameters
         ----------
@@ -1582,6 +1629,11 @@ class Styler:
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        This is a convenience methods which wraps the :meth:`Styler.applymap` calling a
+        function returning the CSS-properties independently of the data.
 
         Examples
         --------
@@ -1930,8 +1982,8 @@ class Styler:
         See Also
         --------
         DataFrame.pipe : Analogous method for DataFrame.
-        Styler.apply : Apply a function row-wise, column-wise, or table-wise to
-            modify the dataframe's styling.
+        Styler.apply : Apply a CSS-styling function column-wise, row-wise, or
+            table-wise.
 
         Notes
         -----
@@ -1980,7 +2032,7 @@ class Styler:
 class _Tooltips:
     """
     An extension to ``Styler`` that allows for and manipulates tooltips on hover
-    of table data-cells in the HTML result.
+    of ``<td>`` cells in the HTML result.
 
     Parameters
     ----------
@@ -1989,7 +2041,7 @@ class _Tooltips:
     css_props: list-like, default; see Notes
         List of (attr, value) tuples defining properties of the CSS class.
     tooltips: DataFrame, default empty
-        DataFrame of strings aligned with underlying ``Styler`` data for tooltip
+        DataFrame of strings aligned with underlying Styler data for tooltip
         display.
 
     Notes
@@ -2090,7 +2142,7 @@ class _Tooltips:
         """
         Mutate the render dictionary to allow for tooltips:
 
-        - Add `<span>` HTML element to each data cells `display_value`. Ignores
+        - Add ``<span>`` HTML element to each data cells ``display_value``. Ignores
           headers.
         - Add table level CSS styles to control pseudo classes.
 
@@ -2194,7 +2246,7 @@ def _get_level_lengths(index, hidden_elements=None):
     return non_zero_lengths
 
 
-def _default_formatter(x: Any, precision: Optional[int] = None) -> Any:
+def _default_formatter(x: Any, precision: int) -> Any:
     """
     Format the display of a value
 
@@ -2202,7 +2254,7 @@ def _default_formatter(x: Any, precision: Optional[int] = None) -> Any:
     ----------
     x : Any
         Input variable to be formatted
-    precision : Int, optional
+    precision : Int
         Floating point precision used if ``x`` is float or complex.
 
     Returns
@@ -2210,8 +2262,6 @@ def _default_formatter(x: Any, precision: Optional[int] = None) -> Any:
     value : Any
         Matches input type, or string if input is float or complex.
     """
-    if precision is None:
-        precision = get_option("display.precision")
     if isinstance(x, (float, complex)):
         return f"{x:.{precision}f}"
     return x
@@ -2232,6 +2282,7 @@ def _maybe_wrap_formatter(
     elif callable(formatter):
         formatter_func = formatter
     elif formatter is None:
+        precision = get_option("display.precision") if precision is None else precision
         formatter_func = partial(_default_formatter, precision=precision)
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")

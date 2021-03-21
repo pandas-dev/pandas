@@ -1354,7 +1354,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def cov(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeriesUnion]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         ddof: int = 1,
         **kwargs,
@@ -1392,7 +1392,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def corr(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeriesUnion]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         ddof: int = 1,
         **kwargs,
@@ -2111,7 +2111,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -2137,7 +2137,7 @@ class Rolling(RollingAndExpandingMixin):
     )
     def cov(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeriesUnion]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         ddof: int = 1,
         **kwargs,
@@ -2149,7 +2149,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -2262,7 +2262,7 @@ class Rolling(RollingAndExpandingMixin):
     )
     def corr(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeriesUnion]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         ddof: int = 1,
         **kwargs,
