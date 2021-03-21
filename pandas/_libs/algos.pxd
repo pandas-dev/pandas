@@ -44,7 +44,7 @@ cdef inline numeric kth_smallest_c(numeric* arr, Py_ssize_t k, Py_ssize_t n) nog
             while arr[i] < x: i += 1
             while x < arr[j]: j -= 1
             if i <= j:
-                swap(&arr[i], &arr[j])
+                swap(arr + i, arr + j)
                 i += 1; j -= 1
 
             if i > j: break
