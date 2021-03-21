@@ -114,7 +114,6 @@ def test_write_append_mode(ext, mode, expected):
     "if_sheet_exists,num_sheets,expected",
     [
         ("new", 2, ["apple", "banana"]),
-        (None, 2, ["apple", "banana"]),
         ("replace", 1, ["pear"]),
         ("overwrite", 1, ["pear", "banana"]),
     ],
@@ -150,11 +149,15 @@ def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected
         (
             "invalid",
             "'invalid' is not valid for if_sheet_exists. Valid options "
-            "are 'new', 'replace', 'overwrite' and 'fail'.",
+            "are 'new', 'replace', 'overwrite' and 'error'.",
         ),
         (
-            "fail",
-            "Sheet 'foo' already exists and if_sheet_exists is set to 'fail'.",
+            "error",
+            "Sheet 'foo' already exists and if_sheet_exists is set to 'error'.",
+        ),
+        (
+            None,
+            "Sheet 'foo' already exists and if_sheet_exists is set to 'error'.",
         ),
     ],
 )
@@ -236,7 +239,9 @@ def test_append_mode_file(ext):
     with tm.ensure_clean(ext) as f:
         df.to_excel(f, engine="openpyxl")
 
-        with ExcelWriter(f, mode="a", engine="openpyxl") as writer:
+        with ExcelWriter(
+            f, mode="a", engine="openpyxl", if_sheet_exists="new"
+        ) as writer:
             df.to_excel(writer)
 
         # make sure that zip files are not concatenated by making sure that
