@@ -21,6 +21,7 @@ cdef inline numeric kth_smallest_c(numeric* arr, Py_ssize_t k, Py_ssize_t n) nog
     arr: numeric* arr
         Pointer to the start of the array
     k: Py_ssize_t
+    n: Number of values in arr to consider (no more than len(arr))
 
     Returns
     -------
