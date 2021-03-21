@@ -946,7 +946,7 @@ def rank_1d(
     cdef:
         TiebreakEnumType tiebreak
         Py_ssize_t i, j, N, grp_start=0, dups=0, sum_ranks=0
-        Py_ssize_t grp_vals_seen=1, grp_na_count=0, grp_tie_count=0
+        Py_ssize_t grp_vals_seen=1, grp_na_count=0
         ndarray[int64_t, ndim=1] lexsort_indexer
         ndarray[float64_t, ndim=1] grp_sizes, out
         ndarray[rank_t, ndim=1] masked_vals
