@@ -1029,10 +1029,7 @@ class SQLTable(PandasObject):
         self.pd_sql.meta.reflect(only=[self.name], views=True)
         self.table = self.pd_sql.get_table(table_name=self.name, schema=self.schema)
 
-        primary_keys = [
-            str(primary_key.name)
-            for primary_key in self.table.primary_key.columns.values()
-        ]
+        primary_keys = self.table.primary_key.columns.keys()
 
         # For the time being, this method is defensive and will break if
         # no pkeys are found. If desired this default behaviour could be
