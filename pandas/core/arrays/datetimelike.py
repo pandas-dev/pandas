@@ -1728,7 +1728,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         values = self.view("i8")
         nanos = to_offset(freq).nanos
-        result = round_nsint64(values, mode, nanos)
+        # error: Argument 1 to "round_nsint64" has incompatible type
+        # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+        result = round_nsint64(values, mode, nanos)  # type: ignore[arg-type]
         result = self._maybe_mask_results(result, fill_value=iNaT)
         result = result.view(self._ndarray.dtype)
         return self._simple_new(result, dtype=self.dtype)

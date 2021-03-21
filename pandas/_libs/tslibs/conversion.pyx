@@ -316,7 +316,7 @@ def datetime_to_datetime64(ndarray[object] values):
 
     Returns
     -------
-    result : ndarray[int64_t]
+    result : ndarray[datetime64ns]
     inferred_tz : tzinfo or None
     """
     cdef:
@@ -810,14 +810,14 @@ cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
         return dt.replace(tzinfo=tz)
 
 
-cpdef inline datetime localize_pydatetime(datetime dt, object tz):
+cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
     """
     Take a datetime/Timestamp in UTC and localizes to timezone tz.
 
     Parameters
     ----------
     dt : datetime or Timestamp
-    tz : tzinfo, "UTC", or None
+    tz : tzinfo or None
 
     Returns
     -------
