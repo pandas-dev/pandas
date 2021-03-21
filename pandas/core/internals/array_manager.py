@@ -848,6 +848,7 @@ class ArrayManager(DataManager):
 
         self.arrays = [self.arrays[i] for i in np.nonzero(to_keep)[0]]
         self._axes = [self._axes[0], self._axes[1][to_keep]]
+        return self
 
     def iset(self, loc: Union[int, slice, np.ndarray], value):
         """
@@ -1259,7 +1260,7 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
     def setitem(self, indexer, value):
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
-    def idelete(self, indexer):
+    def idelete(self, indexer) -> SingleArrayManager:
         """
         Delete selected locations in-place (new array, same ArrayManager)
         """
@@ -1268,6 +1269,7 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
 
         self.arrays = [self.arrays[0][to_keep]]
         self._axes = [self._axes[0][to_keep]]
+        return self
 
     def _get_data_subset(self, predicate: Callable) -> ArrayManager:
         # used in get_numeric_data / get_bool_data
