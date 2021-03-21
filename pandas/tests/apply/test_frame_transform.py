@@ -162,7 +162,6 @@ wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]
 frame_kernels_raise = [x for x in frame_transform_kernels if x not in wont_fail]
 
 
-@pytest.mark.xfail(strict=False)
 @pytest.mark.parametrize("op", [*frame_kernels_raise, lambda x: x + 1])
 def test_transform_bad_dtype(op, frame_or_series):
     # GH 35964
