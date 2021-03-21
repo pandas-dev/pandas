@@ -1060,19 +1060,25 @@ def rank_1d(
                 # to the result where appropriate
                 set_as_na = keep_na and mask[lexsort_indexer[i]]
 
-                # For all cases except TIEBREAK_FIRST when not setting
-                # nulls, we can set the same value at each index
-                if set_as_na:
-                    computed_rank = NaN
-                    grp_na_count = dups
-                elif tiebreak == TIEBREAK_AVERAGE:
-                    computed_rank = sum_ranks / <float64_t>dups
-                elif tiebreak == TIEBREAK_MIN:
-                    computed_rank = i - grp_start - dups + 2
-                elif tiebreak == TIEBREAK_MAX:
-                    computed_rank = i - grp_start + 1
-                elif tiebreak == TIEBREAK_DENSE:
-                    computed_rank = grp_vals_seen
+                # For all cases except TIEBREAK_FIRST for non-null values
+                # we set the same value at each index
+                if set_as_na or tiebreak != TIEBREAK_FIRST:
+                    if set_as_na:
+                        computed_rank = NaN
+                        grp_na_count = dups
+                    elif tiebreak == TIEBREAK_AVERAGE:
+                        computed_rank = sum_ranks / <float64_t>dups
+                    elif tiebreak == TIEBREAK_MIN:
+                        computed_rank = i - grp_start - dups + 2
+                    elif tiebreak == TIEBREAK_MAX:
+                        computed_rank = i - grp_start + 1
+                    elif tiebreak == TIEBREAK_DENSE:
+                        computed_rank = grp_vals_seen
+
+                    for j in range(i - dups + 1, i + 1):
+                        out[lexsort_indexer[j]] = computed_rank
+
+                # Otherwise, we need to iterate a compute a rank per index
                 else:
                     for j in range(i - dups + 1, i + 1):
                         if ascending:
@@ -1080,10 +1086,6 @@ def rank_1d(
                         else:
                             out[lexsort_indexer[j]] = \
                                 (2 * i - j - dups + 2 - grp_start)
-
-                if set_as_na or tiebreak != TIEBREAK_FIRST:
-                    for j in range(i - dups + 1, i + 1):
-                        out[lexsort_indexer[j]] = computed_rank
 
                 # Look forward to the next value (using the sorting in lexsort_indexer)
                 # if the value does not equal the current value then we need to
@@ -1149,19 +1151,25 @@ def rank_1d(
                     # to the result where appropriate
                     set_as_na = keep_na and mask[lexsort_indexer[i]]
 
-                    # For all cases except TIEBREAK_FIRST when not setting
-                    # nulls, we set the same value at each index
-                    if set_as_na:
-                        computed_rank = NaN
-                        grp_na_count = dups
-                    elif tiebreak == TIEBREAK_AVERAGE:
-                        computed_rank = sum_ranks / <float64_t>dups
-                    elif tiebreak == TIEBREAK_MIN:
-                        computed_rank = i - grp_start - dups + 2
-                    elif tiebreak == TIEBREAK_MAX:
-                        computed_rank = i - grp_start + 1
-                    elif tiebreak == TIEBREAK_DENSE:
-                        computed_rank = grp_vals_seen
+                    # For all cases except TIEBREAK_FIRST for non-null values
+                    # we set the same value at each index
+                    if set_as_na or tiebreak != TIEBREAK_FIRST:
+                        if set_as_na:
+                            computed_rank = NaN
+                            grp_na_count = dups
+                        elif tiebreak == TIEBREAK_AVERAGE:
+                            computed_rank = sum_ranks / <float64_t>dups
+                        elif tiebreak == TIEBREAK_MIN:
+                            computed_rank = i - grp_start - dups + 2
+                        elif tiebreak == TIEBREAK_MAX:
+                            computed_rank = i - grp_start + 1
+                        elif tiebreak == TIEBREAK_DENSE:
+                            computed_rank = grp_vals_seen
+
+                        for j in range(i - dups + 1, i + 1):
+                            out[lexsort_indexer[j]] = computed_rank
+
+                    # Otherwise, we need to iterate a compute a rank per index
                     else:
                         for j in range(i - dups + 1, i + 1):
                             if ascending:
@@ -1170,15 +1178,11 @@ def rank_1d(
                                 out[lexsort_indexer[j]] = \
                                     (2 * i - j - dups + 2 - grp_start)
 
-                    if set_as_na or tiebreak != TIEBREAK_FIRST:
-                        for j in range(i - dups + 1, i + 1):
-                            out[lexsort_indexer[j]] = computed_rank
-
-                    # Look forward to the next value (using the sorting in lexsort_indexer)
-                    # if the value does not equal the current value then we need to
-                    # reset the dups and sum_ranks, knowing that a new value is
-                    # coming up. The conditional also needs to handle nan equality
-                    # and the end of iteration
+                    # Look forward to the next value (using the sorting in
+                    # lexsort_indexer). If the value does not equal the current
+                    # value then we need to reset the dups and sum_ranks, knowing
+                    # that a new value is coming up. The conditional also needs
+                    # to handle nan equality and the end of iteration
 
                     # This condition is equivalent to `next_val_diff or
                     # (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]]))`
