@@ -29,6 +29,8 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import DtypeArg
+from pandas.compat._optional import import_optional_dependency
+from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -38,6 +40,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
+from pandas import get_option
 from pandas.core.api import (
     DataFrame,
     Series,
@@ -645,6 +648,8 @@ def to_sql(
     chunksize: Optional[int] = None,
     dtype: Optional[DtypeArg] = None,
     method: Optional[str] = None,
+    engine: str = "auto",
+    **kwargs,
 ) -> None:
     """
     Write records stored in a DataFrame to a SQL database.
@@ -691,6 +696,14 @@ def to_sql(
         section :ref:`insert method <io.sql.method>`.
 
         .. versionadded:: 0.24.0
+    engine : {'auto', 'sqlalchemy', 'bcpandas'}, default 'auto'
+        SQL engine library to use. If 'auto', then the option
+        ``io.sql.engine`` is used. The default ``io.sql.engine``
+        behavior is 'sqlalchemy'
+
+        .. versionadded:: 1.4.0
+    **kwargs
+        Any additional kwargs are passed to the engine.
     """
     if if_exists not in ("fail", "replace", "append"):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
@@ -714,6 +727,8 @@ def to_sql(
         chunksize=chunksize,
         dtype=dtype,
         method=method,
+        engine=engine,
+        **kwargs,
     )
 
 
@@ -1285,6 +1300,130 @@ class PandasSQL(PandasObject):
         )
 
 
+class BaseEngine:
+    def insert_records(
+        self,
+        table: SQLTable,
+        con,
+        frame,
+        name,
+        index=True,
+        schema=None,
+        chunksize=None,
+        method=None,
+        **kwargs,
+    ):
+        """
+        Inserts data into already-prepared table
+        """
+        raise AbstractMethodError(self)
+
+
+class SQLAlchemyEngine(BaseEngine):
+    def __init__(self):
+        import_optional_dependency(
+            "sqlalchemy", extra="sqlalchemy is required for SQL support."
+        )
+
+    def insert_records(
+        self,
+        table: SQLTable,
+        con,
+        frame,
+        name,
+        index=True,
+        schema=None,
+        chunksize=None,
+        method=None,
+        **kwargs,
+    ):
+        from sqlalchemy import exc
+
+        try:
+            table.insert(chunksize=chunksize, method=method)
+        except exc.SQLAlchemyError as err:
+            # GH34431
+            msg = "(1054, \"Unknown column 'inf' in 'field list'\")"
+            err_text = str(err.orig)
+            if re.search(msg, err_text):
+                raise ValueError("inf cannot be used with MySQL") from err
+            else:
+                raise err
+
+
+class BCPandasEngine(BaseEngine):
+    def __init__(self):
+        import_optional_dependency(
+            "bcpandas", extra="bcpandas is required for SQL support."
+        )
+
+        import bcpandas
+
+        self.api = bcpandas
+
+    def insert_records(
+        self,
+        table: SQLTable,
+        con,
+        frame,
+        name,
+        index=True,
+        schema=None,
+        chunksize=None,
+        method=None,
+        **kwargs,
+    ):
+        # 'if_exists' already checked when created `SQLTable`,
+        # setting to 'append' for SQL Server specific checks in bcpandas
+        if_exists = "append"
+        creds = self.api.SqlCreds.from_engine(con)
+
+        self.api.to_sql(
+            df=frame,
+            table_name=name,
+            creds=creds,
+            sql_type="table",
+            schema=schema,
+            index=index,
+            if_exists=if_exists,
+            batch_size=chunksize,
+        )
+
+
+def get_engine(engine: str) -> BaseEngine:
+    """ return our implementation """
+    if engine == "auto":
+        engine = get_option("io.sql.engine")
+
+    if engine == "auto":
+        # try engines in this order
+        engine_classes = [SQLAlchemyEngine, BCPandasEngine]
+
+        error_msgs = ""
+        for engine_class in engine_classes:
+            try:
+                return engine_class()
+            except ImportError as err:
+                error_msgs += "\n - " + str(err)
+
+        raise ImportError(
+            "Unable to find a usable engine; "
+            "tried using: 'sqlalchemy', 'bcpandas'.\n"
+            "A suitable version of "
+            "sqlalchemy or bcpandas is required for sql I/O "
+            "support.\n"
+            "Trying to import the above resulted in these errors:"
+            f"{error_msgs}"
+        )
+
+    if engine == "sqlalchemy":
+        return SQLAlchemyEngine()
+    elif engine == "bcpandas":
+        return BCPandasEngine()
+
+    raise ValueError("engine must be one of 'sqlalchemy', 'bcpandas'")
+
+
 class SQLDatabase(PandasSQL):
     """
     This class enables conversion between DataFrame and SQL databases
@@ -1506,6 +1645,87 @@ class SQLDatabase(PandasSQL):
 
     read_sql = read_query
 
+    def prep_table(
+        self,
+        frame,
+        name,
+        if_exists="fail",
+        index=True,
+        index_label=None,
+        schema=None,
+        dtype: Optional[DtypeArg] = None,
+    ) -> SQLTable:
+        """
+        Prepares table in the database for data insertion. Creates it if needed, etc.
+        """
+        if dtype:
+            if not is_dict_like(dtype):
+                # error: Value expression in dictionary comprehension has incompatible
+                # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
+                # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+                # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
+                # dtype[Any], Type[object]]"
+                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
+            else:
+                dtype = cast(dict, dtype)
+
+            from sqlalchemy.types import (
+                TypeEngine,
+                to_instance,
+            )
+
+            for col, my_type in dtype.items():
+                if not isinstance(to_instance(my_type), TypeEngine):
+                    raise ValueError(f"The type of {col} is not a SQLAlchemy type")
+
+        table = SQLTable(
+            name,
+            self,
+            frame=frame,
+            index=index,
+            if_exists=if_exists,
+            index_label=index_label,
+            schema=schema,
+            dtype=dtype,
+        )
+        table.create()
+        return table
+
+    def check_case_sensitive(
+        self,
+        name,
+        schema,
+    ):
+        """
+        Checks table name for issues with case-sensitivity.
+        Method is called after data is inserted.
+        """
+        if not name.isdigit() and not name.islower():
+            # check for potentially case sensitivity issues (GH7815)
+            # Only check when name is not a number and name is not lower case
+            engine = self.connectable.engine
+            with self.connectable.connect() as conn:
+                if _gt14():
+                    from sqlalchemy import inspect
+
+                    insp = inspect(conn)
+                    table_names = insp.get_table_names(
+                        schema=schema or self.meta.schema
+                    )
+                else:
+                    table_names = engine.table_names(
+                        schema=schema or self.meta.schema, connection=conn
+                    )
+            if name not in table_names:
+                msg = (
+                    f"The provided table name '{name}' is not found exactly as "
+                    "such in the database after writing the table, possibly "
+                    "due to case sensitivity issues. Consider using lower "
+                    "case table names."
+                )
+                warnings.warn(msg, UserWarning)
+
     def to_sql(
         self,
         frame,
@@ -1517,6 +1737,8 @@ class SQLDatabase(PandasSQL):
         chunksize=None,
         dtype: Optional[DtypeArg] = None,
         method=None,
+        engine="auto",
+        **kwargs,
     ):
         """
         Write records stored in a DataFrame to a SQL database.
@@ -1558,77 +1780,40 @@ class SQLDatabase(PandasSQL):
             section :ref:`insert method <io.sql.method>`.
 
             .. versionadded:: 0.24.0
+        engine : {'auto', 'sqlalchemy', 'bcpandas'}, default 'auto'
+            SQL engine library to use. If 'auto', then the option
+            ``io.sql.engine`` is used. The default ``io.sql.engine``
+            behavior is 'sqlalchemy'
+
+            .. versionadded:: 1.4.0
+        **kwargs
+            Any additional kwargs are passed to the engine.
         """
-        if dtype:
-            if not is_dict_like(dtype):
-                # error: Value expression in dictionary comprehension has incompatible
-                # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
-                # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
-                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
-                # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
-                # dtype[Any], Type[object]]"
-                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
-            else:
-                dtype = cast(dict, dtype)
+        sql_engine = get_engine(engine)
 
-            from sqlalchemy.types import (
-                TypeEngine,
-                to_instance,
-            )
-
-            for col, my_type in dtype.items():
-                if not isinstance(to_instance(my_type), TypeEngine):
-                    raise ValueError(f"The type of {col} is not a SQLAlchemy type")
-
-        table = SQLTable(
-            name,
-            self,
+        table = self.prep_table(
             frame=frame,
-            index=index,
+            name=name,
             if_exists=if_exists,
+            index=index,
             index_label=index_label,
             schema=schema,
             dtype=dtype,
         )
-        table.create()
 
-        from sqlalchemy import exc
+        sql_engine.insert_records(
+            table=table,
+            con=self.connectable,
+            frame=frame,
+            name=name,
+            index=index,
+            schema=schema,
+            chunksize=chunksize,
+            method=method,
+            **kwargs,
+        )
 
-        try:
-            table.insert(chunksize, method=method)
-        except exc.SQLAlchemyError as err:
-            # GH34431
-            msg = "(1054, \"Unknown column 'inf' in 'field list'\")"
-            err_text = str(err.orig)
-            if re.search(msg, err_text):
-                raise ValueError("inf cannot be used with MySQL") from err
-            else:
-                raise err
-
-        if not name.isdigit() and not name.islower():
-            # check for potentially case sensitivity issues (GH7815)
-            # Only check when name is not a number and name is not lower case
-            engine = self.connectable.engine
-            with self.connectable.connect() as conn:
-                if _gt14():
-                    from sqlalchemy import inspect
-
-                    insp = inspect(conn)
-                    table_names = insp.get_table_names(
-                        schema=schema or self.meta.schema
-                    )
-                else:
-                    table_names = engine.table_names(
-                        schema=schema or self.meta.schema, connection=conn
-                    )
-            if name not in table_names:
-                msg = (
-                    f"The provided table name '{name}' is not found exactly as "
-                    "such in the database after writing the table, possibly "
-                    "due to case sensitivity issues. Consider using lower "
-                    "case table names."
-                )
-                warnings.warn(msg, UserWarning)
+        self.check_case_sensitive(name=name, schema=schema)
 
     @property
     def tables(self):
@@ -2015,6 +2200,7 @@ class SQLiteDatabase(PandasSQL):
         chunksize=None,
         dtype: Optional[DtypeArg] = None,
         method=None,
+        **kwargs,
     ):
         """
         Write records stored in a DataFrame to a SQL database.
