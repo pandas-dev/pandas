@@ -636,7 +636,9 @@ class Styler:
         The default formatter currently expresses floats and complex numbers with the
         pandas display precision unless using the ``precision`` argument here. The
         default formatter does not adjust the representation of missing values unless
-        the ``na_rep`` argument is used.
+        the ``na_rep`` argument is used. The default formatter will alter the display
+        of ``decimal`` and ``thousands`` separators only if the respective arguments
+        are used.
 
         The ``subset`` argument defines which region to apply the formatting function
         to. If the ``formatter`` argument is given in dict form but does not include
@@ -698,6 +700,19 @@ class Styler:
         <td .. ><a href="a.com/&#34;A&amp;B&#34;">&#34;A&amp;B&#34;</a></td>
         <td .. >NA</td>
         ...
+
+        Using a given ``formatter`` and the default formatter with ``decimal`` and
+        ``thousands``.
+
+        >>> df = pd.DataFrame([[1000, 10000], [100.123, 1000000]])
+        >>> s = df.style.format(precision=2, thousands="-", decimal="*")
+                   0           1
+        0   1-000*00      10-000
+        1     100*12   1-000-000
+        >>> s = df.style.format({0: "{:,.1f}", 1: "{:.0f}"}, thousands=" ", decimal=",")
+                  0         1
+        0   1 000,0     10000
+        1     100,1   1000000
         """
         if all(
             (
