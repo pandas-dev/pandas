@@ -176,6 +176,8 @@ class Styler:
         cell_ids: bool = True,
         na_rep: Optional[str] = None,
         uuid_len: int = 5,
+        decimal: str = ".",
+        thousands: Optional[str] = None,
         escape: bool = False,
     ):
         # validate ordered args
@@ -210,7 +212,14 @@ class Styler:
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
-        self.format(formatter=None, precision=precision, na_rep=na_rep, escape=escape)
+        self.format(
+            formatter=None,
+            precision=precision,
+            na_rep=na_rep,
+            escape=escape,
+            decimal=decimal,
+            thousands=thousands,
+        )
 
     def _repr_html_(self) -> str:
         """
@@ -557,6 +566,8 @@ class Styler:
         subset: Optional[Union[slice, Sequence[Any]]] = None,
         na_rep: Optional[str] = None,
         precision: Optional[int] = None,
+        decimal: str = ".",
+        thousands: Optional[str] = None,
         escape: bool = False,
     ) -> Styler:
         """
@@ -580,6 +591,14 @@ class Styler:
             the specified ``formatter``.
 
             .. versionadded:: 1.3.0
+
+        decimal : str, default "."
+            Character used as decimal separator for floats and complex.
+
+            .. versionadded:: 1.3.0
+
+        thousands : str, optional, default None
+            Character used as thousands separtor for floats, complex and integers
 
         escape : bool, default False
             Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
@@ -674,6 +693,8 @@ class Styler:
                 subset is None,
                 precision is None,
                 na_rep is None,
+                decimal == ".",
+                thousands is None,
                 escape is False,
             )
         ):
@@ -694,7 +715,12 @@ class Styler:
             except KeyError:
                 format_func = None
             format_func = _maybe_wrap_formatter(
-                format_func, na_rep=na_rep, precision=precision, escape=escape
+                format_func,
+                na_rep=na_rep,
+                precision=precision,
+                escape=escape,
+                decimal=decimal,
+                thousands=thousands,
             )
 
             for row, value in data[[col]].itertuples():
@@ -2163,7 +2189,7 @@ def _get_level_lengths(index, hidden_elements=None):
     return non_zero_lengths
 
 
-def _default_formatter(x: Any, precision: int) -> Any:
+def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     """
     Format the display of a value
 
@@ -2173,21 +2199,62 @@ def _default_formatter(x: Any, precision: int) -> Any:
         Input variable to be formatted
     precision : Int
         Floating point precision used if ``x`` is float or complex.
+    thousands : bool
+        Whether to group digits with thousands separated with ",".
 
     Returns
     -------
     value : Any
-        Matches input type, or string if input is float or complex.
+        Matches input type, or string if input is float or complex or int with sep.
     """
     if isinstance(x, (float, complex)):
+        if thousands:
+            return f"{x:,.{precision}f}"
         return f"{x:.{precision}f}"
+    elif isinstance(x, int) and thousands:
+        return f"{x:,.0f}"
     return x
+
+
+def _maybe_wrap_deci_thou(
+    formatter: Callable, decimal: str = ".", thousands: Optional[str] = None
+) -> Callable:
+    """
+    Takes a string formatting function and wraps logic to deal with thousands and
+    decimal parameters, in the case that they are non-standard and that the input
+    is a (float, complex).
+    """
+
+    def wrapper(x):
+        std_thou = thousands is None or thousands == ","
+        std_deci = decimal == "."
+        if isinstance(x, (float, complex)):
+            if std_thou and std_deci:
+                return formatter(x)
+            elif std_thou and not std_deci:
+                return formatter(x).replace(".", decimal)
+            elif not std_thou and std_deci:
+                return formatter(x).replace(",", thousands)
+            else:
+                return (
+                    formatter(x)
+                    .replace(",", "§_§-")  # rare string to avoid "," <-> "." clash.
+                    .replace(".", decimal)
+                    .replace("§_§-", thousands)
+                )
+        elif isinstance(x, int) and not std_thou:
+            return formatter(x).replace(",", thousands)
+        return formatter(x)
+
+    return wrapper
 
 
 def _maybe_wrap_formatter(
     formatter: Optional[BaseFormatter] = None,
     na_rep: Optional[str] = None,
     precision: Optional[int] = None,
+    decimal: str = ".",
+    thousands: Optional[str] = None,
     escape: bool = False,
 ) -> Callable:
     """
@@ -2196,14 +2263,18 @@ def _maybe_wrap_formatter(
     available.
     """
     if isinstance(formatter, str):
-        formatter_func = lambda x: formatter.format(x)
+        func = lambda x: formatter.format(x)
     elif callable(formatter):
-        formatter_func = formatter
+        func = formatter
     elif formatter is None:
         precision = get_option("display.precision") if precision is None else precision
-        formatter_func = partial(_default_formatter, precision=precision)
+        func = partial(
+            _default_formatter, precision=precision, thousands=(thousands is not None)
+        )
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
+
+    formatter_func = _maybe_wrap_deci_thou(func, decimal=decimal, thousands=thousands)
 
     def _str_escape(x, escape: bool):
         """if escaping: only use on str, else return input"""

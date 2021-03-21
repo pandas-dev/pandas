@@ -677,6 +677,35 @@ class TestStyler:
         for expected in [">0<", ">1<", ">-1.2<", ">-0.6<"]:
             assert expected in s.render()
 
+    def test_format_decimal_thousands(self):
+        # tests formatter handles decimals and thousands separator
+
+        s = DataFrame([[1000000.123456789]]).style  # test float
+        result = s.format(thousands=",")._translate()
+        assert result["body"][0][1]["display_value"] == "1,000,000.123457"
+        result = s.format(thousands=",", decimal=".")._translate()
+        assert result["body"][0][1]["display_value"] == "1,000,000.123457"
+        result = s.format(thousands=",", decimal=".", precision=3)._translate()
+        assert result["body"][0][1]["display_value"] == "1,000,000.123"
+        result = s.format(decimal="_", precision=3)._translate()
+        assert result["body"][0][1]["display_value"] == "1000000_123"
+        result = s.format(thousands=" ", decimal="_", precision=3)._translate()
+        assert result["body"][0][1]["display_value"] == "1 000 000_123"
+        result = s.format("{:,.4f}", thousands=" ", decimal="_")._translate()
+        assert result["body"][0][1]["display_value"] == "1 000 000_1235"
+        result = s.format(
+            "<div>{:,.4f}</div>", thousands=" ", decimal="_", escape=True
+        )._translate()
+        assert result["body"][0][1]["display_value"] == "<div>1 000 000_1235</div>"
+
+        s = DataFrame([[1000000]]).style  # test int
+        result = s.format(thousands=" ")._translate()
+        assert result["body"][0][1]["display_value"] == "1 000 000"
+        result = s.format(
+            "<div>{:,.0f}</div>", thousands=" ", decimal="_", escape=True
+        )._translate()
+        assert result["body"][0][1]["display_value"] == "<div>1 000 000</div>"
+
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
         msg = "style is not supported for non-unique indices."
