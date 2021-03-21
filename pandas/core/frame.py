@@ -5118,6 +5118,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 result = concat([tail, other], axis=1)
 
+            result = cast(DataFrame, result)
             result.columns = self.columns.copy()
             return result
 
