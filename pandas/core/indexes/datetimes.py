@@ -636,7 +636,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # See also GH14826
             raise KeyError
 
-        if reso == "microsecond":
+        if reso.attrname == "microsecond":
             # _partial_date_slice doesn't allow microsecond resolution, but
             # _parsed_string_to_bounds allows it.
             raise KeyError
