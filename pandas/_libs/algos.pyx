@@ -953,7 +953,7 @@ def rank_1d(
         ndarray[uint8_t, ndim=1] mask
         bint keep_na, at_end, next_val_diff, check_labels, set_as_na, group_changed
         rank_t nan_fill_val
-        float computed_rank
+        float64_t computed_rank = 0
 
     tiebreak = tiebreakers[ties_method]
     keep_na = na_option == 'keep'
