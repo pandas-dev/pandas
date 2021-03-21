@@ -46,8 +46,8 @@ class TestIndexer:
         tm.assert_numpy_array_equal(rindexer, exp)
 
     def test_cython_left_outer_join(self):
-        left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
-        right = np.array([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
+        left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.intp)
+        right = np.array([1, 1, 0, 4, 2, 2, 1], dtype=np.intp)
         max_group = 5
 
         ls, rs = left_outer_join(left, right, max_group)
@@ -70,8 +70,8 @@ class TestIndexer:
         tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_cython_right_outer_join(self):
-        left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
-        right = np.array([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
+        left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.intp)
+        right = np.array([1, 1, 0, 4, 2, 2, 1], dtype=np.intp)
         max_group = 5
 
         rs, ls = left_outer_join(right, left, max_group)
@@ -116,8 +116,8 @@ class TestIndexer:
         tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_cython_inner_join(self):
-        left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
-        right = np.array([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
+        left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.intp)
+        right = np.array([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.intp)
         max_group = 5
 
         ls, rs = inner_join(left, right, max_group)
@@ -256,10 +256,10 @@ def test_left_outer_join_bug():
             0,
             2,
         ],
-        dtype=np.int64,
+        dtype=np.intp,
     )
 
-    right = np.array([3, 1], dtype=np.int64)
+    right = np.array([3, 1], dtype=np.intp)
     max_groups = 4
 
     lidx, ridx = libjoin.left_outer_join(left, right, max_groups, sort=False)

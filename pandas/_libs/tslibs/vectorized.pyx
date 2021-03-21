@@ -90,7 +90,7 @@ def ints_to_pydatetime(
     object freq=None,
     bint fold=False,
     str box="datetime"
-):
+) -> np.ndarray:
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp.
 
@@ -116,7 +116,7 @@ def ints_to_pydatetime(
 
     Returns
     -------
-    ndarray of dtype specified by box
+    ndarray[object] of type specified by box
     """
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -223,7 +223,7 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
     return RESO_DAY
 
 
-def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
+def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
     cdef:
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
@@ -332,7 +332,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None):
+def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
     """
     Check if all of the given (nanosecond) timestamps are normalized to
     midnight, i.e. hour == minute == second == 0.  If the optional timezone
