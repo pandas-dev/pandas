@@ -1546,7 +1546,6 @@ class TestDataFrameReplace:
         obj = DataFrame({"Per": [value] * 3})
         if frame_or_series is not DataFrame:
             obj = obj["Per"]
-
         expected = obj.copy()
         result = obj.replace(1.0, 0.0)
         tm.assert_equal(expected, result)
@@ -1663,13 +1662,21 @@ class TestDataFrameReplace:
     @pytest.mark.parametrize(
         "s, to_replace, value, expected",
         [
-            (DataFrame([1]), np.array([1.0]), [0], DataFrame([0])),
-            (DataFrame([1]), np.array([1]), [0], DataFrame([0])),
-            (DataFrame([1.0]), np.array([1.0]), [0], DataFrame([0.0])),
-            (DataFrame([1.0]), np.array([1]), [0], DataFrame([0.0])),
+            ([1], np.array([1.0]), [0], [0]),
+            ([1], np.array([1]), [0], [0]),
+            ([1.0], np.array([1.0]), [0], [0.0]),
+            ([1.0], np.array([1]), [0], [0.0]),
+            ([1], [1.0], [0], [0]),
+            ([1], [1], [0], [0]),
+            ([1.0], [1.0], [0], [0.0]),
+            ([1.0], [1], [0], [0.0]),
         ],
     )
-    def test_replace_list_with_mixed_type(self, s, to_replace, value, expected):
+    def test_replace_list_with_mixed_type(
+        self, s, to_replace, value, expected, frame_or_series
+    ):
         # GH#40371
+        s = frame_or_series(s)
+        expected = frame_or_series(expected)
         result = s.replace(to_replace, value)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_equal(result, expected)
