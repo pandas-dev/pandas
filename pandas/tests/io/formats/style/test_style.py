@@ -701,6 +701,10 @@ class TestStyler:
         s = DataFrame([[1000000]]).style  # test int
         result = s.format(thousands=" ")._translate()
         assert result["body"][0][1]["display_value"] == "1 000 000"
+        result = s.format(thousands=" ", decimal="*")._translate()
+        assert result["body"][0][1]["display_value"] == "1 000 000"
+        result = s.format("{:,.1f}", thousands=" ", decimal="*")._translate()
+        assert result["body"][0][1]["display_value"] == "1 000 000*0"
         result = s.format(
             "<div>{:,.0f}</div>", thousands=" ", decimal="_", escape=True
         )._translate()

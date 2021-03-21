@@ -114,6 +114,16 @@ class Styler:
 
         .. versionadded:: 1.2.0
 
+    decimal : str, default "."
+        Character used as decimal separator for floats, complex and integers
+
+        .. versionadded:: 1.3.0
+
+    thousands : str, optional, default None
+        Character used as thousands separator for floats, complex and integers
+
+        .. versionadded:: 1.3.0
+
     escape : bool, default False
         Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
         strings with HTML-safe sequences.
@@ -598,7 +608,9 @@ class Styler:
             .. versionadded:: 1.3.0
 
         thousands : str, optional, default None
-            Character used as thousands separtor for floats, complex and integers
+            Character used as thousands separator for floats, complex and integers
+
+            .. versionadded:: 1.3.0
 
         escape : bool, default False
             Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
@@ -2228,7 +2240,7 @@ def _maybe_wrap_deci_thou(
     def wrapper(x):
         std_thou = thousands is None or thousands == ","
         std_deci = decimal == "."
-        if isinstance(x, (float, complex)):
+        if isinstance(x, (float, complex, int)):
             if std_thou and std_deci:
                 return formatter(x)
             elif std_thou and not std_deci:
@@ -2242,8 +2254,6 @@ def _maybe_wrap_deci_thou(
                     .replace(".", decimal)
                     .replace("§_§-", thousands)
                 )
-        elif isinstance(x, int) and not std_thou:
-            return formatter(x).replace(",", thousands)
         return formatter(x)
 
     return wrapper
