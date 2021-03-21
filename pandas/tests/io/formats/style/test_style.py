@@ -38,6 +38,7 @@ class TestStyler:
                 {"f": [1.0, 2.0], "o": ["a", "b"], "c": pd.Categorical(["a", "b"])}
             ),
         ]
+        self.blank_value = "&nbsp;"
 
     def test_init_non_pandas(self):
         msg = "``data`` must be a Series or DataFrame"
@@ -255,9 +256,9 @@ class TestStyler:
                 {
                     "class": "blank level0",
                     "type": "th",
-                    "value": "",
+                    "value": self.blank_value,
                     "is_visible": True,
-                    "display_value": "",
+                    "display_value": self.blank_value,
                 },
                 {
                     "class": "col_heading level0 col0",
@@ -295,8 +296,8 @@ class TestStyler:
                 {
                     "class": "blank level0",
                     "type": "th",
-                    "value": "",
-                    "display_value": "",
+                    "value": self.blank_value,
+                    "display_value": self.blank_value,
                     "is_visible": True,
                 },
                 {
@@ -316,8 +317,8 @@ class TestStyler:
             ],
             [
                 {"class": "index_name level0", "type": "th", "value": "A"},
-                {"class": "blank col0", "type": "th", "value": ""},
-                {"class": "blank col1", "type": "th", "value": ""},
+                {"class": "blank col0", "type": "th", "value": self.blank_value},
+                {"class": "blank col1", "type": "th", "value": self.blank_value},
             ],
         ]
 
@@ -333,15 +334,15 @@ class TestStyler:
                 {
                     "class": "blank",
                     "type": "th",
-                    "value": "",
-                    "display_value": "",
+                    "value": self.blank_value,
+                    "display_value": self.blank_value,
                     "is_visible": True,
                 },
                 {
                     "class": "blank level0",
                     "type": "th",
-                    "value": "",
-                    "display_value": "",
+                    "value": self.blank_value,
+                    "display_value": self.blank_value,
                     "is_visible": True,
                 },
                 {
@@ -355,7 +356,7 @@ class TestStyler:
             [
                 {"class": "index_name level0", "type": "th", "value": "A"},
                 {"class": "index_name level1", "type": "th", "value": "B"},
-                {"class": "blank col0", "type": "th", "value": ""},
+                {"class": "blank col0", "type": "th", "value": self.blank_value},
             ],
         ]
 
@@ -970,16 +971,16 @@ class TestStyler:
             {
                 "type": "th",
                 "class": "blank",
-                "value": "",
+                "value": self.blank_value,
                 "is_visible": True,
-                "display_value": "",
+                "display_value": self.blank_value,
             },
             {
                 "type": "th",
                 "class": "blank level0",
-                "value": "",
+                "value": self.blank_value,
                 "is_visible": True,
-                "display_value": "",
+                "display_value": self.blank_value,
             },
             {
                 "type": "th",
@@ -1013,7 +1014,7 @@ class TestStyler:
         expected = [
             {"class": "index_name level0", "value": "idx_level_0", "type": "th"},
             {"class": "index_name level1", "value": "idx_level_1", "type": "th"},
-            {"class": "blank col0", "value": "", "type": "th"},
+            {"class": "blank col0", "value": self.blank_value, "type": "th"},
         ]
 
         assert head == expected
@@ -1034,8 +1035,8 @@ class TestStyler:
         expected = [
             {
                 "class": "blank",
-                "value": "",
-                "display_value": "",
+                "value": self.blank_value,
+                "display_value": self.blank_value,
                 "type": "th",
                 "is_visible": True,
             },
@@ -1343,7 +1344,7 @@ class TestStyler:
   <caption>A comprehensive test</caption>
   <thead>
     <tr>
-      <th class="blank level0" ></th>
+      <th class="blank level0" >&nbsp;</th>
       <th class="col_heading level0 col0" >A</th>
     </tr>
   </thead>
