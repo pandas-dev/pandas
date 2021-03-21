@@ -283,10 +283,6 @@ cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
             result = 0
         else:
             result = ssqdm_x / (nobs - <float64_t>ddof)
-            # Fix for numerical imprecision.
-            # Can be result < 0 once Kahan Summation is implemented
-            if result < 1e-14:
-                result = 0
     else:
         result = NaN
 
