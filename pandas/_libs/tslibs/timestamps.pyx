@@ -1622,7 +1622,7 @@ default 'raise'
         Add 'Europe/Stockholm' as timezone:
 
         >>> ts.tz_localize(tz='Europe/Stockholm')
-        Timestamp('2020-03-14 15:32:52.192548651+0100', tz='Europe/Stockholm'
+        Timestamp('2020-03-14 15:32:52.192548651+0100', tz='Europe/Stockholm')
 
         Analogous for ``pd.NaT``:
 
