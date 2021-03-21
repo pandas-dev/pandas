@@ -1,7 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import CategoricalDtype, DataFrame, NaT, Series, Timestamp
+from pandas import (
+    CategoricalDtype,
+    DataFrame,
+    NaT,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 

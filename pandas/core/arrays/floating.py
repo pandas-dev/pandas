@@ -1,12 +1,23 @@
 from __future__ import annotations
 
-from typing import List, Optional, Tuple, Type
+from typing import (
+    List,
+    Optional,
+    Tuple,
+    Type,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
@@ -20,13 +31,18 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays.numeric import (
+    NumericArray,
+    NumericDtype,
+)
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
-
-from .numeric import NumericArray, NumericDtype
 
 
 class FloatingDtype(NumericDtype):
@@ -47,7 +63,7 @@ class FloatingDtype(NumericDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type["FloatingArray"]:
+    def construct_array_type(cls) -> Type[FloatingArray]:
         """
         Return the array type associated with this dtype.
 
@@ -62,7 +78,10 @@ class FloatingDtype(NumericDtype):
         if not all(isinstance(t, FloatingDtype) for t in dtypes):
             return None
         np_dtype = np.find_common_type(
-            [t.numpy_dtype for t in dtypes], []  # type: ignore[union-attr]
+            # error: Item "ExtensionDtype" of "Union[Any, ExtensionDtype]" has no
+            # attribute "numpy_dtype"
+            [t.numpy_dtype for t in dtypes],  # type: ignore[union-attr]
+            [],
         )
         if np.issubdtype(np_dtype, np.floating):
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
@@ -293,18 +312,25 @@ class FloatingArray(NumericArray):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             kwargs = {"na_value": np.nan}
         elif is_datetime64_dtype(dtype):
-            kwargs = {"na_value": np.datetime64("NaT")}
+            # error: Dict entry 0 has incompatible type "str": "datetime64"; expected
+            # "str": "float"
+            kwargs = {"na_value": np.datetime64("NaT")}  # type: ignore[dict-item]
         else:
             kwargs = {}
 
-        data = self.to_numpy(dtype=dtype, **kwargs)
+        # error: Argument 2 to "to_numpy" of "BaseMaskedArray" has incompatible
+        # type "**Dict[str, float]"; expected "bool"
+        data = self.to_numpy(dtype=dtype, **kwargs)  # type: ignore[arg-type]
         return astype_nansafe(data, dtype, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         return self._data
 
     def _cmp_method(self, other, op):
-        from pandas.arrays import BooleanArray, IntegerArray
+        from pandas.arrays import (
+            BooleanArray,
+            IntegerArray,
+        )
 
         mask = None
 

@@ -1,13 +1,34 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike, Dtype, NpDtype, Scalar
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    NpDtype,
+    Scalar,
+)
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
+from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
@@ -18,10 +39,21 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.inference import is_array_like
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
-from pandas.core import nanops
-from pandas.core.algorithms import factorize_array, take
+from pandas.core import (
+    missing,
+    nanops,
+)
+from pandas.core.algorithms import (
+    factorize_array,
+    isin,
+    take,
+)
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -29,6 +61,7 @@ from pandas.core.indexers import check_array_indexer
 
 if TYPE_CHECKING:
     from pandas import Series
+    from pandas.core.arrays import BooleanArray
 
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
@@ -116,6 +149,39 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return type(self)(self._data[item], self._mask[item])
 
+    @doc(ExtensionArray.fillna)
+    def fillna(
+        self: BaseMaskedArrayT, value=None, method=None, limit=None
+    ) -> BaseMaskedArrayT:
+        value, method = validate_fillna_kwargs(value, method)
+
+        mask = self._mask
+
+        if is_array_like(value):
+            if len(value) != len(self):
+                raise ValueError(
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f" expected {len(self)}"
+                )
+            value = value[mask]
+
+        if mask.any():
+            if method is not None:
+                func = missing.get_fill_func(method)
+                new_values, new_mask = func(
+                    self._data.copy(),
+                    limit=limit,
+                    mask=mask.copy(),
+                )
+                return type(self)(new_values, new_mask.view(np.bool_))
+            else:
+                # fill with value
+                new_values = self.copy()
+                new_values[mask] = value
+        else:
+            new_values = self.copy()
+        return new_values
+
     def _coerce_to_array(self, values) -> Tuple[np.ndarray, np.ndarray]:
         raise AbstractMethodError(self)
 
@@ -144,9 +210,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return len(self._data)
 
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
-        return type(self)(~self._data, self._mask)
+        return type(self)(~self._data, self._mask.copy())
 
-    def to_numpy(
+    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
+    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
+    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
+    def to_numpy(  # type: ignore[override]
         self,
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
@@ -215,7 +284,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            dtype = object
+            # error: Incompatible types in assignment (expression has type
+            # "Type[object]", variable has type "Union[str, dtype[Any], None]")
+            dtype = object  # type: ignore[assignment]
         if self._hasna:
             if (
                 not is_object_dtype(dtype)
@@ -280,7 +351,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # Note: this is expensive right now! The hope is that we can
         # make this faster by having an optional mask, but not have to change
         # source code using it..
-        return self._mask.any()
+
+        # error: Incompatible return value type (got "bool_", expected "bool")
+        return self._mask.any()  # type: ignore[return-value]
 
     def isna(self) -> np.ndarray:
         return self._mask
@@ -328,6 +401,23 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return type(self)(result, mask, copy=False)
 
+    # error: Return type "BooleanArray" of "isin" incompatible with return type
+    # "ndarray" in supertype "ExtensionArray"
+    def isin(self, values) -> BooleanArray:  # type: ignore[override]
+
+        from pandas.core.arrays import BooleanArray
+
+        result = isin(self._data, values)
+        if self._hasna:
+            if libmissing.NA in values:
+                result += self._mask
+            else:
+                result *= np.invert(self._mask)
+        # error: No overload variant of "zeros_like" matches argument types
+        # "BaseMaskedArray", "Type[bool]"
+        mask = np.zeros_like(self, dtype=bool)  # type: ignore[call-overload]
+        return BooleanArray(result, mask, copy=False)
+
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         data, mask = self._data, self._mask
         data = data.copy()
@@ -343,8 +433,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # the hashtables don't handle all different types of bits
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
-        uniques = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
-        return codes, uniques
+        # error: Incompatible types in assignment (expression has type
+        # "BaseMaskedArray", variable has type "ndarray")
+        uniques = type(self)(  # type: ignore[assignment]
+            uniques, np.zeros(len(uniques), dtype=bool)
+        )
+        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
+        # expected "Tuple[ndarray, ExtensionArray]")
+        return codes, uniques  # type: ignore[return-value]
 
     def value_counts(self, dropna: bool = True) -> Series:
         """
@@ -363,7 +459,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         --------
         Series.value_counts
         """
-        from pandas import Index, Series
+        from pandas import (
+            Index,
+            Series,
+        )
         from pandas.arrays import IntegerArray
 
         # compute counts on the data with no nans

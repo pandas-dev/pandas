@@ -1,12 +1,26 @@
 cimport cython
-from cpython.mem cimport PyMem_Free, PyMem_Malloc
-from cpython.ref cimport Py_INCREF, PyObject
-from libc.stdlib cimport free, malloc
+from cpython.mem cimport (
+    PyMem_Free,
+    PyMem_Malloc,
+)
+from cpython.ref cimport (
+    Py_INCREF,
+    PyObject,
+)
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport float64_t, ndarray, uint8_t, uint32_t
+from numpy cimport (
+    float64_t,
+    ndarray,
+    uint8_t,
+    uint32_t,
+)
 from numpy.math cimport NAN
 
 cnp.import_array()
@@ -19,6 +33,7 @@ from pandas._libs.khash cimport (
     are_equivalent_float64_t,
     are_equivalent_khcomplex64_t,
     are_equivalent_khcomplex128_t,
+    kh_needed_n_buckets,
     kh_str_t,
     khcomplex64_t,
     khcomplex128_t,
@@ -51,13 +66,18 @@ cdef class Factorizer:
         self.uniques = ObjectVector()
         self.count = 0
 
-    def get_count(self):
+    def get_count(self) -> int:
         return self.count
 
     def factorize(
         self, ndarray[object] values, sort=False, na_sentinel=-1, na_value=None
-    ):
+    ) -> np.ndarray:
         """
+
+        Returns
+        -------
+        np.ndarray[np.intp]
+
         Examples
         --------
         Factorize values with nans replaced by na_sentinel
@@ -65,6 +85,9 @@ cdef class Factorizer:
         >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
         array([ 0,  1, 20])
         """
+        cdef:
+            ndarray[intp_t] labels
+
         if self.uniques.external_view_exists:
             uniques = ObjectVector()
             uniques.extend(self.uniques.to_array())
@@ -74,8 +97,6 @@ cdef class Factorizer:
         mask = (labels == na_sentinel)
         # sort on
         if sort:
-            if labels.dtype != np.intp:
-                labels = labels.astype(np.intp)
             sorter = self.uniques.to_array().argsort()
             reverse_indexer = np.empty(len(sorter), dtype=np.intp)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
@@ -104,8 +125,12 @@ cdef class Int64Factorizer:
         return self.count
 
     def factorize(self, const int64_t[:] values, sort=False,
-                  na_sentinel=-1, na_value=None):
+                  na_sentinel=-1, na_value=None) -> np.ndarray:
         """
+        Returns
+        -------
+        ndarray[intp_t]
+
         Examples
         --------
         Factorize values with nans replaced by na_sentinel
@@ -113,6 +138,9 @@ cdef class Int64Factorizer:
         >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
         array([ 0,  1, 20])
         """
+        cdef:
+            ndarray[intp_t] labels
+
         if self.uniques.external_view_exists:
             uniques = Int64Vector()
             uniques.extend(self.uniques.to_array())
@@ -123,9 +151,6 @@ cdef class Int64Factorizer:
 
         # sort on
         if sort:
-            if labels.dtype != np.intp:
-                labels = labels.astype(np.intp)
-
             sorter = self.uniques.to_array().argsort()
             reverse_indexer = np.empty(len(sorter), dtype=np.intp)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
@@ -152,7 +177,7 @@ def unique_label_indices(const int64_t[:] labels):
         ndarray[int64_t, ndim=1] arr
         Int64VectorData *ud = idx.data
 
-    kh_resize_int64(table, min(n, SIZE_HINT_LIMIT))
+    kh_resize_int64(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
 
     with nogil:
         for i in range(n):

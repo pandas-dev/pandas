@@ -19,13 +19,6 @@ cdef kh{{name}}_t to_kh{{name}}_t({{name}}_t val) nogil:
     res.imag = val.imag
     return res
 
-
-cdef {{name}}_t to_{{name}}(kh{{name}}_t val) nogil:
-    cdef {{name}}_t res
-    res.real = val.real
-    res.imag = val.imag
-    return res
-
 {{endfor}}
 
 
@@ -399,9 +392,8 @@ cdef class {{name}}HashTable(HashTable):
 
     def __cinit__(self, int64_t size_hint=1):
         self.table = kh_init_{{dtype}}()
-        if size_hint is not None:
-            size_hint = min(size_hint, SIZE_HINT_LIMIT)
-            kh_resize_{{dtype}}(self.table, size_hint)
+        size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
+        kh_resize_{{dtype}}(self.table, size_hint)
 
     def __len__(self) -> int:
         return self.table.size
@@ -426,6 +418,15 @@ cdef class {{name}}HashTable(HashTable):
         for_pairs =  self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
                                              sizeof(Py_ssize_t))   # vals
         return overhead + for_flags + for_pairs
+
+    def get_state(self):
+        """ returns infos about the state of the hashtable"""
+        return {
+            'n_buckets' : self.table.n_buckets,
+            'size' : self.table.size,
+            'n_occupied' : self.table.n_occupied,
+            'upper_bound' : self.table.upper_bound,
+        }
 
     cpdef get_item(self, {{dtype}}_t val):
         cdef:
@@ -538,12 +539,12 @@ cdef class {{name}}HashTable(HashTable):
         -------
         uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse=True)
+        labels : ndarray[intp_t] (if return_inverse=True)
             The labels from values to uniques
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
-            int64_t[:] labels
+            intp_t[:] labels
             int ret = 0
             {{c_type}} val, na_value2
             khiter_t k
@@ -552,7 +553,7 @@ cdef class {{name}}HashTable(HashTable):
             uint8_t[:] mask_values
 
         if return_inverse:
-            labels = np.empty(n, dtype=np.int64)
+            labels = np.empty(n, dtype=np.intp)
         ud = uniques.data
         use_na_value = na_value is not None
         use_mask = mask is not None
@@ -613,7 +614,7 @@ cdef class {{name}}HashTable(HashTable):
                     labels[i] = idx
 
         if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
+            return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
     def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
@@ -632,7 +633,7 @@ cdef class {{name}}HashTable(HashTable):
         -------
         uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse)
+        labels : ndarray[intp_t] (if return_inverse)
             The labels from values to uniques
         """
         uniques = {{name}}Vector()
@@ -667,7 +668,7 @@ cdef class {{name}}HashTable(HashTable):
         -------
         uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
-        labels : ndarray[int64]
+        labels : ndarray[intp_t]
             The labels from values to uniques
         """
         uniques_vector = {{name}}Vector()
@@ -738,9 +739,8 @@ cdef class StringHashTable(HashTable):
 
     def __init__(self, int64_t size_hint=1):
         self.table = kh_init_str()
-        if size_hint is not None:
-            size_hint = min(size_hint, SIZE_HINT_LIMIT)
-            kh_resize_str(self.table, size_hint)
+        size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
+        kh_resize_str(self.table, size_hint)
 
     def __dealloc__(self):
         if self.table is not NULL:
@@ -753,6 +753,15 @@ cdef class StringHashTable(HashTable):
         for_pairs =  self.table.n_buckets * (sizeof(char *) +      # keys
                                              sizeof(Py_ssize_t))   # vals
         return overhead + for_flags + for_pairs
+
+    def get_state(self):
+        """ returns infos about the state of the hashtable"""
+        return {
+            'n_buckets' : self.table.n_buckets,
+            'size' : self.table.size,
+            'n_occupied' : self.table.n_occupied,
+            'upper_bound' : self.table.upper_bound,
+        }
 
     cpdef get_item(self, str val):
         cdef:
@@ -909,12 +918,12 @@ cdef class StringHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse=True)
+        labels : ndarray[intp_t] (if return_inverse=True)
             The labels from values to uniques
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
-            int64_t[:] labels
+            intp_t[:] labels
             int64_t[:] uindexer
             int ret = 0
             object val
@@ -924,7 +933,7 @@ cdef class StringHashTable(HashTable):
             bint use_na_value
 
         if return_inverse:
-            labels = np.zeros(n, dtype=np.int64)
+            labels = np.zeros(n, dtype=np.intp)
         uindexer = np.empty(n, dtype=np.int64)
         use_na_value = na_value is not None
 
@@ -963,13 +972,13 @@ cdef class StringHashTable(HashTable):
                     uindexer[count] = i
                     if return_inverse:
                         self.table.vals[k] = count
-                        labels[i] = <int64_t>count
+                        labels[i] = count
                     count += 1
                 elif return_inverse:
                     # k falls into a previous bucket
                     # only relevant in case we need to construct the inverse
                     idx = self.table.vals[k]
-                    labels[i] = <int64_t>idx
+                    labels[i] = idx
 
         free(vecs)
 
@@ -978,7 +987,7 @@ cdef class StringHashTable(HashTable):
             uniques.append(values[uindexer[i]])
 
         if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
+            return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
     def unique(self, ndarray[object] values, bint return_inverse=False):
@@ -1051,9 +1060,8 @@ cdef class PyObjectHashTable(HashTable):
 
     def __init__(self, int64_t size_hint=1):
         self.table = kh_init_pymap()
-        if size_hint is not None:
-            size_hint = min(size_hint, SIZE_HINT_LIMIT)
-            kh_resize_pymap(self.table, size_hint)
+        size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
+        kh_resize_pymap(self.table, size_hint)
 
     def __dealloc__(self):
         if self.table is not NULL:
@@ -1078,6 +1086,18 @@ cdef class PyObjectHashTable(HashTable):
         for_pairs =  self.table.n_buckets * (sizeof(PyObject *) +  # keys
                                              sizeof(Py_ssize_t))   # vals
         return overhead + for_flags + for_pairs
+
+    def get_state(self):
+        """
+        returns infos about the current state of the hashtable like size,
+        number of buckets and so on.
+        """
+        return {
+            'n_buckets' : self.table.n_buckets,
+            'size' : self.table.size,
+            'n_occupied' : self.table.n_occupied,
+            'upper_bound' : self.table.upper_bound,
+        }
 
     cpdef get_item(self, object val):
         cdef:
@@ -1173,19 +1193,19 @@ cdef class PyObjectHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse=True)
+        labels : ndarray[intp_t] (if return_inverse=True)
             The labels from values to uniques
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
-            int64_t[:] labels
+            intp_t[:] labels
             int ret = 0
             object val
             khiter_t k
             bint use_na_value
 
         if return_inverse:
-            labels = np.empty(n, dtype=np.int64)
+            labels = np.empty(n, dtype=np.intp)
         use_na_value = na_value is not None
 
         for i in range(n):
@@ -1220,7 +1240,7 @@ cdef class PyObjectHashTable(HashTable):
                 labels[i] = idx
 
         if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
+            return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
     def unique(self, ndarray[object] values, bint return_inverse=False):
@@ -1239,7 +1259,7 @@ cdef class PyObjectHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse)
+        labels : ndarray[intp_t] (if return_inverse)
             The labels from values to uniques
         """
         uniques = ObjectVector()
@@ -1272,7 +1292,7 @@ cdef class PyObjectHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64]
+        labels : ndarray[intp_t]
             The labels from values to uniques
         """
         uniques_vector = ObjectVector()

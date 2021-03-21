@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.core.aggregation import _make_unique_kwarg_list, maybe_mangle_lambdas
+from pandas.core.aggregation import (
+    _make_unique_kwarg_list,
+    maybe_mangle_lambdas,
+)
 
 
 def test_maybe_mangle_lambdas_passthrough():

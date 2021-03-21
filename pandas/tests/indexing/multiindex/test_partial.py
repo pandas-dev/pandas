@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
+import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -98,7 +98,6 @@ class TestMultiIndexPartial:
         expected = ymd[(lev >= 1) & (lev <= 3)]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_getitem_partial_column_select(self):
         idx = MultiIndex(
             codes=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
@@ -117,6 +116,9 @@ class TestMultiIndexPartial:
         with pytest.raises(KeyError, match=r"\('a', 'foo'\)"):
             df.loc[("a", "foo"), :]
 
+    # TODO(ArrayManager) rewrite test to not use .values
+    # exp.loc[2000, 4].values[:] select multiple columns -> .values is not a view
+    @td.skip_array_manager_invalid_test
     def test_partial_set(self, multiindex_year_month_day_dataframe_random_data):
         # GH #397
         ymd = multiindex_year_month_day_dataframe_random_data

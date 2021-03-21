@@ -1,12 +1,17 @@
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
-from pandas import Series, Timestamp, date_range, isna
+from pandas import (
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -349,7 +354,6 @@ def test_where_dups():
     tm.assert_series_equal(comb, expected)
 
 
-@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_where_numeric_with_string():
     # GH 9280
     s = Series([1, 2, 3])
@@ -469,11 +473,14 @@ def test_where_categorical(klass):
     tm.assert_equal(exp, res)
 
 
+# TODO(ArrayManager) DataFrame.values not yet correctly returning datetime array
+# for categorical with datetime categories
+@td.skip_array_manager_not_yet_implemented
 def test_where_datetimelike_categorical(tz_naive_fixture):
     # GH#37682
     tz = tz_naive_fixture
 
-    dr = pd.date_range("2001-01-01", periods=3, tz=tz)._with_freq(None)
+    dr = date_range("2001-01-01", periods=3, tz=tz)._with_freq(None)
     lvals = pd.DatetimeIndex([dr[0], dr[1], pd.NaT])
     rvals = pd.Categorical([dr[0], pd.NaT, dr[2]])
 

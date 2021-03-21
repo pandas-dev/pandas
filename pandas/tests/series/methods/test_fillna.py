@@ -1,4 +1,8 @@
-from datetime import datetime, timedelta, timezone
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 
 import numpy as np
 import pytest
@@ -204,8 +208,9 @@ class TestSeriesFillNA:
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
-        # interpreted as seconds, deprecated
-        with pytest.raises(TypeError, match="Passing integers to fillna"):
+        # interpreted as seconds, no longer supported
+        msg = "value should be a 'Timedelta', 'NaT', or array of those. Got 'int'"
+        with pytest.raises(TypeError, match=msg):
             obj.fillna(1)
 
         result = obj.fillna(Timedelta(seconds=1))
@@ -666,13 +671,15 @@ class TestSeriesFillNA:
     def test_fillna_categorical_raises(self):
         data = ["a", np.nan, "b", np.nan, np.nan]
         ser = Series(Categorical(data, categories=["a", "b"]))
+        cat = ser._values
 
         msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             ser.fillna("d")
 
-        with pytest.raises(ValueError, match=msg):
-            ser.fillna(Series("d"))
+        msg2 = "Length of 'value' does not match."
+        with pytest.raises(ValueError, match=msg2):
+            cat.fillna(Series("d"))
 
         with pytest.raises(ValueError, match=msg):
             ser.fillna({1: "d", 3: "a"})
@@ -727,10 +734,18 @@ class TestSeriesFillNA:
 
     def test_fillna_datetime64_with_timezone_tzinfo(self):
         # https://github.com/pandas-dev/pandas/issues/38851
-        s = Series(date_range("2020", periods=3, tz="UTC"))
-        expected = s.astype(object)
-        s[1] = NaT
-        result = s.fillna(datetime(2020, 1, 2, tzinfo=timezone.utc))
+        # different tzinfos representing UTC treated as equal
+        ser = Series(date_range("2020", periods=3, tz="UTC"))
+        expected = ser.copy()
+        ser[1] = NaT
+        result = ser.fillna(datetime(2020, 1, 2, tzinfo=timezone.utc))
+        tm.assert_series_equal(result, expected)
+
+        # but we dont (yet) consider distinct tzinfos for non-UTC tz equivalent
+        ts = Timestamp("2000-01-01", tz="US/Pacific")
+        ser2 = Series(ser._values.tz_convert("dateutil/US/Pacific"))
+        result = ser2.fillna(ts)
+        expected = Series([ser[0], ts, ser[2]], dtype=object)
         tm.assert_series_equal(result, expected)
 
 

@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -305,7 +304,6 @@ class TestPeriodIndex:
                 )
             )
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_constructor_mixed(self):
         idx = PeriodIndex(["2011-01", NaT, Period("2011-01", freq="M")])
         exp = PeriodIndex(["2011-01", "NaT", "2011-01"], freq="M")
@@ -331,7 +329,7 @@ class TestPeriodIndex:
         msg = "Should be numpy array of type i8"
         with pytest.raises(AssertionError, match=msg):
             # Need ndarray, not Int64Index
-            type(idx._data)._simple_new(idx._int64index, freq=idx.freq)
+            type(idx._data)._simple_new(Index(idx.asi8), freq=idx.freq)
 
         arr = type(idx._data)._simple_new(idx.asi8, freq=idx.freq)
         result = idx._simple_new(arr, name="p")
@@ -512,6 +510,27 @@ class TestPeriodIndex:
 
         # lastly, values should compare equal
         tm.assert_index_equal(res, expected)
+
+
+class TestShallowCopy:
+    def test_shallow_copy_empty(self):
+        # GH#13067
+        idx = PeriodIndex([], freq="M")
+        result = idx._view()
+        expected = idx
+
+        tm.assert_index_equal(result, expected)
+
+    def test_shallow_copy_disallow_i8(self):
+        # GH#24391
+        pi = period_range("2018-01-01", periods=3, freq="2D")
+        with pytest.raises(AssertionError, match="ndarray"):
+            pi._shallow_copy(pi.asi8)
+
+    def test_shallow_copy_requires_disallow_period_index(self):
+        pi = period_range("2018-01-01", periods=3, freq="2D")
+        with pytest.raises(AssertionError, match="PeriodIndex"):
+            pi._shallow_copy(pi)
 
 
 class TestSeriesPeriod:

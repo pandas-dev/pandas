@@ -9,21 +9,16 @@ from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.string_arrow import ArrowStringArray, ArrowStringDtype
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+    ArrowStringDtype,
+)
 
 skip_if_no_pyarrow = td.skip_if_no("pyarrow", min_version="1.0.0")
 
 
 @pytest.fixture(
-    params=[
-        # pandas\tests\arrays\string_\test_string.py:16: error: List item 1 has
-        # incompatible type "ParameterSet"; expected
-        # "Sequence[Collection[object]]"  [list-item]
-        "string",
-        pytest.param(
-            "arrow_string", marks=skip_if_no_pyarrow
-        ),  # type:ignore[list-item]
-    ]
+    params=["string", pytest.param("arrow_string", marks=skip_if_no_pyarrow)]
 )
 def dtype(request):
     return request.param
@@ -228,31 +223,31 @@ def test_mul(dtype, request):
 
 @pytest.mark.xfail(reason="GH-28527")
 def test_add_strings(dtype):
-    array = pd.array(["a", "b", "c", "d"], dtype=dtype)
+    arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
     df = pd.DataFrame([["t", "u", "v", "w"]])
-    assert array.__add__(df) is NotImplemented
+    assert arr.__add__(df) is NotImplemented
 
-    result = array + df
+    result = arr + df
     expected = pd.DataFrame([["at", "bu", "cv", "dw"]]).astype(dtype)
     tm.assert_frame_equal(result, expected)
 
-    result = df + array
+    result = df + arr
     expected = pd.DataFrame([["ta", "ub", "vc", "wd"]]).astype(dtype)
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.xfail(reason="GH-28527")
 def test_add_frame(dtype):
-    array = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
+    arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
 
-    assert array.__add__(df) is NotImplemented
+    assert arr.__add__(df) is NotImplemented
 
-    result = array + df
+    result = arr + df
     expected = pd.DataFrame([["ax", np.nan, np.nan, np.nan]]).astype(dtype)
     tm.assert_frame_equal(result, expected)
 
-    result = df + array
+    result = df + arr
     expected = pd.DataFrame([["xa", np.nan, np.nan, np.nan]]).astype(dtype)
     tm.assert_frame_equal(result, expected)
 
@@ -497,7 +492,7 @@ def test_value_counts_na(dtype, request):
 
     arr = pd.array(["a", "b", "a", pd.NA], dtype=dtype)
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=["a", pd.NA, "b"], dtype="Int64")
+    expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)

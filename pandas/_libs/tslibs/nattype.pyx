@@ -30,7 +30,10 @@ from numpy cimport int64_t
 cnp.import_array()
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
+from pandas._libs.tslibs.np_datetime cimport (
+    get_datetime64_value,
+    get_timedelta64_value,
+)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -283,13 +286,7 @@ cdef class _NaT(datetime):
         # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
         return "NaT"
 
-    def __hash__(self):
-        return NPY_NAT
-
-    def __int__(self):
-        return NPY_NAT
-
-    def __long__(self):
+    def __hash__(self) -> int:
         return NPY_NAT
 
     @property

@@ -1,15 +1,23 @@
 from datetime import datetime
 from io import StringIO
 import re
-from typing import Dict, List, Union
+from typing import (
+    Dict,
+    List,
+    Union,
+)
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -775,6 +783,8 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result.replace(-1e8, np.nan), float_string_frame)
 
+    def test_replace_mixed_int_block_upcasting(self):
+
         # int block upcasting
         df = DataFrame(
             {
@@ -795,6 +805,8 @@ class TestDataFrameReplace:
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
+    def test_replace_mixed_int_block_splitting(self):
+
         # int block splitting
         df = DataFrame(
             {
@@ -812,6 +824,8 @@ class TestDataFrameReplace:
         )
         result = df.replace(0, 0.5)
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_mixed2(self):
 
         # to object block upcasting
         df = DataFrame(
@@ -838,6 +852,7 @@ class TestDataFrameReplace:
         result = df.replace([1, 2], ["foo", "bar"])
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_mixed3(self):
         # test case from
         df = DataFrame(
             {"A": Series([3, 0], dtype="int64"), "B": Series([0, 3], dtype="int64")}
@@ -1424,8 +1439,8 @@ class TestDataFrameReplace:
 
         a = pd.Categorical(final_data[:, 0], categories=[3, 2])
 
-        excat = [3, 2] if replace_dict["b"] == 1 else [1, 3]
-        b = pd.Categorical(final_data[:, 1], categories=excat)
+        ex_cat = [3, 2] if replace_dict["b"] == 1 else [1, 3]
+        b = pd.Categorical(final_data[:, 1], categories=ex_cat)
 
         expected = DataFrame({"a": a, "b": b})
         result = df.replace(replace_dict, 3)
@@ -1510,7 +1525,6 @@ class TestDataFrameReplace:
         result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     @pytest.mark.parametrize("replacement", [np.nan, 5])
     def test_replace_with_duplicate_columns(self, replacement):
         # GH 24798
@@ -1590,7 +1604,6 @@ class TestDataFrameReplace:
 
     @pytest.mark.xfail(
         reason="category dtype gets changed to object type after replace, see #35268",
-        strict=True,
     )
     def test_replace_dict_category_type(self, input_category_df, expected_category_df):
         """

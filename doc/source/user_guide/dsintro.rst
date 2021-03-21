@@ -126,7 +126,7 @@ However, operations such as slicing will also slice the index.
 .. note::
 
    We will address array-based indexing like ``s[[4, 3, 1]]``
-   in :ref:`section <indexing>`.
+   in :ref:`section on indexing <indexing>`.
 
 Like a NumPy array, a pandas Series has a :attr:`~Series.dtype`.
 
@@ -869,5 +869,5 @@ completion mechanism so they can be tab-completed:
 
 .. code-block:: ipython
 
-    In [5]: df.fo<TAB>  # noqa: E225, E999
+    In [5]: df.foo<TAB>  # noqa: E225, E999
     df.foo1  df.foo2

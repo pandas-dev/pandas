@@ -1,9 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
 
@@ -59,26 +62,22 @@ def test_series_getitem_duplicates_multiindex(level0_value):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("indexer", [lambda s: s[2000, 3], lambda s: s.loc[2000, 3]])
-def test_series_getitem(multiindex_year_month_day_dataframe_random_data, indexer):
+def test_series_getitem(multiindex_year_month_day_dataframe_random_data, indexer_sl):
     s = multiindex_year_month_day_dataframe_random_data["A"]
     expected = s.reindex(s.index[42:65])
     expected.index = expected.index.droplevel(0).droplevel(0)
 
-    result = indexer(s)
+    result = indexer_sl(s)[2000, 3]
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "indexer", [lambda s: s[2000, 3, 10], lambda s: s.loc[2000, 3, 10]]
-)
 def test_series_getitem_returns_scalar(
-    multiindex_year_month_day_dataframe_random_data, indexer
+    multiindex_year_month_day_dataframe_random_data, indexer_sl
 ):
     s = multiindex_year_month_day_dataframe_random_data["A"]
     expected = s.iloc[49]
 
-    result = indexer(s)
+    result = indexer_sl(s)[2000, 3, 10]
     assert result == expected
 
 
@@ -231,6 +230,85 @@ def test_frame_getitem_nan_multiindex(nulls_fixture):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "indexer,expected",
+    [
+        (
+            (["b"], ["bar", np.nan]),
+            (
+                DataFrame(
+                    [[2, 3], [5, 6]],
+                    columns=MultiIndex.from_tuples([("b", "bar"), ("b", np.nan)]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["a", "b"]),
+            (
+                DataFrame(
+                    [[1, 2, 3], [4, 5, 6]],
+                    columns=MultiIndex.from_tuples(
+                        [("a", "foo"), ("b", "bar"), ("b", np.nan)]
+                    ),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["b"]),
+            (
+                DataFrame(
+                    [[2, 3], [5, 6]],
+                    columns=MultiIndex.from_tuples([("b", "bar"), ("b", np.nan)]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["b"], ["bar"]),
+            (
+                DataFrame(
+                    [[2], [5]],
+                    columns=MultiIndex.from_tuples([("b", "bar")]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["b"], [np.nan]),
+            (
+                DataFrame(
+                    [[3], [6]],
+                    columns=MultiIndex(
+                        codes=[[1], [-1]], levels=[["a", "b"], ["bar", "foo"]]
+                    ),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (("b", np.nan), Series([3, 6], dtype="int64", name=("b", np.nan))),
+    ],
+)
+def test_frame_getitem_nan_cols_multiindex(
+    indexer,
+    expected,
+    nulls_fixture,
+):
+    # Slicing MultiIndex including levels with nan values, for more information
+    # see GH#25154
+    df = DataFrame(
+        [[1, 2, 3], [4, 5, 6]],
+        columns=MultiIndex.from_tuples(
+            [("a", "foo"), ("b", "bar"), ("b", nulls_fixture)]
+        ),
+        dtype="int64",
+    )
+
+    result = df.loc[:, indexer]
+    tm.assert_equal(result, expected)
+
+
 # ----------------------------------------------------------------------------
 # test indexing of DataFrame with multi-level Index with duplicates
 # ----------------------------------------------------------------------------
@@ -263,7 +341,6 @@ def test_frame_mi_access(dataframe_with_duplicate_index, indexer):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_frame_mi_access_returns_series(dataframe_with_duplicate_index):
     # GH 4146, not returning a block manager when selecting a unique index
     # from a duplicate index
@@ -275,7 +352,6 @@ def test_frame_mi_access_returns_series(dataframe_with_duplicate_index):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_frame_mi_access_returns_frame(dataframe_with_duplicate_index):
     # selecting a non_unique from the 2nd level
     df = dataframe_with_duplicate_index

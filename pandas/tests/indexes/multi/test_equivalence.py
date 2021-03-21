@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, MultiIndex, Series
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -219,11 +223,11 @@ def test_equals_missing_values():
 
 def test_equals_missing_values_differently_sorted():
     # GH#38439
-    mi1 = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
-    mi2 = pd.MultiIndex.from_tuples([(np.nan, np.nan), (81.0, np.nan)])
+    mi1 = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+    mi2 = MultiIndex.from_tuples([(np.nan, np.nan), (81.0, np.nan)])
     assert not mi1.equals(mi2)
 
-    mi2 = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+    mi2 = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
     assert mi1.equals(mi2)
 
 
