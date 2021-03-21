@@ -264,7 +264,7 @@ def kth_smallest(numeric[::1] arr, Py_ssize_t k) -> numeric:
     numeric
         The kth smallest value in arr
     """
-    return kth_smallest_c(&a[0], k, a.shape[0])
+    return kth_smallest_c(&arr[0], k, arr.shape[0])
 
 
 # ----------------------------------------------------------------------
