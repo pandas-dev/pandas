@@ -1066,41 +1066,18 @@ class BlockManager(DataManager):
         values = block.iget(self.blklocs[i])
         return values
 
-    def idelete(self, indexer):
+    def idelete(self, indexer) -> BlockManager:
         """
-        Delete selected locations in-place (new block and array, same BlockManager)
+        Delete selected locations, returning a new BlockManager.
         """
         is_deleted = np.zeros(self.shape[0], dtype=np.bool_)
         is_deleted[indexer] = True
-        ref_loc_offset = -is_deleted.cumsum()
+        taker = (~is_deleted).nonzero()[0]
 
-        is_blk_deleted = [False] * len(self.blocks)
-
-        if isinstance(indexer, int):
-            affected_start = indexer
-        else:
-            affected_start = is_deleted.nonzero()[0][0]
-
-        for blkno, _ in _fast_count_smallints(self.blknos[affected_start:]):
-            blk = self.blocks[blkno]
-            bml = blk.mgr_locs
-            blk_del = is_deleted[bml.indexer].nonzero()[0]
-
-            if len(blk_del) == len(bml):
-                is_blk_deleted[blkno] = True
-                continue
-            elif len(blk_del) != 0:
-                blk.delete(blk_del)
-                bml = blk.mgr_locs
-
-            blk.mgr_locs = bml.add(ref_loc_offset[bml.indexer])
-
-        # FIXME: use Index.delete as soon as it uses fastpath=True
-        self.axes[0] = self.items[~is_deleted]
-        self.blocks = tuple(
-            b for blkno, b in enumerate(self.blocks) if not is_blk_deleted[blkno]
-        )
-        self._rebuild_blknos_and_blklocs()
+        nbs = self._slice_take_blocks_ax0(taker, only_slice=True)
+        new_index = self.items.delete(indexer)
+        axes = [new_index, self.axes[1]]
+        return type(self)._simple_new(nbs, axes)
 
     def iset(self, loc: Union[int, slice, np.ndarray], value):
         """
@@ -1715,7 +1692,7 @@ class SingleBlockManager(BlockManager, SingleDataManager):
     def _consolidate_inplace(self):
         pass
 
-    def idelete(self, indexer):
+    def idelete(self, indexer) -> SingleBlockManager:
         """
         Delete single location from SingleBlockManager.
 
@@ -1723,6 +1700,7 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         """
         self._block.delete(indexer)
         self.axes[0] = self.axes[0].delete(indexer)
+        return self
 
     def fast_xs(self, loc):
         """
