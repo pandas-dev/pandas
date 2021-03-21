@@ -237,6 +237,48 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     return indexer, counts
 
 
+cdef inline numeric kth_smallest_c(numeric* arr, Py_ssize_t k, Py_ssize_t n) nogil:
+    """
+    Compute the kth smallest value in an array
+
+    Parameters
+    ----------
+    arr: numeric* arr
+        Pointer to the start of the array
+    k: Py_ssize_t
+    n: Number of values in arr to consider (no more than len(arr))
+
+    Returns
+    -------
+    numeric
+        The kth smallest value in arr
+    """
+    cdef:
+        Py_ssize_t i, j, l, m
+        numeric x
+
+    l = 0
+    m = n - 1
+
+    while l < m:
+        x = arr[k]
+        i = l
+        j = m
+
+        while 1:
+            while arr[i] < x: i += 1
+            while x < arr[j]: j -= 1
+            if i <= j:
+                swap(&arr[i], &arr[j])
+                i += 1; j -= 1
+
+            if i > j: break
+
+        if j < k: l = i
+        if k < i: m = j
+    return arr[k]
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def kth_smallest(numeric[::1] arr, Py_ssize_t k) -> numeric:
