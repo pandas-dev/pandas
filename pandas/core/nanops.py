@@ -1648,7 +1648,7 @@ nanne = make_nancomp(operator.ne)
 
 
 def _nanpercentile_1d(
-    values: np.ndarray, mask: np.ndarray, q, na_value: Scalar, interpolation
+    values: np.ndarray, mask: np.ndarray, q: np.ndarray, na_value: Scalar, interpolation
 ) -> Union[Scalar, np.ndarray]:
     """
     Wrapper for np.percentile that skips missing values, specialized to
@@ -1659,7 +1659,7 @@ def _nanpercentile_1d(
     values : array over which to find quantiles
     mask : ndarray[bool]
         locations in values that should be considered missing
-    q : scalar or array of quantile indices to find
+    q : np.ndarray[float64] of quantile indices to find
     na_value : scalar
         value to return for empty or all-null values
     interpolation : str
@@ -1672,22 +1672,17 @@ def _nanpercentile_1d(
     values = values[~mask]
 
     if len(values) == 0:
-        if lib.is_scalar(q):
-            return na_value
-        else:
-            return np.array([na_value] * len(q), dtype=values.dtype)
+        return np.array([na_value] * len(q), dtype=values.dtype)
 
     return np.percentile(values, q, interpolation=interpolation)
 
 
 def nanpercentile(
     values: np.ndarray,
-    q,
+    q: np.ndarray,
     *,
-    axis: int,
     na_value,
     mask: np.ndarray,
-    ndim: int,
     interpolation,
 ):
     """
@@ -1695,29 +1690,26 @@ def nanpercentile(
 
     Parameters
     ----------
-    values : array over which to find quantiles
-    q : scalar or array of quantile indices to find
-    axis : {0, 1}
+    values : np.ndarray[ndim=2]  over which to find quantiles
+    q : np.ndarray[float64] of quantile indices to find
     na_value : scalar
         value to return for empty or all-null values
     mask : ndarray[bool]
         locations in values that should be considered missing
-    ndim : {1, 2}
     interpolation : str
 
     Returns
     -------
     quantiles : scalar or array
     """
+
     if values.dtype.kind in ["m", "M"]:
         # need to cast to integer to avoid rounding errors in numpy
         result = nanpercentile(
             values.view("i8"),
             q=q,
-            axis=axis,
             na_value=na_value.view("i8"),
             mask=mask,
-            ndim=ndim,
             interpolation=interpolation,
         )
 
@@ -1726,25 +1718,16 @@ def nanpercentile(
         return result.astype(values.dtype)
 
     if not lib.is_scalar(mask) and mask.any():
-        if ndim == 1:
-            return _nanpercentile_1d(
-                values, mask, q, na_value, interpolation=interpolation
-            )
-        else:
-            # for nonconsolidatable blocks mask is 1D, but values 2D
-            if mask.ndim < values.ndim:
-                mask = mask.reshape(values.shape)
-            if axis == 0:
-                values = values.T
-                mask = mask.T
-            result = [
-                _nanpercentile_1d(val, m, q, na_value, interpolation=interpolation)
-                for (val, m) in zip(list(values), list(mask))
-            ]
-            result = np.array(result, dtype=values.dtype, copy=False).T
-            return result
+        # Caller is responsible for ensuring mask shape match
+        assert mask.shape == values.shape
+        result = [
+            _nanpercentile_1d(val, m, q, na_value, interpolation=interpolation)
+            for (val, m) in zip(list(values), list(mask))
+        ]
+        result = np.array(result, dtype=values.dtype, copy=False).T
+        return result
     else:
-        return np.percentile(values, q, axis=axis, interpolation=interpolation)
+        return np.percentile(values, q, axis=1, interpolation=interpolation)
 
 
 def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
