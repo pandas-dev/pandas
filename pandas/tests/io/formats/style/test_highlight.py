@@ -18,8 +18,8 @@ def s(df):
     return Styler(df, uuid_len=0)
 
 
-def test_highlight_null(df):
-    result = df.style.highlight_null()._compute().ctx
+def test_highlight_null(s):
+    result = s.highlight_null()._compute().ctx
     expected = {
         (1, 0): [("background-color", "red")],
         (1, 1): [("background-color", "red")],
