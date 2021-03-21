@@ -2,14 +2,26 @@
 Common type operations.
 """
 
-from typing import Any, Callable, Union
+from typing import (
+    Any,
+    Callable,
+    Union,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import Interval, Period, algos
+from pandas._libs import (
+    Interval,
+    Period,
+    algos,
+)
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike, DtypeObj, Optional
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+    Optional,
+)
 
 from pandas.core.dtypes.base import registry
 from pandas.core.dtypes.dtypes import (
@@ -19,7 +31,10 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.generic import ABCCategorical, ABCIndex
+from pandas.core.dtypes.generic import (
+    ABCCategorical,
+    ABCIndex,
+)
 from pandas.core.dtypes.inference import (  # noqa:F401
     is_array_like,
     is_bool,
@@ -150,7 +165,11 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.ndarray:
         return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore[call-arg]
     except TypeError:
         if is_extension_array_dtype(arr.dtype):
-            return arr.to_numpy(dtype="float64", na_value=np.nan)
+            # pandas/core/dtypes/common.py:168: error: Item "ndarray" of
+            # "Union[ExtensionArray, ndarray]" has no attribute "to_numpy"  [union-attr]
+            return arr.to_numpy(  # type: ignore[union-attr]
+                dtype="float64", na_value=np.nan
+            )
         return arr.astype("float64", copy=copy)
 
 
@@ -1081,7 +1100,7 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
 
 
 # This exists to silence numpy deprecation warnings, see GH#29553
-def is_numeric_v_string_like(a, b):
+def is_numeric_v_string_like(a: ArrayLike, b):
     """
     Check if we are comparing a string-like object to a numeric ndarray.
     NumPy doesn't like to compare such objects, especially numeric arrays
@@ -1089,7 +1108,7 @@ def is_numeric_v_string_like(a, b):
 
     Parameters
     ----------
-    a : array-like, scalar
+    a : array-like
         The first object to check.
     b : array-like, scalar
         The second object to check.
@@ -1101,15 +1120,7 @@ def is_numeric_v_string_like(a, b):
 
     Examples
     --------
-    >>> is_numeric_v_string_like(1, 1)
-    False
-    >>> is_numeric_v_string_like("foo", "foo")
-    False
-    >>> is_numeric_v_string_like(1, "foo")  # non-array numeric
-    False
     >>> is_numeric_v_string_like(np.array([1]), "foo")
-    True
-    >>> is_numeric_v_string_like("foo", np.array([1]))  # symmetric check
     True
     >>> is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
     True
@@ -1123,17 +1134,15 @@ def is_numeric_v_string_like(a, b):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    is_a_numeric_array = is_a_array and is_numeric_dtype(a)
-    is_b_numeric_array = is_b_array and is_numeric_dtype(b)
-    is_a_string_array = is_a_array and is_string_like_dtype(a)
-    is_b_string_array = is_b_array and is_string_like_dtype(b)
+    is_a_numeric_array = is_a_array and a.dtype.kind in ("u", "i", "f", "c", "b")
+    is_b_numeric_array = is_b_array and b.dtype.kind in ("u", "i", "f", "c", "b")
+    is_a_string_array = is_a_array and a.dtype.kind in ("S", "U")
+    is_b_string_array = is_b_array and b.dtype.kind in ("S", "U")
 
-    is_a_scalar_string_like = not is_a_array and isinstance(a, str)
     is_b_scalar_string_like = not is_b_array and isinstance(b, str)
 
     return (
         (is_a_numeric_array and is_b_scalar_string_like)
-        or (is_b_numeric_array and is_a_scalar_string_like)
         or (is_a_numeric_array and is_b_string_array)
         or (is_b_numeric_array and is_a_string_array)
     )
@@ -1284,37 +1293,6 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     return _is_dtype_type(
         arr_or_dtype, classes_and_not_datetimelike(np.number, np.bool_)
     )
-
-
-def is_string_like_dtype(arr_or_dtype) -> bool:
-    """
-    Check whether the provided array or dtype is of a string-like dtype.
-
-    Unlike `is_string_dtype`, the object dtype is excluded because it
-    is a mixed dtype.
-
-    Parameters
-    ----------
-    arr_or_dtype : array-like
-        The array or dtype to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array or dtype is of the string dtype.
-
-    Examples
-    --------
-    >>> is_string_like_dtype(str)
-    True
-    >>> is_string_like_dtype(object)
-    False
-    >>> is_string_like_dtype(np.array(['a', 'b']))
-    True
-    >>> is_string_like_dtype(pd.Series([1, 2]))
-    False
-    """
-    return _is_dtype(arr_or_dtype, lambda dtype: dtype.kind in ("S", "U"))
 
 
 def is_float_dtype(arr_or_dtype) -> bool:
@@ -1526,7 +1504,12 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     False
     """
     dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-    return isinstance(dtype, ExtensionDtype) or registry.find(dtype) is not None
+    if isinstance(dtype, ExtensionDtype):
+        return True
+    elif isinstance(dtype, np.dtype):
+        return False
+    else:
+        return registry.find(dtype) is not None
 
 
 def is_ea_or_datetimelike_dtype(dtype: Optional[DtypeObj]) -> bool:
@@ -1698,7 +1681,10 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
     """
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
-        return dtype
+
+        # error: Incompatible return value type (got "Type[generic]", expected
+        # "Union[dtype[Any], ExtensionDtype]")
+        return dtype  # type: ignore[return-value]
     elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         # dtype object
         try:
@@ -1706,7 +1692,9 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
         except TypeError:
             # Should still pass if we don't have a date-like
             pass
-        return dtype.type
+        # error: Incompatible return value type (got "Union[Type[generic], Type[Any]]",
+        # expected "Union[dtype[Any], ExtensionDtype]")
+        return dtype.type  # type: ignore[return-value]
 
     try:
         dtype = pandas_dtype(dtype)
@@ -1720,7 +1708,9 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
         # TODO(jreback)
         # should deprecate these
         if dtype in ["datetimetz", "datetime64tz"]:
-            return DatetimeTZDtype.type
+            # error: Incompatible return value type (got "Type[Any]", expected
+            # "Union[dtype[Any], ExtensionDtype]")
+            return DatetimeTZDtype.type  # type: ignore[return-value]
         elif dtype in ["period"]:
             raise NotImplementedError
 
@@ -1817,7 +1807,9 @@ def pandas_dtype(dtype) -> DtypeObj:
     # registered extension types
     result = registry.find(dtype)
     if result is not None:
-        return result
+        # error: Incompatible return value type (got "Type[ExtensionDtype]",
+        # expected "Union[dtype, ExtensionDtype]")
+        return result  # type: ignore[return-value]
 
     # try a numpy dtype
     # raise a consistent TypeError if failed

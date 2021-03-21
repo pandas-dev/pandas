@@ -8,7 +8,10 @@ from pandas.compat import np_version_under1p20
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import (
+    SparseArray,
+    SparseDtype,
+)
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -357,7 +360,7 @@ class TestSparseArrayArithmetics:
 
         if not np_version_under1p20:
             if op in [operator.floordiv, ops.rfloordiv] and mix:
-                mark = pytest.mark.xfail(strict=True, reason="GH#38172")
+                mark = pytest.mark.xfail(reason="GH#38172")
                 request.node.add_marker(mark)
 
         rdtype = "int64"

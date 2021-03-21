@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p17, np_version_under1p18
+from pandas.compat import (
+    np_version_under1p17,
+    np_version_under1p18,
+)
 
 from pandas import (
     DatetimeIndex,

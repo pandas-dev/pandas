@@ -1,21 +1,40 @@
 import cython
 
-from cpython.datetime cimport date, datetime, time, tzinfo
+from cpython.datetime cimport (
+    date,
+    datetime,
+    time,
+    tzinfo,
+)
 
 import numpy as np
 
-from numpy cimport int64_t, intp_t, ndarray
+from numpy cimport (
+    int64_t,
+    intp_t,
+    ndarray,
+)
 
 from .conversion cimport normalize_i8_stamp
 
 from .dtypes import Resolution
 
-from .nattype cimport NPY_NAT, c_NaT as NaT
-from .np_datetime cimport dt64_to_dtstruct, npy_datetimestruct
+from .nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+)
+from .np_datetime cimport (
+    dt64_to_dtstruct,
+    npy_datetimestruct,
+)
 from .offsets cimport to_offset
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
-from .timezones cimport get_dst_info, is_tzlocal, is_utc
+from .timezones cimport (
+    get_dst_info,
+    is_tzlocal,
+    is_utc,
+)
 from .tzconversion cimport tz_convert_utc_to_tzlocal
 
 # -------------------------------------------------------------------------
@@ -71,7 +90,7 @@ def ints_to_pydatetime(
     object freq=None,
     bint fold=False,
     str box="datetime"
-):
+) -> np.ndarray:
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp.
 
@@ -97,7 +116,7 @@ def ints_to_pydatetime(
 
     Returns
     -------
-    ndarray of dtype specified by box
+    ndarray[object] of type specified by box
     """
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -204,7 +223,7 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
     return RESO_DAY
 
 
-def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
+def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
     cdef:
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
@@ -313,7 +332,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None):
+def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
     """
     Check if all of the given (nanosecond) timestamps are normalized to
     midnight, i.e. hour == minute == second == 0.  If the optional timezone

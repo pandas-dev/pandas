@@ -1,8 +1,14 @@
 import cython
 from cython import Py_ssize_t
 
-from libc.math cimport fabs, sqrt
-from libc.stdlib cimport free, malloc
+from libc.math cimport (
+    fabs,
+    sqrt,
+)
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 from libc.string cimport memmove
 
 import numpy as np
@@ -46,7 +52,10 @@ from pandas._libs.khash cimport (
     kh_resize_int64,
     khiter_t,
 )
-from pandas._libs.util cimport get_nat, numeric
+from pandas._libs.util cimport (
+    get_nat,
+    numeric,
+)
 
 import pandas._libs.missing as missing
 
@@ -190,8 +199,10 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
 
     Returns
     -------
-    tuple
-        1-d indexer ordered by groups, group counts.
+    ndarray[intp_t, ndim=1]
+        Indexer
+    ndarray[int64_t, ndim=1]
+        Group Counts
 
     Notes
     -----
@@ -199,11 +210,12 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     """
     cdef:
         Py_ssize_t i, loc, label, n
-        ndarray[int64_t] counts, where, result
+        ndarray[int64_t] counts, where
+        ndarray[intp_t] indexer
 
     counts = np.zeros(ngroups + 1, dtype=np.int64)
     n = len(index)
-    result = np.zeros(n, dtype=np.int64)
+    indexer = np.zeros(n, dtype=np.intp)
     where = np.zeros(ngroups + 1, dtype=np.int64)
 
     with nogil:
@@ -219,10 +231,10 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
         # this is our indexer
         for i in range(n):
             label = index[i] + 1
-            result[where[label]] = i
+            indexer[where[label]] = i
             where[label] += 1
 
-    return result, counts
+    return indexer, counts
 
 
 @cython.boundscheck(False)
@@ -588,10 +600,11 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
+def pad_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
     cdef:
         Py_ssize_t i, N
         algos_t val
+        uint8_t prev_mask
         int lim, fill_count = 0
 
     N = len(values)
@@ -603,15 +616,18 @@ def pad_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     lim = validate_limit(N, limit)
 
     val = values[0]
+    prev_mask = mask[0]
     for i in range(N):
         if mask[i]:
             if fill_count >= lim:
                 continue
             fill_count += 1
             values[i] = val
+            mask[i] = prev_mask
         else:
             fill_count = 0
             val = values[i]
+            prev_mask = mask[i]
 
 
 @cython.boundscheck(False)
@@ -730,10 +746,11 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
+def backfill_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
     cdef:
         Py_ssize_t i, N
         algos_t val
+        uint8_t prev_mask
         int lim, fill_count = 0
 
     N = len(values)
@@ -745,15 +762,18 @@ def backfill_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     lim = validate_limit(N, limit)
 
     val = values[N - 1]
+    prev_mask = mask[N - 1]
     for i in range(N - 1, -1, -1):
         if mask[i]:
             if fill_count >= lim:
                 continue
             fill_count += 1
             values[i] = val
+            mask[i] = prev_mask
         else:
             fill_count = 0
             val = values[i]
+            prev_mask = mask[i]
 
 
 @cython.boundscheck(False)

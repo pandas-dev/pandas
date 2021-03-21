@@ -6,7 +6,13 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, Series, isna
+from pandas import (
+    Categorical,
+    DataFrame,
+    Index,
+    Series,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -101,13 +107,13 @@ class TestCategoricalMissing:
         other = cat.fillna("C")
         result = cat.fillna(other)
         tm.assert_categorical_equal(result, other)
-        assert isna(cat[-1])  # didnt modify original inplace
+        assert isna(cat[-1])  # didn't modify original inplace
 
         other = np.array(["A", "B", "C", "B", "A"])
         result = cat.fillna(other)
         expected = Categorical(["A", "B", "C", "B", "A"], dtype=cat.dtype)
         tm.assert_categorical_equal(result, expected)
-        assert isna(cat[-1])  # didnt modify original inplace
+        assert isna(cat[-1])  # didn't modify original inplace
 
     @pytest.mark.parametrize(
         "values, expected",
@@ -148,14 +154,14 @@ class TestCategoricalMissing:
         cat = Categorical(values)
 
         with pd.option_context("mode.use_inf_as_na", True):
-            result = pd.isna(cat)
+            result = isna(cat)
             tm.assert_numpy_array_equal(result, expected)
 
-            result = pd.isna(Series(cat))
+            result = isna(Series(cat))
             expected = Series(expected)
             tm.assert_series_equal(result, expected)
 
-            result = pd.isna(DataFrame(cat))
+            result = isna(DataFrame(cat))
             expected = DataFrame(expected)
             tm.assert_frame_equal(result, expected)
 

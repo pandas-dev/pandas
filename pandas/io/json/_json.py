@@ -1,9 +1,20 @@
-from abc import ABC, abstractmethod
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from collections import abc
 import functools
 from io import StringIO
 from itertools import islice
-from typing import Any, Callable, Mapping, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
@@ -18,11 +29,25 @@ from pandas._typing import (
     StorageOptions,
 )
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_arguments, doc
+from pandas.util._decorators import (
+    deprecate_kwarg,
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
-from pandas.core.dtypes.common import ensure_str, is_period_dtype
+from pandas.core.dtypes.common import (
+    ensure_str,
+    is_period_dtype,
+)
 
-from pandas import DataFrame, MultiIndex, Series, isna, notna, to_datetime
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    isna,
+    notna,
+    to_datetime,
+)
 from pandas.core import generic
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.generic import NDFrame
@@ -37,7 +62,10 @@ from pandas.io.common import (
     stringify_path,
 )
 from pandas.io.json._normalize import convert_to_line_delimits
-from pandas.io.json._table_schema import build_table_schema, parse_table_schema
+from pandas.io.json._table_schema import (
+    build_table_schema,
+    parse_table_schema,
+)
 from pandas.io.parsers.readers import validate_integer
 
 loads = json.loads
@@ -102,7 +130,7 @@ def to_json(
     if path_or_buf is not None:
         # apply compression and byte/text conversion
         with get_handle(
-            path_or_buf, "wt", compression=compression, storage_options=storage_options
+            path_or_buf, "w", compression=compression, storage_options=storage_options
         ) as handles:
             handles.handle.write(s)
     else:
@@ -306,6 +334,7 @@ def read_json(
     precise_float: bool = False,
     date_unit=None,
     encoding=None,
+    encoding_errors: Optional[str] = "strict",
     lines: bool = False,
     chunksize: Optional[int] = None,
     compression: CompressionOptions = "infer",
@@ -428,6 +457,12 @@ def read_json(
     encoding : str, default is 'utf-8'
         The encoding to use to decode py3 bytes.
 
+    encoding_errors : str, optional, default "strict"
+        How encoding errors are treated. `List of possible values
+        <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
+
+        .. versionadded:: 1.3
+
     lines : bool, default False
         Read the file as a json object per line.
 
@@ -535,7 +570,12 @@ def read_json(
         raise ValueError("cannot pass both convert_axes and orient='table'")
 
     if dtype is None and orient != "table":
-        dtype = True
+        # error: Incompatible types in assignment (expression has type "bool", variable
+        # has type "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object], Dict[Optional[Hashable],
+        # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object]]], None]")
+        dtype = True  # type: ignore[assignment]
     if convert_axes is None and orient != "table":
         convert_axes = True
 
@@ -556,6 +596,7 @@ def read_json(
         compression=compression,
         nrows=nrows,
         storage_options=storage_options,
+        encoding_errors=encoding_errors,
     )
 
     if chunksize:
@@ -592,6 +633,7 @@ class JsonReader(abc.Iterator):
         compression: CompressionOptions,
         nrows: Optional[int],
         storage_options: StorageOptions = None,
+        encoding_errors: Optional[str] = "strict",
     ):
 
         self.orient = orient
@@ -610,6 +652,7 @@ class JsonReader(abc.Iterator):
         self.chunksize = chunksize
         self.nrows_seen = 0
         self.nrows = nrows
+        self.encoding_errors = encoding_errors
         self.handles: Optional[IOHandles] = None
 
         if self.chunksize is not None:
@@ -633,8 +676,8 @@ class JsonReader(abc.Iterator):
         Otherwise, we read it into memory for the `read` method.
         """
         if hasattr(data, "read") and not (self.chunksize or self.nrows):
-            data = data.read()
-            self.close()
+            with self:
+                data = data.read()
         if not hasattr(data, "read") and (self.chunksize or self.nrows):
             data = StringIO(data)
 
@@ -664,6 +707,7 @@ class JsonReader(abc.Iterator):
                 encoding=self.encoding,
                 compression=self.compression,
                 storage_options=self.storage_options,
+                errors=self.encoding_errors,
             )
             filepath_or_buffer = self.handles.handle
 
@@ -875,7 +919,12 @@ class Parser:
                     return data, False
                 return data.fillna(np.nan), True
 
-            elif self.dtype is True:
+            # error: Non-overlapping identity check (left operand type:
+            # "Union[ExtensionDtype, str, dtype[Any], Type[object],
+            # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+            # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+            # Type[object]]]]", right operand type: "Literal[True]")
+            elif self.dtype is True:  # type: ignore[comparison-overlap]
                 pass
             else:
                 # dtype to force
@@ -884,7 +933,10 @@ class Parser:
                 )
                 if dtype is not None:
                     try:
-                        dtype = np.dtype(dtype)
+                        # error: Argument 1 to "dtype" has incompatible type
+                        # "Union[ExtensionDtype, str, dtype[Any], Type[object]]";
+                        # expected "Type[Any]"
+                        dtype = np.dtype(dtype)  # type: ignore[arg-type]
                         return data.astype(dtype), True
                     except (TypeError, ValueError):
                         return data, False
