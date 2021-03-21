@@ -696,7 +696,7 @@ def to_sql(
         section :ref:`insert method <io.sql.method>`.
 
         .. versionadded:: 0.24.0
-    engine : {'auto', 'sqlalchemy', 'bcpandas'}, default 'auto'
+    engine : {'auto', 'sqlalchemy'}, default 'auto'
         SQL engine library to use. If 'auto', then the option
         ``io.sql.engine`` is used. The default ``io.sql.engine``
         behavior is 'sqlalchemy'
@@ -1351,45 +1351,6 @@ class SQLAlchemyEngine(BaseEngine):
                 raise err
 
 
-class BCPandasEngine(BaseEngine):
-    def __init__(self):
-        import_optional_dependency(
-            "bcpandas", extra="bcpandas is required for SQL support."
-        )
-
-        import bcpandas
-
-        self.api = bcpandas
-
-    def insert_records(
-        self,
-        table: SQLTable,
-        con,
-        frame,
-        name,
-        index=True,
-        schema=None,
-        chunksize=None,
-        method=None,
-        **kwargs,
-    ):
-        # 'if_exists' already checked when created `SQLTable`,
-        # setting to 'append' for SQL Server specific checks in bcpandas
-        if_exists = "append"
-        creds = self.api.SqlCreds.from_engine(con)
-
-        self.api.to_sql(
-            df=frame,
-            table_name=name,
-            creds=creds,
-            sql_type="table",
-            schema=schema,
-            index=index,
-            if_exists=if_exists,
-            batch_size=chunksize,
-        )
-
-
 def get_engine(engine: str) -> BaseEngine:
     """ return our implementation """
     if engine == "auto":
@@ -1397,7 +1358,7 @@ def get_engine(engine: str) -> BaseEngine:
 
     if engine == "auto":
         # try engines in this order
-        engine_classes = [SQLAlchemyEngine, BCPandasEngine]
+        engine_classes = [SQLAlchemyEngine]
 
         error_msgs = ""
         for engine_class in engine_classes:
@@ -1418,8 +1379,6 @@ def get_engine(engine: str) -> BaseEngine:
 
     if engine == "sqlalchemy":
         return SQLAlchemyEngine()
-    elif engine == "bcpandas":
-        return BCPandasEngine()
 
     raise ValueError("engine must be one of 'sqlalchemy', 'bcpandas'")
 
@@ -1780,7 +1739,7 @@ class SQLDatabase(PandasSQL):
             section :ref:`insert method <io.sql.method>`.
 
             .. versionadded:: 0.24.0
-        engine : {'auto', 'sqlalchemy', 'bcpandas'}, default 'auto'
+        engine : {'auto', 'sqlalchemy'}, default 'auto'
             SQL engine library to use. If 'auto', then the option
             ``io.sql.engine`` is used. The default ``io.sql.engine``
             behavior is 'sqlalchemy'

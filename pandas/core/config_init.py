@@ -657,7 +657,7 @@ with cf.config_prefix("io.parquet"):
 sql_engine_doc = """
 : string
     The default sql reader/writer engine. Available options:
-    'auto', 'sqlalchemy', 'bcpandas', the default is 'auto'
+    'auto', 'sqlalchemy', the default is 'auto'
 """
 
 with cf.config_prefix("io.sql"):
@@ -665,7 +665,7 @@ with cf.config_prefix("io.sql"):
         "engine",
         "auto",
         sql_engine_doc,
-        validator=is_one_of_factory(["auto", "sqlalchemy", "bcpandas"]),
+        validator=is_one_of_factory(["auto", "sqlalchemy"]),
     )
 
 # --------
