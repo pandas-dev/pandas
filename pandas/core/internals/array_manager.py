@@ -521,7 +521,7 @@ class ArrayManager(DataManager):
         axes = [qs, self._axes[1]]
         return type(self)(new_arrs, axes)
 
-    def where(self, other, cond, align: bool, errors: str, axis: int) -> ArrayManager:
+    def where(self, other, cond, align: bool, errors: str) -> ArrayManager:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -534,7 +534,6 @@ class ArrayManager(DataManager):
             other=other,
             cond=cond,
             errors=errors,
-            axis=axis,
         )
 
     # TODO what is this used for?
