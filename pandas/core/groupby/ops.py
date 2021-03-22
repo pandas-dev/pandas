@@ -71,7 +71,6 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
-import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -756,7 +755,7 @@ class BaseGrouper:
         # avoids object / Series creation overhead
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
-        group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
+        group_index = group_index.take(indexer)
         grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups)
         result, counts = grouper.get_result()
         return result, counts
@@ -989,12 +988,12 @@ class DataSplitter(Generic[FrameOrSeries]):
         assert isinstance(axis, int), axis
 
     @cache_readonly
-    def slabels(self):
+    def slabels(self) -> np.ndarray:
         # Sorted labels
-        return algorithms.take_nd(self.labels, self.sort_idx, allow_fill=False)
+        return self.labels.take(self._sort_idx)
 
     @cache_readonly
-    def sort_idx(self):
+    def _sort_idx(self) -> np.ndarray:  # np.ndarray[np.intp]
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 
@@ -1013,7 +1012,7 @@ class DataSplitter(Generic[FrameOrSeries]):
 
     @cache_readonly
     def sorted_data(self) -> FrameOrSeries:
-        return self.data.take(self.sort_idx, axis=self.axis)
+        return self.data.take(self._sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
         raise AbstractMethodError(self)
