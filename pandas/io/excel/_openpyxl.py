@@ -3,6 +3,7 @@ from __future__ import annotations
 import mmap
 from typing import (
     TYPE_CHECKING,
+    Any,
     Dict,
     List,
     Optional,
@@ -35,15 +36,20 @@ class OpenpyxlWriter(ExcelWriter):
         self,
         path,
         engine=None,
+        date_format=None,
+        datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        **engine_kwargs,
+        engine_kwargs: Optional[Dict[str, Any]] = None,
     ):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
         super().__init__(
-            path, mode=mode, storage_options=storage_options, **engine_kwargs
+            path,
+            mode=mode,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
         )
 
         # ExcelWriter replaced "a" by "r+" to allow us to first read the excel file from

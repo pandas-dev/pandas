@@ -79,7 +79,7 @@ which will first group the data by the specified keys and then perform a windowi
 .. versionadded:: 1.3
 
 Some windowing operations also support the ``method='table'`` option in the constructor which
-performs the windowing operaion over an entire :class:`DataFrame` instead of a single column or row at a time.
+performs the windowing operation over an entire :class:`DataFrame` instead of a single column or row at a time.
 This can provide a useful performance benefit for a :class:`DataFrame` with many columns or rows
 (with the corresponding ``axis`` argument) or the ability to utilize other columns during the windowing
 operation. The ``method='table'`` option can only be used if ``engine='numba'`` is specified
@@ -168,7 +168,7 @@ parameter:
 =============  ====================
 Value          Behavior
 =============  ====================
-``right'``     close right endpoint
+``'right'``     close right endpoint
 ``'left'``     close left endpoint
 ``'both'``     close both endpoints
 ``'neither'``  open endpoints
@@ -214,7 +214,7 @@ ending indices of the windows. Additionally, ``num_values``, ``min_periods``, ``
 and will automatically be passed to ``get_window_bounds`` and the defined method must
 always accept these arguments.
 
-For example, if we have the following :class:``DataFrame``:
+For example, if we have the following :class:`DataFrame`
 
 .. ipython:: python
 
@@ -370,8 +370,8 @@ two :class:`Series` or any combination of :class:`DataFrame`/:class:`Series` or
   with the passed Series, thus returning a DataFrame.
 * :class:`DataFrame`/:class:`DataFrame`: by default compute the statistic for matching column
   names, returning a DataFrame. If the keyword argument ``pairwise=True`` is
-  passed then computes the statistic for each pair of columns, returning a
-  ``MultiIndexed DataFrame`` whose ``index`` are the dates in question (see :ref:`the next section
+  passed then computes the statistic for each pair of columns, returning a :class:`DataFrame` with a
+  :class:`MultiIndex` whose values are the dates in question (see :ref:`the next section
   <window.corr_pairwise>`).
 
 For example:
@@ -581,7 +581,7 @@ The following formula is used to compute exponentially weighted mean with an inp
 
 .. math::
 
-    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{0.5^\frac{t_{t} - t_{i}}{\lambda}},
+    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda}},
 
 
 ExponentialMovingWindow also has an ``ignore_na`` argument, which determines how

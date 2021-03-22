@@ -262,7 +262,7 @@ class TestS3:
         tm.assert_frame_equal(result, expected)
 
     def test_read_csv_chunked_download(self, s3_resource, caplog, s3so):
-        # 8 MB, S3FS usees 5MB chunks
+        # 8 MB, S3FS uses 5MB chunks
         import s3fs
 
         df = DataFrame(np.random.randn(100000, 4), columns=list("abcd"))

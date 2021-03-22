@@ -3,6 +3,7 @@ Misc tools for implementing data structures
 
 Note: pandas.core.common is *not* part of the public API.
 """
+from __future__ import annotations
 
 from collections import (
     abc,
@@ -12,6 +13,7 @@ import contextlib
 from functools import partial
 import inspect
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Collection,
@@ -50,6 +52,9 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 
 class SettingWithCopyError(ValueError):
@@ -223,9 +228,16 @@ def asarray_tuplesafe(values, dtype: Optional[NpDtype] = None) -> np.ndarray:
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
-        return values._values
+        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
+        # expected "ndarray")
+        return values._values  # type: ignore[return-value]
 
-    if isinstance(values, list) and dtype in [np.object_, object]:
+    # error: Non-overlapping container check (element type: "Union[str, dtype[Any],
+    # None]", container item type: "type")
+    if isinstance(values, list) and dtype in [  # type: ignore[comparison-overlap]
+        np.object_,
+        object,
+    ]:
         return construct_1d_object_array_from_listlike(values)
 
     result = np.asarray(values, dtype=dtype)
@@ -488,8 +500,7 @@ def convert_to_list_like(
     inputs are returned unmodified whereas others are converted to list.
     """
     if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
-        # np.ndarray resolving as Any gives a false positive
-        return values  # type: ignore[return-value]
+        return values
     elif isinstance(values, abc.Iterable) and not isinstance(values, str):
         return list(values)
 
@@ -512,3 +523,16 @@ def temp_setattr(obj, attr: str, value) -> Iterator[None]:
     setattr(obj, attr, value)
     yield obj
     setattr(obj, attr, old_value)
+
+
+def require_length_match(data, index: Index):
+    """
+    Check the length of data matches the length of the index.
+    """
+    if len(data) != len(index):
+        raise ValueError(
+            "Length of values "
+            f"({len(data)}) "
+            "does not match length of index "
+            f"({len(index)})"
+        )
