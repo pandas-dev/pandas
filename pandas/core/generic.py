@@ -8933,7 +8933,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # align the cond to same shape as myself
         cond = com.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
-            cond, _ = cond.align(self, join="right", broadcast_axis=1)
+            cond, _ = cond.align(self, join="right", broadcast_axis=1, copy=False)
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
@@ -8961,6 +8961,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             cond = cond.astype(bool)
 
         cond = -cond if inplace else cond
+        cond = cond.reindex(self._info_axis, axis=self._info_axis_number, copy=False)
 
         # try to align with other
         if isinstance(other, NDFrame):
@@ -8997,7 +8998,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     "cannot align with a higher dimensional NDFrame"
                 )
 
-        if not isinstance(other, (MultiIndex, NDFrame)):
+        elif not isinstance(other, (MultiIndex, NDFrame)):
             # mainly just catching Index here
             other = extract_array(other, extract_numpy=True)
 
@@ -9029,11 +9030,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             align = self._get_axis_number(axis) == 1
 
-        if isinstance(cond, NDFrame):
-            cond = cond.reindex(
-                self._info_axis, axis=self._info_axis_number, copy=False
-            )
-
         if inplace:
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
@@ -9049,7 +9045,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 cond=cond,
                 align=align,
                 errors=errors,
-                axis=axis,
             )
             result = self._constructor(new_data)
             return result.__finalize__(self)

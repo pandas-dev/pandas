@@ -49,6 +49,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
+    ensure_platform_int,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
@@ -533,7 +534,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # error: Incompatible types in assignment (expression has type "ndarray",
             # variable has type "Categorical")
             result = take_nd(  # type: ignore[assignment]
-                new_cats, libalgos.ensure_platform_int(self._codes)
+                new_cats, ensure_platform_int(self._codes)
             )
 
         return result
