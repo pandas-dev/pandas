@@ -306,7 +306,7 @@ class BlockManager(DataManager):
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
-        return algos.take_nd(dtypes, self.blknos, allow_fill=False)
+        return dtypes.take(self.blknos)
 
     @property
     def arrays(self) -> List[ArrayLike]:
@@ -1177,7 +1177,7 @@ class BlockManager(DataManager):
             is_deleted = np.zeros(self.nblocks, dtype=np.bool_)
             is_deleted[removed_blknos] = True
 
-            new_blknos = np.empty(self.nblocks, dtype=np.int64)
+            new_blknos = np.empty(self.nblocks, dtype=np.intp)
             new_blknos.fill(-1)
             new_blknos[~is_deleted] = np.arange(self.nblocks - len(removed_blknos))
             self._blknos = new_blknos[self._blknos]
