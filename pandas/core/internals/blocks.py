@@ -222,7 +222,7 @@ class Block(PandasObject):
             "Block.is_categorical is deprecated and will be removed in a "
             "future version.  Use isinstance(block.values, Categorical) "
             "instead.  See https://github.com/pandas-dev/pandas/issues/40226",
-            FutureWarning,
+            DeprecationWarning,
         )
         return isinstance(self.values, Categorical)
 
