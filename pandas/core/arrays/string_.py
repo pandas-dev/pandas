@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
@@ -327,7 +326,7 @@ class StringArray(PandasArray):
             arr[mask] = "0"
             values = arr.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
-        elif is_extension_array_dtype(dtype):
+        elif isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
             return cls._from_sequence(self, dtype=dtype, copy=copy)
         elif np.issubdtype(dtype, np.floating):
