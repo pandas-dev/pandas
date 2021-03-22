@@ -290,7 +290,8 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         filled_val = df.iloc[0, 0]
         result = df.fillna(filled_val)
 
-        assert df.values.base is not result.values.base
+        if hasattr(df._mgr, "blocks"):
+            assert df.values.base is not result.values.base
         assert df.A._values.to_dense() is arr.to_dense()
 
     def test_fillna_copy_series(self, data_missing):
@@ -362,18 +363,19 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     def test_astype_object_series(self, all_data):
         # Unlike the base class, we do not expect the resulting Block
-        #  to be ObjectBlock
+        #  to be ObjectBlock / resulting array to be np.dtype("object")
         ser = pd.Series(all_data, name="A")
         result = ser.astype(object)
-        assert is_object_dtype(result._data.blocks[0].dtype)
+        assert is_object_dtype(result.dtype)
+        assert is_object_dtype(result._mgr.array.dtype)
 
     def test_astype_object_frame(self, all_data):
         # Unlike the base class, we do not expect the resulting Block
-        #  to be ObjectBlock
+        #  to be ObjectBlock / resulting array to be np.dtype("object")
         df = pd.DataFrame({"A": all_data})
 
         result = df.astype(object)
-        assert is_object_dtype(result._data.blocks[0].dtype)
+        assert is_object_dtype(result._mgr.arrays[0].dtype)
 
         # FIXME: these currently fail; dont leave commented-out
         # check that we can compare the dtypes
