@@ -193,7 +193,7 @@ class Styler:
         self.hidden_index: bool = False
         self.hidden_columns: Sequence[int] = []
         self.ctx: DefaultDict[Tuple[int, int], CSSList] = defaultdict(list)
-        self.cell_context: Dict[str, Any] = {}
+        self.cell_context: DefaultDict[Tuple[int, int], str] = defaultdict(str)
         self._todo: List[Tuple[Callable, Tuple, Dict]] = []
         self.tooltips: Optional[_Tooltips] = None
         def_precision = get_option("display.precision")
@@ -420,19 +420,11 @@ class Styler:
 
             if clabels:
                 for c, value in enumerate(clabels[r]):
-                    cs = [
-                        COL_HEADING_CLASS,
-                        f"level{r}",
-                        f"col{c}",
-                    ]
-                    cs.extend(
-                        cell_context.get("col_headings", {}).get(r, {}).get(c, [])
-                    )
                     es = {
                         "type": "th",
                         "value": value,
                         "display_value": value,
-                        "class": " ".join(cs),
+                        "class": f"{COL_HEADING_CLASS} level{r} col{c}",
                         "is_visible": _is_visible(c, r, col_lengths),
                     }
                     colspan = col_lengths.get((r, c), 0)
@@ -492,7 +484,6 @@ class Styler:
                 row_es.append(es)
 
             for c, value in enumerate(row_tup[1:]):
-                cs = [DATA_CLASS, f"row{r}", f"col{c}"]
                 formatter = self._display_funcs[(r, c)]
                 row_dict = {
                     "type": "td",
@@ -505,12 +496,14 @@ class Styler:
                 # only add an id if the cell has a style
                 props: CSSList = []
                 if self.cell_ids or (r, c) in ctx:
-                    row_dict["id"] = "_".join(cs[1:])
+                    row_dict["id"] = f"row{r}_col{c}"
                     props.extend(ctx[r, c])
 
                 # add custom classes from cell context
-                cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
-                row_dict["class"] = " ".join(cs)
+                cls = ""
+                if (r, c) in cell_context:
+                    cls = " " + cell_context[r, c]
+                row_dict["class"] = f"{DATA_CLASS} row{r} col{c}{cls}"
 
                 row_es.append(row_dict)
                 if props:  # (), [] won't be in cellstyle_map, cellstyle respectively
@@ -736,15 +729,10 @@ class Styler:
         """
         classes = classes.reindex_like(self.data)
 
-        mask = (classes.isna()) | (classes.eq(""))
-        self.cell_context["data"] = {
-            r: {
-                c: [str(classes.iloc[r, c])]
-                for c, cn in enumerate(classes.columns)
-                if not mask.iloc[r, c]
-            }
-            for r, rn in enumerate(classes.index)
-        }
+        for r, row_tup in enumerate(classes.itertuples()):
+            for c, value in enumerate(row_tup[1:]):
+                if not (pd.isna(value) or value == ""):
+                    self.cell_context[(r, c)] = str(value)
 
         return self
 
@@ -859,7 +847,7 @@ class Styler:
         """
         self.ctx.clear()
         self.tooltips = None
-        self.cell_context = {}
+        self.cell_context.clear()
         self._todo = []
 
     def _compute(self):

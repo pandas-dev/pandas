@@ -153,7 +153,7 @@ def test_binary_mode_file_buffers(
     fpath = datapath(*file_path)
     expected = parser.read_csv(fpath, encoding=encoding)
 
-    with open(fpath, mode="r", encoding=encoding) as fa:
+    with open(fpath, encoding=encoding) as fa:
         result = parser.read_csv(fa)
         assert not fa.closed
     tm.assert_frame_equal(expected, result)
