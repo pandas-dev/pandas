@@ -354,48 +354,75 @@ class Styler:
     def to_html(
         self,
         buf: Optional[FilePathOrBuffer[str]] = None,
-        # columns: Optional[Sequence] = None,
+        columns: Optional[Sequence] = None,
+        hide_columns: bool = False,
         # ignored: col_space,
-        # ignored: header
-        # index: bool = True,
-        # na_rep: Optional[str] = "NaN",
-        # formatters: Optional[Dict] = None,
-        # float_format: Optional[Union[Callable, str]] = None,
-        # ignored: sparsify,
-        # ignored: index_names,
+        header: bool = True,
+        index: bool = True,
+        formatter: Optional[ExtFormatter] = None,
+        na_rep: Optional[str] = None,
+        precision: Optional[int] = None,
+        escape: bool = False,
+        bold_headers: bool = True,
+        # ignored: sparsify - not yet implementable: TODO
+        # ignored: index_names - not yet implementable: MAYBE TODO
         # ignored: justify
         # ignored: max_rows
         # ignored: min_rows
         # ignored: max_cols
-        # ignored: show_dimensions
-        # ignored: decimal: deprecate in favour of float_format
-        # ignored: bold_rows
-        # ignored: classes
-        # ignored: escape
-        # ignored: notebook
-        # ignored: border
+        table_uuid: Optional[str] = None,
+        table_attributes: Optional[str] = None,
+        # ignored: border - this attribute is deprecated in HTML in favour of CSS.
+        #   is technically still possible anyway by adding 'table_attributes="border=1"'
         encoding: Optional[str] = None,
-        # ignored: table_id
         no_styles=False,
+        # ignored: notebook - not sure what this property actually did.
+        # ignored: table_id - replaced by UUID.
+        # ignored: classes - removed in favour of table_attributes which is more flexble
+        # ignored: bold_rows - changed to bold_headers
+        # ignored: float_format - removed in favour of using `.format()` method
+        # ignored: formatters - removed and switched to formatter for `.format()`
+        # ignored: decimal - removed since too much cross over with float_format
+        # ignored: show_dimensions - removed since not necessary feature of to_html
     ):
         """
         render styler to HTML or file IO
         """
-        # if columns:
-        #     hidden = [col for col in self.data.columns if col not in columns]
-        #     self.hide_columns(hidden)
-        #
-        # if not index:
-        #     self.hide_index()
-        #
-        # self.set_na_rep(na_rep)
-        #
+        if columns and not hide_columns:
+            hidden = [col for col in self.data.columns if col not in columns]
+            self.hide_columns(hidden)
+        elif columns and hide_columns:
+            self.hide_columns(columns)
+
+        if not index:
+            self.hide_index()
+
+        if not header:
+            self.set_table_styles(
+                [{"selector": "thead tr", "props": "display:none;"}], overwrite=False
+            )
+
+        if bold_headers:
+            self.set_tablestyles(
+                [{"selector": "th", "props": "fornt-weight: bold;"}], overwrite=False
+            )
+
+        if any(
+            formatter is not None, precision is not None, na_rep is not None, escape
+        ):
+            self.format(
+                formatter=formatter, precision=precision, na_rep=na_rep, escape=escape
+            )
+
+        if table_uuid:
+            self.set_uuid(table_uuid)
+
+        if table_attributes:
+            self.set_table_attributes(table_attributes)
+
         # if float_format:
         #     float_cols = self.data.select_dtypes(include=[float])
         #     self.format({col: float_format for col in float_cols})
-        #
-        # if formatters:
-        #     self.format(formatters)
 
         # Build HTML string..
         styler_html = self.render(no_styles=no_styles).split("</style>\n")
@@ -403,7 +430,8 @@ class Styler:
             styler_html = ["", styler_html[0]]
         else:
             styler_html = ["\n  " + styler_html[0] + "  </style>", styler_html[1]]
-        html = f"""<!DOCTYPE html>
+        html = f"""\
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="{'utf-8' if encoding is None else encoding}">{styler_html[0]}
