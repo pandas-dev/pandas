@@ -14,12 +14,12 @@ def df():
 
 
 @pytest.fixture
-def s(df):
+def styler(df):
     return Styler(df, uuid_len=0)
 
 
-def test_highlight_null(s):
-    result = s.highlight_null()._compute().ctx
+def test_highlight_null(styler):
+    result = styler.highlight_null()._compute().ctx
     expected = {
         (1, 0): [("background-color", "red")],
         (1, 1): [("background-color", "red")],
@@ -27,10 +27,10 @@ def test_highlight_null(s):
     assert result == expected
 
 
-def test_highlight_null_subset(s):
+def test_highlight_null_subset(styler):
     # GH 31345
     result = (
-        s.highlight_null(null_color="red", subset=["A"])
+        styler.highlight_null(null_color="red", subset=["A"])
         .highlight_null(null_color="green", subset=["B"])
         ._compute()
         .ctx
