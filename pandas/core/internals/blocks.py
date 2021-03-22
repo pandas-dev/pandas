@@ -101,6 +101,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+import pandas.core.computation.expressions as expressions
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -1303,8 +1304,6 @@ class Block(PandasObject):
         -------
         List[Block]
         """
-        import pandas.core.computation.expressions as expressions
-
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
         assert errors in ["raise", "ignore"]
