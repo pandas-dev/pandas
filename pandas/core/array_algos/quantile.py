@@ -4,13 +4,9 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._typing import ArrayLike
 
-from pandas.core.dtypes.common import (
-    is_list_like,
-    is_sparse,
-)
+from pandas.core.dtypes.common import is_sparse
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
@@ -22,16 +18,15 @@ if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
 
 
-def quantile_compat(values: ArrayLike, qs, interpolation: str, axis: int) -> ArrayLike:
+def quantile_compat(values: ArrayLike, qs: np.ndarray, interpolation: str) -> ArrayLike:
     """
     Compute the quantiles of the given values for each quantile in `qs`.
 
     Parameters
     ----------
     values : np.ndarray or ExtensionArray
-    qs : a scalar or list of the quantiles to be computed
+    qs : np.ndarray[float64]
     interpolation : str
-    axis : int
 
     Returns
     -------
@@ -40,18 +35,17 @@ def quantile_compat(values: ArrayLike, qs, interpolation: str, axis: int) -> Arr
     if isinstance(values, np.ndarray):
         fill_value = na_value_for_dtype(values.dtype, compat=False)
         mask = isna(values)
-        return quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
+        return _quantile_with_mask(values, mask, fill_value, qs, interpolation)
     else:
-        return quantile_ea_compat(values, qs, interpolation, axis)
+        return _quantile_ea_compat(values, qs, interpolation)
 
 
-def quantile_with_mask(
+def _quantile_with_mask(
     values: np.ndarray,
     mask: np.ndarray,
     fill_value,
-    qs,
+    qs: np.ndarray,
     interpolation: str,
-    axis: int,
 ) -> np.ndarray:
     """
     Compute the quantiles of the given values for each quantile in `qs`.
@@ -66,11 +60,9 @@ def quantile_with_mask(
     fill_value : Scalar
         The value to interpret fill NA entries with
         For ExtensionArray, this is _values_for_factorize()[1]
-    qs : a scalar or list of the quantiles to be computed
+    qs : np.ndarray[float64]
     interpolation : str
         Type of interpolation
-    axis : int
-        Axis along which to compute quantiles.
 
     Returns
     -------
@@ -80,12 +72,12 @@ def quantile_with_mask(
     -----
     Assumes values is already 2D.  For ExtensionArray this means np.atleast_2d
     has been called on _values_for_factorize()[0]
+
+    Quantile is computed along axis=1.
     """
-    is_empty = values.shape[axis] == 0
-    orig_scalar = not is_list_like(qs)
-    if orig_scalar:
-        # make list-like, unpack later
-        qs = [qs]
+    assert values.ndim == 2
+
+    is_empty = values.shape[1] == 0
 
     if is_empty:
         # create the array of na_values
@@ -97,29 +89,22 @@ def quantile_with_mask(
         result = nanpercentile(
             values,
             np.array(qs) * 100,
-            axis=axis,
             na_value=fill_value,
             mask=mask,
-            ndim=values.ndim,
             interpolation=interpolation,
         )
 
         result = np.array(result, copy=False)
         result = result.T
 
-    if orig_scalar:
-        assert result.shape[-1] == 1, result.shape
-        result = result[..., 0]
-        result = lib.item_from_zerodim(result)
-
     return result
 
 
-def quantile_ea_compat(
-    values: ExtensionArray, qs, interpolation: str, axis: int
+def _quantile_ea_compat(
+    values: ExtensionArray, qs: np.ndarray, interpolation: str
 ) -> ExtensionArray:
     """
-    ExtensionArray compatibility layer for quantile_with_mask.
+    ExtensionArray compatibility layer for _quantile_with_mask.
 
     We pretend that an ExtensionArray with shape (N,) is actually (1, N,)
     for compatibility with non-EA code.
@@ -127,9 +112,8 @@ def quantile_ea_compat(
     Parameters
     ----------
     values : ExtensionArray
-    qs : a scalar or list of the quantiles to be computed
+    qs : np.ndarray[float64]
     interpolation: str
-    axis : int
 
     Returns
     -------
@@ -145,19 +129,12 @@ def quantile_ea_compat(
     arr, fill_value = values._values_for_factorize()
     arr = np.atleast_2d(arr)
 
-    result = quantile_with_mask(arr, mask, fill_value, qs, interpolation, axis)
+    result = _quantile_with_mask(arr, mask, fill_value, qs, interpolation)
 
     if not is_sparse(orig.dtype):
         # shape[0] should be 1 as long as EAs are 1D
-
-        if result.ndim == 1:
-            # i.e. qs was originally a scalar
-            assert result.shape == (1,), result.shape
-            result = type(orig)._from_factorized(result, orig)
-
-        else:
-            assert result.shape == (1, len(qs)), result.shape
-            result = type(orig)._from_factorized(result[0], orig)
+        assert result.shape == (1, len(qs)), result.shape
+        result = type(orig)._from_factorized(result[0], orig)
 
     # error: Incompatible return value type (got "ndarray", expected "ExtensionArray")
     return result  # type: ignore[return-value]
