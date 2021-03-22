@@ -6,6 +6,7 @@ from io import StringIO
 
 import numpy as np
 import pytest
+import regex as re
 
 from pandas.errors import DtypeWarning
 
