@@ -202,7 +202,8 @@ class ODFReader(BaseExcelReader):
         elif cell_type == "time":
             result = pd.to_datetime(str(cell))
             result = cast(pd.Timestamp, result)
-            return result.time()
+            # error: Item "str" of "Union[float, str, NaTType]" has no attribute "time"
+            return result.time()  # type: ignore[union-attr]
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")
