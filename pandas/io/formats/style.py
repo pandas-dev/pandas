@@ -364,7 +364,7 @@ class Styler:
 
         DATA_CLASS = "data"
         BLANK_CLASS = "blank"
-        BLANK_VALUE = ""
+        BLANK_VALUE = "&nbsp;"
 
         # mapping variables
         ctx = self.ctx  # td css styles from apply() and applymap()
