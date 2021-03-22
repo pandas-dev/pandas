@@ -548,6 +548,13 @@ class TestDataFrameQueryNumExprPandas:
             df[df.a + df.b > df.b * df.c],
         )
 
+    def test_query_equality(self):
+        engine, parser = self.engine, self.parser
+        df = DataFrame({"x": np.random.choice(["A", "B", "C"], size=20)})
+        tm.assert_frame_equal(
+            df.query("x == 'A'", engine=engine, parser=parser), df[df.x == "A"]
+        )
+
     def test_query_index_with_name(self):
         engine, parser = self.engine, self.parser
         df = DataFrame(

@@ -494,6 +494,7 @@ Other
 - Bug in :meth:`Styler.background_gradient` where text-color was not determined correctly (:issue:`39888`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
+- Bug in :method:`DataFrame.query`, where "python" ``parser`` would raise NotImplementedError for == and != (:issue:`40436`)
 
 
 .. ---------------------------------------------------------------------------

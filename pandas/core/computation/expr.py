@@ -384,8 +384,6 @@ class BaseExprVisitor(ast.NodeVisitor):
     unary_op_nodes_map = {k: v for k, v in zip(unary_ops, unary_op_nodes)}
 
     rewrite_map = {
-        ast.Eq: ast.In,
-        ast.NotEq: ast.NotIn,
         ast.In: ast.In,
         ast.NotIn: ast.NotIn,
     }
