@@ -7,9 +7,11 @@ from datetime import (
     tzinfo,
 )
 from typing import (
+    TYPE_CHECKING,
     Optional,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -78,6 +80,9 @@ from pandas.tseries.offsets import (
     Day,
     Tick,
 )
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 _midnight = time(0, 0)
 
@@ -1909,6 +1914,20 @@ default 'raise'
 # Constructor Helpers
 
 
+@overload
+def sequence_to_datetimes(
+    data, allow_object: Literal[False] = ..., require_iso8601: bool = ...
+) -> DatetimeArray:
+    ...
+
+
+@overload
+def sequence_to_datetimes(
+    data, allow_object: Literal[True] = ..., require_iso8601: bool = ...
+) -> Union[np.ndarray, DatetimeArray]:
+    ...
+
+
 def sequence_to_datetimes(
     data, allow_object: bool = False, require_iso8601: bool = False
 ) -> Union[np.ndarray, DatetimeArray]:
@@ -2135,7 +2154,7 @@ def objects_to_datetime64ns(
     data = np.array(data, copy=False, dtype=np.object_)
 
     flags = data.flags
-    order = "F" if flags.f_contiguous else "C"
+    order: Literal["F", "C"] = "F" if flags.f_contiguous else "C"
     try:
         result, tz_parsed = tslib.array_to_datetime(
             data.ravel("K"),
