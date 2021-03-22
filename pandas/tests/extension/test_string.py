@@ -26,7 +26,7 @@ from pandas.tests.extension import base
 
 
 def split_array(arr):
-    if not isinstance(arr.dtype, ArrowStringDtype):
+    if arr.dtype.storage != "pyarrow":
         pytest.skip("chunked array n/a")
 
     def _split_array(arr):
