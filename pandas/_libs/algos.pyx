@@ -1185,6 +1185,7 @@ def rank_1d(
                     if not group_changed and (next_val_diff or
                                               (mask[lexsort_indexer[i]]
                                                ^ mask[lexsort_indexer[i+1]])):
+
                         dups = sum_ranks = 0
                         grp_vals_seen += 1
 
