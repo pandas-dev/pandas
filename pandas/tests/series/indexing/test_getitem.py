@@ -202,10 +202,44 @@ class TestSeriesGetitemSlices:
         expected = ts[1:4]
         tm.assert_series_equal(result, expected)
 
-    def test_getitem_slice_2d(self, datetime_series):
+    def test_getitem_partial_str_slice_with_timedeltaindex(self):
+        rng = timedelta_range("1 day 10:11:12", freq="h", periods=500)
+        ser = Series(np.arange(len(rng)), index=rng)
+
+        result = ser["5 day":"6 day"]
+        expected = ser.iloc[86:134]
+        tm.assert_series_equal(result, expected)
+
+        result = ser["5 day":]
+        expected = ser.iloc[86:]
+        tm.assert_series_equal(result, expected)
+
+        result = ser[:"6 day"]
+        expected = ser.iloc[:134]
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_partial_str_slice_high_reso_with_timedeltaindex(self):
+        # higher reso
+        rng = timedelta_range("1 day 10:11:12", freq="us", periods=2000)
+        ser = Series(np.arange(len(rng)), index=rng)
+
+        result = ser["1 day 10:11:12":]
+        expected = ser.iloc[0:]
+        tm.assert_series_equal(result, expected)
+
+        result = ser["1 day 10:11:12.001":]
+        expected = ser.iloc[1000:]
+        tm.assert_series_equal(result, expected)
+
+        result = ser["1 days, 10:11:12.001001"]
+        assert result == ser.iloc[1001]
+
+    def test_getitem_slice_2d(self, datetime_series, using_array_manager):
         # GH#30588 multi-dimensional indexing deprecated
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(
+            FutureWarning, check_stacklevel=not using_array_manager
+        ):
             # GH#30867 Don't want to support this long-term, but
             # for now ensure that the warning from Index
             # doesn't comes through via Series.__getitem__.
@@ -277,7 +311,7 @@ class TestSeriesGetitemSlices:
 
 
 class TestSeriesGetitemListLike:
-    @pytest.mark.parametrize("box", [list, np.array, Index, pd.Series])
+    @pytest.mark.parametrize("box", [list, np.array, Index, Series])
     def test_getitem_no_matches(self, box):
         # GH#33462 we expect the same behavior for list/ndarray/Index/Series
         ser = Series(["A", "B"])
@@ -486,9 +520,11 @@ def test_getitem_generator(string_series):
         Series(date_range("2012-01-01", periods=2, tz="CET")),
     ],
 )
-def test_getitem_ndim_deprecated(series):
+def test_getitem_ndim_deprecated(series, using_array_manager):
     with tm.assert_produces_warning(
-        FutureWarning, match="Support for multi-dimensional indexing"
+        FutureWarning,
+        match="Support for multi-dimensional indexing",
+        check_stacklevel=not using_array_manager,
     ):
         result = series[:, None]
 

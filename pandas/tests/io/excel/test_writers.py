@@ -6,6 +6,7 @@ from datetime import (
 from functools import partial
 from io import BytesIO
 import os
+import re
 
 import numpy as np
 import pytest
@@ -275,7 +276,7 @@ class TestRoundTrip:
 
     def test_multiindex_interval_datetimes(self, ext):
         # GH 30986
-        midx = pd.MultiIndex.from_arrays(
+        midx = MultiIndex.from_arrays(
             [
                 range(4),
                 pd.interval_range(
@@ -289,7 +290,7 @@ class TestRoundTrip:
             result = pd.read_excel(pth, index_col=[0, 1])
         expected = DataFrame(
             range(4),
-            pd.MultiIndex.from_arrays(
+            MultiIndex.from_arrays(
                 [
                     range(4),
                     [
@@ -436,7 +437,7 @@ class TestExcelWriter:
     def test_ts_frame(self, tsframe, path):
         df = tsframe
 
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
         df.index = index
 
@@ -515,7 +516,7 @@ class TestExcelWriter:
 
     def test_sheets(self, frame, tsframe, path):
 
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 
@@ -1381,6 +1382,40 @@ class TestExcelWriterEngineTests:
                 check_called(lambda: df.to_excel(filepath))
             with tm.ensure_clean("something.xls") as filepath:
                 check_called(lambda: df.to_excel(filepath, engine="dummy"))
+
+    @pytest.mark.parametrize(
+        "ext",
+        [
+            pytest.param(".xlsx", marks=td.skip_if_no("xlsxwriter")),
+            pytest.param(".xlsx", marks=td.skip_if_no("openpyxl")),
+            pytest.param(".ods", marks=td.skip_if_no("odf")),
+        ],
+    )
+    def test_kwargs_deprecated(self, ext):
+        # GH 40430
+        msg = re.escape("Use of **kwargs is deprecated")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with tm.ensure_clean(ext) as path:
+                try:
+                    with ExcelWriter(path, kwarg=1):
+                        pass
+                except TypeError:
+                    pass
+
+    @pytest.mark.parametrize(
+        "ext",
+        [
+            pytest.param(".xlsx", marks=td.skip_if_no("xlsxwriter")),
+            pytest.param(".xlsx", marks=td.skip_if_no("openpyxl")),
+            pytest.param(".ods", marks=td.skip_if_no("odf")),
+        ],
+    )
+    def test_engine_kwargs_and_kwargs_raises(self, ext):
+        # GH 40430
+        msg = re.escape("Cannot use both engine_kwargs and **kwargs")
+        with pytest.raises(ValueError, match=msg):
+            with ExcelWriter("", engine_kwargs={"a": 1}, b=2):
+                pass
 
 
 @td.skip_if_no("xlrd")

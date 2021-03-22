@@ -79,6 +79,13 @@ class TestDataFrameSortValues:
         with pytest.raises(ValueError, match=msg):
             frame.sort_values(by=["A", "B"], axis=0, ascending=[True] * 5)
 
+    def test_sort_values_by_empty_list(self):
+        # https://github.com/pandas-dev/pandas/issues/40258
+        expected = DataFrame({"a": [1, 4, 2, 5, 3, 6]})
+        result = expected.sort_values(by=[])
+        tm.assert_frame_equal(result, expected)
+        assert result is not expected
+
     def test_sort_values_inplace(self):
         frame = DataFrame(
             np.random.randn(4, 4), index=[1, 2, 3, 4], columns=["A", "B", "C", "D"]

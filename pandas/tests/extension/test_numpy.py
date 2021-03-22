@@ -16,6 +16,8 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
@@ -27,6 +29,9 @@ import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.internals import managers
 from pandas.tests.extension import base
+
+# TODO(ArrayManager) PandasArray
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def _extract_array_patched(obj):
@@ -305,11 +310,6 @@ class TestBooleanReduce(BaseNumPyTests, base.BaseBooleanReduceTests):
 
 class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     @skip_nested
-    def test_fillna_scalar(self, data_missing):
-        # Non-scalar "scalar" values.
-        super().test_fillna_scalar(data_missing)
-
-    @skip_nested
     def test_fillna_series(self, data_missing):
         # Non-scalar "scalar" values.
         super().test_fillna_series(data_missing)
@@ -424,6 +424,23 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     @skip_nested
     def test_setitem_loc_iloc_slice(self, data):
         super().test_setitem_loc_iloc_slice(data)
+
+    def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        result = pd.DataFrame(index=df.index)
+
+        # because result has object dtype, the attempt to do setting inplace
+        #  is successful, and object dtype is retained
+        key = full_indexer(df)
+        result.loc[key, "data"] = df["data"]
+
+        # base class method has expected = df; PandasArray behaves oddly because
+        #  we patch _typ for these tests.
+        if data.dtype.numpy_dtype != object:
+            if not isinstance(key, slice) or key != slice(None):
+                expected = pd.DataFrame({"data": data.to_numpy()})
+        self.assert_frame_equal(result, expected)
 
 
 @skip_nested

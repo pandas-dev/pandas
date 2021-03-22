@@ -15,6 +15,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -98,22 +99,6 @@ def frame_apply(
     )
 
 
-def series_apply(
-    obj: Series,
-    func: AggFuncType,
-    convert_dtype: bool = True,
-    args=None,
-    kwargs=None,
-) -> SeriesApply:
-    return SeriesApply(
-        obj,
-        func,
-        convert_dtype,
-        args,
-        kwargs,
-    )
-
-
 class Apply(metaclass=abc.ABCMeta):
     axis: int
 
@@ -181,19 +166,15 @@ class Apply(metaclass=abc.ABCMeta):
         args = self.args
         kwargs = self.kwargs
 
-        _axis = kwargs.pop("_axis", None)
-        if _axis is None:
-            _axis = getattr(obj, "axis", 0)
-
         result = self.maybe_apply_str()
         if result is not None:
             return result
 
         if is_dict_like(arg):
-            return self.agg_dict_like(_axis)
+            return self.agg_dict_like()
         elif is_list_like(arg):
             # we require a list, but not a 'str'
-            return self.agg_list_like(_axis=_axis)
+            return self.agg_list_like()
 
         if callable(arg):
             f = obj._get_cython_func(arg)
@@ -280,9 +261,10 @@ class Apply(metaclass=abc.ABCMeta):
         if len(func) == 0:
             raise ValueError("No transform functions were provided")
 
-        self.validate_dictlike_arg("transform", obj, func)
+        func = self.normalize_dictlike_arg("transform", obj, func)
 
         results: Dict[Hashable, FrameOrSeriesUnion] = {}
+        failed_names = []
         for name, how in func.items():
             colg = obj._gotitem(name, ndim=1)
             try:
@@ -293,10 +275,20 @@ class Apply(metaclass=abc.ABCMeta):
                     "No transform functions were provided",
                 }:
                     raise err
-
+                else:
+                    failed_names.append(name)
         # combine results
         if not results:
             raise ValueError("Transform function failed")
+        if len(failed_names) > 0:
+            warnings.warn(
+                f"{failed_names} did not transform successfully. "
+                f"Allowing for partial failure is deprecated, this will raise "
+                f"a ValueError in a future version of pandas."
+                f"Drop these columns/ops to avoid this warning.",
+                FutureWarning,
+                stacklevel=4,
+            )
         return concat(results, axis=1)
 
     def transform_str_or_callable(self, func) -> FrameOrSeriesUnion:
@@ -321,14 +313,9 @@ class Apply(metaclass=abc.ABCMeta):
         except Exception:
             return func(obj, *args, **kwargs)
 
-    def agg_list_like(self, _axis: int) -> FrameOrSeriesUnion:
+    def agg_list_like(self) -> FrameOrSeriesUnion:
         """
         Compute aggregation in the case of a list-like argument.
-
-        Parameters
-        ----------
-        _axis : int, 0 or 1
-            Axis to compute aggregation on.
 
         Returns
         -------
@@ -338,9 +325,6 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         arg = cast(List[AggFuncTypeBase], self.f)
-
-        if _axis != 0:
-            raise NotImplementedError("axis other than 0 is not supported")
 
         if obj._selected_obj.ndim == 1:
             selected_obj = obj._selected_obj
@@ -408,45 +392,22 @@ class Apply(metaclass=abc.ABCMeta):
                 ) from err
             return result
 
-    def agg_dict_like(self, _axis: int) -> FrameOrSeriesUnion:
+    def agg_dict_like(self) -> FrameOrSeriesUnion:
         """
         Compute aggregation in the case of a dict-like argument.
-
-        Parameters
-        ----------
-        _axis : int, 0 or 1
-            Axis to compute aggregation on.
 
         Returns
         -------
         Result of aggregation.
         """
+        from pandas.core.reshape.concat import concat
+
         obj = self.obj
         arg = cast(AggFuncTypeDict, self.f)
 
-        is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
-
-        if _axis != 0:  # pragma: no cover
-            raise ValueError("Can only pass dict with axis=0")
-
         selected_obj = obj._selected_obj
 
-        self.validate_dictlike_arg("agg", selected_obj, arg)
-
-        # if we have a dict of any non-scalars
-        # eg. {'A' : ['mean']}, normalize all to
-        # be list-likes
-        # Cannot use arg.values() because arg may be a Series
-        if any(is_aggregator(x) for _, x in arg.items()):
-            new_arg: AggFuncTypeDict = {}
-            for k, v in arg.items():
-                if not isinstance(v, (tuple, list, dict)):
-                    new_arg[k] = [v]
-                else:
-                    new_arg[k] = v
-            arg = new_arg
-
-        from pandas.core.reshape.concat import concat
+        arg = self.normalize_dictlike_arg("agg", selected_obj, arg)
 
         if selected_obj.ndim == 1:
             # key only used for output
@@ -540,14 +501,15 @@ class Apply(metaclass=abc.ABCMeta):
             return None
         return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
 
-    def validate_dictlike_arg(
+    def normalize_dictlike_arg(
         self, how: str, obj: FrameOrSeriesUnion, func: AggFuncTypeDict
-    ) -> None:
+    ) -> AggFuncTypeDict:
         """
-        Raise if dict-like argument is invalid.
+        Handler for dict-like argument.
 
         Ensures that necessary columns exist if obj is a DataFrame, and
-        that a nested renamer is not passed.
+        that a nested renamer is not passed. Also normalizes to all lists
+        when values consists of a mix of list and non-lists.
         """
         assert how in ("apply", "agg", "transform")
 
@@ -566,6 +528,23 @@ class Apply(metaclass=abc.ABCMeta):
             if len(cols) > 0:
                 cols_sorted = list(safe_sort(list(cols)))
                 raise KeyError(f"Column(s) {cols_sorted} do not exist")
+
+        is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
+
+        # if we have a dict of any non-scalars
+        # eg. {'A' : ['mean']}, normalize all to
+        # be list-likes
+        # Cannot use func.values() because arg may be a Series
+        if any(is_aggregator(x) for _, x in func.items()):
+            new_func: AggFuncTypeDict = {}
+            for k, v in func.items():
+                if not is_aggregator(v):
+                    # mypy can't realize v is not a list here
+                    new_func[k] = [v]  # type:ignore[list-item]
+                else:
+                    new_func[k] = v
+            func = new_func
+        return func
 
 
 class FrameApply(Apply):
@@ -654,28 +633,28 @@ class FrameApply(Apply):
         obj = self.obj
         axis = self.axis
 
-        # TODO: Avoid having to change state
-        self.obj = self.obj if self.axis == 0 else self.obj.T
-        self.axis = 0
-
-        result = None
         try:
-            result = super().agg()
+            if axis == 1:
+                result = FrameRowApply(
+                    obj.T,
+                    self.orig_f,
+                    self.raw,
+                    self.result_type,
+                    self.args,
+                    self.kwargs,
+                ).agg()
+                result = result.T if result is not None else result
+            else:
+                result = super().agg()
         except TypeError as err:
             exc = TypeError(
                 "DataFrame constructor called with "
                 f"incompatible data and dtype: {err}"
             )
             raise exc from err
-        finally:
-            self.obj = obj
-            self.axis = axis
-
-        if axis == 1:
-            result = result.T if result is not None else result
 
         if result is None:
-            result = self.obj.apply(self.orig_f, axis, args=self.args, **self.kwargs)
+            result = obj.apply(self.orig_f, axis, args=self.args, **self.kwargs)
 
         return result
 
@@ -896,9 +875,8 @@ class FrameColumnApply(FrameApply):
         #  of it.  Kids: don't do this at home.
         ser = self.obj._ixs(0, axis=0)
         mgr = ser._mgr
-        blk = mgr.blocks[0]
 
-        if is_extension_array_dtype(blk.dtype):
+        if is_extension_array_dtype(ser.dtype):
             # values will be incorrect for this block
             # TODO(EA2D): special case would be unnecessary with 2D EAs
             obj = self.obj
@@ -909,7 +887,7 @@ class FrameColumnApply(FrameApply):
             for (arr, name) in zip(values, self.index):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
-                blk.values = arr
+                mgr.set_values(arr)
                 ser.name = name
                 yield ser
 
@@ -1009,7 +987,6 @@ class SeriesApply(Apply):
 
             # we can be called from an inner function which
             # passes this meta-data
-            kwargs.pop("_axis", None)
             kwargs.pop("_level", None)
 
             # try a regular apply, this evaluates lambdas
@@ -1039,7 +1016,11 @@ class SeriesApply(Apply):
 
         with np.errstate(all="ignore"):
             if isinstance(f, np.ufunc):
-                return f(obj)
+                # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+                # "Series"; expected "Union[Union[int, float, complex, str, bytes,
+                # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+                # Sequence[Sequence[Any]], _SupportsArray]"
+                return f(obj)  # type: ignore[arg-type]
 
             # row-wise access
             if is_extension_array_dtype(obj.dtype) and hasattr(obj._values, "map"):
