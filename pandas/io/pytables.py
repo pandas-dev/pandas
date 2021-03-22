@@ -4058,7 +4058,7 @@ class Table(Fixed):
                 tuple(b_items.tolist()): (b, b_items)
                 for b, b_items in zip(blocks, blk_items)
             }
-            new_blocks: List["Block"] = []
+            new_blocks: List[Block] = []
             new_blk_items = []
             for ea in values_axes:
                 items = tuple(ea.values)
