@@ -117,10 +117,10 @@ def _take_nd_ndarray(
 ) -> np.ndarray:
 
     if indexer is None:
-        indexer = np.arange(arr.shape[axis], dtype=np.int64)
+        indexer = np.arange(arr.shape[axis], dtype=np.intp)
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
-        indexer = ensure_int64(indexer, copy=False)
+        indexer = ensure_platform_int(indexer)
     indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
         arr, indexer, out, fill_value, allow_fill
     )
@@ -317,7 +317,7 @@ def _get_take_nd_function(
     if func is None:
 
         def func(arr, indexer, out, fill_value=np.nan):
-            indexer = ensure_int64(indexer)
+            indexer = ensure_platform_int(indexer)
             _take_nd_object(
                 arr, indexer, out, axis=axis, fill_value=fill_value, mask_info=mask_info
             )
@@ -468,7 +468,7 @@ _take_2d_multi_dict = {
 
 def _take_nd_object(
     arr: np.ndarray,
-    indexer: np.ndarray,
+    indexer: np.ndarray,  # np.ndarray[np.intp]
     out: np.ndarray,
     axis: int,
     fill_value,
@@ -544,4 +544,5 @@ def _take_preprocess_indexer_and_fill_value(
                 # to crash when trying to cast it to dtype)
                 dtype, fill_value = arr.dtype, arr.dtype.type()
 
+    indexer = ensure_platform_int(indexer)
     return indexer, dtype, fill_value, mask_info
