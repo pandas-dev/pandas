@@ -17,7 +17,7 @@ def df():
 
 
 @pytest.fixture
-def s(df):
+def styler(df):
     return Styler(df, uuid_len=0)
 
 
@@ -34,9 +34,9 @@ def s(df):
         ),
     ],
 )
-def test_tooltip_render(ttips, s):
+def test_tooltip_render(ttips, styler):
     # GH 21266
-    result = s.set_tooltips(ttips).render()
+    result = styler.set_tooltips(ttips).render()
 
     # test tooltip table level class
     assert "#T__ .pd-t {\n  visibility: hidden;\n" in result
@@ -59,16 +59,16 @@ def test_tooltip_render(ttips, s):
     assert "Bad-Col" not in result
 
 
-def test_tooltip_ignored(s):
+def test_tooltip_ignored(styler):
     # GH 21266
-    result = s.render()  # no set_tooltips() creates no <span>
+    result = styler.render()  # no set_tooltips() creates no <span>
     assert '<style type="text/css">\n</style>' in result
     assert '<span class="pd-t"></span>' not in result
 
 
-def test_tooltip_css_class(s):
+def test_tooltip_css_class(styler):
     # GH 21266
-    result = s.set_tooltips(
+    result = styler.set_tooltips(
         DataFrame([["tooltip"]], index=["x"], columns=["A"]),
         css_class="other-class",
         props=[("color", "green")],
@@ -77,7 +77,7 @@ def test_tooltip_css_class(s):
     assert '#T__ #T__row0_col0 .other-class::after {\n  content: "tooltip";\n' in result
 
     # GH 39563
-    result = s.set_tooltips(  # set_tooltips overwrites previous
+    result = styler.set_tooltips(  # set_tooltips overwrites previous
         DataFrame([["tooltip"]], index=["x"], columns=["A"]),
         css_class="another-class",
         props="color:green;color:red;",
