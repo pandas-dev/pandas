@@ -517,3 +517,15 @@ def test_rank_zero_div(input_key, input_value, output_value):
     result = df.groupby("A").rank(method="dense", pct=True)
     expected = DataFrame({"B": output_value})
     tm.assert_frame_equal(result, expected)
+
+
+def test_rank_equal_values_on_group_transition():
+    # GH#40518
+    df = pd.DataFrame([
+        [2, 2],
+        [3, 3],
+        [2, 3],
+    ], columns=["group", "val"])
+    result = df.groupby(["gr1"])["val"].rank(
+    method="dense", pct=True, na_option='keep',
+)
