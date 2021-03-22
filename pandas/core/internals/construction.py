@@ -368,7 +368,10 @@ def maybe_squeeze_dt64tz(dta: ArrayLike) -> ArrayLike:
     # TODO(EA2D): kludge not needed with 2D EAs
     if isinstance(dta, DatetimeArray) and dta.ndim == 2 and dta.tz is not None:
         assert dta.shape[0] == 1
-        dta = dta[0]
+        # error: Incompatible types in assignment (expression has type
+        # "Union[DatetimeLikeArrayMixin, Union[Any, NaTType]]", variable has
+        # type "Union[ExtensionArray, ndarray]")
+        dta = dta[0]  # type: ignore[assignment]
     return dta
 
 
