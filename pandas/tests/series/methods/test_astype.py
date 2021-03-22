@@ -354,8 +354,6 @@ class TestAstypeString:
     @pytest.mark.parametrize(
         "data, dtype",
         [
-            ([True, False, NA], "boolean"),
-            # GH-40351
             (["A", NA], "category"),
             (["2020-10-10", "2020-10-10"], "datetime64[ns]"),
             (["2020-10-10", "2020-10-10", NaT], "datetime64[ns]"),
@@ -367,10 +365,19 @@ class TestAstypeString:
             (["1/1/2021", "2/1/2021"], "period[M]"),
             (["1/1/2021", "2/1/2021", NaT], "period[M]"),
             (["1 Day", "59 Days", NaT], "timedelta64[ns]"),
-            # currently no way to parse IntervalArray from strings
+            # currently no way to parse BooleanArray, IntervalArray from a
+            # list of strings
         ],
     )
     def test_astype_string_to_extension_dtype_roundtrip(self, data, dtype, request):
+        if dtype in ("timedelta64[ns]"):
+            mark = pytest.mark.xfail(reason="TODO fix is_extension_array_dtype GH40478")
+            request.node.add_marker(mark)
+        if NaT in data and dtype in ("period[M]", "datetime64[ns]"):
+            mark = pytest.mark.xfail(
+                reason="TODO StringArray.astype() None to dtype.na_value conversion"
+            )
+            request.node.add_marker(mark)
         # GH-40351
         s = Series(data, dtype=dtype)
         tm.assert_series_equal(s, s.astype("string").astype(dtype))
@@ -495,6 +502,18 @@ class TestAstypeCategorical:
         s = Series(["a", "b", "a"])
         with pytest.raises(TypeError, match="got an unexpected"):
             s.astype("category", categories=["a", "b"], ordered=True)
+
+    def test_astype_str_to_extension_dtype(self):
+        # GH-40351
+        s = Series(["A", np.NaN], dtype="string")
+        result = s.astype("category")
+        expected = Series(["A", np.NaN], dtype="category")
+        tm.assert_series_equal(result, expected)
+
+        s = Series(["1/1/2021", "2/1/2021"], dtype="string")
+        result = s.astype("period[M]")
+        expected = Series(["1/1/2021", "2/1/2021"], dtype="period[M]")
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("items", [["a", "b", "c", "a"], [1, 2, 3, 1]])
     def test_astype_from_categorical(self, items):
