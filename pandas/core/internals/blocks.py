@@ -1436,7 +1436,7 @@ class Block(PandasObject):
         assert axis == 1  # only ever called this way
         assert is_list_like(qs)  # caller is responsible for this
 
-        result = quantile_compat(self.values, qs, interpolation, axis)
+        result = quantile_compat(self.values, np.asarray(qs._values), interpolation)
 
         return new_block(result, placement=self._mgr_locs, ndim=2)
 
