@@ -1059,8 +1059,8 @@ class ExtensionArray:
               :func:`numpy.take`.
 
             * True: ``-1`` in `indices` indicate missing values.
-              These values are set to `fill_value`. Any other other negative
-              value raise a ``ValueError``.
+              These values are set to `fill_value`. Any other negative
+              value raises a ``ValueError``.
 
         fill_value : any, optional
             Fill value to use for NA-indices when `allow_fill` is True.
