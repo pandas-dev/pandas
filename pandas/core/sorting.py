@@ -33,7 +33,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -612,6 +611,7 @@ def get_group_index_sorter(
     )
     if do_groupsort:
         sorter, _ = algos.groupsort_indexer(ensure_int64(group_index), ngroups)
+        # sorter _should_ already be intp, but mypy is not yet able to verify
     else:
         sorter = group_index.argsort(kind="mergesort")
     return ensure_platform_int(sorter)
@@ -648,10 +648,10 @@ def _reorder_by_uniques(uniques, labels):
     mask = labels < 0
 
     # move labels to right locations (ie, unsort ascending labels)
-    labels = algorithms.take_nd(reverse_indexer, labels, allow_fill=False)
+    labels = reverse_indexer.take(labels)
     np.putmask(labels, mask, -1)
 
     # sort observed ids
-    uniques = algorithms.take_nd(uniques, sorter, allow_fill=False)
+    uniques = uniques.take(sorter)
 
     return uniques, labels

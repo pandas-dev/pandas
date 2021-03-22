@@ -299,6 +299,24 @@ cast to ``dtype=object`` (:issue:`38709`)
    ser
    ser2
 
+
+.. _whatsnew_130.notable_bug_fixes.rolling_var_precision:
+
+Removed artificial truncation in rolling variance and standard deviation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`core.window.Rolling.std` and :meth:`core.window.Rolling.var` will no longer
+artificially truncate results that are less than ``~1e-8`` and ``~1e-15`` respectively to
+zero (:issue:`37051`, :issue:`40448`, :issue:`39872`).
+
+However, floating point artifacts may now exist in the results when rolling over larger values.
+
+.. ipython:: python
+
+   s = pd.Series([7, 5, 5, 5])
+   s.rolling(3).var()
+
+
 .. _whatsnew_130.api_breaking.deps:
 
 Increased minimum versions for dependencies
@@ -661,6 +679,7 @@ Other
 - Bug in :class:`Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
 - Bug in :meth:`Styler.background_gradient` where text-color was not determined correctly (:issue:`39888`)
 - Bug in :class:`Styler` where multiple elements in CSS-selectors were not correctly added to ``table_styles`` (:issue:`39942`)
+- Bug in :class:`.Styler` where copying from Jupyter dropped top left cell and misaligned headers (:issue:`12147`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)
