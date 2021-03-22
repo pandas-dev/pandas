@@ -574,8 +574,7 @@ class BlockManager(DataManager):
 
         return type(self)(blocks, new_axes)
 
-    def where(self, other, cond, align: bool, errors: str, axis: int) -> BlockManager:
-        axis = self._normalize_axis(axis)
+    def where(self, other, cond, align: bool, errors: str) -> BlockManager:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -588,7 +587,6 @@ class BlockManager(DataManager):
             other=other,
             cond=cond,
             errors=errors,
-            axis=axis,
         )
 
     def setitem(self, indexer, value) -> BlockManager:

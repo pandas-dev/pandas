@@ -1291,7 +1291,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
+    def where(self, other, cond, errors="raise") -> List[Block]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1302,7 +1302,6 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
-        axis : int, default 0
 
         Returns
         -------
@@ -1310,6 +1309,7 @@ class Block(PandasObject):
         """
         import pandas.core.computation.expressions as expressions
 
+        assert cond.ndim == self.ndim
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
         assert errors in ["raise", "ignore"]
@@ -1322,7 +1322,7 @@ class Block(PandasObject):
 
         icond, noop = validate_putmask(values, ~cond)
 
-        if is_valid_na_for_dtype(other, self.dtype) and not self.is_object:
+        if is_valid_na_for_dtype(other, self.dtype) and self.dtype != _dtype_obj:
             other = self.fill_value
 
         if noop:
@@ -1335,7 +1335,7 @@ class Block(PandasObject):
                 # we cannot coerce, return a compat dtype
                 # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
-                blocks = block.where(orig_other, cond, errors=errors, axis=axis)
+                blocks = block.where(orig_other, cond, errors=errors)
                 return self._maybe_downcast(blocks, "infer")
 
             # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
@@ -1364,7 +1364,7 @@ class Block(PandasObject):
         cond = ~icond
         axis = cond.ndim - 1
         cond = cond.swapaxes(axis, 0)
-        mask = np.array([cond[i].all() for i in range(cond.shape[0])], dtype=bool)
+        mask = cond.all(axis=1)
 
         result_blocks: List[Block] = []
         for m in [mask, ~mask]:
@@ -1670,7 +1670,7 @@ class ExtensionBlock(Block):
         new_values = self.values.shift(periods=periods, fill_value=fill_value)
         return [self.make_block_same_class(new_values)]
 
-    def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
+    def where(self, other, cond, errors="raise") -> List[Block]:
 
         cond = extract_bool_array(cond)
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
@@ -1828,7 +1828,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         arr.T.putmask(mask, new)
         return [self]
 
-    def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
+    def where(self, other, cond, errors="raise") -> List[Block]:
         # TODO(EA2D): reshape unnecessary with 2D EAs
         arr = self.array_values().reshape(self.shape)
 
@@ -1837,7 +1837,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         try:
             res_values = arr.T.where(cond, other).T
         except (ValueError, TypeError):
-            return super().where(other, cond, errors=errors, axis=axis)
+            return super().where(other, cond, errors=errors)
 
         # TODO(EA2D): reshape not needed with 2D EAs
         res_values = res_values.reshape(self.values.shape)
