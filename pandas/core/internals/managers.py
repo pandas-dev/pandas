@@ -67,7 +67,6 @@ from pandas.core.internals.base import (
 )
 from pandas.core.internals.blocks import (
     Block,
-    CategoricalBlock,
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
@@ -575,8 +574,7 @@ class BlockManager(DataManager):
 
         return type(self)(blocks, new_axes)
 
-    def where(self, other, cond, align: bool, errors: str, axis: int) -> BlockManager:
-        axis = self._normalize_axis(axis)
+    def where(self, other, cond, align: bool, errors: str) -> BlockManager:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -589,7 +587,6 @@ class BlockManager(DataManager):
             other=other,
             cond=cond,
             errors=errors,
-            axis=axis,
         )
 
     def setitem(self, indexer, value) -> BlockManager:
@@ -1840,13 +1837,9 @@ def _form_blocks(
         items_dict[block_type.__name__].append((i, v))
 
     blocks: List[Block] = []
-    if len(items_dict["FloatBlock"]):
-        float_blocks = _multi_blockify(items_dict["FloatBlock"])
-        blocks.extend(float_blocks)
-
     if len(items_dict["NumericBlock"]):
-        complex_blocks = _multi_blockify(items_dict["NumericBlock"])
-        blocks.extend(complex_blocks)
+        numeric_blocks = _multi_blockify(items_dict["NumericBlock"])
+        blocks.extend(numeric_blocks)
 
     if len(items_dict["TimeDeltaBlock"]):
         timedelta_blocks = _multi_blockify(items_dict["TimeDeltaBlock"])
@@ -1866,13 +1859,6 @@ def _form_blocks(
     if len(items_dict["ObjectBlock"]) > 0:
         object_blocks = _simple_blockify(items_dict["ObjectBlock"], np.object_)
         blocks.extend(object_blocks)
-
-    if len(items_dict["CategoricalBlock"]) > 0:
-        cat_blocks = [
-            new_block(array, klass=CategoricalBlock, placement=i, ndim=2)
-            for i, array in items_dict["CategoricalBlock"]
-        ]
-        blocks.extend(cat_blocks)
 
     if len(items_dict["ExtensionBlock"]):
         external_blocks = [
