@@ -98,8 +98,8 @@ class TestAsFreq:
         index = to_datetime(["2021-01-04", "2021-01-02", "2021-01-03", "2021-01-01"])
         result = frame_or_series(range(4), index=index)
 
-        expected = result.copy().reindex(sorted(index))
+        expected = result.reindex(sorted(index))
+        expected.index = expected.index._with_freq("infer")
 
         result = result.asfreq("D")
-        expected = expected.asfreq("D")
         tm.assert_equal(result, expected)
