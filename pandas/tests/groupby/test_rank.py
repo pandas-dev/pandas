@@ -519,12 +519,14 @@ def test_rank_zero_div(input_key, input_value, output_value):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("fill_value", [np.nan, 3])
-def test_rank_pct_equal_values_on_group_transition(fill_value):
+@pytest.mark.parametrize("use_nan", [True, False])
+def test_rank_pct_equal_values_on_group_transition(use_nan):
     # GH#40518
+    fill_value = np.nan if use_nan else 2
     df = DataFrame(
         [
-            [-1, 2],
+            [-1, 1],
+            [-1, 1],
             [1, fill_value],
             [-1, fill_value],
         ],
@@ -534,9 +536,9 @@ def test_rank_pct_equal_values_on_group_transition(fill_value):
         method="dense",
         pct=True,
     )
-    if fill_value == 3:
-        expected = Series([0.5, 1, 1], name="val")
+    if use_nan:
+        expected = Series([1, 1, np.nan, np.nan], name="val")
     else:
-        expected = Series([1, np.nan, np.nan], name="val")
+        expected = Series([0.5, 0.5, 1, 1], name="val")
 
     tm.assert_series_equal(result, expected)

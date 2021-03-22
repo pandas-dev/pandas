@@ -1126,6 +1126,7 @@ def rank_1d(
                     grp_start = i + 1
                     grp_vals_seen = 1
     else:
+
         for i in range(N):
             at_end = i == N - 1
 
