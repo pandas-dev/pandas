@@ -258,19 +258,9 @@ cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
 
 cdef inline numeric kth_smallest_c(numeric* arr, Py_ssize_t k, Py_ssize_t n) nogil:
     """
-    Compute the kth smallest value in an array
-
-    Parameters
-    ----------
-    arr: numeric* arr
-        Pointer to the start of the array
-    k: Py_ssize_t
-    n: Number of values in arr to consider (no more than len(arr))
-
-    Returns
-    -------
-    numeric
-        The kth smallest value in arr
+    See kth_smallest.__doc__. The additional parameter n specifies the maximum
+    number of elements considered in arr, needed for compatibility with usage
+    in groupby.pyx
     """
     cdef:
         Py_ssize_t i, j, l, m
@@ -302,14 +292,15 @@ cdef inline numeric kth_smallest_c(numeric* arr, Py_ssize_t k, Py_ssize_t n) nog
 @cython.wraparound(False)
 def kth_smallest(numeric[::1] arr, Py_ssize_t k) -> numeric:
     """
-    Compute the kth smallest value in arr
+    Compute the kth smallest value in arr. Note that the input
+    array will be modified.
 
     Parameters
     ----------
-    arr: numeric[::1]
+    arr : numeric[::1]
         Array to compute the kth smallest value for, must be
         contiguous
-    k: Py_ssize_t
+    k : Py_ssize_t
 
     Returns
     -------

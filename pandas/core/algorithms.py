@@ -1305,7 +1305,8 @@ class SelectNSeries(SelectN):
         narr = len(arr)
         n = min(n, narr)
 
-        # arr passed into kth_smallest must be contiguous
+        # arr passed into kth_smallest must be contiguous. We copy
+        # here because kth_smallest will modify its input
         kth_val = algos.kth_smallest(arr.copy(order="C"), n - 1)
         (ns,) = np.nonzero(arr <= kth_val)
         inds = ns[arr[ns].argsort(kind="mergesort")]
