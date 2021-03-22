@@ -519,13 +519,24 @@ def test_rank_zero_div(input_key, input_value, output_value):
     tm.assert_frame_equal(result, expected)
 
 
-def test_rank_equal_values_on_group_transition():
+@pytest.mark.parametrize("fill_value", [np.nan, 3])
+def test_rank_pct_equal_values_on_group_transition(fill_value):
     # GH#40518
-    df = pd.DataFrame([
-        [2, 2],
-        [3, 3],
-        [2, 3],
-    ], columns=["group", "val"])
-    result = df.groupby(["gr1"])["val"].rank(
-    method="dense", pct=True, na_option='keep',
-)
+    df = DataFrame(
+        [
+            [-1, 2],
+            [1, fill_value],
+            [-1, fill_value],
+        ],
+        columns=["group", "val"],
+    )
+    result = df.groupby(["group"])["val"].rank(
+        method="dense",
+        pct=True,
+    )
+    if fill_value == 3:
+        expected = Series([0.5, 1, 1], name="val")
+    else:
+        expected = Series([1, np.nan, np.nan], name="val")
+
+    tm.assert_series_equal(result, expected)
