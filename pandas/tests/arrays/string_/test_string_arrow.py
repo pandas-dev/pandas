@@ -35,14 +35,14 @@ def test_config():
 
 
 @pytest.mark.parametrize("chunked", [True, False])
-@pytest.mark.parametrize("array", [np, pa])
-def test_constructor_not_string_type_raises(array, chunked):
-    arr = array.array([1, 2, 3])
+@pytest.mark.parametrize("np_or_pa", [np, pa])
+def test_constructor_not_string_type_raises(np_or_pa, chunked):
+    arr = np_or_pa.array([1, 2, 3])
     if chunked:
-        if array is np:
+        if np_or_pa is np:
             pytest.skip("chunked not applicable to numpy array")
         arr = pa.chunked_array(arr)
-    if array is np:
+    if np_or_pa is np:
         msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowStringArray"
     else:
         msg = re.escape(
