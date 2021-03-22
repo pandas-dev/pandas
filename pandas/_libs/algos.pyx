@@ -1166,11 +1166,11 @@ def rank_1d(
                         for j in range(i - dups + 1, i + 1):
                             out[lexsort_indexer[j]] = grp_vals_seen
 
-                    # Look forward to the next value (using the sorting in lexsort_indexer)
-                    # if the value does not equal the current value then we need to
-                    # reset the dups and sum_ranks, knowing that a new value is
-                    # coming up. The conditional also needs to handle nan equality
-                    # and the end of iteration
+                    # Look forward to the next value (using the sorting in
+                    # lexsort_indexer) if the value does not equal the current
+                    # value then we need to reset the dups and sum_ranks, knowing
+                    # that a new value is coming up. The conditional also needs
+                    # to handle nan equality and the end of iteration
                     if next_val_diff or (mask[lexsort_indexer[i]]
                                          ^ mask[lexsort_indexer[i+1]]):
                         dups = sum_ranks = 0
