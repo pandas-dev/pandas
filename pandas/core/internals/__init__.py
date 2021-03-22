@@ -53,7 +53,7 @@ def __getattr__(name: str):
         warnings.warn(
             "CategoricalBlock is deprecated and will be removed in a future version. "
             "Use ExtensionBlock instead.",
-            FutureWarning,
+            DeprecationWarning,
             stacklevel=2,
         )
         return ExtensionBlock
