@@ -1155,7 +1155,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         group_keys = self.grouper._get_group_keys()
         labels, _, n_groups = self.grouper.group_info
         sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
+        sorted_labels = labels.take(sorted_index)
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
         starts, ends = lib.generate_slices(sorted_labels, n_groups)
 
@@ -1190,7 +1190,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         group_keys = self.grouper._get_group_keys()
         labels, _, n_groups = self.grouper.group_info
         sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
+        sorted_labels = labels.take(sorted_index)
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
         starts, ends = lib.generate_slices(sorted_labels, n_groups)
 
