@@ -909,7 +909,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
         self,
-        indices: Union[ArrayLike, Sequence[int]],
+        indices: Union[AnyArrayLike, Sequence[int]],
         axis: int = 0,
         allow_fill: bool = True,
         fill_value=None,
