@@ -9543,6 +9543,7 @@ NaN 12.3   33.0
                 stacklevel=5,
             )
             cols = self.columns[~dtype_is_dt]
+            # TODO: avoid making a copy here
             self = self[cols]
 
         # TODO: Make other agg func handle axis=None properly GH#21597
