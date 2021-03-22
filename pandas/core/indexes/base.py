@@ -887,7 +887,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        indices : array_like
+        indices : array-like
             Indices to be taken.
         axis : int, optional
             The axis over which to select values, always 0.
@@ -910,7 +910,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
         self,
-        indices: Union[ArrayLike, Sequence[int]],
+        indices: Union[AnyArrayLike, Sequence[int]],
         axis: int = 0,
         allow_fill: bool = True,
         fill_value=None,
