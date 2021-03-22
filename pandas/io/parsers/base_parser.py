@@ -109,6 +109,7 @@ parser_defaults = {
     "mangle_dupe_cols": True,
     "infer_datetime_format": False,
     "skip_blank_lines": True,
+    "encoding_errors": "strict",
 }
 
 
@@ -212,6 +213,7 @@ class ParserBase:
             compression=kwds.get("compression", None),
             memory_map=kwds.get("memory_map", False),
             storage_options=kwds.get("storage_options", None),
+            errors=kwds.get("encoding_errors", "strict"),
         )
 
     def _validate_parse_dates_presence(self, columns: List[str]) -> None:
@@ -529,7 +531,11 @@ class ParserBase:
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
-                    mask = algorithms.isin(values, list(na_values)).view(np.uint8)
+                    # error: Argument 2 to "isin" has incompatible type "List[Any]";
+                    # expected "Union[Union[ExtensionArray, ndarray], Index, Series]"
+                    mask = algorithms.isin(
+                        values, list(na_values)  # type: ignore[arg-type]
+                    ).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
 
                 cvals, na_count = self._infer_types(
@@ -655,8 +661,12 @@ class ParserBase:
         """
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
-            mask = algorithms.isin(values, list(na_values))
-            na_count = mask.sum()
+            # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
+            # "Union[Union[ExtensionArray, ndarray], Index, Series]"
+            mask = algorithms.isin(values, list(na_values))  # type: ignore[arg-type]
+            # error: Incompatible types in assignment (expression has type
+            # "number[Any]", variable has type "int")
+            na_count = mask.sum()  # type: ignore[assignment]
             if na_count > 0:
                 if is_integer_dtype(values):
                     values = values.astype(np.float64)
@@ -714,7 +724,8 @@ class ParserBase:
                 # TODO: this is for consistency with
                 # c-parser which parses all categories
                 # as strings
-                values = astype_nansafe(values, str)
+
+                values = astype_nansafe(values, np.dtype(str))
 
             cats = Index(values).unique().dropna()
             values = Categorical._from_inferred_categories(
@@ -907,7 +918,20 @@ class ParserBase:
         if not is_dict_like(dtype):
             # if dtype == None, default will be object.
             default_dtype = dtype or object
-            dtype = defaultdict(lambda: default_dtype)
+            # error: Argument 1 to "defaultdict" has incompatible type "Callable[[],
+            # Union[ExtensionDtype, str, dtype[Any], Type[object], Dict[Hashable,
+            # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+            # Type[int], Type[complex], Type[bool], Type[object]]]]]"; expected
+            # "Optional[Callable[[], Union[ExtensionDtype, str, dtype[Any],
+            # Type[object]]]]"
+            # error: Incompatible return value type (got "Union[ExtensionDtype, str,
+            # dtype[Any], Type[object], Dict[Hashable, Union[ExtensionDtype, Union[str,
+            # dtype[Any]], Type[str], Type[float], Type[int], Type[complex], Type[bool],
+            # Type[object]]]]", expected "Union[ExtensionDtype, str, dtype[Any],
+            # Type[object]]")
+            dtype = defaultdict(
+                lambda: default_dtype  # type: ignore[arg-type, return-value]
+            )
         else:
             dtype = cast(dict, dtype)
             dtype = defaultdict(

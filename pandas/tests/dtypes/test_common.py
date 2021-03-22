@@ -469,14 +469,11 @@ def test_is_datetime_or_timedelta_dtype():
 
 
 def test_is_numeric_v_string_like():
-    assert not com.is_numeric_v_string_like(1, 1)
-    assert not com.is_numeric_v_string_like(1, "foo")
-    assert not com.is_numeric_v_string_like("foo", "foo")
+    assert not com.is_numeric_v_string_like(np.array([1]), 1)
     assert not com.is_numeric_v_string_like(np.array([1]), np.array([2]))
     assert not com.is_numeric_v_string_like(np.array(["foo"]), np.array(["foo"]))
 
     assert com.is_numeric_v_string_like(np.array([1]), "foo")
-    assert com.is_numeric_v_string_like("foo", np.array([1]))
     assert com.is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
     assert com.is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
 
@@ -519,14 +516,6 @@ def test_is_numeric_dtype():
     assert com.is_numeric_dtype(np.uint64)
     assert com.is_numeric_dtype(pd.Series([1, 2]))
     assert com.is_numeric_dtype(pd.Index([1, 2.0]))
-
-
-def test_is_string_like_dtype():
-    assert not com.is_string_like_dtype(object)
-    assert not com.is_string_like_dtype(pd.Series([1, 2]))
-
-    assert com.is_string_like_dtype(str)
-    assert com.is_string_like_dtype(np.array(["a", "b"]))
 
 
 def test_is_float_dtype():
@@ -724,7 +713,7 @@ def test_astype_nansafe(val, typ):
 
     msg = "Cannot convert NaT values to integer"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             # datetimelike astype(int64) deprecated
             astype_nansafe(arr, dtype=typ)
 
@@ -765,7 +754,7 @@ def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
 
 @pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
 def test_astype_object_preserves_datetime_na(from_type):
-    arr = np.array([from_type("NaT")])
+    arr = np.array([from_type("NaT", "ns")])
     result = astype_nansafe(arr, dtype=np.dtype("object"))
 
     assert isna(result)[0]

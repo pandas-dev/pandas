@@ -159,6 +159,7 @@ class TestPDApi(Base):
         "read_gbq",
         "read_hdf",
         "read_html",
+        "read_xml",
         "read_json",
         "read_pickle",
         "read_sas",
@@ -235,9 +236,9 @@ def test_datetime():
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
-        assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
+        assert datetime(2015, 1, 2, 0, 0) == datetime(2015, 1, 2, 0, 0)
 
-        assert isinstance(pd.datetime(2015, 1, 2, 0, 0), pd.datetime)
+        assert isinstance(datetime(2015, 1, 2, 0, 0), datetime)
 
 
 def test_sparsearray():
