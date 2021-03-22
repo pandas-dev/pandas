@@ -190,14 +190,12 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers, request):
     buf = StringIO(data)
 
     try:
-        with tm.assert_produces_warning(warning_type) as record:
+        msg = (
+            "Columns (0) have mixed types. Specify dtype option on import or "
+            "set low_memory=False."
+        )
+        with tm.assert_produces_warning(warning_type, match=re.escape(msg)):
             df = parser.read_csv(buf)
-        if record:
-            expected = (
-                "Columns (0) have mixed types. Specify dtype option on import or "
-                "set low_memory=False."
-            )
-            assert str(record[0].message) == expected
     except AssertionError as err:
         # 2021-02-21 this occasionally fails on the CI with an unexpected
         #  ResourceWarning that we have been unable to track down,
