@@ -2208,7 +2208,7 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_xlabel() == old_label
         assert ax.get_ylabel() == ""
 
-        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        # old xlabel will be overridden and assigned ylabel will be used as ylabel
         ax = df.plot(kind=kind, ylabel=new_label, xlabel=new_label)
         assert ax.get_ylabel() == str(new_label)
         assert ax.get_xlabel() == str(new_label)

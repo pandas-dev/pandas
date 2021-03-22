@@ -13,9 +13,8 @@ pytest.importorskip("jinja2")
 
 class TestStylerHighlight:
     def setup_method(self, method):
-        np.random.seed(24)
-        self.s = DataFrame({"A": np.random.permutation(range(6))})
-        self.df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
+        self.s = DataFrame({"A": [4, 5, 1, 0, 3, 2]})
+        self.df = DataFrame({"A": [0, 1], "B": [-0.609, -1.228]})
 
     def test_highlight_null(self):
         df = DataFrame({"A": [0, np.nan]})
@@ -78,7 +77,7 @@ class TestStylerHighlight:
             {"left": 0},  # test no right
             {"right": 1, "subset": ["A"]},  # test no left
             {"left": [0, 1], "axis": 0},  # test left as sequence
-            {"left": DataFrame([[0, 1], [1, 1]]), "axis": None},  # test axis with seq
+            {"left": DataFrame({"A": [0, 1], "B": [1, 1]}), "axis": None},  # test axis
             {"left": 0, "right": [0, 1], "axis": 0},  # test sequence right
         ],
     )
@@ -108,7 +107,7 @@ class TestStylerHighlight:
             df.style.highlight_between(**{arg: map, "axis": axis})._compute()
 
     def test_highlight_between_raises2(self):
-        msg = "values can be 'both', 'left', 'right', 'neither' or bool"
+        msg = "values can be 'both', 'left', 'right', or 'neither'"
         with pytest.raises(ValueError, match=msg):
             self.df.style.highlight_between(inclusive="badstring")._compute()
 
@@ -117,13 +116,6 @@ class TestStylerHighlight:
 
     def test_highlight_between_inclusive(self):
         kwargs = {"left": 0, "right": 1, "subset": ["A"]}
-        result = self.df.style.highlight_between(**kwargs, inclusive=True)._compute()
-        assert result.ctx == {
-            (0, 0): [("background-color", "yellow")],
-            (1, 0): [("background-color", "yellow")],
-        }
-        result = self.df.style.highlight_between(**kwargs, inclusive=False)._compute()
-        assert result.ctx == {}
         result = self.df.style.highlight_between(**kwargs, inclusive="both")._compute()
         assert result.ctx == {
             (0, 0): [("background-color", "yellow")],

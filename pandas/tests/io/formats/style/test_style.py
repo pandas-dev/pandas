@@ -20,9 +20,8 @@ from pandas.io.formats.style import (  # isort:skip
 
 class TestStyler:
     def setup_method(self, method):
-        np.random.seed(24)
-        self.s = DataFrame({"A": np.random.permutation(range(6))})
-        self.df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
+        self.s = DataFrame({"A": [4, 5, 1, 0, 3, 2]})
+        self.df = DataFrame({"A": [0, 1], "B": [-0.609, -1.228]})
         self.f = lambda x: x
         self.g = lambda x: x
 
@@ -38,6 +37,7 @@ class TestStyler:
                 {"f": [1.0, 2.0], "o": ["a", "b"], "c": pd.Categorical(["a", "b"])}
             ),
         ]
+        self.blank_value = "&nbsp;"
 
     def test_init_non_pandas(self):
         msg = "``data`` must be a Series or DataFrame"
@@ -84,13 +84,13 @@ class TestStyler:
             self.styler.set_table_attributes('class="foo" data-bar')
             self.styler.hidden_index = not self.styler.hidden_index
             self.styler.hide_columns("A")
-            classes = pd.DataFrame(
+            classes = DataFrame(
                 [["favorite-val red", ""], [None, "blue my-val"]],
                 index=self.df.index,
                 columns=self.df.columns,
             )
             self.styler.set_td_classes(classes)
-            ttips = pd.DataFrame(
+            ttips = DataFrame(
                 data=[["Favorite", ""], [np.nan, "my"]],
                 columns=self.df.columns,
                 index=self.df.index,
@@ -179,11 +179,10 @@ class TestStyler:
         assert len(s.cell_context) > 0
 
         s = s._compute()
-        # ctx and _todo items affected when a render takes place
+        # ctx item affected when a render takes place. _todo is maintained
         assert len(s.ctx) > 0
-        assert len(s._todo) == 0  # _todo is emptied after compute.
+        assert len(s._todo) > 0
 
-        s._todo = [1]
         s.clear()
         # ctx, _todo, tooltips and cell_context items all revert to null state.
         assert len(s.ctx) == 0
@@ -256,9 +255,9 @@ class TestStyler:
                 {
                     "class": "blank level0",
                     "type": "th",
-                    "value": "",
+                    "value": self.blank_value,
                     "is_visible": True,
-                    "display_value": "",
+                    "display_value": self.blank_value,
                 },
                 {
                     "class": "col_heading level0 col0",
@@ -296,8 +295,8 @@ class TestStyler:
                 {
                     "class": "blank level0",
                     "type": "th",
-                    "value": "",
-                    "display_value": "",
+                    "value": self.blank_value,
+                    "display_value": self.blank_value,
                     "is_visible": True,
                 },
                 {
@@ -317,8 +316,8 @@ class TestStyler:
             ],
             [
                 {"class": "index_name level0", "type": "th", "value": "A"},
-                {"class": "blank col0", "type": "th", "value": ""},
-                {"class": "blank col1", "type": "th", "value": ""},
+                {"class": "blank col0", "type": "th", "value": self.blank_value},
+                {"class": "blank col1", "type": "th", "value": self.blank_value},
             ],
         ]
 
@@ -334,15 +333,15 @@ class TestStyler:
                 {
                     "class": "blank",
                     "type": "th",
-                    "value": "",
-                    "display_value": "",
+                    "value": self.blank_value,
+                    "display_value": self.blank_value,
                     "is_visible": True,
                 },
                 {
                     "class": "blank level0",
                     "type": "th",
-                    "value": "",
-                    "display_value": "",
+                    "value": self.blank_value,
+                    "display_value": self.blank_value,
                     "is_visible": True,
                 },
                 {
@@ -356,7 +355,7 @@ class TestStyler:
             [
                 {"class": "index_name level0", "type": "th", "value": "A"},
                 {"class": "index_name level1", "type": "th", "value": "B"},
-                {"class": "blank col0", "type": "th", "value": ""},
+                {"class": "blank col0", "type": "th", "value": self.blank_value},
             ],
         ]
 
@@ -767,7 +766,7 @@ class TestStyler:
         f = lambda x: "color: red" if x > 0 else "color: blue"
         g = lambda x, z: f"color: {z}" if x > 0 else f"color: {z}"
         style1 = self.styler
-        style1.applymap(f).applymap(g, z="b").highlight_max()
+        style1.applymap(f).applymap(g, z="b").highlight_max()._compute()  # = render
         result = style1.export()
         style2 = self.df.style
         style2.use(result)
@@ -971,16 +970,16 @@ class TestStyler:
             {
                 "type": "th",
                 "class": "blank",
-                "value": "",
+                "value": self.blank_value,
                 "is_visible": True,
-                "display_value": "",
+                "display_value": self.blank_value,
             },
             {
                 "type": "th",
                 "class": "blank level0",
-                "value": "",
+                "value": self.blank_value,
                 "is_visible": True,
-                "display_value": "",
+                "display_value": self.blank_value,
             },
             {
                 "type": "th",
@@ -1014,7 +1013,7 @@ class TestStyler:
         expected = [
             {"class": "index_name level0", "value": "idx_level_0", "type": "th"},
             {"class": "index_name level1", "value": "idx_level_1", "type": "th"},
-            {"class": "blank col0", "value": "", "type": "th"},
+            {"class": "blank col0", "value": self.blank_value, "type": "th"},
         ]
 
         assert head == expected
@@ -1035,8 +1034,8 @@ class TestStyler:
         expected = [
             {
                 "class": "blank",
-                "value": "",
-                "display_value": "",
+                "value": self.blank_value,
+                "display_value": self.blank_value,
                 "type": "th",
                 "is_visible": True,
             },
@@ -1344,7 +1343,7 @@ class TestStyler:
   <caption>A comprehensive test</caption>
   <thead>
     <tr>
-      <th class="blank level0" ></th>
+      <th class="blank level0" >&nbsp;</th>
       <th class="col_heading level0 col0" >A</th>
     </tr>
   </thead>

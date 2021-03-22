@@ -82,8 +82,11 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core.arrays.datetimes import DatetimeArray
-from pandas.core.arrays.timedeltas import TimedeltaArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    TimedeltaArray,
+)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -106,7 +109,6 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from pandas import (
-        Categorical,
         DataFrame,
         Series,
     )
@@ -1561,9 +1563,11 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
 
         formatter = self.formatter
         if formatter is None:
-            formatter = values._formatter(boxed=True)
+            # error: Item "ndarray" of "Union[Any, Union[ExtensionArray, ndarray]]" has
+            # no attribute "_formatter"
+            formatter = values._formatter(boxed=True)  # type: ignore[union-attr]
 
-        if is_categorical_dtype(values.dtype):
+        if isinstance(values, Categorical):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
         else:
@@ -1632,10 +1636,25 @@ def format_percentiles(
             raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
-    int_idx = np.isclose(percentiles.astype(int), percentiles)
+
+    # error: Item "List[Union[int, float]]" of "Union[ndarray, List[Union[int, float]],
+    # List[float], List[Union[str, float]]]" has no attribute "astype"
+    # error: Item "List[float]" of "Union[ndarray, List[Union[int, float]], List[float],
+    # List[Union[str, float]]]" has no attribute "astype"
+    # error: Item "List[Union[str, float]]" of "Union[ndarray, List[Union[int, float]],
+    # List[float], List[Union[str, float]]]" has no attribute "astype"
+    int_idx = np.isclose(
+        percentiles.astype(int), percentiles  # type: ignore[union-attr]
+    )
 
     if np.all(int_idx):
-        out = percentiles.astype(int).astype(str)
+        # error: Item "List[Union[int, float]]" of "Union[ndarray, List[Union[int,
+        # float]], List[float], List[Union[str, float]]]" has no attribute "astype"
+        # error: Item "List[float]" of "Union[ndarray, List[Union[int, float]],
+        # List[float], List[Union[str, float]]]" has no attribute "astype"
+        # error: Item "List[Union[str, float]]" of "Union[ndarray, List[Union[int,
+        # float]], List[float], List[Union[str, float]]]" has no attribute "astype"
+        out = percentiles.astype(int).astype(str)  # type: ignore[union-attr]
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
@@ -1648,8 +1667,19 @@ def format_percentiles(
     ).astype(int)
     prec = max(1, prec)
     out = np.empty_like(percentiles, dtype=object)
-    out[int_idx] = percentiles[int_idx].astype(int).astype(str)
-    out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
+    # error: No overload variant of "__getitem__" of "list" matches argument type
+    # "Union[bool_, ndarray]"
+    out[int_idx] = (
+        percentiles[int_idx].astype(int).astype(str)  # type: ignore[call-overload]
+    )
+
+    # error: Item "float" of "Union[Any, float, str]" has no attribute "round"
+    # error: Item "str" of "Union[Any, float, str]" has no attribute "round"
+    # error: Invalid index type "Union[bool_, Any]" for "Union[ndarray, List[Union[int,
+    # float]], List[float], List[Union[str, float]]]"; expected type "int"
+    out[~int_idx] = (
+        percentiles[~int_idx].round(prec).astype(str)  # type: ignore[union-attr,index]
+    )
     return [i + "%" for i in out]
 
 
@@ -1772,7 +1802,11 @@ def get_format_timedelta64(
 
     one_day_nanos = 86400 * 10 ** 9
     even_days = (
-        np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
+        # error: Unsupported operand types for % ("ExtensionArray" and "int")
+        np.logical_and(
+            consider_values, values_int % one_day_nanos != 0  # type: ignore[operator]
+        ).sum()
+        == 0
     )
 
     if even_days:
