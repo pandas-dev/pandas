@@ -305,7 +305,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html>`__
     for more.
 
     Examples
@@ -1961,7 +1961,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        dict of categories -> indexers
+        Dict[Hashable, np.ndarray[np.intp]]
+            dict of categories -> indexers
 
         Examples
         --------
@@ -1979,7 +1980,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         categories = self.categories
         r, counts = libalgos.groupsort_indexer(
-            self.codes.astype("int64"), categories.size
+            self.codes.astype("int64", copy=False), categories.size
         )
         counts = counts.cumsum()
         _result = (r[start:end] for start, end in zip(counts, counts[1:]))
