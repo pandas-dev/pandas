@@ -886,7 +886,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        indices : array_like
+        indices : array-like
             Indices to be taken.
         axis : int, optional
             The axis over which to select values, always 0.
