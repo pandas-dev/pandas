@@ -701,7 +701,7 @@ def to_datetime(
     infer_datetime_format: bool = False,
     origin="unix",
     cache: bool = True,
-) -> Union[DatetimeIndex, Series, DatetimeScalar, NaTType]:
+) -> Optional[Union[DatetimeIndex, Series, DatetimeScalar, NaTType]]:
     """
     Convert argument to datetime.
 

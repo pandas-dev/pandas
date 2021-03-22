@@ -33,6 +33,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     FrameOrSeriesUnion,
+    Scalar,
 )
 from pandas.util._decorators import doc
 
@@ -763,6 +764,7 @@ def factorize(
         dtype = original.dtype
     else:
         values, dtype = _ensure_data(values)
+        na_value: Scalar
 
         if original.dtype.kind in ["m", "M"]:
             # Note: factorize_array will cast NaT bc it has a __int__
