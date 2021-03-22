@@ -18,6 +18,7 @@ from pandas._config import get_option
 
 from pandas._libs import (
     NaT,
+    NaTType,
     Timedelta,
     iNaT,
     lib,
@@ -414,11 +415,8 @@ def _datetimelike_compat(func: F) -> F:
         if datetimelike:
             result = _wrap_results(result, orig_values.dtype, fill_value=iNaT)
             if not skipna:
-                # error: Argument 3 to "_mask_datetimelike_result" has incompatible type
-                # "Optional[ndarray]"; expected "ndarray"
-                result = _mask_datetimelike_result(
-                    result, axis, mask, orig_values  # type: ignore[arg-type]
-                )
+                assert mask is not None  # checked above
+                result = _mask_datetimelike_result(result, axis, mask, orig_values)
 
         return result
 
@@ -601,7 +599,7 @@ def _mask_datetimelike_result(
     axis: Optional[int],
     mask: np.ndarray,
     orig_values: np.ndarray,
-):
+) -> Union[np.ndarray, np.datetime64, np.timedelta64, NaTType]:
     if isinstance(result, np.ndarray):
         # we need to apply the mask
         result = result.astype("i8").view(orig_values.dtype)
@@ -609,7 +607,7 @@ def _mask_datetimelike_result(
         result[axis_mask] = iNaT
     else:
         if mask.any():
-            result = NaT
+            return NaT
     return result
 
 
@@ -1435,19 +1433,19 @@ def _get_counts(
 
 
 def _maybe_null_out(
-    result: np.ndarray,
+    result: np.ndarray | float | NaTType,
     axis: Optional[int],
     mask: Optional[np.ndarray],
     shape: Tuple[int, ...],
     min_count: int = 1,
-) -> np.ndarray | float:
+) -> np.ndarray | float | NaTType:
     """
     Returns
     -------
     Dtype
         The product of all elements on a given axis. ( NaNs are treated as 1)
     """
-    if mask is not None and axis is not None and getattr(result, "ndim", False):
+    if mask is not None and axis is not None and isinstance(result, np.ndarray):
         null_mask = (mask.shape[axis] - mask.sum(axis) - min_count) < 0
         if np.any(null_mask):
             if is_numeric_dtype(result):
@@ -1461,9 +1459,7 @@ def _maybe_null_out(
                 result[null_mask] = None
     elif result is not NaT:
         if check_below_min_count(shape, mask, min_count):
-            # error: Incompatible types in assignment (expression has type
-            # "float", variable has type "ndarray")
-            result = np.nan  # type: ignore[assignment]
+            result = np.nan
 
     return result
 
