@@ -38,6 +38,7 @@ from pandas._libs.lib import (
 )
 from pandas._libs.tslibs import (
     IncompatibleFrequency,
+    NaTType,
     OutOfBoundsDatetime,
     Timestamp,
     tz_compare,
@@ -2371,7 +2372,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Null Handling Methods
 
-    _na_value = np.nan
+    _na_value: Union[float, NaTType] = np.nan
     """The expected NA value to use with this index."""
 
     @cache_readonly
@@ -2979,7 +2980,7 @@ class Index(IndexOpsMixin, PandasObject):
             missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
         if len(missing) > 0:
-            other_diff = algos.take_nd(rvals, missing, allow_fill=False)
+            other_diff = rvals.take(missing)
             result = concat_compat((lvals, other_diff))
         else:
             # error: Incompatible types in assignment (expression has type
@@ -3378,7 +3379,11 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     @final
     def get_indexer(
-        self, target, method=None, limit=None, tolerance=None
+        self,
+        target,
+        method: Optional[str_t] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
     ) -> np.ndarray:
 
         method = missing.clean_reindex_fill_method(method)
@@ -3403,7 +3408,11 @@ class Index(IndexOpsMixin, PandasObject):
         return self._get_indexer(target, method, limit, tolerance)
 
     def _get_indexer(
-        self, target: Index, method=None, limit=None, tolerance=None
+        self,
+        target: Index,
+        method: Optional[str_t] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
     ) -> np.ndarray:
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
@@ -3467,7 +3476,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _get_fill_indexer(
-        self, target: Index, method: str_t, limit=None, tolerance=None
+        self, target: Index, method: str_t, limit: Optional[int] = None, tolerance=None
     ) -> np.ndarray:
 
         target_values = target._get_engine_target()
@@ -3487,7 +3496,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _get_fill_indexer_searchsorted(
-        self, target: Index, method: str_t, limit=None
+        self, target: Index, method: str_t, limit: Optional[int] = None
     ) -> np.ndarray:
         """
         Fallback pad/backfill get_indexer that works for monotonic decreasing
@@ -3520,7 +3529,9 @@ class Index(IndexOpsMixin, PandasObject):
         return indexer
 
     @final
-    def _get_nearest_indexer(self, target: Index, limit, tolerance) -> np.ndarray:
+    def _get_nearest_indexer(
+        self, target: Index, limit: Optional[int], tolerance
+    ) -> np.ndarray:
         """
         Get the indexer for the nearest index labels; requires an index with
         values that can be subtracted from each other (e.g., not strings or
@@ -4125,13 +4136,22 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        def _get_leaf_sorter(labels):
+        def _get_leaf_sorter(labels: List[np.ndarray]) -> np.ndarray:
             """
             Returns sorter for the inner most level while preserving the
             order of higher levels.
+
+            Parameters
+            ----------
+            labels : list[np.ndarray]
+                Each ndarray has signed integer dtype, not necessarily identical.
+
+            Returns
+            -------
+            np.ndarray[np.intp]
             """
             if labels[0].size == 0:
-                return np.empty(0, dtype="int64")
+                return np.empty(0, dtype=np.intp)
 
             if len(labels) == 1:
                 return get_group_index_sorter(labels[0])
@@ -4144,7 +4164,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             starts = np.hstack(([True], tic, [True])).nonzero()[0]
             lab = ensure_int64(labels[-1])
-            return lib.get_level_sorter(lab, ensure_int64(starts))
+            return lib.get_level_sorter(lab, ensure_platform_int(starts))
 
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
             raise TypeError("Join on level between two MultiIndex objects is ambiguous")
@@ -4179,12 +4199,12 @@ class Index(IndexOpsMixin, PandasObject):
                 join_index = left[left_indexer]
 
         else:
-            left_lev_indexer = ensure_int64(left_lev_indexer)
+            left_lev_indexer = ensure_platform_int(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer, len(old_level))
             old_codes = left.codes[level]
-            new_lev_codes = algos.take_nd(
-                rev_indexer, old_codes[old_codes != -1], allow_fill=False
-            )
+
+            taker = old_codes[old_codes != -1]
+            new_lev_codes = rev_indexer.take(taker)
 
             new_codes = list(left.codes)
             new_codes[level] = new_lev_codes
@@ -4194,6 +4214,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             if keep_order:  # just drop missing values. o.w. keep order
                 left_indexer = np.arange(len(left), dtype=np.intp)
+                left_indexer = cast(np.ndarray, left_indexer)
                 mask = new_lev_codes != -1
                 if not mask.all():
                     new_codes = [lab[mask] for lab in new_codes]
@@ -4203,11 +4224,12 @@ class Index(IndexOpsMixin, PandasObject):
                 if level == 0:  # outer most level, take the fast route
                     ngroups = 1 + new_lev_codes.max()
                     left_indexer, counts = libalgos.groupsort_indexer(
-                        new_lev_codes, ngroups
+                        ensure_int64(new_lev_codes), ngroups
                     )
 
                     # missing values are placed first; drop them!
-                    left_indexer = left_indexer[counts[0] :]
+                    # error: Value of type "Optional[ndarray]" is not indexable
+                    left_indexer = left_indexer[counts[0] :]  # type: ignore[index]
                     new_codes = [lab[left_indexer] for lab in new_codes]
 
                 else:  # sort the leaves
@@ -4232,9 +4254,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if right_lev_indexer is not None:
-            right_indexer = algos.take_nd(
-                right_lev_indexer, join_index.codes[level], allow_fill=False
-            )
+            right_indexer = right_lev_indexer.take(join_index.codes[level])
         else:
             right_indexer = join_index.codes[level]
 
@@ -6120,15 +6140,14 @@ class Index(IndexOpsMixin, PandasObject):
             # This call will raise
             make_invalid_op(opname)(self)
 
+    @final
     @property
     def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
         """
-        # not using "(len(self), )" to return "correct" shape if the values
-        # consists of a >1 D array (see GH-27775)
-        # overridden in MultiIndex.shape to avoid materializing the values
-        return self._values.shape
+        # See GH#27775, GH#27384 for history/reasoning in how this is defined.
+        return (len(self),)
 
 
 def ensure_index_from_sequences(sequences, names=None):

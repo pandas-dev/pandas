@@ -61,9 +61,7 @@ from pandas.core.array_algos.take import take_1d
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
-    IntervalArray,
     PandasArray,
-    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseDtype
@@ -87,7 +85,9 @@ from pandas.core.internals.base import (
 )
 from pandas.core.internals.blocks import (
     ensure_block_shape,
+    external_values,
     new_block,
+    to_native_types,
 )
 
 if TYPE_CHECKING:
@@ -227,6 +227,11 @@ class ArrayManager(DataManager):
                 raise ValueError(
                     "Passed arrays should be np.ndarray or ExtensionArray instances, "
                     f"got {type(arr)} instead"
+                )
+            if not arr.ndim == 1:
+                raise ValueError(
+                    "Passed arrays should be 1-dimensional, got array with "
+                    f"{arr.ndim} dimensions instead."
                 )
 
     def reduce(
@@ -506,7 +511,9 @@ class ArrayManager(DataManager):
 
         arrs = [ensure_block_shape(x, 2) for x in self.arrays]
         assert axis == 1
-        new_arrs = [quantile_compat(x, qs, interpolation, axis=axis) for x in arrs]
+        new_arrs = [
+            quantile_compat(x, np.asarray(qs._values), interpolation) for x in arrs
+        ]
         for i, arr in enumerate(new_arrs):
             if arr.ndim == 2:
                 assert arr.shape[0] == 1, arr.shape
@@ -515,7 +522,7 @@ class ArrayManager(DataManager):
         axes = [qs, self._axes[1]]
         return type(self)(new_arrs, axes)
 
-    def where(self, other, cond, align: bool, errors: str, axis: int) -> ArrayManager:
+    def where(self, other, cond, align: bool, errors: str) -> ArrayManager:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -528,7 +535,6 @@ class ArrayManager(DataManager):
             other=other,
             cond=cond,
             errors=errors,
-            axis=axis,
         )
 
     # TODO what is this used for?
@@ -629,7 +635,7 @@ class ArrayManager(DataManager):
         )
 
     def to_native_types(self, **kwargs):
-        return self.apply_with_block("to_native_types", **kwargs)
+        return self.apply(to_native_types, **kwargs)
 
     @property
     def is_mixed_type(self) -> bool:
@@ -684,7 +690,10 @@ class ArrayManager(DataManager):
         copy : bool, default False
             Whether to copy the blocks
         """
-        return self._get_data_subset(lambda arr: is_numeric_dtype(arr.dtype))
+        return self._get_data_subset(
+            lambda arr: is_numeric_dtype(arr.dtype)
+            or getattr(arr.dtype, "_is_numeric", False)
+        )
 
     def copy(self: T, deep=True) -> T:
         """
@@ -1040,6 +1049,9 @@ class ArrayManager(DataManager):
             else np.asanyarray(indexer, dtype="int64")
         )
 
+        if not indexer.ndim == 1:
+            raise ValueError("indexer should be 1-dimensional")
+
         n = self.shape_proper[axis]
         indexer = maybe_convert_indices(indexer, n, verify=verify)
 
@@ -1191,12 +1203,7 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
 
     def external_values(self):
         """The array that Series.values returns"""
-        if isinstance(self.array, (PeriodArray, IntervalArray)):
-            return self.array.astype(object)
-        elif isinstance(self.array, (DatetimeArray, TimedeltaArray)):
-            return self.array._data
-        else:
-            return self.array
+        return external_values(self.array)
 
     def internal_values(self):
         """The array that Series._values returns"""
