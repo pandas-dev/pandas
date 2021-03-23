@@ -383,7 +383,7 @@ class TestDataFrameAnalytics:
 
     # TODO: Ensure warning isn't emitted in the first place
     # ignore mean of empty slice and all-NaN
-    @pytest.mark.filterwarnings("ignore:RuntimeWarning")
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_median(self, float_frame_with_na, int_frame):
         def wrapper(x):
             if isna(x).any():
