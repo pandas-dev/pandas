@@ -19,8 +19,6 @@ from pandas._config import get_option
 
 from pandas._typing import FuncType
 
-from pandas.core.dtypes.generic import ABCDataFrame
-
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 from pandas.core.ops import roperator
 
@@ -83,14 +81,8 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
             # check for dtype compatibility
             dtypes: Set[str] = set()
             for o in [a, b]:
-                # Series implements dtypes, check for dimension count as well
-                if hasattr(o, "dtypes") and o.ndim > 1:
-                    s = o.dtypes.value_counts()
-                    if len(s) > 1:
-                        return False
-                    dtypes |= set(s.index.astype(str))
                 # ndarray and Series Case
-                elif hasattr(o, "dtype"):
+                if hasattr(o, "dtype"):
                     dtypes |= {o.dtype.name}
 
             # allowed are a superset
@@ -190,8 +182,6 @@ set_use_numexpr(get_option("compute.use_numexpr"))
 
 
 def _has_bool_dtype(x):
-    if isinstance(x, ABCDataFrame):
-        return "bool" in x.dtypes
     try:
         return x.dtype == bool
     except AttributeError:
