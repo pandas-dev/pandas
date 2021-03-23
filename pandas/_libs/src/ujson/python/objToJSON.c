@@ -272,18 +272,6 @@ static PyObject *get_sub_attr(PyObject *obj, char *attr, char *subAttr) {
     return ret;
 }
 
-static int is_simple_frame(PyObject *obj) {
-    PyObject *check = get_sub_attr(obj, "_mgr", "is_mixed_type");
-    int ret = (check == Py_False);
-
-    if (!check) {
-        return 0;
-    }
-
-    Py_DECREF(check);
-    return ret;
-}
-
 static Py_ssize_t get_attr_length(PyObject *obj, char *attr) {
     PyObject *tmp = PyObject_GetAttrString(obj, attr);
     Py_ssize_t ret;
@@ -298,6 +286,17 @@ static Py_ssize_t get_attr_length(PyObject *obj, char *attr) {
         return 0;
     }
 
+    return ret;
+}
+
+static int is_simple_frame(PyObject *obj) {
+    PyObject *mgr = PyObject_GetAttrString(obj, "_mgr");
+    if (!mgr) {
+        return 0;
+    }
+    int ret = (get_attr_length(mgr, "blocks") <= 1);
+
+    Py_DECREF(mgr);
     return ret;
 }
 
