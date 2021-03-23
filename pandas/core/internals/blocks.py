@@ -96,7 +96,9 @@ from pandas.core.arrays import (
     ExtensionArray,
     FloatingArray,
     IntegerArray,
+    IntervalArray,
     PandasArray,
+    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.base import PandasObject
@@ -158,7 +160,6 @@ class Block(PandasObject):
     is_bool = False
     is_object = False
     is_extension = False
-    _can_hold_na = False
     _can_consolidate = True
     _validate_ndim = True
 
@@ -215,19 +216,23 @@ class Block(PandasObject):
 
     @final
     @property
+    def _can_hold_na(self) -> bool:
+        """
+        Can we store NA values in this Block?
+        """
+        values = self.values
+        if isinstance(values, np.ndarray):
+            return values.dtype.kind not in ["b", "i", "u"]
+        return values._can_hold_na
+
+    @final
+    @property
     def is_categorical(self) -> bool:
         return self._holder is Categorical
 
+    @final
     def external_values(self):
-        """
-        The array that Series.values returns (public attribute).
-
-        This has some historical constraints, and is overridden in block
-        subclasses to return the correct array (e.g. period returns
-        object ndarray and datetimetz a datetime64[ns] ndarray instead of
-        proper extension array).
-        """
-        return self.values
+        return external_values(self.values)
 
     def internal_values(self):
         """
@@ -1287,7 +1292,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
+    def where(self, other, cond, errors="raise") -> List[Block]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1298,12 +1303,12 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
-        axis : int, default 0
 
         Returns
         -------
         List[Block]
         """
+        assert cond.ndim == self.ndim
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
         assert errors in ["raise", "ignore"]
@@ -1316,7 +1321,7 @@ class Block(PandasObject):
 
         icond, noop = validate_putmask(values, ~cond)
 
-        if is_valid_na_for_dtype(other, self.dtype) and not self.is_object:
+        if is_valid_na_for_dtype(other, self.dtype) and self.dtype != _dtype_obj:
             other = self.fill_value
 
         if noop:
@@ -1329,7 +1334,7 @@ class Block(PandasObject):
                 # we cannot coerce, return a compat dtype
                 # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
-                blocks = block.where(orig_other, cond, errors=errors, axis=axis)
+                blocks = block.where(orig_other, cond, errors=errors)
                 return self._maybe_downcast(blocks, "infer")
 
             # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
@@ -1358,7 +1363,7 @@ class Block(PandasObject):
         cond = ~icond
         axis = cond.ndim - 1
         cond = cond.swapaxes(axis, 0)
-        mask = np.array([cond[i].all() for i in range(cond.shape[0])], dtype=bool)
+        mask = cond.all(axis=1)
 
         result_blocks: List[Block] = []
         for m in [mask, ~mask]:
@@ -1425,7 +1430,7 @@ class Block(PandasObject):
         assert axis == 1  # only ever called this way
         assert is_list_like(qs)  # caller is responsible for this
 
-        result = quantile_compat(self.values, qs, interpolation, axis)
+        result = quantile_compat(self.values, np.asarray(qs._values), interpolation)
 
         return new_block(result, placement=self._mgr_locs, ndim=2)
 
@@ -1502,11 +1507,6 @@ class ExtensionBlock(Block):
     def _holder(self):
         # For extension blocks, the holder is values-dependent.
         return type(self.values)
-
-    @property
-    def _can_hold_na(self):
-        # The default ExtensionArray._can_hold_na is True
-        return self._holder._can_hold_na
 
     @property
     def is_view(self) -> bool:
@@ -1669,7 +1669,7 @@ class ExtensionBlock(Block):
         new_values = self.values.shift(periods=periods, fill_value=fill_value)
         return [self.make_block_same_class(new_values)]
 
-    def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
+    def where(self, other, cond, errors="raise") -> List[Block]:
 
         cond = extract_bool_array(cond)
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
@@ -1769,8 +1769,7 @@ class ObjectValuesExtensionBlock(HybridMixin, ExtensionBlock):
     Series[T].values is an ndarray of objects.
     """
 
-    def external_values(self):
-        return self.values.astype(object)
+    pass
 
 
 class NumericBlock(Block):
@@ -1787,16 +1786,8 @@ class NumericBlock(Block):
         return can_hold_element(self.dtype, element)  # type: ignore[arg-type]
 
     @property
-    def _can_hold_na(self):
-        return self.dtype.kind not in ["b", "i", "u"]
-
-    @property
     def is_bool(self):
         return self.dtype.kind == "b"
-
-
-class FloatBlock(NumericBlock):
-    __slots__ = ()
 
 
 class NDArrayBackedExtensionBlock(HybridMixin, Block):
@@ -1836,7 +1827,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         arr.T.putmask(mask, new)
         return [self]
 
-    def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
+    def where(self, other, cond, errors="raise") -> List[Block]:
         # TODO(EA2D): reshape unnecessary with 2D EAs
         arr = self.array_values().reshape(self.shape)
 
@@ -1845,7 +1836,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         try:
             res_values = arr.T.where(cond, other).T
         except (ValueError, TypeError):
-            return super().where(other, cond, errors=errors, axis=axis)
+            return super().where(other, cond, errors=errors)
 
         # TODO(EA2D): reshape not needed with 2D EAs
         res_values = res_values.reshape(self.values.shape)
@@ -1908,7 +1899,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
     is_numeric = False
-    _can_hold_na = True
 
     def array_values(self):
         return ensure_wrapped_if_datetimelike(self.values)
@@ -1937,7 +1927,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
     __slots__ = ()
     is_extension = True
-    _can_hold_na = True
     is_numeric = False
 
     internal_values = Block.internal_values
@@ -1955,12 +1944,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values._data.base is not None
 
-    def external_values(self):
-        # NB: this is different from np.asarray(self.values), since that
-        #  return an object-dtype ndarray of Timestamps.
-        # Avoid FutureWarning in .astype in casting from dt64tz to dt64
-        return self.values._data
-
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
@@ -1969,7 +1952,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
 class ObjectBlock(Block):
     __slots__ = ()
     is_object = True
-    _can_hold_na = True
 
     values: np.ndarray
 
@@ -2108,9 +2090,7 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
         cls = DatetimeBlock
     elif kind == "m":
         cls = TimeDeltaBlock
-    elif kind == "f":
-        cls = FloatBlock
-    elif kind in ["c", "i", "u", "b"]:
+    elif kind in ["f", "c", "i", "u", "b"]:
         cls = NumericBlock
     else:
         cls = ObjectBlock
@@ -2294,4 +2274,24 @@ def to_native_types(
 
         values[mask] = na_rep
         values = values.astype(object, copy=False)
+        return values
+
+
+def external_values(values: ArrayLike) -> ArrayLike:
+    """
+    The array that Series.values returns (public attribute).
+
+    This has some historical constraints, and is overridden in block
+    subclasses to return the correct array (e.g. period returns
+    object ndarray and datetimetz a datetime64[ns] ndarray instead of
+    proper extension array).
+    """
+    if isinstance(values, (PeriodArray, IntervalArray)):
+        return values.astype(object)
+    elif isinstance(values, (DatetimeArray, TimedeltaArray)):
+        # NB: for datetime64tz this is different from np.asarray(values), since
+        #  that returns an object-dtype ndarray of Timestamps.
+        # Avoid FutureWarning in .astype in casting from dt64tz to dt64
+        return values._data
+    else:
         return values
