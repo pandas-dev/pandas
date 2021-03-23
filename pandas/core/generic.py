@@ -231,7 +231,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _metadata: List[str] = []
     _is_copy: Optional[weakref.ReferenceType[NDFrame]] = None
     _mgr: Manager
-    _attrs: Dict[Optional[Hashable], Any]
+    _attrs: Dict[Hashable, Any]
     _typ: str
 
     # ----------------------------------------------------------------------
@@ -241,7 +241,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         data: Manager,
         copy: bool = False,
-        attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
+        attrs: Optional[Mapping[Hashable, Any]] = None,
     ):
         # copy kwarg is retained for mypy compat, is not used
 
@@ -320,7 +320,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # attrs and flags
 
     @property
-    def attrs(self) -> Dict[Optional[Hashable], Any]:
+    def attrs(self) -> Dict[Hashable, Any]:
         """
         Dictionary of global attributes of this dataset.
 
@@ -337,7 +337,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._attrs
 
     @attrs.setter
-    def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
+    def attrs(self, value: Mapping[Hashable, Any]) -> None:
         self._attrs = dict(value)
 
     @final
@@ -803,7 +803,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
             # None, None]"; expected "bool" [arg-type]
             # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
-            # None, None]"; expected "Optional[Mapping[Optional[Hashable], Any]]"
+            # None, None]"; expected "Optional[Mapping[Hashable, Any]]"
             new_values,  # type: ignore[arg-type]
             *new_axes,  # type: ignore[arg-type]
         ).__finalize__(self, method="swapaxes")
