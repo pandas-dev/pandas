@@ -1458,7 +1458,7 @@ class Block(PandasObject):
             raise ValueError("where must have a condition that is ndarray like")
 
         if cond.ravel("K").all():
-            result = values
+            result = values.copy()
         else:
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
