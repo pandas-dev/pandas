@@ -598,7 +598,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return key_i8
 
-    def _searchsorted_monotonic(self, label, side, exclude_label=False):
+    def _searchsorted_monotonic(self, label, side: str = "left"):
         if not self.is_non_overlapping_monotonic:
             raise KeyError(
                 "can only get slices from an IntervalIndex if bounds are "
@@ -615,11 +615,11 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             side == "right" and not self.left.is_monotonic_increasing
         ):
             sub_idx = self.right
-            if self.open_right or exclude_label:
+            if self.open_right:
                 label = _get_next_label(label)
         else:
             sub_idx = self.left
-            if self.open_left or exclude_label:
+            if self.open_left:
                 label = _get_prev_label(label)
 
         return sub_idx._searchsorted_monotonic(label, side)
