@@ -1744,6 +1744,22 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = DataFrame([[nulls_fixture]]).to_json()
         assert result == '{"0":{"0":null}}'
 
+    @pytest.mark.parametrize(
+        "data,expected",
+        [
+            ([pd.NA, pd.NA, pd.NA], '[{"0":null},{"0":null},{"0":null}]'),
+            ([1, pd.NA, 1], '[{"0":1},{"0":null},{"0":1}]'),
+        ],
+    )
+    def test_to_json_numeric_extension_backed(
+        self, any_nullable_numeric_dtype, data, expected
+    ):
+        dtype = any_nullable_numeric_dtype
+        result = DataFrame(data, dtype=dtype).to_json(orient="records")
+        if "Float" in dtype:
+            expected = expected.replace("1", "1.0")
+        assert result == expected
+
     def test_readjson_bool_series(self):
         # GH31464
         result = read_json("[true, true, false]", typ="series")
