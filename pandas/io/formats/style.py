@@ -2291,14 +2291,14 @@ def _maybe_wrap_deci_thou(
     """
 
     def wrapper(x):
-        std_thou = thousands is None or thousands == ","
-        std_deci = decimal == "."
+        default_thousands = thousands is None or thousands == ","
+        default_decimal = decimal == "."
         if isinstance(x, (float, complex, int)):
-            if std_thou and std_deci:
+            if default_thousands and default_decimal:
                 return formatter(x)
-            elif std_thou and not std_deci:
+            elif default_thousands and not default_decimal:
                 return formatter(x).replace(".", decimal)
-            elif not std_thou and std_deci:
+            elif not default_thousands and default_decimal:
                 return formatter(x).replace(",", thousands)
             else:
                 return (
