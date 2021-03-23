@@ -34,6 +34,7 @@ from pandas._typing import (
     NpDtype,
     Ordered,
     Scalar,
+    Shape,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -1526,6 +1527,30 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ix = self._from_backing_data(ix)
 
         return Series(count, index=CategoricalIndex(ix), dtype="int64")
+
+    # error: Argument 2 of "empty" is incompatible with supertype
+    # "NDArrayBackedExtensionArray"; supertype defines the argument type as
+    # "ExtensionDtype"
+    @classmethod
+    def empty(  # type: ignore[override]
+        cls: Type[Categorical], shape: Shape, dtype: CategoricalDtype
+    ) -> Categorical:
+        """
+        Analogous to np.empty(shape, dtype=dtype)
+
+        Parameters
+        ----------
+        shape : tuple[int]
+        dtype : CategoricalDtype
+        """
+        arr = cls._from_sequence([], dtype=dtype)
+
+        # We have to use np.zeros instead of np.empty otherwise the resulting
+        #  ndarray may contain codes not supported by this dtype, in which
+        #  case repr(result) could segfault.
+        backing = np.zeros(shape, dtype=arr._ndarray.dtype)
+
+        return arr._from_backing_data(backing)
 
     def _internal_get_values(self):
         """
