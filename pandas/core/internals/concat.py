@@ -131,21 +131,7 @@ def concat_arrays(to_concat: List[Any]) -> ArrayLike:
             target_dtype = find_common_type([x.dtype for x in to_concat_no_proxy])
         else:
             target_dtype = to_concat_no_proxy[0].dtype
-
-        to_concat = [
-            arr.to_array(target_dtype)
-            if isinstance(arr, NullArrayProxy)
-            else cast_to_common_type(arr, target_dtype)
-            for arr in to_concat
-        ]
-
-        if isinstance(to_concat[0], ExtensionArray):
-            cls = type(to_concat[0])
-            return cls._concat_same_type(to_concat)
-        else:
-            return np.concatenate(to_concat)
-
-    if not single_dtype:
+    elif not single_dtype:
         if any(kind in ["m", "M"] for kind in kinds):
             # multiple types, need to coerce to object
             target_dtype = np.dtype(object)
@@ -169,15 +155,19 @@ def concat_arrays(to_concat: List[Any]) -> ArrayLike:
     to_concat = [
         arr.to_array(target_dtype)
         if isinstance(arr, NullArrayProxy)
-        else arr.astype(target_dtype, copy=False)
+        else cast_to_common_type(arr, target_dtype)
         for arr in to_concat
     ]
+
+    if isinstance(to_concat[0], ExtensionArray):
+        cls = type(to_concat[0])
+        return cls._concat_same_type(to_concat)
 
     result = np.concatenate(to_concat)
 
     # TODO decide on exact behaviour (we shouldn't do this only for empty result)
     # see https://github.com/pandas-dev/pandas/issues/39817
-    if len(result) == 0:
+    if len(result) == 0 and not any_ea:
         # all empties -> check for bool to not coerce to float
         if len(kinds) != 1:
             if "b" in kinds:
