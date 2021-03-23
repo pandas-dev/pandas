@@ -316,6 +316,12 @@ class TestBlock:
         for res, exp in zip(result, expected):
             assert_block_equal(res, exp)
 
+    def test_is_categorical_deprecated(self):
+        # GH#40571
+        blk = self.fblock
+        with tm.assert_produces_warning(DeprecationWarning):
+            blk.is_categorical
+
 
 class TestBlockManager:
     def test_attrs(self):

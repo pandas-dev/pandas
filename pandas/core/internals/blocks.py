@@ -223,6 +223,7 @@ class Block(PandasObject):
             "future version.  Use isinstance(block.values, Categorical) "
             "instead.  See https://github.com/pandas-dev/pandas/issues/40226",
             DeprecationWarning,
+            stacklevel=2,
         )
         return isinstance(self.values, Categorical)
 
