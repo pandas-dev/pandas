@@ -28,7 +28,7 @@ class ShallowMixin(PandasObject):
 
         Parameters
         ----------
-        obj : object 
+        obj : object
             Object to Copy.
         **kwargs : attributes
             Attribute(s) to check for.
