@@ -21,10 +21,9 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs.algos import (
-    ensure_int64,
-    ensure_platform_int,
     groupsort_indexer,
     take_1d_int64_int64,
+    take_1d_intp_intp,
 )
 
 
@@ -34,16 +33,16 @@ def inner_join(const intp_t[:] left, const intp_t[:] right,
     cdef:
         Py_ssize_t i, j, k, count = 0
         ndarray[intp_t] left_sorter, right_sorter
-        ndarray[int64_t] left_count, right_count
-        ndarray[int64_t] left_indexer, right_indexer
-        int64_t lc, rc
+        ndarray[intp_t] left_count, right_count
+        ndarray[intp_t] left_indexer, right_indexer
+        intp_t lc, rc
         Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
         Py_ssize_t offset
 
     # NA group in location 0
 
-    left_sorter, left_count = groupsort_indexer(ensure_int64(left), max_groups)
-    right_sorter, right_count = groupsort_indexer(ensure_int64(right), max_groups)
+    left_sorter, left_count = groupsort_indexer(left, max_groups)
+    right_sorter, right_count = groupsort_indexer(right, max_groups)
 
     with nogil:
         # First pass, determine size of result set, do not use the NA group
@@ -58,8 +57,8 @@ def inner_join(const intp_t[:] left, const intp_t[:] right,
     left_pos = left_count[0]
     right_pos = right_count[0]
 
-    left_indexer = np.empty(count, dtype=np.int64)
-    right_indexer = np.empty(count, dtype=np.int64)
+    left_indexer = np.empty(count, dtype=np.intp)
+    right_indexer = np.empty(count, dtype=np.intp)
 
     with nogil:
         for i in range(1, max_groups + 1):
@@ -85,17 +84,17 @@ def left_outer_join(const intp_t[:] left, const intp_t[:] right,
                     Py_ssize_t max_groups, bint sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count
+        ndarray[intp_t] left_count, right_count
         ndarray[intp_t] rev, left_sorter, right_sorter
-        ndarray[int64_t] left_indexer, right_indexer
-        int64_t lc, rc
+        ndarray[intp_t] left_indexer, right_indexer
+        intp_t lc, rc
         Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
         Py_ssize_t offset
 
     # NA group in location 0
 
-    left_sorter, left_count = groupsort_indexer(ensure_int64(left), max_groups)
-    right_sorter, right_count = groupsort_indexer(ensure_int64(right), max_groups)
+    left_sorter, left_count = groupsort_indexer(left, max_groups)
+    right_sorter, right_count = groupsort_indexer(right, max_groups)
 
     with nogil:
         # First pass, determine size of result set, do not use the NA group
@@ -109,8 +108,8 @@ def left_outer_join(const intp_t[:] left, const intp_t[:] right,
     left_pos = left_count[0]
     right_pos = right_count[0]
 
-    left_indexer = np.empty(count, dtype=np.int64)
-    right_indexer = np.empty(count, dtype=np.int64)
+    left_indexer = np.empty(count, dtype=np.intp)
+    right_indexer = np.empty(count, dtype=np.intp)
 
     with nogil:
         for i in range(1, max_groups + 1):
@@ -142,11 +141,10 @@ def left_outer_join(const intp_t[:] left, const intp_t[:] right,
             # this is a short-cut to avoid groupsort_indexer
             # otherwise, the `else` path also works in this case
             rev = np.empty(len(left), dtype=np.intp)
-            rev.put(ensure_platform_int(left_sorter), np.arange(len(left)))
+            rev.put(left_sorter, np.arange(len(left)))
         else:
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
-        rev = ensure_platform_int(rev)
         right_indexer = right_indexer.take(rev)
         left_indexer = left_indexer.take(rev)
 
@@ -159,16 +157,16 @@ def full_outer_join(const intp_t[:] left, const intp_t[:] right,
     cdef:
         Py_ssize_t i, j, k, count = 0
         ndarray[intp_t] left_sorter, right_sorter
-        ndarray[int64_t] left_count, right_count
-        ndarray[int64_t] left_indexer, right_indexer
-        int64_t lc, rc
-        int64_t left_pos = 0, right_pos = 0
+        ndarray[intp_t] left_count, right_count
+        ndarray[intp_t] left_indexer, right_indexer
+        intp_t lc, rc
+        intp_t left_pos = 0, right_pos = 0
         Py_ssize_t offset, position = 0
 
     # NA group in location 0
 
-    left_sorter, left_count = groupsort_indexer(ensure_int64(left), max_groups)
-    right_sorter, right_count = groupsort_indexer(ensure_int64(right), max_groups)
+    left_sorter, left_count = groupsort_indexer(left, max_groups)
+    right_sorter, right_count = groupsort_indexer(right, max_groups)
 
     with nogil:
         # First pass, determine size of result set, do not use the NA group
@@ -185,8 +183,8 @@ def full_outer_join(const intp_t[:] left, const intp_t[:] right,
     left_pos = left_count[0]
     right_pos = right_count[0]
 
-    left_indexer = np.empty(count, dtype=np.int64)
-    right_indexer = np.empty(count, dtype=np.int64)
+    left_indexer = np.empty(count, dtype=np.intp)
+    right_indexer = np.empty(count, dtype=np.intp)
 
     with nogil:
         for i in range(1, max_groups + 1):
@@ -217,31 +215,29 @@ def full_outer_join(const intp_t[:] left, const intp_t[:] right,
             _get_result_indexer(right_sorter, right_indexer))
 
 
-cdef ndarray[int64_t] _get_result_indexer(
-    ndarray[intp_t] sorter, ndarray[int64_t] indexer
+cdef ndarray[intp_t] _get_result_indexer(
+    ndarray[intp_t] sorter, ndarray[intp_t] indexer
 ):
     if len(sorter) > 0:
         # cython-only equivalent to
         #  `res = algos.take_nd(sorter, indexer, fill_value=-1)`
-        res = np.empty(len(indexer), dtype=np.int64)
-        take_1d_int64_int64(ensure_int64(sorter), ensure_platform_int(indexer), res, -1)
-        # FIXME: sorter is intp_t, not int64_t, opposite for indexer;
-        #  will this break on 32bit builds?
+        res = np.empty(len(indexer), dtype=np.intp)
+        take_1d_intp_intp(sorter, indexer, res, -1)
     else:
         # length-0 case
-        res = np.empty(len(indexer), dtype=np.int64)
+        res = np.empty(len(indexer), dtype=np.intp)
         res[:] = -1
 
     return res
 
 
-def ffill_indexer(const int64_t[:] indexer):
+def ffill_indexer(const intp_t[:] indexer):
     cdef:
         Py_ssize_t i, n = len(indexer)
-        ndarray[int64_t] result
-        int64_t val, last_obs
+        ndarray[intp_t] result
+        intp_t val, last_obs
 
-    result = np.empty(n, dtype=np.int64)
+    result = np.empty(n, dtype=np.intp)
     last_obs = -1
 
     for i in range(n):

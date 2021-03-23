@@ -604,7 +604,7 @@ def get_group_index_sorter(
         (alpha + beta * ngroups) < (count * np.log(count))  # type: ignore[operator]
     )
     if do_groupsort:
-        sorter, _ = algos.groupsort_indexer(ensure_int64(group_index), ngroups)
+        sorter, _ = algos.groupsort_indexer(ensure_platform_int(group_index), ngroups)
         # sorter _should_ already be intp, but mypy is not yet able to verify
     else:
         sorter = group_index.argsort(kind="mergesort")

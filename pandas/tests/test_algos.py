@@ -2116,8 +2116,8 @@ def test_is_lexsorted():
 
 
 def test_groupsort_indexer():
-    a = np.random.randint(0, 1000, 100).astype(np.int64)
-    b = np.random.randint(0, 1000, 100).astype(np.int64)
+    a = np.random.randint(0, 1000, 100).astype(np.intp)
+    b = np.random.randint(0, 1000, 100).astype(np.intp)
 
     result = libalgos.groupsort_indexer(a, 1000)[0]
 

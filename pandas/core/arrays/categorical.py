@@ -1981,9 +1981,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         categories = self.categories
         r, counts = libalgos.groupsort_indexer(
-            self.codes.astype("int64", copy=False), categories.size
+            ensure_platform_int(self.codes), categories.size
         )
-        counts = counts.cumsum()
+        counts = ensure_int64(counts).cumsum()
         _result = (r[start:end] for start, end in zip(counts, counts[1:]))
         return dict(zip(categories, _result))
 

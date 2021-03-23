@@ -264,8 +264,8 @@ def test_left_outer_join_bug():
 
     lidx, ridx = libjoin.left_outer_join(left, right, max_groups, sort=False)
 
-    exp_lidx = np.arange(len(left), dtype=np.int64)
-    exp_ridx = -np.ones(len(left), dtype=np.int64)
+    exp_lidx = np.arange(len(left), dtype=np.intp)
+    exp_ridx = -np.ones(len(left), dtype=np.intp)
 
     exp_ridx[left == 1] = 1
     exp_ridx[left == 3] = 0
