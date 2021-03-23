@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    IndexSlice,
+)
 
 pytest.importorskip("jinja2")
 
@@ -71,64 +74,71 @@ def test_highlight_minmax_ext(df, f, kwargs):
     result = getattr(df.style, f)(**kwargs)._compute().ctx
     assert result == expected
 
-    @pytest.mark.parametrize(
-        "kwargs",
-        [
-            {"left": 0, "right": 1},  # test basic range
-            {"left": 0, "right": 1, "props": "background-color: yellow"},  # test props
-            {"left": -9, "right": 9, "subset": ["A"]},  # test subset effective
-            {"left": 0},  # test no right
-            {"right": 1, "subset": ["A"]},  # test no left
-            {"left": [0, 1], "axis": 0},  # test left as sequence
-            {"left": DataFrame({"A": [0, 1], "B": [1, 1]}), "axis": None},  # test axis
-            {"left": 0, "right": [0, 1], "axis": 0},  # test sequence right
-        ],
-    )
-    def test_highlight_between(self, kwargs):
-        expected = {
-            (0, 0): [("background-color", "yellow")],
-            (1, 0): [("background-color", "yellow")],
-        }
-        result = self.df.style.highlight_between(**kwargs)._compute().ctx
-        assert result == expected
 
-    @pytest.mark.parametrize(
-        "arg, map, axis",
-        [
-            ("left", [1, 2, 3], 0),  # 0 axis has 2 elements not 3
-            ("left", [1, 2], 1),  # 1 axis has 3 elements not 2
-            ("left", np.array([[1, 2], [1, 2]]), None),  # df is (2,3) not (2,2)
-            ("right", [1, 2, 3], 0),  # same tests as above for 'right' not 'left'
-            ("right", [1, 2], 1),  # ..
-            ("right", np.array([[1, 2], [1, 2]]), None),  # ..
-        ],
-    )
-    def test_highlight_between_raises(self, arg, map, axis):
-        df = DataFrame([[1, 2, 3], [1, 2, 3]])
-        msg = f"supplied '{arg}' is not correct shape"
-        with pytest.raises(ValueError, match=msg):
-            df.style.highlight_between(**{arg: map, "axis": axis})._compute()
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"left": 0, "right": 1},  # test basic range
+        {"left": 0, "right": 1, "props": "background-color: yellow"},  # test props
+        {"left": -100, "right": 100, "subset": IndexSlice[[0, 1], :]},  # test subset
+        {"left": 0, "subset": IndexSlice[[0, 1], :]},  # test no right
+        {"right": 1},  # test no left
+        {"left": [0, 0, 11], "axis": 0},  # test left as sequence
+        {"left": DataFrame({"A": [0, 0, 11], "B": [1, 1, 11]}), "axis": None},  # axis
+        {"left": 0, "right": [0, 1], "axis": 1},  # test sequence right
+    ],
+)
+def test_highlight_between(styler, kwargs):
+    expected = {
+        (0, 0): [("background-color", "yellow")],
+        (0, 1): [("background-color", "yellow")],
+    }
+    result = styler.highlight_between(**kwargs)._compute().ctx
+    assert result == expected
 
-    def test_highlight_between_raises2(self):
-        msg = "values can be 'both', 'left', 'right', or 'neither'"
-        with pytest.raises(ValueError, match=msg):
-            self.df.style.highlight_between(inclusive="badstring")._compute()
 
-        with pytest.raises(ValueError, match=msg):
-            self.df.style.highlight_between(inclusive=1)._compute()
+@pytest.mark.parametrize(
+    "arg, map, axis",
+    [
+        ("left", [1, 2], 0),  # 0 axis has 3 elements not 2
+        ("left", [1, 2, 3], 1),  # 1 axis has 2 elements not 3
+        ("left", np.array([[1, 2], [1, 2]]), None),  # df is (2,3) not (2,2)
+        ("right", [1, 2], 0),  # same tests as above for 'right' not 'left'
+        ("right", [1, 2, 3], 1),  # ..
+        ("right", np.array([[1, 2], [1, 2]]), None),  # ..
+    ],
+)
+def test_highlight_between_raises(arg, styler, map, axis):
+    msg = f"supplied '{arg}' is not correct shape"
+    with pytest.raises(ValueError, match=msg):
+        styler.highlight_between(**{arg: map, "axis": axis})._compute()
 
-    def test_highlight_between_inclusive(self):
-        kwargs = {"left": 0, "right": 1, "subset": ["A"]}
-        result = self.df.style.highlight_between(**kwargs, inclusive="both")._compute()
-        assert result.ctx == {
-            (0, 0): [("background-color", "yellow")],
-            (1, 0): [("background-color", "yellow")],
-        }
-        result = self.df.style.highlight_between(
-            **kwargs, inclusive="neither"
-        )._compute()
-        assert result.ctx == {}
-        result = self.df.style.highlight_between(**kwargs, inclusive="left")._compute()
-        assert result.ctx == {(0, 0): [("background-color", "yellow")]}
-        result = self.df.style.highlight_between(**kwargs, inclusive="right")._compute()
-        assert result.ctx == {(1, 0): [("background-color", "yellow")]}
+
+def test_highlight_between_raises2(styler):
+    msg = "values can be 'both', 'left', 'right', or 'neither'"
+    with pytest.raises(ValueError, match=msg):
+        styler.highlight_between(inclusive="badstring")._compute()
+
+    with pytest.raises(ValueError, match=msg):
+        styler.highlight_between(inclusive=1)._compute()
+
+
+@pytest.mark.parametrize(
+    "inclusive, expected",
+    [
+        (
+            "both",
+            {
+                (0, 0): [("background-color", "yellow")],
+                (0, 1): [("background-color", "yellow")],
+            },
+        ),
+        ("neither", {}),
+        ("left", {(0, 0): [("background-color", "yellow")]}),
+        ("right", {(0, 1): [("background-color", "yellow")]}),
+    ],
+)
+def test_highlight_between_inclusive(styler, inclusive, expected):
+    kwargs = {"left": 0, "right": 1, "subset": IndexSlice[[0, 1], :]}
+    result = styler.highlight_between(**kwargs, inclusive=inclusive)._compute()
+    assert result.ctx == expected
