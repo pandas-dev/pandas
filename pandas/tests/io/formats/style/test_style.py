@@ -648,6 +648,36 @@ class TestStyler:
         self.styler.format()
         assert (0, 0) not in self.styler._display_funcs  # formatter cleared to default
 
+    def test_format_escape(self):
+        df = DataFrame([['<>&"']])
+        s = Styler(df, uuid_len=0).format("X&{0}>X", escape=False)
+        expected = '<td id="T__row0_col0" class="data row0 col0" >X&<>&">X</td>'
+        assert expected in s.render()
+
+        # only the value should be escaped before passing to the formatter
+        s = Styler(df, uuid_len=0).format("X&{0}>X", escape=True)
+        ex = '<td id="T__row0_col0" class="data row0 col0" >X&&lt;&gt;&amp;&#34;>X</td>'
+        assert ex in s.render()
+
+    def test_format_escape_na_rep(self):
+        # tests the na_rep is not escaped
+        df = DataFrame([['<>&"', None]])
+        s = Styler(df, uuid_len=0).format("X&{0}>X", escape=True, na_rep="&")
+        ex = '<td id="T__row0_col0" class="data row0 col0" >X&&lt;&gt;&amp;&#34;>X</td>'
+        expected2 = '<td id="T__row0_col1" class="data row0 col1" >&</td>'
+        assert ex in s.render()
+        assert expected2 in s.render()
+
+    def test_format_escape_floats(self):
+        # test given formatter for number format is not impacted by escape
+        s = self.df.style.format("{:.1f}", escape=True)
+        for expected in [">0.0<", ">1.0<", ">-1.2<", ">-0.6<"]:
+            assert expected in s.render()
+        # tests precision of floats is not impacted by escape
+        s = self.df.style.format(precision=1, escape=True)
+        for expected in [">0<", ">1<", ">-1.2<", ">-0.6<"]:
+            assert expected in s.render()
+
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
         msg = "style is not supported for non-unique indices."
