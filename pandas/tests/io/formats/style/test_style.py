@@ -678,38 +678,43 @@ class TestStyler:
         for expected in [">0<", ">1<", ">-1.2<", ">-0.6<"]:
             assert expected in s.render()
 
-    def test_format_decimal_thousands(self):
-        # tests formatter handles decimals and thousands separator
-
+    @pytest.mark.parametrize("formatter", [None, "{:,.1f}"])
+    @pytest.mark.parametrize("decimal", [".", "*"])
+    @pytest.mark.parametrize("precision", [None, 2])
+    def test_format_thousands(self, formatter, decimal, precision):
         s = DataFrame([[1000000.123456789]]).style  # test float
-        result = s.format(thousands=",")._translate()
-        assert result["body"][0][1]["display_value"] == "1,000,000.123457"
-        result = s.format(thousands=",", decimal=".")._translate()
-        assert result["body"][0][1]["display_value"] == "1,000,000.123457"
-        result = s.format(thousands=",", decimal=".", precision=3)._translate()
-        assert result["body"][0][1]["display_value"] == "1,000,000.123"
-        result = s.format(decimal="_", precision=3)._translate()
-        assert result["body"][0][1]["display_value"] == "1000000_123"
-        result = s.format(thousands=" ", decimal="_", precision=3)._translate()
-        assert result["body"][0][1]["display_value"] == "1 000 000_123"
-        result = s.format("{:,.4f}", thousands=" ", decimal="_")._translate()
-        assert result["body"][0][1]["display_value"] == "1 000 000_1235"
         result = s.format(
-            "<div>{:,.4f}</div>", thousands=" ", decimal="_", escape=True
+            thousands="_", formatter=formatter, decimal=decimal, precision=precision
         )._translate()
-        assert result["body"][0][1]["display_value"] == "<div>1 000 000_1235</div>"
+        assert "1_000_000" in result["body"][0][1]["display_value"]
 
         s = DataFrame([[1000000]]).style  # test int
-        result = s.format(thousands=" ")._translate()
-        assert result["body"][0][1]["display_value"] == "1 000 000"
-        result = s.format(thousands=" ", decimal="*")._translate()
-        assert result["body"][0][1]["display_value"] == "1 000 000"
-        result = s.format("{:,.1f}", thousands=" ", decimal="*")._translate()
-        assert result["body"][0][1]["display_value"] == "1 000 000*0"
         result = s.format(
-            "<div>{:,.0f}</div>", thousands=" ", decimal="_", escape=True
+            thousands="_", formatter=formatter, decimal=decimal, precision=precision
         )._translate()
-        assert result["body"][0][1]["display_value"] == "<div>1 000 000</div>"
+        assert "1_000_000" in result["body"][0][1]["display_value"]
+
+        s = DataFrame([[1 + 1000000.123456789j]]).style  # test complex
+        result = s.format(
+            thousands="_", formatter=formatter, decimal=decimal, precision=precision
+        )._translate()
+        assert "1_000_000" in result["body"][0][1]["display_value"]
+
+    @pytest.mark.parametrize("formatter", [None, "{:,.4f}"])
+    @pytest.mark.parametrize("thousands", [None, ",", "*"])
+    @pytest.mark.parametrize("precision", [None, 4])
+    def test_format_decimal(self, formatter, thousands, precision):
+        s = DataFrame([[1000000.123456789]]).style  # test float
+        result = s.format(
+            decimal="_", formatter=formatter, thousands=thousands, precision=precision
+        )._translate()
+        assert "000_123" in result["body"][0][1]["display_value"]
+
+        s = DataFrame([[1 + 1000000.123456789j]]).style  # test complex
+        result = s.format(
+            decimal="_", formatter=formatter, thousands=thousands, precision=precision
+        )._translate()
+        assert "000_123" in result["body"][0][1]["display_value"]
 
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
