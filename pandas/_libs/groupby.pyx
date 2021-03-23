@@ -1163,7 +1163,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
                    Py_ssize_t min_count=-1,
                    bint compute_max=True):
     """
-    Compute minimum  of columns of `values`, in row groups `labels`.
+    Compute minimum/maximum  of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
@@ -1172,11 +1172,11 @@ cdef group_min_max(groupby_t[:, ::1] out,
     counts : int64 array
         Input as a zeroed array, populated by group sizes during algorithm
     values : array
-        Values to take cummin of.
+        Values to find column-wise min/max of.
     labels : int64 array
         Labels to group by.
     min_count : Py_ssize_t, default -1
-        The minimum number of non-NA group elements, NA result is threshold
+        The minimum number of non-NA group elements, NA result if threshold
         is not met
     compute_max : bint, default True
         True to compute group-wise max, False to compute min
@@ -1207,8 +1207,8 @@ cdef group_min_max(groupby_t[:, ::1] out,
         nan_val = NPY_NAT
     elif groupby_t is uint64_t:
         # NB: We do not define nan_val because there is no such thing
-        #  for uint64_t.  We carefully avoid having to reference it in this
-        #  case.
+        # for uint64_t.  We carefully avoid having to reference it in this
+        # case.
         group_min_or_max[:] = 0 if compute_max else np.iinfo(np.uint64).max
     else:
         group_min_or_max[:] = -np.inf if compute_max else np.inf
