@@ -701,4 +701,5 @@ def test_where_copies_with_noop(frame_or_series):
 
     where_res = result.where(col < 5)
     where_res *= 2
+
     tm.assert_equal(result, expected)
