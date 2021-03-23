@@ -25,6 +25,8 @@ from pandas.compat import (
     is_numpy_dev as _is_numpy_dev,
 )
 
+from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
+
 try:
     from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
 except ImportError as e:  # pragma: no cover
