@@ -82,8 +82,11 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core.arrays.datetimes import DatetimeArray
-from pandas.core.arrays.timedeltas import TimedeltaArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    TimedeltaArray,
+)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -106,7 +109,6 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from pandas import (
-        Categorical,
         DataFrame,
         Series,
     )
@@ -1565,12 +1567,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
             # no attribute "_formatter"
             formatter = values._formatter(boxed=True)  # type: ignore[union-attr]
 
-        if is_categorical_dtype(values.dtype):
+        if isinstance(values, Categorical):
             # Categorical is special for now, so that we can preserve tzinfo
-
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-            # attribute "_internal_get_values"
-            array = values._internal_get_values()  # type: ignore[union-attr]
+            array = values._internal_get_values()
         else:
             array = np.asarray(values)
 
@@ -1724,7 +1723,10 @@ def _format_datetime64_dateonly(
     if date_format:
         return x.strftime(date_format)
     else:
-        return x._date_repr
+        # error: Item "NaTType" of "Union[NaTType, Any]" has no attribute "_date_repr"
+        #  The underlying problem here is that mypy doesn't understand that NaT
+        #  is a singleton, so that the check above excludes it here.
+        return x._date_repr  # type: ignore[union-attr]
 
 
 def get_format_datetime64(
@@ -1802,13 +1804,15 @@ def get_format_timedelta64(
     consider_values = values_int != iNaT
 
     one_day_nanos = 86400 * 10 ** 9
-    even_days = (
-        # error: Unsupported operand types for % ("ExtensionArray" and "int")
-        np.logical_and(
-            consider_values, values_int % one_day_nanos != 0  # type: ignore[operator]
-        ).sum()
-        == 0
-    )
+    # error: Unsupported operand types for % ("ExtensionArray" and "int")
+    not_midnight = values_int % one_day_nanos != 0  # type: ignore[operator]
+    # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+    # "Union[Any, ExtensionArray, ndarray]"; expected
+    # "Union[Union[int, float, complex, str, bytes, generic],
+    # Sequence[Union[int, float, complex, str, bytes, generic]],
+    # Sequence[Sequence[Any]], _SupportsArray]"
+    both = np.logical_and(consider_values, not_midnight)  # type: ignore[arg-type]
+    even_days = both.sum() == 0
 
     if even_days:
         format = None

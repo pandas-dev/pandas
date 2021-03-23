@@ -64,6 +64,14 @@ cdef:
     float64_t NaN = <float64_t>np.NaN
     int64_t NPY_NAT = get_nat()
 
+cdef enum TiebreakEnumType:
+    TIEBREAK_AVERAGE
+    TIEBREAK_MIN,
+    TIEBREAK_MAX
+    TIEBREAK_FIRST
+    TIEBREAK_FIRST_DESCENDING
+    TIEBREAK_DENSE
+
 tiebreakers = {
     "average": TIEBREAK_AVERAGE,
     "min": TIEBREAK_MIN,
@@ -199,8 +207,10 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
 
     Returns
     -------
-    tuple
-        1-d indexer ordered by groups, group counts.
+    ndarray[intp_t, ndim=1]
+        Indexer
+    ndarray[int64_t, ndim=1]
+        Group Counts
 
     Notes
     -----
@@ -208,11 +218,12 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     """
     cdef:
         Py_ssize_t i, loc, label, n
-        ndarray[int64_t] counts, where, result
+        ndarray[int64_t] counts, where
+        ndarray[intp_t] indexer
 
     counts = np.zeros(ngroups + 1, dtype=np.int64)
     n = len(index)
-    result = np.zeros(n, dtype=np.int64)
+    indexer = np.zeros(n, dtype=np.intp)
     where = np.zeros(ngroups + 1, dtype=np.int64)
 
     with nogil:
@@ -228,40 +239,81 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
         # this is our indexer
         for i in range(n):
             label = index[i] + 1
-            result[where[label]] = i
+            indexer[where[label]] = i
             where[label] += 1
 
-    return result, counts
+    return indexer, counts
+
+
+cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
+    cdef:
+        numeric t
+
+    # cython doesn't allow pointer dereference so use array syntax
+    t = a[0]
+    a[0] = b[0]
+    b[0] = t
+    return 0
+
+
+cdef inline numeric kth_smallest_c(numeric* arr, Py_ssize_t k, Py_ssize_t n) nogil:
+    """
+    See kth_smallest.__doc__. The additional parameter n specifies the maximum
+    number of elements considered in arr, needed for compatibility with usage
+    in groupby.pyx
+    """
+    cdef:
+        Py_ssize_t i, j, l, m
+        numeric x
+
+    l = 0
+    m = n - 1
+
+    while l < m:
+        x = arr[k]
+        i = l
+        j = m
+
+        while 1:
+            while arr[i] < x: i += 1
+            while x < arr[j]: j -= 1
+            if i <= j:
+                swap(&arr[i], &arr[j])
+                i += 1; j -= 1
+
+            if i > j: break
+
+        if j < k: l = i
+        if k < i: m = j
+    return arr[k]
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def kth_smallest(numeric[:] a, Py_ssize_t k) -> numeric:
+def kth_smallest(numeric[::1] arr, Py_ssize_t k) -> numeric:
+    """
+    Compute the kth smallest value in arr. Note that the input
+    array will be modified.
+
+    Parameters
+    ----------
+    arr : numeric[::1]
+        Array to compute the kth smallest value for, must be
+        contiguous
+    k : Py_ssize_t
+
+    Returns
+    -------
+    numeric
+        The kth smallest value in arr
+    """
     cdef:
-        Py_ssize_t i, j, l, m, n = a.shape[0]
-        numeric x
+        numeric result
 
     with nogil:
-        l = 0
-        m = n - 1
+        result = kth_smallest_c(&arr[0], k, arr.shape[0])
 
-        while l < m:
-            x = a[k]
-            i = l
-            j = m
-
-            while 1:
-                while a[i] < x: i += 1
-                while x < a[j]: j -= 1
-                if i <= j:
-                    swap(&a[i], &a[j])
-                    i += 1; j -= 1
-
-                if i > j: break
-
-            if j < k: l = i
-            if k < i: m = j
-    return a[k]
+    return result
 
 
 # ----------------------------------------------------------------------

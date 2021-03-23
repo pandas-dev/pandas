@@ -5087,7 +5087,8 @@ Keep all original rows and also all original values
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
 
-        res_values = ops.comparison_op(lvalues, rvalues, op)
+        with np.errstate(all="ignore"):
+            res_values = ops.comparison_op(lvalues, rvalues, op)
 
         return self._construct_result(res_values, name=res_name)
 
@@ -5107,7 +5108,8 @@ Keep all original rows and also all original values
 
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
-        result = ops.arithmetic_op(lvalues, rvalues, op)
+        with np.errstate(all="ignore"):
+            result = ops.arithmetic_op(lvalues, rvalues, op)
 
         return self._construct_result(result, name=res_name)
 

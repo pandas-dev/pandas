@@ -19,6 +19,7 @@ from numpy cimport (
     int16_t,
     int32_t,
     int64_t,
+    intp_t,
     ndarray,
     uint8_t,
     uint16_t,
@@ -29,7 +30,7 @@ from numpy.math cimport NAN
 
 cnp.import_array()
 
-from pandas._libs.algos cimport swap
+from pandas._libs.algos cimport kth_smallest_c
 from pandas._libs.util cimport (
     get_nat,
     numeric,
@@ -87,7 +88,7 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         n -= na_count
 
     if n % 2:
-        result = kth_smallest_c( a, n // 2, n)
+        result = kth_smallest_c(a, n // 2, n)
     else:
         result = (kth_smallest_c(a, n // 2, n) +
                   kth_smallest_c(a, n // 2 - 1, n)) / 2
@@ -96,35 +97,6 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         free(a)
 
     return result
-
-
-# TODO: Is this redundant with algos.kth_smallest
-cdef inline float64_t kth_smallest_c(float64_t* a,
-                                     Py_ssize_t k,
-                                     Py_ssize_t n) nogil:
-    cdef:
-        Py_ssize_t i, j, l, m
-        float64_t x, t
-
-    l = 0
-    m = n - 1
-    while l < m:
-        x = a[k]
-        i = l
-        j = m
-
-        while 1:
-            while a[i] < x: i += 1
-            while x < a[j]: j -= 1
-            if i <= j:
-                swap(&a[i], &a[j])
-                i += 1; j -= 1
-
-            if i > j: break
-
-        if j < k: l = i
-        if k < i: m = j
-    return a[k]
 
 
 @cython.boundscheck(False)
@@ -141,6 +113,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
         Py_ssize_t i, j, N, K, ngroups, size
         ndarray[int64_t] _counts
         ndarray[float64_t, ndim=2] data
+        ndarray[intp_t] indexer
         float64_t* ptr
 
     assert min_count == -1, "'min_count' only used in add and prod"
