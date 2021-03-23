@@ -835,7 +835,7 @@ def format_is_iso(f: str) -> bint:
 
 
 def guess_datetime_format(
-    str dt_str,
+    dt_str,
     bint dayfirst=False,
     dt_str_parse=du_parse,
     dt_str_split=_DATEUTIL_LEXER_SPLIT,
