@@ -678,6 +678,7 @@ class Block(PandasObject):
     # ---------------------------------------------------------------------
     # Replace
 
+    @final
     def replace(
         self,
         to_replace,
@@ -692,14 +693,29 @@ class Block(PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
+        # Note: the checks we do in NDFrame.replace ensure we never get
+        #  here with listlike to_replace or value, as those cases
+        #  go through _replace_list
+
+        values = self.values
+
+        if isinstance(values, Categorical):
+            # TODO: avoid special-casing
+            blk = self if inplace else self.copy()
+            blk.values.replace(to_replace, value, inplace=True)
+            return [blk]
+
+        regex = should_use_regex(regex, to_replace)
+
+        if regex:
+            return self._replace_regex(to_replace, value, inplace=inplace)
+
         if not self._can_hold_element(to_replace):
             # We cannot hold `to_replace`, so we know immediately that
             #  replacing it is a no-op.
             # Note: If to_replace were a list, NDFrame.replace would call
             #  replace_list instead of replace.
             return [self] if inplace else [self.copy()]
-
-        values = self.values
 
         mask = missing.mask_missing(values, to_replace)
         if not mask.any():
@@ -725,7 +741,7 @@ class Block(PandasObject):
         else:
             # split so that we only upcast where necessary
             return self.split_and_operate(
-                type(self).replace, to_replace, value, inplace=inplace, regex=regex
+                type(self).replace, to_replace, value, inplace=True, regex=regex
             )
 
     @final
@@ -1579,7 +1595,6 @@ class ExtensionBlock(Block):
 
     def _can_hold_element(self, element: Any) -> bool:
         # TODO: We may need to think about pushing this onto the array.
-        # We're doing the same as CategoricalBlock here.
         return True
 
     def _slice(self, slicer):
@@ -2001,40 +2016,10 @@ class ObjectBlock(Block):
     def _can_hold_element(self, element: Any) -> bool:
         return True
 
-    def replace(
-        self,
-        to_replace,
-        value,
-        inplace: bool = False,
-        regex: bool = False,
-    ) -> List[Block]:
-        # Note: the checks we do in NDFrame.replace ensure we never get
-        #  here with listlike to_replace or value, as those cases
-        #  go through _replace_list
-
-        regex = should_use_regex(regex, to_replace)
-
-        if regex:
-            return self._replace_regex(to_replace, value, inplace=inplace)
-        else:
-            return super().replace(to_replace, value, inplace=inplace, regex=False)
-
 
 class CategoricalBlock(ExtensionBlock):
+    # this Block type is kept for backwards-compatibility
     __slots__ = ()
-
-    def replace(
-        self,
-        to_replace,
-        value,
-        inplace: bool = False,
-        regex: bool = False,
-    ) -> List[Block]:
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        result = self if inplace else self.copy()
-
-        result.values.replace(to_replace, value, inplace=True)
-        return [result]
 
 
 # -----------------------------------------------------------------
