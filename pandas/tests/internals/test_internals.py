@@ -259,7 +259,7 @@ class TestBlock:
     def test_mgr_locs(self):
         assert isinstance(self.fblock.mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(
-            self.fblock.mgr_locs.as_array, np.array([0, 2, 4], dtype=np.int64)
+            self.fblock.mgr_locs.as_array, np.array([0, 2, 4], dtype=np.intp)
         )
 
     def test_attrs(self):
@@ -277,7 +277,7 @@ class TestBlock:
         newb.delete(0)
         assert isinstance(newb.mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(
-            newb.mgr_locs.as_array, np.array([2, 4], dtype=np.int64)
+            newb.mgr_locs.as_array, np.array([2, 4], dtype=np.intp)
         )
         assert (newb.values[0] == 1).all()
 
@@ -285,14 +285,14 @@ class TestBlock:
         newb.delete(1)
         assert isinstance(newb.mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(
-            newb.mgr_locs.as_array, np.array([0, 4], dtype=np.int64)
+            newb.mgr_locs.as_array, np.array([0, 4], dtype=np.intp)
         )
         assert (newb.values[1] == 2).all()
 
         newb = self.fblock.copy()
         newb.delete(2)
         tm.assert_numpy_array_equal(
-            newb.mgr_locs.as_array, np.array([0, 2], dtype=np.int64)
+            newb.mgr_locs.as_array, np.array([0, 2], dtype=np.intp)
         )
         assert (newb.values[1] == 1).all()
 
@@ -665,7 +665,7 @@ class TestBlockManager:
         assert cons.nblocks == 1
         assert isinstance(cons.blocks[0].mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(
-            cons.blocks[0].mgr_locs.as_array, np.arange(len(cons.items), dtype=np.int64)
+            cons.blocks[0].mgr_locs.as_array, np.arange(len(cons.items), dtype=np.intp)
         )
 
     def test_reindex_items(self):
@@ -1095,7 +1095,7 @@ class TestBlockPlacement:
     )
     def test_slice_to_array_conversion(self, slc, arr):
         tm.assert_numpy_array_equal(
-            BlockPlacement(slc).as_array, np.asarray(arr, dtype=np.int64)
+            BlockPlacement(slc).as_array, np.asarray(arr, dtype=np.intp)
         )
 
     def test_blockplacement_add(self):

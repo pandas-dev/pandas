@@ -141,6 +141,9 @@ jobs:
   data_manager:
     name: Test experimental data manager
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pattern: ["not slow and not network and not clipboard", "slow"]
     steps:
 
     - name: Checkout
@@ -152,43 +155,11 @@ jobs:
     - name: Run tests
       env:
         PANDAS_DATA_MANAGER: array
+        PATTERN: ${{ matrix.pattern }}
+        PYTEST_WORKERS: "auto"
       run: |
         source activate pandas-dev
+        ci/run_tests.sh
 
-        pytest pandas/tests/frame/
-        pytest pandas/tests/reductions/
-        pytest pandas/tests/generic/test_generic.py
-        pytest pandas/tests/arithmetic/
-        pytest pandas/tests/groupby/
-        pytest pandas/tests/resample/
-        pytest pandas/tests/reshape/merge
-        pytest pandas/tests/series/
-        pytest pandas/tests/indexing/
-
-        pytest pandas/tests/test_*
-        pytest pandas/tests/api/
-        pytest pandas/tests/apply/
-        pytest pandas/tests/arrays/
-        pytest pandas/tests/base/
-        pytest pandas/tests/computation/
-        pytest pandas/tests/config/
-        pytest pandas/tests/dtypes/
-        pytest pandas/tests/extension/
-        pytest pandas/tests/generic/
-        pytest pandas/tests/indexes/
-        pytest pandas/tests/internals/
-        pytest pandas/tests/io/test_* -m "not slow and not clipboard"
-        pytest pandas/tests/io/excel/ -m "not slow and not clipboard"
-        pytest pandas/tests/io/formats/ -m "not slow and not clipboard"
-        pytest pandas/tests/io/parser/ -m "not slow and not clipboard"
-        pytest pandas/tests/io/sas/ -m "not slow and not clipboard"
-        pytest pandas/tests/io/xml/ -m "not slow and not clipboard"
-        pytest pandas/tests/libs/
-        pytest pandas/tests/plotting/
-        pytest pandas/tests/scalar/
-        pytest pandas/tests/strings/
-        pytest pandas/tests/tools/
-        pytest pandas/tests/tseries/
-        pytest pandas/tests/tslibs/
-        pytest pandas/tests/util/
-        pytest pandas/tests/window/
+    - name: Print skipped tests
+      run: python ci/print_skipped.py

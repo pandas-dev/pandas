@@ -231,7 +231,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _metadata: List[str] = []
     _is_copy: Optional[weakref.ReferenceType[NDFrame]] = None
     _mgr: Manager
-    _attrs: Dict[Optional[Hashable], Any]
+    _attrs: Dict[Hashable, Any]
     _typ: str
 
     # ----------------------------------------------------------------------
@@ -241,7 +241,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         data: Manager,
         copy: bool = False,
-        attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
+        attrs: Optional[Mapping[Hashable, Any]] = None,
     ):
         # copy kwarg is retained for mypy compat, is not used
 
@@ -320,7 +320,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # attrs and flags
 
     @property
-    def attrs(self) -> Dict[Optional[Hashable], Any]:
+    def attrs(self) -> Dict[Hashable, Any]:
         """
         Dictionary of global attributes of this dataset.
 
@@ -337,7 +337,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._attrs
 
     @attrs.setter
-    def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
+    def attrs(self, value: Mapping[Hashable, Any]) -> None:
         self._attrs = dict(value)
 
     @final
@@ -803,7 +803,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
             # None, None]"; expected "bool" [arg-type]
             # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
-            # None, None]"; expected "Optional[Mapping[Optional[Hashable], Any]]"
+            # None, None]"; expected "Optional[Mapping[Hashable, Any]]"
             new_values,  # type: ignore[arg-type]
             *new_axes,  # type: ignore[arg-type]
         ).__finalize__(self, method="swapaxes")
@@ -7958,7 +7958,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`_
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`__
         for more.
 
         To learn more about the offset strings, please see `this link
@@ -8933,7 +8933,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # align the cond to same shape as myself
         cond = com.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
-            cond, _ = cond.align(self, join="right", broadcast_axis=1)
+            cond, _ = cond.align(self, join="right", broadcast_axis=1, copy=False)
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
@@ -8961,6 +8961,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             cond = cond.astype(bool)
 
         cond = -cond if inplace else cond
+        cond = cond.reindex(self._info_axis, axis=self._info_axis_number, copy=False)
 
         # try to align with other
         if isinstance(other, NDFrame):
@@ -8997,7 +8998,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     "cannot align with a higher dimensional NDFrame"
                 )
 
-        if not isinstance(other, (MultiIndex, NDFrame)):
+        elif not isinstance(other, (MultiIndex, NDFrame)):
             # mainly just catching Index here
             other = extract_array(other, extract_numpy=True)
 
@@ -9029,11 +9030,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             align = self._get_axis_number(axis) == 1
 
-        if isinstance(cond, NDFrame):
-            cond = cond.reindex(
-                self._info_axis, axis=self._info_axis_number, copy=False
-            )
-
         if inplace:
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
@@ -9049,7 +9045,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 cond=cond,
                 align=align,
                 errors=errors,
-                axis=axis,
             )
             result = self._constructor(new_data)
             return result.__finalize__(self)
