@@ -134,7 +134,18 @@ _time_formats = [
 
 
 def _guess_time_format_for_array(arr):
-    # Try to guess the format based on the first non-NaN element
+    """
+    Try to guess the format based on the first non-NaN element
+    
+    Parameters
+    ----------
+    arr : string in unkown time format
+        Text to attempt to parse to find the most correct time format.
+        
+    Returns
+    -------
+    time_format assoicated with parameter
+    """
     non_nan_elements = notna(arr).nonzero()[0]
     if len(non_nan_elements):
         element = arr[non_nan_elements[0]]
