@@ -4,8 +4,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-
-from .base import BaseExtensionTests
+from pandas.api.types import (
+    infer_dtype,
+    is_object_dtype,
+    is_string_dtype,
+)
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseDtypeTests(BaseExtensionTests):
@@ -41,10 +45,10 @@ class BaseDtypeTests(BaseExtensionTests):
         assert dtype.is_dtype([1, 2, 3]) is False
 
     def test_is_not_string_type(self, dtype):
-        return not pd.api.types.is_string_dtype(dtype)
+        return not is_string_dtype(dtype)
 
     def test_is_not_object_type(self, dtype):
-        return not pd.api.types.is_object_dtype(dtype)
+        return not is_object_dtype(dtype)
 
     def test_eq_with_str(self, dtype):
         assert dtype == dtype.name
@@ -68,18 +72,22 @@ class BaseDtypeTests(BaseExtensionTests):
             {"A": pd.Series(data, dtype=dtype), "B": data, "C": "foo", "D": 1}
         )
 
-        # np.dtype('int64') == 'Int64' == 'int64'
-        # so can't distinguish
-        if dtype.name == "Int64":
-            expected = pd.Series([True, True, False, True], index=list("ABCD"))
-        else:
-            expected = pd.Series([True, True, False, False], index=list("ABCD"))
-
-        # XXX: This should probably be *fixed* not ignored.
-        # See libops.scalar_compare
+        # TODO(numpy-1.20): This warnings filter and if block can be removed
+        # once we require numpy>=1.20
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
             result = df.dtypes == str(dtype)
+            # NumPy>=1.20.0, but not pandas.compat.numpy till there
+            # is a wheel available with this change.
+            try:
+                new_numpy_behavior = np.dtype("int64") != "Int64"
+            except TypeError:
+                new_numpy_behavior = True
+
+        if dtype.name == "Int64" and not new_numpy_behavior:
+            expected = pd.Series([True, True, False, True], index=list("ABCD"))
+        else:
+            expected = pd.Series([True, True, False, False], index=list("ABCD"))
 
         self.assert_series_equal(result, expected)
 
@@ -112,3 +120,18 @@ class BaseDtypeTests(BaseExtensionTests):
             match="'construct_from_string' expects a string, got <class 'int'>",
         ):
             type(dtype).construct_from_string(0)
+
+    def test_get_common_dtype(self, dtype):
+        # in practice we will not typically call this with a 1-length list
+        # (we shortcut to just use that dtype as the common dtype), but
+        # still testing as good practice to have this working (and it is the
+        # only case we can test in general)
+        assert dtype._get_common_dtype([dtype]) == dtype
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_infer_dtype(self, data, data_missing, skipna):
+        # only testing that this works without raising an error
+        res = infer_dtype(data, skipna=skipna)
+        assert isinstance(res, str)
+        res = infer_dtype(data_missing, skipna=skipna)
+        assert isinstance(res, str)

@@ -3,10 +3,19 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import DataFrame, DatetimeIndex, Series, date_range, period_range
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BDay, BMonthEnd
+from pandas.tseries.offsets import (
+    BDay,
+    BMonthEnd,
+)
 
 
 class TestAsFreq:
@@ -39,11 +48,14 @@ class TestAsFreq:
     def test_asfreq(self):
         ts = Series(
             [0.0, 1.0, 2.0],
-            index=[
-                datetime(2009, 10, 30),
-                datetime(2009, 11, 30),
-                datetime(2009, 12, 31),
-            ],
+            index=DatetimeIndex(
+                [
+                    datetime(2009, 10, 30),
+                    datetime(2009, 11, 30),
+                    datetime(2009, 12, 31),
+                ],
+                freq="BM",
+            ),
         )
 
         daily_ts = ts.asfreq("B")

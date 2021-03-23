@@ -2,6 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import (
+    Float64Index,
+    Int64Index,
+    RangeIndex,
+    UInt64Index,
+)
 import pandas._testing as tm
 
 # ------------------------------------------------------------------
@@ -44,7 +50,7 @@ def one(request):
 
 zeros = [
     box_cls([0] * 5, dtype=dtype)
-    for box_cls in [pd.Index, np.array]
+    for box_cls in [pd.Index, np.array, pd.array]
     for dtype in [np.int64, np.uint64, np.float64]
 ]
 zeros.extend(
@@ -68,7 +74,7 @@ def zero(request):
 
     Examples
     --------
-    >>> arr = pd.RangeIndex(5)
+    >>> arr = RangeIndex(5)
     >>> arr / zeros
     Float64Index([nan, inf, inf, inf, inf], dtype='float64')
     """
@@ -81,10 +87,10 @@ def zero(request):
 
 @pytest.fixture(
     params=[
-        pd.Float64Index(np.arange(5, dtype="float64")),
-        pd.Int64Index(np.arange(5, dtype="int64")),
-        pd.UInt64Index(np.arange(5, dtype="uint64")),
-        pd.RangeIndex(5),
+        Float64Index(np.arange(5, dtype="float64")),
+        Int64Index(np.arange(5, dtype="int64")),
+        UInt64Index(np.arange(5, dtype="uint64")),
+        RangeIndex(5),
     ],
     ids=lambda x: type(x).__name__,
 )
@@ -210,35 +216,19 @@ def mismatched_freq(request):
 # ------------------------------------------------------------------
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame], ids=id_func)
-def box(request):
-    """
-    Several array-like containers that should have effectively identical
-    behavior with respect to arithmetic operations.
-    """
-    return request.param
-
-
-@pytest.fixture(
-    params=[
-        pd.Index,
-        pd.Series,
-        pytest.param(pd.DataFrame, marks=pytest.mark.xfail),
-        tm.to_array,
-    ],
-    ids=id_func,
-)
-def box_df_fail(request):
-    """
-    Fixture equivalent to `box` fixture but xfailing the DataFrame case.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array], ids=id_func)
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, pd.array], ids=id_func)
 def box_with_array(request):
     """
     Fixture to test behavior for Index, Series, DataFrame, and pandas Array
+    classes
+    """
+    return request.param
+
+
+@pytest.fixture(params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=id_func)
+def box_1d_array(request):
+    """
+    Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list
     classes
     """
     return request.param

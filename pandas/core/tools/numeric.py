@@ -1,19 +1,27 @@
+from typing import Optional
+
 import numpy as np
 
 from pandas._libs import lib
 
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime_or_timedelta_dtype,
     is_decimal,
+    is_integer_dtype,
     is_number,
     is_numeric_dtype,
     is_scalar,
+    needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 
 import pandas as pd
+from pandas.core.arrays.numeric import NumericArray
 
 
 def to_numeric(arg, errors="raise", downcast=None):
@@ -40,13 +48,13 @@ def to_numeric(arg, errors="raise", downcast=None):
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaN.
         - If 'ignore', then invalid parsing will return the input.
-    downcast : {'int', 'signed', 'unsigned', 'float'}, default None
+    downcast : {'integer', 'signed', 'unsigned', 'float'}, default None
         If not None, and if the data has been successfully cast to a
         numerical dtype (or if the data was numeric to begin with),
         downcast that resulting data to the smallest numerical dtype
         possible according to the following rules:
 
-        - 'int' or 'signed': smallest signed int dtype (min.: np.int8)
+        - 'integer' or 'signed': smallest signed int dtype (min.: np.int8)
         - 'unsigned': smallest unsigned int dtype (min.: np.uint8)
         - 'float': smallest float dtype (min.: np.float32)
 
@@ -107,6 +115,21 @@ def to_numeric(arg, errors="raise", downcast=None):
     2    2.0
     3   -3.0
     dtype: float64
+
+    Downcasting of nullable integer and floating dtypes is supported:
+
+    >>> s = pd.Series([1, 2, 3], dtype="Int64")
+    >>> pd.to_numeric(s, downcast="integer")
+    0    1
+    1    2
+    2    3
+    dtype: Int8
+    >>> s = pd.Series([1.0, 2.1, 3.0], dtype="Float64")
+    >>> pd.to_numeric(s, downcast="float")
+    0    1.0
+    1    2.1
+    2    3.0
+    dtype: Float32
     """
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
@@ -121,10 +144,11 @@ def to_numeric(arg, errors="raise", downcast=None):
     if isinstance(arg, ABCSeries):
         is_series = True
         values = arg.values
-    elif isinstance(arg, ABCIndexClass):
+    elif isinstance(arg, ABCIndex):
         is_index = True
-        values = arg.asi8
-        if values is None:
+        if needs_i8_conversion(arg.dtype):
+            values = arg.asi8
+        else:
             values = arg.values
     elif isinstance(arg, (list, tuple)):
         values = np.array(arg, dtype="O")
@@ -140,10 +164,18 @@ def to_numeric(arg, errors="raise", downcast=None):
     else:
         values = arg
 
-    if is_numeric_dtype(values):
+    # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
+    # save mask to reconstruct the full array after casting
+    mask: Optional[np.ndarray] = None
+    if isinstance(values, NumericArray):
+        mask = values._mask
+        values = values._data[~mask]
+
+    values_dtype = getattr(values, "dtype", None)
+    if is_numeric_dtype(values_dtype):
         pass
-    elif is_datetime_or_timedelta_dtype(values):
-        values = values.astype(np.int64)
+    elif is_datetime_or_timedelta_dtype(values_dtype):
+        values = values.view(np.int64)
     else:
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
@@ -157,7 +189,7 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     # attempt downcast only if the data has been successfully converted
     # to a numerical dtype and if a downcast method has been specified
-    if downcast is not None and is_numeric_dtype(values):
+    if downcast is not None and is_numeric_dtype(values.dtype):
         typecodes = None
 
         if downcast in ("integer", "signed"):
@@ -177,18 +209,32 @@ def to_numeric(arg, errors="raise", downcast=None):
         if typecodes is not None:
             # from smallest to largest
             for dtype in typecodes:
-                if np.dtype(dtype).itemsize <= values.dtype.itemsize:
-                    values = maybe_downcast_to_dtype(values, dtype)
+                dtype = np.dtype(dtype)
+                if dtype.itemsize <= values.dtype.itemsize:
+                    values = maybe_downcast_numeric(values, dtype)
 
                     # successful conversion
                     if values.dtype == dtype:
                         break
 
+    # GH33013: for IntegerArray & FloatingArray need to reconstruct masked array
+    if mask is not None:
+        data = np.zeros(mask.shape, dtype=values.dtype)
+        data[~mask] = values
+
+        from pandas.core.arrays import (
+            FloatingArray,
+            IntegerArray,
+        )
+
+        klass = IntegerArray if is_integer_dtype(data.dtype) else FloatingArray
+        values = klass(data, mask.copy())
+
     if is_series:
-        return pd.Series(values, index=arg.index, name=arg.name)
+        return arg._constructor(values, index=arg.index, name=arg.name)
     elif is_index:
         # because we want to coerce to numeric if possible,
-        # do not use _shallow_copy_with_infer
+        # do not use _shallow_copy
         return pd.Index(values, name=arg.name)
     elif is_scalars:
         return values[0]

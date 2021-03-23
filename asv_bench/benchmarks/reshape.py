@@ -4,7 +4,14 @@ import string
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, date_range, melt, wide_to_long
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    date_range,
+    melt,
+    wide_to_long,
+)
+from pandas.api.types import CategoricalDtype
 
 
 class Melt:
@@ -44,6 +51,42 @@ class SimpleReshape:
 
     def time_unstack(self):
         self.df.unstack(1)
+
+
+class ReshapeExtensionDtype:
+
+    params = ["datetime64[ns, US/Pacific]", "Period[s]"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        lev = pd.Index(list("ABCDEFGHIJ"))
+        ri = pd.Index(range(1000))
+        mi = MultiIndex.from_product([lev, ri], names=["foo", "bar"])
+
+        index = date_range("2016-01-01", periods=10000, freq="s", tz="US/Pacific")
+        if dtype == "Period[s]":
+            index = index.tz_localize(None).to_period("s")
+
+        ser = pd.Series(index, index=mi)
+        df = ser.unstack("bar")
+        # roundtrips -> df.stack().equals(ser)
+
+        self.ser = ser
+        self.df = df
+
+    def time_stack(self, dtype):
+        self.df.stack()
+
+    def time_unstack_fast(self, dtype):
+        # last level -> doesnt have to make copies
+        self.ser.unstack("bar")
+
+    def time_unstack_slow(self, dtype):
+        # first level -> must make copies
+        self.ser.unstack("foo")
+
+    def time_transpose(self, dtype):
+        self.df.T
 
 
 class Unstack:
@@ -103,7 +146,10 @@ class WideToLong:
         nidvars = 20
         N = 5000
         self.letters = list("ABCD")
-        yrvars = [l + str(num) for l, num in product(self.letters, range(1, nyrs + 1))]
+        yrvars = [
+            letter + str(num)
+            for letter, num in product(self.letters, range(1, nyrs + 1))
+        ]
         columns = [str(i) for i in range(nidvars)] + yrvars
         self.df = DataFrame(np.random.randn(N, nidvars + len(yrvars)), columns=columns)
         self.df["id"] = self.df.index
@@ -193,7 +239,7 @@ class GetDummies:
         categories = list(string.ascii_letters[:12])
         s = pd.Series(
             np.random.choice(categories, size=1000000),
-            dtype=pd.api.types.CategoricalDtype(categories),
+            dtype=CategoricalDtype(categories),
         )
         self.s = s
 

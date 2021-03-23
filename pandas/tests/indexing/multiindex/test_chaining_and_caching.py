@@ -1,7 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -23,10 +29,12 @@ def test_detect_chained_assignment():
     multiind = MultiIndex.from_tuples(tuples, names=["part", "side"])
     zed = DataFrame(events, index=["a", "b"], columns=multiind)
 
-    with pytest.raises(com.SettingWithCopyError):
+    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+    with pytest.raises(com.SettingWithCopyError, match=msg):
         zed["eyes"]["right"].fillna(value=555, inplace=True)
 
 
+@td.skip_array_manager_invalid_test  # with ArrayManager df.loc[0] is not a view
 def test_cache_updating():
     # 5216
     # make sure that we don't try to set a dead cache
@@ -48,6 +56,7 @@ def test_cache_updating():
     assert result == 2
 
 
+@pytest.mark.arm_slow
 def test_indexer_caching():
     # GH5727
     # make sure that indexers are in the _internal_names_set

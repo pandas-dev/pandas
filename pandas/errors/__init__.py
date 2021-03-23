@@ -6,7 +6,20 @@ Expose public exceptions & warnings
 
 from pandas._config.config import OptionError
 
-from pandas._libs.tslibs import NullFrequencyError, OutOfBoundsDatetime
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
+
+
+class NullFrequencyError(ValueError):
+    """
+    Error raised when a null `freq` attribute is used in an operation
+    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
+    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
+    """
+
+    pass
 
 
 class PerformanceWarning(Warning):
@@ -184,3 +197,38 @@ class AbstractMethodError(NotImplementedError):
         else:
             name = type(self.class_instance).__name__
         return f"This {self.methodtype} must be defined in the concrete class {name}"
+
+
+class NumbaUtilError(Exception):
+    """
+    Error raised for unsupported Numba engine routines.
+    """
+
+
+class DuplicateLabelError(ValueError):
+    """
+    Error raised when an operation would introduce duplicate labels.
+
+    .. versionadded:: 1.2.0
+
+    Examples
+    --------
+    >>> s = pd.Series([0, 1, 2], index=['a', 'b', 'c']).set_flags(
+    ...     allows_duplicate_labels=False
+    ... )
+    >>> s.reindex(['a', 'a', 'b'])
+    Traceback (most recent call last):
+       ...
+    DuplicateLabelError: Index has duplicates.
+          positions
+    label
+    a        [0, 1]
+    """
+
+
+class InvalidIndexError(Exception):
+    """
+    Exception raised when attempting to use an invalid index key.
+
+    .. versionadded:: 1.1.0
+    """

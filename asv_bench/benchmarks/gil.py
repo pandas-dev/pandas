@@ -1,20 +1,26 @@
 import numpy as np
 
-from pandas import DataFrame, Series, date_range, factorize, read_csv
-from pandas.core.algorithms import take_1d
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    factorize,
+    read_csv,
+)
+from pandas.core.algorithms import take_nd
 
 from .pandas_vb_common import tm
 
 try:
     from pandas import (
-        rolling_median,
-        rolling_mean,
-        rolling_min,
-        rolling_max,
-        rolling_var,
-        rolling_skew,
         rolling_kurt,
+        rolling_max,
+        rolling_mean,
+        rolling_median,
+        rolling_min,
+        rolling_skew,
         rolling_std,
+        rolling_var,
     )
 
     have_rolling_methods = True
@@ -110,7 +116,7 @@ class ParallelTake1D:
 
         @test_parallel(num_threads=2)
         def parallel_take1d():
-            take_1d(df["col"].values, indexer)
+            take_nd(df["col"].values, indexer)
 
         self.parallel_take1d = parallel_take1d
 
@@ -119,6 +125,7 @@ class ParallelTake1D:
 
 
 class ParallelKth:
+    # This depends exclusively on code in _libs/, could go in libs.py
 
     number = 1
     repeat = 5

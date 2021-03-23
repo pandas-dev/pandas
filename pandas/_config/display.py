@@ -4,12 +4,13 @@ Unopinionated display configuration.
 
 import locale
 import sys
+from typing import Optional
 
 from pandas._config import config as cf
 
 # -----------------------------------------------------------------------------
 # Global formatting options
-_initial_defencoding = None
+_initial_defencoding: Optional[str] = None
 
 
 def detect_console_encoding() -> str:
@@ -22,7 +23,7 @@ def detect_console_encoding() -> str:
     encoding = None
     try:
         encoding = sys.stdout.encoding or sys.stdin.encoding
-    except (AttributeError, IOError):
+    except (AttributeError, OSError):
         pass
 
     # try again for something better

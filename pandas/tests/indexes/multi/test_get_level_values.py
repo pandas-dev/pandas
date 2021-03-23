@@ -1,7 +1,13 @@
 import numpy as np
 
 import pandas as pd
-from pandas import CategoricalIndex, Index, MultiIndex, Timestamp, date_range
+from pandas import (
+    CategoricalIndex,
+    Index,
+    MultiIndex,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -42,26 +48,26 @@ def test_get_level_values(idx):
 def test_get_level_values_all_na():
     # GH#17924 when level entirely consists of nan
     arrays = [[np.nan, np.nan, np.nan], ["a", np.nan, 1]]
-    index = pd.MultiIndex.from_arrays(arrays)
+    index = MultiIndex.from_arrays(arrays)
     result = index.get_level_values(0)
-    expected = pd.Index([np.nan, np.nan, np.nan], dtype=np.float64)
+    expected = Index([np.nan, np.nan, np.nan], dtype=np.float64)
     tm.assert_index_equal(result, expected)
 
     result = index.get_level_values(1)
-    expected = pd.Index(["a", np.nan, 1], dtype=object)
+    expected = Index(["a", np.nan, 1], dtype=object)
     tm.assert_index_equal(result, expected)
 
 
 def test_get_level_values_int_with_na():
     # GH#17924
     arrays = [["a", "b", "b"], [1, np.nan, 2]]
-    index = pd.MultiIndex.from_arrays(arrays)
+    index = MultiIndex.from_arrays(arrays)
     result = index.get_level_values(1)
     expected = Index([1, np.nan, 2])
     tm.assert_index_equal(result, expected)
 
     arrays = [["a", "b", "b"], [np.nan, np.nan, 2]]
-    index = pd.MultiIndex.from_arrays(arrays)
+    index = MultiIndex.from_arrays(arrays)
     result = index.get_level_values(1)
     expected = Index([np.nan, np.nan, 2])
     tm.assert_index_equal(result, expected)
@@ -69,32 +75,35 @@ def test_get_level_values_int_with_na():
 
 def test_get_level_values_na():
     arrays = [[np.nan, np.nan, np.nan], ["a", np.nan, 1]]
-    index = pd.MultiIndex.from_arrays(arrays)
+    index = MultiIndex.from_arrays(arrays)
     result = index.get_level_values(0)
-    expected = pd.Index([np.nan, np.nan, np.nan])
+    expected = Index([np.nan, np.nan, np.nan])
     tm.assert_index_equal(result, expected)
 
     result = index.get_level_values(1)
-    expected = pd.Index(["a", np.nan, 1])
+    expected = Index(["a", np.nan, 1])
     tm.assert_index_equal(result, expected)
 
     arrays = [["a", "b", "b"], pd.DatetimeIndex([0, 1, pd.NaT])]
-    index = pd.MultiIndex.from_arrays(arrays)
+    index = MultiIndex.from_arrays(arrays)
     result = index.get_level_values(1)
     expected = pd.DatetimeIndex([0, 1, pd.NaT])
     tm.assert_index_equal(result, expected)
 
     arrays = [[], []]
-    index = pd.MultiIndex.from_arrays(arrays)
+    index = MultiIndex.from_arrays(arrays)
     result = index.get_level_values(0)
-    expected = pd.Index([], dtype=object)
+    expected = Index([], dtype=object)
     tm.assert_index_equal(result, expected)
 
 
 def test_get_level_values_when_periods():
     # GH33131. See also discussion in GH32669.
     # This test can probably be removed when PeriodIndex._engine is removed.
-    from pandas import Period, PeriodIndex
+    from pandas import (
+        Period,
+        PeriodIndex,
+    )
 
     idx = MultiIndex.from_arrays(
         [PeriodIndex([Period("2019Q1"), Period("2019Q2")], name="b")]

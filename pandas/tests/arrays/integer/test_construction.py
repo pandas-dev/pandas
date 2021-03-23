@@ -1,17 +1,24 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_integer
-from pandas.core.arrays import IntegerArray, integer_array
-from pandas.core.arrays.integer import Int8Dtype, Int32Dtype, Int64Dtype
+from pandas.core.arrays import IntegerArray
+from pandas.core.arrays.integer import (
+    Int8Dtype,
+    Int32Dtype,
+    Int64Dtype,
+)
+
+
+@pytest.fixture(params=[pd.array, IntegerArray._from_sequence])
+def constructor(request):
+    return request.param
 
 
 def test_uses_pandas_na():
-    a = pd.array([1, None], dtype=pd.Int64Dtype())
+    a = pd.array([1, None], dtype=Int64Dtype())
     assert a[1] is pd.NA
 
 
@@ -31,7 +38,7 @@ def test_from_dtype_from_float(data):
 
     # from int / array
     expected = pd.Series(data).dropna().reset_index(drop=True)
-    dropped = np.array(data.dropna()).astype(np.dtype((dtype.type)))
+    dropped = np.array(data.dropna()).astype(np.dtype(dtype.type))
     result = pd.Series(dropped, dtype=str(dtype))
     tm.assert_series_equal(result, expected)
 
@@ -67,10 +74,10 @@ def test_integer_array_constructor():
     mask = np.array([False, False, False, True], dtype="bool")
 
     result = IntegerArray(values, mask)
-    expected = integer_array([1, 2, 3, np.nan], dtype="int64")
+    expected = pd.array([1, 2, 3, np.nan], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    msg = r".* should be .* numpy array. Use the 'integer_array' function instead"
+    msg = r".* should be .* numpy array. Use the 'pd.array' function instead"
     with pytest.raises(TypeError, match=msg):
         IntegerArray(values.tolist(), mask)
 
@@ -84,21 +91,6 @@ def test_integer_array_constructor():
         IntegerArray(values)
 
 
-@pytest.mark.parametrize(
-    "a, b",
-    [
-        ([1, None], [1, np.nan]),
-        ([None], [np.nan]),
-        ([None, np.nan], [np.nan, np.nan]),
-        ([np.nan, np.nan], [np.nan, np.nan]),
-    ],
-)
-def test_integer_array_constructor_none_is_nan(a, b):
-    result = integer_array(a)
-    expected = integer_array(b)
-    tm.assert_extension_array_equal(result, expected)
-
-
 def test_integer_array_constructor_copy():
     values = np.array([1, 2, 3, 4], dtype="int64")
     mask = np.array([False, False, False, True], dtype="bool")
@@ -110,6 +102,21 @@ def test_integer_array_constructor_copy():
     result = IntegerArray(values, mask, copy=True)
     assert result._data is not values
     assert result._mask is not mask
+
+
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        ([1, None], [1, np.nan]),
+        ([None], [np.nan]),
+        ([None, np.nan], [np.nan, np.nan]),
+        ([np.nan, np.nan], [np.nan, np.nan]),
+    ],
+)
+def test_to_integer_array_none_is_nan(a, b):
+    result = pd.array(a, dtype="Int64")
+    expected = pd.array(b, dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -131,42 +138,46 @@ def test_to_integer_array_error(values):
     msg = (
         r"(:?.* cannot be converted to an IntegerDtype)"
         r"|(:?values must be a 1D list-like)"
+        r"|(Cannot pass scalar)"
     )
+    with pytest.raises((ValueError, TypeError), match=msg):
+        pd.array(values, dtype="Int64")
+
     with pytest.raises(TypeError, match=msg):
-        integer_array(values)
+        IntegerArray._from_sequence(values)
 
 
-def test_to_integer_array_inferred_dtype():
+def test_to_integer_array_inferred_dtype(constructor):
     # if values has dtype -> respect it
-    result = integer_array(np.array([1, 2], dtype="int8"))
+    result = constructor(np.array([1, 2], dtype="int8"))
     assert result.dtype == Int8Dtype()
-    result = integer_array(np.array([1, 2], dtype="int32"))
+    result = constructor(np.array([1, 2], dtype="int32"))
     assert result.dtype == Int32Dtype()
 
     # if values have no dtype -> always int64
-    result = integer_array([1, 2])
+    result = constructor([1, 2])
     assert result.dtype == Int64Dtype()
 
 
-def test_to_integer_array_dtype_keyword():
-    result = integer_array([1, 2], dtype="int8")
+def test_to_integer_array_dtype_keyword(constructor):
+    result = constructor([1, 2], dtype="Int8")
     assert result.dtype == Int8Dtype()
 
     # if values has dtype -> override it
-    result = integer_array(np.array([1, 2], dtype="int8"), dtype="int32")
+    result = constructor(np.array([1, 2], dtype="int8"), dtype="Int32")
     assert result.dtype == Int32Dtype()
 
 
 def test_to_integer_array_float():
-    result = integer_array([1.0, 2.0])
-    expected = integer_array([1, 2])
+    result = IntegerArray._from_sequence([1.0, 2.0])
+    expected = pd.array([1, 2], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
     with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
-        integer_array([1.5, 2.0])
+        IntegerArray._from_sequence([1.5, 2.0])
 
     # for float dtypes, the itemsize is not preserved
-    result = integer_array(np.array([1.0, 2.0], dtype="float32"))
+    result = IntegerArray._from_sequence(np.array([1.0, 2.0], dtype="float32"))
     assert result.dtype == Int64Dtype()
 
 
@@ -178,10 +189,12 @@ def test_to_integer_array_float():
         ([False, True, np.nan], [0, 1, np.nan], Int64Dtype(), Int64Dtype()),
     ],
 )
-def test_to_integer_array_bool(bool_values, int_values, target_dtype, expected_dtype):
-    result = integer_array(bool_values, dtype=target_dtype)
+def test_to_integer_array_bool(
+    constructor, bool_values, int_values, target_dtype, expected_dtype
+):
+    result = constructor(bool_values, dtype=target_dtype)
     assert result.dtype == expected_dtype
-    expected = integer_array(int_values, dtype=target_dtype)
+    expected = pd.array(int_values, dtype=target_dtype)
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -195,44 +208,7 @@ def test_to_integer_array_bool(bool_values, int_values, target_dtype, expected_d
 )
 def test_to_integer_array(values, to_dtype, result_dtype):
     # convert existing arrays to IntegerArrays
-    result = integer_array(values, dtype=to_dtype)
+    result = IntegerArray._from_sequence(values, dtype=to_dtype)
     assert result.dtype == result_dtype()
-    expected = integer_array(values, dtype=result_dtype())
-    tm.assert_extension_array_equal(result, expected)
-
-
-@td.skip_if_no("pyarrow", min_version="0.15.0")
-def test_arrow_array(data):
-    # protocol added in 0.15.0
-    import pyarrow as pa
-
-    arr = pa.array(data)
-    expected = np.array(data, dtype=object)
-    expected[data.isna()] = None
-    expected = pa.array(expected, type=data.dtype.name.lower(), from_pandas=True)
-    assert arr.equals(expected)
-
-
-@td.skip_if_no("pyarrow", min_version="0.16.0")
-def test_arrow_roundtrip(data):
-    # roundtrip possible from arrow 0.16.0
-    import pyarrow as pa
-
-    df = pd.DataFrame({"a": data})
-    table = pa.table(df)
-    assert table.field("a").type == str(data.dtype.numpy_dtype)
-    result = table.to_pandas()
-    tm.assert_frame_equal(result, df)
-
-
-@td.skip_if_no("pyarrow", min_version="0.16.0")
-def test_arrow_from_arrow_uint():
-    # https://github.com/pandas-dev/pandas/issues/31896
-    # possible mismatch in types
-    import pyarrow as pa
-
-    dtype = pd.UInt32Dtype()
-    result = dtype.__from_arrow__(pa.array([1, 2, 3, 4, None], type="int64"))
-    expected = pd.array([1, 2, 3, 4, None], dtype="UInt32")
-
+    expected = pd.array(values, dtype=result_dtype())
     tm.assert_extension_array_equal(result, expected)

@@ -6,7 +6,13 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -19,9 +25,9 @@ import pandas._testing as tm
 )
 def test_drop_raise_exception_if_labels_not_in_level(msg, labels, level):
     # GH 8594
-    mi = pd.MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
-    s = pd.Series([10, 20, 30], index=mi)
-    df = pd.DataFrame([10, 20, 30], index=mi)
+    mi = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
+    s = Series([10, 20, 30], index=mi)
+    df = DataFrame([10, 20, 30], index=mi)
 
     with pytest.raises(KeyError, match=msg):
         s.drop(labels, level=level)
@@ -32,9 +38,9 @@ def test_drop_raise_exception_if_labels_not_in_level(msg, labels, level):
 @pytest.mark.parametrize("labels,level", [(4, "a"), (7, "b")])
 def test_drop_errors_ignore(labels, level):
     # GH 8594
-    mi = pd.MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
-    s = pd.Series([10, 20, 30], index=mi)
-    df = pd.DataFrame([10, 20, 30], index=mi)
+    mi = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
+    s = Series([10, 20, 30], index=mi)
+    df = DataFrame([10, 20, 30], index=mi)
 
     expected_s = s.drop(labels, level=level, errors="ignore")
     tm.assert_series_equal(s, expected_s)
@@ -47,7 +53,7 @@ def test_drop_with_non_unique_datetime_index_and_invalid_keys():
     # GH 30399
 
     # define dataframe with unique datetime index
-    df = pd.DataFrame(
+    df = DataFrame(
         np.random.randn(5, 3),
         columns=["a", "b", "c"],
         index=pd.date_range("2012", freq="H", periods=5),
@@ -70,8 +76,10 @@ class TestDataFrameDrop:
         df_dropped_b = df.drop("b")
         df_dropped_e = df.drop("e", axis=1)
         df_inplace_b, df_inplace_e = df.copy(), df.copy()
-        df_inplace_b.drop("b", inplace=True)
-        df_inplace_e.drop("e", axis=1, inplace=True)
+        return_value = df_inplace_b.drop("b", inplace=True)
+        assert return_value is None
+        return_value = df_inplace_e.drop("e", axis=1, inplace=True)
+        assert return_value is None
         for obj in (df_dropped_b, df_dropped_e, df_inplace_b, df_inplace_e):
             assert obj.index.name == "first"
             assert obj.columns.name == "second"
@@ -139,16 +147,17 @@ class TestDataFrameDrop:
         tm.assert_frame_equal(nu_df.drop("b", axis="columns"), nu_df["a"])
         tm.assert_frame_equal(nu_df.drop([]), nu_df)  # GH 16398
 
-        nu_df = nu_df.set_index(pd.Index(["X", "Y", "X"]))
+        nu_df = nu_df.set_index(Index(["X", "Y", "X"]))
         nu_df.columns = list("abc")
         tm.assert_frame_equal(nu_df.drop("X", axis="rows"), nu_df.loc[["Y"], :])
         tm.assert_frame_equal(nu_df.drop(["X", "Y"], axis=0), nu_df.loc[[], :])
 
         # inplace cache issue
         # GH#5628
-        df = pd.DataFrame(np.random.randn(10, 3), columns=list("abc"))
+        df = DataFrame(np.random.randn(10, 3), columns=list("abc"))
         expected = df[~(df.b > 0)]
-        df.drop(labels=df[df.b > 0].index, inplace=True)
+        return_value = df.drop(labels=df[df.b > 0].index, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(df, expected)
 
     def test_drop_multiindex_not_lexsorted(self):
@@ -159,7 +168,7 @@ class TestDataFrameDrop:
             [("a", ""), ("b1", "c1"), ("b2", "c2")], names=["b", "c"]
         )
         lexsorted_df = DataFrame([[1, 3, 4]], columns=lexsorted_mi)
-        assert lexsorted_df.columns.is_lexsorted()
+        assert lexsorted_df.columns._is_lexsorted()
 
         # define the non-lexsorted version
         not_lexsorted_df = DataFrame(
@@ -169,7 +178,7 @@ class TestDataFrameDrop:
             index="a", columns=["b", "c"], values="d"
         )
         not_lexsorted_df = not_lexsorted_df.reset_index()
-        assert not not_lexsorted_df.columns.is_lexsorted()
+        assert not not_lexsorted_df.columns._is_lexsorted()
 
         # compare the results
         tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
@@ -249,15 +258,15 @@ class TestDataFrameDrop:
     def test_drop_empty_list(self, index, drop_labels):
         # GH#21494
         expected_index = [i for i in index if i not in drop_labels]
-        frame = pd.DataFrame(index=index).drop(drop_labels)
-        tm.assert_frame_equal(frame, pd.DataFrame(index=expected_index))
+        frame = DataFrame(index=index).drop(drop_labels)
+        tm.assert_frame_equal(frame, DataFrame(index=expected_index))
 
     @pytest.mark.parametrize("index", [[1, 2, 3], [1, 2, 2]])
     @pytest.mark.parametrize("drop_labels", [[1, 4], [4, 5]])
     def test_drop_non_empty_list(self, index, drop_labels):
         # GH# 21494
         with pytest.raises(KeyError, match="not found in axis"):
-            pd.DataFrame(index=index).drop(drop_labels)
+            DataFrame(index=index).drop(drop_labels)
 
     def test_mixed_depth_drop(self):
         arrays = [
@@ -310,7 +319,7 @@ class TestDataFrameDrop:
         expected = DataFrame(
             [2, 1],
             columns=["D"],
-            index=pd.MultiIndex.from_tuples(
+            index=MultiIndex.from_tuples(
                 [("one", 0.0, "b"), ("one", np.nan, "a")], names=["A", "B", "C"]
             ),
         )
@@ -417,3 +426,58 @@ class TestDataFrameDrop:
 
         result = df.drop([(0, 2)])
         assert result.index.names == ("one", "two")
+
+    @pytest.mark.parametrize(
+        "operation", ["__iadd__", "__isub__", "__imul__", "__ipow__"]
+    )
+    @pytest.mark.parametrize("inplace", [False, True])
+    def test_inplace_drop_and_operation(self, operation, inplace):
+        # GH#30484
+        df = DataFrame({"x": range(5)})
+        expected = df.copy()
+        df["y"] = range(5)
+        y = df["y"]
+
+        with tm.assert_produces_warning(None):
+            if inplace:
+                df.drop("y", axis=1, inplace=inplace)
+            else:
+                df = df.drop("y", axis=1, inplace=inplace)
+
+            # Perform operation and check result
+            getattr(y, operation)(1)
+            tm.assert_frame_equal(df, expected)
+
+    def test_drop_with_non_unique_multiindex(self):
+        # GH#36293
+        mi = MultiIndex.from_arrays([["x", "y", "x"], ["i", "j", "i"]])
+        df = DataFrame([1, 2, 3], index=mi)
+        result = df.drop(index="x")
+        expected = DataFrame([2], index=MultiIndex.from_arrays([["y"], ["j"]]))
+        tm.assert_frame_equal(result, expected)
+
+    def test_drop_with_duplicate_columns(self):
+        df = DataFrame(
+            [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
+        )
+        result = df.drop(["a"], axis=1)
+        expected = DataFrame([[1], [1], [1]], columns=["bar"])
+        tm.assert_frame_equal(result, expected)
+        result = df.drop("a", axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_drop_with_duplicate_columns2(self):
+        # drop buggy GH#6240
+        df = DataFrame(
+            {
+                "A": np.random.randn(5),
+                "B": np.random.randn(5),
+                "C": np.random.randn(5),
+                "D": ["a", "b", "c", "d", "e"],
+            }
+        )
+
+        expected = df.take([0, 1, 1], axis=1)
+        df2 = df.take([2, 0, 1, 2, 1], axis=1)
+        result = df2.drop("C", axis=1)
+        tm.assert_frame_equal(result, expected)

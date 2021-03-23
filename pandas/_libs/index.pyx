@@ -1,6 +1,9 @@
 import warnings
 
+cimport cython
+
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport (
     float32_t,
@@ -16,19 +19,21 @@ from numpy cimport (
     uint32_t,
     uint64_t,
 )
+
 cnp.import_array()
 
 
-cimport pandas._libs.util as util
-
-from pandas._libs.tslibs import Period
-from pandas._libs.tslibs.nattype cimport c_NaT as NaT
-from pandas._libs.tslibs.c_timestamp cimport _Timestamp
-
+from pandas._libs cimport util
 from pandas._libs.hashtable cimport HashTable
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.period cimport is_period_object
+from pandas._libs.tslibs.timedeltas cimport _Timedelta
+from pandas._libs.tslibs.timestamps cimport _Timestamp
 
-from pandas._libs import algos, hashtable as _hash
-from pandas._libs.tslibs import Timedelta, period as periodlib
+from pandas._libs import (
+    algos,
+    hashtable as _hash,
+)
 from pandas._libs.missing import checknull
 
 
@@ -44,6 +49,7 @@ cdef inline bint is_definitely_invalid_key(object val):
 _SIZE_CUTOFF = 1_000_000
 
 
+@cython.freelist(32)
 cdef class IndexEngine:
 
     cdef readonly:
@@ -80,7 +86,11 @@ cdef class IndexEngine:
             values = self._get_index_values()
 
             self._check_type(val)
-            loc = _bin_search(values, val)  # .searchsorted(val, side='left')
+            try:
+                loc = _bin_search(values, val)  # .searchsorted(val, side='left')
+            except TypeError:
+                # GH#35788 e.g. val=None with float64 values
+                raise KeyError(val)
             if loc >= len(values):
                 raise KeyError(val)
             if values[loc] != val:
@@ -249,20 +259,20 @@ cdef class IndexEngine:
         self.monotonic_inc = 0
         self.monotonic_dec = 0
 
-    def get_indexer(self, values):
+    def get_indexer(self, ndarray values):
         self._ensure_mapping_populated()
         return self.mapping.lookup(values)
 
-    def get_indexer_non_unique(self, targets):
+    def get_indexer_non_unique(self, ndarray targets):
         """
         Return an indexer suitable for taking from a non unique index
-        return the labels in the same order ast the target
+        return the labels in the same order as the target
         and a missing indexer into the targets (which correspond
         to the -1 indices in the results
         """
         cdef:
             ndarray values, x
-            ndarray[int64_t] result, missing
+            ndarray[intp_t] result, missing
             set stargets, remaining_stargets
             dict d = {}
             object val
@@ -279,8 +289,8 @@ cdef class IndexEngine:
         else:
             n_alloc = n
 
-        result = np.empty(n_alloc, dtype=np.int64)
-        missing = np.empty(n_t, dtype=np.int64)
+        result = np.empty(n_alloc, dtype=np.intp)
+        missing = np.empty(n_t, dtype=np.intp)
 
         # map each starget to its position in the index
         if stargets and len(stargets) < 5 and self.is_monotonic_increasing:
@@ -441,7 +451,11 @@ cdef class DatetimeEngine(Int64Engine):
         except KeyError:
             raise KeyError(val)
 
-    def get_indexer(self, values):
+    def get_indexer_non_unique(self, ndarray targets):
+        # we may get datetime64[ns] or timedelta64[ns], cast these to int64
+        return super().get_indexer_non_unique(targets.view("i8"))
+
+    def get_indexer(self, ndarray values):
         self._ensure_mapping_populated()
         if values.dtype != self._get_box_dtype():
             return np.repeat(-1, len(values)).astype('i4')
@@ -467,7 +481,7 @@ cdef class TimedeltaEngine(DatetimeEngine):
         return 'm8[ns]'
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
-        if not (isinstance(scalar, Timedelta) or scalar is NaT):
+        if not (isinstance(scalar, _Timedelta) or scalar is NaT):
             raise TypeError(scalar)
         return scalar.value
 
@@ -477,7 +491,7 @@ cdef class PeriodEngine(Int64Engine):
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         if scalar is NaT:
             return scalar.value
-        if isinstance(scalar, Period):
+        if is_period_object(scalar):
             # NB: we assume that we have the correct freq here.
             return scalar.ordinal
         raise TypeError(scalar)
@@ -500,38 +514,6 @@ cdef class PeriodEngine(Int64Engine):
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
-
-    def get_indexer(self, values):
-        cdef:
-            ndarray[int64_t, ndim=1] ordinals
-
-        super(PeriodEngine, self)._ensure_mapping_populated()
-
-        freq = super(PeriodEngine, self).vgetter().freq
-        ordinals = periodlib.extract_ordinals(values, freq)
-
-        return self.mapping.lookup(ordinals)
-
-    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        freq = super(PeriodEngine, self).vgetter().freq
-        ordinal = periodlib.extract_ordinals(other, freq)
-
-        return algos.pad(self._get_index_values(),
-                         np.asarray(ordinal), limit=limit)
-
-    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        freq = super(PeriodEngine, self).vgetter().freq
-        ordinal = periodlib.extract_ordinals(other, freq)
-
-        return algos.backfill(self._get_index_values(),
-                              np.asarray(ordinal), limit=limit)
-
-    def get_indexer_non_unique(self, targets):
-        freq = super(PeriodEngine, self).vgetter().freq
-        ordinal = periodlib.extract_ordinals(targets, freq)
-        ordinal_array = np.asarray(ordinal)
-
-        return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
 
 
 cdef class BaseMultiIndexCodesEngine:
@@ -612,25 +594,110 @@ cdef class BaseMultiIndexCodesEngine:
                        in zip(self.levels, zip(*target))]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 
-    def get_indexer(self, object target, object method=None,
-                    object limit=None):
+    def get_indexer(self, ndarray[object] target) -> np.ndarray:
+        """
+        Returns an array giving the positions of each value of `target` in
+        `self.values`, where -1 represents a value in `target` which does not
+        appear in `self.values`
+
+        Parameters
+        ----------
+        target : ndarray[object]
+            Each key is a tuple, with a label for each level of the index
+
+        Returns
+        -------
+        np.ndarray[int64_t, ndim=1] of the indexer of `target` into
+        `self.values`
+        """
         lab_ints = self._extract_level_codes(target)
+        return self._base.get_indexer(self, lab_ints)
 
-        # All methods (exact, backfill, pad) directly map to the respective
-        # methods of the underlying (integers) index...
-        if method is not None:
-            # but underlying backfill and pad methods require index and keys
-            # to be sorted. The index already is (checked in
-            # Index._get_fill_indexer), sort (integer representations of) keys:
-            order = np.argsort(lab_ints)
-            lab_ints = lab_ints[order]
-            indexer = (getattr(self._base, f'get_{method}_indexer')
-                       (self, lab_ints, limit=limit))
-            indexer = indexer[order]
-        else:
-            indexer = self._base.get_indexer(self, lab_ints)
+    def get_indexer_with_fill(self, ndarray target, ndarray values,
+                              str method, object limit) -> np.ndarray:
+        """
+        Returns an array giving the positions of each value of `target` in
+        `values`, where -1 represents a value in `target` which does not
+        appear in `values`
 
-        return indexer
+        If `method` is "backfill" then the position for a value in `target`
+        which does not appear in `values` is that of the next greater value
+        in `values` (if one exists), and -1 if there is no such value.
+
+        Similarly, if the method is "pad" then the position for a value in
+        `target` which does not appear in `values` is that of the next smaller
+        value in `values` (if one exists), and -1 if there is no such value.
+
+        Parameters
+        ----------
+        target: ndarray[object] of tuples
+            need not be sorted, but all must have the same length, which must be
+            the same as the length of all tuples in `values`
+        values : ndarray[object] of tuples
+            must be sorted and all have the same length.  Should be the set of
+            the MultiIndex's values.  Needed only if `method` is not None
+        method: string
+            "backfill" or "pad"
+        limit: int or None
+            if provided, limit the number of fills to this value
+
+        Returns
+        -------
+        np.ndarray[int64_t, ndim=1] of the indexer of `target` into `values`,
+        filled with the `method` (and optionally `limit`) specified
+        """
+        assert method in ("backfill", "pad")
+        cdef:
+            int64_t i, j, next_code
+            int64_t num_values, num_target_values
+            ndarray[int64_t, ndim=1] target_order
+            ndarray[object, ndim=1] target_values
+            ndarray[int64_t, ndim=1] new_codes, new_target_codes
+            ndarray[int64_t, ndim=1] sorted_indexer
+
+        target_order = np.argsort(target).astype('int64')
+        target_values = target[target_order]
+        num_values, num_target_values = len(values), len(target_values)
+        new_codes, new_target_codes = (
+            np.empty((num_values,)).astype('int64'),
+            np.empty((num_target_values,)).astype('int64'),
+        )
+
+        # `values` and `target_values` are both sorted, so we walk through them
+        # and memoize the (ordered) set of indices in the (implicit) merged-and
+        # sorted list of the two which belong to each of them
+        # the effect of this is to create a factorization for the (sorted)
+        # merger of the index values, where `new_codes` and `new_target_codes`
+        # are the subset of the factors which appear in `values` and `target`,
+        # respectively
+        i, j, next_code = 0, 0, 0
+        while i < num_values and j < num_target_values:
+            val, target_val = values[i], target_values[j]
+            if val <= target_val:
+                new_codes[i] = next_code
+                i += 1
+            if target_val <= val:
+                new_target_codes[j] = next_code
+                j += 1
+            next_code += 1
+
+        # at this point, at least one should have reached the end
+        # the remaining values of the other should be added to the end
+        assert i == num_values or j == num_target_values
+        while i < num_values:
+            new_codes[i] = next_code
+            i += 1
+            next_code += 1
+        while j < num_target_values:
+            new_target_codes[j] = next_code
+            j += 1
+            next_code += 1
+
+        # get the indexer, and undo the sorting of `target.values`
+        sorted_indexer = (
+            algos.backfill if method == "backfill" else algos.pad
+        )(new_codes, new_target_codes, limit=limit).astype('int64')
+        return sorted_indexer[np.argsort(target_order)]
 
     def get_loc(self, object key):
         if is_definitely_invalid_key(key):
@@ -648,7 +715,7 @@ cdef class BaseMultiIndexCodesEngine:
 
         return self._base.get_loc(self, lab_int)
 
-    def get_indexer_non_unique(self, object target):
+    def get_indexer_non_unique(self, ndarray target):
         # This needs to be overridden just because the default one works on
         # target._values, and target can be itself a MultiIndex.
 

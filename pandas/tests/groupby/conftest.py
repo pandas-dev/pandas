@@ -1,9 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex
+from pandas import (
+    DataFrame,
+    MultiIndex,
+)
 import pandas._testing as tm
-from pandas.core.groupby.base import reduction_kernels, transformation_kernels
+from pandas.core.groupby.base import (
+    reduction_kernels,
+    transformation_kernels,
+)
 
 
 @pytest.fixture
@@ -122,4 +128,22 @@ def transformation_func(request):
 @pytest.fixture(params=sorted(reduction_kernels) + sorted(transformation_kernels))
 def groupby_func(request):
     """yields both aggregation and transformation functions."""
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def parallel(request):
+    """parallel keyword argument for numba.jit"""
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def nogil(request):
+    """nogil keyword argument for numba.jit"""
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def nopython(request):
+    """nopython keyword argument for numba.jit"""
     return request.param

@@ -1,6 +1,5 @@
 import pytest
 
-import pandas as pd
 from pandas import Series
 import pandas._testing as tm
 
@@ -66,8 +65,8 @@ def test_drop_with_ignore_errors():
 def test_drop_empty_list(index, drop_labels):
     # GH 21494
     expected_index = [i for i in index if i not in drop_labels]
-    series = pd.Series(index=index, dtype=object).drop(drop_labels)
-    expected = pd.Series(index=expected_index, dtype=object)
+    series = Series(index=index, dtype=object).drop(drop_labels)
+    expected = Series(index=expected_index, dtype=object)
     tm.assert_series_equal(series, expected)
 
 
@@ -82,6 +81,6 @@ def test_drop_empty_list(index, drop_labels):
 def test_drop_non_empty_list(data, index, drop_labels):
     # GH 21494 and GH 16877
     dtype = object if data is None else None
-    ser = pd.Series(data=data, index=index, dtype=dtype)
+    ser = Series(data=data, index=index, dtype=dtype)
     with pytest.raises(KeyError, match="not found in axis"):
         ser.drop(drop_labels)

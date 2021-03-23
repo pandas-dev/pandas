@@ -3,8 +3,18 @@ import random
 import numpy as np
 import pytest
 
-from pandas import IntervalIndex, MultiIndex, Series
+from pandas import (
+    DatetimeIndex,
+    IntervalIndex,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
+
+
+@pytest.fixture(params=["quicksort", "mergesort", "heapsort", "stable"])
+def sort_kind(request):
+    return request.param
 
 
 class TestSeriesSortIndex:
@@ -13,6 +23,8 @@ class TestSeriesSortIndex:
         assert result.name == datetime_series.name
 
     def test_sort_index(self, datetime_series):
+        datetime_series.index = datetime_series.index._with_freq(None)
+
         rindex = list(datetime_series.index)
         random.shuffle(rindex)
 
@@ -45,6 +57,7 @@ class TestSeriesSortIndex:
             random_order.sort_index(level=0, axis=1)
 
     def test_sort_index_inplace(self, datetime_series):
+        datetime_series.index = datetime_series.index._with_freq(None)
 
         # For GH#11402
         rindex = list(datetime_series.index)
@@ -55,16 +68,18 @@ class TestSeriesSortIndex:
         result = random_order.sort_index(ascending=False, inplace=True)
 
         assert result is None
-        tm.assert_series_equal(
-            random_order, datetime_series.reindex(datetime_series.index[::-1])
-        )
+        expected = datetime_series.reindex(datetime_series.index[::-1])
+        expected.index = expected.index._with_freq(None)
+        tm.assert_series_equal(random_order, expected)
 
         # ascending
         random_order = datetime_series.reindex(rindex)
         result = random_order.sort_index(ascending=True, inplace=True)
 
         assert result is None
-        tm.assert_series_equal(random_order, datetime_series)
+        expected = datetime_series.copy()
+        expected.index = expected.index._with_freq(None)
+        tm.assert_series_equal(random_order, expected)
 
     def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
@@ -99,18 +114,12 @@ class TestSeriesSortIndex:
         res = s.sort_index(level=level, sort_remaining=False)
         tm.assert_series_equal(s, res)
 
-    def test_sort_index_kind(self):
+    def test_sort_index_kind(self, sort_kind):
         # GH#14444 & GH#13589:  Add support for sort algo choosing
         series = Series(index=[3, 2, 1, 4, 3], dtype=object)
         expected_series = Series(index=[1, 2, 3, 3, 4], dtype=object)
 
-        index_sorted_series = series.sort_index(kind="mergesort")
-        tm.assert_series_equal(expected_series, index_sorted_series)
-
-        index_sorted_series = series.sort_index(kind="quicksort")
-        tm.assert_series_equal(expected_series, index_sorted_series)
-
-        index_sorted_series = series.sort_index(kind="heapsort")
+        index_sorted_series = series.sort_index(kind=sort_kind)
         tm.assert_series_equal(expected_series, index_sorted_series)
 
     def test_sort_index_na_position(self):
@@ -170,3 +179,144 @@ class TestSeriesSortIndex:
 
         tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
+
+    def test_sort_index_ascending_list(self):
+        # GH#16934
+
+        # Set up a Series with a three level MultiIndex
+        arrays = [
+            ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+            ["one", "two", "one", "two", "one", "two", "one", "two"],
+            [4, 3, 2, 1, 4, 3, 2, 1],
+        ]
+        tuples = zip(*arrays)
+        mi = MultiIndex.from_tuples(tuples, names=["first", "second", "third"])
+        ser = Series(range(8), index=mi)
+
+        # Sort with boolean ascending
+        result = ser.sort_index(level=["third", "first"], ascending=False)
+        expected = ser.iloc[[4, 0, 5, 1, 6, 2, 7, 3]]
+        tm.assert_series_equal(result, expected)
+
+        # Sort with list of boolean ascending
+        result = ser.sort_index(level=["third", "first"], ascending=[False, True])
+        expected = ser.iloc[[0, 4, 1, 5, 2, 6, 3, 7]]
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "ascending",
+        [
+            None,
+            (True, None),
+            (False, "True"),
+        ],
+    )
+    def test_sort_index_ascending_bad_value_raises(self, ascending):
+        ser = Series(range(10), index=[0, 3, 2, 1, 4, 5, 7, 6, 8, 9])
+        match = 'For argument "ascending" expected type bool'
+        with pytest.raises(ValueError, match=match):
+            ser.sort_index(ascending=ascending)
+
+
+class TestSeriesSortIndexKey:
+    def test_sort_index_multiindex_key(self):
+        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
+        s = Series([1, 2], mi)
+        backwards = s.iloc[[1, 0]]
+
+        result = s.sort_index(level="C", key=lambda x: -x)
+        tm.assert_series_equal(s, result)
+
+        result = s.sort_index(level="C", key=lambda x: x)  # nothing happens
+        tm.assert_series_equal(backwards, result)
+
+    def test_sort_index_multiindex_key_multi_level(self):
+        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
+        s = Series([1, 2], mi)
+        backwards = s.iloc[[1, 0]]
+
+        result = s.sort_index(level=["A", "C"], key=lambda x: -x)
+        tm.assert_series_equal(s, result)
+
+        result = s.sort_index(level=["A", "C"], key=lambda x: x)  # nothing happens
+        tm.assert_series_equal(backwards, result)
+
+    def test_sort_index_key(self):
+        series = Series(np.arange(6, dtype="int64"), index=list("aaBBca"))
+
+        result = series.sort_index()
+        expected = series.iloc[[2, 3, 0, 1, 5, 4]]
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_index(key=lambda x: x.str.lower())
+        expected = series.iloc[[0, 1, 5, 2, 3, 4]]
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_index(key=lambda x: x.str.lower(), ascending=False)
+        expected = series.iloc[[4, 2, 3, 0, 1, 5]]
+        tm.assert_series_equal(result, expected)
+
+    def test_sort_index_key_int(self):
+        series = Series(np.arange(6, dtype="int64"), index=np.arange(6, dtype="int64"))
+
+        result = series.sort_index()
+        tm.assert_series_equal(result, series)
+
+        result = series.sort_index(key=lambda x: -x)
+        expected = series.sort_index(ascending=False)
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_index(key=lambda x: 2 * x)
+        tm.assert_series_equal(result, series)
+
+    def test_sort_index_kind_key(self, sort_kind, sort_by_key):
+        # GH #14444 & #13589:  Add support for sort algo choosing
+        series = Series(index=[3, 2, 1, 4, 3], dtype=object)
+        expected_series = Series(index=[1, 2, 3, 3, 4], dtype=object)
+
+        index_sorted_series = series.sort_index(kind=sort_kind, key=sort_by_key)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+    def test_sort_index_kind_neg_key(self, sort_kind):
+        # GH #14444 & #13589:  Add support for sort algo choosing
+        series = Series(index=[3, 2, 1, 4, 3], dtype=object)
+        expected_series = Series(index=[4, 3, 3, 2, 1], dtype=object)
+
+        index_sorted_series = series.sort_index(kind=sort_kind, key=lambda x: -x)
+        tm.assert_series_equal(expected_series, index_sorted_series)
+
+    def test_sort_index_na_position_key(self, sort_by_key):
+        series = Series(index=[3, 2, 1, 4, 3, np.nan], dtype=object)
+        expected_series_first = Series(index=[np.nan, 1, 2, 3, 3, 4], dtype=object)
+
+        index_sorted_series = series.sort_index(na_position="first", key=sort_by_key)
+        tm.assert_series_equal(expected_series_first, index_sorted_series)
+
+        expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan], dtype=object)
+
+        index_sorted_series = series.sort_index(na_position="last", key=sort_by_key)
+        tm.assert_series_equal(expected_series_last, index_sorted_series)
+
+    def test_changes_length_raises(self):
+        s = Series([1, 2, 3])
+        with pytest.raises(ValueError, match="change the shape"):
+            s.sort_index(key=lambda x: x[:1])
+
+    def test_sort_values_key_type(self):
+        s = Series([1, 2, 3], DatetimeIndex(["2008-10-24", "2008-11-23", "2007-12-22"]))
+
+        result = s.sort_index(key=lambda x: x.month)
+        expected = s.iloc[[0, 1, 2]]
+        tm.assert_series_equal(result, expected)
+
+        result = s.sort_index(key=lambda x: x.day)
+        expected = s.iloc[[2, 1, 0]]
+        tm.assert_series_equal(result, expected)
+
+        result = s.sort_index(key=lambda x: x.year)
+        expected = s.iloc[[2, 0, 1]]
+        tm.assert_series_equal(result, expected)
+
+        result = s.sort_index(key=lambda x: x.month_name())
+        expected = s.iloc[[2, 1, 0]]
+        tm.assert_series_equal(result, expected)

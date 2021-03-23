@@ -1,13 +1,19 @@
-import datetime
-
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
-from pandas.core.util.hashing import _hash_scalar, hash_tuple, hash_tuples
-from pandas.util import hash_array, hash_pandas_object
+from pandas.core.util.hashing import hash_tuples
+from pandas.util import (
+    hash_array,
+    hash_pandas_object,
+)
 
 
 @pytest.fixture(
@@ -107,48 +113,10 @@ def test_hash_tuples():
     expected = hash_pandas_object(MultiIndex.from_tuples(tuples)).values
     tm.assert_numpy_array_equal(result, expected)
 
-    result = hash_tuples(tuples[0])
-    assert result == expected[0]
-
-
-@pytest.mark.parametrize(
-    "tup",
-    [(1, "one"), (1, np.nan), (1.0, pd.NaT, "A"), ("A", pd.Timestamp("2012-01-01"))],
-)
-def test_hash_tuple(tup):
-    # Test equivalence between
-    # hash_tuples and hash_tuple.
-    result = hash_tuple(tup)
-    expected = hash_tuples([tup])[0]
-
-    assert result == expected
-
-
-@pytest.mark.parametrize(
-    "val",
-    [
-        1,
-        1.4,
-        "A",
-        b"A",
-        pd.Timestamp("2012-01-01"),
-        pd.Timestamp("2012-01-01", tz="Europe/Brussels"),
-        datetime.datetime(2012, 1, 1),
-        pd.Timestamp("2012-01-01", tz="EST").to_pydatetime(),
-        pd.Timedelta("1 days"),
-        datetime.timedelta(1),
-        pd.Period("2012-01-01", freq="D"),
-        pd.Interval(0, 1),
-        np.nan,
-        pd.NaT,
-        None,
-    ],
-)
-def test_hash_scalar(val):
-    result = _hash_scalar(val)
-    expected = hash_array(np.array([val], dtype=object), categorize=True)
-
-    assert result[0] == expected[0]
+    # We only need to support MultiIndex and list-of-tuples
+    msg = "|".join(["object is not iterable", "zip argument #1 must support iteration"])
+    with pytest.raises(TypeError, match=msg):
+        hash_tuples(tuples[0])
 
 
 @pytest.mark.parametrize("val", [5, "foo", pd.Timestamp("20130101")])
@@ -342,25 +310,38 @@ def test_hash_with_tuple():
     # GH#28969 array containing a tuple raises on call to arr.astype(str)
     #  apparently a numpy bug github.com/numpy/numpy/issues/9441
 
-    df = pd.DataFrame({"data": [tuple("1"), tuple("2")]})
+    df = DataFrame({"data": [tuple("1"), tuple("2")]})
     result = hash_pandas_object(df)
-    expected = pd.Series([10345501319357378243, 8331063931016360761], dtype=np.uint64)
+    expected = Series([10345501319357378243, 8331063931016360761], dtype=np.uint64)
     tm.assert_series_equal(result, expected)
 
-    df2 = pd.DataFrame({"data": [tuple([1]), tuple([2])]})
+    df2 = DataFrame({"data": [(1,), (2,)]})
     result = hash_pandas_object(df2)
-    expected = pd.Series([9408946347443669104, 3278256261030523334], dtype=np.uint64)
+    expected = Series([9408946347443669104, 3278256261030523334], dtype=np.uint64)
     tm.assert_series_equal(result, expected)
 
     # require that the elements of such tuples are themselves hashable
 
-    df3 = pd.DataFrame({"data": [tuple([1, []]), tuple([2, {}])]})
+    df3 = DataFrame(
+        {
+            "data": [
+                (
+                    1,
+                    [],
+                ),
+                (
+                    2,
+                    {},
+                ),
+            ]
+        }
+    )
     with pytest.raises(TypeError, match="unhashable type: 'list'"):
         hash_pandas_object(df3)
 
 
 def test_hash_object_none_key():
     # https://github.com/pandas-dev/pandas/issues/30887
-    result = pd.util.hash_pandas_object(pd.Series(["a", "b"]), hash_key=None)
-    expected = pd.Series([4578374827886788867, 17338122309987883691], dtype="uint64")
+    result = pd.util.hash_pandas_object(Series(["a", "b"]), hash_key=None)
+    expected = Series([4578374827886788867, 17338122309987883691], dtype="uint64")
     tm.assert_series_equal(result, expected)

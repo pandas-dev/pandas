@@ -3,7 +3,11 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -30,7 +34,7 @@ def test_duplicated_do_not_fail_on_wide_dataframes():
     # calculation. Actual values doesn't matter here, though usually it's all
     # False in this case
     assert isinstance(result, Series)
-    assert result.dtype == np.bool
+    assert result.dtype == np.bool_
 
 
 @pytest.mark.parametrize(
@@ -95,3 +99,15 @@ def test_duplicated_on_empty_frame():
     result = df[dupes]
     expected = df.copy()
     tm.assert_frame_equal(result, expected)
+
+
+def test_frame_datetime64_duplicated():
+    dates = date_range("2010-07-01", end="2010-08-05")
+
+    tst = DataFrame({"symbol": "AAA", "date": dates})
+    result = tst.duplicated(["date", "symbol"])
+    assert (-result).all()
+
+    tst = DataFrame({"date": dates})
+    result = tst.duplicated()
+    assert (-result).all()

@@ -1,21 +1,41 @@
-from datetime import date, datetime, timedelta
-from distutils.version import StrictVersion
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 
-import dateutil
 import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import iNaT, period as libperiod
-from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
-from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs import (
+    iNaT,
+    period as libperiod,
+)
+from pandas._libs.tslibs.ccalendar import (
+    DAYS,
+    MONTHS,
+)
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
-from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
-from pandas.compat.numpy import np_datetime64_compat
+from pandas._libs.tslibs.period import (
+    INVALID_FREQ_ERR_MSG,
+    IncompatibleFrequency,
+)
+from pandas._libs.tslibs.timezones import (
+    dateutil_gettz,
+    maybe_get_tz,
+)
+from pandas.compat import np_datetime64_compat
 
 import pandas as pd
-from pandas import NaT, Period, Timedelta, Timestamp, offsets
+from pandas import (
+    NaT,
+    Period,
+    Timedelta,
+    Timestamp,
+    offsets,
+)
 import pandas._testing as tm
 
 
@@ -36,9 +56,7 @@ class TestPeriodConstruction:
         i4 = Period("2005", freq="M")
         i5 = Period("2005", freq="m")
 
-        msg = r"Input has different freq=M from Period\(freq=A-DEC\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            i1 != i4
+        assert i1 != i4
         assert i4 == i5
 
         i1 = Period.now("Q")
@@ -50,8 +68,6 @@ class TestPeriodConstruction:
 
         i1 = Period("1982", freq="min")
         i2 = Period("1982", freq="MIN")
-        assert i1 == i2
-        i2 = Period("1982", freq=("Min", 1))
         assert i1 == i2
 
         i1 = Period(year=2005, month=3, day=1, freq="D")
@@ -82,6 +98,10 @@ class TestPeriodConstruction:
         msg = "Invalid frequency: X"
         with pytest.raises(ValueError, match=msg):
             Period("2007-1-1", freq="X")
+
+        # GH#34703 tuple freq disallowed
+        with pytest.raises(TypeError, match="pass as a string instead"):
+            Period("1982", freq=("Min", 1))
 
     def test_construction_bday(self):
 
@@ -487,6 +507,29 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="1D1W")
 
+    @pytest.mark.parametrize("day", ["1970/01/01 ", "2020-12-31 ", "1981/09/13 "])
+    @pytest.mark.parametrize("hour", ["00:00:00", "00:00:01", "23:59:59", "12:00:59"])
+    @pytest.mark.parametrize(
+        "sec_float, expected",
+        [
+            (".000000001", 1),
+            (".000000999", 999),
+            (".123456789", 789),
+            (".999999999", 999),
+        ],
+    )
+    def test_period_constructor_nanosecond(self, day, hour, sec_float, expected):
+        # GH 34621
+
+        assert Period(day + hour + sec_float).start_time.nanosecond == expected
+
+    @pytest.mark.parametrize("hour", range(24))
+    def test_period_large_ordinal(self, hour):
+        # Issue #36430
+        # Integer overflow for Period over the maximum timestamp
+        p = Period(ordinal=2562048 + hour, freq="1H")
+        assert p.hour == hour
+
 
 class TestPeriodMethods:
     def test_round_trip(self):
@@ -508,7 +551,9 @@ class TestPeriodMethods:
 
     @pytest.mark.parametrize("tzstr", ["Europe/Brussels", "Asia/Tokyo", "US/Pacific"])
     def test_to_timestamp_tz_arg(self, tzstr):
-        p = Period("1/1/2005", freq="M").to_timestamp(tz=tzstr)
+        # GH#34522 tz kwarg deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="M").to_timestamp(tz=tzstr)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
 
@@ -516,7 +561,8 @@ class TestPeriodMethods:
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-        p = Period("1/1/2005", freq="3H").to_timestamp(tz=tzstr)
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="3H").to_timestamp(tz=tzstr)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
 
@@ -524,7 +570,8 @@ class TestPeriodMethods:
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-        p = Period("1/1/2005", freq="A").to_timestamp(freq="A", tz=tzstr)
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="A").to_timestamp(freq="A", tz=tzstr)
         exp = Timestamp("31/12/2005", tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
 
@@ -532,7 +579,8 @@ class TestPeriodMethods:
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-        p = Period("1/1/2005", freq="A").to_timestamp(freq="3H", tz=tzstr)
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="A").to_timestamp(freq="3H", tz=tzstr)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
 
@@ -546,20 +594,23 @@ class TestPeriodMethods:
     )
     def test_to_timestamp_tz_arg_dateutil(self, tzstr):
         tz = maybe_get_tz(tzstr)
-        p = Period("1/1/2005", freq="M").to_timestamp(tz=tz)
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="M").to_timestamp(tz=tz)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         assert p == exp
         assert p.tz == dateutil_gettz(tzstr.split("/", 1)[1])
         assert p.tz == exp.tz
 
-        p = Period("1/1/2005", freq="M").to_timestamp(freq="3H", tz=tz)
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="M").to_timestamp(freq="3H", tz=tz)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         assert p == exp
         assert p.tz == dateutil_gettz(tzstr.split("/", 1)[1])
         assert p.tz == exp.tz
 
     def test_to_timestamp_tz_arg_dateutil_from_string(self):
-        p = Period("1/1/2005", freq="M").to_timestamp(tz="dateutil/Europe/Brussels")
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="M").to_timestamp(tz="dateutil/Europe/Brussels")
         assert p.tz == dateutil_gettz("Europe/Brussels")
 
     def test_to_timestamp_mult(self):
@@ -591,6 +642,8 @@ class TestPeriodMethods:
         from_lst = ["A", "Q", "M", "W", "B", "D", "H", "Min", "S"]
 
         def _ex(p):
+            if p.freq == "B":
+                return p.start_time + Timedelta(days=1, nanoseconds=-1)
             return Timestamp((p + p.freq).start_time.value - 1)
 
         for i, fcode in enumerate(from_lst):
@@ -632,6 +685,33 @@ class TestPeriodMethods:
         result = p.to_timestamp("3H", how="start")
         assert result == expected
         result = p.to_timestamp("5S", how="start")
+        assert result == expected
+
+    def test_to_timestamp_business_end(self):
+        per = Period("1990-01-05", "B")  # Friday
+        result = per.to_timestamp("B", how="E")
+
+        expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "ts, expected",
+        [
+            ("1970-01-01 00:00:00", 0),
+            ("1970-01-01 00:00:00.000001", 1),
+            ("1970-01-01 00:00:00.00001", 10),
+            ("1970-01-01 00:00:00.499", 499000),
+            ("1999-12-31 23:59:59.999", 999000),
+            ("1999-12-31 23:59:59.999999", 999999),
+            ("2050-12-31 23:59:59.5", 500000),
+            ("2050-12-31 23:59:59.500001", 500001),
+            ("2050-12-31 23:59:59.123456", 123456),
+        ],
+    )
+    @pytest.mark.parametrize("freq", [None, "us", "ns"])
+    def test_to_timestamp_microsecond(self, ts, expected, freq):
+        # GH 24444
+        result = Period(ts).to_timestamp(freq=freq).microsecond
         assert result == expected
 
     # --------------------------------------------------------------
@@ -733,6 +813,35 @@ class TestPeriodProperties:
             assert isinstance(p1, Period)
             assert isinstance(p2, Period)
 
+    def _period_constructor(bound, offset):
+        return Period(
+            year=bound.year,
+            month=bound.month,
+            day=bound.day,
+            hour=bound.hour,
+            minute=bound.minute,
+            second=bound.second + offset,
+            freq="us",
+        )
+
+    @pytest.mark.parametrize("bound, offset", [(Timestamp.min, -1), (Timestamp.max, 1)])
+    @pytest.mark.parametrize("period_property", ["start_time", "end_time"])
+    def test_outter_bounds_start_and_end_time(self, bound, offset, period_property):
+        # GH #13346
+        period = TestPeriodProperties._period_constructor(bound, offset)
+        with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
+            getattr(period, period_property)
+
+    @pytest.mark.parametrize("bound, offset", [(Timestamp.min, -1), (Timestamp.max, 1)])
+    @pytest.mark.parametrize("period_property", ["start_time", "end_time"])
+    def test_inner_bounds_start_and_end_time(self, bound, offset, period_property):
+        # GH #13346
+        period = TestPeriodProperties._period_constructor(bound, -offset)
+        expected = period.to_timestamp().round(freq="S")
+        assert getattr(period, period_property).round(freq="S") == expected
+        expected = (bound - offset * Timedelta(1, unit="S")).floor("S")
+        assert getattr(period, period_property).floor("S") == expected
+
     def test_start_time(self):
         freq_lst = ["A", "Q", "M", "D", "H", "T", "S"]
         xp = datetime(2012, 1, 1)
@@ -787,6 +896,14 @@ class TestPeriodProperties:
         p = Period("2012", freq="1H1D")
         xp = _ex(2012, 1, 2, 1)
         assert xp == p.end_time
+
+    def test_end_time_business_friday(self):
+        # GH#34449
+        per = Period("1990-01-05", "B")
+        result = per.end_time
+
+        expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
+        assert result == expected
 
     def test_anchor_week_end_time(self):
         def _ex(*args):
@@ -974,11 +1091,9 @@ class TestPeriodComparisons:
         jan = Period("2000-01", "M")
         day = Period("2012-01-01", "D")
 
+        assert not jan == day
+        assert jan != day
         msg = r"Input has different freq=D from Period\(freq=M\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            jan == day
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            jan != day
         with pytest.raises(IncompatibleFrequency, match=msg):
             jan < day
         with pytest.raises(IncompatibleFrequency, match=msg):
@@ -994,7 +1109,8 @@ class TestPeriodComparisons:
         assert not jan == 1
         assert jan != 1
 
-        msg = "Cannot compare type Period with type int"
+        int_or_per = "'(Period|int)'"
+        msg = f"not supported between instances of {int_or_per} and {int_or_per}"
         for left, right in [(jan, 1), (1, jan)]:
 
             with pytest.raises(TypeError, match=msg):
@@ -1062,7 +1178,13 @@ class TestArithmetic:
         per1 = Period(freq="D", year=2008, month=1, day=1)
         per2 = Period(freq="D", year=2008, month=1, day=2)
 
-        msg = r"unsupported operand type\(s\)"
+        msg = "|".join(
+            [
+                r"unsupported operand type\(s\)",
+                "can only concatenate str",
+                "must be str, not Period",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             per1 + "str"
         with pytest.raises(TypeError, match=msg):
@@ -1403,8 +1525,15 @@ class TestArithmetic:
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_period_addsub_nat(self, freq):
-        assert NaT - Period("2011-01", freq=freq) is NaT
-        assert Period("2011-01", freq=freq) - NaT is NaT
+        per = Period("2011-01", freq=freq)
+
+        # For subtraction, NaT is treated as another Period object
+        assert NaT - per is NaT
+        assert per - NaT is NaT
+
+        # For addition, NaT is treated as offset-like
+        assert NaT + per is NaT
+        assert per + NaT is NaT
 
     def test_period_ops_offset(self):
         p = Period("2011-04-01", freq="D")
@@ -1437,11 +1566,6 @@ def test_period_immutable():
         per.freq = 2 * freq
 
 
-@pytest.mark.xfail(
-    StrictVersion(dateutil.__version__.split(".dev")[0]) < StrictVersion("2.7.0"),
-    reason="Bug in dateutil < 2.7.0 when parsing old dates: Period('0001-01-07', 'D')",
-    strict=False,
-)
 def test_small_year_parsing():
     per1 = Period("0001-01-07", "D")
     assert per1.year == 1
@@ -1464,3 +1588,9 @@ def test_negone_ordinals():
     repr(period)
     period = Period(ordinal=-1, freq="W")
     repr(period)
+
+
+def test_invalid_frequency_error_message():
+    msg = "Invalid frequency: <WeekOfMonth: week=0, weekday=0>"
+    with pytest.raises(ValueError, match=msg):
+        Period("2012-01-02", freq="WOM-1MON")

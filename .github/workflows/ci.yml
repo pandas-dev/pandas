@@ -2,22 +2,25 @@ name: CI
 
 on:
   push:
-    branches: master
+    branches: [master]
   pull_request:
-    branches: master
+    branches:
+      - master
+      - 1.2.x
 
 env:
   ENV_FILE: environment.yml
+  PANDAS_CI: 1
 
 jobs:
   checks:
     name: Checks
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
-
-    - name: Setting conda path
-      run: echo "::add-path::${HOME}/miniconda3/bin"
-
     - name: Checkout
       uses: actions/checkout@v1
 
@@ -25,67 +28,56 @@ jobs:
       run: ci/code_checks.sh patterns
       if: always()
 
-    - name: Setup environment and build pandas
-      run: ci/setup_env.sh
-      if: always()
+    - name: Cache conda
+      uses: actions/cache@v2
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: pandas-dev
+        channel-priority: strict
+        environment-file: ${{ env.ENV_FILE }}
+        use-only-tar-bz2: true
+
+    - name: Build Pandas
+      uses: ./.github/actions/build_pandas
 
     - name: Linting
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh lint
-      if: always()
-
-    - name: Dependencies consistency
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh dependencies
+      run: ci/code_checks.sh lint
       if: always()
 
     - name: Checks on imported code
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh code
+      run: ci/code_checks.sh code
       if: always()
 
     - name: Running doctests
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh doctests
+      run: ci/code_checks.sh doctests
       if: always()
 
     - name: Docstring validation
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh docstrings
+      run: ci/code_checks.sh docstrings
       if: always()
 
     - name: Typing validation
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh typing
+      run: ci/code_checks.sh typing
       if: always()
 
     - name: Testing docstring validation script
-      run: |
-        source activate pandas-dev
-        pytest --capture=no --strict scripts
+      run: pytest --capture=no --strict-markers scripts
       if: always()
 
     - name: Running benchmarks
       run: |
-        source activate pandas-dev
         cd asv_bench
         asv check -E existing
         git remote add upstream https://github.com/pandas-dev/pandas.git
         git fetch upstream
-        if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
-            asv machine --yes
-            asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
-            if grep "failed" benchmarks.log > /dev/null ; then
-                exit 1
-            fi
-        else
-            echo "Benchmarks did not run, no changes detected"
+        asv machine --yes
+        asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
+        if grep "failed" benchmarks.log > /dev/null ; then
+            exit 1
         fi
       if: always()
 
@@ -101,20 +93,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Setting conda path
-      run: echo "::set-env name=PATH::${HOME}/miniconda3/bin:${PATH}"
-
     - name: Checkout
       uses: actions/checkout@v1
 
-    - name: Setup environment and build pandas
-      run: ci/setup_env.sh
+    - name: Set up pandas
+      uses: ./.github/actions/setup
 
     - name: Build website
       run: |
         source activate pandas-dev
         python web/pandas_web.py web/pandas --target-path=web/build
-
     - name: Build documentation
       run: |
         source activate pandas-dev
@@ -123,34 +111,55 @@ jobs:
     # This can be removed when the ipython directive fails when there are errors,
     # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
     - name: Check ipython directive errors
-      run: "! grep -B1 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
+      run: "! grep -B10 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
 
-    - name: Install Rclone
-      run: sudo apt install rclone -y
-      if: github.event_name == 'push'
-
-    - name: Set up Rclone
+    - name: Install ssh key
       run: |
-        CONF=$HOME/.config/rclone/rclone.conf
-        mkdir -p `dirname $CONF`
-        echo "[ovh_host]" > $CONF
-        echo "type = swift" >> $CONF
-        echo "env_auth = false" >> $CONF
-        echo "auth_version = 3" >> $CONF
-        echo "auth = https://auth.cloud.ovh.net/v3/" >> $CONF
-        echo "endpoint_type = public" >> $CONF
-        echo "tenant_domain = default" >> $CONF
-        echo "tenant = 2977553886518025" >> $CONF
-        echo "domain = default" >> $CONF
-        echo "user = w4KGs3pmDxpd" >> $CONF
-        echo "key = ${{ secrets.ovh_object_store_key }}" >> $CONF
-        echo "region = BHS" >> $CONF
+        mkdir -m 700 -p ~/.ssh
+        echo "${{ secrets.server_ssh_key }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBE1Kkopomm7FHG5enATf7SgnpICZ4W2bw+Ho+afqin+w7sMcrsa0je7sbztFAV8YchDkiBKnWTG4cRT+KZgZCaY=" > ~/.ssh/known_hosts
       if: github.event_name == 'push'
 
-    - name: Sync web with OVH
-      run: rclone sync --exclude pandas-docs/** web/build ovh_host:prod
+    - name: Upload web
+      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='Pandas_Cheat_Sheet*' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
       if: github.event_name == 'push'
 
-    - name: Sync dev docs with OVH
-      run: rclone sync doc/build/html ovh_host:prod/pandas-docs/dev
+    - name: Upload dev docs
+      run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
       if: github.event_name == 'push'
+
+    - name: Move docs into site directory
+      run: mv doc/build/html web/build/docs
+    - name: Save website as an artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: website
+        path: web/build
+        retention-days: 14
+
+  data_manager:
+    name: Test experimental data manager
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pattern: ["not slow and not network and not clipboard", "slow"]
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Set up pandas
+      uses: ./.github/actions/setup
+
+    - name: Run tests
+      env:
+        PANDAS_DATA_MANAGER: array
+        PATTERN: ${{ matrix.pattern }}
+        PYTEST_WORKERS: "auto"
+      run: |
+        source activate pandas-dev
+        ci/run_tests.sh
+
+    - name: Print skipped tests
+      run: python ci/print_skipped.py

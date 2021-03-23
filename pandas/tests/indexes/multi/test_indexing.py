@@ -3,10 +3,19 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+)
+
 import pandas as pd
-from pandas import Categorical, Index, MultiIndex, date_range
+from pandas import (
+    Categorical,
+    Index,
+    MultiIndex,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.core.indexes.base import InvalidIndexError
 
 
 class TestSliceLocs:
@@ -131,10 +140,10 @@ def test_putmask_with_wrong_mask(idx):
 
     msg = "putmask: mask and data must be the same size"
     with pytest.raises(ValueError, match=msg):
-        idx.putmask(np.ones(len(idx) + 1, np.bool), 1)
+        idx.putmask(np.ones(len(idx) + 1, np.bool_), 1)
 
     with pytest.raises(ValueError, match=msg):
-        idx.putmask(np.ones(len(idx) - 1, np.bool), 1)
+        idx.putmask(np.ones(len(idx) - 1, np.bool_), 1)
 
     with pytest.raises(ValueError, match=msg):
         idx.putmask("foo", 1)
@@ -239,6 +248,203 @@ class TestGetIndexer:
         result = idx.get_indexer(labels)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_methods(self):
+        # https://github.com/pandas-dev/pandas/issues/29896
+        # test getting an indexer for another index with different methods
+        # confirms that getting an indexer without a filling method, getting an
+        # indexer and backfilling, and getting an indexer and padding all behave
+        # correctly in the case where all of the target values fall in between
+        # several levels in the MultiIndex into which they are getting an indexer
+        #
+        # visually, the MultiIndexes used in this test are:
+        # mult_idx_1:
+        #  0: -1 0
+        #  1:    2
+        #  2:    3
+        #  3:    4
+        #  4:  0 0
+        #  5:    2
+        #  6:    3
+        #  7:    4
+        #  8:  1 0
+        #  9:    2
+        # 10:    3
+        # 11:    4
+        #
+        # mult_idx_2:
+        #  0: 0 1
+        #  1:   3
+        #  2:   4
+        mult_idx_1 = MultiIndex.from_product([[-1, 0, 1], [0, 2, 3, 4]])
+        mult_idx_2 = MultiIndex.from_product([[0], [1, 3, 4]])
+
+        indexer = mult_idx_1.get_indexer(mult_idx_2)
+        expected = np.array([-1, 6, 7], dtype=indexer.dtype)
+        tm.assert_almost_equal(expected, indexer)
+
+        backfill_indexer = mult_idx_1.get_indexer(mult_idx_2, method="backfill")
+        expected = np.array([5, 6, 7], dtype=backfill_indexer.dtype)
+        tm.assert_almost_equal(expected, backfill_indexer)
+
+        # ensure the legacy "bfill" option functions identically to "backfill"
+        backfill_indexer = mult_idx_1.get_indexer(mult_idx_2, method="bfill")
+        expected = np.array([5, 6, 7], dtype=backfill_indexer.dtype)
+        tm.assert_almost_equal(expected, backfill_indexer)
+
+        pad_indexer = mult_idx_1.get_indexer(mult_idx_2, method="pad")
+        expected = np.array([4, 6, 7], dtype=pad_indexer.dtype)
+        tm.assert_almost_equal(expected, pad_indexer)
+
+        # ensure the legacy "ffill" option functions identically to "pad"
+        pad_indexer = mult_idx_1.get_indexer(mult_idx_2, method="ffill")
+        expected = np.array([4, 6, 7], dtype=pad_indexer.dtype)
+        tm.assert_almost_equal(expected, pad_indexer)
+
+    def test_get_indexer_three_or_more_levels(self):
+        # https://github.com/pandas-dev/pandas/issues/29896
+        # tests get_indexer() on MultiIndexes with 3+ levels
+        # visually, these are
+        # mult_idx_1:
+        #  0: 1 2 5
+        #  1:     7
+        #  2:   4 5
+        #  3:     7
+        #  4:   6 5
+        #  5:     7
+        #  6: 3 2 5
+        #  7:     7
+        #  8:   4 5
+        #  9:     7
+        # 10:   6 5
+        # 11:     7
+        #
+        # mult_idx_2:
+        #  0: 1 1 8
+        #  1: 1 5 9
+        #  2: 1 6 7
+        #  3: 2 1 6
+        #  4: 2 7 6
+        #  5: 2 7 8
+        #  6: 3 6 8
+        mult_idx_1 = MultiIndex.from_product([[1, 3], [2, 4, 6], [5, 7]])
+        mult_idx_2 = MultiIndex.from_tuples(
+            [
+                (1, 1, 8),
+                (1, 5, 9),
+                (1, 6, 7),
+                (2, 1, 6),
+                (2, 7, 7),
+                (2, 7, 8),
+                (3, 6, 8),
+            ]
+        )
+        # sanity check
+        assert mult_idx_1.is_monotonic
+        assert mult_idx_1.is_unique
+        assert mult_idx_2.is_monotonic
+        assert mult_idx_2.is_unique
+
+        # show the relationships between the two
+        assert mult_idx_2[0] < mult_idx_1[0]
+        assert mult_idx_1[3] < mult_idx_2[1] < mult_idx_1[4]
+        assert mult_idx_1[5] == mult_idx_2[2]
+        assert mult_idx_1[5] < mult_idx_2[3] < mult_idx_1[6]
+        assert mult_idx_1[5] < mult_idx_2[4] < mult_idx_1[6]
+        assert mult_idx_1[5] < mult_idx_2[5] < mult_idx_1[6]
+        assert mult_idx_1[-1] < mult_idx_2[6]
+
+        indexer_no_fill = mult_idx_1.get_indexer(mult_idx_2)
+        expected = np.array([-1, -1, 5, -1, -1, -1, -1], dtype=indexer_no_fill.dtype)
+        tm.assert_almost_equal(expected, indexer_no_fill)
+
+        # test with backfilling
+        indexer_backfilled = mult_idx_1.get_indexer(mult_idx_2, method="backfill")
+        expected = np.array([0, 4, 5, 6, 6, 6, -1], dtype=indexer_backfilled.dtype)
+        tm.assert_almost_equal(expected, indexer_backfilled)
+
+        # now, the same thing, but forward-filled (aka "padded")
+        indexer_padded = mult_idx_1.get_indexer(mult_idx_2, method="pad")
+        expected = np.array([-1, 3, 5, 5, 5, 5, 11], dtype=indexer_padded.dtype)
+        tm.assert_almost_equal(expected, indexer_padded)
+
+        # now, do the indexing in the other direction
+        assert mult_idx_2[0] < mult_idx_1[0] < mult_idx_2[1]
+        assert mult_idx_2[0] < mult_idx_1[1] < mult_idx_2[1]
+        assert mult_idx_2[0] < mult_idx_1[2] < mult_idx_2[1]
+        assert mult_idx_2[0] < mult_idx_1[3] < mult_idx_2[1]
+        assert mult_idx_2[1] < mult_idx_1[4] < mult_idx_2[2]
+        assert mult_idx_2[2] == mult_idx_1[5]
+        assert mult_idx_2[5] < mult_idx_1[6] < mult_idx_2[6]
+        assert mult_idx_2[5] < mult_idx_1[7] < mult_idx_2[6]
+        assert mult_idx_2[5] < mult_idx_1[8] < mult_idx_2[6]
+        assert mult_idx_2[5] < mult_idx_1[9] < mult_idx_2[6]
+        assert mult_idx_2[5] < mult_idx_1[10] < mult_idx_2[6]
+        assert mult_idx_2[5] < mult_idx_1[11] < mult_idx_2[6]
+
+        indexer = mult_idx_2.get_indexer(mult_idx_1)
+        expected = np.array(
+            [-1, -1, -1, -1, -1, 2, -1, -1, -1, -1, -1, -1], dtype=indexer.dtype
+        )
+        tm.assert_almost_equal(expected, indexer)
+
+        backfill_indexer = mult_idx_2.get_indexer(mult_idx_1, method="bfill")
+        expected = np.array(
+            [1, 1, 1, 1, 2, 2, 6, 6, 6, 6, 6, 6], dtype=backfill_indexer.dtype
+        )
+        tm.assert_almost_equal(expected, backfill_indexer)
+
+        pad_indexer = mult_idx_2.get_indexer(mult_idx_1, method="pad")
+        expected = np.array(
+            [0, 0, 0, 0, 1, 2, 5, 5, 5, 5, 5, 5], dtype=pad_indexer.dtype
+        )
+        tm.assert_almost_equal(expected, pad_indexer)
+
+    def test_get_indexer_crossing_levels(self):
+        # https://github.com/pandas-dev/pandas/issues/29896
+        # tests a corner case with get_indexer() with MultiIndexes where, when we
+        # need to "carry" across levels, proper tuple ordering is respected
+        #
+        # the MultiIndexes used in this test, visually, are:
+        # mult_idx_1:
+        #  0: 1 1 1 1
+        #  1:       2
+        #  2:     2 1
+        #  3:       2
+        #  4: 1 2 1 1
+        #  5:       2
+        #  6:     2 1
+        #  7:       2
+        #  8: 2 1 1 1
+        #  9:       2
+        # 10:     2 1
+        # 11:       2
+        # 12: 2 2 1 1
+        # 13:       2
+        # 14:     2 1
+        # 15:       2
+        #
+        # mult_idx_2:
+        #  0: 1 3 2 2
+        #  1: 2 3 2 2
+        mult_idx_1 = MultiIndex.from_product([[1, 2]] * 4)
+        mult_idx_2 = MultiIndex.from_tuples([(1, 3, 2, 2), (2, 3, 2, 2)])
+
+        # show the tuple orderings, which get_indexer() should respect
+        assert mult_idx_1[7] < mult_idx_2[0] < mult_idx_1[8]
+        assert mult_idx_1[-1] < mult_idx_2[1]
+
+        indexer = mult_idx_1.get_indexer(mult_idx_2)
+        expected = np.array([-1, -1], dtype=indexer.dtype)
+        tm.assert_almost_equal(expected, indexer)
+
+        backfill_indexer = mult_idx_1.get_indexer(mult_idx_2, method="bfill")
+        expected = np.array([8, -1], dtype=backfill_indexer.dtype)
+        tm.assert_almost_equal(expected, backfill_indexer)
+
+        pad_indexer = mult_idx_1.get_indexer(mult_idx_2, method="ffill")
+        expected = np.array([7, 15], dtype=pad_indexer.dtype)
+        tm.assert_almost_equal(expected, pad_indexer)
+
 
 def test_getitem(idx):
     # scalar
@@ -263,10 +469,10 @@ def test_getitem_group_select(idx):
     assert sorted_idx.get_loc("foo") == slice(0, 2)
 
 
-@pytest.mark.parametrize("ind1", [[True] * 5, pd.Index([True] * 5)])
+@pytest.mark.parametrize("ind1", [[True] * 5, Index([True] * 5)])
 @pytest.mark.parametrize(
     "ind2",
-    [[True, False, True, False, False], pd.Index([True, False, True, False, False])],
+    [[True, False, True, False, False], Index([True, False, True, False, False])],
 )
 def test_getitem_bool_index_all(ind1, ind2):
     # GH#22533
@@ -277,14 +483,14 @@ def test_getitem_bool_index_all(ind1, ind2):
     tm.assert_index_equal(idx[ind2], expected)
 
 
-@pytest.mark.parametrize("ind1", [[True], pd.Index([True])])
-@pytest.mark.parametrize("ind2", [[False], pd.Index([False])])
+@pytest.mark.parametrize("ind1", [[True], Index([True])])
+@pytest.mark.parametrize("ind2", [[False], Index([False])])
 def test_getitem_bool_index_single(ind1, ind2):
     # GH#22533
     idx = MultiIndex.from_tuples([(10, 1)])
     tm.assert_index_equal(idx[ind1], idx)
 
-    expected = pd.MultiIndex(
+    expected = MultiIndex(
         levels=[np.array([], dtype=np.int64), np.array([], dtype=np.int64)],
         codes=[[], []],
     )
@@ -322,13 +528,14 @@ class TestGetLoc:
         result = index.get_loc(2)
         expected = slice(0, 4)
         assert result == expected
-        # FIXME: dont leave commented-out
-        # pytest.raises(Exception, index.get_loc, 2)
 
         index = Index(["c", "a", "a", "b", "b"])
         rs = index.get_loc("c")
         xp = 0
         assert rs == xp
+
+        with pytest.raises(KeyError, match="2"):
+            index.get_loc(2)
 
     def test_get_loc_level(self):
         index = MultiIndex(
@@ -373,7 +580,7 @@ class TestGetLoc:
     def test_get_loc_multiple_dtypes(self, dtype1, dtype2):
         # GH 18520
         levels = [np.array([0, 1]).astype(dtype1), np.array([0, 1]).astype(dtype2)]
-        idx = pd.MultiIndex.from_product(levels)
+        idx = MultiIndex.from_product(levels)
         assert idx.get_loc(idx[2]) == 2
 
     @pytest.mark.parametrize("level", [0, 1])
@@ -408,10 +615,6 @@ class TestGetLoc:
         key = ["b", "d"]
         levels[level] = np.array([0, nulls_fixture], dtype=type(nulls_fixture))
         key[level] = nulls_fixture
-
-        if nulls_fixture is pd.NA:
-            pytest.xfail("MultiIndex from pd.NA in np.array broken; see GH 31883")
-
         idx = MultiIndex.from_product(levels)
         assert idx.get_loc(tuple(key)) == 3
 
@@ -451,6 +654,29 @@ class TestGetLoc:
 
         assert index.get_loc("D") == slice(0, 3)
 
+    def test_get_loc_past_lexsort_depth(self):
+        # GH#30053
+        idx = MultiIndex(
+            levels=[["a"], [0, 7], [1]],
+            codes=[[0, 0], [1, 0], [0, 0]],
+            names=["x", "y", "z"],
+            sortorder=0,
+        )
+        key = ("a", 7)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            # PerformanceWarning: indexing past lexsort depth may impact performance
+            result = idx.get_loc(key)
+
+        assert result == slice(0, 1, None)
+
+    def test_multiindex_get_loc_list_raises(self):
+        # GH#35878
+        idx = MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        msg = "unhashable type"
+        with pytest.raises(TypeError, match=msg):
+            idx.get_loc([])
+
 
 class TestWhere:
     def test_where(self):
@@ -478,7 +704,7 @@ class TestContains:
     def test_contains_with_nat(self):
         # MI with a NaT
         mi = MultiIndex(
-            levels=[["C"], pd.date_range("2012-01-01", periods=5)],
+            levels=[["C"], date_range("2012-01-01", periods=5)],
             codes=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
             names=[None, "B"],
         )
@@ -537,20 +763,20 @@ class TestContains:
 
 def test_timestamp_multiindex_indexer():
     # https://github.com/pandas-dev/pandas/issues/26944
-    idx = pd.MultiIndex.from_product(
+    idx = MultiIndex.from_product(
         [
-            pd.date_range("2019-01-01T00:15:33", periods=100, freq="H", name="date"),
+            date_range("2019-01-01T00:15:33", periods=100, freq="H", name="date"),
             ["x"],
             [3],
         ]
     )
     df = pd.DataFrame({"foo": np.arange(len(idx))}, idx)
     result = df.loc[pd.IndexSlice["2019-1-2":, "x", :], "foo"]
-    qidx = pd.MultiIndex.from_product(
+    qidx = MultiIndex.from_product(
         [
-            pd.date_range(
+            date_range(
                 start="2019-01-02T00:15:33",
-                end="2019-01-05T02:15:33",
+                end="2019-01-05T03:15:33",
                 freq="H",
                 name="date",
             ),
@@ -599,8 +825,8 @@ def test_pyint_engine():
     # integers, rather than uint64.
     N = 5
     keys = [
-        tuple(l)
-        for l in [
+        tuple(arr)
+        for arr in [
             [0] * 10 * N,
             [1] * 10 * N,
             [2] * 10 * N,

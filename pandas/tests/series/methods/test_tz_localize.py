@@ -3,26 +3,17 @@ import pytz
 
 from pandas._libs.tslibs import timezones
 
-from pandas import DatetimeIndex, NaT, Series, Timestamp, date_range
+from pandas import (
+    DatetimeIndex,
+    NaT,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
 class TestTZLocalize:
-    def test_series_tz_localize(self):
-
-        rng = date_range("1/1/2011", periods=100, freq="H")
-        ts = Series(1, index=rng)
-
-        result = ts.tz_localize("utc")
-        assert result.index.tz.zone == "UTC"
-
-        # Can't localize if already tz-aware
-        rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
-        ts = Series(1, index=rng)
-
-        with pytest.raises(TypeError, match="Already tz-aware"):
-            ts.tz_localize("US/Eastern")
-
     def test_series_tz_localize_ambiguous_bool(self):
         # make sure that we are correctly accepting bool values as ambiguous
 
@@ -35,7 +26,7 @@ class TestTZLocalize:
         expected0 = Series([expected0])
         expected1 = Series([expected1])
 
-        with pytest.raises(pytz.AmbiguousTimeError):
+        with tm.external_error_raised(pytz.AmbiguousTimeError):
             ser.dt.tz_localize("US/Central")
 
         result = ser.dt.tz_localize("US/Central", ambiguous=True)
@@ -66,10 +57,10 @@ class TestTZLocalize:
         dti = date_range(start="2015-03-29 02:00:00", periods=n, freq="min")
         s = Series(1, dti)
         if method == "raise":
-            with pytest.raises(pytz.NonExistentTimeError):
+            with tm.external_error_raised(pytz.NonExistentTimeError):
                 s.tz_localize(tz, nonexistent=method)
         elif exp == "invalid":
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="argument must be one of"):
                 dti.tz_localize(tz, nonexistent=method)
         else:
             result = s.tz_localize(tz, nonexistent=method)

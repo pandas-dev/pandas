@@ -5,15 +5,36 @@ from collections import abc
 from decimal import Decimal
 from itertools import combinations
 import operator
-from typing import Any, List
+from typing import (
+    Any,
+    List,
+)
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Series, Timedelta, TimedeltaIndex
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+    Series,
+    Timedelta,
+    TimedeltaIndex,
+    UInt64Index,
+    array,
+)
 import pandas._testing as tm
 from pandas.core import ops
+
+
+@pytest.fixture(params=[Index, Series, tm.to_array])
+def box_pandas_1d_array(request):
+    """
+    Fixture to test behavior for Index, Series and tm.to_array classes
+    """
+    return request.param
 
 
 def adjust_negative_zero(zero, expected):
@@ -34,8 +55,8 @@ def adjust_negative_zero(zero, expected):
 # TODO: remove this kludge once mypy stops giving false positives here
 # List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
 #  See GH#29725
-ser_or_index: List[Any] = [pd.Series, pd.Index]
-lefts: List[Any] = [pd.RangeIndex(10, 40, 10)]
+ser_or_index: List[Any] = [Series, Index]
+lefts: List[Any] = [RangeIndex(10, 40, 10)]
 lefts.extend(
     [
         cls([10, 20, 30], dtype=dtype)
@@ -51,14 +72,14 @@ lefts.extend(
 class TestNumericComparisons:
     def test_operator_series_comparison_zerorank(self):
         # GH#13006
-        result = np.float64(0) > pd.Series([1, 2, 3])
-        expected = 0.0 > pd.Series([1, 2, 3])
+        result = np.float64(0) > Series([1, 2, 3])
+        expected = 0.0 > Series([1, 2, 3])
         tm.assert_series_equal(result, expected)
-        result = pd.Series([1, 2, 3]) < np.float64(0)
-        expected = pd.Series([1, 2, 3]) < 0.0
+        result = Series([1, 2, 3]) < np.float64(0)
+        expected = Series([1, 2, 3]) < 0.0
         tm.assert_series_equal(result, expected)
-        result = np.array([0, 1, 2])[0] > pd.Series([0, 1, 2])
-        expected = 0.0 > pd.Series([1, 2, 3])
+        result = np.array([0, 1, 2])[0] > Series([0, 1, 2])
+        expected = 0.0 > Series([1, 2, 3])
         tm.assert_series_equal(result, expected)
 
     def test_df_numeric_cmp_dt64_raises(self):
@@ -66,7 +87,9 @@ class TestNumericComparisons:
         ts = pd.Timestamp.now()
         df = pd.DataFrame({"x": range(5)})
 
-        msg = "'[<>]' not supported between instances of 'Timestamp' and 'int'"
+        msg = (
+            "'[<>]' not supported between instances of 'numpy.ndarray' and 'Timestamp'"
+        )
         with pytest.raises(TypeError, match=msg):
             df > ts
         with pytest.raises(TypeError, match=msg):
@@ -82,10 +105,31 @@ class TestNumericComparisons:
     def test_compare_invalid(self):
         # GH#8058
         # ops testing
-        a = pd.Series(np.random.randn(5), name=0)
-        b = pd.Series(np.random.randn(5))
+        a = Series(np.random.randn(5), name=0)
+        b = Series(np.random.randn(5))
         b.name = pd.Timestamp("2000-01-01")
         tm.assert_series_equal(a / b, 1 / (b / a))
+
+    def test_numeric_cmp_string_numexpr_path(self, box_with_array):
+        # GH#36377, GH#35700
+        box = box_with_array
+        xbox = box if box is not Index else np.ndarray
+
+        obj = Series(np.random.randn(10 ** 5))
+        obj = tm.box_expected(obj, box, transpose=False)
+
+        result = obj == "a"
+
+        expected = Series(np.zeros(10 ** 5, dtype=bool))
+        expected = tm.box_expected(expected, xbox, transpose=False)
+        tm.assert_equal(result, expected)
+
+        result = obj != "a"
+        tm.assert_equal(result, ~expected)
+
+        msg = "Invalid comparison between dtype=float64 and str"
+        with pytest.raises(TypeError, match=msg):
+            obj < "a"
 
 
 # ------------------------------------------------------------------
@@ -95,18 +139,18 @@ class TestNumericComparisons:
 class TestNumericArraylikeArithmeticWithDatetimeLike:
 
     # TODO: also check name retentention
-    @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
+    @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
-        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
     )
     def test_mul_td64arr(self, left, box_cls):
         # GH#22390
         right = np.array([1, 2, 3], dtype="m8[s]")
         right = box_cls(right)
 
-        expected = pd.TimedeltaIndex(["10s", "40s", "90s"])
-        if isinstance(left, pd.Series) or box_cls is pd.Series:
-            expected = pd.Series(expected)
+        expected = TimedeltaIndex(["10s", "40s", "90s"])
+        if isinstance(left, Series) or box_cls is Series:
+            expected = Series(expected)
 
         result = left * right
         tm.assert_equal(result, expected)
@@ -115,18 +159,18 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         tm.assert_equal(result, expected)
 
     # TODO: also check name retentention
-    @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
+    @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
-        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
     )
     def test_div_td64arr(self, left, box_cls):
         # GH#22390
         right = np.array([10, 40, 90], dtype="m8[s]")
         right = box_cls(right)
 
-        expected = pd.TimedeltaIndex(["1s", "2s", "3s"])
-        if isinstance(left, pd.Series) or box_cls is pd.Series:
-            expected = pd.Series(expected)
+        expected = TimedeltaIndex(["1s", "2s", "3s"])
+        if isinstance(left, Series) or box_cls is Series:
+            expected = Series(expected)
 
         result = right / left
         tm.assert_equal(result, expected)
@@ -141,16 +185,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         with pytest.raises(TypeError, match=msg):
             left // right
 
-    # TODO: de-duplicate with test_numeric_arr_mul_tdscalar
-    def test_ops_series(self):
-        # regression test for G#H8813
-        td = Timedelta("1 day")
-        other = pd.Series([1, 2])
-        expected = pd.Series(pd.to_timedelta(["1 day", "2 days"]))
-        tm.assert_series_equal(expected, td * other)
-        tm.assert_series_equal(expected, other * td)
-
-    # TODO: also test non-nanosecond timedelta64 and Tick objects;
+    # TODO: also test Tick objects;
     #  see test_numeric_arr_rdiv_tdscalar for note on these failing
     @pytest.mark.parametrize(
         "scalar_td",
@@ -158,14 +193,16 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             Timedelta(days=1),
             Timedelta(days=1).to_timedelta64(),
             Timedelta(days=1).to_pytimedelta(),
+            Timedelta(days=1).to_timedelta64().astype("timedelta64[s]"),
+            Timedelta(days=1).to_timedelta64().astype("timedelta64[ms]"),
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_numeric_arr_mul_tdscalar(self, scalar_td, numeric_idx, box):
+    def test_numeric_arr_mul_tdscalar(self, scalar_td, numeric_idx, box_with_array):
         # GH#19333
+        box = box_with_array
         index = numeric_idx
-
-        expected = pd.timedelta_range("0 days", "4 days")
+        expected = TimedeltaIndex([Timedelta(days=n) for n in range(len(index))])
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -185,7 +222,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box):
+    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box_with_array):
+        box = box_with_array
+
         arr = np.arange(2 * 10 ** 4).astype(np.int64)
         obj = tm.box_expected(arr, box, transpose=False)
 
@@ -198,7 +237,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = scalar_td * obj
         tm.assert_equal(result, expected)
 
-    def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box):
+    def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box_with_array):
+        box = box_with_array
+
         index = numeric_idx[1:3]
 
         expected = TimedeltaIndex(["3 Days", "36 Hours"])
@@ -216,23 +257,26 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "other",
         [
-            pd.Timedelta(hours=31),
-            pd.Timedelta(hours=31).to_pytimedelta(),
-            pd.Timedelta(hours=31).to_timedelta64(),
-            pd.Timedelta(hours=31).to_timedelta64().astype("m8[h]"),
+            Timedelta(hours=31),
+            Timedelta(hours=31).to_pytimedelta(),
+            Timedelta(hours=31).to_timedelta64(),
+            Timedelta(hours=31).to_timedelta64().astype("m8[h]"),
             np.timedelta64("NaT"),
             np.timedelta64("NaT", "D"),
             pd.offsets.Minute(3),
             pd.offsets.Second(0),
         ],
     )
-    def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box):
+    def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box_with_array):
+        box = box_with_array
+
         left = tm.box_expected(numeric_idx, box)
         msg = (
             "unsupported operand type|"
             "Addition/subtraction of integers and integer-arrays|"
             "Instead of adding/subtracting|"
-            "cannot use operands with types dtype"
+            "cannot use operands with types dtype|"
+            "Concatenation operation is not implemented for NumPy arrays"
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -253,15 +297,21 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
     )
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
-    def test_add_sub_datetimelike_invalid(self, numeric_idx, other, box):
+    def test_add_sub_datetimelike_invalid(self, numeric_idx, other, box_with_array):
         # GH#28080 numeric+datetime64 should raise; Timestamp raises
         #  NullFrequencyError instead of TypeError so is excluded.
+        box = box_with_array
         left = tm.box_expected(numeric_idx, box)
 
-        msg = (
-            "unsupported operand type|"
-            "Cannot (add|subtract) NaT (to|from) ndarray|"
-            "Addition/subtraction of integers and integer-arrays"
+        msg = "|".join(
+            [
+                "unsupported operand type",
+                "Cannot (add|subtract) NaT (to|from) ndarray",
+                "Addition/subtraction of integers and integer-arrays",
+                "Concatenation operation is not implemented for NumPy arrays",
+                # pd.array vs np.datetime64 case
+                r"operand type\(s\) all returned NotImplemented from __array_ufunc__",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -281,7 +331,7 @@ class TestDivisionByZero:
     def test_div_zero(self, zero, numeric_idx):
         idx = numeric_idx
 
-        expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
+        expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
         # We only adjust for Index, because Series does not yet apply
         #  the adjustment correctly.
         expected2 = adjust_negative_zero(zero, expected)
@@ -294,7 +344,7 @@ class TestDivisionByZero:
     def test_floordiv_zero(self, zero, numeric_idx):
         idx = numeric_idx
 
-        expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
+        expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
         # We only adjust for Index, because Series does not yet apply
         #  the adjustment correctly.
         expected2 = adjust_negative_zero(zero, expected)
@@ -307,7 +357,7 @@ class TestDivisionByZero:
     def test_mod_zero(self, zero, numeric_idx):
         idx = numeric_idx
 
-        expected = pd.Index([np.nan, np.nan, np.nan, np.nan, np.nan], dtype=np.float64)
+        expected = Index([np.nan, np.nan, np.nan, np.nan, np.nan], dtype=np.float64)
         result = idx % zero
         tm.assert_index_equal(result, expected)
         ser_compat = Series(idx).astype("i8") % np.array(zero).astype("i8")
@@ -316,8 +366,8 @@ class TestDivisionByZero:
     def test_divmod_zero(self, zero, numeric_idx):
         idx = numeric_idx
 
-        exleft = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
-        exright = pd.Index([np.nan, np.nan, np.nan, np.nan, np.nan], dtype=np.float64)
+        exleft = Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
+        exright = Index([np.nan, np.nan, np.nan, np.nan, np.nan], dtype=np.float64)
         exleft = adjust_negative_zero(zero, exleft)
 
         result = divmod(idx, zero)
@@ -327,13 +377,11 @@ class TestDivisionByZero:
     @pytest.mark.parametrize("op", [operator.truediv, operator.floordiv])
     def test_div_negative_zero(self, zero, numeric_idx, op):
         # Check that -1 / -0.0 returns np.inf, not -np.inf
-        if isinstance(numeric_idx, pd.UInt64Index):
+        if isinstance(numeric_idx, UInt64Index):
             return
         idx = numeric_idx - 3
 
-        expected = pd.Index(
-            [-np.inf, -np.inf, -np.inf, np.nan, np.inf], dtype=np.float64
-        )
+        expected = Index([-np.inf, -np.inf, -np.inf, np.nan, np.inf], dtype=np.float64)
         expected = adjust_negative_zero(zero, expected)
 
         result = op(idx, zero)
@@ -365,8 +413,8 @@ class TestDivisionByZero:
     def test_ser_divmod_zero(self, dtype1, any_real_dtype):
         # GH#26987
         dtype2 = any_real_dtype
-        left = pd.Series([1, 1]).astype(dtype1)
-        right = pd.Series([0, 2]).astype(dtype2)
+        left = Series([1, 1]).astype(dtype1)
+        right = Series([0, 2]).astype(dtype2)
 
         # GH#27321 pandas convention is to set 1 // 0 to np.inf, as opposed
         #  to numpy which sets to np.nan; patch `expected[0]` below
@@ -385,8 +433,8 @@ class TestDivisionByZero:
         tm.assert_series_equal(result[1], expected[1])
 
     def test_ser_divmod_inf(self):
-        left = pd.Series([np.inf, 1.0])
-        right = pd.Series([np.inf, 2.0])
+        left = Series([np.inf, 1.0])
+        right = Series([np.inf, 2.0])
 
         expected = left // right, left % right
         result = divmod(left, right)
@@ -443,8 +491,8 @@ class TestDivisionByZero:
         df = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]})
         result = df / df
 
-        first = pd.Series([1.0, 1.0, 1.0, 1.0])
-        second = pd.Series([np.nan, np.nan, np.nan, 1])
+        first = Series([1.0, 1.0, 1.0, 1.0])
+        second = Series([np.nan, np.nan, np.nan, 1])
         expected = pd.DataFrame({"first": first, "second": second})
         tm.assert_frame_equal(result, expected)
 
@@ -452,8 +500,8 @@ class TestDivisionByZero:
         # integer div, but deal with the 0's (GH#9144)
         df = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]})
 
-        first = pd.Series([1.0, 1.0, 1.0, 1.0])
-        second = pd.Series([np.nan, np.nan, np.nan, 1])
+        first = Series([1.0, 1.0, 1.0, 1.0])
+        second = Series([np.nan, np.nan, np.nan, 1])
         expected = pd.DataFrame({"first": first, "second": second})
 
         with np.errstate(all="ignore"):
@@ -487,14 +535,18 @@ class TestDivisionByZero:
     # ------------------------------------------------------------------
     # Mod By Zero
 
-    def test_df_mod_zero_df(self):
+    def test_df_mod_zero_df(self, using_array_manager):
         # GH#3590, modulo as ints
         df = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]})
 
         # this is technically wrong, as the integer portion is coerced to float
-        # ###
-        first = pd.Series([0, 0, 0, 0], dtype="float64")
-        second = pd.Series([np.nan, np.nan, np.nan, 0])
+        first = Series([0, 0, 0, 0])
+        if not using_array_manager:
+            # INFO(ArrayManager) BlockManager doesn't preserve dtype per column
+            # while ArrayManager performs op column-wisedoes and thus preserves
+            # dtype if possible
+            first = first.astype("float64")
+        second = Series([np.nan, np.nan, np.nan, 0])
         expected = pd.DataFrame({"first": first, "second": second})
         result = df % df
         tm.assert_frame_equal(result, expected)
@@ -505,8 +557,8 @@ class TestDivisionByZero:
 
         # this is technically wrong, as the integer portion is coerced to float
         # ###
-        first = pd.Series([0, 0, 0, 0], dtype="float64")
-        second = pd.Series([np.nan, np.nan, np.nan, 0])
+        first = Series([0, 0, 0, 0], dtype="float64")
+        second = Series([np.nan, np.nan, np.nan, 0])
         expected = pd.DataFrame({"first": first, "second": second})
 
         # numpy has a slightly different (wrong) treatment
@@ -544,22 +596,9 @@ class TestMultiplicationDivision:
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
     # for non-timestamp/timedelta/period dtypes
 
-    @pytest.mark.parametrize(
-        "box",
-        [
-            pytest.param(
-                pd.Index,
-                marks=pytest.mark.xfail(
-                    reason="Index.__div__ always raises", raises=TypeError
-                ),
-            ),
-            pd.Series,
-            pd.DataFrame,
-        ],
-        ids=lambda x: x.__name__,
-    )
-    def test_divide_decimal(self, box):
+    def test_divide_decimal(self, box_with_array):
         # resolves issue GH#9787
+        box = box_with_array
         ser = Series([Decimal(10)])
         expected = Series([Decimal(5)])
 
@@ -612,7 +651,7 @@ class TestMultiplicationDivision:
         result = idx * np.array(5, dtype="int64")
         tm.assert_index_equal(result, idx * 5)
 
-        arr_dtype = "uint64" if isinstance(idx, pd.UInt64Index) else "int64"
+        arr_dtype = "uint64" if isinstance(idx, UInt64Index) else "int64"
         result = idx * np.arange(5, dtype=arr_dtype)
         tm.assert_index_equal(result, didx)
 
@@ -620,7 +659,7 @@ class TestMultiplicationDivision:
         idx = numeric_idx
         didx = idx * idx
 
-        arr_dtype = "uint64" if isinstance(idx, pd.UInt64Index) else "int64"
+        arr_dtype = "uint64" if isinstance(idx, UInt64Index) else "int64"
         result = idx * Series(np.arange(5, dtype=arr_dtype))
         tm.assert_series_equal(result, Series(didx))
 
@@ -635,7 +674,7 @@ class TestMultiplicationDivision:
     def test_mul_index(self, numeric_idx):
         # in general not true for RangeIndex
         idx = numeric_idx
-        if not isinstance(idx, pd.RangeIndex):
+        if not isinstance(idx, RangeIndex):
             result = idx * idx
             tm.assert_index_equal(result, idx ** 2)
 
@@ -658,7 +697,7 @@ class TestMultiplicationDivision:
         # test power calculations both ways, GH#14973
         box = box_with_array
         idx = numeric_idx
-        expected = pd.Float64Index(op(idx.values, 2.0))
+        expected = Float64Index(op(idx.values, 2.0))
 
         idx = tm.box_expected(idx, box)
         expected = tm.box_expected(expected, box)
@@ -784,36 +823,50 @@ class TestAdditionSubtraction:
     # __add__, __sub__, __radd__, __rsub__, __iadd__, __isub__
     # for non-timestamp/timedelta/period dtypes
 
-    # TODO: This came from series.test.test_operators, needs cleanup
-    def test_arith_ops_df_compat(self):
+    @pytest.mark.parametrize(
+        "first, second, expected",
+        [
+            (
+                Series([1, 2, 3], index=list("ABC"), name="x"),
+                Series([2, 2, 2], index=list("ABD"), name="x"),
+                Series([3.0, 4.0, np.nan, np.nan], index=list("ABCD"), name="x"),
+            ),
+            (
+                Series([1, 2, 3], index=list("ABC"), name="x"),
+                Series([2, 2, 2, 2], index=list("ABCD"), name="x"),
+                Series([3, 4, 5, np.nan], index=list("ABCD"), name="x"),
+            ),
+        ],
+    )
+    def test_add_series(self, first, second, expected):
         # GH#1134
-        s1 = pd.Series([1, 2, 3], index=list("ABC"), name="x")
-        s2 = pd.Series([2, 2, 2], index=list("ABD"), name="x")
+        tm.assert_series_equal(first + second, expected)
+        tm.assert_series_equal(second + first, expected)
 
-        exp = pd.Series([3.0, 4.0, np.nan, np.nan], index=list("ABCD"), name="x")
-        tm.assert_series_equal(s1 + s2, exp)
-        tm.assert_series_equal(s2 + s1, exp)
-
-        exp = pd.DataFrame({"x": [3.0, 4.0, np.nan, np.nan]}, index=list("ABCD"))
-        tm.assert_frame_equal(s1.to_frame() + s2.to_frame(), exp)
-        tm.assert_frame_equal(s2.to_frame() + s1.to_frame(), exp)
-
-        # different length
-        s3 = pd.Series([1, 2, 3], index=list("ABC"), name="x")
-        s4 = pd.Series([2, 2, 2, 2], index=list("ABCD"), name="x")
-
-        exp = pd.Series([3, 4, 5, np.nan], index=list("ABCD"), name="x")
-        tm.assert_series_equal(s3 + s4, exp)
-        tm.assert_series_equal(s4 + s3, exp)
-
-        exp = pd.DataFrame({"x": [3, 4, 5, np.nan]}, index=list("ABCD"))
-        tm.assert_frame_equal(s3.to_frame() + s4.to_frame(), exp)
-        tm.assert_frame_equal(s4.to_frame() + s3.to_frame(), exp)
+    @pytest.mark.parametrize(
+        "first, second, expected",
+        [
+            (
+                pd.DataFrame({"x": [1, 2, 3]}, index=list("ABC")),
+                pd.DataFrame({"x": [2, 2, 2]}, index=list("ABD")),
+                pd.DataFrame({"x": [3.0, 4.0, np.nan, np.nan]}, index=list("ABCD")),
+            ),
+            (
+                pd.DataFrame({"x": [1, 2, 3]}, index=list("ABC")),
+                pd.DataFrame({"x": [2, 2, 2, 2]}, index=list("ABCD")),
+                pd.DataFrame({"x": [3, 4, 5, np.nan]}, index=list("ABCD")),
+            ),
+        ],
+    )
+    def test_add_frames(self, first, second, expected):
+        # GH#1134
+        tm.assert_frame_equal(first + second, expected)
+        tm.assert_frame_equal(second + first, expected)
 
     # TODO: This came from series.test.test_operators, needs cleanup
     def test_series_frame_radd_bug(self):
         # GH#353
-        vals = pd.Series(tm.rands_array(5, 10))
+        vals = Series(tm.rands_array(5, 10))
         result = "foo_" + vals
         expected = vals.map(lambda x: "foo_" + x)
         tm.assert_series_equal(result, expected)
@@ -838,14 +891,14 @@ class TestAdditionSubtraction:
     # TODO: This came from series.test.test_operators, needs cleanup
     def test_datetime64_with_index(self):
         # arithmetic integer ops with an index
-        ser = pd.Series(np.random.randn(5))
+        ser = Series(np.random.randn(5))
         expected = ser - ser.index.to_series()
         result = ser - ser.index
         tm.assert_series_equal(result, expected)
 
         # GH#4629
         # arithmetic datetime64 ops with an index
-        ser = pd.Series(
+        ser = Series(
             pd.date_range("20130101", periods=5),
             index=pd.date_range("20130101", periods=5),
         )
@@ -872,7 +925,7 @@ class TestAdditionSubtraction:
         frame2 = pd.DataFrame(float_frame, columns=["D", "C", "B", "A"])
 
         garbage = np.random.random(4)
-        colSeries = pd.Series(garbage, index=np.array(frame.columns))
+        colSeries = Series(garbage, index=np.array(frame.columns))
 
         idSum = frame + frame
         seriesSum = frame + colSeries
@@ -919,6 +972,8 @@ class TestAdditionSubtraction:
 
             cython_or_numpy = op(left, right)
             python = left.combine(right, op)
+            if isinstance(other, Series) and not other.index.equals(series.index):
+                python.index = python.index._with_freq(None)
             tm.assert_series_equal(cython_or_numpy, python)
 
         def check(series, other):
@@ -974,7 +1029,7 @@ class TestAdditionSubtraction:
                 tm.assert_almost_equal(np.asarray(result), expected)
 
                 assert result.name == series.name
-                tm.assert_index_equal(result.index, series.index)
+                tm.assert_index_equal(result.index, series.index._with_freq(None))
 
         tser = tm.makeTimeSeries().rename("ts")
         check(tser, tser * 2)
@@ -993,8 +1048,8 @@ class TestAdditionSubtraction:
         other = tser * 0
 
         result = divmod(tser, other)
-        exp1 = pd.Series([np.inf] * len(tser), index=tser.index, name="ts")
-        exp2 = pd.Series([np.nan] * len(tser), index=tser.index, name="ts")
+        exp1 = Series([np.inf] * len(tser), index=tser.index, name="ts")
+        exp2 = Series([np.nan] * len(tser), index=tser.index, name="ts")
         tm.assert_series_equal(result[0], exp1)
         tm.assert_series_equal(result[1], exp2)
 
@@ -1002,81 +1057,77 @@ class TestAdditionSubtraction:
 class TestUFuncCompat:
     @pytest.mark.parametrize(
         "holder",
-        [pd.Int64Index, pd.UInt64Index, pd.Float64Index, pd.RangeIndex, pd.Series],
+        [Int64Index, UInt64Index, Float64Index, RangeIndex, Series],
     )
     def test_ufunc_compat(self, holder):
-        box = pd.Series if holder is pd.Series else pd.Index
+        box = Series if holder is Series else Index
 
-        if holder is pd.RangeIndex:
-            idx = pd.RangeIndex(0, 5)
+        if holder is RangeIndex:
+            idx = RangeIndex(0, 5)
         else:
             idx = holder(np.arange(5, dtype="int64"))
         result = np.sin(idx)
         expected = box(np.sin(np.arange(5, dtype="int64")))
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "holder", [pd.Int64Index, pd.UInt64Index, pd.Float64Index, pd.Series]
-    )
+    @pytest.mark.parametrize("holder", [Int64Index, UInt64Index, Float64Index, Series])
     def test_ufunc_coercions(self, holder):
         idx = holder([1, 2, 3, 4, 5], name="x")
-        box = pd.Series if holder is pd.Series else pd.Index
+        box = Series if holder is Series else Index
 
         result = np.sqrt(idx)
         assert result.dtype == "f8" and isinstance(result, box)
-        exp = pd.Float64Index(np.sqrt(np.array([1, 2, 3, 4, 5])), name="x")
+        exp = Float64Index(np.sqrt(np.array([1, 2, 3, 4, 5])), name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = np.divide(idx, 2.0)
         assert result.dtype == "f8" and isinstance(result, box)
-        exp = pd.Float64Index([0.5, 1.0, 1.5, 2.0, 2.5], name="x")
+        exp = Float64Index([0.5, 1.0, 1.5, 2.0, 2.5], name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         # _evaluate_numeric_binop
         result = idx + 2.0
         assert result.dtype == "f8" and isinstance(result, box)
-        exp = pd.Float64Index([3.0, 4.0, 5.0, 6.0, 7.0], name="x")
+        exp = Float64Index([3.0, 4.0, 5.0, 6.0, 7.0], name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx - 2.0
         assert result.dtype == "f8" and isinstance(result, box)
-        exp = pd.Float64Index([-1.0, 0.0, 1.0, 2.0, 3.0], name="x")
+        exp = Float64Index([-1.0, 0.0, 1.0, 2.0, 3.0], name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx * 1.0
         assert result.dtype == "f8" and isinstance(result, box)
-        exp = pd.Float64Index([1.0, 2.0, 3.0, 4.0, 5.0], name="x")
+        exp = Float64Index([1.0, 2.0, 3.0, 4.0, 5.0], name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx / 2.0
         assert result.dtype == "f8" and isinstance(result, box)
-        exp = pd.Float64Index([0.5, 1.0, 1.5, 2.0, 2.5], name="x")
+        exp = Float64Index([0.5, 1.0, 1.5, 2.0, 2.5], name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
-    @pytest.mark.parametrize(
-        "holder", [pd.Int64Index, pd.UInt64Index, pd.Float64Index, pd.Series]
-    )
+    @pytest.mark.parametrize("holder", [Int64Index, UInt64Index, Float64Index, Series])
     def test_ufunc_multiple_return_values(self, holder):
         obj = holder([1, 2, 3], name="x")
-        box = pd.Series if holder is pd.Series else pd.Index
+        box = Series if holder is Series else Index
 
         result = np.modf(obj)
         assert isinstance(result, tuple)
-        exp1 = pd.Float64Index([0.0, 0.0, 0.0], name="x")
-        exp2 = pd.Float64Index([1.0, 2.0, 3.0], name="x")
+        exp1 = Float64Index([0.0, 0.0, 0.0], name="x")
+        exp2 = Float64Index([1.0, 2.0, 3.0], name="x")
         tm.assert_equal(result[0], tm.box_expected(exp1, box))
         tm.assert_equal(result[1], tm.box_expected(exp2, box))
 
     def test_ufunc_at(self):
-        s = pd.Series([0, 1, 2], index=[1, 2, 3], name="x")
+        s = Series([0, 1, 2], index=[1, 2, 3], name="x")
         np.add.at(s, [0, 2], 10)
-        expected = pd.Series([10, 1, 12], index=[1, 2, 3], name="x")
+        expected = Series([10, 1, 12], index=[1, 2, 3], name="x")
         tm.assert_series_equal(s, expected)
 
 
@@ -1086,8 +1137,8 @@ class TestObjectDtypeEquivalence:
     @pytest.mark.parametrize("dtype", [None, object])
     def test_numarr_with_dtype_add_nan(self, dtype, box_with_array):
         box = box_with_array
-        ser = pd.Series([1, 2, 3], dtype=dtype)
-        expected = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
+        ser = Series([1, 2, 3], dtype=dtype)
+        expected = Series([np.nan, np.nan, np.nan], dtype=dtype)
 
         ser = tm.box_expected(ser, box)
         expected = tm.box_expected(expected, box)
@@ -1101,8 +1152,8 @@ class TestObjectDtypeEquivalence:
     @pytest.mark.parametrize("dtype", [None, object])
     def test_numarr_with_dtype_add_int(self, dtype, box_with_array):
         box = box_with_array
-        ser = pd.Series([1, 2, 3], dtype=dtype)
-        expected = pd.Series([2, 3, 4], dtype=dtype)
+        ser = Series([1, 2, 3], dtype=dtype)
+        expected = Series([2, 3, 4], dtype=dtype)
 
         ser = tm.box_expected(ser, box)
         expected = tm.box_expected(expected, box)
@@ -1120,7 +1171,7 @@ class TestObjectDtypeEquivalence:
     )
     def test_operators_reverse_object(self, op):
         # GH#56
-        arr = pd.Series(np.random.randn(10), index=np.arange(10), dtype=object)
+        arr = Series(np.random.randn(10), index=np.arange(10), dtype=object)
 
         result = op(1.0, arr)
         expected = op(1.0, arr.astype(float))
@@ -1135,12 +1186,12 @@ class TestNumericArithmeticUnsorted:
         for op in ops:
             for a, b in combinations(idxs, 2):
                 result = op(a, b)
-                expected = op(pd.Int64Index(a), pd.Int64Index(b))
+                expected = op(Int64Index(a), Int64Index(b))
                 tm.assert_index_equal(result, expected)
             for idx in idxs:
                 for scalar in scalars:
                     result = op(idx, scalar)
-                    expected = op(pd.Int64Index(idx), scalar)
+                    expected = op(Int64Index(idx), scalar)
                     tm.assert_index_equal(result, expected)
 
     def test_binops(self):
@@ -1153,10 +1204,10 @@ class TestNumericArithmeticUnsorted:
         ]
         scalars = [-1, 1, 2]
         idxs = [
-            pd.RangeIndex(0, 10, 1),
-            pd.RangeIndex(0, 20, 2),
-            pd.RangeIndex(-10, 10, 2),
-            pd.RangeIndex(5, -5, -1),
+            RangeIndex(0, 10, 1),
+            RangeIndex(0, 20, 2),
+            RangeIndex(-10, 10, 2),
+            RangeIndex(5, -5, -1),
         ]
         self.check_binop(ops, scalars, idxs)
 
@@ -1165,7 +1216,7 @@ class TestNumericArithmeticUnsorted:
         # https://github.com/numpy/numpy/pull/8127
         ops = [pow]
         scalars = [1, 2]
-        idxs = [pd.RangeIndex(0, 10, 1), pd.RangeIndex(0, 20, 2)]
+        idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2)]
         self.check_binop(ops, scalars, idxs)
 
     # TODO: mod, divmod?
@@ -1183,10 +1234,10 @@ class TestNumericArithmeticUnsorted:
     def test_arithmetic_with_frame_or_series(self, op):
         # check that we return NotImplemented when operating with Series
         # or DataFrame
-        index = pd.RangeIndex(5)
-        other = pd.Series(np.random.randn(5))
+        index = RangeIndex(5)
+        other = Series(np.random.randn(5))
 
-        expected = op(pd.Series(index), other)
+        expected = op(Series(index), other)
         result = op(index, other)
         tm.assert_series_equal(result, expected)
 
@@ -1199,26 +1250,26 @@ class TestNumericArithmeticUnsorted:
         # validate that we are handling the RangeIndex overrides to numeric ops
         # and returning RangeIndex where possible
 
-        idx = pd.RangeIndex(0, 10, 2)
+        idx = RangeIndex(0, 10, 2)
 
         result = idx * 2
-        expected = pd.RangeIndex(0, 20, 4)
+        expected = RangeIndex(0, 20, 4)
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx + 2
-        expected = pd.RangeIndex(2, 12, 2)
+        expected = RangeIndex(2, 12, 2)
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx - 2
-        expected = pd.RangeIndex(-2, 8, 2)
+        expected = RangeIndex(-2, 8, 2)
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx / 2
-        expected = pd.RangeIndex(0, 5, 1).astype("float64")
+        expected = RangeIndex(0, 5, 1).astype("float64")
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx / 4
-        expected = pd.RangeIndex(0, 10, 2) / 4
+        expected = RangeIndex(0, 10, 2) / 4
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx // 1
@@ -1231,25 +1282,25 @@ class TestNumericArithmeticUnsorted:
         tm.assert_index_equal(result, expected, exact=True)
 
         # __pow__
-        idx = pd.RangeIndex(0, 1000, 2)
+        idx = RangeIndex(0, 1000, 2)
         result = idx ** 2
         expected = idx._int64index ** 2
         tm.assert_index_equal(Index(result.values), expected, exact=True)
 
         # __floordiv__
         cases_exact = [
-            (pd.RangeIndex(0, 1000, 2), 2, pd.RangeIndex(0, 500, 1)),
-            (pd.RangeIndex(-99, -201, -3), -3, pd.RangeIndex(33, 67, 1)),
-            (pd.RangeIndex(0, 1000, 1), 2, pd.RangeIndex(0, 1000, 1)._int64index // 2),
+            (RangeIndex(0, 1000, 2), 2, RangeIndex(0, 500, 1)),
+            (RangeIndex(-99, -201, -3), -3, RangeIndex(33, 67, 1)),
+            (RangeIndex(0, 1000, 1), 2, RangeIndex(0, 1000, 1)._int64index // 2),
             (
-                pd.RangeIndex(0, 100, 1),
+                RangeIndex(0, 100, 1),
                 2.0,
-                pd.RangeIndex(0, 100, 1)._int64index // 2.0,
+                RangeIndex(0, 100, 1)._int64index // 2.0,
             ),
-            (pd.RangeIndex(0), 50, pd.RangeIndex(0)),
-            (pd.RangeIndex(2, 4, 2), 3, pd.RangeIndex(0, 1, 1)),
-            (pd.RangeIndex(-5, -10, -6), 4, pd.RangeIndex(-2, -1, 1)),
-            (pd.RangeIndex(-100, -200, 3), 2, pd.RangeIndex(0)),
+            (RangeIndex(0), 50, RangeIndex(0)),
+            (RangeIndex(2, 4, 2), 3, RangeIndex(0, 1, 1)),
+            (RangeIndex(-5, -10, -6), 4, RangeIndex(-2, -1, 1)),
+            (RangeIndex(-100, -200, 3), 2, RangeIndex(0)),
         ]
         for idx, div, expected in cases_exact:
             tm.assert_index_equal(idx // div, expected, exact=True)
@@ -1259,14 +1310,14 @@ class TestNumericArithmeticUnsorted:
     def test_addsub_arithmetic(self, dtype, delta):
         # GH#8142
         delta = dtype(delta)
-        index = pd.Index([10, 11, 12], dtype=dtype)
+        index = Index([10, 11, 12], dtype=dtype)
         result = index + delta
-        expected = pd.Index(index.values + delta, dtype=dtype)
+        expected = Index(index.values + delta, dtype=dtype)
         tm.assert_index_equal(result, expected)
 
         # this subtraction used to fail
         result = index - delta
-        expected = pd.Index(index.values - delta, dtype=dtype)
+        expected = Index(index.values - delta, dtype=dtype)
         tm.assert_index_equal(result, expected)
 
         tm.assert_index_equal(index + index, 2 * index)
@@ -1305,3 +1356,33 @@ def test_dataframe_div_silenced():
     )
     with tm.assert_produces_warning(None):
         pdf1.div(pdf2, fill_value=0)
+
+
+@pytest.mark.parametrize(
+    "data, expected_data",
+    [([0, 1, 2], [0, 2, 4])],
+)
+def test_integer_array_add_list_like(
+    box_pandas_1d_array, box_1d_array, data, expected_data
+):
+    # GH22606 Verify operators with IntegerArray and list-likes
+    arr = array(data, dtype="Int64")
+    container = box_pandas_1d_array(arr)
+    left = container + box_1d_array(data)
+    right = box_1d_array(data) + container
+
+    if Series == box_pandas_1d_array:
+        assert_function = tm.assert_series_equal
+        expected = Series(expected_data, dtype="Int64")
+    elif Series == box_1d_array:
+        assert_function = tm.assert_series_equal
+        expected = Series(expected_data, dtype="object")
+    elif Index in (box_pandas_1d_array, box_1d_array):
+        assert_function = tm.assert_index_equal
+        expected = Int64Index(expected_data)
+    else:
+        assert_function = tm.assert_numpy_array_equal
+        expected = np.array(expected_data, dtype="object")
+
+    assert_function(left, expected)
+    assert_function(right, expected)

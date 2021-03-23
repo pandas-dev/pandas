@@ -4,16 +4,23 @@ timedelta support tools
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.tslibs import NaT
-from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
+from pandas._libs.tslibs.timedeltas import (
+    Timedelta,
+    parse_timedelta_unit,
+)
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
-def to_timedelta(arg, unit="ns", errors="raise"):
+def to_timedelta(arg, unit=None, errors="raise"):
     """
     Convert argument to timedelta.
 
@@ -26,14 +33,29 @@ def to_timedelta(arg, unit="ns", errors="raise"):
     ----------
     arg : str, timedelta, list-like or Series
         The data to be converted to timedelta.
-    unit : str, default 'ns'
-        Denotes the unit of the arg. Possible values:
-        ('Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr',
-        'h', 'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
-        'sec', 'second', 'ms', 'milliseconds', 'millisecond',
-        'milli', 'millis', 'L', 'us', 'microseconds', 'microsecond',
-        'micro', 'micros', 'U', 'ns', 'nanoseconds', 'nano', 'nanos',
-        'nanosecond', 'N').
+
+        .. deprecated:: 1.2
+            Strings with units 'M', 'Y' and 'y' do not represent
+            unambiguous timedelta values and will be removed in a future version
+
+    unit : str, optional
+        Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
+
+        Possible values:
+
+        * 'W'
+        * 'D' / 'days' / 'day'
+        * 'hours' / 'hour' / 'hr' / 'h'
+        * 'm' / 'minute' / 'min' / 'minutes' / 'T'
+        * 'S' / 'seconds' / 'sec' / 'second'
+        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
+        * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
+        * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
+
+        .. versionchanged:: 1.1.0
+
+           Must not be specified when `arg` context strings and
+           ``errors="raise"``.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
@@ -50,6 +72,11 @@ def to_timedelta(arg, unit="ns", errors="raise"):
     DataFrame.astype : Cast argument to a specified dtype.
     to_datetime : Convert argument to datetime.
     convert_dtypes : Convert dtypes.
+
+    Notes
+    -----
+    If the precision is higher than nanoseconds, the precision of the duration is
+    truncated to nanoseconds for string inputs.
 
     Examples
     --------
@@ -69,21 +96,22 @@ def to_timedelta(arg, unit="ns", errors="raise"):
     Converting numbers by specifying the `unit` keyword argument:
 
     >>> pd.to_timedelta(np.arange(5), unit='s')
-    TimedeltaIndex(['00:00:00', '00:00:01', '00:00:02',
-                    '00:00:03', '00:00:04'],
+    TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
+                    '0 days 00:00:03', '0 days 00:00:04'],
                    dtype='timedelta64[ns]', freq=None)
     >>> pd.to_timedelta(np.arange(5), unit='d')
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
     """
-    unit = parse_timedelta_unit(unit)
+    if unit is not None:
+        unit = parse_timedelta_unit(unit)
 
     if errors not in ("ignore", "raise", "coerce"):
-        raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'}")
+        raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'.")
 
     if unit in {"Y", "y", "M"}:
         raise ValueError(
-            "Units 'M' and 'Y' are no longer supported, as they do not "
+            "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
             "represent unambiguous timedelta values durations."
         )
 
@@ -92,17 +120,20 @@ def to_timedelta(arg, unit="ns", errors="raise"):
     elif isinstance(arg, ABCSeries):
         values = _convert_listlike(arg._values, unit=unit, errors=errors)
         return arg._constructor(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, ABCIndexClass):
+    elif isinstance(arg, ABCIndex):
         return _convert_listlike(arg, unit=unit, errors=errors, name=arg.name)
     elif isinstance(arg, np.ndarray) and arg.ndim == 0:
         # extract array scalar and process below
-        arg = arg.item()
+        arg = lib.item_from_zerodim(arg)
     elif is_list_like(arg) and getattr(arg, "ndim", 1) == 1:
         return _convert_listlike(arg, unit=unit, errors=errors)
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
             "arg must be a string, timedelta, list, tuple, 1-d array, or Series"
         )
+
+    if isinstance(arg, str) and unit is not None:
+        raise ValueError("unit must not be specified if the input is/contains a str")
 
     # ...so it must be a scalar value. Return scalar.
     return _coerce_scalar_to_timedelta_type(arg, unit=unit, errors=errors)
@@ -124,7 +155,7 @@ def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
     return result
 
 
-def _convert_listlike(arg, unit="ns", errors="raise", name=None):
+def _convert_listlike(arg, unit=None, errors="raise", name=None):
     """Convert a list of objects to a timedelta index object."""
     if isinstance(arg, (list, tuple)) or not hasattr(arg, "dtype"):
         # This is needed only to ensure that in the case where we end up
@@ -134,7 +165,7 @@ def _convert_listlike(arg, unit="ns", errors="raise", name=None):
         arg = np.array(list(arg), dtype=object)
 
     try:
-        value = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
+        td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
     except ValueError:
         if errors == "ignore":
             return arg
@@ -150,5 +181,5 @@ def _convert_listlike(arg, unit="ns", errors="raise", name=None):
 
     from pandas import TimedeltaIndex
 
-    value = TimedeltaIndex(value, unit="ns", name=name)
+    value = TimedeltaIndex(td64arr, unit="ns", name=name)
     return value

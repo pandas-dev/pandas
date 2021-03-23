@@ -7,7 +7,10 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import (
+    SparseArray,
+    SparseDtype,
+)
 
 
 class TestSeriesAccessor:
@@ -41,6 +44,18 @@ class TestFrameAccessor:
         ).astype(sp_dtype)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("format", ["csc", "csr", "coo"])
+    @td.skip_if_no_scipy
+    def test_from_spmatrix_including_explicit_zero(self, format):
+        import scipy.sparse
+
+        mat = scipy.sparse.random(10, 2, density=0.5, format=format)
+        mat.data[0] = 0
+        result = pd.DataFrame.sparse.from_spmatrix(mat)
+        dtype = SparseDtype("float64", 0.0)
+        expected = pd.DataFrame(mat.todense()).astype(dtype)
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "columns",
         [["a", "b"], pd.MultiIndex.from_product([["A"], ["a", "b"]]), ["a", "a"]],
@@ -56,11 +71,14 @@ class TestFrameAccessor:
         expected = pd.DataFrame(mat.toarray(), columns=columns).astype(dtype)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("colnames", [("A", "B"), (1, 2), (1, pd.NA), (0.1, 0.2)])
     @td.skip_if_no_scipy
-    def test_to_coo(self):
+    def test_to_coo(self, colnames):
         import scipy.sparse
 
-        df = pd.DataFrame({"A": [0, 1, 0], "B": [1, 0, 0]}, dtype="Sparse[int64, 0]")
+        df = pd.DataFrame(
+            {colnames[0]: [0, 1, 0], colnames[1]: [1, 0, 0]}, dtype="Sparse[int64, 0]"
+        )
         result = df.sparse.to_coo()
         expected = scipy.sparse.coo_matrix(np.asarray(df))
         assert (result != expected).nnz == 0

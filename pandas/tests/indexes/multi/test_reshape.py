@@ -5,7 +5,10 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import Index, MultiIndex
+from pandas import (
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -75,12 +78,12 @@ def test_insert(idx):
         + [("test", 17), ("test", 18)]
     )
 
-    left = pd.Series(np.linspace(0, 10, 11), pd.MultiIndex.from_tuples(idx[:-2]))
+    left = pd.Series(np.linspace(0, 10, 11), MultiIndex.from_tuples(idx[:-2]))
 
     left.loc[("test", 17)] = 11
     left.loc[("test", 18)] = 12
 
-    right = pd.Series(np.linspace(0, 12, 13), pd.MultiIndex.from_tuples(idx))
+    right = pd.Series(np.linspace(0, 12, 13), MultiIndex.from_tuples(idx))
 
     tm.assert_series_equal(left, right)
 
@@ -175,6 +178,6 @@ def test_delete_base(idx):
     assert result.equals(expected)
     assert result.name == expected.name
 
-    with pytest.raises((IndexError, ValueError)):
-        # Exception raised depends on NumPy version.
+    msg = "index 6 is out of bounds for axis 0 with size 6"
+    with pytest.raises(IndexError, match=msg):
         idx.delete(len(idx))

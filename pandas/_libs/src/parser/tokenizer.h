@@ -52,8 +52,8 @@ See LICENSE for the license
 #define PARSER_OUT_OF_MEMORY -1
 
 /*
- *  XXX Might want to couple count_rows() with read_rows() to avoid duplication
- *      of some file I/O.
+ *  TODO: Might want to couple count_rows() with read_rows() to avoid
+ *        duplication of some file I/O.
  */
 
 typedef enum {
@@ -85,7 +85,7 @@ typedef enum {
 } QuoteStyle;
 
 typedef void *(*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
-                             int *status);
+                             int *status, const char *encoding_errors);
 typedef int (*io_cleanup)(void *src);
 
 typedef struct parser_t {
@@ -132,7 +132,6 @@ typedef struct parser_t {
 
     char commentchar;
     int allow_embedded_newline;
-    int strict; /* raise exception on bad CSV */
 
     int usecols;  // Boolean: 1: usecols provided, 0: none provided
 
@@ -197,9 +196,9 @@ void parser_del(parser_t *self);
 
 void parser_set_default_options(parser_t *self);
 
-int tokenize_nrows(parser_t *self, size_t nrows);
+int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors);
 
-int tokenize_all_rows(parser_t *self);
+int tokenize_all_rows(parser_t *self, const char *encoding_errors);
 
 // Have parsed / type-converted a chunk of data
 // and want to free memory from the token stream

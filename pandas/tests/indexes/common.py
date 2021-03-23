@@ -1,10 +1,10 @@
 import gc
-from typing import Optional, Type
+from typing import Type
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -25,15 +25,13 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 class Base:
     """ base class for index sub-class tests """
 
-    _holder: Optional[Type[Index]] = None
-    _compat_props = ["shape", "ndim", "size", "nbytes"]
+    _holder: Type[Index]
 
     def create_index(self) -> Index:
         raise NotImplementedError("Method not implemented")
@@ -73,7 +71,10 @@ class Base:
 
         # GH8083 test the base class for shift
         idx = self.create_index()
-        msg = f"Not supported for type {type(idx).__name__}"
+        msg = (
+            f"This method is only implemented for DatetimeIndex, PeriodIndex and "
+            f"TimedeltaIndex; Got type {type(idx).__name__}"
+        )
         with pytest.raises(NotImplementedError, match=msg):
             idx.shift(1)
         with pytest.raises(NotImplementedError, match=msg):
@@ -93,15 +94,15 @@ class Base:
         expected = self.create_index()
         if not isinstance(expected, MultiIndex):
             expected.name = "foo"
-            result = pd.Index(expected)
+            result = Index(expected)
             tm.assert_index_equal(result, expected)
 
-            result = pd.Index(expected, name="bar")
+            result = Index(expected, name="bar")
             expected.name = "bar"
             tm.assert_index_equal(result, expected)
         else:
             expected.names = ["foo", "bar"]
-            result = pd.Index(expected)
+            result = Index(expected)
             tm.assert_index_equal(
                 result,
                 Index(
@@ -120,7 +121,7 @@ class Base:
                 ),
             )
 
-            result = pd.Index(expected, names=["A", "B"])
+            result = Index(expected, names=["A", "B"])
             tm.assert_index_equal(
                 result,
                 Index(
@@ -145,22 +146,41 @@ class Base:
         # Check that this doesn't cover MultiIndex case, if/when it does,
         #  we can remove multi.test_compat.test_numeric_compat
         assert not isinstance(idx, MultiIndex)
+        if type(idx) is Index:
+            return
 
-        with pytest.raises(TypeError, match="cannot perform __mul__"):
+        typ = type(idx._data).__name__
+        lmsg = "|".join(
+            [
+                rf"unsupported operand type\(s\) for \*: '{typ}' and 'int'",
+                "cannot perform (__mul__|__truediv__|__floordiv__) with "
+                f"this index type: {typ}",
+            ]
+        )
+        with pytest.raises(TypeError, match=lmsg):
             idx * 1
-        with pytest.raises(TypeError, match="cannot perform __rmul__"):
+        rmsg = "|".join(
+            [
+                rf"unsupported operand type\(s\) for \*: 'int' and '{typ}'",
+                "cannot perform (__rmul__|__rtruediv__|__rfloordiv__) with "
+                f"this index type: {typ}",
+            ]
+        )
+        with pytest.raises(TypeError, match=rmsg):
             1 * idx
 
-        div_err = "cannot perform __truediv__"
+        div_err = lmsg.replace("*", "/")
         with pytest.raises(TypeError, match=div_err):
             idx / 1
-
-        div_err = div_err.replace(" __", " __r")
+        div_err = rmsg.replace("*", "/")
         with pytest.raises(TypeError, match=div_err):
             1 / idx
-        with pytest.raises(TypeError, match="cannot perform __floordiv__"):
+
+        floordiv_err = lmsg.replace("*", "//")
+        with pytest.raises(TypeError, match=floordiv_err):
             idx // 1
-        with pytest.raises(TypeError, match="cannot perform __rfloordiv__"):
+        floordiv_err = rmsg.replace("*", "//")
+        with pytest.raises(TypeError, match=floordiv_err):
             1 // idx
 
     def test_logical_compat(self):
@@ -169,47 +189,6 @@ class Base:
             idx.all()
         with pytest.raises(TypeError, match="cannot perform any"):
             idx.any()
-
-    def test_reindex_base(self):
-        idx = self.create_index()
-        expected = np.arange(idx.size, dtype=np.intp)
-
-        actual = idx.get_indexer(idx)
-        tm.assert_numpy_array_equal(expected, actual)
-
-        with pytest.raises(ValueError, match="Invalid fill method"):
-            idx.get_indexer(idx, method="invalid")
-
-    def test_get_indexer_consistency(self, indices):
-        # See GH 16819
-        if isinstance(indices, IntervalIndex):
-            return
-
-        if indices.is_unique or isinstance(indices, CategoricalIndex):
-            indexer = indices.get_indexer(indices[0:2])
-            assert isinstance(indexer, np.ndarray)
-            assert indexer.dtype == np.intp
-        else:
-            e = "Reindexing only valid with uniquely valued Index objects"
-            with pytest.raises(InvalidIndexError, match=e):
-                indices.get_indexer(indices[0:2])
-
-        indexer, _ = indices.get_indexer_non_unique(indices[0:2])
-        assert isinstance(indexer, np.ndarray)
-        assert indexer.dtype == np.intp
-
-    def test_ndarray_compat_properties(self):
-        idx = self.create_index()
-        assert idx.T.equals(idx)
-        assert idx.transpose().equals(idx)
-
-        values = idx.values
-        for prop in self._compat_props:
-            assert getattr(idx, prop) == getattr(values, prop)
-
-        # test for validity
-        idx.nbytes
-        idx.values.nbytes
 
     def test_repr_roundtrip(self):
 
@@ -224,20 +203,20 @@ class Base:
             repr(idx)
             assert "..." not in str(idx)
 
-    def test_copy_name(self, indices):
+    def test_copy_name(self, index):
         # gh-12309: Check that the "name" argument
         # passed at initialization is honored.
-        if isinstance(indices, MultiIndex):
+        if isinstance(index, MultiIndex):
             return
 
-        first = type(indices)(indices, copy=True, name="mario")
+        first = type(index)(index, copy=True, name="mario")
         second = type(first)(first, copy=False)
 
         # Even though "copy=False", we want a new object.
         assert first is not second
 
         # Not using tm.assert_index_equal() since names differ.
-        assert indices.equals(first)
+        assert index.equals(first)
 
         assert first.name == "mario"
         assert second.name == "mario"
@@ -245,76 +224,90 @@ class Base:
         s1 = Series(2, index=first)
         s2 = Series(3, index=second[:-1])
 
-        if not isinstance(indices, CategoricalIndex):
+        if not isinstance(index, CategoricalIndex):
             # See gh-13365
             s3 = s1 * s2
             assert s3.index.name == "mario"
 
-    def test_ensure_copied_data(self, indices):
+    def test_copy_name2(self, index):
+        # gh-35592
+        if isinstance(index, MultiIndex):
+            return
+
+        assert index.copy(name="mario").name == "mario"
+
+        with pytest.raises(ValueError, match="Length of new names must be 1, got 2"):
+            index.copy(name=["mario", "luigi"])
+
+        msg = f"{type(index).__name__}.name must be a hashable type"
+        with pytest.raises(TypeError, match=msg):
+            index.copy(name=[["mario"]])
+
+    def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
         # GH12309
         init_kwargs = {}
-        if isinstance(indices, PeriodIndex):
+        if isinstance(index, PeriodIndex):
             # Needs "freq" specification:
-            init_kwargs["freq"] = indices.freq
-        elif isinstance(indices, (RangeIndex, MultiIndex, CategoricalIndex)):
+            init_kwargs["freq"] = index.freq
+        elif isinstance(index, (RangeIndex, MultiIndex, CategoricalIndex)):
             # RangeIndex cannot be initialized from data
             # MultiIndex and CategoricalIndex are tested separately
             return
 
-        index_type = type(indices)
-        result = index_type(indices.values, copy=True, **init_kwargs)
-        if is_datetime64tz_dtype(indices.dtype):
-            result = result.tz_localize("UTC").tz_convert(indices.tz)
+        index_type = type(index)
+        result = index_type(index.values, copy=True, **init_kwargs)
+        if is_datetime64tz_dtype(index.dtype):
+            result = result.tz_localize("UTC").tz_convert(index.tz)
+        if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
+            index = index._with_freq(None)
 
-        tm.assert_index_equal(indices, result)
+        tm.assert_index_equal(index, result)
 
-        if isinstance(indices, PeriodIndex):
+        if isinstance(index, PeriodIndex):
             # .values an object array of Period, thus copied
-            result = index_type(ordinal=indices.asi8, copy=False, **init_kwargs)
-            tm.assert_numpy_array_equal(indices.asi8, result.asi8, check_same="same")
-        elif isinstance(indices, IntervalIndex):
+            result = index_type(ordinal=index.asi8, copy=False, **init_kwargs)
+            tm.assert_numpy_array_equal(index.asi8, result.asi8, check_same="same")
+        elif isinstance(index, IntervalIndex):
             # checked in test_interval.py
             pass
         else:
-            result = index_type(indices.values, copy=False, **init_kwargs)
-            tm.assert_numpy_array_equal(
-                indices.values, result.values, check_same="same"
-            )
+            result = index_type(index.values, copy=False, **init_kwargs)
+            tm.assert_numpy_array_equal(index.values, result.values, check_same="same")
 
-    def test_memory_usage(self, indices):
-        indices._engine.clear_mapping()
-        result = indices.memory_usage()
-        if indices.empty:
+    def test_memory_usage(self, index):
+        index._engine.clear_mapping()
+        result = index.memory_usage()
+        if index.empty:
             # we report 0 for no-length
             assert result == 0
             return
 
         # non-zero length
-        indices.get_loc(indices[0])
-        result2 = indices.memory_usage()
-        result3 = indices.memory_usage(deep=True)
+        index.get_loc(index[0])
+        result2 = index.memory_usage()
+        result3 = index.memory_usage(deep=True)
 
         # RangeIndex, IntervalIndex
         # don't have engines
-        if not isinstance(indices, (RangeIndex, IntervalIndex)):
+        if not isinstance(index, (RangeIndex, IntervalIndex)):
             assert result2 > result
 
-        if indices.inferred_type == "object":
+        if index.inferred_type == "object":
             assert result3 > result2
 
-    def test_argsort(self, request, indices):
+    def test_argsort(self, request, index):
         # separately tested
-        if isinstance(indices, CategoricalIndex):
+        if isinstance(index, CategoricalIndex):
             return
 
-        result = indices.argsort()
-        expected = np.array(indices).argsort()
+        result = index.argsort()
+        expected = np.array(index).argsort()
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
-    def test_numpy_argsort(self, indices):
-        result = np.argsort(indices)
-        expected = indices.argsort()
+    def test_numpy_argsort(self, index):
+        result = np.argsort(index)
+        expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)
 
         # these are the only two types that perform
@@ -324,59 +317,29 @@ class Base:
         # defined in pandas.core.indexes/base.py - they
         # cannot be changed at the moment due to
         # backwards compatibility concerns
-        if isinstance(type(indices), (CategoricalIndex, RangeIndex)):
+        if isinstance(type(index), (CategoricalIndex, RangeIndex)):
+            # TODO: why type(index)?
             msg = "the 'axis' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
-                np.argsort(indices, axis=1)
+                np.argsort(index, axis=1)
 
             msg = "the 'kind' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
-                np.argsort(indices, kind="mergesort")
+                np.argsort(index, kind="mergesort")
 
             msg = "the 'order' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
-                np.argsort(indices, order=("a", "b"))
-
-    def test_take(self, indices):
-        indexer = [4, 3, 0, 2]
-        if len(indices) < 5:
-            # not enough elements; ignore
-            return
-
-        result = indices.take(indexer)
-        expected = indices[indexer]
-        assert result.equals(expected)
-
-        if not isinstance(indices, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-            # GH 10791
-            with pytest.raises(AttributeError):
-                indices.freq
-
-    def test_take_invalid_kwargs(self):
-        idx = self.create_index()
-        indices = [1, 2]
-
-        msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        with pytest.raises(TypeError, match=msg):
-            idx.take(indices, foo=2)
-
-        msg = "the 'out' parameter is not supported"
-        with pytest.raises(ValueError, match=msg):
-            idx.take(indices, out=indices)
-
-        msg = "the 'mode' parameter is not supported"
-        with pytest.raises(ValueError, match=msg):
-            idx.take(indices, mode="clip")
+                np.argsort(index, order=("a", "b"))
 
     def test_repeat(self):
         rep = 2
         i = self.create_index()
-        expected = pd.Index(i.values.repeat(rep), name=i.name)
+        expected = Index(i.values.repeat(rep), name=i.name)
         tm.assert_index_equal(i.repeat(rep), expected)
 
         i = self.create_index()
         rep = np.arange(len(i))
-        expected = pd.Index(i.values.repeat(rep), name=i.name)
+        expected = Index(i.values.repeat(rep), name=i.name)
         tm.assert_index_equal(i.repeat(rep), expected)
 
     def test_numpy_repeat(self):
@@ -392,6 +355,9 @@ class Base:
     @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
     def test_where(self, klass):
         i = self.create_index()
+        if isinstance(i, (DatetimeIndex, TimedeltaIndex)):
+            # where does not preserve freq
+            i = i._with_freq(None)
 
         cond = [True] * len(i)
         result = i.where(klass(cond))
@@ -399,176 +365,68 @@ class Base:
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * len(i[1:])
-        expected = pd.Index([i._na_value] + i[1:].tolist(), dtype=i.dtype)
+        expected = Index([i._na_value] + i[1:].tolist(), dtype=i.dtype)
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("case", [0.5, "xxx"])
-    @pytest.mark.parametrize(
-        "method", ["intersection", "union", "difference", "symmetric_difference"]
-    )
-    def test_set_ops_error_cases(self, case, method, indices):
-        # non-iterable input
-        msg = "Input must be Index or array-like"
-        with pytest.raises(TypeError, match=msg):
-            getattr(indices, method)(case)
+    def test_insert_base(self, index):
+        result = index[1:4]
 
-    def test_intersection_base(self, indices):
-        if isinstance(indices, CategoricalIndex):
-            return
-
-        first = indices[:5]
-        second = indices[:3]
-        intersect = first.intersection(second)
-        assert tm.equalContents(intersect, second)
-
-        if is_datetime64tz_dtype(indices.dtype):
-            # The second.values below will drop tz, so the rest of this test
-            #  is not applicable.
-            return
-
-        # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            result = first.intersection(case)
-            assert tm.equalContents(result, second)
-
-        if isinstance(indices, MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.intersection([1, 2, 3])
-
-    def test_union_base(self, indices):
-        first = indices[3:]
-        second = indices[:5]
-        everything = indices
-        union = first.union(second)
-        assert tm.equalContents(union, everything)
-
-        if is_datetime64tz_dtype(indices.dtype):
-            # The second.values below will drop tz, so the rest of this test
-            #  is not applicable.
-            return
-
-        # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            if not isinstance(indices, CategoricalIndex):
-                result = first.union(case)
-                assert tm.equalContents(result, everything)
-
-        if isinstance(indices, MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.union([1, 2, 3])
-
-    def test_difference_base(self, sort, indices):
-        first = indices[2:]
-        second = indices[:4]
-        if isinstance(indices, CategoricalIndex) or indices.is_boolean():
-            answer = []
-        else:
-            answer = indices[4:]
-        result = first.difference(second, sort)
-        assert tm.equalContents(result, answer)
-
-        # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            if isinstance(indices, (DatetimeIndex, TimedeltaIndex)):
-                assert type(result) == type(answer)
-                tm.assert_numpy_array_equal(
-                    result.sort_values().asi8, answer.sort_values().asi8
-                )
-            else:
-                result = first.difference(case, sort)
-                assert tm.equalContents(result, answer)
-
-        if isinstance(indices, MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.difference([1, 2, 3], sort)
-
-    def test_symmetric_difference(self, indices):
-        if isinstance(indices, CategoricalIndex):
-            return
-
-        first = indices[1:]
-        second = indices[:-1]
-        answer = indices[[0, -1]]
-        result = first.symmetric_difference(second)
-        assert tm.equalContents(result, answer)
-
-        # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            result = first.symmetric_difference(case)
-            assert tm.equalContents(result, answer)
-
-        if isinstance(indices, MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.symmetric_difference([1, 2, 3])
-
-    def test_insert_base(self, indices):
-        result = indices[1:4]
-
-        if not len(indices):
+        if not len(index):
             return
 
         # test 0th element
-        assert indices[0:4].equals(result.insert(0, indices[0]))
+        assert index[0:4].equals(result.insert(0, index[0]))
 
-    def test_delete_base(self, indices):
-        if not len(indices):
+    def test_delete_base(self, index):
+        if not len(index):
             return
 
-        if isinstance(indices, RangeIndex):
+        if isinstance(index, RangeIndex):
             # tested in class
             return
 
-        expected = indices[1:]
-        result = indices.delete(0)
+        expected = index[1:]
+        result = index.delete(0)
         assert result.equals(expected)
         assert result.name == expected.name
 
-        expected = indices[:-1]
-        result = indices.delete(-1)
+        expected = index[:-1]
+        result = index.delete(-1)
         assert result.equals(expected)
         assert result.name == expected.name
 
-        with pytest.raises((IndexError, ValueError)):
-            # either depending on numpy version
-            indices.delete(len(indices))
+        length = len(index)
+        msg = f"index {length} is out of bounds for axis 0 with size {length}"
+        with pytest.raises(IndexError, match=msg):
+            index.delete(length)
 
-    def test_equals(self, indices):
-        if isinstance(indices, IntervalIndex):
-            # IntervalIndex tested separately
+    def test_equals(self, index):
+        if isinstance(index, IntervalIndex):
+            # IntervalIndex tested separately, the index.equals(index.astype(object))
+            #  fails for IntervalIndex
             return
 
-        assert indices.equals(indices)
-        assert indices.equals(indices.copy())
-        assert indices.equals(indices.astype(object))
+        assert index.equals(index)
+        assert index.equals(index.copy())
+        assert index.equals(index.astype(object))
 
-        assert not indices.equals(list(indices))
-        assert not indices.equals(np.array(indices))
+        assert not index.equals(list(index))
+        assert not index.equals(np.array(index))
 
         # Cannot pass in non-int64 dtype to RangeIndex
-        if not isinstance(indices, (RangeIndex, CategoricalIndex)):
-            # TODO: CategoricalIndex can be re-allowed following GH#32167
-            same_values = Index(indices, dtype=object)
-            assert indices.equals(same_values)
-            assert same_values.equals(indices)
+        if not isinstance(index, RangeIndex):
+            same_values = Index(index, dtype=object)
+            assert index.equals(same_values)
+            assert same_values.equals(index)
 
-        if indices.nlevels == 1:
+        if index.nlevels == 1:
             # do not test MultiIndex
-            assert not indices.equals(Series(indices))
+            assert not index.equals(Series(index))
 
     def test_equals_op(self):
         # GH9947, GH10637
         index_a = self.create_index()
-        if isinstance(index_a, PeriodIndex):
-            pytest.skip("Skip check for PeriodIndex")
 
         n = len(index_a)
         index_b = index_a[0:-1]
@@ -626,52 +484,64 @@ class Base:
             # assuming the 2nd to last item is unique in the data
             item = index_a[-2]
             tm.assert_numpy_array_equal(index_a == item, expected3)
+            # For RangeIndex we can convert to Int64Index
             tm.assert_series_equal(series_a == item, Series(expected3))
 
-    def test_hasnans_isnans(self, indices):
+    def test_format(self):
+        # GH35439
+        idx = self.create_index()
+        expected = [str(x) for x in idx]
+        assert idx.format() == expected
+
+    def test_format_empty(self):
+        # GH35712
+        empty_idx = self._holder([])
+        assert empty_idx.format() == []
+        assert empty_idx.format(name=True) == [""]
+
+    def test_hasnans_isnans(self, index_flat):
         # GH 11343, added tests for hasnans / isnans
-        if isinstance(indices, MultiIndex):
-            return
+        index = index_flat
 
         # cases in indices doesn't include NaN
-        idx = indices.copy(deep=True)
+        idx = index.copy(deep=True)
         expected = np.array([False] * len(idx), dtype=bool)
         tm.assert_numpy_array_equal(idx._isnan, expected)
         assert idx.hasnans is False
 
-        idx = indices.copy(deep=True)
+        idx = index.copy(deep=True)
         values = np.asarray(idx.values)
 
-        if len(indices) == 0:
+        if len(index) == 0:
             return
-        elif isinstance(indices, DatetimeIndexOpsMixin):
+        elif isinstance(index, DatetimeIndexOpsMixin):
             values[1] = iNaT
-        elif isinstance(indices, (Int64Index, UInt64Index)):
+        elif isinstance(index, (Int64Index, UInt64Index)):
             return
         else:
             values[1] = np.nan
 
-        if isinstance(indices, PeriodIndex):
-            idx = type(indices)(values, freq=indices.freq)
+        if isinstance(index, PeriodIndex):
+            idx = type(index)(values, freq=index.freq)
         else:
-            idx = type(indices)(values)
+            idx = type(index)(values)
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
             tm.assert_numpy_array_equal(idx._isnan, expected)
             assert idx.hasnans is True
 
-    def test_fillna(self, indices):
+    def test_fillna(self, index):
         # GH 11343
-        if len(indices) == 0:
+        if len(index) == 0:
             pass
-        elif isinstance(indices, MultiIndex):
-            idx = indices.copy(deep=True)
+        elif isinstance(index, MultiIndex):
+            idx = index.copy(deep=True)
             msg = "isna is not defined for MultiIndex"
             with pytest.raises(NotImplementedError, match=msg):
                 idx.fillna(idx[0])
         else:
-            idx = indices.copy(deep=True)
+            idx = index.copy(deep=True)
             result = idx.fillna(idx[0])
             tm.assert_index_equal(result, idx)
             assert result is not idx
@@ -680,47 +550,43 @@ class Base:
             with pytest.raises(TypeError, match=msg):
                 idx.fillna([idx[0]])
 
-            idx = indices.copy(deep=True)
+            idx = index.copy(deep=True)
             values = np.asarray(idx.values)
 
-            if isinstance(indices, DatetimeIndexOpsMixin):
+            if isinstance(index, DatetimeIndexOpsMixin):
                 values[1] = iNaT
-            elif isinstance(indices, (Int64Index, UInt64Index)):
+            elif isinstance(index, (Int64Index, UInt64Index)):
                 return
             else:
                 values[1] = np.nan
 
-            if isinstance(indices, PeriodIndex):
-                idx = type(indices)(values, freq=indices.freq)
+            if isinstance(index, PeriodIndex):
+                idx = type(index)(values, freq=index.freq)
             else:
-                idx = type(indices)(values)
+                idx = type(index)(values)
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
             tm.assert_numpy_array_equal(idx._isnan, expected)
             assert idx.hasnans is True
 
-    def test_nulls(self, indices):
+    def test_nulls(self, index):
         # this is really a smoke test for the methods
         # as these are adequately tested for function elsewhere
-        if len(indices) == 0:
-            tm.assert_numpy_array_equal(indices.isna(), np.array([], dtype=bool))
-        elif isinstance(indices, MultiIndex):
-            idx = indices.copy()
+        if len(index) == 0:
+            tm.assert_numpy_array_equal(index.isna(), np.array([], dtype=bool))
+        elif isinstance(index, MultiIndex):
+            idx = index.copy()
             msg = "isna is not defined for MultiIndex"
             with pytest.raises(NotImplementedError, match=msg):
                 idx.isna()
-        elif not indices.hasnans:
-            tm.assert_numpy_array_equal(
-                indices.isna(), np.zeros(len(indices), dtype=bool)
-            )
-            tm.assert_numpy_array_equal(
-                indices.notna(), np.ones(len(indices), dtype=bool)
-            )
+        elif not index.hasnans:
+            tm.assert_numpy_array_equal(index.isna(), np.zeros(len(index), dtype=bool))
+            tm.assert_numpy_array_equal(index.notna(), np.ones(len(index), dtype=bool))
         else:
-            result = isna(indices)
-            tm.assert_numpy_array_equal(indices.isna(), result)
-            tm.assert_numpy_array_equal(indices.notna(), ~result)
+            result = isna(index)
+            tm.assert_numpy_array_equal(index.isna(), result)
+            tm.assert_numpy_array_equal(index.notna(), ~result)
 
     def test_empty(self):
         # GH 15270
@@ -739,40 +605,42 @@ class Base:
         index = self.create_index()
 
         # we don't infer UInt64
-        if isinstance(index, pd.UInt64Index):
+        if isinstance(index, UInt64Index):
             expected = index.astype("int64")
         else:
             expected = index
 
         result = index.map(lambda x: x)
+        # For RangeIndex we convert to Int64Index
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index)},
-            lambda values, index: pd.Series(values, index),
+            lambda values, index: Series(values, index),
         ],
     )
     def test_map_dictlike(self, mapper):
 
         index = self.create_index()
-        if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
+        if isinstance(index, CategoricalIndex):
             pytest.skip(f"skipping tests for {type(index)}")
 
         identity = mapper(index.values, index)
 
         # we don't infer to UInt64 for a dict
-        if isinstance(index, pd.UInt64Index) and isinstance(identity, dict):
+        if isinstance(index, UInt64Index) and isinstance(identity, dict):
             expected = index.astype("int64")
         else:
             expected = index
 
         result = index.map(identity)
+        # For RangeIndex we convert to Int64Index
         tm.assert_index_equal(result, expected)
 
         # empty mappable
-        expected = pd.Index([np.nan] * len(index))
+        expected = Index([np.nan] * len(index))
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
 
@@ -782,19 +650,6 @@ class Base:
         result = index.map(str)
         expected = Index([str(x) for x in index], dtype=object)
         tm.assert_index_equal(result, expected)
-
-    def test_putmask_with_wrong_mask(self):
-        # GH18368
-        index = self.create_index()
-
-        with pytest.raises(ValueError):
-            index.putmask(np.ones(len(index) + 1, np.bool), 1)
-
-        with pytest.raises(ValueError):
-            index.putmask(np.ones(len(index) - 1, np.bool), 1)
-
-        with pytest.raises(ValueError):
-            index.putmask("foo", 1)
 
     @pytest.mark.parametrize("copy", [True, False])
     @pytest.mark.parametrize("name", [None, "foo"])
@@ -844,6 +699,7 @@ class Base:
         index_na_dup = index_na.insert(0, np.nan)
         assert index_na_dup.is_unique is False
 
+    @pytest.mark.arm_slow
     def test_engine_reference_cycle(self):
         # GH27585
         index = self.create_index()
@@ -854,41 +710,27 @@ class Base:
     def test_getitem_2d_deprecated(self):
         # GH#30588
         idx = self.create_index()
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             res = idx[:, None]
 
         assert isinstance(res, np.ndarray), type(res)
 
-    def test_contains_requires_hashable_raises(self):
-        idx = self.create_index()
-        with pytest.raises(TypeError, match="unhashable type"):
-            [] in idx
-
-        with pytest.raises(TypeError):
-            {} in idx._engine
-
-    def test_copy_copies_cache(self):
-        # GH32898
+    def test_copy_shares_cache(self):
+        # GH32898, GH36840
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
         copy = idx.copy()
 
-        # check that the copied cache is a copy of the original
-        assert idx._cache == copy._cache
-        assert idx._cache is not copy._cache
-        # cache values should reference the same object
-        for key, val in idx._cache.items():
-            assert copy._cache[key] is val, key
+        assert copy._cache is idx._cache
 
-    def test_shallow_copy_copies_cache(self):
-        # GH32669
+    def test_shallow_copy_shares_cache(self):
+        # GH32669, GH36840
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
-        shallow_copy = idx._shallow_copy()
+        shallow_copy = idx._view()
 
-        # check that the shallow_copied cache is a copy of the original
-        assert idx._cache == shallow_copy._cache
-        assert idx._cache is not shallow_copy._cache
-        # cache values should reference the same object
-        for key, val in idx._cache.items():
-            assert shallow_copy._cache[key] is val, key
+        assert shallow_copy._cache is idx._cache
+
+        shallow_copy = idx._shallow_copy(idx._data)
+        assert shallow_copy._cache is not idx._cache
+        assert shallow_copy._cache == {}

@@ -1,7 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import (
+    CategoricalDtype,
+    DataFrame,
+    NaT,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -56,3 +62,65 @@ class TestUpdate:
         ser.update(other)
 
         tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize(
+        "series, other, expected",
+        [
+            # update by key
+            (
+                Series({"a": 1, "b": 2, "c": 3, "d": 4}),
+                {"b": 5, "c": np.nan},
+                Series({"a": 1, "b": 5, "c": 3, "d": 4}),
+            ),
+            # update by position
+            (Series([1, 2, 3, 4]), [np.nan, 5, 1], Series([1, 5, 1, 4])),
+        ],
+    )
+    def test_update_from_non_series(self, series, other, expected):
+        # GH 33215
+        series.update(other)
+        tm.assert_series_equal(series, expected)
+
+    @pytest.mark.parametrize(
+        "result, target, expected",
+        [
+            (
+                Series(["a", None], dtype="string"),
+                Series([None, "b"], dtype="string"),
+                Series(["a", "b"], dtype="string"),
+            ),
+            (
+                Series([1, None], dtype="Int64"),
+                Series([None, 2], dtype="Int64"),
+                Series([1, 2], dtype="Int64"),
+            ),
+            (
+                Series([True, None], dtype="boolean"),
+                Series([None, False], dtype="boolean"),
+                Series([True, False], dtype="boolean"),
+            ),
+            (
+                Series(["a", None], dtype=CategoricalDtype(categories=["a", "b"])),
+                Series([None, "b"], dtype=CategoricalDtype(categories=["a", "b"])),
+                Series(["a", "b"], dtype=CategoricalDtype(categories=["a", "b"])),
+            ),
+            (
+                Series([Timestamp(year=2020, month=1, day=1, tz="Europe/London"), NaT]),
+                Series([NaT, Timestamp(year=2020, month=1, day=1, tz="Europe/London")]),
+                Series([Timestamp(year=2020, month=1, day=1, tz="Europe/London")] * 2),
+            ),
+        ],
+    )
+    def test_update_extension_array_series(self, result, target, expected):
+        result.update(target)
+        tm.assert_series_equal(result, expected)
+
+    def test_update_with_categorical_type(self):
+        # GH 25744
+        dtype = CategoricalDtype(["a", "b", "c", "d"])
+        s1 = Series(["a", "b", "c"], index=[1, 2, 3], dtype=dtype)
+        s2 = Series(["b", "a"], index=[1, 2], dtype=dtype)
+        s1.update(s2)
+        result = s1
+        expected = Series(["b", "a", "c"], index=[1, 2, 3], dtype=dtype)
+        tm.assert_series_equal(result, expected)

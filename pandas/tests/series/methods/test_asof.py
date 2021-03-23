@@ -3,7 +3,14 @@ import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas import Series, Timestamp, date_range, isna, notna, offsets
+from pandas import (
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+    notna,
+    offsets,
+)
 import pandas._testing as tm
 
 
@@ -90,7 +97,10 @@ class TestSeriesAsof:
         tm.assert_series_equal(result, expected)
 
     def test_periodindex(self):
-        from pandas import period_range, PeriodIndex
+        from pandas import (
+            PeriodIndex,
+            period_range,
+        )
 
         # array or list or dates
         N = 50
@@ -148,22 +158,19 @@ class TestSeriesAsof:
 
         # non-monotonic
         assert not s.index.is_monotonic
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="requires a sorted index"):
             s.asof(s.index[0])
 
         # subset with Series
         N = 10
         rng = date_range("1/1/1990", periods=N, freq="53s")
         s = Series(np.random.randn(N), index=rng)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="not valid for Series"):
             s.asof(s.index[0], subset="foo")
 
     def test_all_nans(self):
         # GH 15713
         # series is all nans
-        result = Series([np.nan]).asof([0])
-        expected = Series([np.nan])
-        tm.assert_series_equal(result, expected)
 
         # testing non-default indexes
         N = 50

@@ -12,14 +12,47 @@ So this file is somewhat an extensions to `ci/code_checks.sh`
 
 import argparse
 import ast
-import os
 import sys
 import token
 import tokenize
-from typing import IO, Callable, Iterable, List, Tuple
+from typing import (
+    IO,
+    Callable,
+    Iterable,
+    List,
+    Set,
+    Tuple,
+)
 
-FILE_EXTENSIONS_TO_CHECK: Tuple[str, ...] = (".py", ".pyx", ".pxi.ini", ".pxd")
-PATHS_TO_IGNORE: Tuple[str, ...] = ("asv_bench/env",)
+PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
+    "_extension_array_shared_docs",
+    "_index_shared_docs",
+    "_interval_shared_docs",
+    "_merge_doc",
+    "_shared_docs",
+    "_apply_docs",
+    "_new_Index",
+    "_new_PeriodIndex",
+    "_doc_template",
+    "_agg_template",
+    "_pipe_template",
+    "__main__",
+    "_transform_template",
+    "_flex_comp_doc_FRAME",
+    "_op_descriptions",
+    "_IntegerDtype",
+    "_use_inf_as_na",
+    "_get_plot_backend",
+    "_matplotlib",
+    "_arrow_utils",
+    "_registry",
+    "_get_offset",  # TODO: remove after get_offset deprecation enforced
+    "_test_parse_iso8601",
+    "_json_normalize",  # TODO: remove after deprecation is enforced
+    "_testing",
+    "_test_decorators",
+    "__version__",  # check np.__version__ in compat.numpy.function
+}
 
 
 def _get_literal_string_prefix_len(token_string: str) -> int:
@@ -113,6 +146,88 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
                     "Bare pytests raise have been found. "
                     "Please pass in the argument 'match' as well the exception.",
                 )
+
+
+PRIVATE_FUNCTIONS_ALLOWED = {"sys._getframe"}  # no known alternative
+
+
+def private_function_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+    """
+    Checking that a private function is not used across modules.
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+    Yields
+    ------
+    line_number : int
+        Line number of the private function that is used across modules.
+    msg : str
+        Explenation of the error.
+    """
+    contents = file_obj.read()
+    tree = ast.parse(contents)
+
+    imported_modules: Set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            for module in node.names:
+                module_fqdn = module.name if module.asname is None else module.asname
+                imported_modules.add(module_fqdn)
+
+        if not isinstance(node, ast.Call):
+            continue
+
+        try:
+            module_name = node.func.value.id
+            function_name = node.func.attr
+        except AttributeError:
+            continue
+
+        # Exception section #
+
+        # (Debatable) Class case
+        if module_name[0].isupper():
+            continue
+        # (Debatable) Dunder methods case
+        elif function_name.startswith("__") and function_name.endswith("__"):
+            continue
+        elif module_name + "." + function_name in PRIVATE_FUNCTIONS_ALLOWED:
+            continue
+
+        if module_name in imported_modules and function_name.startswith("_"):
+            yield (node.lineno, f"Private function '{module_name}.{function_name}'")
+
+
+def private_import_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+    """
+    Checking that a private function is not imported across modules.
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+    Yields
+    ------
+    line_number : int
+        Line number of import statement, that imports the private function.
+    msg : str
+        Explenation of the error.
+    """
+    contents = file_obj.read()
+    tree = ast.parse(contents)
+
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom)):
+            continue
+
+        for module in node.names:
+            module_name = module.name.split(".")[-1]
+            if module_name in PRIVATE_IMPORTS_TO_IGNORE:
+                continue
+
+            if module_name.startswith("_"):
+                yield (node.lineno, f"Import of internal function {repr(module_name)}")
 
 
 def strings_to_concatenate(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
@@ -305,6 +420,10 @@ def main(
         Source path representing path to a file/directory.
     output_format : str
         Output format of the error message.
+    file_extensions_to_check : str
+        Comma separated values of what file extensions to check.
+    excluded_file_paths : str
+        Comma separated values of what file paths to exclude during the check.
 
     Returns
     -------
@@ -316,15 +435,10 @@ def main(
     ValueError
         If the `source_path` is not pointing to existing file/directory.
     """
-    if not os.path.exists(source_path):
-        raise ValueError("Please enter a valid path, pointing to a file/directory.")
-
     is_failed: bool = False
-    file_path: str = ""
 
-    if os.path.isfile(source_path):
-        file_path = source_path
-        with open(file_path, "r") as file_obj:
+    for file_path in source_path:
+        with open(file_path, encoding="utf-8") as file_obj:
             for line_number, msg in function(file_obj):
                 is_failed = True
                 print(
@@ -333,44 +447,25 @@ def main(
                     )
                 )
 
-    for subdir, _, files in os.walk(source_path):
-        if any(path in subdir for path in PATHS_TO_IGNORE):
-            continue
-        for file_name in files:
-            if not any(
-                file_name.endswith(extension) for extension in FILE_EXTENSIONS_TO_CHECK
-            ):
-                continue
-
-            file_path = os.path.join(subdir, file_name)
-            with open(file_path, "r") as file_obj:
-                for line_number, msg in function(file_obj):
-                    is_failed = True
-                    print(
-                        output_format.format(
-                            source_path=file_path, line_number=line_number, msg=msg
-                        )
-                    )
-
     return is_failed
 
 
 if __name__ == "__main__":
     available_validation_types: List[str] = [
         "bare_pytest_raises",
+        "private_function_across_module",
+        "private_import_across_module",
         "strings_to_concatenate",
         "strings_with_wrong_placed_whitespace",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
 
-    parser.add_argument(
-        "path", nargs="?", default=".", help="Source path of file/directory to check."
-    )
+    parser.add_argument("paths", nargs="*", help="Source paths of files to check.")
     parser.add_argument(
         "--format",
         "-f",
-        default="{source_path}:{line_number}:{msg}.",
+        default="{source_path}:{line_number}:{msg}",
         help="Output format of the error message.",
     )
     parser.add_argument(
@@ -385,8 +480,8 @@ if __name__ == "__main__":
 
     sys.exit(
         main(
-            function=globals().get(args.validation_type),  # type: ignore
-            source_path=args.path,
+            function=globals().get(args.validation_type),
+            source_path=args.paths,
             output_format=args.format,
         )
     )

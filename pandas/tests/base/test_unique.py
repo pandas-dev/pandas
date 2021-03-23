@@ -1,9 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype, needs_i8_conversion
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    needs_i8_conversion,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -23,7 +26,7 @@ def test_unique(index_or_series_obj):
         tm.assert_index_equal(result, expected)
     elif isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
-        if is_datetime64tz_dtype(obj):
+        if is_datetime64tz_dtype(obj.dtype):
             expected = expected.normalize()
         tm.assert_index_equal(result, expected)
     else:
@@ -43,7 +46,7 @@ def test_unique_null(null_obj, index_or_series_obj):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
     values = obj.values
-    if needs_i8_conversion(obj):
+    if needs_i8_conversion(obj.dtype):
         values[0:2] = iNaT
     else:
         values[0:2] = null_obj
@@ -61,7 +64,7 @@ def test_unique_null(null_obj, index_or_series_obj):
 
     if isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
-        if is_datetime64tz_dtype(obj):
+        if is_datetime64tz_dtype(obj.dtype):
             result = result.normalize()
             expected = expected.normalize()
         elif isinstance(obj, pd.CategoricalIndex):
@@ -89,7 +92,7 @@ def test_nunique_null(null_obj, index_or_series_obj):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
     values = obj.values
-    if needs_i8_conversion(obj):
+    if needs_i8_conversion(obj.dtype):
         values[0:2] = iNaT
     else:
         values[0:2] = null_obj
@@ -105,3 +108,27 @@ def test_nunique_null(null_obj, index_or_series_obj):
         num_unique_values = len(obj.unique())
         assert obj.nunique() == max(0, num_unique_values - 1)
         assert obj.nunique(dropna=False) == max(0, num_unique_values)
+
+
+@pytest.mark.parametrize(
+    "idx_or_series_w_bad_unicode", [pd.Index(["\ud83d"] * 2), pd.Series(["\ud83d"] * 2)]
+)
+def test_unique_bad_unicode(idx_or_series_w_bad_unicode):
+    # regression test for #34550
+    obj = idx_or_series_w_bad_unicode
+    result = obj.unique()
+
+    if isinstance(obj, pd.Index):
+        expected = pd.Index(["\ud83d"], dtype=object)
+        tm.assert_index_equal(result, expected)
+    else:
+        expected = np.array(["\ud83d"], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_nunique_dropna(dropna):
+    # GH37566
+    s = pd.Series(["yes", "yes", pd.NA, np.nan, None, pd.NaT])
+    res = s.nunique(dropna)
+    assert res == 1 if dropna else 5

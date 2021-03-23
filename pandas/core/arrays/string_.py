@@ -1,26 +1,53 @@
-import operator
-from typing import TYPE_CHECKING, Type, Union
+from __future__ import annotations
+
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Type,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    Dtype,
+    Scalar,
+)
+from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import pandas_dtype
-from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.inference import is_array_like
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_bool_dtype,
+    is_dtype_equal,
+    is_integer_dtype,
+    is_object_dtype,
+    is_string_dtype,
+    pandas_dtype,
+)
 
-from pandas import compat
 from pandas.core import ops
-from pandas.core.arrays import IntegerArray, PandasArray
+from pandas.core.array_algos import masked_reductions
+from pandas.core.arrays import (
+    FloatingArray,
+    IntegerArray,
+    PandasArray,
+)
+from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
 
 @register_extension_dtype
@@ -62,7 +89,7 @@ class StringDtype(ExtensionDtype):
         return str
 
     @classmethod
-    def construct_array_type(cls) -> Type["StringArray"]:
+    def construct_array_type(cls) -> Type[StringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -76,12 +103,12 @@ class StringDtype(ExtensionDtype):
         return "StringDtype"
 
     def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "StringArray":
+        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+    ) -> StringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -152,15 +179,21 @@ class StringArray(PandasArray):
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
 
-    Unlike ``object`` dtype arrays, ``StringArray`` doesn't allow non-string
-    values.
+    Unlike arrays instantiated with ``dtype="object"``, ``StringArray``
+    will convert the values to strings.
 
+    >>> pd.array(['1', 1], dtype="object")
+    <PandasArray>
+    ['1', 1]
+    Length: 2, dtype: object
     >>> pd.array(['1', 1], dtype="string")
-    Traceback (most recent call last):
-    ...
-    ValueError: StringArray requires an object-dtype ndarray of strings.
+    <StringArray>
+    ['1', '1']
+    Length: 2, dtype: string
 
-    For comparison methods, this returns a :class:`pandas.BooleanArray`
+    However, instantiating StringArrays directly with non-strings will raise an error.
+
+    For comparison methods, `StringArray` returns a :class:`pandas.BooleanArray`:
 
     >>> pd.array(["a", None, "c"], dtype="string") == "a"
     <BooleanArray>
@@ -173,11 +206,12 @@ class StringArray(PandasArray):
 
     def __init__(self, values, copy=False):
         values = extract_array(values)
-        skip_validation = isinstance(values, type(self))
 
         super().__init__(values, copy=copy)
-        self._dtype = StringDtype()
-        if not skip_validation:
+        # error: Incompatible types in assignment (expression has type "StringDtype",
+        # variable has type "PandasDtype")
+        self._dtype = StringDtype()  # type: ignore[assignment]
+        if not isinstance(values, type(self)):
             self._validate()
 
     def _validate(self):
@@ -191,28 +225,37 @@ class StringArray(PandasArray):
             )
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
         if dtype:
             assert dtype == "string"
 
-        result = np.asarray(scalars, dtype="object")
-        if copy and result is scalars:
-            result = result.copy()
+        from pandas.core.arrays.masked import BaseMaskedArray
 
-        # Standardize all missing-like values to NA
-        # TODO: it would be nice to do this in _validate / lib.is_string_array
-        # We are already doing a scan over the values there.
-        na_values = isna(result)
-        if na_values.any():
-            if result is scalars:
-                # force a copy now, if we haven't already
-                result = result.copy()
+        if isinstance(scalars, BaseMaskedArray):
+            # avoid costly conversion to object dtype
+            na_values = scalars._mask
+            result = scalars._data
+            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
             result[na_values] = StringDtype.na_value
 
-        return cls(result)
+        else:
+            # convert non-na-likes to str, and nan-likes to StringDtype.na_value
+            result = lib.ensure_string_array(
+                scalars, na_value=StringDtype.na_value, copy=copy
+            )
+
+        # Manually creating new array avoids the validation step in the __init__, so is
+        # faster. Refactor need for validation?
+        new_string_array = object.__new__(cls)
+        new_string_array._dtype = StringDtype()
+        new_string_array._ndarray = result
+
+        return new_string_array
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+    def _from_sequence_of_strings(
+        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+    ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     def __arrow_array__(self, type=None):
@@ -262,84 +305,159 @@ class StringArray(PandasArray):
 
         super().__setitem__(key, value)
 
-    def fillna(self, value=None, method=None, limit=None):
-        # TODO: validate dtype
-        return super().fillna(value, method, limit)
-
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
-        if isinstance(dtype, StringDtype):
+
+        if is_dtype_equal(dtype, self.dtype):
             if copy:
                 return self.copy()
             return self
+
         elif isinstance(dtype, _IntegerDtype):
             arr = self._ndarray.copy()
             mask = self.isna()
             arr[mask] = 0
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
+        elif isinstance(dtype, FloatingDtype):
+            # error: Incompatible types in assignment (expression has type
+            # "StringArray", variable has type "ndarray")
+            arr = self.copy()  # type: ignore[assignment]
+            mask = self.isna()
+            arr[mask] = "0"
+            values = arr.astype(dtype.numpy_dtype)
+            return FloatingArray(values, mask, copy=False)
+        elif np.issubdtype(dtype, np.floating):
+            arr = self._ndarray.copy()
+            mask = self.isna()
+            arr[mask] = 0
+            values = arr.astype(dtype)
+            values[mask] = np.nan
+            return values
 
         return super().astype(dtype, copy)
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+        if name in ["min", "max"]:
+            return getattr(self, name)(skipna=skipna)
+
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
-    def value_counts(self, dropna=False):
+    def min(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+        nv.validate_min((), kwargs)
+        result = masked_reductions.min(
+            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        )
+        return self._wrap_reduction_result(axis, result)
+
+    def max(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+        nv.validate_max((), kwargs)
+        result = masked_reductions.max(
+            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        )
+        return self._wrap_reduction_result(axis, result)
+
+    def value_counts(self, dropna: bool = True):
         from pandas import value_counts
 
         return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
-    # Override parent because we have different return types.
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        # Note: this handles both arithmetic and comparison methods.
-        def method(self, other):
-            from pandas.arrays import BooleanArray
+    def memory_usage(self, deep: bool = False) -> int:
+        result = self._ndarray.nbytes
+        if deep:
+            return result + lib.memory_usage_of_objects(self._ndarray)
+        return result
 
-            assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
+    def _cmp_method(self, other, op):
+        from pandas.arrays import BooleanArray
 
-            if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):
-                return NotImplemented
+        if isinstance(other, StringArray):
+            other = other._ndarray
 
-            elif isinstance(other, cls):
-                other = other._ndarray
+        mask = isna(self) | isna(other)
+        valid = ~mask
 
-            mask = isna(self) | isna(other)
-            valid = ~mask
+        if not lib.is_scalar(other):
+            if len(other) != len(self):
+                # prevent improper broadcasting when other is 2D
+                raise ValueError(
+                    f"Lengths of operands do not match: {len(self)} != {len(other)}"
+                )
 
-            if not lib.is_scalar(other):
-                if len(other) != len(self):
-                    # prevent improper broadcasting when other is 2D
-                    raise ValueError(
-                        f"Lengths of operands do not match: {len(self)} != {len(other)}"
-                    )
+            other = np.asarray(other)
+            other = other[valid]
 
-                other = np.asarray(other)
-                other = other[valid]
+        if op.__name__ in ops.ARITHMETIC_BINOPS:
+            result = np.empty_like(self._ndarray, dtype="object")
+            result[mask] = StringDtype.na_value
+            result[valid] = op(self._ndarray[valid], other)
+            return StringArray(result)
+        else:
+            # logical
+            result = np.zeros(len(self._ndarray), dtype="bool")
+            result[valid] = op(self._ndarray[valid], other)
+            return BooleanArray(result, mask)
 
-            if op.__name__ in ops.ARITHMETIC_BINOPS:
-                result = np.empty_like(self._ndarray, dtype="object")
-                result[mask] = StringDtype.na_value
-                result[valid] = op(self._ndarray[valid], other)
-                return StringArray(result)
+    _arith_method = _cmp_method
+
+    # ------------------------------------------------------------------------
+    # String methods interface
+    _str_na_value = StringDtype.na_value
+
+    def _str_map(self, f, na_value=None, dtype: Optional[Dtype] = None):
+        from pandas.arrays import (
+            BooleanArray,
+            IntegerArray,
+            StringArray,
+        )
+        from pandas.core.arrays.string_ import StringDtype
+
+        if dtype is None:
+            dtype = StringDtype()
+        if na_value is None:
+            na_value = self.dtype.na_value
+
+        mask = isna(self)
+        arr = np.asarray(self)
+
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            constructor: Union[Type[IntegerArray], Type[BooleanArray]]
+            if is_integer_dtype(dtype):
+                constructor = IntegerArray
             else:
-                # logical
-                result = np.zeros(len(self._ndarray), dtype="bool")
-                result[valid] = op(self._ndarray[valid], other)
-                return BooleanArray(result, mask)
+                constructor = BooleanArray
 
-        return compat.set_function_name(method, f"__{op.__name__}__", cls)
+            na_value_is_na = isna(na_value)
+            if na_value_is_na:
+                na_value = 1
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
+                # "object"
+                # error: Argument 1 to "dtype" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
+                # "Type[object]"
+                dtype=np.dtype(dtype),  # type: ignore[type-var,arg-type]
+            )
 
-    @classmethod
-    def _add_arithmetic_ops(cls):
-        cls.__add__ = cls._create_arithmetic_method(operator.add)
-        cls.__radd__ = cls._create_arithmetic_method(ops.radd)
+            if not na_value_is_na:
+                mask[:] = False
 
-        cls.__mul__ = cls._create_arithmetic_method(operator.mul)
-        cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
+            return constructor(result, mask)
 
-    _create_comparison_method = _create_arithmetic_method
-
-
-StringArray._add_arithmetic_ops()
-StringArray._add_comparison_ops()
+        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+            # i.e. StringDtype
+            result = lib.map_infer_mask(
+                arr, f, mask.view("uint8"), convert=False, na_value=na_value
+            )
+            return StringArray(result)
+        else:
+            # This is when the result type is object. We reach this when
+            # -> We know the result type is truly object (e.g. .encode returns bytes
+            #    or .findall returns a list).
+            # -> We don't know the result type. E.g. `.get` can return anything.
+            return lib.map_infer_mask(arr, f, mask.view("uint8"))

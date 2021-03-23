@@ -21,7 +21,7 @@ Installation
                 <div class="card-body">
                     <p class="card-text">
 
-pandas is part of the `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution and can be
+pandas is part of the `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution and can be
 installed with Anaconda or Miniconda:
 
 .. raw:: html
@@ -116,7 +116,7 @@ Intro to pandas
                 <div class="card-body">
 
 When working with tabular data, such as data stored in spreadsheets or databases, pandas is the right tool for you. pandas will help you
-to explore, clean and process your data. In pandas, a data table is called a :class:`DataFrame`.
+to explore, clean, and process your data. In pandas, a data table is called a :class:`DataFrame`.
 
 .. image:: ../_static/schemas/01_table_dataframe.svg
    :align: center
@@ -351,7 +351,7 @@ Adding a column to a :class:`DataFrame` based on existing data in other columns 
                 <div class="card-body">
 
 Basic statistics (mean, median, min, max, counts...) are easily calculable. These or custom aggregations can be applied on the entire
-data set, a sliding window of the data or grouped by categories. The latter is also known as the split-apply-combine approach.
+data set, a sliding window of the data, or grouped by categories. The latter is also known as the split-apply-combine approach.
 
 .. image:: ../_static/schemas/06_groupby.svg
    :align: center
@@ -398,7 +398,7 @@ data set, a sliding window of the data or grouped by categories. The latter is a
                 <div class="card-body">
 
 Change the structure of your data table in multiple ways. You can :func:`~pandas.melt` your data table from wide to long/tidy form or :func:`~pandas.pivot`
-from long to wide format. With aggregations built-in, a pivot table is created with a sinlge command.
+from long to wide format. With aggregations built-in, a pivot table is created with a single command.
 
 .. image:: ../_static/schemas/07_melt.svg
    :align: center
@@ -444,7 +444,7 @@ from long to wide format. With aggregations built-in, a pivot table is created w
             <div id="collapseEight" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Multiple tables can be concatenated both column wise as row wise and database-like join/merge operations are provided to combine multiple tables of data.
+Multiple tables can be concatenated both column wise and row wise as database-like join/merge operations are provided to combine multiple tables of data.
 
 .. image:: ../_static/schemas/08_concat_row.svg
    :align: center
@@ -533,7 +533,7 @@ pandas has great support for time series and has an extensive set of tools for w
             <div id="collapseTen" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Data sets do not only contain numerical data. pandas provides a wide range of functions to cleaning textual data and extract useful information from it.
+Data sets do not only contain numerical data. pandas provides a wide range of functions to clean textual data and extract useful information from it.
 
 .. raw:: html
 
@@ -547,7 +547,7 @@ Data sets do not only contain numerical data. pandas provides a wide range of fu
                         </span>
                         <span class="badge gs-badge-link">
 
-:ref:`To user guide <timeseries>`
+:ref:`To user guide <text>`
 
 .. raw:: html
 
@@ -618,6 +618,22 @@ the pandas-equivalent operations compared to software you already know:
 .. container:: custom-button
 
     :ref:`Learn more <compare_with_stata>`
+
+.. raw:: html
+
+                    </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                    <div class="card text-center intro-card shadow">
+                    <img src="../_static/spreadsheets/logo_excel.svg" class="card-img-top" alt="Excel logo" height="52">
+                    <div class="card-body flex-fill">
+                        <p class="card-text">Users of <a href="https://en.wikipedia.org/wiki/Microsoft_Excel">Excel</a>
+                            or other spreadsheet programs will find that many of the concepts are transferrable to pandas.</p>
+
+.. container:: custom-button
+
+    :ref:`Learn more <compare_with_spreadsheets>`
 
 .. raw:: html
 
