@@ -5678,7 +5678,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return label
 
-    def _searchsorted_monotonic(self, label, side="left"):
+    def _searchsorted_monotonic(self, label, side: str_t = "left"):
         if self.is_monotonic_increasing:
             return self.searchsorted(label, side=side)
         elif self.is_monotonic_decreasing:
