@@ -1244,7 +1244,7 @@ class Block(PandasObject):
         Take values according to indexer and return them as a block.bb
 
         """
-        # algos.take_nd dispatches for DatetimeTZBlock
+        # algos.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
         # so need to preserve types
         # sparse is treated like an ndarray, but needs .get_values() shaping
 
@@ -1443,7 +1443,7 @@ class ExtensionBlock(Block):
     Notes
     -----
     This holds all 3rd-party extension array types. It's also the immediate
-    parent class for our internal extension types' blocks.
+    parent class for our internal extension types' blocks, CategoricalBlock.
 
     ExtensionArrays are limited to 1-D.
     """
@@ -2017,6 +2017,11 @@ class ObjectBlock(Block):
         return True
 
 
+class CategoricalBlock(ExtensionBlock):
+    # this Block type is kept for backwards-compatibility
+    __slots__ = ()
+
+
 # -----------------------------------------------------------------
 # Constructor Helpers
 
@@ -2078,7 +2083,7 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
     elif isinstance(dtype, CategoricalDtype):
-        cls = ExtensionBlock
+        cls = CategoricalBlock
     elif vtype is Timestamp:
         cls = DatetimeTZBlock
     elif vtype is Interval or vtype is Period:

@@ -26,6 +26,7 @@ from pandas.core.internals.managers import (
 
 __all__ = [
     "Block",
+    "CategoricalBlock",
     "NumericBlock",
     "DatetimeBlock",
     "DatetimeTZBlock",
@@ -56,6 +57,8 @@ def __getattr__(name: str):
             DeprecationWarning,
             stacklevel=2,
         )
-        return ExtensionBlock
+        from pandas.core.internals.blocks import CategoricalBlock
+
+        return CategoricalBlock
 
     raise AttributeError(f"module 'pandas.core.internals' has no attribute '{name}'")
