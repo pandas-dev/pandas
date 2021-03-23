@@ -1756,6 +1756,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def _codes(self) -> np.ndarray:
         return self._ndarray
 
+    @_codes.setter
+    def _codes(self, value: np.ndarray):
+        self._ndarray = value
+
     def _from_backing_data(self, arr: np.ndarray) -> Categorical:
         assert isinstance(arr, np.ndarray)
         assert arr.dtype == self._ndarray.dtype
