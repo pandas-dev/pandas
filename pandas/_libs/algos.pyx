@@ -1075,9 +1075,17 @@ def rank_1d(
                 elif tiebreak == TIEBREAK_MAX:
                     for j in range(i - dups + 1, i + 1):
                         out[lexsort_indexer[j]] = i - grp_start + 1
+
+                # With n as the previous rank in the group and m as the number
+                # of duplicates in this stretch, if TIEBREAK_FIRST and ascending,
+                # then rankings should be n+1, n+2...n+m
                 elif tiebreak == TIEBREAK_FIRST:
                     for j in range(i - dups + 1, i + 1):
                         out[lexsort_indexer[j]] = j + 1 - grp_start
+
+                # If TIEBREAK_FIRST and descending, the ranking should be
+                # n+m, n+(m-1)...n+1. This is equivalent to
+                # (i - dups + 1) + (i - j + 1) - grp_start
                 elif tiebreak == TIEBREAK_FIRST_DESCENDING:
                     for j in range(i - dups + 1, i + 1):
                         out[lexsort_indexer[j]] = 2 * i - j - dups + 2 - grp_start
@@ -1157,9 +1165,17 @@ def rank_1d(
                     elif tiebreak == TIEBREAK_MAX:
                         for j in range(i - dups + 1, i + 1):
                             out[lexsort_indexer[j]] = i - grp_start + 1
+
+                    # With n as the previous rank in the group and m as the number
+                    # of duplicates in this stretch, if TIEBREAK_FIRST and ascending,
+                    # then rankings should be n + 1, n + 2 ... n + m
                     elif tiebreak == TIEBREAK_FIRST:
                         for j in range(i - dups + 1, i + 1):
                             out[lexsort_indexer[j]] = j + 1 - grp_start
+
+                    # If TIEBREAK_FIRST and descending, the ranking should be
+                    # n + m, n + (m - 1) ... n + 1. This is equivalent to
+                    # (i - dups + 1) + (i - j + 1) - grp_start
                     elif tiebreak == TIEBREAK_FIRST_DESCENDING:
                         for j in range(i - dups + 1, i + 1):
                             out[lexsort_indexer[j]] = 2 * i - j - dups + 2 - grp_start
