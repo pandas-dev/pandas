@@ -1334,8 +1334,7 @@ class NullArrayProxy:
         -------
         np.ndarray or ExtensionArray
         """
-        if is_extension_array_dtype(dtype):
-            dtype = cast(ExtensionDtype, dtype)
+        if isinstance(dtype, ExtensionDtype):
             empty = dtype.construct_array_type()._from_sequence([], dtype=dtype)
             indexer = -np.ones(self.n, dtype=np.intp)
             return empty.take(indexer, allow_fill=True)
