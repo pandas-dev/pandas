@@ -988,9 +988,12 @@ def rank_1d(
     else:
         mask = np.zeros(shape=len(masked_vals), dtype=np.uint8)
 
-    # If ascending and na_option == 'bottom' or descending and
-    # na_option == 'top' -> we want to rank NaN as the highest
-    # so fill with the maximum value for the type
+    # If `na_option == 'top'`, we want to assign the lowest rank
+    # to NaN regardless of ascending/descending. So if ascending,
+    # fill with lowest value of type to end up with lowest rank.
+    # If descending, fill with highest value since descending
+    # will flip the ordering to still end up with lowest rank.
+    # Symmetric logic applies to `na_option == 'bottom'`
     if ascending ^ (na_option == 'top'):
         if rank_t is object:
             nan_fill_val = Infinity()
@@ -1001,8 +1004,6 @@ def rank_1d(
         else:
             nan_fill_val = np.inf
         order = (masked_vals, mask, labels)
-
-    # Otherwise, fill with the lowest value of the type
     else:
         if rank_t is object:
             nan_fill_val = NegInfinity()
