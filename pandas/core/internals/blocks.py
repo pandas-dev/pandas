@@ -1286,7 +1286,8 @@ class Block(libinternals.Block, PandasObject):
 
         if noop:
             # TODO: avoid the downcasting at the end in this case?
-            result = values
+            # GH-39595: Always return a copy
+            result = values.copy()
         else:
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
