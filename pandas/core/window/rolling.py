@@ -912,8 +912,9 @@ class Window(BaseWindow):
     3  3  2
     4  4  1
 
-    >>> apply_func = lambda M: (M[:,0] * M[:,1]).sum(axis=0)
-    >>> df.rolling(3,  method='table').apply(apply_func, engine='numba', raw=True)
+    >>> def apply_func(M):
+    ...     return (M[:,0] * M[:,1]).sum(axis=0)
+    >>> df.rolling(3, method='table').apply(apply_func, engine='numba', raw=True)
           A     B
     0   NaN   NaN
     1   NaN   NaN
