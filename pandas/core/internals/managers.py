@@ -306,7 +306,7 @@ class BlockManager(DataManager):
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
-        return algos.take_nd(dtypes, self.blknos, allow_fill=False)
+        return dtypes.take(self.blknos)
 
     @property
     def arrays(self) -> List[ArrayLike]:
@@ -574,8 +574,7 @@ class BlockManager(DataManager):
 
         return type(self)(blocks, new_axes)
 
-    def where(self, other, cond, align: bool, errors: str, axis: int) -> BlockManager:
-        axis = self._normalize_axis(axis)
+    def where(self, other, cond, align: bool, errors: str) -> BlockManager:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -588,7 +587,6 @@ class BlockManager(DataManager):
             other=other,
             cond=cond,
             errors=errors,
-            axis=axis,
         )
 
     def setitem(self, indexer, value) -> BlockManager:
@@ -1179,7 +1177,7 @@ class BlockManager(DataManager):
             is_deleted = np.zeros(self.nblocks, dtype=np.bool_)
             is_deleted[removed_blknos] = True
 
-            new_blknos = np.empty(self.nblocks, dtype=np.int64)
+            new_blknos = np.empty(self.nblocks, dtype=np.intp)
             new_blknos.fill(-1)
             new_blknos[~is_deleted] = np.arange(self.nblocks - len(removed_blknos))
             self._blknos = new_blknos[self._blknos]
@@ -1839,13 +1837,9 @@ def _form_blocks(
         items_dict[block_type.__name__].append((i, v))
 
     blocks: List[Block] = []
-    if len(items_dict["FloatBlock"]):
-        float_blocks = _multi_blockify(items_dict["FloatBlock"])
-        blocks.extend(float_blocks)
-
     if len(items_dict["NumericBlock"]):
-        complex_blocks = _multi_blockify(items_dict["NumericBlock"])
-        blocks.extend(complex_blocks)
+        numeric_blocks = _multi_blockify(items_dict["NumericBlock"])
+        blocks.extend(numeric_blocks)
 
     if len(items_dict["TimeDeltaBlock"]):
         timedelta_blocks = _multi_blockify(items_dict["TimeDeltaBlock"])

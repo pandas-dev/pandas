@@ -2980,7 +2980,7 @@ class Index(IndexOpsMixin, PandasObject):
             missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
         if len(missing) > 0:
-            other_diff = algos.take_nd(rvals, missing, allow_fill=False)
+            other_diff = rvals.take(missing)
             result = concat_compat((lvals, other_diff))
         else:
             # error: Incompatible types in assignment (expression has type
@@ -4254,9 +4254,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if right_lev_indexer is not None:
-            right_indexer = algos.take_nd(
-                right_lev_indexer, join_index.codes[level], allow_fill=False
-            )
+            right_indexer = right_lev_indexer.take(join_index.codes[level])
         else:
             right_indexer = join_index.codes[level]
 
