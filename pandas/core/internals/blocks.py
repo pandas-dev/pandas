@@ -146,7 +146,7 @@ def maybe_split(meth: F) -> F:
     return cast(F, newfunc)
 
 
-class Block(PandasObject):
+class Block(libinternals.Block, PandasObject):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
     data structure
@@ -156,42 +156,13 @@ class Block(PandasObject):
 
     values: Union[np.ndarray, ExtensionArray]
 
-    __slots__ = ["_mgr_locs", "values", "ndim"]
+    __slots__ = ()
     is_numeric = False
     is_bool = False
     is_object = False
     is_extension = False
     _can_consolidate = True
     _validate_ndim = True
-
-    @classmethod
-    def _simple_new(
-        cls, values: ArrayLike, placement: BlockPlacement, ndim: int
-    ) -> Block:
-        """
-        Fastpath constructor, does *no* validation
-        """
-        obj = object.__new__(cls)
-        obj.ndim = ndim
-        obj.values = values
-        obj._mgr_locs = placement
-        return obj
-
-    def __init__(self, values, placement: BlockPlacement, ndim: int):
-        """
-        Parameters
-        ----------
-        values : np.ndarray or ExtensionArray
-            We assume maybe_coerce_values has already been called.
-        placement : BlockPlacement (or castable)
-        ndim : int
-            1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
-        """
-        assert isinstance(ndim, int)
-        assert isinstance(placement, BlockPlacement)
-        self.ndim = ndim
-        self._mgr_locs = placement
-        self.values = values
 
     @final
     @property
@@ -277,7 +248,6 @@ class Block(PandasObject):
 
     @mgr_locs.setter
     def mgr_locs(self, new_mgr_locs: BlockPlacement):
-        assert isinstance(new_mgr_locs, BlockPlacement)
         self._mgr_locs = new_mgr_locs
 
     @final
@@ -322,16 +292,6 @@ class Block(PandasObject):
     def __len__(self) -> int:
         return len(self.values)
 
-    @final
-    def __getstate__(self):
-        return self.mgr_locs.indexer, self.values
-
-    @final
-    def __setstate__(self, state):
-        self.mgr_locs = libinternals.BlockPlacement(state[0])
-        self.values = extract_array(state[1], extract_numpy=True)
-        self.ndim = self.values.ndim
-
     def _slice(self, slicer):
         """ return a slice of my values """
 
@@ -352,7 +312,7 @@ class Block(PandasObject):
         if new_values.ndim != self.values.ndim:
             raise ValueError("Only same dim slicing is allowed")
 
-        return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
+        return type(self)(new_values, new_mgr_locs, self.ndim)
 
     @final
     def getitem_block_index(self, slicer: slice) -> Block:
@@ -364,7 +324,7 @@ class Block(PandasObject):
         # error: Invalid index type "Tuple[ellipsis, slice]" for
         # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
         new_values = self.values[..., slicer]  # type: ignore[index]
-        return type(self)._simple_new(new_values, self._mgr_locs, ndim=self.ndim)
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
     @final
     def getitem_block_columns(self, slicer, new_mgr_locs: BlockPlacement) -> Block:
@@ -378,7 +338,7 @@ class Block(PandasObject):
         if new_values.ndim != self.values.ndim:
             raise ValueError("Only same dim slicing is allowed")
 
-        return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
+        return type(self)(new_values, new_mgr_locs, self.ndim)
 
     @property
     def shape(self) -> Shape:
@@ -1911,7 +1871,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
         self.values[locs] = values
 
 
-class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
+class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlockMixin):
     """ implement a datetime64 block with a tz attribute """
 
     values: DatetimeArray
