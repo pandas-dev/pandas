@@ -417,16 +417,27 @@ def nargminmax(values, method: str, axis: int = 0):
     mask = np.asarray(isna(values))
     values = values._values_for_argsort()
 
-    idx = np.arange(values.shape[axis])
     if values.ndim > 1:
         if mask.any():
-            raise NotImplementedError
+            if axis == 1:
+                zipped = zip(values, mask)
+            else:
+                zipped = zip(values.T, mask.T)
+            return np.array([_nanargminmax(v, m, func) for v, m in zipped])
         return func(values, axis=axis)
 
+    return _nanargminmax(values, mask, func)
+
+
+def _nanargminmax(values, mask, func) -> int:
+    """
+    See nanargminmax.__doc__.
+    """
+    idx = np.arange(values.shape[0])
     non_nans = values[~mask]
     non_nan_idx = idx[~mask]
 
-    return non_nan_idx[func(non_nans, axis=axis)]
+    return non_nan_idx[func(non_nans)]
 
 
 def _ensure_key_mapped_multiindex(
