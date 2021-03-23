@@ -1327,7 +1327,7 @@ class Block(PandasObject):
 
         if noop:
             # TODO: avoid the downcasting at the end in this case?
-            # GH-#39595: Always return a copy
+            # GH-39595: Always return a copy
             result = values.copy()
         else:
             # see if we can operate on the entire block, or need item-by-item
