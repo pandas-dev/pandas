@@ -649,7 +649,7 @@ def to_sql(
     dtype: Optional[DtypeArg] = None,
     method: Optional[str] = None,
     engine: str = "auto",
-    **kwargs,
+    **engine_kwargs,
 ) -> None:
     """
     Write records stored in a DataFrame to a SQL database.
@@ -696,13 +696,15 @@ def to_sql(
         section :ref:`insert method <io.sql.method>`.
 
         .. versionadded:: 0.24.0
+
     engine : {'auto', 'sqlalchemy'}, default 'auto'
         SQL engine library to use. If 'auto', then the option
         ``io.sql.engine`` is used. The default ``io.sql.engine``
         behavior is 'sqlalchemy'
 
-        .. versionadded:: 1.4.0
-    **kwargs
+        .. versionadded:: 1.3.0
+
+    **engine_kwargs
         Any additional kwargs are passed to the engine.
     """
     if if_exists not in ("fail", "replace", "append"):
@@ -728,7 +730,7 @@ def to_sql(
         dtype=dtype,
         method=method,
         engine=engine,
-        **kwargs,
+        **engine_kwargs,
     )
 
 
@@ -1311,7 +1313,7 @@ class BaseEngine:
         schema=None,
         chunksize=None,
         method=None,
-        **kwargs,
+        **engine_kwargs,
     ):
         """
         Inserts data into already-prepared table
@@ -1335,7 +1337,7 @@ class SQLAlchemyEngine(BaseEngine):
         schema=None,
         chunksize=None,
         method=None,
-        **kwargs,
+        **engine_kwargs,
     ):
         from sqlalchemy import exc
 
@@ -1369,18 +1371,18 @@ def get_engine(engine: str) -> BaseEngine:
 
         raise ImportError(
             "Unable to find a usable engine; "
-            "tried using: 'sqlalchemy', 'bcpandas'.\n"
+            "tried using: 'sqlalchemy'.\n"
             "A suitable version of "
-            "sqlalchemy or bcpandas is required for sql I/O "
+            "sqlalchemy is required for sql I/O "
             "support.\n"
             "Trying to import the above resulted in these errors:"
             f"{error_msgs}"
         )
 
-    if engine == "sqlalchemy":
+    elif engine == "sqlalchemy":
         return SQLAlchemyEngine()
 
-    raise ValueError("engine must be one of 'sqlalchemy', 'bcpandas'")
+    raise ValueError("engine must be one of 'auto', 'sqlalchemy'")
 
 
 class SQLDatabase(PandasSQL):
@@ -1697,7 +1699,7 @@ class SQLDatabase(PandasSQL):
         dtype: Optional[DtypeArg] = None,
         method=None,
         engine="auto",
-        **kwargs,
+        **engine_kwargs,
     ):
         """
         Write records stored in a DataFrame to a SQL database.
@@ -1739,13 +1741,15 @@ class SQLDatabase(PandasSQL):
             section :ref:`insert method <io.sql.method>`.
 
             .. versionadded:: 0.24.0
+
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             SQL engine library to use. If 'auto', then the option
             ``io.sql.engine`` is used. The default ``io.sql.engine``
             behavior is 'sqlalchemy'
 
             .. versionadded:: 1.4.0
-        **kwargs
+
+        **engine_kwargs
             Any additional kwargs are passed to the engine.
         """
         sql_engine = get_engine(engine)
@@ -1769,7 +1773,7 @@ class SQLDatabase(PandasSQL):
             schema=schema,
             chunksize=chunksize,
             method=method,
-            **kwargs,
+            **engine_kwargs,
         )
 
         self.check_case_sensitive(name=name, schema=schema)
