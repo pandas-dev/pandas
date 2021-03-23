@@ -44,11 +44,14 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+import pandas.core.computation.expressions as expressions
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.ops import missing
+from pandas.core.ops import (
+    missing,
+    roperator,
+)
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
-from pandas.core.ops.roperator import rpow
 
 
 def comp_method_OBJECT_ARRAY(op, x, y):
@@ -120,7 +123,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
         # 1 ** np.nan is 1. So we have to unmask those.
         if op is pow:
             mask = np.where(x == 1, False, mask)
-        elif op is rpow:
+        elif op is roperator.rpow:
             mask = np.where(y == 1, False, mask)
 
         if mask.any():
@@ -152,8 +155,6 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     ------
     TypeError : invalid operation
     """
-    import pandas.core.computation.expressions as expressions
-
     try:
         result = expressions.evaluate(op, left, right)
     except TypeError:

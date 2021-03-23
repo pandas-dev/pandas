@@ -29,7 +29,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import algorithms
+from pandas.core import (
+    algorithms,
+    roperator,
+)
 from pandas.core.ops.array_ops import (  # noqa:F401
     arithmetic_op,
     comp_method_OBJECT_ARRAY,
@@ -53,7 +56,7 @@ from pandas.core.ops.mask_ops import (  # noqa: F401
     kleene_xor,
 )
 from pandas.core.ops.methods import add_flex_arithmetic_methods  # noqa:F401
-from pandas.core.ops.roperator import (  # noqa:F401
+from pandas.core.roperator import (  # noqa:F401
     radd,
     rand_,
     rdiv,
@@ -319,7 +322,7 @@ def should_reindex_frame_op(
     """
     assert isinstance(left, ABCDataFrame)
 
-    if op is operator.pow or op is rpow:
+    if op is operator.pow or op is roperator.rpow:
         # GH#32685 pow has special semantics for operating with null values
         return False
 
