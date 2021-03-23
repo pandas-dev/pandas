@@ -27,11 +27,7 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import (
-    DatetimeArray,
-    SparseArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import SparseArray
 from pandas.core.internals import (
     BlockManager,
     SingleBlockManager,
@@ -319,6 +315,12 @@ class TestBlock:
         ]
         for res, exp in zip(result, expected):
             assert_block_equal(res, exp)
+
+    def test_is_categorical_deprecated(self):
+        # GH#40571
+        blk = self.fblock
+        with tm.assert_produces_warning(DeprecationWarning):
+            blk.is_categorical
 
 
 class TestBlockManager:
@@ -1300,21 +1302,6 @@ class TestShouldStore:
 
         # ndarray instead of Categorical
         assert not blk.should_store(np.asarray(cat))
-
-
-@pytest.mark.parametrize(
-    "typestr, holder",
-    [
-        ("category", Categorical),
-        ("M8[ns]", DatetimeArray),
-        ("M8[ns, US/Central]", DatetimeArray),
-        ("m8[ns]", TimedeltaArray),
-        ("sparse", SparseArray),
-    ],
-)
-def test_holder(typestr, holder, block_maker):
-    blk = create_block(typestr, [1], maker=block_maker)
-    assert blk._holder is holder
 
 
 def test_validate_ndim(block_maker):

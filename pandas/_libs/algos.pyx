@@ -64,6 +64,14 @@ cdef:
     float64_t NaN = <float64_t>np.NaN
     int64_t NPY_NAT = get_nat()
 
+cdef enum TiebreakEnumType:
+    TIEBREAK_AVERAGE
+    TIEBREAK_MIN,
+    TIEBREAK_MAX
+    TIEBREAK_FIRST
+    TIEBREAK_FIRST_DESCENDING
+    TIEBREAK_DENSE
+
 tiebreakers = {
     "average": TIEBREAK_AVERAGE,
     "min": TIEBREAK_MIN,
@@ -183,7 +191,7 @@ def is_lexsorted(list_of_arrays: list) -> bint:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
+def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     """
     Compute a 1-d indexer.
 
@@ -192,7 +200,7 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
 
     Parameters
     ----------
-    index: int64 ndarray
+    index: np.ndarray[np.intp]
         Mappings from group -> position.
     ngroups: int64
         Number of groups.
@@ -201,7 +209,7 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     -------
     ndarray[intp_t, ndim=1]
         Indexer
-    ndarray[int64_t, ndim=1]
+    ndarray[intp_t, ndim=1]
         Group Counts
 
     Notes
@@ -210,13 +218,12 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     """
     cdef:
         Py_ssize_t i, loc, label, n
-        ndarray[int64_t] counts, where
-        ndarray[intp_t] indexer
+        ndarray[intp_t] indexer, where, counts
 
-    counts = np.zeros(ngroups + 1, dtype=np.int64)
+    counts = np.zeros(ngroups + 1, dtype=np.intp)
     n = len(index)
     indexer = np.zeros(n, dtype=np.intp)
-    where = np.zeros(ngroups + 1, dtype=np.int64)
+    where = np.zeros(ngroups + 1, dtype=np.intp)
 
     with nogil:
 
@@ -237,34 +244,75 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     return indexer, counts
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def kth_smallest(numeric[:] a, Py_ssize_t k) -> numeric:
+cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
     cdef:
-        Py_ssize_t i, j, l, m, n = a.shape[0]
+        numeric t
+
+    # cython doesn't allow pointer dereference so use array syntax
+    t = a[0]
+    a[0] = b[0]
+    b[0] = t
+    return 0
+
+
+cdef inline numeric kth_smallest_c(numeric* arr, Py_ssize_t k, Py_ssize_t n) nogil:
+    """
+    See kth_smallest.__doc__. The additional parameter n specifies the maximum
+    number of elements considered in arr, needed for compatibility with usage
+    in groupby.pyx
+    """
+    cdef:
+        Py_ssize_t i, j, l, m
         numeric x
 
+    l = 0
+    m = n - 1
+
+    while l < m:
+        x = arr[k]
+        i = l
+        j = m
+
+        while 1:
+            while arr[i] < x: i += 1
+            while x < arr[j]: j -= 1
+            if i <= j:
+                swap(&arr[i], &arr[j])
+                i += 1; j -= 1
+
+            if i > j: break
+
+        if j < k: l = i
+        if k < i: m = j
+    return arr[k]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def kth_smallest(numeric[::1] arr, Py_ssize_t k) -> numeric:
+    """
+    Compute the kth smallest value in arr. Note that the input
+    array will be modified.
+
+    Parameters
+    ----------
+    arr : numeric[::1]
+        Array to compute the kth smallest value for, must be
+        contiguous
+    k : Py_ssize_t
+
+    Returns
+    -------
+    numeric
+        The kth smallest value in arr
+    """
+    cdef:
+        numeric result
+
     with nogil:
-        l = 0
-        m = n - 1
+        result = kth_smallest_c(&arr[0], k, arr.shape[0])
 
-        while l < m:
-            x = a[k]
-            i = l
-            j = m
-
-            while 1:
-                while a[i] < x: i += 1
-                while x < a[j]: j -= 1
-                if i <= j:
-                    swap(&a[i], &a[j])
-                    i += 1; j -= 1
-
-                if i > j: break
-
-            if j < k: l = i
-            if k < i: m = j
-    return a[k]
+    return result
 
 
 # ----------------------------------------------------------------------
@@ -989,9 +1037,12 @@ def rank_1d(
     else:
         mask = np.zeros(shape=len(masked_vals), dtype=np.uint8)
 
-    # If ascending and na_option == 'bottom' or descending and
-    # na_option == 'top' -> we want to rank NaN as the highest
-    # so fill with the maximum value for the type
+    # If `na_option == 'top'`, we want to assign the lowest rank
+    # to NaN regardless of ascending/descending. So if ascending,
+    # fill with lowest value of type to end up with lowest rank.
+    # If descending, fill with highest value since descending
+    # will flip the ordering to still end up with lowest rank.
+    # Symmetric logic applies to `na_option == 'bottom'`
     if ascending ^ (na_option == 'top'):
         if rank_t is object:
             nan_fill_val = Infinity()
@@ -1002,8 +1053,6 @@ def rank_1d(
         else:
             nan_fill_val = np.inf
         order = (masked_vals, mask, labels)
-
-    # Otherwise, fill with the lowest value of the type
     else:
         if rank_t is object:
             nan_fill_val = NegInfinity()
@@ -1043,8 +1092,8 @@ def rank_1d(
             dups += 1
             sum_ranks += i - grp_start + 1
 
-            next_val_diff = at_end or (masked_vals[lexsort_indexer[i]] !=
-                                       masked_vals[lexsort_indexer[i+1]])
+            next_val_diff = at_end or are_diff(masked_vals[lexsort_indexer[i]],
+                                               masked_vals[lexsort_indexer[i+1]])
 
             # We'll need this check later anyway to determine group size, so just
             # compute it here since shortcircuiting won't help
@@ -1075,9 +1124,17 @@ def rank_1d(
                 elif tiebreak == TIEBREAK_MAX:
                     for j in range(i - dups + 1, i + 1):
                         out[lexsort_indexer[j]] = i - grp_start + 1
+
+                # With n as the previous rank in the group and m as the number
+                # of duplicates in this stretch, if TIEBREAK_FIRST and ascending,
+                # then rankings should be n + 1, n + 2 ... n + m
                 elif tiebreak == TIEBREAK_FIRST:
                     for j in range(i - dups + 1, i + 1):
                         out[lexsort_indexer[j]] = j + 1 - grp_start
+
+                # If TIEBREAK_FIRST and descending, the ranking should be
+                # n + m, n + (m - 1) ... n + 1. This is equivalent to
+                # (i - dups + 1) + (i - j + 1) - grp_start
                 elif tiebreak == TIEBREAK_FIRST_DESCENDING:
                     for j in range(i - dups + 1, i + 1):
                         out[lexsort_indexer[j]] = 2 * i - j - dups + 2 - grp_start
@@ -1134,8 +1191,8 @@ def rank_1d(
                 dups += 1
                 sum_ranks += i - grp_start + 1
 
-                next_val_diff = at_end or (masked_vals[lexsort_indexer[i]] !=
-                                           masked_vals[lexsort_indexer[i+1]])
+                next_val_diff = at_end or (masked_vals[lexsort_indexer[i]]
+                                           != masked_vals[lexsort_indexer[i+1]])
 
                 # We'll need this check later anyway to determine group size, so just
                 # compute it here since shortcircuiting won't help
@@ -1166,9 +1223,17 @@ def rank_1d(
                     elif tiebreak == TIEBREAK_MAX:
                         for j in range(i - dups + 1, i + 1):
                             out[lexsort_indexer[j]] = i - grp_start + 1
+
+                    # With n as the previous rank in the group and m as the number
+                    # of duplicates in this stretch, if TIEBREAK_FIRST and ascending,
+                    # then rankings should be n + 1, n + 2 ... n + m
                     elif tiebreak == TIEBREAK_FIRST:
                         for j in range(i - dups + 1, i + 1):
                             out[lexsort_indexer[j]] = j + 1 - grp_start
+
+                    # If TIEBREAK_FIRST and descending, the ranking should be
+                    # n + m, n + (m - 1) ... n + 1. This is equivalent to
+                    # (i - dups + 1) + (i - j + 1) - grp_start
                     elif tiebreak == TIEBREAK_FIRST_DESCENDING:
                         for j in range(i - dups + 1, i + 1):
                             out[lexsort_indexer[j]] = 2 * i - j - dups + 2 - grp_start
@@ -1185,7 +1250,6 @@ def rank_1d(
                     if not group_changed and (next_val_diff or
                                               (mask[lexsort_indexer[i]]
                                                ^ mask[lexsort_indexer[i+1]])):
-
                         dups = sum_ranks = 0
                         grp_vals_seen += 1
 
