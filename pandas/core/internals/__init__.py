@@ -12,7 +12,6 @@ from pandas.core.internals.blocks import (  # io.pytables, io.packers
     DatetimeBlock,
     DatetimeTZBlock,
     ExtensionBlock,
-    FloatBlock,
     NumericBlock,
     ObjectBlock,
     TimeDeltaBlock,
@@ -31,7 +30,6 @@ __all__ = [
     "DatetimeBlock",
     "DatetimeTZBlock",
     "ExtensionBlock",
-    "FloatBlock",
     "ObjectBlock",
     "TimeDeltaBlock",
     "make_block",
@@ -55,7 +53,7 @@ def __getattr__(name: str):
         warnings.warn(
             "CategoricalBlock is deprecated and will be removed in a future version. "
             "Use ExtensionBlock instead.",
-            FutureWarning,
+            DeprecationWarning,
             stacklevel=2,
         )
         return ExtensionBlock

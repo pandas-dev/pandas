@@ -1563,7 +1563,7 @@ class SQLDatabase(PandasSQL):
             if not is_dict_like(dtype):
                 # error: Value expression in dictionary comprehension has incompatible
                 # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
-                # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+                # Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]],
                 # Type[str], Type[float], Type[int], Type[complex], Type[bool],
                 # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
                 # dtype[Any], Type[object]]"
@@ -2060,7 +2060,7 @@ class SQLiteDatabase(PandasSQL):
             if not is_dict_like(dtype):
                 # error: Value expression in dictionary comprehension has incompatible
                 # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
-                # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+                # Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]],
                 # Type[str], Type[float], Type[int], Type[complex], Type[bool],
                 # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
                 # dtype[Any], Type[object]]"

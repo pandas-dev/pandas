@@ -609,8 +609,8 @@ class MPLPlot:
                         self.legend_handles
                     )
                     # error: Incompatible types in assignment (expression has type
-                    # "Iterator[Optional[Hashable]]", variable has type
-                    # "List[Optional[Hashable]]")
+                    # "Iterator[Hashable]", variable has type
+                    # "List[Hashable]")
                     self.legend_labels = reversed(  # type: ignore[assignment]
                         self.legend_labels
                     )
