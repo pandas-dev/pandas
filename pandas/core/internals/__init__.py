@@ -9,7 +9,6 @@ from pandas.core.internals.base import (
 )
 from pandas.core.internals.blocks import (  # io.pytables, io.packers
     Block,
-    CategoricalBlock,
     DatetimeBlock,
     DatetimeTZBlock,
     ExtensionBlock,
@@ -46,3 +45,20 @@ __all__ = [
     "create_block_manager_from_arrays",
     "create_block_manager_from_blocks",
 ]
+
+
+def __getattr__(name: str):
+    import warnings
+
+    if name == "CategoricalBlock":
+        warnings.warn(
+            "CategoricalBlock is deprecated and will be removed in a future version. "
+            "Use ExtensionBlock instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        from pandas.core.internals.blocks import CategoricalBlock
+
+        return CategoricalBlock
+
+    raise AttributeError(f"module 'pandas.core.internals' has no attribute '{name}'")
