@@ -35,6 +35,8 @@ def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     Helper function for `arr.astype(common_dtype)` but handling all special
     cases.
     """
+    if is_dtype_equal(arr.dtype, dtype):
+        return arr
     if (
         is_categorical_dtype(arr.dtype)
         and isinstance(dtype, np.dtype)

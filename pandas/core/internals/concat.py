@@ -129,18 +129,15 @@ def concat_arrays(to_concat: List[Any]) -> ArrayLike:
     if any_ea:
         if not single_dtype:
             target_dtype = find_common_type([x.dtype for x in to_concat_no_proxy])
-            to_concat = [
-                arr.to_array(target_dtype)
-                if isinstance(arr, NullArrayProxy)
-                else cast_to_common_type(arr, target_dtype)
-                for arr in to_concat
-            ]
         else:
             target_dtype = to_concat_no_proxy[0].dtype
-            to_concat = [
-                arr.to_array(target_dtype) if isinstance(arr, NullArrayProxy) else arr
-                for arr in to_concat
-            ]
+
+        to_concat = [
+            arr.to_array(target_dtype)
+            if isinstance(arr, NullArrayProxy)
+            else cast_to_common_type(arr, target_dtype)
+            for arr in to_concat
+        ]
 
         if isinstance(to_concat[0], ExtensionArray):
             cls = type(to_concat[0])
