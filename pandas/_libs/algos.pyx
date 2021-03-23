@@ -191,7 +191,7 @@ def is_lexsorted(list_of_arrays: list) -> bint:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
+def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     """
     Compute a 1-d indexer.
 
@@ -200,7 +200,7 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
 
     Parameters
     ----------
-    index: int64 ndarray
+    index: np.ndarray[np.intp]
         Mappings from group -> position.
     ngroups: int64
         Number of groups.
@@ -209,7 +209,7 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     -------
     ndarray[intp_t, ndim=1]
         Indexer
-    ndarray[int64_t, ndim=1]
+    ndarray[intp_t, ndim=1]
         Group Counts
 
     Notes
@@ -218,13 +218,12 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     """
     cdef:
         Py_ssize_t i, loc, label, n
-        ndarray[int64_t] counts, where
-        ndarray[intp_t] indexer
+        ndarray[intp_t] indexer, where, counts
 
-    counts = np.zeros(ngroups + 1, dtype=np.int64)
+    counts = np.zeros(ngroups + 1, dtype=np.intp)
     n = len(index)
     indexer = np.zeros(n, dtype=np.intp)
-    where = np.zeros(ngroups + 1, dtype=np.int64)
+    where = np.zeros(ngroups + 1, dtype=np.intp)
 
     with nogil:
 
