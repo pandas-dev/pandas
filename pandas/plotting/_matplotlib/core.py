@@ -589,7 +589,7 @@ class MPLPlot:
             label += " (right)"
         return label
 
-    def _add_legend_handle(self, handle: Artist, label: str) -> None:
+    def _append_legend_handles_labels(self, handle: Artist, label: str) -> None:
         """
         Append current handle and label to ``legend_handles`` and ``legend_labels``.
 
@@ -1089,7 +1089,7 @@ class ScatterPlot(PlanePlot):
                 cbar.ax.set_yticklabels(self.data[c].cat.categories)
 
         if label is not None:
-            self._add_legend_handle(scatter, label)
+            self._append_legend_handles_labels(scatter, label)
         else:
             self.legend = False
 
@@ -1194,7 +1194,7 @@ class LinePlot(MPLPlot):
                 is_errorbar=is_errorbar,
                 **kwds,
             )
-            self._add_legend_handle(newlines[0], label)
+            self._append_legend_handles_labels(newlines[0], label)
 
             if self._is_ts_plot():
 
@@ -1521,7 +1521,7 @@ class BarPlot(MPLPlot):
                     log=self.log,
                     **kwds,
                 )
-            self._add_legend_handle(rect, label)
+            self._append_legend_handles_labels(rect, label)
 
     def _post_plot_logic(self, ax: Axes, data):
         if self.use_index:
@@ -1633,4 +1633,4 @@ class PiePlot(MPLPlot):
             # leglabels is used for legend labels
             leglabels = labels if labels is not None else idx
             for p, l in zip(patches, leglabels):
-                self._add_legend_handle(p, l)
+                self._append_legend_handles_labels(p, l)
