@@ -13,6 +13,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -103,6 +104,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+import pandas.core.computation.expressions as expressions
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -162,16 +164,6 @@ class Block(libinternals.Block, PandasObject):
     _can_consolidate = True
     _validate_ndim = True
 
-    @property
-    def _holder(self):
-        """
-        The array-like that can hold the underlying values.
-
-        None for 'Block', overridden by subclasses that don't
-        use an ndarray.
-        """
-        return None
-
     @final
     @property
     def _consolidate_key(self):
@@ -198,7 +190,14 @@ class Block(libinternals.Block, PandasObject):
     @final
     @property
     def is_categorical(self) -> bool:
-        return self._holder is Categorical
+        warnings.warn(
+            "Block.is_categorical is deprecated and will be removed in a "
+            "future version.  Use isinstance(block.values, Categorical) "
+            "instead.  See https://github.com/pandas-dev/pandas/issues/40226",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return isinstance(self.values, Categorical)
 
     @final
     def external_values(self):
@@ -757,8 +756,10 @@ class Block(libinternals.Block, PandasObject):
         """
         See BlockManager._replace_list docstring.
         """
+        values = self.values
+
         # TODO: dont special-case Categorical
-        if self.is_categorical and len(algos.unique(dest_list)) == 1:
+        if isinstance(values, Categorical) and len(algos.unique(dest_list)) == 1:
             # We likely got here by tiling value inside NDFrame.replace,
             #  so un-tile here
             return self.replace(src_list, dest_list[0], inplace, regex)
@@ -773,17 +774,17 @@ class Block(libinternals.Block, PandasObject):
 
         src_len = len(pairs) - 1
 
-        if self.is_object:
+        if values.dtype == _dtype_obj:
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
-            mask = ~isna(self.values)
+            mask = ~isna(values)
             masks = [
-                compare_or_regex_search(self.values, s[0], regex=regex, mask=mask)
+                compare_or_regex_search(values, s[0], regex=regex, mask=mask)
                 for s in pairs
             ]
         else:
             # GH#38086 faster if we know we dont need to check for regex
-            masks = [missing.mask_missing(self.values, s[0]) for s in pairs]
+            masks = [missing.mask_missing(values, s[0]) for s in pairs]
 
         # error: Argument 1 to "extract_bool_array" has incompatible type
         # "Union[ExtensionArray, ndarray, bool]"; expected "Union[ExtensionArray,
@@ -1204,7 +1205,7 @@ class Block(libinternals.Block, PandasObject):
         Take values according to indexer and return them as a block.bb
 
         """
-        # algos.take_nd dispatches for DatetimeTZBlock
+        # algos.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
         # so need to preserve types
         # sparse is treated like an ndarray, but needs .get_values() shaping
 
@@ -1267,8 +1268,6 @@ class Block(libinternals.Block, PandasObject):
         -------
         List[Block]
         """
-        import pandas.core.computation.expressions as expressions
-
         assert cond.ndim == self.ndim
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
@@ -1403,7 +1402,7 @@ class ExtensionBlock(Block):
     Notes
     -----
     This holds all 3rd-party extension array types. It's also the immediate
-    parent class for our internal extension types' blocks.
+    parent class for our internal extension types' blocks, CategoricalBlock.
 
     ExtensionArrays are limited to 1-D.
     """
@@ -1463,11 +1462,6 @@ class ExtensionBlock(Block):
 
         new_values[mask] = new
         return [self.make_block(values=new_values)]
-
-    @property
-    def _holder(self):
-        # For extension blocks, the holder is values-dependent.
-        return type(self.values)
 
     @property
     def is_view(self) -> bool:
@@ -1674,7 +1668,7 @@ class ExtensionBlock(Block):
             # NotImplementedError for class not implementing `__setitem__`
             # TypeError for SparseArray, which implements just to raise
             # a TypeError
-            result = self._holder._from_sequence(
+            result = type(self.values)._from_sequence(
                 np.where(cond, self.values, other), dtype=dtype
             )
 
@@ -1864,10 +1858,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     def array_values(self):
         return ensure_wrapped_if_datetimelike(self.values)
 
-    @property
-    def _holder(self):
-        return type(self.array_values())
-
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
@@ -1977,6 +1967,11 @@ class ObjectBlock(Block):
         return True
 
 
+class CategoricalBlock(ExtensionBlock):
+    # this Block type is kept for backwards-compatibility
+    __slots__ = ()
+
+
 # -----------------------------------------------------------------
 # Constructor Helpers
 
@@ -2038,7 +2033,7 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
     elif isinstance(dtype, CategoricalDtype):
-        cls = ExtensionBlock
+        cls = CategoricalBlock
     elif vtype is Timestamp:
         cls = DatetimeTZBlock
     elif vtype is Interval or vtype is Period:
