@@ -148,7 +148,7 @@ def test_left_join_indexer_unique(readonly):
         b.setflags(write=False)
 
     result = libjoin.left_join_indexer_unique(b, a)
-    expected = np.array([1, 1, 2, 3, 3], dtype=np.int64)
+    expected = np.array([1, 1, 2, 3, 3], dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)
 
 
