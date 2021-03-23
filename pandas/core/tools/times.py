@@ -139,7 +139,8 @@ def _guess_time_format_for_array(arr):
     
     Parameters
     ----------
-    arr : string in unkown time format
+    arr : string in time format, datetime.time, list, tuple, 1-d array,  Series
+    format : str, default None
         Text to attempt to parse to find the most correct time format.
         
     Returns
