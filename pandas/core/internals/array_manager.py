@@ -33,7 +33,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
-    is_bool_dtype,
     is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -50,6 +49,7 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
+from pandas.core.dtypes.inference import is_inferred_bool_dtype
 from pandas.core.dtypes.missing import (
     array_equals,
     isna,
@@ -676,10 +676,7 @@ class ArrayManager(DataManager):
         copy : bool, default False
             Whether to copy the blocks
         """
-        return self._get_data_subset(
-            lambda arr: is_bool_dtype(arr.dtype)
-            or (is_object_dtype(arr.dtype) and lib.is_bool_array(arr))
-        )
+        return self._get_data_subset(is_inferred_bool_dtype)
 
     def get_numeric_data(self, copy: bool = False) -> ArrayManager:
         """

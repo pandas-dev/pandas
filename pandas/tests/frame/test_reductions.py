@@ -1163,6 +1163,9 @@ class TestDataFrameAnalytics:
         df._consolidate_inplace()
         df["C"] = Series([True, True])
 
+        # Categorical of bools is _not_ considered booly
+        df["D"] = df["C"].astype("category")
+
         # The underlying bug is in DataFrame._get_bool_data, so we check
         #  that while we're here
         res = df._get_bool_data()
