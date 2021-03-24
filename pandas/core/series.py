@@ -4684,7 +4684,8 @@ Keep all original rows and also all original values
             Left boundary.
         right : scalar or list-like
             Right boundary.
-        inclusive : bool, default True
+        inclusive : str, default "True"
+
             Include boundaries.
 
         Returns
@@ -4750,7 +4751,7 @@ Keep all original rows and also all original values
             lmask = self > left
             rmask = self < right
         else:
-            raise ValueError("Invalid inclusive input: string input of 'True', 'False' 'left', 'right', or 'both' should be submitted")
+            raise ValueError("String input of 'True', 'both' 'False' 'left', 'right', should be submitted")
 
         return lmask & rmask
 
