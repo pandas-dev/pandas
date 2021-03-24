@@ -788,6 +788,8 @@ def pandasSQL_builder(
         return SQLDatabase(con, schema=schema, meta=meta)
     elif isinstance(con, str):
         raise ImportError("Using URI string without sqlalchemy installed.")
+    elif _is_async_sqlalchemy_connectable(con):
+        return AsyncSQLDatabase(con, schema=schema, meta=meta)
     else:
         return SQLiteDatabase(con, is_cursor=is_cursor)
 
