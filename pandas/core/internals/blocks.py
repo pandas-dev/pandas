@@ -813,7 +813,9 @@ class Block(libinternals.Block, PandasObject):
                     assert not isinstance(masks[i], bool)
                     # error: Value of type "Union[ExtensionArray, ndarray, bool]"
                     # is not indexable
-                    m = masks[i][mask_pos : mask_pos + blk.shape[0]]  # type: ignore[index]
+                    m = masks[i][
+                        mask_pos : mask_pos + blk.shape[0]
+                    ]  # type: ignore[index]
                     mask_pos += blk.shape[0]
 
                 result = blk._replace_coerce(
