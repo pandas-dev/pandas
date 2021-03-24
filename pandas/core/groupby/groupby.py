@@ -14,6 +14,7 @@ from functools import (
     partial,
     wraps,
 )
+from pandas.core.arrays.boolean import BooleanDtype
 import inspect
 from textwrap import dedent
 import types
@@ -109,6 +110,10 @@ from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+
+)
 _common_see_also = """
         See Also
         --------
@@ -1416,15 +1421,19 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         return self.obj._constructor
 
     @final
-    def _bool_agg(self, val_test, skipna):
+    def _bool_agg(self, val_test, skipna: bool):
         """
         Shared func to call any / all Cython GroupBy implementations.
         """
 
-        def objs_to_bool(vals: np.ndarray) -> Tuple[np.ndarray, Type]:
+        def objs_to_bool(vals: ArrayLike) -> Tuple[ArrayLike, Type]:
+            # dtype = bool
             if is_object_dtype(vals):
-                vals = np.array([bool(x) for x in vals])
+                vals = np.array([bool(x) if notna(x) else True for x in vals])
             else:
+                if isinstance(vals, ExtensionArray):
+                    vals = vals.to_numpy(dtype=bool, na_value=np.nan)
+
                 vals = vals.astype(bool)
 
             return vals.view(np.uint8), bool
