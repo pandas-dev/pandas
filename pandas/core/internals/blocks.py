@@ -170,7 +170,7 @@ class Block(libinternals.Block, PandasObject):
     def _consolidate_key(self):
         return self._can_consolidate, self.dtype.name
 
-    @cache_readonly
+    @property
     def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
         values = self.values
