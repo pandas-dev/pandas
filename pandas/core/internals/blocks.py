@@ -36,6 +36,7 @@ from pandas._typing import (
     Shape,
     final,
 )
+from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -165,11 +166,11 @@ class Block(libinternals.Block, PandasObject):
     _validate_ndim = True
 
     @final
-    @property
+    @cache_readonly
     def _consolidate_key(self):
         return self._can_consolidate, self.dtype.name
 
-    @property
+    @cache_readonly
     def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
         values = self.values
@@ -188,7 +189,7 @@ class Block(libinternals.Block, PandasObject):
         return values._can_hold_na
 
     @final
-    @property
+    @cache_readonly
     def is_categorical(self) -> bool:
         warnings.warn(
             "Block.is_categorical is deprecated and will be removed in a "
@@ -217,6 +218,7 @@ class Block(libinternals.Block, PandasObject):
         """
         return self.values
 
+    @property
     def array_values(self) -> ExtensionArray:
         """
         The array that Series.array returns. Always an ExtensionArray.
@@ -245,7 +247,7 @@ class Block(libinternals.Block, PandasObject):
         return np.asarray(self.values).reshape(self.shape)
 
     @final
-    @property
+    @cache_readonly
     def fill_value(self):
         # Used in reindex_indexer
         return na_value_for_dtype(self.dtype, compat=False)
@@ -353,7 +355,7 @@ class Block(libinternals.Block, PandasObject):
         return self.values.shape
 
     @final
-    @property
+    @cache_readonly
     def dtype(self) -> DtypeObj:
         return self.values.dtype
 
@@ -378,6 +380,11 @@ class Block(libinternals.Block, PandasObject):
         """
         self.values = np.delete(self.values, loc, 0)
         self.mgr_locs = self._mgr_locs.delete(loc)
+        try:
+            self._cache.clear()
+        except AttributeError:
+            # _cache not yet initialized
+            pass
 
     @final
     def apply(self, func, **kwargs) -> List[Block]:
@@ -580,7 +587,7 @@ class Block(libinternals.Block, PandasObject):
         """
         values = self.values
         if values.dtype.kind in ["m", "M"]:
-            values = self.array_values()
+            values = self.array_values
 
         new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
@@ -909,7 +916,7 @@ class Block(libinternals.Block, PandasObject):
             return self.coerce_to_target_dtype(value).setitem(indexer, value)
 
         if self.dtype.kind in ["m", "M"]:
-            arr = self.array_values().T
+            arr = self.array_values.T
             arr[indexer] = value
             return self
 
@@ -1422,7 +1429,7 @@ class ExtensionBlock(Block):
 
     values: ExtensionArray
 
-    @property
+    @cache_readonly
     def shape(self) -> Shape:
         # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
@@ -1453,6 +1460,12 @@ class ExtensionBlock(Block):
         #  see GH#33457
         assert locs.tolist() == [0]
         self.values = values
+        try:
+            # TODO(GH33457) this can be removed
+            self._cache.clear()
+        except AttributeError:
+            # _cache not yet initialized
+            pass
 
     def putmask(self, mask, new) -> List[Block]:
         """
@@ -1477,7 +1490,7 @@ class ExtensionBlock(Block):
         """Extension arrays are never treated as views."""
         return False
 
-    @property
+    @cache_readonly
     def is_numeric(self):
         return self.values.dtype._is_numeric
 
@@ -1526,6 +1539,7 @@ class ExtensionBlock(Block):
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
 
+    @cache_readonly
     def array_values(self) -> ExtensionArray:
         return self.values
 
@@ -1716,7 +1730,7 @@ class HybridMixin:
     array_values: Callable
 
     def _can_hold_element(self, element: Any) -> bool:
-        values = self.array_values()
+        values = self.array_values
 
         try:
             values._validate_setitem_value(element)
@@ -1757,13 +1771,13 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 
     def internal_values(self):
         # Override to return DatetimeArray and TimedeltaArray
-        return self.array_values()
+        return self.array_values
 
     def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
-        values = self.array_values()
+        values = self.array_values
         if is_object_dtype(dtype):
             # DTA/TDA constructor and astype can handle 2D
             values = values.astype(object)
@@ -1773,7 +1787,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
         # TODO(EA2D): this can be removed if we ever have 2D EA
-        return self.array_values().reshape(self.shape)[key]
+        return self.array_values.reshape(self.shape)[key]
 
     def putmask(self, mask, new) -> List[Block]:
         mask = extract_bool_array(mask)
@@ -1782,14 +1796,14 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
             return self.astype(object).putmask(mask, new)
 
         # TODO(EA2D): reshape unnecessary with 2D EAs
-        arr = self.array_values().reshape(self.shape)
+        arr = self.array_values.reshape(self.shape)
         arr = cast("NDArrayBackedExtensionArray", arr)
         arr.T.putmask(mask, new)
         return [self]
 
     def where(self, other, cond, errors="raise") -> List[Block]:
         # TODO(EA2D): reshape unnecessary with 2D EAs
-        arr = self.array_values().reshape(self.shape)
+        arr = self.array_values.reshape(self.shape)
 
         cond = extract_bool_array(cond)
 
@@ -1825,7 +1839,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         by apply.
         """
         # TODO(EA2D): reshape not necessary with 2D EAs
-        values = self.array_values().reshape(self.shape)
+        values = self.array_values.reshape(self.shape)
 
         new_values = values - values.shift(n, axis=axis)
         new_values = maybe_coerce_values(new_values)
@@ -1833,7 +1847,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
-        values = self.array_values().reshape(self.shape)
+        values = self.array_values.reshape(self.shape)
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
         new_values = maybe_coerce_values(new_values)
         return [self.make_block_same_class(new_values)]
@@ -1848,7 +1862,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
             # TODO: don't special-case td64
             return self.astype(object).fillna(value, limit, inplace, downcast)
 
-        values = self.array_values()
+        values = self.array_values
         values = values if inplace else values.copy()
         new_values = values.fillna(value=value, limit=limit)
         new_values = maybe_coerce_values(new_values)
@@ -1860,6 +1874,7 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
     is_numeric = False
 
+    @cache_readonly
     def array_values(self):
         return ensure_wrapped_if_datetimelike(self.values)
 
