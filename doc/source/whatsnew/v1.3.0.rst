@@ -633,7 +633,7 @@ Groupby/resample/rolling
 - Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would not retain ``com``, ``span``, ``alpha`` or ``halflife`` attributes  (:issue:`40164`)
 - :class:`core.window.ewm.ExponentialMovingWindow` now raises a ``NotImplementedError`` when specifying ``times`` with ``adjust=False`` due to an incorrect calculation (:issue:`40098`)
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
-- Bug in :meth:`DataFrameGroupBy.any` and :meth:`DataFrameGroupBy.all` raising ``ValueError`` with ``ExtensionDType`` columns holding ``NA`` even with ``skipna=False`` (:issue:`40585`)
+- Bug in :meth:`DataFrameGroupBy.any` and :meth:`DataFrameGroupBy.all` raising ``ValueError`` with ``ExtensionDType`` columns holding ``NA`` even with ``skipna=True`` (:issue:`40585`)
 -
 
 Reshaping
