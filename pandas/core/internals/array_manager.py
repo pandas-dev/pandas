@@ -1226,6 +1226,11 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
         new_index = self.index._getitem_slice(slobj)
         return type(self)([new_array], [new_index], verify_integrity=False)
 
+    def getitem_mgr(self, indexer) -> SingleArrayManager:
+        new_array = self.array[indexer]
+        new_index = self.index[indexer]
+        return type(self)([new_array], [new_index])
+
     def apply(self, func, **kwargs):
         if callable(func):
             new_array = func(self.array, **kwargs)

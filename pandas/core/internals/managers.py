@@ -1620,6 +1620,20 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         """ compat with BlockManager """
         return None
 
+    def getitem_mgr(self, indexer) -> SingleBlockManager:
+        # similar to get_slice, but not restricted to slice indexer
+        blk = self._block
+        array = blk._slice(indexer)
+        if array.ndim > 1:
+            # This will be caught by Series._get_values
+            raise ValueError("dimension-expanding indexing not allowed")
+
+        bp = BlockPlacement(slice(0, len(array)))
+        block = blk.make_block_same_class(array, placement=bp)
+
+        new_idx = self.index[indexer]
+        return type(self)(block, new_idx)
+
     def get_slice(self, slobj: slice, axis: int = 0) -> SingleBlockManager:
         assert isinstance(slobj, slice), type(slobj)
         if axis >= self.ndim:
