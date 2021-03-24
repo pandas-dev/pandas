@@ -33,7 +33,7 @@ class ShallowMixin(PandasObject):
         **kwargs:
             Attribute to check for.
         """
-        if isinstance(obj, self._constuctor):
+        if isinstance(obj, self._constructor):
             obj = obj.obj
         for attr in self._attributes:
             if attr not in kwargs:
