@@ -437,6 +437,32 @@ def _array_strptime_with_fallback(
 ) -> Optional[Index]:
     """
     Call array_strptime, with fallback behavior depending on 'errors'.
+
+    Used to call array_strptime with the ability for the user to specify
+    error controls and methods for how to handle the thrown errors. 
+    Uses default values to allow the user to have the option to specify
+    format and exactness.
+
+    Parameters
+    ----------
+    arg : list, tuple, ndarray, Series, Index
+        Date to be parsed.
+    name : object
+        None or string for the Index name.
+    tz : timezone value
+        Timezone string value or None.
+    fmt : string or None
+        Holds format value for the datetime arguement.
+    exact : boolean value Default true
+        Boolean for parse accuracy.
+    errors : str or None Optional
+        Holds value for how to handle thrown errors.
+    infer_datetime_format : bool Optional
+        Used for default format use or user specified
+
+    Returns
+    -------
+    Datetime of the arguement with given format or None
     """
     utc = tz == "utc"
 
