@@ -336,7 +336,7 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(res, exp)
 
-        # DatetimeBlock may be consolidated and contain NaT in different loc
+        # DatetimeLikeBlock may be consolidated and contain NaT in different loc
         df = DataFrame(
             {
                 "A": [

@@ -52,7 +52,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
-    is_object_dtype,
     is_sparse,
     pandas_dtype,
 )
@@ -208,12 +207,6 @@ class Block(libinternals.Block, PandasObject):
     @final
     def external_values(self):
         return external_values(self.values)
-
-    def internal_values(self):
-        """
-        The array that Series._values returns (internal values).
-        """
-        return self.values
 
     def array_values(self) -> ExtensionArray:
         """
@@ -1767,8 +1760,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
 
-    def internal_values(self):
-        # Override to return DatetimeArray and TimedeltaArray
+    def array_values(self) -> ExtensionArray:
         return self.values
 
     def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
@@ -1776,7 +1768,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
         values = self.values
-        if is_object_dtype(dtype):
+        if dtype == _dtype_obj:
             # DTA/TDA constructor and astype can handle 2D
             values = values.astype(object)
         # TODO(EA2D): reshape not needed with 2D EAs
@@ -1827,7 +1819,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 
         Returns
         -------
-        A list with a new TimeDeltaBlock.
+        A list with a new Block.
 
         Notes
         -----
@@ -1862,22 +1854,17 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         return [self.make_block_same_class(values=new_values)]
 
 
-class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
-    """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
+class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
+    """Mixin class for DatetimeLikeBlock, DatetimeTZBlock."""
+
+    __slots__ = ()
 
     values: Union[DatetimeArray, TimedeltaArray]
 
     is_numeric = False
 
-    def array_values(self):
-        return self.values
 
-
-class DatetimeBlock(DatetimeLikeBlockMixin):
-    __slots__ = ()
-
-
-class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlockMixin):
+class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlock):
     """ implement a datetime64 block with a tz attribute """
 
     values: DatetimeArray
@@ -1886,21 +1873,19 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlockMixin):
     is_extension = True
     is_numeric = False
 
-    internal_values = Block.internal_values
-    _can_hold_element = DatetimeBlock._can_hold_element
-    diff = DatetimeBlock.diff
-    where = DatetimeBlock.where
-    putmask = DatetimeLikeBlockMixin.putmask
-    fillna = DatetimeLikeBlockMixin.fillna
+    _can_hold_element = NDArrayBackedExtensionBlock._can_hold_element
+    diff = NDArrayBackedExtensionBlock.diff
+    where = NDArrayBackedExtensionBlock.where
+    putmask = NDArrayBackedExtensionBlock.putmask
+    fillna = NDArrayBackedExtensionBlock.fillna
+
+    array_values = NDArrayBackedExtensionBlock.array_values
+    get_values = NDArrayBackedExtensionBlock.get_values
 
     # error: Incompatible types in assignment (expression has type
     # "Callable[[NDArrayBackedExtensionBlock], bool]", base class "ExtensionBlock"
     # defined the type as "bool")  [assignment]
     is_view = NDArrayBackedExtensionBlock.is_view  # type: ignore[assignment]
-
-
-class TimeDeltaBlock(DatetimeLikeBlockMixin):
-    __slots__ = ()
 
 
 class ObjectBlock(Block):
@@ -2033,10 +2018,8 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
         # Note: need to be sure PandasArray is unwrapped before we get here
         cls = ExtensionBlock
 
-    elif kind == "M":
-        cls = DatetimeBlock
-    elif kind == "m":
-        cls = TimeDeltaBlock
+    elif kind in ["M", "m"]:
+        cls = DatetimeLikeBlock
     elif kind in ["f", "c", "i", "u", "b"]:
         cls = NumericBlock
     else:

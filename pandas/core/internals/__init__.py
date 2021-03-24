@@ -9,12 +9,10 @@ from pandas.core.internals.base import (
 )
 from pandas.core.internals.blocks import (  # io.pytables, io.packers
     Block,
-    DatetimeBlock,
     DatetimeTZBlock,
     ExtensionBlock,
     NumericBlock,
     ObjectBlock,
-    TimeDeltaBlock,
 )
 from pandas.core.internals.concat import concatenate_managers
 from pandas.core.internals.managers import (
@@ -28,11 +26,9 @@ __all__ = [
     "Block",
     "CategoricalBlock",
     "NumericBlock",
-    "DatetimeBlock",
     "DatetimeTZBlock",
     "ExtensionBlock",
     "ObjectBlock",
-    "TimeDeltaBlock",
     "make_block",
     "DataManager",
     "ArrayManager",
