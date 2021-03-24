@@ -140,12 +140,11 @@ def _guess_time_format_for_array(arr):
     Parameters
     ----------
     arr : string in time format, datetime.time, list, tuple, 1-d array,  Series
-    format : str, default None
         Text to attempt to parse to find the most correct time format.
         
     Returns
     -------
-    time_format assoicated with parameter
+    time_format associated with parameter
     """
     non_nan_elements = notna(arr).nonzero()[0]
     if len(non_nan_elements):
