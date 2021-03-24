@@ -654,12 +654,17 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(res, expec)
         assert res.a.dtype == np.object_
 
-    def test_regex_replace_after_splitting_replace(self):
-        df =  pd.DataFrame({ 'a_str' : ['A1','A2','A3'],
-#                            'b_int' : ['1,000','200','3'],
-#                            'c_str' : ['C1','C2','C3'],
-#                            'd_date' : ['2021-01-01', '', '2021-03-03']})
-
+    @pytest.mark.parametrize(
+        "to_replace", [{"": np.nan, ",": ""}, {",": "", "": np.nan}]
+    )
+    def test_joint_simple_replace_and_regex_replace(self, to_replace):
+        # GH-39338
+        df = pd.DataFrame({"col1": ["1,000", "a", "3"], "col2": ["a", "", "b"]})
+        result = df.replace(regex=to_replace)
+        expected = pd.DataFrame(
+            {"col1": ["1000", "a", "3"], "col2": ["a", np.nan, "b"]}
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("metachar", ["[]", "()", r"\d", r"\w", r"\s"])
     def test_replace_regex_metachar(self, metachar):
