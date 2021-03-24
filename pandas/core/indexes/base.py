@@ -21,6 +21,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -166,6 +167,8 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas import (
         CategoricalIndex,
         DataFrame,
@@ -5201,17 +5204,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        indexer : ndarray of int
+        indexer : np.ndarray[np.intp]
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
-        missing : ndarray of int
+        missing : np.ndarray[np.intp]
             An indexer into the target of the values not found.
             These correspond to the -1 in the indexer array.
         """
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
+    def get_indexer_non_unique(self, target) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
         target = ensure_index(target)
 
         if not self._should_compare(target) and not is_interval_dtype(self.dtype):
@@ -5235,10 +5239,10 @@ class Index(IndexOpsMixin, PandasObject):
         tgt_values = target._get_engine_target()
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
-        return ensure_platform_int(indexer), missing
+        return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @final
-    def get_indexer_for(self, target, **kwargs):
+    def get_indexer_for(self, target, **kwargs) -> np.ndarray:
         """
         Guaranteed return of an indexer even when non-unique.
 
@@ -5247,13 +5251,27 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        numpy.ndarray[np.intp]
             List of indices.
         """
         if self._index_as_unique:
             return self.get_indexer(target, **kwargs)
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
+
+    @overload
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: Literal[True] = ...
+    ) -> np.ndarray:
+        # returned ndarray is np.intp
+        ...
+
+    @overload
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: Literal[False] = ...
+    ) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
+        ...
 
     @final
     def _get_indexer_non_comparable(self, target: Index, method, unique: bool = True):
