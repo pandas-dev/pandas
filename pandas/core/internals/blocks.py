@@ -801,10 +801,18 @@ class Block(libinternals.Block, PandasObject):
 
         rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(pairs):
+            convert = i == src_len  # only convert once at the end
             new_rb: List[Block] = []
+            mask_pos = 0
             for blk in rb:
-                m = masks[i]
-                convert = i == src_len  # only convert once at the end
+                if blk.ndim == 1:
+                    m = masks[i]
+                else:
+                    # GH-39338: _replace_coerce can split a block, so we
+                    # need to keep track of where to index into the mask
+                    m = masks[i][mask_pos : mask_pos + blk.shape[0]]
+                    mask_pos += blk.shape[0]
+
                 result = blk._replace_coerce(
                     to_replace=src,
                     value=dest,
