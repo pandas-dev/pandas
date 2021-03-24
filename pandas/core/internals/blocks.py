@@ -13,6 +13,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -68,6 +69,7 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
+from pandas.core.dtypes.inference import is_inferred_bool_dtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -145,7 +147,7 @@ def maybe_split(meth: F) -> F:
     return cast(F, newfunc)
 
 
-class Block(PandasObject):
+class Block(libinternals.Block, PandasObject):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
     data structure
@@ -155,52 +157,12 @@ class Block(PandasObject):
 
     values: Union[np.ndarray, ExtensionArray]
 
-    __slots__ = ["_mgr_locs", "values", "ndim"]
+    __slots__ = ()
     is_numeric = False
-    is_bool = False
     is_object = False
     is_extension = False
     _can_consolidate = True
     _validate_ndim = True
-
-    @classmethod
-    def _simple_new(
-        cls, values: ArrayLike, placement: BlockPlacement, ndim: int
-    ) -> Block:
-        """
-        Fastpath constructor, does *no* validation
-        """
-        obj = object.__new__(cls)
-        obj.ndim = ndim
-        obj.values = values
-        obj._mgr_locs = placement
-        return obj
-
-    def __init__(self, values, placement: BlockPlacement, ndim: int):
-        """
-        Parameters
-        ----------
-        values : np.ndarray or ExtensionArray
-            We assume maybe_coerce_values has already been called.
-        placement : BlockPlacement (or castable)
-        ndim : int
-            1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
-        """
-        assert isinstance(ndim, int)
-        assert isinstance(placement, BlockPlacement)
-        self.ndim = ndim
-        self._mgr_locs = placement
-        self.values = values
-
-    @property
-    def _holder(self):
-        """
-        The array-like that can hold the underlying values.
-
-        None for 'Block', overridden by subclasses that don't
-        use an ndarray.
-        """
-        return None
 
     @final
     @property
@@ -228,7 +190,22 @@ class Block(PandasObject):
     @final
     @property
     def is_categorical(self) -> bool:
-        return self._holder is Categorical
+        warnings.warn(
+            "Block.is_categorical is deprecated and will be removed in a "
+            "future version.  Use isinstance(block.values, Categorical) "
+            "instead.  See https://github.com/pandas-dev/pandas/issues/40226",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return isinstance(self.values, Categorical)
+
+    @final
+    @property
+    def is_bool(self) -> bool:
+        """
+        We can be bool if a) we are bool dtype or b) object dtype with bool objects.
+        """
+        return is_inferred_bool_dtype(self.values)
 
     @final
     def external_values(self):
@@ -279,7 +256,6 @@ class Block(PandasObject):
 
     @mgr_locs.setter
     def mgr_locs(self, new_mgr_locs: BlockPlacement):
-        assert isinstance(new_mgr_locs, BlockPlacement)
         self._mgr_locs = new_mgr_locs
 
     @final
@@ -324,16 +300,6 @@ class Block(PandasObject):
     def __len__(self) -> int:
         return len(self.values)
 
-    @final
-    def __getstate__(self):
-        return self.mgr_locs.indexer, self.values
-
-    @final
-    def __setstate__(self, state):
-        self.mgr_locs = libinternals.BlockPlacement(state[0])
-        self.values = extract_array(state[1], extract_numpy=True)
-        self.ndim = self.values.ndim
-
     def _slice(self, slicer):
         """ return a slice of my values """
 
@@ -354,7 +320,7 @@ class Block(PandasObject):
         if new_values.ndim != self.values.ndim:
             raise ValueError("Only same dim slicing is allowed")
 
-        return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
+        return type(self)(new_values, new_mgr_locs, self.ndim)
 
     @final
     def getitem_block_index(self, slicer: slice) -> Block:
@@ -366,7 +332,7 @@ class Block(PandasObject):
         # error: Invalid index type "Tuple[ellipsis, slice]" for
         # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
         new_values = self.values[..., slicer]  # type: ignore[index]
-        return type(self)._simple_new(new_values, self._mgr_locs, ndim=self.ndim)
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
     @final
     def getitem_block_columns(self, slicer, new_mgr_locs: BlockPlacement) -> Block:
@@ -380,7 +346,7 @@ class Block(PandasObject):
         if new_values.ndim != self.values.ndim:
             raise ValueError("Only same dim slicing is allowed")
 
-        return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
+        return type(self)(new_values, new_mgr_locs, self.ndim)
 
     @property
     def shape(self) -> Shape:
@@ -798,8 +764,10 @@ class Block(PandasObject):
         """
         See BlockManager._replace_list docstring.
         """
+        values = self.values
+
         # TODO: dont special-case Categorical
-        if self.is_categorical and len(algos.unique(dest_list)) == 1:
+        if isinstance(values, Categorical) and len(algos.unique(dest_list)) == 1:
             # We likely got here by tiling value inside NDFrame.replace,
             #  so un-tile here
             return self.replace(src_list, dest_list[0], inplace, regex)
@@ -814,17 +782,17 @@ class Block(PandasObject):
 
         src_len = len(pairs) - 1
 
-        if self.is_object:
+        if values.dtype == _dtype_obj:
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
-            mask = ~isna(self.values)
+            mask = ~isna(values)
             masks = [
-                compare_or_regex_search(self.values, s[0], regex=regex, mask=mask)
+                compare_or_regex_search(values, s[0], regex=regex, mask=mask)
                 for s in pairs
             ]
         else:
             # GH#38086 faster if we know we dont need to check for regex
-            masks = [missing.mask_missing(self.values, s[0]) for s in pairs]
+            masks = [missing.mask_missing(values, s[0]) for s in pairs]
 
         # error: Argument 1 to "extract_bool_array" has incompatible type
         # "Union[ExtensionArray, ndarray, bool]"; expected "Union[ExtensionArray,
@@ -1326,7 +1294,8 @@ class Block(PandasObject):
 
         if noop:
             # TODO: avoid the downcasting at the end in this case?
-            result = values
+            # GH-39595: Always return a copy
+            result = values.copy()
         else:
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
@@ -1502,11 +1471,6 @@ class ExtensionBlock(Block):
 
         new_values[mask] = new
         return [self.make_block(values=new_values)]
-
-    @property
-    def _holder(self):
-        # For extension blocks, the holder is values-dependent.
-        return type(self.values)
 
     @property
     def is_view(self) -> bool:
@@ -1713,7 +1677,7 @@ class ExtensionBlock(Block):
             # NotImplementedError for class not implementing `__setitem__`
             # TypeError for SparseArray, which implements just to raise
             # a TypeError
-            result = self._holder._from_sequence(
+            result = type(self.values)._from_sequence(
                 np.where(cond, self.values, other), dtype=dtype
             )
 
@@ -1784,10 +1748,6 @@ class NumericBlock(Block):
         # error: Argument 1 to "can_hold_element" has incompatible type
         # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
         return can_hold_element(self.dtype, element)  # type: ignore[arg-type]
-
-    @property
-    def is_bool(self):
-        return self.dtype.kind == "b"
 
 
 class NDArrayBackedExtensionBlock(HybridMixin, Block):
@@ -1903,10 +1863,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     def array_values(self):
         return ensure_wrapped_if_datetimelike(self.values)
 
-    @property
-    def _holder(self):
-        return type(self.array_values())
-
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
@@ -1920,7 +1876,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
         self.values[locs] = values
 
 
-class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
+class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlockMixin):
     """ implement a datetime64 block with a tz attribute """
 
     values: DatetimeArray
@@ -1954,14 +1910,6 @@ class ObjectBlock(Block):
     is_object = True
 
     values: np.ndarray
-
-    @property
-    def is_bool(self):
-        """
-        we can be a bool if we have only bool values but are of type
-        object
-        """
-        return lib.is_bool_array(self.values.ravel("K"))
 
     @maybe_split
     def reduce(self, func, ignore_failures: bool = False) -> List[Block]:

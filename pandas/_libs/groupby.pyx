@@ -37,6 +37,7 @@ from pandas._libs.util cimport (
 )
 
 from pandas._libs.algos import (
+    ensure_platform_int,
     groupsort_indexer,
     rank_1d,
     take_2d_axis1_float64_float64,
@@ -111,7 +112,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, ngroups, size
-        ndarray[int64_t] _counts
+        ndarray[intp_t] _counts
         ndarray[float64_t, ndim=2] data
         ndarray[intp_t] indexer
         float64_t* ptr
@@ -121,7 +122,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     ngroups = len(counts)
     N, K = (<object>values).shape
 
-    indexer, _counts = groupsort_indexer(labels, ngroups)
+    indexer, _counts = groupsort_indexer(ensure_platform_int(labels), ngroups)
     counts[:] = _counts[1:]
 
     data = np.empty((K, N), dtype=np.float64)
@@ -1127,18 +1128,40 @@ ctypedef fused groupby_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_max(groupby_t[:, ::1] out,
-              int64_t[::1] counts,
-              ndarray[groupby_t, ndim=2] values,
-              const int64_t[:] labels,
-              Py_ssize_t min_count=-1):
+cdef group_min_max(groupby_t[:, ::1] out,
+                   int64_t[::1] counts,
+                   ndarray[groupby_t, ndim=2] values,
+                   const int64_t[:] labels,
+                   Py_ssize_t min_count=-1,
+                   bint compute_max=True):
     """
-    Only aggregates on axis=0
+    Compute minimum/maximum  of columns of `values`, in row groups `labels`.
+
+    Parameters
+    ----------
+    out : array
+        Array to store result in.
+    counts : int64 array
+        Input as a zeroed array, populated by group sizes during algorithm
+    values : array
+        Values to find column-wise min/max of.
+    labels : int64 array
+        Labels to group by.
+    min_count : Py_ssize_t, default -1
+        The minimum number of non-NA group elements, NA result if threshold
+        is not met
+    compute_max : bint, default True
+        True to compute group-wise max, False to compute min
+
+    Notes
+    -----
+    This method modifies the `out` parameter, rather than returning an object.
+    `counts` is modified to hold group sizes
     """
     cdef:
-        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        groupby_t val, count, nan_val
-        ndarray[groupby_t, ndim=2] maxx
+        Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
+        groupby_t val, nan_val
+        ndarray[groupby_t, ndim=2] group_min_or_max
         bint runtime_error = False
         int64_t[:, ::1] nobs
 
@@ -1150,18 +1173,17 @@ def group_max(groupby_t[:, ::1] out,
     min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
-    maxx = np.empty_like(out)
+    group_min_or_max = np.empty_like(out)
     if groupby_t is int64_t:
-        # Note: evaluated at compile-time
-        maxx[:] = -_int64_max
+        group_min_or_max[:] = -_int64_max if compute_max else _int64_max
         nan_val = NPY_NAT
     elif groupby_t is uint64_t:
         # NB: We do not define nan_val because there is no such thing
-        #  for uint64_t.  We carefully avoid having to reference it in this
-        #  case.
-        maxx[:] = 0
+        # for uint64_t.  We carefully avoid having to reference it in this
+        # case.
+        group_min_or_max[:] = 0 if compute_max else np.iinfo(np.uint64).max
     else:
-        maxx[:] = -np.inf
+        group_min_or_max[:] = -np.inf if compute_max else np.inf
         nan_val = NAN
 
     N, K = (<object>values).shape
@@ -1179,20 +1201,23 @@ def group_max(groupby_t[:, ::1] out,
                 if not _treat_as_na(val, True):
                     # TODO: Sure we always want is_datetimelike=True?
                     nobs[lab, j] += 1
-                    if val > maxx[lab, j]:
-                        maxx[lab, j] = val
+                    if compute_max:
+                        if val > group_min_or_max[lab, j]:
+                            group_min_or_max[lab, j] = val
+                    else:
+                        if val < group_min_or_max[lab, j]:
+                            group_min_or_max[lab, j] = val
 
-        for i in range(ncounts):
+        for i in range(ngroups):
             for j in range(K):
                 if nobs[i, j] < min_count:
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
                     else:
-
                         out[i, j] = nan_val
                 else:
-                    out[i, j] = maxx[i, j]
+                    out[i, j] = group_min_or_max[i, j]
 
     if runtime_error:
         # We cannot raise directly above because that is within a nogil
@@ -1202,75 +1227,24 @@ def group_max(groupby_t[:, ::1] out,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def group_max(groupby_t[:, ::1] out,
+              int64_t[::1] counts,
+              ndarray[groupby_t, ndim=2] values,
+              const int64_t[:] labels,
+              Py_ssize_t min_count=-1):
+    """See group_min_max.__doc__"""
+    group_min_max(out, counts, values, labels, min_count=min_count, compute_max=True)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_min(groupby_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[groupby_t, ndim=2] values,
               const int64_t[:] labels,
               Py_ssize_t min_count=-1):
-    """
-    Only aggregates on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        groupby_t val, count, nan_val
-        ndarray[groupby_t, ndim=2] minx
-        bint runtime_error = False
-        int64_t[:, ::1] nobs
-
-    # TODO(cython 3.0):
-    # Instead of `labels.shape[0]` use `len(labels)`
-    if not len(values) == labels.shape[0]:
-        raise AssertionError("len(index) != len(labels)")
-
-    min_count = max(min_count, 1)
-    nobs = np.zeros((<object>out).shape, dtype=np.int64)
-
-    minx = np.empty_like(out)
-    if groupby_t is int64_t:
-        minx[:] = _int64_max
-        nan_val = NPY_NAT
-    elif groupby_t is uint64_t:
-        # NB: We do not define nan_val because there is no such thing
-        #  for uint64_t.  We carefully avoid having to reference it in this
-        #  case.
-        minx[:] = np.iinfo(np.uint64).max
-    else:
-        minx[:] = np.inf
-        nan_val = NAN
-
-    N, K = (<object>values).shape
-
-    with nogil:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
-
-            counts[lab] += 1
-            for j in range(K):
-                val = values[i, j]
-
-                if not _treat_as_na(val, True):
-                    # TODO: Sure we always want is_datetimelike=True?
-                    nobs[lab, j] += 1
-                    if val < minx[lab, j]:
-                        minx[lab, j] = val
-
-        for i in range(ncounts):
-            for j in range(K):
-                if nobs[i, j] < min_count:
-                    if groupby_t is uint64_t:
-                        runtime_error = True
-                        break
-                    else:
-                        out[i, j] = nan_val
-                else:
-                    out[i, j] = minx[i, j]
-
-    if runtime_error:
-        # We cannot raise directly above because that is within a nogil
-        #  block.
-        raise RuntimeError("empty group with uint64_t")
+    """See group_min_max.__doc__"""
+    group_min_max(out, counts, values, labels, min_count=min_count, compute_max=False)
 
 
 @cython.boundscheck(False)
