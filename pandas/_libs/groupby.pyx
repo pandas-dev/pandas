@@ -1249,26 +1249,30 @@ def group_min(groupby_t[:, ::1] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_cummin(groupby_t[:, ::1] out,
-                 ndarray[groupby_t, ndim=2] values,
-                 const int64_t[:] labels,
-                 int ngroups,
-                 bint is_datetimelike):
+def group_cummin_max(groupby_t[:, ::1] out,
+                     ndarray[groupby_t, ndim=2] values,
+                     const int64_t[:] labels,
+                     int ngroups,
+                     bint is_datetimelike,
+                     bint compute_max):
     """
-    Cumulative minimum of columns of `values`, in row groups `labels`.
+    Cumulative minimum/maximum of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
     out : array
-        Array to store cummin in.
+        Array to store cummin/max in.
     values : array
-        Values to take cummin of.
+        Values to take cummin/max of.
     labels : int64 array
         Labels to group by.
     ngroups : int
         Number of groups, larger than all entries of `labels`.
     is_datetimelike : bool
         True if `values` contains datetime-like entries.
+    compute_max : bool
+        True if cumulative maximum should be computed, False
+        if cumulative minimum should be computed
 
     Notes
     -----
@@ -1283,11 +1287,11 @@ def group_cummin(groupby_t[:, ::1] out,
     N, K = (<object>values).shape
     accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
     if groupby_t is int64_t:
-        accum[:] = _int64_max
+        accum[:] = -_int64_max if compute_max else _int64_max
     elif groupby_t is uint64_t:
-        accum[:] = np.iinfo(np.uint64).max
+        accum[:] = 0 if compute_max else np.iinfo(np.uint64).max
     else:
-        accum[:] = np.inf
+        accum[:] = -np.inf if compute_max else np.inf
 
     with nogil:
         for i in range(N):
@@ -1302,9 +1306,24 @@ def group_cummin(groupby_t[:, ::1] out,
                     out[i, j] = val
                 else:
                     mval = accum[lab, j]
-                    if val < mval:
-                        accum[lab, j] = mval = val
+                    if compute_max:
+                        if val > mval:
+                            accum[lab, j] = mval = val
+                    else:
+                        if val < mval:
+                            accum[lab, j] = mval = val
                     out[i, j] = mval
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_cummin(groupby_t[:, ::1] out,
+                 ndarray[groupby_t, ndim=2] values,
+                 const int64_t[:] labels,
+                 int ngroups,
+                 bint is_datetimelike):
+    """See group_cummin_max.__doc__"""
+    group_cummin_max(out, values, labels, ngroups, is_datetimelike, compute_max=False)
 
 
 @cython.boundscheck(False)
@@ -1314,54 +1333,5 @@ def group_cummax(groupby_t[:, ::1] out,
                  const int64_t[:] labels,
                  int ngroups,
                  bint is_datetimelike):
-    """
-    Cumulative maximum of columns of `values`, in row groups `labels`.
-
-    Parameters
-    ----------
-    out : array
-        Array to store cummax in.
-    values : array
-        Values to take cummax of.
-    labels : int64 array
-        Labels to group by.
-    ngroups : int
-        Number of groups, larger than all entries of `labels`.
-    is_datetimelike : bool
-        True if `values` contains datetime-like entries.
-
-    Notes
-    -----
-    This method modifies the `out` parameter, rather than returning an object.
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, size
-        groupby_t val, mval
-        ndarray[groupby_t, ndim=2] accum
-        int64_t lab
-
-    N, K = (<object>values).shape
-    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
-    if groupby_t is int64_t:
-        accum[:] = -_int64_max
-    elif groupby_t is uint64_t:
-        accum[:] = 0
-    else:
-        accum[:] = -np.inf
-
-    with nogil:
-        for i in range(N):
-            lab = labels[i]
-
-            if lab < 0:
-                continue
-            for j in range(K):
-                val = values[i, j]
-
-                if _treat_as_na(val, is_datetimelike):
-                    out[i, j] = val
-                else:
-                    mval = accum[lab, j]
-                    if val > mval:
-                        accum[lab, j] = mval = val
-                    out[i, j] = mval
+    """See group_cummin_max.__doc__"""
+    group_cummin_max(out, values, labels, ngroups, is_datetimelike, compute_max=True)
