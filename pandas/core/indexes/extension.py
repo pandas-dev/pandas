@@ -231,6 +231,38 @@ class ExtensionIndex(Index):
 
     _data: Union[IntervalArray, NDArrayBackedExtensionArray]
 
+    _data_cls: Union[
+        Type[Categorical],
+        Type[DatetimeArray],
+        Type[TimedeltaArray],
+        Type[PeriodArray],
+        Type[IntervalArray],
+    ]
+
+    @classmethod
+    def _simple_new(
+        cls,
+        array: Union[IntervalArray, NDArrayBackedExtensionArray],
+        name: Hashable = None,
+    ):
+        """
+        Construct from an ExtensionArray of the appropriate type.
+
+        Parameters
+        ----------
+        array : ExtensionArray
+        name : Label, default None
+            Attached as result.name
+        """
+        assert isinstance(array, cls._data_cls), type(array)
+
+        result = object.__new__(cls)
+        result._data = array
+        result._name = name
+        result._cache = {}
+        result._reset_identity()
+        return result
+
     __eq__ = _make_wrapped_comparison_op("__eq__")
     __ne__ = _make_wrapped_comparison_op("__ne__")
     __lt__ = _make_wrapped_comparison_op("__lt__")
@@ -362,30 +394,17 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
     _data: NDArrayBackedExtensionArray
 
-    _data_cls: Union[
-        Type[Categorical],
-        Type[DatetimeArray],
-        Type[TimedeltaArray],
-        Type[PeriodArray],
-    ]
-
     @classmethod
     def _simple_new(
         cls,
         values: NDArrayBackedExtensionArray,
         name: Hashable = None,
     ):
-        assert isinstance(values, cls._data_cls), type(values)
-
-        result = object.__new__(cls)
-        result._data = values
-        result._name = name
-        result._cache = {}
+        result = super()._simple_new(values, name)
 
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = values._ndarray
 
-        result._reset_identity()
         return result
 
     def _get_engine_target(self) -> np.ndarray:
