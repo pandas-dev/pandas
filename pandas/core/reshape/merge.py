@@ -28,6 +28,7 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    DtypeObj,
     FrameOrSeries,
     FrameOrSeriesUnion,
     IndexLabel,
@@ -286,7 +287,7 @@ def merge_ordered(
     9   e       3     b     3.0
     """
 
-    def _merger(x, y):
+    def _merger(x, y) -> DataFrame:
         # perform the ordered merge operation
         op = _OrderedMerge(
             x,
@@ -741,7 +742,9 @@ class _MergeOperation:
 
         return result.__finalize__(self, method="merge")
 
-    def _maybe_drop_cross_column(self, result: DataFrame, cross_col: Optional[str]):
+    def _maybe_drop_cross_column(
+        self, result: DataFrame, cross_col: Optional[str]
+    ) -> None:
         if cross_col is not None:
             result.drop(columns=cross_col, inplace=True)
 
@@ -824,7 +827,12 @@ class _MergeOperation:
         if names_to_restore:
             result.set_index(names_to_restore, inplace=True)
 
-    def _maybe_add_join_keys(self, result, left_indexer, right_indexer):
+    def _maybe_add_join_keys(
+        self,
+        result: DataFrame,
+        left_indexer: Optional[np.ndarray],
+        right_indexer: Optional[np.ndarray],
+    ) -> None:
 
         left_has_missing = None
         right_has_missing = None
@@ -891,9 +899,14 @@ class _MergeOperation:
                 # make sure to just use the right values or vice-versa
                 mask_left = left_indexer == -1
                 mask_right = right_indexer == -1
-                if mask_left.all():
+                # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
+                if mask_left.all():  # type: ignore[union-attr]
                     key_col = Index(rvals)
-                elif right_indexer is not None and mask_right.all():
+                # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
+                elif (
+                    right_indexer is not None
+                    and mask_right.all()  # type: ignore[union-attr]
+                ):
                     key_col = Index(lvals)
                 else:
                     key_col = Index(lvals).where(~mask_left, rvals)
@@ -916,13 +929,17 @@ class _MergeOperation:
                 else:
                     result.insert(i, name or f"key_{i}", key_col)
 
-    def _get_join_indexers(self):
+    def _get_join_indexers(self) -> tuple[np.ndarray, np.ndarray]:
         """ return the join indexers """
+        # Both returned ndarrays are np.intp
         return get_join_indexers(
             self.left_join_keys, self.right_join_keys, sort=self.sort, how=self.how
         )
 
-    def _get_join_info(self):
+    def _get_join_info(
+        self,
+    ) -> tuple[Index, np.ndarray | None, np.ndarray | None]:
+        # Both returned ndarrays are np.intp (if not None)
         left_ax = self.left.axes[self.axis]
         right_ax = self.right.axes[self.axis]
 
@@ -930,6 +947,7 @@ class _MergeOperation:
             join_index, left_indexer, right_indexer = left_ax.join(
                 right_ax, how=self.how, return_indexers=True, sort=self.sort
             )
+
         elif self.right_index and self.how == "left":
             join_index, left_indexer, right_indexer = _left_join_on_index(
                 left_ax, right_ax, self.left_join_keys, sort=self.sort
@@ -952,7 +970,7 @@ class _MergeOperation:
                     )
                 else:
                     join_index = self.right.index.take(right_indexer)
-                    left_indexer = np.array([-1] * len(join_index))
+                    left_indexer = np.array([-1] * len(join_index), dtype=np.intp)
             elif self.left_index:
                 if len(self.right) > 0:
                     join_index = self._create_join_index(
@@ -963,7 +981,7 @@ class _MergeOperation:
                     )
                 else:
                     join_index = self.left.index.take(left_indexer)
-                    right_indexer = np.array([-1] * len(join_index))
+                    right_indexer = np.array([-1] * len(join_index), dtype=np.intp)
             else:
                 join_index = Index(np.arange(len(left_indexer)))
 
@@ -975,7 +993,7 @@ class _MergeOperation:
         self,
         index: Index,
         other_index: Index,
-        indexer,
+        indexer: np.ndarray,
         how: str = "left",
     ) -> Index:
         """
@@ -983,14 +1001,15 @@ class _MergeOperation:
 
         Parameters
         ----------
-        index: Index being rearranged
-        other_index: Index used to supply values not found in index
-        indexer: how to rearrange index
-        how: replacement is only necessary if indexer based on other_index
+        index : Index being rearranged
+        other_index : Index used to supply values not found in index
+        indexer : np.ndarray[np.intp] how to rearrange index
+        how : str
+            Replacement is only necessary if indexer based on other_index.
 
         Returns
         -------
-        join_index
+        Index
         """
         if self.how in (how, "outer") and not isinstance(other_index, MultiIndex):
             # if final index requires values in other_index but not target
@@ -1263,8 +1282,8 @@ class _MergeOperation:
 
         Parameters
         ----------
-        left: DataFrame
-        right DataFrame
+        left : DataFrame
+        right : DataFrame
 
         Returns
         -------
@@ -1419,21 +1438,22 @@ class _MergeOperation:
 
 def get_join_indexers(
     left_keys, right_keys, sort: bool = False, how: str = "inner", **kwargs
-):
+) -> tuple[np.ndarray, np.ndarray]:
     """
 
     Parameters
     ----------
-    left_keys: ndarray, Index, Series
-    right_keys: ndarray, Index, Series
-    sort: bool, default False
-    how: string {'inner', 'outer', 'left', 'right'}, default 'inner'
+    left_keys : ndarray, Index, Series
+    right_keys : ndarray, Index, Series
+    sort : bool, default False
+    how : {'inner', 'outer', 'left', 'right'}, default 'inner'
 
     Returns
     -------
-    tuple of (left_indexer, right_indexer)
-        indexers into the left_keys, right_keys
-
+    np.ndarray[np.intp]
+        Indexer into the left_keys.
+    np.ndarray[np.intp]
+        Indexer into the right_keys.
     """
     assert len(left_keys) == len(
         right_keys
@@ -1499,9 +1519,9 @@ def restore_dropped_levels_multijoin(
     join_index : Index
         the index of the join between the
         common levels of left and right
-    lindexer : intp array
+    lindexer : np.ndarray[np.intp]
         left indexer
-    rindexer : intp array
+    rindexer : np.ndarray[np.intp]
         right indexer
 
     Returns
@@ -1515,7 +1535,7 @@ def restore_dropped_levels_multijoin(
 
     """
 
-    def _convert_to_multiindex(index) -> MultiIndex:
+    def _convert_to_multiindex(index: Index) -> MultiIndex:
         if isinstance(index, MultiIndex):
             return index
         else:
@@ -1649,7 +1669,7 @@ _type_casters = {
 }
 
 
-def _get_cython_type_upcast(dtype) -> str:
+def _get_cython_type_upcast(dtype: DtypeObj) -> str:
     """ Upcast a dtype to 'int64_t', 'double', or 'object' """
     if is_integer_dtype(dtype):
         return "int64_t"
@@ -1706,7 +1726,7 @@ class _AsOfMerge(_OrderedMerge):
             fill_method=fill_method,
         )
 
-    def _validate_specification(self):
+    def _validate_specification(self) -> None:
         super()._validate_specification()
 
         # we only allow on to be a single item for on
@@ -1839,7 +1859,8 @@ class _AsOfMerge(_OrderedMerge):
 
         return left_join_keys, right_join_keys, join_names
 
-    def _get_join_indexers(self):
+    def _get_join_indexers(self) -> tuple[np.ndarray, np.ndarray]:
+        # Both returned ndarrays are np.intp
         """ return the join indexers """
 
         def flip(xs) -> np.ndarray:
@@ -1929,7 +1950,10 @@ class _AsOfMerge(_OrderedMerge):
             return func(left_values, right_values, self.allow_exact_matches, tolerance)
 
 
-def _get_multiindex_indexer(join_keys, index: MultiIndex, sort: bool):
+def _get_multiindex_indexer(
+    join_keys, index: MultiIndex, sort: bool
+) -> tuple[np.ndarray, np.ndarray]:
+    # Both returned ndarrays are np.intp
 
     # left & right join labels and num. of levels at each location
     mapped = (
@@ -1965,17 +1989,19 @@ def _get_multiindex_indexer(join_keys, index: MultiIndex, sort: bool):
     return libjoin.left_outer_join(lkey, rkey, count, sort=sort)
 
 
-def _get_single_indexer(join_key, index, sort: bool = False):
-    left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
+def _get_single_indexer(
+    join_key, index: Index, sort: bool = False
+) -> tuple[np.ndarray, np.ndarray]:
+    # Both returned ndarrays are np.intp
+    left_key, right_key, count = _factorize_keys(join_key, index._values, sort=sort)
 
-    left_indexer, right_indexer = libjoin.left_outer_join(
-        left_key, right_key, count, sort=sort
-    )
-
-    return left_indexer, right_indexer
+    return libjoin.left_outer_join(left_key, right_key, count, sort=sort)
 
 
-def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool = False):
+def _left_join_on_index(
+    left_ax: Index, right_ax: Index, join_keys, sort: bool = False
+) -> tuple[Index, np.ndarray | None, np.ndarray]:
+    # Both returned ndarrays are np.intp (if not None)
     if len(join_keys) > 1:
         if not (
             isinstance(right_ax, MultiIndex) and len(join_keys) == right_ax.nlevels
@@ -2212,7 +2238,9 @@ def _validate_operand(obj: FrameOrSeries) -> DataFrame:
         )
 
 
-def _items_overlap_with_suffix(left: Index, right: Index, suffixes: Suffixes):
+def _items_overlap_with_suffix(
+    left: Index, right: Index, suffixes: Suffixes
+) -> tuple[Index, Index]:
     """
     Suffixes type validation.
 

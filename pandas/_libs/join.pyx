@@ -231,7 +231,7 @@ cdef ndarray[intp_t] _get_result_indexer(
     return res
 
 
-def ffill_indexer(const intp_t[:] indexer):
+def ffill_indexer(const intp_t[:] indexer) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = len(indexer)
         ndarray[intp_t] result
@@ -275,7 +275,7 @@ ctypedef fused join_t:
 def left_join_indexer_unique(ndarray[join_t] left, ndarray[join_t] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
-        ndarray[int64_t] indexer
+        ndarray[intp_t] indexer
         join_t lval, rval
 
     i = 0
@@ -283,7 +283,7 @@ def left_join_indexer_unique(ndarray[join_t] left, ndarray[join_t] right):
     nleft = len(left)
     nright = len(right)
 
-    indexer = np.empty(nleft, dtype=np.int64)
+    indexer = np.empty(nleft, dtype=np.intp)
     while True:
         if i == nleft:
             break
@@ -324,7 +324,7 @@ def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         join_t lval, rval
-        ndarray[int64_t] lindexer, rindexer
+        ndarray[intp_t] lindexer, rindexer
         ndarray[join_t] result
 
     nleft = len(left)
@@ -366,8 +366,8 @@ def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
 
     # do it again now that result size is known
 
-    lindexer = np.empty(count, dtype=np.int64)
-    rindexer = np.empty(count, dtype=np.int64)
+    lindexer = np.empty(count, dtype=np.intp)
+    rindexer = np.empty(count, dtype=np.intp)
     result = np.empty(count, dtype=left.dtype)
 
     i = 0
@@ -427,7 +427,7 @@ def inner_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         join_t lval, rval
-        ndarray[int64_t] lindexer, rindexer
+        ndarray[intp_t] lindexer, rindexer
         ndarray[join_t] result
 
     nleft = len(left)
@@ -468,8 +468,8 @@ def inner_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
 
     # do it again now that result size is known
 
-    lindexer = np.empty(count, dtype=np.int64)
-    rindexer = np.empty(count, dtype=np.int64)
+    lindexer = np.empty(count, dtype=np.intp)
+    rindexer = np.empty(count, dtype=np.intp)
     result = np.empty(count, dtype=left.dtype)
 
     i = 0
@@ -517,7 +517,7 @@ def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
     cdef:
         Py_ssize_t i, j, nright, nleft, count
         join_t lval, rval
-        ndarray[int64_t] lindexer, rindexer
+        ndarray[intp_t] lindexer, rindexer
         ndarray[join_t] result
 
     nleft = len(left)
@@ -564,8 +564,8 @@ def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
                 count += 1
                 j += 1
 
-    lindexer = np.empty(count, dtype=np.int64)
-    rindexer = np.empty(count, dtype=np.int64)
+    lindexer = np.empty(count, dtype=np.intp)
+    rindexer = np.empty(count, dtype=np.intp)
     result = np.empty(count, dtype=left.dtype)
 
     # do it again, but populate the indexers / result
@@ -673,12 +673,12 @@ def asof_join_backward_on_X_by_Y(asof_t[:] left_values,
                                  asof_t[:] right_values,
                                  by_t[:] left_by_values,
                                  by_t[:] right_by_values,
-                                 bint allow_exact_matches=1,
+                                 bint allow_exact_matches=True,
                                  tolerance=None):
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos
-        ndarray[int64_t] left_indexer, right_indexer
+        ndarray[intp_t] left_indexer, right_indexer
         bint has_tolerance = False
         asof_t tolerance_ = 0
         asof_t diff = 0
@@ -693,8 +693,8 @@ def asof_join_backward_on_X_by_Y(asof_t[:] left_values,
     left_size = len(left_values)
     right_size = len(right_values)
 
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
+    left_indexer = np.empty(left_size, dtype=np.intp)
+    right_indexer = np.empty(left_size, dtype=np.intp)
 
     if by_t is object:
         hash_table = PyObjectHashTable(right_size)
@@ -747,7 +747,7 @@ def asof_join_forward_on_X_by_Y(asof_t[:] left_values,
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos
-        ndarray[int64_t] left_indexer, right_indexer
+        ndarray[intp_t] left_indexer, right_indexer
         bint has_tolerance = False
         asof_t tolerance_ = 0
         asof_t diff = 0
@@ -762,8 +762,8 @@ def asof_join_forward_on_X_by_Y(asof_t[:] left_values,
     left_size = len(left_values)
     right_size = len(right_values)
 
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
+    left_indexer = np.empty(left_size, dtype=np.intp)
+    right_indexer = np.empty(left_size, dtype=np.intp)
 
     if by_t is object:
         hash_table = PyObjectHashTable(right_size)
@@ -816,14 +816,14 @@ def asof_join_nearest_on_X_by_Y(asof_t[:] left_values,
 
     cdef:
         Py_ssize_t left_size, right_size, i
-        ndarray[int64_t] left_indexer, right_indexer, bli, bri, fli, fri
+        ndarray[intp_t] left_indexer, right_indexer, bli, bri, fli, fri
         asof_t bdiff, fdiff
 
     left_size = len(left_values)
     right_size = len(right_values)
 
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
+    left_indexer = np.empty(left_size, dtype=np.intp)
+    right_indexer = np.empty(left_size, dtype=np.intp)
 
     # search both forward and backward
     bli, bri = asof_join_backward_on_X_by_Y(
@@ -867,7 +867,7 @@ def asof_join_backward(asof_t[:] left_values,
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size
-        ndarray[int64_t] left_indexer, right_indexer
+        ndarray[intp_t] left_indexer, right_indexer
         bint has_tolerance = False
         asof_t tolerance_ = 0
         asof_t diff = 0
@@ -880,8 +880,8 @@ def asof_join_backward(asof_t[:] left_values,
     left_size = len(left_values)
     right_size = len(right_values)
 
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
+    left_indexer = np.empty(left_size, dtype=np.intp)
+    right_indexer = np.empty(left_size, dtype=np.intp)
 
     right_pos = 0
     for left_pos in range(left_size):
@@ -920,7 +920,7 @@ def asof_join_forward(asof_t[:] left_values,
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size
-        ndarray[int64_t] left_indexer, right_indexer
+        ndarray[intp_t] left_indexer, right_indexer
         bint has_tolerance = False
         asof_t tolerance_ = 0
         asof_t diff = 0
@@ -933,8 +933,8 @@ def asof_join_forward(asof_t[:] left_values,
     left_size = len(left_values)
     right_size = len(right_values)
 
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
+    left_indexer = np.empty(left_size, dtype=np.intp)
+    right_indexer = np.empty(left_size, dtype=np.intp)
 
     right_pos = right_size - 1
     for left_pos in range(left_size - 1, -1, -1):
@@ -974,14 +974,14 @@ def asof_join_nearest(asof_t[:] left_values,
 
     cdef:
         Py_ssize_t left_size, right_size, i
-        ndarray[int64_t] left_indexer, right_indexer, bli, bri, fli, fri
+        ndarray[intp_t] left_indexer, right_indexer, bli, bri, fli, fri
         asof_t bdiff, fdiff
 
     left_size = len(left_values)
     right_size = len(right_values)
 
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
+    left_indexer = np.empty(left_size, dtype=np.intp)
+    right_indexer = np.empty(left_size, dtype=np.intp)
 
     # search both forward and backward
     bli, bri = asof_join_backward(left_values, right_values,
