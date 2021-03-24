@@ -1075,7 +1075,8 @@ class BlockManager(DataManager):
 
             blk.mgr_locs = bml.add(ref_loc_offset[bml.indexer])
 
-        self.axes[0] = self.items.delete(indexer)
+        # FIXME: use Index.delete as soon as it uses fastpath=True
+        self.axes[0] = self.items[~is_deleted]
         self.blocks = tuple(
             b for blkno, b in enumerate(self.blocks) if not is_blk_deleted[blkno]
         )
