@@ -834,9 +834,6 @@ class _MergeOperation:
         right_indexer: Optional[np.ndarray],
     ) -> None:
 
-        _assert_intp_or_none(left_indexer)
-        _assert_intp_or_none(right_indexer)
-
         left_has_missing = None
         right_has_missing = None
 
@@ -950,26 +947,18 @@ class _MergeOperation:
             join_index, left_indexer, right_indexer = left_ax.join(
                 right_ax, how=self.how, return_indexers=True, sort=self.sort
             )
-            _assert_intp_or_none(left_indexer)
-            _assert_intp_or_none(right_indexer)
 
         elif self.right_index and self.how == "left":
             join_index, left_indexer, right_indexer = _left_join_on_index(
                 left_ax, right_ax, self.left_join_keys, sort=self.sort
             )
-            _assert_intp_or_none(left_indexer)
-            _assert_intp_or_none(right_indexer)
 
         elif self.left_index and self.how == "right":
             join_index, right_indexer, left_indexer = _left_join_on_index(
                 right_ax, left_ax, self.right_join_keys, sort=self.sort
             )
-            _assert_intp_or_none(left_indexer)
-            _assert_intp_or_none(right_indexer)
         else:
             (left_indexer, right_indexer) = self._get_join_indexers()
-            _assert_intp_or_none(left_indexer)
-            _assert_intp_or_none(right_indexer)
 
             if self.right_index:
                 if len(self.left) > 0:
@@ -2302,9 +2291,3 @@ def _items_overlap_with_suffix(
     rrenamer = partial(renamer, suffix=rsuffix)
 
     return (left._transform_index(lrenamer), right._transform_index(rrenamer))
-
-
-def _assert_intp_or_none(obj: Optional[np.ndarray]) -> None:
-    if obj is not None:
-        assert isinstance(obj, np.ndarray)
-        assert obj.dtype == np.intp, (obj.dtype, obj)

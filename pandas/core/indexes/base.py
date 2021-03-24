@@ -4006,12 +4006,10 @@ class Index(IndexOpsMixin, PandasObject):
                 lindexer = None
             else:
                 lindexer = self.get_indexer(join_index)
-                assert lindexer.dtype == np.intp, (lindexer.dtype, lindexer)
             if join_index is other:
                 rindexer = None
             else:
                 rindexer = other.get_indexer(join_index)
-                assert rindexer.dtype == np.intp, (rindexer.dtype, rindexer)
             return join_index, lindexer, rindexer
         else:
             return join_index
