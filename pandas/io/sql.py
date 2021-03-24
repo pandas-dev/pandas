@@ -1281,6 +1281,25 @@ class SQLTable(PandasObject):
         return object
 
 
+class AsyncSQLTable(SQLTable):
+    async def __async_init__(self):
+        self.table = await self.table
+        return self
+    
+    def __await__(self):
+        return self.__async_init__().__await__()
+    
+    async def read(self, coerce_float=True, parse_dates=None, columns=None, chunksize=None):
+        sql_select = self._selector_from_columns(columns)
+
+        result = await self.pd_sql.execute(sql_select)
+
+        return self._create_df_from_result(result,
+                                           coerce_float=coerce_float,
+                                           parse_dates=parse_dates,
+                                           chunksize=chunksize)
+
+
 class PandasSQL(PandasObject):
     """
     Subclasses Should define read_sql and to_sql.
