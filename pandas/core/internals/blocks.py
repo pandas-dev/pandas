@@ -5,7 +5,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     List,
     Optional,
     Tuple,
@@ -103,6 +102,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 import pandas.core.computation.expressions as expressions
@@ -123,7 +123,6 @@ if TYPE_CHECKING:
         Float64Index,
         Index,
     )
-    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 # comparison is faster than is_object_dtype
 _dtype_obj = np.dtype("object")
@@ -608,9 +607,12 @@ class Block(libinternals.Block, PandasObject):
         """
         return [self.copy()] if copy else [self]
 
+    @final
     def _can_hold_element(self, element: Any) -> bool:
         """ require the same dtype as ourselves """
-        raise NotImplementedError("Implemented on subclasses")
+        element = extract_array(element, extract_numpy=True)
+        arr = ensure_wrapped_if_datetimelike(self.values)
+        return can_hold_element(arr, element)
 
     @final
     def should_store(self, value: ArrayLike) -> bool:
@@ -1556,10 +1558,6 @@ class ExtensionBlock(Block):
 
         return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def _can_hold_element(self, element: Any) -> bool:
-        # TODO: We may need to think about pushing this onto the array.
-        return True
-
     def _slice(self, slicer):
         """
         Return a slice of my values.
@@ -1708,24 +1706,7 @@ class ExtensionBlock(Block):
         return blocks, mask
 
 
-class HybridMixin:
-    """
-    Mixin for Blocks backed (maybe indirectly) by ExtensionArrays.
-    """
-
-    array_values: Callable
-
-    def _can_hold_element(self, element: Any) -> bool:
-        values = self.array_values()
-
-        try:
-            values._validate_setitem_value(element)
-            return True
-        except (ValueError, TypeError):
-            return False
-
-
-class ObjectValuesExtensionBlock(HybridMixin, ExtensionBlock):
+class ObjectValuesExtensionBlock(ExtensionBlock):
     """
     Block providing backwards-compatibility for `.values`.
 
@@ -1740,20 +1721,14 @@ class NumericBlock(Block):
     __slots__ = ()
     is_numeric = True
 
-    def _can_hold_element(self, element: Any) -> bool:
-        element = extract_array(element, extract_numpy=True)
-        if isinstance(element, (IntegerArray, FloatingArray)):
-            if element._mask.any():
-                return False
-        # error: Argument 1 to "can_hold_element" has incompatible type
-        # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
-        return can_hold_element(self.dtype, element)  # type: ignore[arg-type]
 
-
-class NDArrayBackedExtensionBlock(HybridMixin, Block):
+class NDArrayBackedExtensionBlock(Block):
     """
     Block backed by an NDArrayBackedExtensionArray
     """
+
+    def array_values(self) -> NDArrayBackedExtensionArray:
+        return ensure_wrapped_if_datetimelike(self.values)
 
     def internal_values(self):
         # Override to return DatetimeArray and TimedeltaArray
@@ -1783,7 +1758,6 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 
         # TODO(EA2D): reshape unnecessary with 2D EAs
         arr = self.array_values().reshape(self.shape)
-        arr = cast("NDArrayBackedExtensionArray", arr)
         arr.T.putmask(mask, new)
         return [self]
 
@@ -1800,8 +1774,8 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 
         # TODO(EA2D): reshape not needed with 2D EAs
         res_values = res_values.reshape(self.values.shape)
-        res_values = maybe_coerce_values(res_values)
-        nb = self.make_block_same_class(res_values)
+        coerced = maybe_coerce_values(res_values)
+        nb = self.make_block_same_class(coerced)
         return [nb]
 
     def diff(self, n: int, axis: int = 0) -> List[Block]:
@@ -1828,15 +1802,15 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         values = self.array_values().reshape(self.shape)
 
         new_values = values - values.shift(n, axis=axis)
-        new_values = maybe_coerce_values(new_values)
-        return [self.make_block(new_values)]
+        coerced = maybe_coerce_values(new_values)
+        return [self.make_block(coerced)]
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
         values = self.array_values().reshape(self.shape)
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
-        new_values = maybe_coerce_values(new_values)
-        return [self.make_block_same_class(new_values)]
+        coerced = maybe_coerce_values(new_values)
+        return [self.make_block_same_class(coerced)]
 
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
@@ -1851,8 +1825,8 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         values = self.array_values()
         values = values if inplace else values.copy()
         new_values = values.fillna(value=value, limit=limit)
-        new_values = maybe_coerce_values(new_values)
-        return [self.make_block_same_class(values=new_values)]
+        coerced = maybe_coerce_values(new_values)
+        return [self.make_block_same_class(values=coerced)]
 
 
 class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
@@ -1886,13 +1860,15 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlockMixin):
     is_numeric = False
 
     internal_values = Block.internal_values
-    _can_hold_element = DatetimeBlock._can_hold_element
     diff = DatetimeBlock.diff
     where = DatetimeBlock.where
     putmask = DatetimeLikeBlockMixin.putmask
     fillna = DatetimeLikeBlockMixin.fillna
 
-    array_values = ExtensionBlock.array_values
+    # error: Incompatible types in assignment (expression has type "Callable[[],
+    # ExtensionArray]", base class "NDArrayBackedExtensionBlock" defined the
+    # type as "Callable[[], Union[TimedeltaArray, DatetimeArray]]")
+    array_values = ExtensionBlock.array_values  # type: ignore[assignment]
 
     @property
     def is_view(self) -> bool:
@@ -1959,9 +1935,6 @@ class ObjectBlock(Block):
 
         # split and convert the blocks
         return extend_blocks([b.convert(datetime=True, numeric=False) for b in blocks])
-
-    def _can_hold_element(self, element: Any) -> bool:
-        return True
 
 
 class CategoricalBlock(ExtensionBlock):
