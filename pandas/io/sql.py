@@ -1787,6 +1787,22 @@ class AsyncSQLDatabase(SQLDatabase):
     async def get_table(self, table_name: str, schema: Optional[str] = None):
         return (await self.metadata).tables.get(".".join([schema, table_name]) \
                                                 if schema else table_name)
+    
+    async def read_table(self,
+                         table_name: str,
+                         index_col: Optional[Union[str, Sequence[str]]] = None,
+                         coerce_float: bool = True,
+                         parse_dates=None,
+                         columns=None,
+                         schema: Optional[str] = None,
+                         chunksize: Optional[int] = None):
+        table = await AsyncSQLTable(table_name, self, index=index_col, schema=schema)
+        return await table.read(
+            coerce_float=coerce_float,
+            parse_dates=parse_dates,
+            columns=columns,
+            chunksize=chunksize,
+        )
 
 
 # ---- SQL without SQLAlchemy ---
