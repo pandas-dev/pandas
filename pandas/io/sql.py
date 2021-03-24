@@ -1804,6 +1804,26 @@ class AsyncSQLDatabase(SQLDatabase):
             chunksize=chunksize,
         )
 
+    async def read_query(self,
+                         sql: str,
+                         index_col: Optional[str] = None,
+                         coerce_float: bool = True,
+                         parse_dates=None,
+                         params=None,
+                         chunksize: Optional[int] = None,
+                         dtype: Optional[DtypeArg] = None):
+        from sqlalchemy import text
+
+        result = await self.execute(text(sql), parameters=params)
+
+        return self._convert_result_to_df(result,
+                                          index_col=index_col,
+                                          coerce_float=coerce_float,
+                                          parse_dates=parse_dates,
+                                          params=params,
+                                          chunksize=chunksize,
+                                          dtype=dtype)
+
 
 # ---- SQL without SQLAlchemy ---
 # sqlite-specific sql strings and handler class
