@@ -810,7 +810,10 @@ class Block(libinternals.Block, PandasObject):
                 else:
                     # GH-39338: _replace_coerce can split a block, so we
                     # need to keep track of where to index into the mask
-                    m = masks[i][mask_pos : mask_pos + blk.shape[0]]
+                    assert not isinstance(masks[i], bool)
+                    # error: Value of type "Union[ExtensionArray, ndarray, bool]"
+                    # is not indexable
+                    m = masks[i][mask_pos : mask_pos + blk.shape[0]]  # type: ignore[index]
                     mask_pos += blk.shape[0]
 
                 result = blk._replace_coerce(
