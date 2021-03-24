@@ -77,6 +77,18 @@ def _is_sqlalchemy_connectable(con):
     else:
         return False
 
+def _is_async_sqlalchemy_connectable(con):
+    # NOTE: Call to _is_sqlalchemy_connectable
+    # is to initialize _SQLALCHEMY_INSTALLED
+    # global variable
+    _is_sqlalchemy_connectable(con)
+    if _SQLALCHEMY_INSTALLED:
+        try:
+            from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
+            return isinstance(con, (AsyncEngine, AsyncConnection))
+        except ModuleNotFoundError:
+            return False 
+    return False
 
 def _gt14() -> bool:
     """
