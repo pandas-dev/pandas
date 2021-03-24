@@ -1464,6 +1464,38 @@ class SQLDatabase(PandasSQL):
                     parse_dates=parse_dates,
                     dtype=dtype,
                 )
+    
+    def _convert_result_to_df(self,
+                              result,
+                              index_col: Optional[str] = None,
+                              coerce_float: bool = True,
+                              parse_dates=None,
+                              params=None,
+                              chunksize: Optional[int] = None,
+                              dtype: Optional[DtypeArg] = None):
+        columns = result.keys()
+
+        if chunksize is not None:
+            return self._query_iterator(
+                result,
+                chunksize,
+                columns,
+                index_col=index_col,
+                coerce_float=coerce_float,
+                parse_dates=parse_dates,
+                dtype=dtype,
+            )
+        else:
+            data = result.fetchall()
+            frame = _wrap_result(
+                data,
+                columns,
+                index_col=index_col,
+                coerce_float=coerce_float,
+                parse_dates=parse_dates,
+                dtype=dtype,
+            )
+            return frame
 
     def read_query(
         self,
@@ -1522,31 +1554,14 @@ class SQLDatabase(PandasSQL):
 
         """
         args = _convert_params(sql, params)
-
         result = self.execute(*args)
-        columns = result.keys()
-
-        if chunksize is not None:
-            return self._query_iterator(
-                result,
-                chunksize,
-                columns,
-                index_col=index_col,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                dtype=dtype,
-            )
-        else:
-            data = result.fetchall()
-            frame = _wrap_result(
-                data,
-                columns,
-                index_col=index_col,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                dtype=dtype,
-            )
-            return frame
+        return self._convert_result_to_df(result,
+                                          index_col=index_col,
+                                          coerce_float=coerce_float,
+                                          parse_dates=parse_dates,
+                                          params=params,
+                                          chunksize=chunksize,
+                                          dtype=dtype)
 
     read_sql = read_query
 
