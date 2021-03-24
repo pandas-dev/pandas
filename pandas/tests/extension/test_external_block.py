@@ -2,16 +2,21 @@ import numpy as np
 import pytest
 
 from pandas._libs.internals import BlockPlacement
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas.core.internals import BlockManager
 from pandas.core.internals.blocks import ExtensionBlock
 
+pytestmark = td.skip_array_manager_invalid_test
+
 
 class CustomBlock(ExtensionBlock):
 
     _holder = np.ndarray
-    _can_hold_na = False
+    # error: Cannot override final attribute "_can_hold_na"
+    # (previously declared in base class "Block")
+    _can_hold_na = False  # type: ignore[misc]
 
 
 @pytest.fixture

@@ -3857,7 +3857,8 @@ Keep all original rows and also all original values
         dtype: object
         """
         if not len(self) or not is_object_dtype(self):
-            return self.copy()
+            result = self.copy()
+            return result.reset_index(drop=True) if ignore_index else result
 
         values, counts = reshape.explode(np.asarray(self._values))
 
@@ -5087,7 +5088,8 @@ Keep all original rows and also all original values
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
 
-        res_values = ops.comparison_op(lvalues, rvalues, op)
+        with np.errstate(all="ignore"):
+            res_values = ops.comparison_op(lvalues, rvalues, op)
 
         return self._construct_result(res_values, name=res_name)
 
@@ -5107,7 +5109,8 @@ Keep all original rows and also all original values
 
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
-        result = ops.arithmetic_op(lvalues, rvalues, op)
+        with np.errstate(all="ignore"):
+            result = ops.arithmetic_op(lvalues, rvalues, op)
 
         return self._construct_result(result, name=res_name)
 
