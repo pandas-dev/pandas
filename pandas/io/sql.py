@@ -1010,10 +1010,12 @@ class SQLTable(PandasObject):
             sql_select = self.table.select()
         
         return sql_select
-
-    def read(self, coerce_float=True, parse_dates=None, columns=None, chunksize=None):
-        sql_select = self._selector_from_columns(columns)
-        result = self.pd_sql.execute(sql_select)
+    
+    def _create_df_from_result(self,
+                               result,
+                               coerce_float=True,
+                               parse_dates=None,
+                               chunksize=None):
         column_names = result.keys()
 
         if chunksize is not None:
@@ -1036,6 +1038,14 @@ class SQLTable(PandasObject):
                 self.frame.set_index(self.index, inplace=True)
 
             return self.frame
+
+    def read(self, coerce_float=True, parse_dates=None, columns=None, chunksize=None):
+        sql_select = self._selector_from_columns(columns)
+        result = self.pd_sql.execute(sql_select)
+        return self._create_df_from_result(result,
+                                           coerce_float=coerce_float,
+                                           parse_dates=parse_dates,
+                                           chunksize=chunksize)
 
     def _index_name(self, index, index_label):
         # for writing: index=True to include index in sql table
