@@ -618,6 +618,29 @@ def read_sql(
             parse_dates=parse_dates,
             chunksize=chunksize,
         )
+    
+    if isinstance(pandas_sql, AsyncSQLDatabase):
+        async def read_sql():
+            if await pandas_sql.has_table(sql):
+                return await pandas_sql.read_table(
+                    sql,
+                    index_col=index_col,
+                    coerce_float=coerce_float,
+                    parse_dates=parse_dates,
+                    columns=columns,
+                    chunksize=chunksize,
+                )
+            else:
+                return await pandas_sql.read_query(
+                    sql,
+                    index_col=index_col,
+                    params=params,
+                    coerce_float=coerce_float,
+                    parse_dates=parse_dates,
+                    chunksize=chunksize,
+                )
+        
+        return read_sql()
 
     try:
         _is_table_name = pandas_sql.has_table(sql)
