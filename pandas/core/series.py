@@ -4746,11 +4746,11 @@ Keep all original rows and also all original values
         elif inclusive == "right":
             lmask = self > left
             rmask = self <= right
-        elif inclusive == "False" or inclusive == "neither":
+        elif inclusive == "False":
             lmask = self > left
             rmask = self < right
         else:
-            print("Invalid inclusive input: string input of 'True', 'False' 'left', 'right', 'neither', or 'both' should be submitted")
+            raise ValueError("Invalid inclusive input: string input of 'True', 'False' 'left', 'right', or 'both' should be submitted")
 
         return lmask & rmask
 
