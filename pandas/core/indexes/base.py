@@ -3925,7 +3925,7 @@ class Index(IndexOpsMixin, PandasObject):
         if len(other) == 0 and how in ("left", "outer"):
             join_index = self._view()
             if return_indexers:
-                rindexer = np.repeat(-1, len(join_index))
+                rindexer = np.repeat(np.intp(-1), len(join_index))
                 return join_index, None, rindexer
             else:
                 return join_index
@@ -3933,7 +3933,7 @@ class Index(IndexOpsMixin, PandasObject):
         if len(self) == 0 and how in ("right", "outer"):
             join_index = other._view()
             if return_indexers:
-                lindexer = np.repeat(-1, len(join_index))
+                lindexer = np.repeat(np.intp(-1), len(join_index))
                 return join_index, lindexer, None
             else:
                 return join_index
@@ -4006,10 +4006,12 @@ class Index(IndexOpsMixin, PandasObject):
                 lindexer = None
             else:
                 lindexer = self.get_indexer(join_index)
+                assert lindexer.dtype == np.intp, (lindexer.dtype, lindexer)
             if join_index is other:
                 rindexer = None
             else:
                 rindexer = other.get_indexer(join_index)
+                assert rindexer.dtype == np.intp, (rindexer.dtype, rindexer)
             return join_index, lindexer, rindexer
         else:
             return join_index

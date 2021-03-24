@@ -2307,4 +2307,4 @@ def _items_overlap_with_suffix(
 def _assert_intp_or_none(obj: Optional[np.ndarray]) -> None:
     if obj is not None:
         assert isinstance(obj, np.ndarray)
-        assert obj.dtype == np.intp, obj.dtype
+        assert obj.dtype == np.intp, (obj.dtype, obj)
