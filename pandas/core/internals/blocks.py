@@ -808,14 +808,11 @@ class Block(libinternals.Block, PandasObject):
                 if blk.ndim == 1:
                     m = masks[i]
                 else:
+                    mib = masks[i]
                     # GH-39338: _replace_coerce can split a block, so we
                     # need to keep track of where to index into the mask
-                    assert not isinstance(masks[i], bool)
-                    # error: Value of type "Union[ExtensionArray, ndarray, bool]"
-                    # is not indexable
-                    m = masks[i][
-                        mask_pos : mask_pos + blk.shape[0]
-                    ]  # type: ignore[index]
+                    assert not isinstance(mib, bool)
+                    m = mib[mask_pos : mask_pos + blk.shape[0]]
                     mask_pos += blk.shape[0]
 
                 result = blk._replace_coerce(
