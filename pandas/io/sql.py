@@ -1747,6 +1747,48 @@ class SQLDatabase(PandasSQL):
         return str(table.sql_schema())
 
 
+class AsyncSQLDatabase(SQLDatabase):
+    def __init__(self, connectable, schema: Optional[str] = None, meta=None):
+        from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
+
+        if not isinstance(connectable, (AsyncEngine, AsyncConnection)):
+            raise TypeError(('connectable argument must be an AsyncEngine '
+                            f'or an AsyncConnection, not {type(connectable)!r}'))
+        self.engine = connectable if isinstance(connectable, AsyncEngine) else connectable.engine
+        
+        self.schema = schema
+
+        if meta:
+            self._metadata = meta
+        
+        self._tables_added = False
+
+    async def execute(self, *args, **kwargs):
+        async with self.engine.connect() as conn:
+            return await conn.execute(*args, **kwargs)
+
+    @property
+    async def metadata(self):
+        if not hasattr(self, '_metadata'):
+            from sqlalchemy.schema import MetaData
+            self._metadata = MetaData()
+    
+        if not self._tables_added:
+            async with self.engine.connect() as conn:
+                await conn.run_sync(self._metadata.reflect)
+                self._tables_added = True
+        
+        return self._metadata
+
+    async def has_table(self, table_name: str, schema: Optional[str] = None):
+        async with self.engine.connect() as conn:
+            return await conn.run_sync(conn.dialect.has_table, table_name, schema)
+    
+    async def get_table(self, table_name: str, schema: Optional[str] = None):
+        return (await self.metadata).tables.get(".".join([schema, table_name]) \
+                                                if schema else table_name)
+
+
 # ---- SQL without SQLAlchemy ---
 # sqlite-specific sql strings and handler class
 # dictionary used for readability purposes
