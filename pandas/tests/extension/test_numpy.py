@@ -53,10 +53,9 @@ def dtype(request):
     return PandasDtype(np.dtype(request.param))
 
 
-orig_init = blocks.ExtensionBlock.__init__
-
-
 def __init__(self, values, placement, ndim):
+    # libinternals.Block.__cinit__ gets called automatically before __init__,
+    #  after which this __init__ is called
     if not isinstance(placement, blocks.libinternals.BlockPlacement):
         placement = blocks.libinternals.BlockPlacement(placement)
 
@@ -71,7 +70,8 @@ def __init__(self, values, placement, ndim):
         assert values.shape[0] == 1
         values = values[0]
 
-    orig_init(self, values, placement, ndim)
+    self.values = values
+    self.placement = placement
 
 
 @pytest.fixture

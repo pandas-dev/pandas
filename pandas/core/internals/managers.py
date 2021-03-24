@@ -71,6 +71,7 @@ from pandas.core.internals.base import (
 )
 from pandas.core.internals.blocks import (
     Block,
+    CategoricalBlock,
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
@@ -632,25 +633,6 @@ class BlockManager(DataManager):
         axis = self._normalize_axis(axis)
         if fill_value is lib.no_default:
             fill_value = None
-
-        if axis == 0 and self.ndim == 2 and self.nblocks > 1:
-            # GH#35488 we need to watch out for multi-block cases
-            # We only get here with fill_value not-lib.no_default
-            ncols = self.shape[0]
-            if periods > 0:
-                indexer = [-1] * periods + list(range(ncols - periods))
-            else:
-                nper = abs(periods)
-                indexer = list(range(nper, ncols)) + [-1] * nper
-            result = self.reindex_indexer(
-                self.items,
-                indexer,
-                axis=0,
-                fill_value=fill_value,
-                allow_dups=True,
-                consolidate=False,
-            )
-            return result
 
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
@@ -1879,6 +1861,13 @@ def _form_blocks(
     if len(items_dict["ObjectBlock"]) > 0:
         object_blocks = _simple_blockify(items_dict["ObjectBlock"], np.object_)
         blocks.extend(object_blocks)
+
+    if len(items_dict["CategoricalBlock"]) > 0:
+        cat_blocks = [
+            new_block(array, klass=CategoricalBlock, placement=i, ndim=2)
+            for i, array in items_dict["CategoricalBlock"]
+        ]
+        blocks.extend(cat_blocks)
 
     if len(items_dict["ExtensionBlock"]):
         external_blocks = [

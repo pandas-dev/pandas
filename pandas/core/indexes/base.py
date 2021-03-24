@@ -4154,7 +4154,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return np.empty(0, dtype=np.intp)
 
             if len(labels) == 1:
-                return get_group_index_sorter(labels[0])
+                return get_group_index_sorter(ensure_platform_int(labels[0]))
 
             # find indexers of beginning of each set of
             # same-key labels w.r.t all but last level
@@ -4224,7 +4224,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if level == 0:  # outer most level, take the fast route
                     ngroups = 1 + new_lev_codes.max()
                     left_indexer, counts = libalgos.groupsort_indexer(
-                        ensure_int64(new_lev_codes), ngroups
+                        new_lev_codes, ngroups
                     )
 
                     # missing values are placed first; drop them!
@@ -5678,7 +5678,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return label
 
-    def _searchsorted_monotonic(self, label, side="left"):
+    def _searchsorted_monotonic(self, label, side: str_t = "left"):
         if self.is_monotonic_increasing:
             return self.searchsorted(label, side=side)
         elif self.is_monotonic_decreasing:
