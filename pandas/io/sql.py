@@ -997,8 +997,7 @@ class SQLTable(PandasObject):
 
                 yield self.frame
 
-    def read(self, coerce_float=True, parse_dates=None, columns=None, chunksize=None):
-
+    def _selector_from_columns(self, columns):
         if columns is not None and len(columns) > 0:
             from sqlalchemy import select
 
@@ -1009,7 +1008,11 @@ class SQLTable(PandasObject):
             sql_select = select(cols)
         else:
             sql_select = self.table.select()
+        
+        return sql_select
 
+    def read(self, coerce_float=True, parse_dates=None, columns=None, chunksize=None):
+        sql_select = self._selector_from_columns(columns)
         result = self.pd_sql.execute(sql_select)
         column_names = result.keys()
 
