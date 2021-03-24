@@ -14,7 +14,6 @@ from functools import (
     partial,
     wraps,
 )
-from pandas.core.arrays.boolean import BooleanDtype
 import inspect
 from textwrap import dedent
 import types
@@ -110,10 +109,6 @@ from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
-from pandas.core.dtypes.base import (
-    ExtensionDtype,
-
-)
 _common_see_also = """
         See Also
         --------

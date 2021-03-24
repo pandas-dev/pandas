@@ -1998,7 +1998,7 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
 @pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
 def test_bool_aggs_ea_skipna(bool_agg_func, dtype):
     # GH-40585
-    df = pd.DataFrame({"grp": [1, 1], "val": [pd.NA, 1]}, dtype=dtype)
+    df = DataFrame({"grp": [1, 1], "val": [pd.NA, 1]}, dtype=dtype)
     grouped = df.groupby("grp")
     result = grouped.agg(bool_agg_func, skipna=True)
 
