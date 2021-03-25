@@ -2192,7 +2192,7 @@ cdef class MonthBegin(MonthOffset):
     DateOffset of one month at beginning.
     """
 
-    _period_dtype_code = PeriodDtypeCode.M
+    # _period_dtype_code = PeriodDtypeCode.M
     _prefix = "MS"
     _day_opt = "start"
 
@@ -2222,8 +2222,6 @@ cdef class BusinessMonthBegin(MonthOffset):
     >>> ts + BMonthBegin(-3)
     Timestamp('2020-03-02 05:01:15')
     """
-				  
-					  
 
     _prefix = "BMS"
     _day_opt = "business_start"
