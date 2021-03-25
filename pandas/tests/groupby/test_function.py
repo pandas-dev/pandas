@@ -95,10 +95,10 @@ def test_bool_aggs_ea_skipna(bool_agg_func, dtype, group_by_frame):
     df = DataFrame({"grp": [1, 1], "val": pd.array([pd.NA, 1], dtype=dtype)})
     if group_by_frame:
         grouped = df.groupby("grp")
-        expected = DataFrame({"val": [True]}, index=pd.Index([1], name="grp"))
+        expected = DataFrame({"val": [True]}, index=Index([1], name="grp"))
     else:
         grouped = df["val"].groupby(df["grp"])
-        expected = Series([True], index=pd.Index([1], name="grp"), name="val")
+        expected = Series([True], index=Index([1], name="grp"), name="val")
 
     result = grouped.agg(bool_agg_func, skipna=True)
     tm.assert_equal(result, expected)
