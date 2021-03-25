@@ -78,7 +78,6 @@ _period_code_map = {
     "Q-NOV": 2011,    # Quarterly - November year end
 
     "M": 3000,        # Monthly - month end
-    "MS": 3001,       # Monthly - month start
 
     "W-SUN": 4000,    # Weekly - Sunday end of week
     "W-MON": 4001,    # Weekly - Monday end of week
@@ -111,6 +110,7 @@ _period_code_map.update({
     "A": 1000,   # Annual
     "W": 4000,   # Weekly
     "C": 5000,   # Custom Business Day
+    "MS": 3000,  # Monthly - beginning of month
 })
 
 cdef set _month_names = {
