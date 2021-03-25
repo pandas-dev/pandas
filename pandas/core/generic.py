@@ -3893,26 +3893,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __getitem__(self, item):
         raise AbstractMethodError(self)
 
-    @final
-    def _get_item_cache(self, item):
-        """Return the cached item, item represents a label indexer."""
-        cache = self._item_cache
-        res = cache.get(item)
-        if res is None:
-            # All places that call _get_item_cache have unique columns,
-            #  pending resolution of GH#33047
-
-            loc = self.columns.get_loc(item)
-            values = self._mgr.iget(loc)
-            res = self._box_col_values(values, loc).__finalize__(self)
-
-            cache[item] = res
-            res._set_as_cached(item, self)
-
-            # for a chain
-            res._is_copy = self._is_copy
-        return res
-
     def _slice(self: FrameOrSeries, slobj: slice, axis=0) -> FrameOrSeries:
         """
         Construct a slice of this container.

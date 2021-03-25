@@ -540,6 +540,7 @@ class DataFrame(NDFrame, OpsMixin):
     _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
     _accessors: Set[str] = {"sparse"}
     _hidden_attrs: FrozenSet[str] = NDFrame._hidden_attrs | frozenset([])
+    _mgr: Union[BlockManager, ArrayManager]
 
     @property
     def _constructor(self) -> Type[DataFrame]:
@@ -3509,6 +3510,25 @@ class DataFrame(NDFrame, OpsMixin):
         col = self.columns.get_loc(col)
         index = self.index.get_loc(index)
         return self._get_value(index, col, takeable=True)
+
+    def _get_item_cache(self, item):
+        """Return the cached item, item represents a label indexer."""
+        cache = self._item_cache
+        res = cache.get(item)
+        if res is None:
+            # All places that call _get_item_cache have unique columns,
+            #  pending resolution of GH#33047
+
+            loc = self.columns.get_loc(item)
+            values = self._mgr.iget(loc)
+            res = self._box_col_values(values, loc).__finalize__(self)
+
+            cache[item] = res
+            res._set_as_cached(item, self)
+
+            # for a chain
+            res._is_copy = self._is_copy
+        return res
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
