@@ -164,6 +164,7 @@ repos:
     rev: v1.2.2
     hooks:
     -   id: yesqa
+        additional_dependencies: [flake8==3.8.4]
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.3.0
     hooks:
