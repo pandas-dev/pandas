@@ -451,8 +451,8 @@ def _array_strptime_with_fallback(
         Name given to the returned Index.
     tz : str or tzinfo
         Timezone for returned Index
-    fmt : string or None
-        Holds format value for the datetime arguement.
+    fmt : str, optional
+        Datetime format of arg
     exact : boolean value Default true
         Boolean for parse accuracy.
     errors : str or None Optional
