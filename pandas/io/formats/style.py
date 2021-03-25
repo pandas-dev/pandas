@@ -1079,7 +1079,7 @@ class Styler:
         Parameters
         ----------
         cond : callable
-            ``cond`` should take a scalar and return a boolean.
+            ``cond`` should take a scalar, and optional args, and return a boolean.
         value : str
             Applied when ``cond`` returns true.
         other : str
@@ -1099,18 +1099,27 @@ class Styler:
         Styler.applymap: Apply a CSS-styling function elementwise.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
-        Examples
-        --------
-        >>> def cond(v):
-        ...     return v > 1 and v != 4
+        Notes
+        -----
+        This method is a convenience wrapper for :meth:`Styler.applymap`, which we
+        recommend using instead.
+
+        Instead of the example:
         >>> df = pd.DataFrame([[1, 2], [3, 4]])
-        >>> df.style.where(cond, value='color:red;', other='font-size:2em;')
+        >>> def cond(v, bad_val=4):
+        ...     return v > 1 and v != bad_val
+        >>> df.style.where(cond, value='color:green;', other='color:red;')
+
+        we would recommend:
+        >>> def style_func(v, good_css, bad_css, bad_val=4):
+        ...     return good_css if v > 1 and v != bad_val else bad_css
+        >>> df.style.applymap(style_func, good_css='color:green;', bad_css='color:red;')
         """
         if other is None:
             other = ""
 
         return self.applymap(
-            lambda val: value if cond(val) else other, subset=subset, **kwargs
+            lambda val: value if cond(val, **kwargs) else other, subset=subset
         )
 
     def set_precision(self, precision: int) -> Styler:
