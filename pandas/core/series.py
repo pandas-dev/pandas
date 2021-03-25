@@ -2020,9 +2020,7 @@ Name: Max Speed, dtype: float64
         else:
             return result
 
-    # error: Return type "Series" of "duplicated" incompatible with return type
-    # "ndarray" in supertype "IndexOpsMixin"
-    def duplicated(self, keep="first") -> Series:  # type: ignore[override]
+    def duplicated(self, keep="first") -> Series:
         """
         Indicate duplicate Series values.
 

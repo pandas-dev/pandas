@@ -934,12 +934,8 @@ class IndexOpsMixin(OpsMixin):
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
 
-                # error: Incompatible types in assignment (expression has type
-                # "Categorical", variable has type "IndexOpsMixin")
-                self = cast("Categorical", self)  # type: ignore[assignment]
-                # error: Item "ExtensionArray" of "Union[ExtensionArray, Any]" has no
-                # attribute "map"
-                return self._values.map(mapper)  # type: ignore[union-attr]
+                cat = cast("Categorical", self._values)
+                return cat.map(mapper)
 
             values = self._values
 
@@ -956,8 +952,7 @@ class IndexOpsMixin(OpsMixin):
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
-            # error: "IndexOpsMixin" has no attribute "astype"
-            values = self.astype(object)._values  # type: ignore[attr-defined]
+            values = self._values.astype(object)
             if na_action == "ignore":
                 map_f = lambda values, f: lib.map_infer_mask(
                     values, f, isna(values).view(np.uint8)

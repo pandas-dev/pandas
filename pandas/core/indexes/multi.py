@@ -1620,7 +1620,9 @@ class MultiIndex(Index):
 
         return duplicated_int64(ids, keep)
 
-    _duplicated = duplicated
+    # error: Cannot override final attribute "_duplicated"
+    # (previously declared in base class "IndexOpsMixin")
+    _duplicated = duplicated  # type: ignore[misc]
 
     def fillna(self, value=None, downcast=None):
         """
@@ -2218,11 +2220,7 @@ class MultiIndex(Index):
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
-                # error: Argument "dtype" to "index_labels_to_array" has incompatible
-                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
-                codes = com.index_labels_to_array(
-                    codes, dtype=object  # type: ignore[arg-type]
-                )
+                codes = com.index_labels_to_array(codes, dtype=np.dtype("object"))
             except ValueError:
                 pass
 
