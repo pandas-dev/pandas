@@ -119,19 +119,19 @@ _common_see_also = """
 
 _apply_docs = {
     "template": """
-    Apply function `func` group-wise and combine the results together.
+    Apply function ``func`` group-wise and combine the results together.
 
-    The function passed to `apply` must take a {input} as its first
-    argument and return a DataFrame, Series or scalar. `apply` will
+    The function passed to ``apply`` must take a {input} as its first
+    argument and return a DataFrame, Series or scalar. ``apply`` will
     then take care of combining the results back together into a single
-    dataframe or series. `apply` is therefore a highly flexible
+    dataframe or series. ``apply`` is therefore a highly flexible
     grouping method.
 
-    While `apply` is a very flexible method, its downside is that
+    While ``apply`` is a very flexible method, its downside is that
     using it can be quite a bit slower than using more specific methods
-    like `agg` or `transform`. Pandas offers a wide range of method that will
-    be much faster than using `apply` for their specific purposes, so try to
-    use them before reaching for `apply`.
+    like ``agg`` or ``transform``. Pandas offers a wide range of method that will
+    be much faster than using ``apply`` for their specific purposes, so try to
+    use them before reaching for ``apply``.
 
     Parameters
     ----------
@@ -140,7 +140,7 @@ _apply_docs = {
         returns a dataframe, a series or a scalar. In addition the
         callable may take positional and keyword arguments.
     args, kwargs : tuple and dict
-        Optional positional and keyword arguments to pass to `func`.
+        Optional positional and keyword arguments to pass to ``func``.
 
     Returns
     -------
@@ -157,9 +157,9 @@ _apply_docs = {
 
     Notes
     -----
-    In the current implementation `apply` calls `func` twice on the
+    In the current implementation ``apply`` calls ``func`` twice on the
     first group to decide whether it can take a fast or slow code
-    path. This can lead to unexpected behavior if `func` has
+    path. This can lead to unexpected behavior if ``func`` has
     side-effects, as they will take effect twice for the first
     group.
 
@@ -350,12 +350,12 @@ Returns
 
 See Also
 --------
-%(klass)s.groupby.apply : Apply function func group-wise
-    and combine the results together.
+%(klass)s.groupby.apply : Apply function ``func`` group-wise and combine
+    the results together.
 %(klass)s.groupby.aggregate : Aggregate using one or more
     operations over the specified axis.
-%(klass)s.transform : Transforms the Series on each group
-    based on the given function.
+%(klass)s.transform : Call ``func`` on self producing a %(klass)s with
+    transformed values.
 
 Notes
 -----
