@@ -2424,7 +2424,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         with group_selection_context(self):
             index = self._selected_obj.index
-            result = self._obj_1d_constructor(self.grouper.group_info[0], index)
+            result = self._obj_1d_constructor(
+                self.grouper.group_info[0], index, dtype=np.int64
+            )
             if not ascending:
                 result = self.ngroups - 1 - result
             return result
