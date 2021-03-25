@@ -106,7 +106,27 @@ def _take_nd_ndarray(
     fill_value,
     allow_fill: bool,
 ) -> np.ndarray:
+    """
+    Returns values based correlated to indexies list applied to the parameter array
 
+    Paramters
+    ---------
+    arr : np.ndarray
+        The array to take the values from.
+    indexer : array structure or None
+        Holds values to take from the arr parameter.
+    axis : int, optional
+        The axis over which to select the values
+    fill_value : var, optional
+    allow_fill : bool, optional
+        Checks if user wants to use a fill value within the array
+
+    Returns
+    -------
+    Array of values associated with the list, correlated with 
+    the index arguements.
+    """
+    # checks for dtype to be able to hold arr values
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.intp)
         dtype, fill_value = arr.dtype, arr.dtype.type()
