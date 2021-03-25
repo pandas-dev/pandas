@@ -318,34 +318,54 @@ def read_sql_table(
     --------
     >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
+    from sqlalchemy.schema import MetaData
+
     con = _engine_builder(con)
-    if not _is_sqlalchemy_connectable(con):
+    if _is_sqlalchemy_connectable(con):
+        import sqlalchemy
+
+        meta = MetaData(con, schema=schema)
+        try:
+            meta.reflect(only=[table_name], views=True)
+        except sqlalchemy.exc.InvalidRequestError as err:
+            raise ValueError(f"Table {table_name} not found") from err
+
+        pandas_sql = SQLDatabase(con, meta=meta)
+        table = pandas_sql.read_table(
+            table_name,
+            index_col=index_col,
+            coerce_float=coerce_float,
+            parse_dates=parse_dates,
+            columns=columns,
+            chunksize=chunksize,
+        )
+
+        if table is not None:
+            return table
+        else:
+            raise ValueError(f"Table {table_name} not found", con)
+    elif _is_async_sqlalchemy_connectable(con):
+        async def read_table():
+            metadata = MetaData()
+            pandas_sql = AsyncSQLDatabase(con)
+            async with pandas_sql.engine.connect() as conn:
+                await conn.run_sync(metadata.reflect, views=True, only=[table_name])
+            pandas_sql._metadata = metadata
+            table = await pandas_sql.read_table(table_name,
+                                                index_col=index_col,
+                                                coerce_float=coerce_float,
+                                                parse_dates=parse_dates,
+                                                columns=columns,
+                                                chunksize=chunksize)
+            if table is not None:
+                return table
+            else:
+                raise ValueError(f"Table {table_name} not found", con)
+        return read_table()
+    else:
         raise NotImplementedError(
             "read_sql_table only supported for SQLAlchemy connectable."
         )
-    import sqlalchemy
-    from sqlalchemy.schema import MetaData
-
-    meta = MetaData(con, schema=schema)
-    try:
-        meta.reflect(only=[table_name], views=True)
-    except sqlalchemy.exc.InvalidRequestError as err:
-        raise ValueError(f"Table {table_name} not found") from err
-
-    pandas_sql = SQLDatabase(con, meta=meta)
-    table = pandas_sql.read_table(
-        table_name,
-        index_col=index_col,
-        coerce_float=coerce_float,
-        parse_dates=parse_dates,
-        columns=columns,
-        chunksize=chunksize,
-    )
-
-    if table is not None:
-        return table
-    else:
-        raise ValueError(f"Table {table_name} not found", con)
 
 
 @overload
@@ -1783,10 +1803,11 @@ class AsyncSQLDatabase(SQLDatabase):
         
         self.schema = schema
 
+        self._tables_added = False
+
         if meta:
             self._metadata = meta
-        
-        self._tables_added = False
+            self._tables_added = True        
 
     async def execute(self, *args, **kwargs):
         async with self.engine.connect() as conn:
