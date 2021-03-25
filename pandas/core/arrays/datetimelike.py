@@ -1842,7 +1842,7 @@ def validate_endpoints(closed):
         right_closed = False
     else:
         raise ValueError(
-            "Closed has to be either 'left', 'right', 'neither', 'both' or"
+            "Closed has to be either 'left', 'right', 'neither', 'both' or "
             "None, or a boolean value"
         )
     return left_closed, right_closed
