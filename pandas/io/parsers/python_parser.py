@@ -883,7 +883,7 @@ class PythonParser(ParserBase):
         # Check that there are no rows with too many
         # elements in their row (rows with too few
         # elements are padded with NaN).
-        if max_len > col_len and self.index_col is not False and self.usecols is None:
+        if max_len > col_len and self.usecols is None:
 
             footers = self.skipfooter if self.skipfooter else 0
             bad_lines = []

@@ -595,6 +595,7 @@ I/O
 - Bug in :func:`read_hdf` returning unexpected records when filtering on categorical string columns using ``where`` parameter (:issue:`39189`)
 - Bug in :func:`read_sas` raising ``ValueError`` when ``datetimes`` were null (:issue:`39725`)
 - Bug in :func:`read_excel` dropping empty values from single-column spreadsheets (:issue:`39808`)
+- Bug in "func:`pandas.read_csv` failed to raise ParserError when first row had too many columns and index_col=False (:issue:`40333`)
 
 Period
 ^^^^^^

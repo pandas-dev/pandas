@@ -215,6 +215,8 @@ cdef extern from "parser/tokenizer.h":
         int64_t header_start        # header row start
         uint64_t header_end         # header row end
 
+        int allow_leading_cols      # Boolean: 1: can infer index col, 0: no index col
+
         void *skipset
         PyObject *skipfunc
         int64_t skip_first_N_rows
@@ -376,6 +378,7 @@ cdef class TextReader:
         self.encoding_errors = PyBytes_AsString(encoding_errors)
 
         self.parser = parser_new()
+        self.parser.allow_leading_cols = allow_leading_cols
         self.parser.chunksize = tokenize_chunksize
 
         self.mangle_dupe_cols = mangle_dupe_cols

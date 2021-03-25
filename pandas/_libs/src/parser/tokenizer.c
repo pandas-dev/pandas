@@ -217,9 +217,7 @@ void parser_free(parser_t *self) {
     parser_cleanup(self);
 }
 
-void parser_del(parser_t *self) {
-    free(self);
-}
+void parser_del(parser_t *self) { free(self); }
 
 static int make_stream_space(parser_t *self, size_t nbytes) {
     uint64_t i, cap, length;
@@ -278,9 +276,8 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     }
 
     self->words =
-        (char **)grow_buffer((void *)self->words, length,
-                             &self->words_cap, nbytes,
-                             sizeof(char *), &status);
+        (char **)grow_buffer((void *)self->words, length, &self->words_cap,
+                             nbytes, sizeof(char *), &status);
     TRACE(
         ("make_stream_space: grow_buffer(self->self->words, %zu, %zu, %zu, "
          "%d)\n",
@@ -308,10 +305,9 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
       LINE VECTORS
     */
     cap = self->lines_cap;
-    self->line_start =
-        (int64_t *)grow_buffer((void *)self->line_start, self->lines + 1,
-                           &self->lines_cap, nbytes,
-                           sizeof(int64_t), &status);
+    self->line_start = (int64_t *)grow_buffer((void *)self->line_start,
+                                              self->lines + 1, &self->lines_cap,
+                                              nbytes, sizeof(int64_t), &status);
     TRACE((
         "make_stream_space: grow_buffer(self->line_start, %zu, %zu, %zu, %d)\n",
         self->lines + 1, self->lines_cap, nbytes, status))
@@ -445,7 +441,7 @@ static int end_line(parser_t *self) {
         return 0;
     }
 
-    if (!(self->lines <= self->header_end + 1) &&
+    if (!(self->lines <= self->header_end + self->allow_leading_cols) &&
         (self->expected_fields < 0 && fields > ex_fields) && !(self->usecols)) {
         // increment file line count
         self->file_lines++;
@@ -460,8 +456,9 @@ static int end_line(parser_t *self) {
         if (self->error_bad_lines) {
             self->error_msg = malloc(bufsize);
             snprintf(self->error_msg, bufsize,
-                    "Expected %d fields in line %" PRIu64 ", saw %" PRId64 "\n",
-                    ex_fields, self->file_lines, fields);
+                     "Expected %d fields in line %" PRIu64 ", saw %" PRId64
+                     "\n",
+                     ex_fields, self->file_lines, fields);
 
             TRACE(("Error at line %d, %d fields\n", self->file_lines, fields));
 
@@ -472,16 +469,16 @@ static int end_line(parser_t *self) {
                 // pass up error message
                 msg = malloc(bufsize);
                 snprintf(msg, bufsize,
-                        "Skipping line %" PRIu64 ": expected %d fields, saw %"
-                        PRId64 "\n", self->file_lines, ex_fields, fields);
+                         "Skipping line %" PRIu64
+                         ": expected %d fields, saw %" PRId64 "\n",
+                         self->file_lines, ex_fields, fields);
                 append_warning(self, msg);
                 free(msg);
             }
         }
     } else {
         // missing trailing delimiters
-        if ((self->lines >= self->header_end + 1) &&
-                fields < ex_fields) {
+        if ((self->lines >= self->header_end + 1) && fields < ex_fields) {
             // might overrun the buffer when closing fields
             if (make_stream_space(self, ex_fields - fields) < 0) {
                 int64_t bufsize = 100;
@@ -592,20 +589,20 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 
 */
 
-#define PUSH_CHAR(c)                                                          \
-    TRACE(                                                                    \
-        ("PUSH_CHAR: Pushing %c, slen= %d, stream_cap=%zu, stream_len=%zu\n", \
-         c, slen, self->stream_cap, self->stream_len))                        \
-    if (slen >= self->stream_cap) {                                           \
-        TRACE(("PUSH_CHAR: ERROR!!! slen(%d) >= stream_cap(%d)\n", slen,      \
-               self->stream_cap))                                             \
-        int64_t bufsize = 100;                                                \
-        self->error_msg = malloc(bufsize);                                    \
-        snprintf(self->error_msg, bufsize,                                    \
-                 "Buffer overflow caught - possible malformed input file.\n");\
-        return PARSER_OUT_OF_MEMORY;                                          \
-    }                                                                         \
-    *stream++ = c;                                                            \
+#define PUSH_CHAR(c)                                                           \
+    TRACE(                                                                     \
+        ("PUSH_CHAR: Pushing %c, slen= %d, stream_cap=%zu, stream_len=%zu\n",  \
+         c, slen, self->stream_cap, self->stream_len))                         \
+    if (slen >= self->stream_cap) {                                            \
+        TRACE(("PUSH_CHAR: ERROR!!! slen(%d) >= stream_cap(%d)\n", slen,       \
+               self->stream_cap))                                              \
+        int64_t bufsize = 100;                                                 \
+        self->error_msg = malloc(bufsize);                                     \
+        snprintf(self->error_msg, bufsize,                                     \
+                 "Buffer overflow caught - possible malformed input file.\n"); \
+        return PARSER_OUT_OF_MEMORY;                                           \
+    }                                                                          \
+    *stream++ = c;                                                             \
     slen++;
 
 // This is a little bit of a hack but works for now
@@ -647,8 +644,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 
 #define END_LINE() END_LINE_STATE(START_RECORD)
 
-#define IS_TERMINATOR(c)                            \
-    (c == line_terminator)
+#define IS_TERMINATOR(c) (c == line_terminator)
 
 #define IS_QUOTE(c) ((c == self->quotechar && self->quoting != QUOTE_NONE))
 
@@ -708,8 +704,7 @@ int skip_this_line(parser_t *self, int64_t rownum) {
     }
 }
 
-int tokenize_bytes(parser_t *self,
-                   size_t line_limit, uint64_t start_lines) {
+int tokenize_bytes(parser_t *self, size_t line_limit, uint64_t start_lines) {
     int64_t i;
     uint64_t slen;
     int should_skip;
@@ -717,16 +712,16 @@ int tokenize_bytes(parser_t *self,
     char *stream;
     char *buf = self->data + self->datapos;
 
-    const char line_terminator = (self->lineterminator == '\0') ?
-            '\n' : self->lineterminator;
+    const char line_terminator =
+        (self->lineterminator == '\0') ? '\n' : self->lineterminator;
 
     // 1000 is something that couldn't fit in "char"
     // thus comparing a char to it would always be "false"
     const int carriage_symbol = (self->lineterminator == '\0') ? '\r' : 1000;
-    const int comment_symbol = (self->commentchar != '\0') ?
-            self->commentchar : 1000;
-    const int escape_symbol = (self->escapechar != '\0') ?
-            self->escapechar : 1000;
+    const int comment_symbol =
+        (self->commentchar != '\0') ? self->commentchar : 1000;
+    const int escape_symbol =
+        (self->escapechar != '\0') ? self->escapechar : 1000;
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
         int64_t bufsize = 100;
@@ -833,7 +828,7 @@ int tokenize_bytes(parser_t *self,
                     }
                     break;
                 }
-            // fall through
+                // fall through
 
             case EAT_WHITESPACE:
                 if (IS_TERMINATOR(c)) {
@@ -1061,10 +1056,10 @@ int tokenize_bytes(parser_t *self,
                 } else {
                     if (self->delim_whitespace) {
                         /* XXX
-                        * first character of a new record--need to back up and
-                        * reread
-                        * to handle properly...
-                        */
+                         * first character of a new record--need to back up and
+                         * reread
+                         * to handle properly...
+                         */
                         i--;
                         buf--;  // back up one character (HACK!)
                         END_LINE_STATE(START_RECORD);
@@ -1144,8 +1139,8 @@ static int parser_handle_eof(parser_t *self) {
         case IN_QUOTED_FIELD:
             self->error_msg = (char *)malloc(bufsize);
             snprintf(self->error_msg, bufsize,
-                    "EOF inside string starting at row %" PRIu64,
-                    self->file_lines);
+                     "EOF inside string starting at row %" PRIu64,
+                     self->file_lines);
             return -1;
 
         case ESCAPED_CHAR:
@@ -1267,8 +1262,8 @@ int parser_trim_buffers(parser_t *self) {
         if (self->words == NULL) {
             return PARSER_OUT_OF_MEMORY;
         }
-        self->word_starts = realloc(self->word_starts,
-                                    new_cap * sizeof(int64_t));
+        self->word_starts =
+            realloc(self->word_starts, new_cap * sizeof(int64_t));
         if (self->word_starts == NULL) {
             return PARSER_OUT_OF_MEMORY;
         }
@@ -1311,15 +1306,13 @@ int parser_trim_buffers(parser_t *self) {
     new_cap = _next_pow2(self->lines) + 1;
     if (new_cap < self->lines_cap) {
         TRACE(("parser_trim_buffers: new_cap < self->lines_cap\n"));
-        newptr = realloc(self->line_start,
-                              new_cap * sizeof(int64_t));
+        newptr = realloc(self->line_start, new_cap * sizeof(int64_t));
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
             self->line_start = newptr;
         }
-        newptr = realloc(self->line_fields,
-                              new_cap * sizeof(int64_t));
+        newptr = realloc(self->line_fields, new_cap * sizeof(int64_t));
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
@@ -1353,8 +1346,8 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all,
         if (!all && self->lines - start_lines >= nrows) break;
 
         if (self->datapos == self->datalen) {
-            status = parser_buffer_bytes(self, self->chunksize,
-                                         encoding_errors);
+            status =
+                parser_buffer_bytes(self, self->chunksize, encoding_errors);
 
             if (status == REACHED_EOF) {
                 // close out last line
@@ -1413,11 +1406,11 @@ int tokenize_all_rows(parser_t *self, const char *encoding_errors) {
  */
 int to_boolean(const char *item, uint8_t *val) {
     if (strcasecmp(item, "TRUE") == 0) {
-      *val = 1;
-      return 0;
+        *val = 1;
+        return 0;
     } else if (strcasecmp(item, "FALSE") == 0) {
-      *val = 0;
-      return 0;
+        *val = 0;
+        return 0;
     }
 
     return -1;
@@ -1611,9 +1604,9 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     return number;
 }
 
-double precise_xstrtod(const char *str, char **endptr, char decimal,
-                       char sci, char tsep, int skip_trailing,
-                       int *error, int *maybe_int) {
+double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
+                       char tsep, int skip_trailing, int *error,
+                       int *maybe_int) {
     double number;
     int exponent;
     int negative;
@@ -1751,7 +1744,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
     } else if (exponent > 0) {
         number *= e[exponent];
     } else if (exponent < -308) {  // Subnormal
-        if (exponent < -616) {  // Prevent invalid array access.
+        if (exponent < -616) {     // Prevent invalid array access.
             number = 0.;
         } else {
             number /= e[-308 - exponent];
@@ -1779,7 +1772,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
    with a call to `free`.
 */
 
-char* _str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
+char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
                               char tsep) {
     const char *p = s;
     size_t length = strlen(s);
@@ -1796,16 +1789,14 @@ char* _str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
     }
     // Replace `decimal` with '.'
     if (*p == decimal) {
-       *dst++ = '.';
-       p++;
+        *dst++ = '.';
+        p++;
     }
     // Copy the remainder of the string as is.
     strncpy(dst, p, length + 1 - (p - s));
-    if (endpos != NULL)
-        *endpos = (char *)(s + length);
+    if (endpos != NULL) *endpos = (char *)(s + length);
     return s_copy;
 }
-
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int) {
@@ -1822,20 +1813,22 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
     // PyOS_string_to_double needs to consume the whole string
     if (endpc == pc + strlen(pc)) {
         if (q != NULL) {
-           // report endptr from source string (p)
+            // report endptr from source string (p)
             *q = endptr;
         }
     } else {
         *error = -1;
         if (q != NULL) {
-           // p and pc are different len due to tsep removal. Can't report
-           // how much it has consumed of p. Just rewind to beginning.
-           *q = (char *)p;  // TODO(willayd): this could be undefined behavior
+            // p and pc are different len due to tsep removal. Can't report
+            // how much it has consumed of p. Just rewind to beginning.
+            *q = (char *)p;  // TODO(willayd): this could be undefined behavior
         }
     }
     if (maybe_int != NULL) *maybe_int = 0;
-    if (PyErr_Occurred() != NULL) *error = -1;
-    else if (r == Py_HUGE_VAL) *error = (int)Py_HUGE_VAL;
+    if (PyErr_Occurred() != NULL)
+        *error = -1;
+    else if (r == Py_HUGE_VAL)
+        *error = (int)Py_HUGE_VAL;
     PyErr_Clear();
 
     PyGILState_Release(gstate);

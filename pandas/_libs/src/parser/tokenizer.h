@@ -19,17 +19,15 @@ See LICENSE for the license
 #define ERROR_OVERFLOW 2
 #define ERROR_INVALID_CHARS 3
 
+#include "../headers/portable.h"
 #include "../headers/stdint.h"
 #include "../inline_helper.h"
-#include "../headers/portable.h"
-
 #include "khash.h"
 
 #define STREAM_INIT_SIZE 32
 
 #define REACHED_EOF 1
 #define CALLING_READ_FAILED 2
-
 
 /*
 
@@ -93,9 +91,9 @@ typedef struct parser_t {
     io_callback cb_io;
     io_cleanup cb_cleanup;
 
-    int64_t chunksize;      // Number of bytes to prepare for each chunk
-    char *data;             // pointer to data to be processed
-    int64_t datalen;        // amount of data available
+    int64_t chunksize;  // Number of bytes to prepare for each chunk
+    char *data;         // pointer to data to be processed
+    int64_t datalen;    // amount of data available
     int64_t datapos;
 
     // where to write out tokenized data
@@ -105,19 +103,19 @@ typedef struct parser_t {
 
     // Store words in (potentially ragged) matrix for now, hmm
     char **words;
-    int64_t *word_starts;   // where we are in the stream
+    int64_t *word_starts;  // where we are in the stream
     uint64_t words_len;
     uint64_t words_cap;
     uint64_t max_words_cap;  // maximum word cap encountered
 
-    char *pword_start;      // pointer to stream start of current field
-    int64_t word_start;     // position start of current field
+    char *pword_start;   // pointer to stream start of current field
+    int64_t word_start;  // position start of current field
 
-    int64_t *line_start;    // position in words for start of line
-    int64_t *line_fields;   // Number of fields in each line
-    uint64_t lines;         // Number of (good) lines observed
-    uint64_t file_lines;    // Number of lines (including bad or skipped)
-    uint64_t lines_cap;     // Vector capacity
+    int64_t *line_start;   // position in words for start of line
+    int64_t *line_fields;  // Number of fields in each line
+    uint64_t lines;        // Number of (good) lines observed
+    uint64_t file_lines;   // Number of lines (including bad or skipped)
+    uint64_t lines_cap;    // Vector capacity
 
     // Tokenizing stuff
     ParserState state;
@@ -150,12 +148,14 @@ typedef struct parser_t {
     int64_t header_start;  // header row start
     uint64_t header_end;   // header row end
 
+    int allow_leading_cols;  // Boolean: 1: can infer index col, 0: no index col
+
     void *skipset;
     PyObject *skipfunc;
     int64_t skip_first_N_rows;
     int64_t skip_footer;
-    double (*double_converter)(const char *, char **,
-                               char, char, char, int, int *, int *);
+    double (*double_converter)(const char *, char **, char, char, char, int,
+                               int *, int *);
 
     // error handling
     char *warn_msg;
@@ -219,9 +219,9 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep);
 double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
                int skip_trailing, int *error, int *maybe_int);
-double precise_xstrtod(const char *p, char **q, char decimal,
-                       char sci, char tsep, int skip_trailing,
-                       int *error, int *maybe_int);
+double precise_xstrtod(const char *p, char **q, char decimal, char sci,
+                       char tsep, int skip_trailing, int *error,
+                       int *maybe_int);
 
 // GH-15140 - round_trip requires and acquires the GIL on its own
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,

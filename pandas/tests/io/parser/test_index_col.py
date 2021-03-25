@@ -8,6 +8,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas.errors import ParserError
+
 from pandas import (
     DataFrame,
     Index,
@@ -282,4 +284,21 @@ def test_multiindex_columns_index_col_with_data(all_parsers):
         ),
         index=Index(["data"]),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_index_col_false_error(all_parsers):
+    # GH#40333
+    parser = all_parsers
+    with pytest.raises(ParserError, match="Expected 3 fields in line 2, saw 4"):
+        parser.read_csv(StringIO("a,b,c\n0,1,2,3\n1,2,3"), index_col=False)
+
+
+def test_index_col_false_error_ignore(all_parsers):
+    # GH#40333
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO("a,b,c\n0,1,2,3\n1,2,3"), index_col=False, error_bad_lines=False
+    )
+    expected = DataFrame({"a": [1], "b": [2], "c": [3]})
     tm.assert_frame_equal(result, expected)
