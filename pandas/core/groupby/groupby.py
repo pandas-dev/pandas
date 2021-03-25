@@ -1140,6 +1140,21 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         )
 
     @final
+    def _numba_prep(self, func, data):
+        if not callable(func):
+            raise NotImplementedError(
+                "Numba engine can only be used with a single function."
+            )
+        labels, _, n_groups = self.grouper.group_info
+        sorted_index = get_group_index_sorter(labels, n_groups)
+        sorted_labels = labels.take(sorted_index)
+
+        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
+
+        starts, ends = lib.generate_slices(sorted_labels, n_groups)
+        return starts, ends, sorted_index, sorted_data
+
+    @final
     def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
         """
         Perform groupby transform routine with the numba engine.
@@ -1148,16 +1163,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
-        if not callable(func):
-            raise NotImplementedError(
-                "Numba engine can only be used with a single function."
-            )
+        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
         group_keys = self.grouper._get_group_keys()
-        labels, _, n_groups = self.grouper.group_info
-        sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = labels.take(sorted_index)
-        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
-        starts, ends = lib.generate_slices(sorted_labels, n_groups)
 
         numba_transform_func = numba_.generate_numba_transform_func(
             tuple(args), kwargs, func, engine_kwargs
@@ -1183,16 +1190,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
-        if not callable(func):
-            raise NotImplementedError(
-                "Numba engine can only be used with a single function."
-            )
+        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
         group_keys = self.grouper._get_group_keys()
-        labels, _, n_groups = self.grouper.group_info
-        sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = labels.take(sorted_index)
-        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
-        starts, ends = lib.generate_slices(sorted_labels, n_groups)
 
         numba_agg_func = numba_.generate_numba_agg_func(
             tuple(args), kwargs, func, engine_kwargs
