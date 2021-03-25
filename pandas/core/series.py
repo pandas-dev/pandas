@@ -4752,8 +4752,8 @@ Keep all original rows and also all original values
             rmask = self < right
         else:
             raise ValueError(
-            "Input should be boolean or string of 'both',"
-            " 'left', 'right', or 'neither'"
+                "Input should be boolean or string of 'both','left', 'right',"
+                " or 'neither'"
             )
 
         return lmask & rmask
