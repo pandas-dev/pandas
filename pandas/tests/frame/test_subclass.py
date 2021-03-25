@@ -61,11 +61,11 @@ class TestDataFrameSubclassing:
         assert cdf_rows.custom_frame_function() == "OK"
 
         # Make sure sliced part of multi-index frame is custom class
-        mcol = pd.MultiIndex.from_tuples([("A", "A"), ("A", "B")])
+        mcol = MultiIndex.from_tuples([("A", "A"), ("A", "B")])
         cdf_multi = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
         assert isinstance(cdf_multi["A"], CustomDataFrame)
 
-        mcol = pd.MultiIndex.from_tuples([("A", ""), ("B", "")])
+        mcol = MultiIndex.from_tuples([("A", ""), ("B", "")])
         cdf_multi2 = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
         assert isinstance(cdf_multi2["A"], CustomSeries)
 
@@ -519,7 +519,7 @@ class TestDataFrameSubclassing:
         def check_row_subclass(row):
             assert isinstance(row, tm.SubclassedSeries)
 
-        def strech(row):
+        def stretch(row):
             if row["variable"] == "height":
                 row["value"] += 0.5
             return row
@@ -547,7 +547,7 @@ class TestDataFrameSubclassing:
             columns=["first", "last", "variable", "value"],
         )
 
-        result = df.apply(lambda x: strech(x), axis=1)
+        result = df.apply(lambda x: stretch(x), axis=1)
         assert isinstance(result, tm.SubclassedDataFrame)
         tm.assert_frame_equal(result, expected)
 
@@ -705,7 +705,7 @@ class TestDataFrameSubclassing:
     def test_equals_subclass(self):
         # https://github.com/pandas-dev/pandas/pull/34402
         # allow subclass in both directions
-        df1 = pd.DataFrame({"a": [1, 2, 3]})
+        df1 = DataFrame({"a": [1, 2, 3]})
         df2 = tm.SubclassedDataFrame({"a": [1, 2, 3]})
         assert df1.equals(df2)
         assert df2.equals(df1)

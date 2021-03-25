@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import itertools
 import operator
@@ -16,6 +18,7 @@ from pandas._config import get_option
 
 from pandas._libs import (
     NaT,
+    NaTType,
     Timedelta,
     iNaT,
     lib,
@@ -26,6 +29,7 @@ from pandas._typing import (
     DtypeObj,
     F,
     Scalar,
+    Shape,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -300,7 +304,9 @@ def _get_values(
     #  with scalar fill_value.  This guarantee is important for the
     #  np.where call below
     assert is_scalar(fill_value)
-    values = extract_array(values, extract_numpy=True)
+    # error: Incompatible types in assignment (expression has type "Union[Any,
+    # Union[ExtensionArray, ndarray]]", variable has type "ndarray")
+    values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
 
     mask = _maybe_get_mask(values, skipna, mask)
 
@@ -409,6 +415,7 @@ def _datetimelike_compat(func: F) -> F:
         if datetimelike:
             result = _wrap_results(result, orig_values.dtype, fill_value=iNaT)
             if not skipna:
+                assert mask is not None  # checked above
                 result = _mask_datetimelike_result(result, axis, mask, orig_values)
 
         return result
@@ -484,7 +491,9 @@ def nanany(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=False, mask=mask)
-    return values.any(axis)
+    # error: Incompatible return value type (got "Union[bool_, ndarray]", expected
+    # "bool")
+    return values.any(axis)  # type: ignore[return-value]
 
 
 def nanall(
@@ -522,7 +531,9 @@ def nanall(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=True, mask=mask)
-    return values.all(axis)
+    # error: Incompatible return value type (got "Union[bool_, ndarray]", expected
+    # "bool")
+    return values.all(axis)  # type: ignore[return-value]
 
 
 @disallow("M8")
@@ -565,12 +576,22 @@ def nansum(
     if is_float_dtype(dtype):
         dtype_sum = dtype
     elif is_timedelta64_dtype(dtype):
-        dtype_sum = np.float64
+        # error: Incompatible types in assignment (expression has type
+        # "Type[float64]", variable has type "dtype")
+        dtype_sum = np.float64  # type: ignore[assignment]
 
     the_sum = values.sum(axis, dtype=dtype_sum)
-    the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
+    # error: Incompatible types in assignment (expression has type "float", variable has
+    # type "Union[number, ndarray]")
+    # error: Argument 1 to "_maybe_null_out" has incompatible type "Union[number,
+    # ndarray]"; expected "ndarray"
+    the_sum = _maybe_null_out(  # type: ignore[assignment]
+        the_sum, axis, mask, values.shape, min_count=min_count  # type: ignore[arg-type]
+    )
 
-    return the_sum
+    # error: Incompatible return value type (got "Union[number, ndarray]", expected
+    # "float")
+    return the_sum  # type: ignore[return-value]
 
 
 def _mask_datetimelike_result(
@@ -578,7 +599,7 @@ def _mask_datetimelike_result(
     axis: Optional[int],
     mask: np.ndarray,
     orig_values: np.ndarray,
-):
+) -> Union[np.ndarray, np.datetime64, np.timedelta64, NaTType]:
     if isinstance(result, np.ndarray):
         # we need to apply the mask
         result = result.astype("i8").view(orig_values.dtype)
@@ -586,7 +607,7 @@ def _mask_datetimelike_result(
         result[axis_mask] = iNaT
     else:
         if mask.any():
-            result = NaT
+            return NaT
     return result
 
 
@@ -628,13 +649,13 @@ def nanmean(
         values, skipna, fill_value=0, mask=mask
     )
     dtype_sum = dtype_max
-    dtype_count = np.float64
+    dtype_count = np.dtype(np.float64)
 
     # not using needs_i8_conversion because that includes period
     if dtype.kind in ["m", "M"]:
-        dtype_sum = np.float64
+        dtype_sum = np.dtype(np.float64)
     elif is_integer_dtype(dtype):
-        dtype_sum = np.float64
+        dtype_sum = np.dtype(np.float64)
     elif is_float_dtype(dtype):
         dtype_sum = dtype
         dtype_count = dtype
@@ -759,7 +780,7 @@ def get_empty_reduction_result(
 
 
 def _get_counts_nanvar(
-    value_counts: Tuple[int],
+    values_shape: Shape,
     mask: Optional[np.ndarray],
     axis: Optional[int],
     ddof: int,
@@ -771,7 +792,7 @@ def _get_counts_nanvar(
 
     Parameters
     ----------
-    values_shape : Tuple[int]
+    values_shape : Tuple[int, ...]
         shape tuple from values ndarray, used if mask is None
     mask : Optional[ndarray[bool]]
         locations in values that should be considered missing
@@ -788,8 +809,10 @@ def _get_counts_nanvar(
     d : scalar or array
     """
     dtype = get_dtype(dtype)
-    count = _get_counts(value_counts, mask, axis, dtype=dtype)
-    d = count - dtype.type(ddof)
+    count = _get_counts(values_shape, mask, axis, dtype=dtype)
+    # error: Unsupported operand types for - ("int" and "generic")
+    # error: Unsupported operand types for - ("float" and "generic")
+    d = count - dtype.type(ddof)  # type: ignore[operator]
 
     # always return NaN, never inf
     if is_scalar(count):
@@ -797,11 +820,16 @@ def _get_counts_nanvar(
             count = np.nan
             d = np.nan
     else:
-        mask2: np.ndarray = count <= ddof
+        # error: Incompatible types in assignment (expression has type
+        # "Union[bool, Any]", variable has type "ndarray")
+        mask2: np.ndarray = count <= ddof  # type: ignore[assignment]
         if mask2.any():
             np.putmask(d, mask2, np.nan)
             np.putmask(count, mask2, np.nan)
-    return count, d
+    # error: Incompatible return value type (got "Tuple[Union[int, float,
+    # ndarray], Any]", expected "Tuple[Union[int, ndarray], Union[int,
+    # ndarray]]")
+    return count, d  # type: ignore[return-value]
 
 
 @bottleneck_switch(ddof=1)
@@ -1036,7 +1064,8 @@ def nanargmax(
     array([2, 2, 1, 1], dtype=int64)
     """
     values, mask, _, _, _ = _get_values(values, True, fill_value_typ="-inf", mask=mask)
-    result = values.argmax(axis)
+    # error: Need type annotation for 'result'
+    result = values.argmax(axis)  # type: ignore[var-annotated]
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
 
@@ -1081,7 +1110,8 @@ def nanargmin(
     array([0, 0, 1, 1], dtype=int64)
     """
     values, mask, _, _, _ = _get_values(values, True, fill_value_typ="+inf", mask=mask)
-    result = values.argmin(axis)
+    # error: Need type annotation for 'result'
+    result = values.argmin(axis)  # type: ignore[var-annotated]
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
 
@@ -1122,7 +1152,9 @@ def nanskew(
     >>> nanops.nanskew(s)
     1.7320508075688787
     """
-    values = extract_array(values, extract_numpy=True)
+    # error: Incompatible types in assignment (expression has type "Union[Any,
+    # Union[ExtensionArray, ndarray]]", variable has type "ndarray")
+    values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
@@ -1207,7 +1239,9 @@ def nankurt(
     >>> nanops.nankurt(s)
     -1.2892561983471076
     """
-    values = extract_array(values, extract_numpy=True)
+    # error: Incompatible types in assignment (expression has type "Union[Any,
+    # Union[ExtensionArray, ndarray]]", variable has type "ndarray")
+    values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
@@ -1302,7 +1336,13 @@ def nanprod(
         values = values.copy()
         values[mask] = 1
     result = values.prod(axis)
-    return _maybe_null_out(result, axis, mask, values.shape, min_count=min_count)
+    # error: Argument 1 to "_maybe_null_out" has incompatible type "Union[number,
+    # ndarray]"; expected "ndarray"
+    # error: Incompatible return value type (got "Union[ndarray, float]", expected
+    # "float")
+    return _maybe_null_out(  # type: ignore[return-value]
+        result, axis, mask, values.shape, min_count=min_count  # type: ignore[arg-type]
+    )
 
 
 def _maybe_arg_null_out(
@@ -1315,10 +1355,14 @@ def _maybe_arg_null_out(
     if axis is None or not getattr(result, "ndim", False):
         if skipna:
             if mask.all():
-                result = -1
+                # error: Incompatible types in assignment (expression has type
+                # "int", variable has type "ndarray")
+                result = -1  # type: ignore[assignment]
         else:
             if mask.any():
-                result = -1
+                # error: Incompatible types in assignment (expression has type
+                # "int", variable has type "ndarray")
+                result = -1  # type: ignore[assignment]
     else:
         if skipna:
             na_mask = mask.all(axis)
@@ -1359,7 +1403,9 @@ def _get_counts(
             n = mask.size - mask.sum()
         else:
             n = np.prod(values_shape)
-        return dtype.type(n)
+        # error: Incompatible return value type (got "Union[Any, generic]",
+        # expected "Union[int, float, ndarray]")
+        return dtype.type(n)  # type: ignore[return-value]
 
     if mask is not None:
         count = mask.shape[axis] - mask.sum(axis)
@@ -1367,27 +1413,39 @@ def _get_counts(
         count = values_shape[axis]
 
     if is_scalar(count):
-        return dtype.type(count)
+        # error: Incompatible return value type (got "Union[Any, generic]",
+        # expected "Union[int, float, ndarray]")
+        return dtype.type(count)  # type: ignore[return-value]
     try:
-        return count.astype(dtype)
+        # error: Incompatible return value type (got "Union[ndarray, generic]", expected
+        # "Union[int, float, ndarray]")
+        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
+        # "Union[ExtensionDtype, dtype]"; expected "Union[dtype, None, type,
+        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
+        # List[Any], _DtypeDict, Tuple[Any, Any]]"
+        return count.astype(dtype)  # type: ignore[return-value,arg-type]
     except AttributeError:
-        return np.array(count, dtype=dtype)
+        # error: Argument "dtype" to "array" has incompatible type
+        # "Union[ExtensionDtype, dtype]"; expected "Union[dtype, None, type,
+        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"
+        return np.array(count, dtype=dtype)  # type: ignore[arg-type]
 
 
 def _maybe_null_out(
-    result: np.ndarray,
+    result: np.ndarray | float | NaTType,
     axis: Optional[int],
     mask: Optional[np.ndarray],
     shape: Tuple[int, ...],
     min_count: int = 1,
-) -> float:
+) -> np.ndarray | float | NaTType:
     """
     Returns
     -------
     Dtype
         The product of all elements on a given axis. ( NaNs are treated as 1)
     """
-    if mask is not None and axis is not None and getattr(result, "ndim", False):
+    if mask is not None and axis is not None and isinstance(result, np.ndarray):
         null_mask = (mask.shape[axis] - mask.sum(axis) - min_count) < 0
         if np.any(null_mask):
             if is_numeric_dtype(result):
@@ -1586,7 +1644,7 @@ nanne = make_nancomp(operator.ne)
 
 
 def _nanpercentile_1d(
-    values: np.ndarray, mask: np.ndarray, q, na_value: Scalar, interpolation
+    values: np.ndarray, mask: np.ndarray, q: np.ndarray, na_value: Scalar, interpolation
 ) -> Union[Scalar, np.ndarray]:
     """
     Wrapper for np.percentile that skips missing values, specialized to
@@ -1597,7 +1655,7 @@ def _nanpercentile_1d(
     values : array over which to find quantiles
     mask : ndarray[bool]
         locations in values that should be considered missing
-    q : scalar or array of quantile indices to find
+    q : np.ndarray[float64] of quantile indices to find
     na_value : scalar
         value to return for empty or all-null values
     interpolation : str
@@ -1610,22 +1668,17 @@ def _nanpercentile_1d(
     values = values[~mask]
 
     if len(values) == 0:
-        if lib.is_scalar(q):
-            return na_value
-        else:
-            return np.array([na_value] * len(q), dtype=values.dtype)
+        return np.array([na_value] * len(q), dtype=values.dtype)
 
     return np.percentile(values, q, interpolation=interpolation)
 
 
 def nanpercentile(
     values: np.ndarray,
-    q,
+    q: np.ndarray,
     *,
-    axis: int,
     na_value,
     mask: np.ndarray,
-    ndim: int,
     interpolation,
 ):
     """
@@ -1633,29 +1686,26 @@ def nanpercentile(
 
     Parameters
     ----------
-    values : array over which to find quantiles
-    q : scalar or array of quantile indices to find
-    axis : {0, 1}
+    values : np.ndarray[ndim=2]  over which to find quantiles
+    q : np.ndarray[float64] of quantile indices to find
     na_value : scalar
         value to return for empty or all-null values
     mask : ndarray[bool]
         locations in values that should be considered missing
-    ndim : {1, 2}
     interpolation : str
 
     Returns
     -------
     quantiles : scalar or array
     """
+
     if values.dtype.kind in ["m", "M"]:
         # need to cast to integer to avoid rounding errors in numpy
         result = nanpercentile(
             values.view("i8"),
             q=q,
-            axis=axis,
             na_value=na_value.view("i8"),
             mask=mask,
-            ndim=ndim,
             interpolation=interpolation,
         )
 
@@ -1664,25 +1714,16 @@ def nanpercentile(
         return result.astype(values.dtype)
 
     if not lib.is_scalar(mask) and mask.any():
-        if ndim == 1:
-            return _nanpercentile_1d(
-                values, mask, q, na_value, interpolation=interpolation
-            )
-        else:
-            # for nonconsolidatable blocks mask is 1D, but values 2D
-            if mask.ndim < values.ndim:
-                mask = mask.reshape(values.shape)
-            if axis == 0:
-                values = values.T
-                mask = mask.T
-            result = [
-                _nanpercentile_1d(val, m, q, na_value, interpolation=interpolation)
-                for (val, m) in zip(list(values), list(mask))
-            ]
-            result = np.array(result, dtype=values.dtype, copy=False).T
-            return result
+        # Caller is responsible for ensuring mask shape match
+        assert mask.shape == values.shape
+        result = [
+            _nanpercentile_1d(val, m, q, na_value, interpolation=interpolation)
+            for (val, m) in zip(list(values), list(mask))
+        ]
+        result = np.array(result, dtype=values.dtype, copy=False).T
+        return result
     else:
-        return np.percentile(values, q, axis=axis, interpolation=interpolation)
+        return np.percentile(values, q, axis=1, interpolation=interpolation)
 
 
 def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
@@ -1739,12 +1780,16 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
             # restore NaT elements
             y[mask] = iNaT  # TODO: could try/finally for this?
 
-        if isinstance(values, np.ndarray):
+        if isinstance(values.dtype, np.dtype):
             result = result.view(orig_dtype)
         else:
-            # DatetimeArray
+            # DatetimeArray/TimedeltaArray
+            # TODO: have this case go through a DTA method?
+            # For DatetimeTZDtype, view result as M8[ns]
+            npdtype = orig_dtype if isinstance(orig_dtype, np.dtype) else "M8[ns]"
+            # error: "Type[ExtensionArray]" has no attribute "_simple_new"
             result = type(values)._simple_new(  # type: ignore[attr-defined]
-                result, dtype=orig_dtype
+                result.view(npdtype), dtype=orig_dtype
             )
 
     elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):

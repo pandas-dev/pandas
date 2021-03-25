@@ -95,7 +95,7 @@ class TestSparseArray:
             SparseArray([0, 1, np.nan], dtype=dtype)
 
     def test_constructor_warns_when_losing_timezone(self):
-        # GH#32501 warn when losing timezone inforamtion
+        # GH#32501 warn when losing timezone information
         dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
 
         expected = SparseArray(np.asarray(dti, dtype="datetime64[ns]"))
@@ -185,8 +185,8 @@ class TestSparseArray:
     def test_constructor_inferred_fill_value(self, data, fill_value):
         result = SparseArray(data).fill_value
 
-        if pd.isna(fill_value):
-            assert pd.isna(result)
+        if isna(fill_value):
+            assert isna(result)
         else:
             assert result == fill_value
 
@@ -522,7 +522,7 @@ class TestSparseArray:
         tm.assert_numpy_array_equal(np.asarray(res.to_dense()), vals.astype(typ))
 
     @pytest.mark.parametrize(
-        "array, dtype, expected",
+        "arr, dtype, expected",
         [
             (
                 SparseArray([0, 1]),
@@ -557,8 +557,8 @@ class TestSparseArray:
             ),
         ],
     )
-    def test_astype_more(self, array, dtype, expected):
-        result = array.astype(dtype)
+    def test_astype_more(self, arr, dtype, expected):
+        result = arr.astype(dtype)
         tm.assert_sp_array_equal(result, expected)
 
     def test_astype_nan_raises(self):
@@ -1185,7 +1185,9 @@ class TestAccessor:
         row = [0, 3, 1, 0]
         col = [0, 3, 1, 2]
         data = [4, 5, 7, 9]
-        sp_array = scipy.sparse.coo_matrix((data, (row, col)))
+        # TODO: Remove dtype when scipy is fixed
+        # https://github.com/scipy/scipy/issues/13585
+        sp_array = scipy.sparse.coo_matrix((data, (row, col)), dtype="int")
         result = pd.Series.sparse.from_coo(sp_array)
 
         index = pd.MultiIndex.from_arrays([[0, 0, 1, 3], [0, 2, 1, 3]])

@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -14,9 +12,6 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-
-# TODO(ArrayManager) concat with reindexing
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture
@@ -227,7 +222,7 @@ def test_suppress_future_warning_with_sort_kw(sort_kw):
     if sort_kw is False:
         expected = expected.reindex(index=["c", "a", "b"])
 
-    with tm.assert_produces_warning(None, check_stacklevel=False):
+    with tm.assert_produces_warning(None):
         result = a.join([b, c], how="outer", sort=sort_kw)
     tm.assert_frame_equal(result, expected)
 
@@ -240,8 +235,9 @@ class TestDataFrameJoin:
         b = frame.loc[frame.index[2:], ["B", "C"]]
 
         joined = a.join(b, how="outer").reindex(frame.index)
-        expected = frame.copy()
-        expected.values[np.isnan(joined.values)] = np.nan
+        expected = frame.copy().values
+        expected[np.isnan(joined.values)] = np.nan
+        expected = DataFrame(expected, index=frame.index, columns=frame.columns)
 
         assert not np.isnan(joined.values).all()
 
@@ -310,7 +306,7 @@ class TestDataFrameJoin:
         tm.assert_frame_equal(df1.join(df2, how="left"), exp)
         tm.assert_frame_equal(df2.join(df1, how="right"), exp[["value2", "value1"]])
 
-        exp_idx = pd.MultiIndex.from_product(
+        exp_idx = MultiIndex.from_product(
             [["a", "b"], ["x", "y", "z"]], names=["first", "second"]
         )
         exp = DataFrame(

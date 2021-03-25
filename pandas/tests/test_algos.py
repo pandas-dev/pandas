@@ -1478,7 +1478,7 @@ class TestDuplicated:
             )
 
     @pytest.mark.parametrize(
-        "arr, unique",
+        "arr, uniques",
         [
             (
                 [(0, 0), (0, 1), (1, 0), (1, 1), (0, 0), (0, 1), (1, 0), (1, 1)],
@@ -1491,10 +1491,10 @@ class TestDuplicated:
             ([("a", 1), ("b", 2), ("a", 3), ("a", 1)], [("a", 1), ("b", 2), ("a", 3)]),
         ],
     )
-    def test_unique_tuples(self, arr, unique):
+    def test_unique_tuples(self, arr, uniques):
         # https://github.com/pandas-dev/pandas/issues/16519
-        expected = np.empty(len(unique), dtype=object)
-        expected[:] = unique
+        expected = np.empty(len(uniques), dtype=object)
+        expected[:] = uniques
 
         result = pd.unique(arr)
         tm.assert_numpy_array_equal(result, expected)
@@ -2116,26 +2116,26 @@ def test_is_lexsorted():
 
 
 def test_groupsort_indexer():
-    a = np.random.randint(0, 1000, 100).astype(np.int64)
-    b = np.random.randint(0, 1000, 100).astype(np.int64)
+    a = np.random.randint(0, 1000, 100).astype(np.intp)
+    b = np.random.randint(0, 1000, 100).astype(np.intp)
 
     result = libalgos.groupsort_indexer(a, 1000)[0]
 
     # need to use a stable sort
     # np.argsort returns int, groupsort_indexer
-    # always returns int64
+    # always returns intp
     expected = np.argsort(a, kind="mergesort")
-    expected = expected.astype(np.int64)
+    expected = expected.astype(np.intp)
 
     tm.assert_numpy_array_equal(result, expected)
 
     # compare with lexsort
     # np.lexsort returns int, groupsort_indexer
-    # always returns int64
+    # always returns intp
     key = a * 1000 + b
     result = libalgos.groupsort_indexer(key, 1000000)[0]
     expected = np.lexsort((b, a))
-    expected = expected.astype(np.int64)
+    expected = expected.astype(np.intp)
 
     tm.assert_numpy_array_equal(result, expected)
 
@@ -2416,3 +2416,12 @@ class TestDiff:
         result = algos.diff(arr, 1)
         expected = np.array([np.nan, 1, 0, -1, 0], dtype="float32")
         tm.assert_numpy_array_equal(result, expected)
+
+
+def test_union_with_duplicates():
+    # GH#36289
+    lvals = np.array([3, 1, 3, 4])
+    rvals = np.array([2, 3, 1, 1])
+    result = algos.union_with_duplicates(lvals, rvals)
+    expected = np.array([3, 3, 1, 1, 4, 2])
+    tm.assert_numpy_array_equal(result, expected)
