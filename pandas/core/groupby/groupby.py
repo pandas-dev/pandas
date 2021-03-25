@@ -84,7 +84,6 @@ from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
     Categorical,
-    DatetimeArray,
     ExtensionArray,
 )
 from pandas.core.base import (
@@ -1026,7 +1025,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def _cython_transform(
         self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
     ):
-        output: Dict[base.OutputKey, np.ndarray] = {}
+        output: Dict[base.OutputKey, ArrayLike] = {}
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
@@ -1054,7 +1053,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     ):
         raise AbstractMethodError(self)
 
-    def _wrap_transformed_output(self, output: Mapping[base.OutputKey, np.ndarray]):
+    def _wrap_transformed_output(self, output: Mapping[base.OutputKey, ArrayLike]):
         raise AbstractMethodError(self)
 
     def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
@@ -1099,7 +1098,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output: Dict[base.OutputKey, Union[np.ndarray, DatetimeArray]] = {}
+        output: Dict[base.OutputKey, ArrayLike] = {}
         # Ideally we would be able to enumerate self._iterate_slices and use
         # the index from enumeration as the key of output, but ohlc in particular
         # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
