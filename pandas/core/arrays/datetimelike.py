@@ -1816,7 +1816,7 @@ def validate_endpoints(closed):
 
     Parameters
     ----------
-    closed : {None, "left", "right"}
+    closed : {None, True, False, "neither", "left", "right", "both"}
 
     Returns
     -------

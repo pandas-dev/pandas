@@ -4684,7 +4684,7 @@ Keep all original rows and also all original values
             Left boundary.
         right : scalar or list-like
             Right boundary.
-        inclusive : str, default "True"
+        inclusive : boolean or str, default "True"
 
             Include boundaries.
 
