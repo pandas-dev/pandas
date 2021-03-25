@@ -19,6 +19,7 @@ from numpy cimport (
     int16_t,
     int32_t,
     int64_t,
+    intp_t,
     ndarray,
     uint8_t,
     uint16_t,
@@ -29,13 +30,14 @@ from numpy.math cimport NAN
 
 cnp.import_array()
 
-from pandas._libs.algos cimport swap
+from pandas._libs.algos cimport kth_smallest_c
 from pandas._libs.util cimport (
     get_nat,
     numeric,
 )
 
 from pandas._libs.algos import (
+    ensure_platform_int,
     groupsort_indexer,
     rank_1d,
     take_2d_axis1_float64_float64,
@@ -87,7 +89,7 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         n -= na_count
 
     if n % 2:
-        result = kth_smallest_c( a, n // 2, n)
+        result = kth_smallest_c(a, n // 2, n)
     else:
         result = (kth_smallest_c(a, n // 2, n) +
                   kth_smallest_c(a, n // 2 - 1, n)) / 2
@@ -96,35 +98,6 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         free(a)
 
     return result
-
-
-# TODO: Is this redundant with algos.kth_smallest
-cdef inline float64_t kth_smallest_c(float64_t* a,
-                                     Py_ssize_t k,
-                                     Py_ssize_t n) nogil:
-    cdef:
-        Py_ssize_t i, j, l, m
-        float64_t x, t
-
-    l = 0
-    m = n - 1
-    while l < m:
-        x = a[k]
-        i = l
-        j = m
-
-        while 1:
-            while a[i] < x: i += 1
-            while x < a[j]: j -= 1
-            if i <= j:
-                swap(&a[i], &a[j])
-                i += 1; j -= 1
-
-            if i > j: break
-
-        if j < k: l = i
-        if k < i: m = j
-    return a[k]
 
 
 @cython.boundscheck(False)
@@ -139,8 +112,9 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, ngroups, size
-        ndarray[int64_t] _counts
+        ndarray[intp_t] _counts
         ndarray[float64_t, ndim=2] data
+        ndarray[intp_t] indexer
         float64_t* ptr
 
     assert min_count == -1, "'min_count' only used in add and prod"
@@ -148,7 +122,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     ngroups = len(counts)
     N, K = (<object>values).shape
 
-    indexer, _counts = groupsort_indexer(labels, ngroups)
+    indexer, _counts = groupsort_indexer(ensure_platform_int(labels), ngroups)
     counts[:] = _counts[1:]
 
     data = np.empty((K, N), dtype=np.float64)
@@ -169,7 +143,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_cumprod_float64(float64_t[:, :] out,
+def group_cumprod_float64(float64_t[:, ::1] out,
                           const float64_t[:, :] values,
                           const int64_t[:] labels,
                           int ngroups,
@@ -200,7 +174,7 @@ def group_cumprod_float64(float64_t[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, size
         float64_t val
-        float64_t[:, :] accum
+        float64_t[:, ::1] accum
         int64_t lab
 
     N, K = (<object>values).shape
@@ -226,7 +200,7 @@ def group_cumprod_float64(float64_t[:, :] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_cumsum(numeric[:, :] out,
+def group_cumsum(numeric[:, ::1] out,
                  ndarray[numeric, ndim=2] values,
                  const int64_t[:] labels,
                  int ngroups,
@@ -257,7 +231,7 @@ def group_cumsum(numeric[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, size
         numeric val, y, t
-        numeric[:, :] accum, compensation
+        numeric[:, ::1] accum, compensation
         int64_t lab
 
     N, K = (<object>values).shape
@@ -295,14 +269,14 @@ def group_cumsum(numeric[:, :] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_shift_indexer(int64_t[:] out, const int64_t[:] labels,
+def group_shift_indexer(int64_t[::1] out, const int64_t[:] labels,
                         int ngroups, int periods):
     cdef:
         Py_ssize_t N, i, j, ii
         int offset = 0, sign
         int64_t lab, idxer, idxer_slot
-        int64_t[:] label_seen = np.zeros(ngroups, dtype=np.int64)
-        int64_t[:, :] label_indexer
+        int64_t[::1] label_seen = np.zeros(ngroups, dtype=np.int64)
+        int64_t[:, ::1] label_indexer
 
     N, = (<object>labels).shape
 
@@ -409,10 +383,10 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_any_all(uint8_t[:] out,
-                  const uint8_t[:] values,
+def group_any_all(uint8_t[::1] out,
+                  const uint8_t[::1] values,
                   const int64_t[:] labels,
-                  const uint8_t[:] mask,
+                  const uint8_t[::1] mask,
                   object val_test,
                   bint skipna):
     """
@@ -478,8 +452,8 @@ ctypedef fused complexfloating_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _group_add(complexfloating_t[:, :] out,
-               int64_t[:] counts,
+def _group_add(complexfloating_t[:, ::1] out,
+               int64_t[::1] counts,
                ndarray[complexfloating_t, ndim=2] values,
                const int64_t[:] labels,
                Py_ssize_t min_count=0):
@@ -489,16 +463,17 @@ def _group_add(complexfloating_t[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         complexfloating_t val, count, t, y
-        complexfloating_t[:, :] sumx, compensation
-        int64_t[:, :] nobs
+        complexfloating_t[:, ::1] sumx, compensation
+        int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    sumx = np.zeros_like(out)
-    compensation = np.zeros_like(out)
+    # the below is equivalent to `np.zeros_like(out)` but faster
+    sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+    compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
 
@@ -536,8 +511,8 @@ group_add_complex128 = _group_add['double complex']
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _group_prod(floating[:, :] out,
-                int64_t[:] counts,
+def _group_prod(floating[:, ::1] out,
+                int64_t[::1] counts,
                 ndarray[floating, ndim=2] values,
                 const int64_t[:] labels,
                 Py_ssize_t min_count=0):
@@ -547,15 +522,15 @@ def _group_prod(floating[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, count
-        floating[:, :] prodx
-        int64_t[:, :] nobs
+        floating[:, ::1] prodx
+        int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    prodx = np.ones_like(out)
+    prodx = np.ones((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
 
@@ -589,8 +564,8 @@ group_prod_float64 = _group_prod['double']
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-def _group_var(floating[:, :] out,
-               int64_t[:] counts,
+def _group_var(floating[:, ::1] out,
+               int64_t[::1] counts,
                ndarray[floating, ndim=2] values,
                const int64_t[:] labels,
                Py_ssize_t min_count=-1,
@@ -598,8 +573,8 @@ def _group_var(floating[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, ct, oldmean
-        floating[:, :] mean
-        int64_t[:, :] nobs
+        floating[:, ::1] mean
+        int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
     assert min_count == -1, "'min_count' only used in add and prod"
@@ -608,7 +583,7 @@ def _group_var(floating[:, :] out,
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    mean = np.zeros_like(out)
+    mean = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
 
@@ -647,16 +622,16 @@ group_var_float64 = _group_var['double']
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _group_mean(floating[:, :] out,
-                int64_t[:] counts,
+def _group_mean(floating[:, ::1] out,
+                int64_t[::1] counts,
                 ndarray[floating, ndim=2] values,
-                const int64_t[:] labels,
+                const int64_t[::1] labels,
                 Py_ssize_t min_count=-1):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, count, y, t
-        floating[:, :] sumx, compensation
-        int64_t[:, :] nobs
+        floating[:, ::1] sumx, compensation
+        int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
     assert min_count == -1, "'min_count' only used in add and prod"
@@ -665,8 +640,9 @@ def _group_mean(floating[:, :] out,
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    sumx = np.zeros_like(out)
-    compensation = np.zeros_like(out)
+    # the below is equivalent to `np.zeros_like(out)` but faster
+    sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+    compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
 
@@ -702,8 +678,8 @@ group_mean_float64 = _group_mean['double']
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _group_ohlc(floating[:, :] out,
-                int64_t[:] counts,
+def _group_ohlc(floating[:, ::1] out,
+                int64_t[::1] counts,
                 ndarray[floating, ndim=2] values,
                 const int64_t[:] labels,
                 Py_ssize_t min_count=-1):
@@ -896,8 +872,8 @@ cdef inline bint _treat_as_na(rank_t val, bint is_datetimelike) nogil:
 #  use `const rank_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_last(rank_t[:, :] out,
-               int64_t[:] counts,
+def group_last(rank_t[:, ::1] out,
+               int64_t[::1] counts,
                ndarray[rank_t, ndim=2] values,
                const int64_t[:] labels,
                Py_ssize_t min_count=-1):
@@ -988,8 +964,8 @@ def group_last(rank_t[:, :] out,
 #  use `const rank_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_nth(rank_t[:, :] out,
-              int64_t[:] counts,
+def group_nth(rank_t[:, ::1] out,
+              int64_t[::1] counts,
               ndarray[rank_t, ndim=2] values,
               const int64_t[:] labels,
               int64_t min_count=-1, int64_t rank=1
@@ -1081,7 +1057,7 @@ def group_nth(rank_t[:, :] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_rank(float64_t[:, :] out,
+def group_rank(float64_t[:, ::1] out,
                ndarray[rank_t, ndim=2] values,
                const int64_t[:] labels,
                int ngroups,
@@ -1152,20 +1128,42 @@ ctypedef fused groupby_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_max(groupby_t[:, :] out,
-              int64_t[:] counts,
-              ndarray[groupby_t, ndim=2] values,
-              const int64_t[:] labels,
-              Py_ssize_t min_count=-1):
+cdef group_min_max(groupby_t[:, ::1] out,
+                   int64_t[::1] counts,
+                   ndarray[groupby_t, ndim=2] values,
+                   const int64_t[:] labels,
+                   Py_ssize_t min_count=-1,
+                   bint compute_max=True):
     """
-    Only aggregates on axis=0
+    Compute minimum/maximum  of columns of `values`, in row groups `labels`.
+
+    Parameters
+    ----------
+    out : array
+        Array to store result in.
+    counts : int64 array
+        Input as a zeroed array, populated by group sizes during algorithm
+    values : array
+        Values to find column-wise min/max of.
+    labels : int64 array
+        Labels to group by.
+    min_count : Py_ssize_t, default -1
+        The minimum number of non-NA group elements, NA result if threshold
+        is not met
+    compute_max : bint, default True
+        True to compute group-wise max, False to compute min
+
+    Notes
+    -----
+    This method modifies the `out` parameter, rather than returning an object.
+    `counts` is modified to hold group sizes
     """
     cdef:
-        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        groupby_t val, count, nan_val
-        ndarray[groupby_t, ndim=2] maxx
+        Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
+        groupby_t val, nan_val
+        ndarray[groupby_t, ndim=2] group_min_or_max
         bint runtime_error = False
-        int64_t[:, :] nobs
+        int64_t[:, ::1] nobs
 
     # TODO(cython 3.0):
     # Instead of `labels.shape[0]` use `len(labels)`
@@ -1175,18 +1173,17 @@ def group_max(groupby_t[:, :] out,
     min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
-    maxx = np.empty_like(out)
+    group_min_or_max = np.empty_like(out)
     if groupby_t is int64_t:
-        # Note: evaluated at compile-time
-        maxx[:] = -_int64_max
+        group_min_or_max[:] = -_int64_max if compute_max else _int64_max
         nan_val = NPY_NAT
     elif groupby_t is uint64_t:
         # NB: We do not define nan_val because there is no such thing
-        #  for uint64_t.  We carefully avoid having to reference it in this
-        #  case.
-        maxx[:] = 0
+        # for uint64_t.  We carefully avoid having to reference it in this
+        # case.
+        group_min_or_max[:] = 0 if compute_max else np.iinfo(np.uint64).max
     else:
-        maxx[:] = -np.inf
+        group_min_or_max[:] = -np.inf if compute_max else np.inf
         nan_val = NAN
 
     N, K = (<object>values).shape
@@ -1204,20 +1201,23 @@ def group_max(groupby_t[:, :] out,
                 if not _treat_as_na(val, True):
                     # TODO: Sure we always want is_datetimelike=True?
                     nobs[lab, j] += 1
-                    if val > maxx[lab, j]:
-                        maxx[lab, j] = val
+                    if compute_max:
+                        if val > group_min_or_max[lab, j]:
+                            group_min_or_max[lab, j] = val
+                    else:
+                        if val < group_min_or_max[lab, j]:
+                            group_min_or_max[lab, j] = val
 
-        for i in range(ncounts):
+        for i in range(ngroups):
             for j in range(K):
                 if nobs[i, j] < min_count:
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
                     else:
-
                         out[i, j] = nan_val
                 else:
-                    out[i, j] = maxx[i, j]
+                    out[i, j] = group_min_or_max[i, j]
 
     if runtime_error:
         # We cannot raise directly above because that is within a nogil
@@ -1227,192 +1227,111 @@ def group_max(groupby_t[:, :] out,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_min(groupby_t[:, :] out,
-              int64_t[:] counts,
+def group_max(groupby_t[:, ::1] out,
+              int64_t[::1] counts,
               ndarray[groupby_t, ndim=2] values,
               const int64_t[:] labels,
               Py_ssize_t min_count=-1):
+    """See group_min_max.__doc__"""
+    group_min_max(out, counts, values, labels, min_count=min_count, compute_max=True)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def group_min(groupby_t[:, ::1] out,
+              int64_t[::1] counts,
+              ndarray[groupby_t, ndim=2] values,
+              const int64_t[:] labels,
+              Py_ssize_t min_count=-1):
+    """See group_min_max.__doc__"""
+    group_min_max(out, counts, values, labels, min_count=min_count, compute_max=False)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_cummin_max(groupby_t[:, ::1] out,
+                     ndarray[groupby_t, ndim=2] values,
+                     const int64_t[:] labels,
+                     int ngroups,
+                     bint is_datetimelike,
+                     bint compute_max):
     """
-    Only aggregates on axis=0
+    Cumulative minimum/maximum of columns of `values`, in row groups `labels`.
+
+    Parameters
+    ----------
+    out : array
+        Array to store cummin/max in.
+    values : array
+        Values to take cummin/max of.
+    labels : int64 array
+        Labels to group by.
+    ngroups : int
+        Number of groups, larger than all entries of `labels`.
+    is_datetimelike : bool
+        True if `values` contains datetime-like entries.
+    compute_max : bool
+        True if cumulative maximum should be computed, False
+        if cumulative minimum should be computed
+
+    Notes
+    -----
+    This method modifies the `out` parameter, rather than returning an object.
     """
     cdef:
-        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        groupby_t val, count, nan_val
-        ndarray[groupby_t, ndim=2] minx
-        bint runtime_error = False
-        int64_t[:, :] nobs
-
-    # TODO(cython 3.0):
-    # Instead of `labels.shape[0]` use `len(labels)`
-    if not len(values) == labels.shape[0]:
-        raise AssertionError("len(index) != len(labels)")
-
-    min_count = max(min_count, 1)
-    nobs = np.zeros((<object>out).shape, dtype=np.int64)
-
-    minx = np.empty_like(out)
-    if groupby_t is int64_t:
-        minx[:] = _int64_max
-        nan_val = NPY_NAT
-    elif groupby_t is uint64_t:
-        # NB: We do not define nan_val because there is no such thing
-        #  for uint64_t.  We carefully avoid having to reference it in this
-        #  case.
-        minx[:] = np.iinfo(np.uint64).max
-    else:
-        minx[:] = np.inf
-        nan_val = NAN
+        Py_ssize_t i, j, N, K, size
+        groupby_t val, mval
+        ndarray[groupby_t, ndim=2] accum
+        int64_t lab
 
     N, K = (<object>values).shape
+    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
+    if groupby_t is int64_t:
+        accum[:] = -_int64_max if compute_max else _int64_max
+    elif groupby_t is uint64_t:
+        accum[:] = 0 if compute_max else np.iinfo(np.uint64).max
+    else:
+        accum[:] = -np.inf if compute_max else np.inf
 
     with nogil:
         for i in range(N):
             lab = labels[i]
+
             if lab < 0:
                 continue
-
-            counts[lab] += 1
             for j in range(K):
                 val = values[i, j]
 
-                if not _treat_as_na(val, True):
-                    # TODO: Sure we always want is_datetimelike=True?
-                    nobs[lab, j] += 1
-                    if val < minx[lab, j]:
-                        minx[lab, j] = val
-
-        for i in range(ncounts):
-            for j in range(K):
-                if nobs[i, j] < min_count:
-                    if groupby_t is uint64_t:
-                        runtime_error = True
-                        break
+                if _treat_as_na(val, is_datetimelike):
+                    out[i, j] = val
+                else:
+                    mval = accum[lab, j]
+                    if compute_max:
+                        if val > mval:
+                            accum[lab, j] = mval = val
                     else:
-                        out[i, j] = nan_val
-                else:
-                    out[i, j] = minx[i, j]
-
-    if runtime_error:
-        # We cannot raise directly above because that is within a nogil
-        #  block.
-        raise RuntimeError("empty group with uint64_t")
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_cummin(groupby_t[:, :] out,
-                 ndarray[groupby_t, ndim=2] values,
-                 const int64_t[:] labels,
-                 int ngroups,
-                 bint is_datetimelike):
-    """
-    Cumulative minimum of columns of `values`, in row groups `labels`.
-
-    Parameters
-    ----------
-    out : array
-        Array to store cummin in.
-    values : array
-        Values to take cummin of.
-    labels : int64 array
-        Labels to group by.
-    ngroups : int
-        Number of groups, larger than all entries of `labels`.
-    is_datetimelike : bool
-        True if `values` contains datetime-like entries.
-
-    Notes
-    -----
-    This method modifies the `out` parameter, rather than returning an object.
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, size
-        groupby_t val, mval
-        ndarray[groupby_t, ndim=2] accum
-        int64_t lab
-
-    N, K = (<object>values).shape
-    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
-    if groupby_t is int64_t:
-        accum[:] = _int64_max
-    elif groupby_t is uint64_t:
-        accum[:] = np.iinfo(np.uint64).max
-    else:
-        accum[:] = np.inf
-
-    with nogil:
-        for i in range(N):
-            lab = labels[i]
-
-            if lab < 0:
-                continue
-            for j in range(K):
-                val = values[i, j]
-
-                if _treat_as_na(val, is_datetimelike):
-                    out[i, j] = val
-                else:
-                    mval = accum[lab, j]
-                    if val < mval:
-                        accum[lab, j] = mval = val
+                        if val < mval:
+                            accum[lab, j] = mval = val
                     out[i, j] = mval
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_cummax(groupby_t[:, :] out,
+def group_cummin(groupby_t[:, ::1] out,
                  ndarray[groupby_t, ndim=2] values,
                  const int64_t[:] labels,
                  int ngroups,
                  bint is_datetimelike):
-    """
-    Cumulative maximum of columns of `values`, in row groups `labels`.
+    """See group_cummin_max.__doc__"""
+    group_cummin_max(out, values, labels, ngroups, is_datetimelike, compute_max=False)
 
-    Parameters
-    ----------
-    out : array
-        Array to store cummax in.
-    values : array
-        Values to take cummax of.
-    labels : int64 array
-        Labels to group by.
-    ngroups : int
-        Number of groups, larger than all entries of `labels`.
-    is_datetimelike : bool
-        True if `values` contains datetime-like entries.
 
-    Notes
-    -----
-    This method modifies the `out` parameter, rather than returning an object.
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, size
-        groupby_t val, mval
-        ndarray[groupby_t, ndim=2] accum
-        int64_t lab
-
-    N, K = (<object>values).shape
-    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
-    if groupby_t is int64_t:
-        accum[:] = -_int64_max
-    elif groupby_t is uint64_t:
-        accum[:] = 0
-    else:
-        accum[:] = -np.inf
-
-    with nogil:
-        for i in range(N):
-            lab = labels[i]
-
-            if lab < 0:
-                continue
-            for j in range(K):
-                val = values[i, j]
-
-                if _treat_as_na(val, is_datetimelike):
-                    out[i, j] = val
-                else:
-                    mval = accum[lab, j]
-                    if val > mval:
-                        accum[lab, j] = mval = val
-                    out[i, j] = mval
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_cummax(groupby_t[:, ::1] out,
+                 ndarray[groupby_t, ndim=2] values,
+                 const int64_t[:] labels,
+                 int ngroups,
+                 bint is_datetimelike):
+    """See group_cummin_max.__doc__"""
+    group_cummin_max(out, values, labels, ngroups, is_datetimelike, compute_max=True)
