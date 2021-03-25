@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.check_for_inconsistent_pandas_namespace import main
+from ..check_for_inconsistent_pandas_namespace import main
 
 BAD_FILE_0 = "cat_0 = Categorical()\ncat_1 = pd.Categorical()"
 BAD_FILE_1 = "cat_0 = pd.Categorical()\ncat_1 = Categorical()"

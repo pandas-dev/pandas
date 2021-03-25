@@ -1,4 +1,4 @@
-.PHONY : develop build clean clean_pyc doc lint-diff black
+.PHONY : develop build clean clean_pyc doc lint-diff black test-scripts
 
 all: develop
 
@@ -38,3 +38,6 @@ check:
 		--included-file-extensions="py" \
 		--excluded-file-paths=pandas/tests,asv_bench/,doc/
 		pandas/
+
+test-scripts:
+	pytest scripts
