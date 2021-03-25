@@ -24,6 +24,7 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     Shape,
+    final,
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
@@ -1327,9 +1328,10 @@ class IndexOpsMixin(OpsMixin):
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first"):
-        duplicated = self.duplicated(keep=keep)
+        duplicated = self._duplicated(keep=keep)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]
 
-    def duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
+    @final
+    def _duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
         return duplicated(self._values, keep=keep)

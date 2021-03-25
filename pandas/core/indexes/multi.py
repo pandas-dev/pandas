@@ -1614,11 +1614,13 @@ class MultiIndex(Index):
         return [i.inferred_type for i in self.levels]
 
     @doc(Index.duplicated)
-    def duplicated(self, keep="first"):
+    def duplicated(self, keep="first") -> np.ndarray:
         shape = map(len, self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
         return duplicated_int64(ids, keep)
+
+    _duplicated = duplicated
 
     def fillna(self, value=None, downcast=None):
         """
