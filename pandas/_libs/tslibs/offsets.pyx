@@ -2192,7 +2192,7 @@ cdef class MonthBegin(MonthOffset):
     DateOffset of one month at beginning.
     """
 
-    # _period_dtype_code = PeriodDtypeCode.M
+    _period_dtype_code = PeriodDtypeCode.M
     _prefix = "MS"
     _day_opt = "start"
 
@@ -2213,13 +2213,13 @@ cdef class BusinessMonthBegin(MonthOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BMonthBegin
+    >>> from pandas.tseries.offsets import BusinessMonthBegin
     >>> ts=pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + BMonthBegin()
+    >>> ts + BusinessMonthBegin()
     Timestamp('2020-06-01 05:01:15')
-    >>> ts + BMonthBegin(2)
+    >>> ts + BusinessMonthBegin(2)
     Timestamp('2020-07-01 05:01:15')
-    >>> ts + BMonthBegin(-3)
+    >>> ts + BusinessMonthBegin(-3)
     Timestamp('2020-03-02 05:01:15')
     """
 
@@ -2242,27 +2242,9 @@ cdef class BusinessMonthEnd(MonthOffset):
     >>> ts + BusinessMonthEnd(-2)
     Timestamp('2020-03-31 05:01:15')
     """
+
     _prefix = "BM"
     _day_opt = "business_end"
-
-
-cdef class BusinessMonthBegin(MonthOffset):
-    """
-    DateOffset of one month at the first business day.
-
-    Examples
-    --------
-    >>> from pandas.tseries.offsets import BusinessMonthBegin
-    >>> ts=pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + BusinessMonthBegin()
-    Timestamp('2020-06-01 05:01:15')
-    >>> ts + BusinessMonthBegin(2)
-    Timestamp('2020-07-01 05:01:15')
-    >>> ts + BusinessMonthBegin(-3)
-    Timestamp('2020-03-02 05:01:15')
-    """
-    _prefix = "BMS"
-    _day_opt = "business_start"
 
 
 # ---------------------------------------------------------------------
