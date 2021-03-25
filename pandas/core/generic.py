@@ -11138,7 +11138,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Misc methods
 
     @final
-    def _find_valid_index(self, how: str):
+    def _find_valid_index(self, *, how: str) -> Optional[Hashable]:
         """
         Retrieves the index of the first valid value.
 
@@ -11151,16 +11151,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -------
         idx_first_valid : type of index
         """
-        idxpos = find_valid_index(self._values, how)
+        idxpos = find_valid_index(self._values, how=how)
         if idxpos is None:
             return None
         return self.index[idxpos]
 
     @final
     @doc(position="first", klass=_shared_doc_kwargs["klass"])
-    def first_valid_index(self):
+    def first_valid_index(self) -> Optional[Hashable]:
         """
-        Return index for {position} non-NA/null value.
+        Return index for {position} non-NA value or None, if no NA value is found.
 
         Returns
         -------
@@ -11171,12 +11171,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         If all elements are non-NA/null, returns None.
         Also returns None for empty {klass}.
         """
-        return self._find_valid_index("first")
+        return self._find_valid_index(how="first")
 
     @final
     @doc(first_valid_index, position="last", klass=_shared_doc_kwargs["klass"])
-    def last_valid_index(self):
-        return self._find_valid_index("last")
+    def last_valid_index(self) -> Optional[Hashable]:
+        return self._find_valid_index(how="last")
 
 
 def _doc_params(cls):
