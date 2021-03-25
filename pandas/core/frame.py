@@ -4558,9 +4558,7 @@ class DataFrame(NDFrame, OpsMixin):
             indexer = row_indexer, col_indexer
             # error: Argument 2 to "take_2d_multi" has incompatible type "Tuple[Any,
             # Any]"; expected "ndarray"
-            new_values = take_2d_multi(
-                self.values, indexer, fill_value=fill_value  # type: ignore[arg-type]
-            )
+            new_values = take_2d_multi(self.values, indexer, fill_value=fill_value)
             return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
             return self._reindex_with_indexers(
