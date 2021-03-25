@@ -4738,7 +4738,7 @@ Keep all original rows and also all original values
         dtype: bool
         """
 
-        if inclusive == True or inclusive == "both":
+        if inclusive is True or inclusive == "both":
             lmask = self >= left
             rmask = self <= right
         elif inclusive == "left":
@@ -4747,7 +4747,7 @@ Keep all original rows and also all original values
         elif inclusive == "right":
             lmask = self > left
             rmask = self <= right
-        elif inclusive == False or inclusive == "neither":
+        elif inclusive is False or inclusive == "neither":
             lmask = self > left
             rmask = self < right
         else:
