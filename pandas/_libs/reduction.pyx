@@ -488,6 +488,6 @@ cdef class BlockSlider:
         Ensure that we have the original blocks, blknos, and blklocs.
         """
         mgr = self.dummy._mgr
-        mgr.blocks = self.blocks
+        mgr.blocks = tuple(self.blocks)
         mgr._blklocs = self.orig_blklocs
         mgr._blknos = self.orig_blknos

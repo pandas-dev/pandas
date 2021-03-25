@@ -157,7 +157,7 @@ def concatenate_managers(
             b = new_block(new_values, placement=placement, ndim=len(axes))
         blocks.append(b)
 
-    return BlockManager(blocks, axes)
+    return BlockManager(tuple(blocks), axes)
 
 
 def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarray]):
