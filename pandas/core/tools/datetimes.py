@@ -447,8 +447,8 @@ def _array_strptime_with_fallback(
     ----------
     arg : list, tuple, ndarray, Series, Index
         Date to be parsed.
-    name : object
-        None or string for the Index name.
+    name : str, optional
+        Name given to the returned Index.
     tz : timezone value
         Timezone string value or None.
     fmt : string or None
