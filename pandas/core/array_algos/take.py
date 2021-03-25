@@ -58,7 +58,7 @@ def take_nd(
 ) -> ArrayLike:
 
     """
-    Specialized Cython take which sets NaN values in one pass
+    Specialized Cython take which sets NaN values in one pass.
 
     This dispatches to ``take`` defined on ExtensionArrays. It does not
     currently dispatch to ``SparseArray.take`` for sparse ``arr``.
@@ -72,11 +72,11 @@ def take_nd(
         Input array.
     indexer : ndarray
         1-D array of indices to take, subarrays corresponding to -1 value
-        indices are filed with fill_value
+        indices are filed with fill_value.
     axis : int, default 0
-        Axis to take from
+        Axis to take from.
     fill_value : any, default np.nan
-        Fill value to replace -1 values with
+        Fill value to replace -1 values with.
     allow_fill : boolean, default True
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
@@ -107,7 +107,7 @@ def _take_nd_ndarray(
     allow_fill: bool,
 ) -> np.ndarray:
     """
-    Returns values based correlated to indexies list applied to the parameter array
+    Returns values based correlated to indexies list applied to the parameter array.
 
     Paramters
     ---------
@@ -116,10 +116,10 @@ def _take_nd_ndarray(
     indexer : array structure or None
         Holds values to take from the arr parameter.
     axis : int, optional
-        The axis over which to select the values
+        The axis over which to select the values.
     fill_value : var, optional
     allow_fill : bool, optional
-        Checks if user wants to use a fill value within the array
+        Checks if user wants to use a fill value within the array.
 
     Returns
     -------
