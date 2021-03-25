@@ -16,6 +16,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
 - Fixed regression in :meth:`DataFrame.sum` when ``min_count`` greater than the :class:`DataFrame` shape was passed resulted in a ``ValueError`` (:issue:`39738`)
+- Fixed regression in :meth:`DataFrame.to_json` raising ``AttributeError`` when run on PyPy (:issue:`39837`)
 -
 
 .. ---------------------------------------------------------------------------
