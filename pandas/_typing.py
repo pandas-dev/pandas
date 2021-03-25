@@ -185,5 +185,5 @@ ColspaceArgType = Union[
 ]
 
 # internals
-Manager = Union["ArrayManager", "BlockManager"]
+Manager = Union["ArrayManager", "BlockManager", "SingleBlockManager"]
 SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
