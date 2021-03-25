@@ -137,7 +137,7 @@ class PandasArray(
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
@@ -376,7 +376,8 @@ class PandasArray(
             other = other._ndarray
 
         pd_op = ops.get_array_op(op)
-        result = pd_op(self._ndarray, other)
+        with np.errstate(all="ignore"):
+            result = pd_op(self._ndarray, other)
 
         if op is divmod or op is ops.rdivmod:
             a, b = result

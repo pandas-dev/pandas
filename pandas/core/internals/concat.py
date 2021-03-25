@@ -39,6 +39,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
+    Categorical,
     DatetimeArray,
     ExtensionArray,
 )
@@ -53,7 +54,7 @@ if TYPE_CHECKING:
     from pandas import Index
 
 
-def concatenate_array_managers(
+def _concatenate_array_managers(
     mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
@@ -111,7 +112,7 @@ def concatenate_managers(
     """
     # TODO(ArrayManager) this assumes that all managers are of the same type
     if isinstance(mgrs_indexers[0][0], ArrayManager):
-        return concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
+        return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
@@ -367,7 +368,7 @@ class JoinUnit:
                 # preserve these for validation in concat_compat
                 return self.block.values
 
-            if self.block.is_bool and not self.block.is_categorical:
+            if self.block.is_bool and not isinstance(self.block.values, Categorical):
                 # External code requested filling/upcasting, bool values must
                 # be upcasted to object to avoid being upcasted to numeric.
                 values = self.block.astype(np.object_).values

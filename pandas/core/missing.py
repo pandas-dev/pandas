@@ -158,7 +158,7 @@ def clean_interp_method(method: str, **kwargs) -> str:
     return method
 
 
-def find_valid_index(values, how: str):
+def find_valid_index(values, *, how: str) -> Optional[int]:
     """
     Retrieves the index of the first valid value.
 
@@ -256,8 +256,17 @@ def interpolate_1d(
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
-    start_nans = set(range(find_valid_index(yvalues, "first")))
-    end_nans = set(range(1 + find_valid_index(yvalues, "last"), len(valid)))
+
+    first_valid_index = find_valid_index(yvalues, how="first")
+    if first_valid_index is None:  # no nan found in start
+        first_valid_index = 0
+    start_nans = set(range(first_valid_index))
+
+    last_valid_index = find_valid_index(yvalues, how="last")
+    if last_valid_index is None:  # no nan found in end
+        last_valid_index = len(yvalues)
+    end_nans = set(range(1 + last_valid_index, len(valid)))
+
     mid_nans = all_nans - start_nans - end_nans
 
     # Like the sets above, preserve_nans contains indices of invalid values,
@@ -595,8 +604,12 @@ def _interpolate_with_limit_area(
     invalid = isna(values)
 
     if not invalid.all():
-        first = find_valid_index(values, "first")
-        last = find_valid_index(values, "last")
+        first = find_valid_index(values, how="first")
+        if first is None:
+            first = 0
+        last = find_valid_index(values, how="last")
+        if last is None:
+            last = len(values)
 
         values = interpolate_2d(
             values,
@@ -679,7 +692,7 @@ def interpolate_2d(
     return result
 
 
-def _fillna_prep(values, mask=None):
+def _fillna_prep(values, mask: Optional[np.ndarray] = None) -> np.ndarray:
     # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
 
     if mask is None:
@@ -717,9 +730,7 @@ def _pad_1d(
 ) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.pad_inplace(values, mask, limit=limit)
-    # error: Incompatible return value type (got "Tuple[ndarray, Optional[ndarray]]",
-    # expected "Tuple[ndarray, ndarray]")
-    return values, mask  # type: ignore[return-value]
+    return values, mask
 
 
 @_datetimelike_compat
@@ -730,9 +741,7 @@ def _backfill_1d(
 ) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.backfill_inplace(values, mask, limit=limit)
-    # error: Incompatible return value type (got "Tuple[ndarray, Optional[ndarray]]",
-    # expected "Tuple[ndarray, ndarray]")
-    return values, mask  # type: ignore[return-value]
+    return values, mask
 
 
 @_datetimelike_compat

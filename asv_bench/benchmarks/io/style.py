@@ -3,7 +3,7 @@ import numpy as np
 from pandas import DataFrame
 
 
-class RenderApply:
+class Render:
 
     params = [[12, 24, 36], [12, 120]]
     param_names = ["cols", "rows"]
@@ -14,15 +14,21 @@ class RenderApply:
             columns=[f"float_{i+1}" for i in range(cols)],
             index=[f"row_{i+1}" for i in range(rows)],
         )
-        self._style_apply()
 
-    def time_render(self, cols, rows):
+    def time_apply_render(self, cols, rows):
+        self._style_apply()
         self.st.render()
 
-    def peakmem_apply(self, cols, rows):
+    def peakmem_apply_render(self, cols, rows):
         self._style_apply()
+        self.st.render()
 
-    def peakmem_render(self, cols, rows):
+    def time_classes_render(self, cols, rows):
+        self._style_classes()
+        self.st.render()
+
+    def peakmem_classes_render(self, cols, rows):
+        self._style_classes()
         self.st.render()
 
     def _style_apply(self):
@@ -32,3 +38,8 @@ class RenderApply:
             ]
 
         self.st = self.df.style.apply(_apply_func, axis=1)
+
+    def _style_classes(self):
+        classes = self.df.applymap(lambda v: ("cls-1" if v > 0 else ""))
+        classes.index, classes.columns = self.df.index, self.df.columns
+        self.st = self.df.style.set_td_classes(classes)

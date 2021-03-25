@@ -24,6 +24,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    NaTType,
     Resolution,
     Tick,
 )
@@ -218,7 +219,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_na = True
 
-    _na_value = NaT
+    _na_value: NaTType = NaT
     """The expected NA value to use with this index."""
 
     def _convert_tolerance(self, tolerance, target):
@@ -645,7 +646,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
-        return type(self)._simple_new(arr, name=self.name)
+        return type(self)._simple_new(arr, name=self._name)
 
     @property
     def _has_complex_internals(self) -> bool:

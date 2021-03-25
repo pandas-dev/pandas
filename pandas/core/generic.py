@@ -24,6 +24,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 import weakref
@@ -44,6 +45,7 @@ from pandas._typing import (
     CompressionOptions,
     Dtype,
     DtypeArg,
+    DtypeObj,
     FilePathOrBuffer,
     FrameOrSeries,
     IndexKeyFunc,
@@ -161,6 +163,8 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas._libs.tslibs import BaseOffset
 
     from pandas.core.frame import DataFrame
@@ -227,7 +231,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _metadata: List[str] = []
     _is_copy: Optional[weakref.ReferenceType[NDFrame]] = None
     _mgr: Manager
-    _attrs: Dict[Optional[Hashable], Any]
+    _attrs: Dict[Hashable, Any]
     _typ: str
 
     # ----------------------------------------------------------------------
@@ -237,7 +241,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         data: Manager,
         copy: bool = False,
-        attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
+        attrs: Optional[Mapping[Hashable, Any]] = None,
     ):
         # copy kwarg is retained for mypy compat, is not used
 
@@ -293,11 +297,30 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         object.__setattr__(obj, "_attrs", {})
         return obj
 
+    def _as_manager(self: FrameOrSeries, typ: str) -> FrameOrSeries:
+        """
+        Private helper function to create a DataFrame with specific manager.
+
+        Parameters
+        ----------
+        typ : {"block", "array"}
+
+        Returns
+        -------
+        DataFrame
+            New DataFrame using specified manager type. Is not guaranteed
+            to be a copy or not.
+        """
+        new_mgr: Manager
+        new_mgr = mgr_to_mgr(self._mgr, typ=typ)
+        # fastpath of passing a manager doesn't check the option/manager class
+        return self._constructor(new_mgr).__finalize__(self)
+
     # ----------------------------------------------------------------------
     # attrs and flags
 
     @property
-    def attrs(self) -> Dict[Optional[Hashable], Any]:
+    def attrs(self) -> Dict[Hashable, Any]:
         """
         Dictionary of global attributes of this dataset.
 
@@ -314,7 +337,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._attrs
 
     @attrs.setter
-    def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
+    def attrs(self, value: Mapping[Hashable, Any]) -> None:
         self._attrs = dict(value)
 
     @final
@@ -411,7 +434,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @final
     @classmethod
-    def _validate_dtype(cls, dtype):
+    def _validate_dtype(cls, dtype) -> Optional[DtypeObj]:
         """ validate the passed dtype """
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -681,6 +704,28 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """ internal compat with SelectionMixin """
         return self
 
+    @overload
+    def set_axis(
+        self: FrameOrSeries, labels, axis: Axis = ..., inplace: Literal[False] = ...
+    ) -> FrameOrSeries:
+        ...
+
+    @overload
+    def set_axis(
+        self: FrameOrSeries, labels, axis: Axis, inplace: Literal[True]
+    ) -> None:
+        ...
+
+    @overload
+    def set_axis(self: FrameOrSeries, labels, *, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(
+        self: FrameOrSeries, labels, axis: Axis = ..., inplace: bool = ...
+    ) -> Optional[FrameOrSeries]:
+        ...
+
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         """
         Assign desired index to given axis.
@@ -758,7 +803,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
             # None, None]"; expected "bool" [arg-type]
             # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
-            # None, None]"; expected "Optional[Mapping[Optional[Hashable], Any]]"
+            # None, None]"; expected "Optional[Mapping[Hashable, Any]]"
             new_values,  # type: ignore[arg-type]
             *new_axes,  # type: ignore[arg-type]
         ).__finalize__(self, method="swapaxes")
@@ -1995,13 +2040,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
 
     def __array_ufunc__(
-        self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
+        self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any
     ):
-        # error: Argument 2 to "array_ufunc" has incompatible type "Callable[..., Any]";
-        # expected "ufunc"
-        return arraylike.array_ufunc(
-            self, ufunc, method, *inputs, **kwargs  # type: ignore[arg-type]
-        )
+        return arraylike.array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
     # ideally we would define this to avoid the getattr checks, but
     # is slower
@@ -4900,7 +4941,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return obj
 
-    @final
     def _needs_reindex_multi(self, axes, method, level) -> bool_t:
         """Check if we do need a multi reindex."""
         return (
@@ -6322,7 +6362,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 )
                 for col_name, col in self.items()
             ]
-            return concat(results, axis=1, copy=False)
+            if len(results) > 0:
+                return concat(results, axis=1, copy=False)
+            else:
+                return self.copy()
 
     # ----------------------------------------------------------------------
     # Filling NA's
@@ -6998,10 +7041,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     f"`limit_direction` must be 'backward' for method `{method}`"
                 )
 
-        # error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
-        if obj.ndim == 2 and np.all(
-            obj.dtypes == np.dtype(object)  # type: ignore[type-var]
-        ):
+        if obj.ndim == 2 and np.all(obj.dtypes == np.dtype("object")):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
@@ -7918,7 +7958,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`_
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`__
         for more.
 
         To learn more about the offset strings, please see `this link
@@ -8488,15 +8528,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 na_option=na_option,
                 pct=pct,
             )
-            # error: Incompatible types in assignment (expression has type
-            # "FrameOrSeries", variable has type "ndarray")
             # error: Argument 1 to "NDFrame" has incompatible type "ndarray"; expected
             # "Union[ArrayManager, BlockManager]"
-            ranks = self._constructor(  # type: ignore[assignment]
+            ranks_obj = self._constructor(
                 ranks, **data._construct_axes_dict()  # type: ignore[arg-type]
             )
-            # error: "ndarray" has no attribute "__finalize__"
-            return ranks.__finalize__(self, method="rank")  # type: ignore[attr-defined]
+            return ranks_obj.__finalize__(self, method="rank")
 
         # if numeric_only is None, and we can't get anything, we try with
         # numeric_only=True
@@ -8896,7 +8933,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # align the cond to same shape as myself
         cond = com.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
-            cond, _ = cond.align(self, join="right", broadcast_axis=1)
+            cond, _ = cond.align(self, join="right", broadcast_axis=1, copy=False)
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
@@ -8924,6 +8961,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             cond = cond.astype(bool)
 
         cond = -cond if inplace else cond
+        cond = cond.reindex(self._info_axis, axis=self._info_axis_number, copy=False)
 
         # try to align with other
         if isinstance(other, NDFrame):
@@ -8960,7 +8998,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     "cannot align with a higher dimensional NDFrame"
                 )
 
-        if not isinstance(other, (MultiIndex, NDFrame)):
+        elif not isinstance(other, (MultiIndex, NDFrame)):
             # mainly just catching Index here
             other = extract_array(other, extract_numpy=True)
 
@@ -8992,11 +9030,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             align = self._get_axis_number(axis) == 1
 
-        if isinstance(cond, NDFrame):
-            cond = cond.reindex(
-                self._info_axis, axis=self._info_axis_number, copy=False
-            )
-
         if inplace:
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
@@ -9012,7 +9045,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 cond=cond,
                 align=align,
                 errors=errors,
-                axis=axis,
             )
             result = self._constructor(new_data)
             return result.__finalize__(self)
@@ -11106,7 +11138,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Misc methods
 
     @final
-    def _find_valid_index(self, how: str):
+    def _find_valid_index(self, *, how: str) -> Optional[Hashable]:
         """
         Retrieves the index of the first valid value.
 
@@ -11119,16 +11151,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -------
         idx_first_valid : type of index
         """
-        idxpos = find_valid_index(self._values, how)
+        idxpos = find_valid_index(self._values, how=how)
         if idxpos is None:
             return None
         return self.index[idxpos]
 
     @final
     @doc(position="first", klass=_shared_doc_kwargs["klass"])
-    def first_valid_index(self):
+    def first_valid_index(self) -> Optional[Hashable]:
         """
-        Return index for {position} non-NA/null value.
+        Return index for {position} non-NA value or None, if no NA value is found.
 
         Returns
         -------
@@ -11139,12 +11171,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         If all elements are non-NA/null, returns None.
         Also returns None for empty {klass}.
         """
-        return self._find_valid_index("first")
+        return self._find_valid_index(how="first")
 
     @final
     @doc(first_valid_index, position="last", klass=_shared_doc_kwargs["klass"])
-    def last_valid_index(self):
-        return self._find_valid_index("last")
+    def last_valid_index(self) -> Optional[Hashable]:
+        return self._find_valid_index(how="last")
 
 
 def _doc_params(cls):

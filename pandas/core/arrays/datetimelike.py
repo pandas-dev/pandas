@@ -123,6 +123,8 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas.core.arrays import (
         DatetimeArray,
         TimedeltaArray,
@@ -459,6 +461,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         ...
 
     @overload
+    def view(self, dtype: Literal["M8[ns]"]) -> DatetimeArray:
+        ...
+
+    @overload
+    def view(self, dtype: Literal["m8[ns]"]) -> TimedeltaArray:
+        ...
+
+    @overload
     def view(self, dtype: Optional[Dtype] = ...) -> ArrayLike:
         ...
 
@@ -553,8 +563,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other)
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            # error: Too many arguments for "object"
-            other = self._scalar_type(other)  # type: ignore[call-arg]
+            other = self._scalar_type(other)
             try:
                 self._check_compatible_with(other)
             except (TypeError, IncompatibleFrequency) as err:
@@ -604,16 +613,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if is_valid_na_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
-            # error: Too many arguments for "object"
-            fill_value = self._scalar_type(fill_value)  # type: ignore[call-arg]
+            fill_value = self._scalar_type(fill_value)
         else:
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
                 new_fill = Period._from_ordinal(fill_value, freq=self.freq)
             else:
-                # error: Too many arguments for "object"
-                new_fill = self._scalar_type(fill_value)  # type: ignore[call-arg]
+                new_fill = self._scalar_type(fill_value)
 
             # stacklevel here is chosen to be correct when called from
             #  DataFrame.shift or Series.shift
@@ -674,8 +681,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise TypeError(msg)
 
         elif isinstance(value, self._recognized_scalars):
-            # error: Too many arguments for "object"
-            value = self._scalar_type(value)  # type: ignore[call-arg]
+            value = self._scalar_type(value)
 
         else:
             msg = self._validation_error_message(value, allow_listlike)

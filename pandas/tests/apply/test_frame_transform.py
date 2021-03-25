@@ -39,7 +39,7 @@ def test_transform_ufunc(axis, float_frame, frame_or_series):
 
 
 @pytest.mark.parametrize("op", frame_transform_kernels)
-def test_transform_groupby_kernel(axis, float_frame, op):
+def test_transform_groupby_kernel(axis, float_frame, op, request):
     # GH 35964
 
     args = [0.0] if op == "fillna" else []
@@ -155,8 +155,6 @@ wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]
 frame_kernels_raise = [x for x in frame_transform_kernels if x not in wont_fail]
 
 
-# mypy doesn't allow adding lists of different types
-# https://github.com/python/mypy/issues/5492
 @pytest.mark.parametrize("op", [*frame_kernels_raise, lambda x: x + 1])
 def test_transform_bad_dtype(op, frame_or_series):
     # GH 35964
