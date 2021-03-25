@@ -76,6 +76,34 @@ def test_groupby_bool_aggs(agg_func, skipna, vals):
     tm.assert_frame_equal(result, exp_df)
 
 
+@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+def test_bool_aggs_dup_column_labels(bool_agg_func):
+    # 21668
+    df = DataFrame([[True, True]], columns=["a", "a"])
+    grp_by = df.groupby([0])
+    result = getattr(grp_by, bool_agg_func)()
+
+    expected = df
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
+@pytest.mark.parametrize("group_by_frame", [True, False])
+def test_bool_aggs_ea_skipna(bool_agg_func, dtype, group_by_frame):
+    # GH-40585
+    df = DataFrame({"grp": [1, 1], "val": pd.array([pd.NA, 1], dtype=dtype)})
+    if group_by_frame:
+        grouped = df.groupby("grp")
+        expected = DataFrame({"val": [True]}, index=pd.Index([1], name="grp"))
+    else:
+        grouped = df["val"].groupby(df["grp"])
+        expected = Series([True], index=pd.Index([1], name="grp"), name="val")
+
+    result = grouped.agg(bool_agg_func, skipna=True)
+    tm.assert_equal(result, expected)
+
+
 def test_max_min_non_numeric():
     # #2700
     aa = DataFrame({"nn": [11, 11, 22, 22], "ii": [1, 2, 3, 4], "ss": 4 * ["mama"]})

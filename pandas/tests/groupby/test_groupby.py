@@ -1983,30 +1983,6 @@ def test_groupby_duplicate_index():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-def test_bool_aggs_dup_column_labels(bool_agg_func):
-    # 21668
-    df = DataFrame([[True, True]], columns=["a", "a"])
-    grp_by = df.groupby([0])
-    result = getattr(grp_by, bool_agg_func)()
-
-    expected = df
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
-def test_bool_aggs_ea_skipna(bool_agg_func, dtype):
-    # GH-40585
-    df = DataFrame({"grp": [1, 1], "val": [pd.NA, 1]}, dtype=dtype)
-    grouped = df.groupby("grp")
-    result = grouped.agg(bool_agg_func, skipna=True)
-
-    # Avoiding asserting frame equality because the index becomes
-    # object type
-    assert bool(result["val"].iloc[0]) is True
-
-
 @pytest.mark.parametrize(
     "idx", [Index(["a", "a"]), MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
 )

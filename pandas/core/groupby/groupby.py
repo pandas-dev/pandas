@@ -1424,10 +1424,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         def objs_to_bool(vals: ArrayLike) -> Tuple[np.ndarray, Type]:
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
+            elif isinstance(vals, ExtensionArray):
+                vals = vals.to_numpy(dtype=bool, na_value=np.nan)
+                vals = vals.astype(bool)
             else:
-                if isinstance(vals, ExtensionArray):
-                    vals = vals.to_numpy(dtype=bool, na_value=np.nan)
-
                 vals = vals.astype(bool)
 
             return vals.view(np.uint8), bool
