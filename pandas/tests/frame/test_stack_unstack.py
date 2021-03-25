@@ -905,7 +905,7 @@ class TestDataFrameReshape:
         if using_array_manager:
             # INFO(ArrayManager) with ArrayManager preserve dtype where possible
             cols = right.columns[[1, 2, 3, 5]]
-            right[cols] = right[cols].astype("int64")
+            right[cols] = right[cols].astype(df["C"].dtype)
         tm.assert_frame_equal(left, right)
 
     def test_unstack_nan_index4(self):
