@@ -2250,6 +2250,7 @@ cdef class MonthBegin(MonthOffset):
     DateOffset of one month at beginning.
     """
 
+    _period_dtype_code = PeriodDtypeCode.MS
     _prefix = "MS"
     _day_opt = "start"
 
