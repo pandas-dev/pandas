@@ -904,7 +904,7 @@ class ArrayManager(DataManager):
             self.arrays[mgr_idx] = value_arr
         return
 
-    def insert(self, loc: int, item: Hashable, value, allow_duplicates: bool = False):
+    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
         Insert item at selected position.
 
@@ -912,25 +912,18 @@ class ArrayManager(DataManager):
         ----------
         loc : int
         item : hashable
-        value : array_like
-        allow_duplicates: bool
-            If False, trying to insert non-unique item will raise
-
+        value : np.ndarray or ExtensionArray
         """
-        if not allow_duplicates and item in self.items:
-            # Should this be a different kind of error??
-            raise ValueError(f"cannot insert {item}, already exists")
-
-        if not isinstance(loc, int):
-            raise TypeError("loc must be int")
-
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
 
         value = extract_array(value, extract_numpy=True)
         if value.ndim == 2:
             if value.shape[0] == 1:
-                value = value[0, :]
+                # error: Invalid index type "Tuple[int, slice]" for
+                # "Union[Any, ExtensionArray, ndarray]"; expected type
+                # "Union[int, slice, ndarray]"
+                value = value[0, :]  # type: ignore[index]
             else:
                 raise ValueError(
                     f"Expected a 1D array, got an array with shape {value.shape}"
