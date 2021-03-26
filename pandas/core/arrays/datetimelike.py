@@ -1818,6 +1818,8 @@ def validate_endpoints(closed):
     Parameters
     ----------
     closed : {"neither", "left", "right", "both"}
+    Whether to set each bound as closed or open. For backwards compatibility this can also
+    be set to ``True`` ("both"), False ("neither") or None (..)
 
     Returns
     -------

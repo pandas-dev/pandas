@@ -142,7 +142,7 @@ Other enhancements
 - :class:`RangeIndex` can now be constructed by passing a ``range`` object directly e.g. ``pd.RangeIndex(range(3))`` (:issue:`12067`)
 - :meth:`round` being enabled for the nullable integer and floating dtypes (:issue:`38844`)
 - :meth:`pandas.read_csv` and :meth:`pandas.read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
-- Add consistency of arguments in `series.between` and `datetimelike.validate_endpoints` to have ``["left", "right", "neither", "both"]` as standard argument values for both methods (:issue:`40628`)
+- Add consistency of arguments in `series.between` and `datetimelike.validate_endpoints` to have ``["left", "right", "neither", "both"]`` as standard argument values for both methods (:issue:`40628`)
 
 .. ---------------------------------------------------------------------------
 

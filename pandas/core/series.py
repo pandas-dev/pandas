@@ -4684,7 +4684,10 @@ Keep all original rows and also all original values
             Left boundary.
         right : scalar or list-like
             Right boundary.
-        inclusive : str or boolean, default "both"
+        inclusive : {"both", "neither", "left", "right"}
+            Whether to set each bound as closed or open. For backwards
+            compatibility this can also be set to ``True`` ("both") or
+            False ("neither")
 
             Include boundaries.
 
