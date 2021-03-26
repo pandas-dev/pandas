@@ -4670,7 +4670,7 @@ Keep all original rows and also all original values
             self, method="isin"
         )
 
-    def between(self, left, right, inclusive=True) -> Series:
+    def between(self, left, right, inclusive="both") -> Series:
         """
         Return boolean Series equivalent to left <= series <= right.
 
@@ -4684,7 +4684,7 @@ Keep all original rows and also all original values
             Left boundary.
         right : scalar or list-like
             Right boundary.
-        inclusive : str or boolean, default True
+        inclusive : str or boolean, default "both"
 
             Include boundaries.
 
