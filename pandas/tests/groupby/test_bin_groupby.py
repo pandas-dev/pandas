@@ -15,7 +15,7 @@ import pandas._testing as tm
 def test_series_grouper():
     obj = Series(np.random.randn(10))
 
-    labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
+    labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.intp)
 
     grouper = libreduction.SeriesGrouper(obj, np.mean, labels, 2)
     result, counts = grouper.get_result()
@@ -31,7 +31,7 @@ def test_series_grouper_requires_nonempty_raises():
     # GH#29500
     obj = Series(np.random.randn(10))
     dummy = obj.iloc[:0]
-    labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
+    labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.intp)
 
     with pytest.raises(ValueError, match="SeriesGrouper requires non-empty `series`"):
         libreduction.SeriesGrouper(dummy, np.mean, labels, 2)

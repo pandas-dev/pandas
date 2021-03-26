@@ -56,7 +56,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
-    ensure_platform_int,
     is_bool,
     is_categorical_dtype,
     is_dict_like,
@@ -896,7 +895,6 @@ class SeriesGroupBy(GroupBy[Series]):
         val = self.obj._values
 
         mask = (ids != -1) & ~isna(val)
-        ids = ensure_platform_int(ids)
         minlength = ngroups or 0
         out = np.bincount(ids[mask], minlength=minlength)
 

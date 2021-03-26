@@ -237,6 +237,7 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
 
     Parameters
     ----------
+    comp_ids : np.ndarray[np.intp]
     xnull : bool
         If nulls are excluded; i.e. -1 labels are passed through.
     """
@@ -249,7 +250,8 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
         out = decons_group_index(obs_ids, shape)
         return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
-    i = unique_label_indices(comp_ids)
+    # TODO: unique_label_indices only used here, should take ndarray[np.intp]
+    i = unique_label_indices(ensure_int64(comp_ids))
     i8copy = lambda a: a.astype("i8", subok=False, copy=True)
     return [i8copy(lab[i]) for lab in labels]
 
@@ -517,7 +519,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
 
 
 def get_flattened_list(
-    comp_ids: np.ndarray,
+    comp_ids: np.ndarray,  # np.ndarray[np.intp]
     ngroups: int,
     levels: Iterable[Index],
     labels: Iterable[np.ndarray],
@@ -584,7 +586,7 @@ def get_group_index_sorter(
 
     Parameters
     ----------
-    group_index : np.ndarray
+    group_index : np.ndarray[np.intp]
         signed integer dtype
     ngroups : int or None, default None
 

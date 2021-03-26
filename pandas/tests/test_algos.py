@@ -1712,7 +1712,7 @@ def test_quantile():
 
 def test_unique_label_indices():
 
-    a = np.random.randint(1, 1 << 10, 1 << 15).astype("i8")
+    a = np.random.randint(1, 1 << 10, 1 << 15).astype("int64")
 
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
@@ -1733,7 +1733,7 @@ class TestRank:
         def _check(arr):
             mask = ~np.isfinite(arr)
             arr = arr.copy()
-            result = libalgos.rank_1d(arr, labels=np.zeros(len(arr), dtype=np.int64))
+            result = libalgos.rank_1d(arr, labels=np.zeros(len(arr), dtype=np.intp))
             arr[mask] = np.inf
             exp = rankdata(arr)
             exp[mask] = np.nan

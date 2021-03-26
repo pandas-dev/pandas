@@ -490,7 +490,7 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
         int64_t total_discordant = 0
         float64_t kendall_tau
         int64_t n_obs
-        const int64_t[:] labels_n
+        const intp_t[:] labels_n
 
     N, K = (<object>mat).shape
 
@@ -499,7 +499,7 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
 
     ranked_mat = np.empty((N, K), dtype=np.float64)
     # For compatibility when calling rank_1d
-    labels_n = np.zeros(N, dtype=np.int64)
+    labels_n = np.zeros(N, dtype=np.intp)
 
     for i in range(K):
         ranked_mat[:, i] = rank_1d(mat[:, i], labels_n)
@@ -961,7 +961,7 @@ ctypedef fused rank_t:
 @cython.boundscheck(False)
 def rank_1d(
     ndarray[rank_t, ndim=1] values,
-    const int64_t[:] labels,
+    const intp_t[:] labels,
     ties_method="average",
     bint ascending=True,
     bint pct=False,
@@ -973,7 +973,8 @@ def rank_1d(
     Parameters
     ----------
     values : array of rank_t values to be ranked
-    labels : array containing unique label for each group, with its ordering
+    labels : np.ndarray[np.intp]
+        Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`. If not called
         from a groupby operation, will be an array of 0's
     ties_method : {'average', 'min', 'max', 'first', 'dense'}, default
