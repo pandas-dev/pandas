@@ -272,6 +272,14 @@ def test_agg_cython_table_raises_series(series, func, expected):
         series.agg(func)
 
 
+def test_agg_none_to_type():
+    # GH 40543
+    df = DataFrame({"a": [None]})
+    msg = re.escape("int() argument must be a string")
+    with pytest.raises(TypeError, match=msg):
+        df.agg({"a": int})
+
+
 def test_transform_none_to_type():
     # GH#34377
     df = DataFrame({"a": [None]})
