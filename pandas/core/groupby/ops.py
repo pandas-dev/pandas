@@ -550,7 +550,7 @@ class BaseGrouper:
 
         elif is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
             # IntegerArray or BooleanArray
-            values = ensure_int_or_float(values._data)
+            values = values._data
             res_values = self._cython_operation(
                 kind, values, how, axis, min_count, mask=mask, **kwargs
             )
@@ -564,7 +564,8 @@ class BaseGrouper:
 
         elif is_float_dtype(values.dtype):
             # FloatingArray
-            values = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
+            values = values._data
+            # values = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
             res_values = self._cython_operation(
                 kind, values, how, axis, min_count, mask=mask, **kwargs
             )
