@@ -1279,7 +1279,7 @@ def group_cummin_max(groupby_t[:, ::1] out,
     cdef:
         Py_ssize_t i, j, N, K, size
         groupby_t val, mval
-        groupby_t[:, ::1] accum
+        ndarray[groupby_t, ndim=2] accum
         int64_t lab
 
     N, K = (<object>values).shape
