@@ -614,7 +614,6 @@ class BaseGrouper:
 
         return cls(res_values, mask.astype(bool, copy=True))
 
-
     @final
     def _cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, mask: Optional[np.ndarray] = None, **kwargs

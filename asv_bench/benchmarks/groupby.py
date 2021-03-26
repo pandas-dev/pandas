@@ -508,12 +508,21 @@ class CumminMax:
 
     def setup(self, dtype, method):
         N = 1_000_000
-        df = DataFrame(np.random.randint(0, 1000, (N, 10)), columns=list("abcdefghij"), dtype=dtype)
+        vals = np.random.randint(0, 1000, (N, 10))
+        null_vals = vals.copy()
+        null_vals[::2, :] = np.nan
+        df = DataFrame(vals, columns=list("abcdefghij"), dtype=dtype)
+        null_df = DataFrame(null_vals, columns=list("abcdefghij"), dtype=dtype)
         df["key"] = np.random.randint(0, 100, size=N)
+        null_df["key"] = np.random.randint(0, 100, size=N)
         self.df = df
+        self.null_df = null_df
 
     def time_frame_transform(self, dtype, method):
         self.df.groupby("key").transform(method)
+
+    def time_frame_transform_many_nulls(self, dtype, method):
+        self.null_df.groupby("key").transform(method)
 
 
 class RankWithTies:

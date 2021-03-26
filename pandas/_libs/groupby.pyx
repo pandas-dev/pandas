@@ -1319,6 +1319,7 @@ def group_cummin_max(groupby_t[:, ::1] out,
                         # `out` does not need to be set since it
                         # will be masked anyway
                         val_is_nan = True
+                    else:
                         val = values[i, j]
 
                 # Otherwise, `out` must be set accordingly if the

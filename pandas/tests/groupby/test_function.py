@@ -846,10 +846,20 @@ def test_cummax_all_nan_column():
     tm.assert_frame_equal(expected, result)
 
 
-# @pytest.mark.parametrize("method", ["cummin", "cummax"])
-# def test_cummin_max_nullable_ints_no_float_cast(method):
+@td.skip_if_32bit
+@pytest.mark.parametrize("method", ["cummin", "cummax"])
+@pytest.mark.parametrize(
+    "dtype,val", [("UInt64", np.iinfo("uint64").max), ("Int64", 2 ** 53 + 1)]
+)
+def test_nullable_int_not_cast_as_float(method, dtype, val):
+    data = [val, pd.NA]
+    df = pd.DataFrame({"grp": [1, 1], "b": data}, dtype=dtype)
+    grouped = df.groupby("grp")
 
+    result = grouped.transform(method)
+    expected = pd.DataFrame({"b": data}, dtype=dtype)
 
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
