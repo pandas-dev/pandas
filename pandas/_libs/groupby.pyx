@@ -1300,19 +1300,17 @@ def group_cummin_max(groupby_t[:, ::1] out,
             for j in range(K):
                 val = values[i, j]
 
-                # if mask[i, j]:
-                #     out[i, j] = val
-                # if True:
-                #
-                # else:
-                mval = accum[lab, j]
-                if compute_max:
-                    if val > mval:
-                        accum[lab, j] = mval = val
+                if mask[i, j]:
+                    out[i, j] = val
                 else:
-                    if val < mval:
-                        accum[lab, j] = mval = val
-                out[i, j] = mval
+                    mval = accum[lab, j]
+                    if compute_max:
+                        if val > mval:
+                            accum[lab, j] = mval = val
+                    else:
+                        if val < mval:
+                            accum[lab, j] = mval = val
+                    out[i, j] = mval
 
 
 @cython.boundscheck(False)
