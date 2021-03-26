@@ -275,45 +275,6 @@ class _BlockManager(DataManager):
         """
         return [blk.values for blk in self.blocks]
 
-    def __getstate__(self):
-        block_values = [b.values for b in self.blocks]
-        block_items = [self.items[b.mgr_locs.indexer] for b in self.blocks]
-        axes_array = list(self.axes)
-
-        extra_state = {
-            "0.14.1": {
-                "axes": axes_array,
-                "blocks": [
-                    {"values": b.values, "mgr_locs": b.mgr_locs.indexer}
-                    for b in self.blocks
-                ],
-            }
-        }
-
-        # First three elements of the state are to maintain forward
-        # compatibility with 0.13.1.
-        return axes_array, block_values, block_items, extra_state
-
-    def __setstate__(self, state):
-        def unpickle_block(values, mgr_locs, ndim: int):
-            # TODO(EA2D): ndim would be unnecessary with 2D EAs
-            # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
-            values = extract_array(values, extract_numpy=True)
-            return new_block(values, placement=mgr_locs, ndim=ndim)
-
-        if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
-            state = state[3]["0.14.1"]
-            self.axes = [ensure_index(ax) for ax in state["axes"]]
-            ndim = len(self.axes)
-            self.blocks = tuple(
-                unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)
-                for b in state["blocks"]
-            )
-        else:
-            raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
-
-        self._post_setstate()
-
     def __repr__(self) -> str:
         output = type(self).__name__
         for i, ax in enumerate(self.axes):
@@ -325,19 +286,6 @@ class _BlockManager(DataManager):
         for block in self.blocks:
             output += f"\n{block}"
         return output
-
-    def _verify_integrity(self) -> None:
-        mgr_shape = self.shape
-        tot_items = sum(len(x.mgr_locs) for x in self.blocks)
-        for block in self.blocks:
-            if block.shape[1:] != mgr_shape[1:]:
-                raise construction_error(tot_items, block.shape[1:], self.axes)
-        if len(self.items) != tot_items:
-            raise AssertionError(
-                "Number of manager items must equal union of "
-                f"block items\n# manager items: {len(self.items)}, # "
-                f"tot_items: {tot_items}"
-            )
 
     def reduce(
         self: T, func: Callable, ignore_failures: bool = False
@@ -1403,6 +1351,9 @@ class BlockManager(libinternals.BlockManager, _BlockManager):
 
     ndim = 2
 
+    # -------------------------------------------------------------------
+    # Constructors
+
     def __init__(
         self,
         blocks: Sequence[Block],
@@ -1427,6 +1378,21 @@ class BlockManager(libinternals.BlockManager, _BlockManager):
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
         return cls(blocks, axes, verify_integrity=False)
+
+    def _verify_integrity(self) -> None:
+        mgr_shape = self.shape
+        tot_items = sum(len(x.mgr_locs) for x in self.blocks)
+        for block in self.blocks:
+            if block.shape[1:] != mgr_shape[1:]:
+                raise construction_error(tot_items, block.shape[1:], self.axes)
+        if len(self.items) != tot_items:
+            raise AssertionError(
+                "Number of manager items must equal union of "
+                f"block items\n# manager items: {len(self.items)}, # "
+                f"tot_items: {tot_items}"
+            )
+
+    # -------------------------------------------------------------------
 
     def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
         assert isinstance(slobj, slice), type(slobj)
@@ -1558,6 +1524,45 @@ class SingleBlockManager(_BlockManager, SingleDataManager):
         """
         block = new_block(array, placement=slice(0, len(index)), ndim=1)
         return cls(block, index)
+
+    def __getstate__(self):
+        block_values = [b.values for b in self.blocks]
+        block_items = [self.items[b.mgr_locs.indexer] for b in self.blocks]
+        axes_array = list(self.axes)
+
+        extra_state = {
+            "0.14.1": {
+                "axes": axes_array,
+                "blocks": [
+                    {"values": b.values, "mgr_locs": b.mgr_locs.indexer}
+                    for b in self.blocks
+                ],
+            }
+        }
+
+        # First three elements of the state are to maintain forward
+        # compatibility with 0.13.1.
+        return axes_array, block_values, block_items, extra_state
+
+    def __setstate__(self, state):
+        def unpickle_block(values, mgr_locs, ndim: int) -> Block:
+            # TODO(EA2D): ndim would be unnecessary with 2D EAs
+            # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
+            values = extract_array(values, extract_numpy=True)
+            return new_block(values, placement=mgr_locs, ndim=ndim)
+
+        if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
+            state = state[3]["0.14.1"]
+            self.axes = [ensure_index(ax) for ax in state["axes"]]
+            ndim = len(self.axes)
+            self.blocks = tuple(
+                unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)
+                for b in state["blocks"]
+            )
+        else:
+            raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
+
+        self._post_setstate()
 
     def _post_setstate(self):
         pass
