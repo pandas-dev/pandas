@@ -132,6 +132,8 @@ ul.task-bullet > li > p:first-child {
 /* Getting started index page */
 
 .intro-card {
+  display: flex;
+  flex-direction: column;
   background:#FFF;
   border-radius:0;
   padding: 30px 10px 10px 10px;
@@ -179,7 +181,8 @@ ul.task-bullet > li > p:first-child {
   font-size: 0.9rem;
   border-radius: 0.5rem;
   max-width: 120px;
-  padding: 0.5rem 0rem;
+  align-self: flex-end;
+  margin-bottom: 30px;
 }
 
 .custom-button a {
