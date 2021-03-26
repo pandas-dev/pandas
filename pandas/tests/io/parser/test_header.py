@@ -390,6 +390,7 @@ q,r,s,t,u,v
 
 
 def test_header_multi_index_blank_line(all_parsers):
+    # GH 40442
     parser = all_parsers
     data = [[None, None], [1, 2], [3, 4]]
     columns = MultiIndex.from_tuples([("a", "A"), ("b", "B")])
