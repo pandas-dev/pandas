@@ -259,29 +259,64 @@ def test_transform(string_series):
 
 @pytest.mark.parametrize("op", series_transform_kernels)
 def test_transform_partial_failure(op, request):
-    # GH 35964 & GH 40211
+    # GH 35964
     if op in ("ffill", "bfill", "pad", "backfill", "shift"):
         request.node.add_marker(
             pytest.mark.xfail(reason=f"{op} is successful on any dtype")
         )
-    match = "Allowing for partial failure is deprecated"
+    if op in ("rank", "fillna"):
+        pytest.skip(f"{op} doesn't raise TypeError on object")
 
     # Using object makes most transform kernels fail
     ser = Series(3 * [object])
 
     expected = ser.transform(["shift"])
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform([op, "shift"])
+    result = ser.transform([op, "shift"])
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"B": "shift"})
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": op, "B": "shift"})
+    result = ser.transform({"A": op, "B": "shift"})
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"B": ["shift"]})
+    result = ser.transform({"A": [op], "B": ["shift"]})
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"A": ["shift"], "B": [op]})
+    result = ser.transform({"A": [op, "shift"], "B": [op]})
+    tm.assert_equal(result, expected)
+
+
+def test_transform_partial_failure_valueerror():
+    # GH 40211
+    match = ".*did not transform successfully and did not raise a TypeError"
+
+    def noop(x):
+        return x
+
+    def raising_op(_):
+        raise ValueError
+
+    ser = Series(3 * [object])
+
+    expected = ser.transform([noop])
     with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": [op], "B": ["shift"]})
+        result = ser.transform([noop, raising_op])
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"B": noop})
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": raising_op, "B": noop})
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"B": [noop]})
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": [raising_op], "B": [noop]})
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"A": [noop], "B": [noop]})
+    with tm.assert_produces_warning(FutureWarning, match=match, check_stacklevel=False):
+        result = ser.transform({"A": [noop, raising_op], "B": [noop]})
     tm.assert_equal(result, expected)
 
 

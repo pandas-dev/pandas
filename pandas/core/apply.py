@@ -227,8 +227,10 @@ class Apply(metaclass=abc.ABCMeta):
         func = cast(AggFuncTypeBase, func)
         try:
             result = self.transform_str_or_callable(func)
-        except Exception:
-            raise ValueError("Transform function failed")
+        except TypeError:
+            raise
+        except Exception as err:
+            raise ValueError("Transform function failed") from err
 
         # Functions that transform may return empty Series/DataFrame
         # when the dtype is not appropriate
@@ -265,6 +267,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         results: Dict[Hashable, FrameOrSeriesUnion] = {}
         failed_names = []
+        all_type_errors = True
         for name, how in func.items():
             colg = obj._gotitem(name, ndim=1)
             try:
@@ -275,16 +278,18 @@ class Apply(metaclass=abc.ABCMeta):
                     "No transform functions were provided",
                 }:
                     raise err
-                else:
+                elif not isinstance(err, TypeError):
+                    all_type_errors = False
                     failed_names.append(name)
         # combine results
         if not results:
-            raise ValueError("Transform function failed")
+            klass = TypeError if all_type_errors else ValueError
+            raise klass("Transform function failed")
         if len(failed_names) > 0:
             warnings.warn(
-                f"{failed_names} did not transform successfully. "
-                f"Allowing for partial failure is deprecated, this will raise "
-                f"a ValueError in a future version of pandas."
+                f"{failed_names} did not transform successfully and did not raise "
+                f"a TypeError. If any error is raised except for TypeError, "
+                f"this will raise in a future version of pandas. "
                 f"Drop these columns/ops to avoid this warning.",
                 FutureWarning,
                 stacklevel=4,

@@ -276,7 +276,7 @@ def test_transform_none_to_type():
     # GH#34377
     df = DataFrame({"a": [None]})
     msg = "Transform function failed"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         df.transform({"a": int})
 
 
