@@ -1831,14 +1831,14 @@ def validate_endpoints(closed):
     left_closed = False
     right_closed = False
 
-    if closed == "neither" or closed is True or closed is None:
+    if closed == "both" or closed is True or closed is None:
         left_closed = True
         right_closed = True
     elif closed == "left":
         left_closed = True
     elif closed == "right":
         right_closed = True
-    elif closed == "both" or closed is False:
+    elif closed == "neither" or closed is False:
         left_closed = False
         right_closed = False
     else:
