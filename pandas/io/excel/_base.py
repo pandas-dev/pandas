@@ -554,7 +554,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                         header_name, _ = pop_header_name(data[row], index_col)
                         header_names.append(header_name)
 
-            has_index_names = is_list_like(header) and len(header) > 1
+            has_index_names = (
+                is_list_like(header) and len(header) > 1 and index_col is not None
+            )
 
             if is_list_like(index_col):
                 # Forward fill values for MultiIndex index.
