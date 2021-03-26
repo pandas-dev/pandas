@@ -10,8 +10,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-
-
 class TestBetween:
 
     # TODO: redundant with test_between_datetime_values?
