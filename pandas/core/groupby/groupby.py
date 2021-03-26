@@ -84,7 +84,6 @@ from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
     Categorical,
-    DatetimeArray,
     ExtensionArray,
     BaseMaskedArray
 )
@@ -1028,7 +1027,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def _cython_transform(
         self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
     ):
-        output: Dict[base.OutputKey, np.ndarray] = {}
+        output: Dict[base.OutputKey, ArrayLike] = {}
+
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -1055,7 +1055,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     ):
         raise AbstractMethodError(self)
 
-    def _wrap_transformed_output(self, output: Mapping[base.OutputKey, np.ndarray]):
+    def _wrap_transformed_output(self, output: Mapping[base.OutputKey, ArrayLike]):
         raise AbstractMethodError(self)
 
     def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
@@ -1100,7 +1100,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output: Dict[base.OutputKey, Union[np.ndarray, DatetimeArray]] = {}
+        output: Dict[base.OutputKey, ArrayLike] = {}
         # Ideally we would be able to enumerate self._iterate_slices and use
         # the index from enumeration as the key of output, but ohlc in particular
         # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
@@ -1141,6 +1141,21 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         )
 
     @final
+    def _numba_prep(self, func, data):
+        if not callable(func):
+            raise NotImplementedError(
+                "Numba engine can only be used with a single function."
+            )
+        labels, _, n_groups = self.grouper.group_info
+        sorted_index = get_group_index_sorter(labels, n_groups)
+        sorted_labels = labels.take(sorted_index)
+
+        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
+
+        starts, ends = lib.generate_slices(sorted_labels, n_groups)
+        return starts, ends, sorted_index, sorted_data
+
+    @final
     def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
         """
         Perform groupby transform routine with the numba engine.
@@ -1149,16 +1164,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
-        if not callable(func):
-            raise NotImplementedError(
-                "Numba engine can only be used with a single function."
-            )
+        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
         group_keys = self.grouper._get_group_keys()
-        labels, _, n_groups = self.grouper.group_info
-        sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = labels.take(sorted_index)
-        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
-        starts, ends = lib.generate_slices(sorted_labels, n_groups)
 
         numba_transform_func = numba_.generate_numba_transform_func(
             tuple(args), kwargs, func, engine_kwargs
@@ -1184,16 +1191,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
-        if not callable(func):
-            raise NotImplementedError(
-                "Numba engine can only be used with a single function."
-            )
+        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
         group_keys = self.grouper._get_group_keys()
-        labels, _, n_groups = self.grouper.group_info
-        sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = labels.take(sorted_index)
-        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
-        starts, ends = lib.generate_slices(sorted_labels, n_groups)
 
         numba_agg_func = numba_.generate_numba_agg_func(
             tuple(args), kwargs, func, engine_kwargs
@@ -2426,7 +2425,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         with group_selection_context(self):
             index = self._selected_obj.index
-            result = self._obj_1d_constructor(self.grouper.group_info[0], index)
+            result = self._obj_1d_constructor(
+                self.grouper.group_info[0], index, dtype=np.int64
+            )
             if not ascending:
                 result = self.ngroups - 1 - result
             return result

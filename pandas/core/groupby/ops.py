@@ -34,6 +34,7 @@ from pandas._libs import (
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
 from pandas._typing import (
+    ArrayLike,
     DtypeObj,
     F,
     FrameOrSeries,
@@ -365,7 +366,6 @@ class BaseGrouper:
         Compute group sizes.
         """
         ids, _, ngroup = self.group_info
-        ids = ensure_platform_int(ids)
         if ngroup:
             out = np.bincount(ids[ids != -1], minlength=ngroup)
         else:
@@ -393,7 +393,7 @@ class BaseGrouper:
         comp_ids, obs_group_ids = self._get_compressed_codes()
 
         ngroups = len(obs_group_ids)
-        comp_ids = ensure_int64(comp_ids)
+        comp_ids = ensure_platform_int(comp_ids)
         return comp_ids, obs_group_ids, ngroups
 
     @final
@@ -735,11 +735,11 @@ class BaseGrouper:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cython_cast_blocklist we get here
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
-            result = maybe_downcast_to_dtype(result, dtype)  # type: ignore[assignment]
+            op_result = maybe_downcast_to_dtype(result, dtype)
+        else:
+            op_result = result
 
-        return result
+        return op_result
 
     @final
     def _aggregate(
@@ -839,14 +839,10 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-        result = lib.maybe_convert_objects(result, try_float=False)
-        # error: Incompatible types in assignment (expression has type
-        # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
-        result = maybe_cast_result(  # type: ignore[assignment]
-            result, obj, numeric_only=True
-        )
+        out = lib.maybe_convert_objects(result, try_float=False)
+        out = maybe_cast_result(out, obj, numeric_only=True)
 
-        return result, counts
+        return out, counts
 
 
 class BinGrouper(BaseGrouper):
@@ -972,7 +968,7 @@ class BinGrouper(BaseGrouper):
             comp_ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
 
         return (
-            comp_ids.astype("int64", copy=False),
+            ensure_platform_int(comp_ids),
             obs_group_ids.astype("int64", copy=False),
             ngroups,
         )
@@ -1035,14 +1031,14 @@ def _is_indexed_like(obj, axes, axis: int) -> bool:
 class DataSplitter(Generic[FrameOrSeries]):
     def __init__(self, data: FrameOrSeries, labels, ngroups: int, axis: int = 0):
         self.data = data
-        self.labels = ensure_int64(labels)
+        self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
         self.ngroups = ngroups
 
         self.axis = axis
         assert isinstance(axis, int), axis
 
     @cache_readonly
-    def slabels(self) -> np.ndarray:
+    def slabels(self) -> np.ndarray:  # np.ndarray[np.intp]
         # Sorted labels
         return self.labels.take(self._sort_idx)
 
