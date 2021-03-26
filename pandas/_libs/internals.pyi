@@ -6,6 +6,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._typing import ArrayLike
+
 def slice_len(slc: slice, objlen: int = ...) -> int: ...
 
 
@@ -46,3 +48,11 @@ class BlockPlacement:
     def delete(self, loc) -> BlockPlacement: ...
 
     def append(self, others: list[BlockPlacement]) -> BlockPlacement: ...
+
+
+class Block:
+    _mgr_locs: BlockPlacement
+    ndim: int
+    values: ArrayLike
+
+    def __init__(self, values: ArrayLike, placement: BlockPlacement, ndim: int): ...
