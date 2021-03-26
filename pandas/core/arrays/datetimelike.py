@@ -1842,8 +1842,8 @@ def validate_periods(periods):
 
 def validate_endpoints(closed):
     """
-    Check that the `closed` argument is among ["neither", "left", "right",
-    None, or backwards compatibility argument of True, False, or None]
+    Check that the ``closed`` argument is a valid string input, or, 
+    for backwards compatibility, one of ``{True, False, or None}``.
 
     Parameters
     ----------
