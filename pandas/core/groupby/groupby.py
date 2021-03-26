@@ -1036,8 +1036,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
             mask = None
             if needs_mask:
-                mask = np.zeros(dtype=np.uint8, order="C", shape=(len(obj._values)))
-                # mask = np.require(isna(obj._values).view(np.uint8), requirements='C')
+                # mask = np.zeros(dtype=np.uint8, order="C", shape=(len(obj._values)))
+                mask = np.require(isna(obj._values).view(np.uint8), requirements='C')
             try:
                 result = self.grouper._cython_operation(
                     "transform", obj._values, how, axis, mask=mask, **kwargs
