@@ -613,12 +613,13 @@ class BaseGrouper:
         elif is_bool_dtype(dtype):
             values = ensure_int_or_float(values)
         elif is_integer_dtype(dtype):
+            pass
             # we use iNaT for the missing value on ints
             # so pre-convert to guard this condition
-            if (values == iNaT).any():
-                values = ensure_float64(values)
-            else:
-                values = ensure_int_or_float(values)
+            # if (values == iNaT).any():
+            #     values = ensure_float64(values)
+            # else:
+            #     values = ensure_int_or_float(values)
         elif is_numeric and not is_complex_dtype(dtype):
             values = ensure_float64(values)
         else:
