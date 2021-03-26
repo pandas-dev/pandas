@@ -465,7 +465,7 @@ class TestDatetimeIndexTimezones:
         idx = date_range(start="2014-06-01", end="2014-08-30", freq="15T")
         tz = tz_aware_fixture
         localized = idx.tz_localize(tz)
-        # cant localize a tz-aware object
+        # can't localize a tz-aware object
         with pytest.raises(
             TypeError, match="Already tz-aware, use tz_convert to convert"
         ):

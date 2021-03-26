@@ -5,66 +5,68 @@ from pandas import DataFrame
 
 pytest.importorskip("jinja2")
 
+from pandas.io.formats.style import Styler
 
-class TestStylerHighlight:
-    def test_highlight_null(self):
-        df = DataFrame({"A": [0, np.nan]})
-        result = df.style.highlight_null()._compute().ctx
-        expected = {(1, 0): [("background-color", "red")]}
-        assert result == expected
 
-    def test_highlight_null_subset(self):
-        # GH 31345
-        df = DataFrame({"A": [0, np.nan], "B": [0, np.nan]})
-        result = (
-            df.style.highlight_null(null_color="red", subset=["A"])
-            .highlight_null(null_color="green", subset=["B"])
-            ._compute()
-            .ctx
-        )
-        expected = {
-            (1, 0): [("background-color", "red")],
-            (1, 1): [("background-color", "green")],
-        }
-        assert result == expected
+@pytest.fixture
+def df():
+    return DataFrame({"A": [0, np.nan, 10], "B": [1, None, 2]})
 
-    def test_highlight_max(self):
-        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
-        css_seq = [("background-color", "yellow")]
-        # max(df) = min(-df)
-        for max_ in [True, False]:
-            if max_:
-                attr = "highlight_max"
-            else:
-                df = -df
-                attr = "highlight_min"
-            result = getattr(df.style, attr)()._compute().ctx
-            assert result[(1, 1)] == css_seq
 
-            result = getattr(df.style, attr)(color="green")._compute().ctx
-            assert result[(1, 1)] == [("background-color", "green")]
+@pytest.fixture
+def styler(df):
+    return Styler(df, uuid_len=0)
 
-            result = getattr(df.style, attr)(subset="A")._compute().ctx
-            assert result[(1, 0)] == css_seq
 
-            result = getattr(df.style, attr)(axis=0)._compute().ctx
-            expected = {
-                (1, 0): css_seq,
-                (1, 1): css_seq,
-            }
-            assert result == expected
+def test_highlight_null(styler):
+    result = styler.highlight_null()._compute().ctx
+    expected = {
+        (1, 0): [("background-color", "red")],
+        (1, 1): [("background-color", "red")],
+    }
+    assert result == expected
 
-            result = getattr(df.style, attr)(axis=1)._compute().ctx
-            expected = {
-                (0, 1): css_seq,
-                (1, 1): css_seq,
-            }
-            assert result == expected
 
-        # separate since we can't negate the strs
-        df["C"] = ["a", "b"]
-        result = df.style.highlight_max()._compute().ctx
-        expected = {(1, 1): css_seq}
+def test_highlight_null_subset(styler):
+    # GH 31345
+    result = (
+        styler.highlight_null(null_color="red", subset=["A"])
+        .highlight_null(null_color="green", subset=["B"])
+        ._compute()
+        .ctx
+    )
+    expected = {
+        (1, 0): [("background-color", "red")],
+        (1, 1): [("background-color", "green")],
+    }
+    assert result == expected
 
-        result = df.style.highlight_min()._compute().ctx
-        expected = {(0, 0): css_seq}
+
+@pytest.mark.parametrize("f", ["highlight_min", "highlight_max"])
+def test_highlight_minmax_basic(df, f):
+    expected = {
+        (0, 1): [("background-color", "red")],
+        # ignores NaN row,
+        (2, 0): [("background-color", "red")],
+    }
+    if f == "highlight_min":
+        df = -df
+    result = getattr(df.style, f)(axis=1, color="red")._compute().ctx
+    assert result == expected
+
+
+@pytest.mark.parametrize("f", ["highlight_min", "highlight_max"])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"axis": None, "color": "red"},  # test axis
+        {"axis": 0, "subset": ["A"], "color": "red"},  # test subset and ignores NaN
+        {"axis": None, "props": "background-color: red"},  # test props
+    ],
+)
+def test_highlight_minmax_ext(df, f, kwargs):
+    expected = {(2, 0): [("background-color", "red")]}
+    if f == "highlight_min":
+        df = -df
+    result = getattr(df.style, f)(**kwargs)._compute().ctx
+    assert result == expected

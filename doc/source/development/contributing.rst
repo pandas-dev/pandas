@@ -325,7 +325,11 @@ Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for your development environment, follow these instructions.
-You'll need to have at least Python 3.6.1 installed on your system.
+You'll need to have at least Python 3.7.0 installed on your system. If your Python version
+is 3.8.0 (or later), you might need to update your ``setuptools`` to version 42.0.0 (or later)
+in your development environment before installing the build dependencies::
+
+      pip install --upgrade setuptools
 
 **Unix**/**macOS with virtualenv**
 
@@ -714,7 +718,7 @@ to run its checks with::
 
 without needing to have done ``pre-commit install`` beforehand.
 
-If you want to run checks on all recently commited files on upstream/master you can use::
+If you want to run checks on all recently committed files on upstream/master you can use::
 
     pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files
 
