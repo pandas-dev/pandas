@@ -1812,7 +1812,7 @@ def validate_periods(periods):
 
 def validate_endpoints(closed):
     """
-    Check that the `closed` argument is among [None, "left", "right"]
+    Check that the `closed` argument is among [None, "neither", "left", "right"]
 
     Parameters
     ----------

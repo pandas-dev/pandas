@@ -4676,7 +4676,7 @@ Keep all original rows and also all original values
 
         This function returns a boolean vector containing `True` wherever the
         corresponding Series element is between the boundary values `left` and
-        `right`. NA values are treated as `False`.
+        `right`. ValueError is raised for NA values.
 
         Parameters
         ----------
@@ -4684,7 +4684,7 @@ Keep all original rows and also all original values
             Left boundary.
         right : scalar or list-like
             Right boundary.
-        inclusive : str, default "both"
+        inclusive : str or boolean, default "both"
 
             Include boundaries.
 
