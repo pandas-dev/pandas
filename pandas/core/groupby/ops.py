@@ -787,7 +787,7 @@ class BaseGrouper:
             result[label] = res
 
         out = lib.maybe_convert_objects(result, try_float=False)
-        out = maybe_cast_result(result, obj, numeric_only=True)
+        out = maybe_cast_result(out, obj, numeric_only=True)
 
         return out, counts
 
