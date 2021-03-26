@@ -15,6 +15,7 @@ from pandas._libs.lib import no_default
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    DtypeObj,
 )
 from pandas.util._decorators import (
     Appender,
@@ -149,7 +150,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`__
     for more.
 
     Examples
@@ -178,6 +179,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     """
 
     _typ = "categoricalindex"
+    _data_cls = Categorical
 
     @property
     def _can_hold_strings(self):
@@ -192,12 +194,17 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def _engine_type(self):
         # self.codes can have dtype int8, int16, int32 or int64, so we need
         # to return the corresponding engine type (libindex.Int8Engine, etc.).
+
+        # error: Invalid index type "Type[generic]" for "Dict[Type[signedinteger[Any]],
+        # Any]"; expected type "Type[signedinteger[Any]]"
         return {
             np.int8: libindex.Int8Engine,
             np.int16: libindex.Int16Engine,
             np.int32: libindex.Int32Engine,
             np.int64: libindex.Int64Engine,
-        }[self.codes.dtype.type]
+        }[
+            self.codes.dtype.type  # type: ignore[index]
+        ]
 
     _attributes = ["name"]
 
@@ -225,18 +232,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         return cls._simple_new(data, name=name)
 
-    @classmethod
-    def _simple_new(cls, values: Categorical, name: Optional[Hashable] = None):
-        assert isinstance(values, Categorical), type(values)
-        result = object.__new__(cls)
-
-        result._data = values
-        result.name = name
-        result._cache = {}
-
-        result._reset_identity()
-        return result
-
     # --------------------------------------------------------------------
 
     @doc(Index._shallow_copy)
@@ -245,7 +240,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         values: Categorical,
         name: Hashable = no_default,
     ):
-        name = self.name if name is no_default else name
+        name = self._name if name is no_default else name
 
         if values is not None:
             # In tests we only get here with Categorical objects that
@@ -380,7 +375,15 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
         value = self._require_scalar(value)
-        cat = self._data.fillna(value)
+        try:
+            cat = self._data.fillna(value)
+        except (ValueError, TypeError):
+            # invalid fill_value
+            if not self.isna().any():
+                # nothing to fill, we can get away without casting
+                return self.copy()
+            return self.astype(object).fillna(value, downcast=downcast)
+
         return type(self)._simple_new(cat, name=self.name)
 
     @doc(Index.unique)
@@ -489,7 +492,11 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return self._data._unbox_scalar(key)
 
     def _get_indexer(
-        self, target: Index, method=None, limit=None, tolerance=None
+        self,
+        target: Index,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
     ) -> np.ndarray:
 
         if self.equals(target):
@@ -535,16 +542,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         return self.get_indexer_for(keyarr)
 
-    @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str, kind):
-        if kind == "loc":
-            return label
-
-        return super()._maybe_cast_slice_bound(label, side, kind)
-
     # --------------------------------------------------------------------
 
-    def _is_comparable_dtype(self, dtype):
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
     def take_nd(self, *args, **kwargs):
