@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas import (
     Series,
@@ -7,6 +8,8 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+
+
 
 
 class TestBetween:
@@ -38,3 +41,9 @@ class TestBetween:
         result = ser.between(left, right)
         expected = (ser >= left) & (ser <= right)
         tm.assert_series_equal(result, expected)
+
+    def test_between_inclusive_is_boolean_string(self):
+        with pytest.raises(ValueError):
+            ser = Series(period_range("2000-01-01", periods=10, freq="D"))
+            left, right = ser[[2, 7]]
+            ser.between(left, right, 8)
