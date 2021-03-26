@@ -104,7 +104,6 @@ from pandas.core.dtypes.cast import (
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
-    ensure_int64,
     ensure_platform_int,
     infer_dtype_from_object,
     is_1d_only_ea_dtype,
@@ -4337,8 +4336,14 @@ class DataFrame(NDFrame, OpsMixin):
                 "Cannot specify 'allow_duplicates=True' when "
                 "'self.flags.allows_duplicate_labels' is False."
             )
+        if not allow_duplicates and column in self.columns:
+            # Should this be a different kind of error??
+            raise ValueError(f"cannot insert {column}, already exists")
+        if not isinstance(loc, int):
+            raise TypeError("loc must be int")
+
         value = self._sanitize_column(value)
-        self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
+        self._mgr.insert(loc, column, value)
 
     def assign(self, **kwargs) -> DataFrame:
         r"""
@@ -4597,9 +4602,7 @@ class DataFrame(NDFrame, OpsMixin):
             indexer = row_indexer, col_indexer
             # error: Argument 2 to "take_2d_multi" has incompatible type "Tuple[Any,
             # Any]"; expected "ndarray"
-            new_values = take_2d_multi(
-                self.values, indexer, fill_value=fill_value  # type: ignore[arg-type]
-            )
+            new_values = take_2d_multi(self.values, indexer, fill_value=fill_value)
             return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
             return self._reindex_with_indexers(
@@ -9526,7 +9529,7 @@ NaN 12.3   33.0
 
         level_name = count_axis._names[level]
         level_index = count_axis.levels[level]._rename(name=level_name)
-        level_codes = ensure_int64(count_axis.codes[level])
+        level_codes = ensure_platform_int(count_axis.codes[level])
         counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=axis)
 
         if axis == 1:
