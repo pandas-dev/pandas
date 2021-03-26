@@ -355,7 +355,7 @@ class SeriesGroupBy(GroupBy[Series]):
     # TODO: index should not be Optional - see GH 35490
     def _wrap_series_output(
         self,
-        output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
+        output: Mapping[base.OutputKey, Union[Series, ArrayLike]],
         index: Optional[Index],
     ) -> FrameOrSeriesUnion:
         """
@@ -363,7 +363,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Parameters
         ----------
-        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
             Data to wrap.
         index : pd.Index or None
             Index to apply to the output.
@@ -420,14 +420,14 @@ class SeriesGroupBy(GroupBy[Series]):
         return self._reindex_output(result)
 
     def _wrap_transformed_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        self, output: Mapping[base.OutputKey, Union[Series, ArrayLike]]
     ) -> Series:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
 
         Parameters
         ----------
-        output : dict[base.OutputKey, Union[Series, np.ndarray]]
+        output : dict[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
             Dict with a sole key of 0 and a value of the result values.
 
         Returns
@@ -1119,6 +1119,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             if isinstance(values, Categorical) and isinstance(result, np.ndarray):
                 # If the Categorical op didn't raise, it is dtype-preserving
+                # We get here with how="first", "last", "min", "max"
                 result = type(values)._from_sequence(result.ravel(), dtype=values.dtype)
                 # Note this will have result.dtype == dtype from above
 
@@ -1195,9 +1196,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
-                # error: Incompatible types in assignment (expression has type
-                # "ExtensionArray", variable has type "ndarray")
-                result = py_fallback(values)  # type: ignore[assignment]
+                result = py_fallback(values)
 
             return cast_agg_result(result, values, how)
 
@@ -1753,14 +1752,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._reindex_output(result)
 
     def _wrap_transformed_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        self, output: Mapping[base.OutputKey, Union[Series, ArrayLike]]
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy transformations into the expected result.
 
         Parameters
         ----------
-        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
             Data to wrap.
 
         Returns

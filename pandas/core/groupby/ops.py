@@ -31,6 +31,7 @@ from pandas._libs import (
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
 from pandas._typing import (
+    ArrayLike,
     DtypeObj,
     F,
     FrameOrSeries,
@@ -524,7 +525,7 @@ class BaseGrouper:
     @final
     def _ea_wrap_cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
-    ) -> np.ndarray:
+    ) -> ArrayLike:
         """
         If we have an ExtensionArray, unwrap, call _cython_operation, and
         re-wrap if appropriate.
@@ -576,7 +577,7 @@ class BaseGrouper:
     @final
     def _cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
-    ) -> np.ndarray:
+    ) -> ArrayLike:
         """
         Returns the values of a cython operation.
         """
@@ -683,11 +684,11 @@ class BaseGrouper:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cython_cast_blocklist we get here
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
-            result = maybe_downcast_to_dtype(result, dtype)  # type: ignore[assignment]
+            op_result = maybe_downcast_to_dtype(result, dtype)
+        else:
+            op_result = result
 
-        return result
+        return op_result
 
     @final
     def _aggregate(
@@ -784,8 +785,8 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-        converted = lib.maybe_convert_objects(result, try_float=False)
-        out = maybe_cast_result(converted, obj, numeric_only=True)
+        out = lib.maybe_convert_objects(result, try_float=False)
+        out = maybe_cast_result(out, obj, numeric_only=True)
 
         return out, counts
 
