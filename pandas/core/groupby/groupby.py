@@ -1024,7 +1024,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     @final
     def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+        self, how: str, numeric_only: bool = True, axis: int = 0, needs_mask: bool = False, **kwargs
     ):
         output: Dict[base.OutputKey, np.ndarray] = {}
 
@@ -1034,9 +1034,12 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             if numeric_only and not is_numeric:
                 continue
 
+            mask = None
+            if needs_mask:
+                mask = np.require(isna(obj._values).view(np.uint8), requirements='C')
             try:
                 result = self.grouper._cython_operation(
-                    "transform", obj._values, how, axis, **kwargs
+                    "transform", obj._values, how, axis, mask=mask, **kwargs
                 )
             except NotImplementedError:
                 continue
@@ -2588,7 +2591,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if axis != 0:
             return self.apply(lambda x: np.minimum.accumulate(x, axis))
 
-        return self._cython_transform("cummin", numeric_only=False)
+        return self._cython_transform("cummin", numeric_only=False, needs_mask=True)
 
     @final
     @Substitution(name="groupby")
@@ -2604,7 +2607,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if axis != 0:
             return self.apply(lambda x: np.maximum.accumulate(x, axis))
 
-        return self._cython_transform("cummax", numeric_only=False)
+        return self._cython_transform("cummax", numeric_only=False, needs_mask=True)
 
     @final
     def _get_cythonized_result(

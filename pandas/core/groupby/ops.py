@@ -524,7 +524,7 @@ class BaseGrouper:
 
     @final
     def _ea_wrap_cython_operation(
-        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
+        self, kind: str, values, how: str, axis: int, min_count: int = -1, mask: Optional[np.ndarray] = None, **kwargs
     ) -> np.ndarray:
         """
         If we have an ExtensionArray, unwrap, call _cython_operation, and
@@ -538,7 +538,7 @@ class BaseGrouper:
             #  operate on the tz-naive equivalents
             values = values.view("M8[ns]")
             res_values = self._cython_operation(
-                kind, values, how, axis, min_count, **kwargs
+                kind, values, how, axis, min_count, mask=mask, **kwargs
             )
             if how in ["rank"]:
                 # preserve float64 dtype
@@ -550,14 +550,15 @@ class BaseGrouper:
 
         elif is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
             # IntegerArray or BooleanArray
-            values = ensure_int_or_float(values)
+            values = ensure_int_or_float(values._data)
             res_values = self._cython_operation(
-                kind, values, how, axis, min_count, **kwargs
+                kind, values, how, axis, min_count, mask=mask, **kwargs
             )
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
             if isinstance(dtype, ExtensionDtype):
                 cls = dtype.construct_array_type()
-                return cls._from_sequence(res_values, dtype=dtype)
+                return cls(res_values, mask.astype(bool, copy=True))
+                # return cls._from_sequence(res_values, dtype=dtype)
 
             return res_values
 
@@ -565,10 +566,10 @@ class BaseGrouper:
             # FloatingArray
             values = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
             res_values = self._cython_operation(
-                kind, values, how, axis, min_count, **kwargs
+                kind, values, how, axis, min_count, mask=mask, **kwargs
             )
-            result = type(orig_values)._from_sequence(res_values)
-            return result
+            # result = type(orig_values)._from_sequence(res_values)
+            return type(orig_values)(res_values, mask.astype(bool, copy=True))
 
         raise NotImplementedError(
             f"function is not implemented for this dtype: {values.dtype}"
@@ -576,7 +577,7 @@ class BaseGrouper:
 
     @final
     def _cython_operation(
-        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
+        self, kind: str, values, how: str, axis: int, min_count: int = -1, mask: Optional[np.ndarray] = None, **kwargs
     ) -> np.ndarray:
         """
         Returns the values of a cython operation.
@@ -600,7 +601,7 @@ class BaseGrouper:
 
         if is_extension_array_dtype(dtype):
             return self._ea_wrap_cython_operation(
-                kind, values, how, axis, min_count, **kwargs
+                kind, values, how, axis, min_count, mask=mask, **kwargs
             )
 
         is_datetimelike = needs_i8_conversion(dtype)
@@ -628,6 +629,8 @@ class BaseGrouper:
         swapped = False
         if vdim == 1:
             values = values[:, None]
+            if mask is not None:
+                mask = mask[:, None]
             out_shape = (self.ngroups, arity)
         else:
             if axis > 0:
@@ -650,9 +653,8 @@ class BaseGrouper:
             else:
                 out_dtype = "object"
 
-        codes, _, _ = self.group_info
-
         if kind == "aggregate":
+            codes, _, _ = self.group_info
             result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(result, counts, values, codes, func, min_count)
@@ -661,7 +663,7 @@ class BaseGrouper:
 
             # TODO: min_count
             result = self._transform(
-                result, values, codes, func, is_datetimelike, **kwargs
+                result, values, func, is_datetimelike, mask=mask, **kwargs
             )
 
         if is_integer_dtype(result.dtype) and not is_datetimelike:
@@ -704,11 +706,14 @@ class BaseGrouper:
 
     @final
     def _transform(
-        self, result, values, comp_ids, transform_func, is_datetimelike: bool, **kwargs
-    ):
+        self, result: np.ndarray, values: np.ndarray, transform_func, is_datetimelike: bool, mask: Optional[np.ndarray] = None, **kwargs
+    ) -> np.ndarray:
 
         comp_ids, _, ngroups = self.group_info
-        transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
+        if mask is not None:
+            transform_func(result, values, mask, comp_ids, ngroups, **kwargs)
+        else:
+            transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
         return result
 

@@ -1251,9 +1251,9 @@ def group_min(groupby_t[:, ::1] out,
 @cython.wraparound(False)
 def group_cummin_max(groupby_t[:, ::1] out,
                      ndarray[groupby_t, ndim=2] values,
+                     uint8_t[:, ::1] mask,
                      const int64_t[:] labels,
                      int ngroups,
-                     bint is_datetimelike,
                      bint compute_max):
     """
     Cumulative minimum/maximum of columns of `values`, in row groups `labels`.
@@ -1268,8 +1268,6 @@ def group_cummin_max(groupby_t[:, ::1] out,
         Labels to group by.
     ngroups : int
         Number of groups, larger than all entries of `labels`.
-    is_datetimelike : bool
-        True if `values` contains datetime-like entries.
     compute_max : bool
         True if cumulative maximum should be computed, False
         if cumulative minimum should be computed
@@ -1281,11 +1279,11 @@ def group_cummin_max(groupby_t[:, ::1] out,
     cdef:
         Py_ssize_t i, j, N, K, size
         groupby_t val, mval
-        ndarray[groupby_t, ndim=2] accum
+        groupby_t[:, ::1] accum
         int64_t lab
 
     N, K = (<object>values).shape
-    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
+    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype, order="C")
     if groupby_t is int64_t:
         accum[:] = -_int64_max if compute_max else _int64_max
     elif groupby_t is uint64_t:
@@ -1302,7 +1300,7 @@ def group_cummin_max(groupby_t[:, ::1] out,
             for j in range(K):
                 val = values[i, j]
 
-                if _treat_as_na(val, is_datetimelike):
+                if mask[i, j]:
                     out[i, j] = val
                 else:
                     mval = accum[lab, j]
@@ -1319,19 +1317,19 @@ def group_cummin_max(groupby_t[:, ::1] out,
 @cython.wraparound(False)
 def group_cummin(groupby_t[:, ::1] out,
                  ndarray[groupby_t, ndim=2] values,
+                 uint8_t[:, ::1] mask,
                  const int64_t[:] labels,
-                 int ngroups,
-                 bint is_datetimelike):
+                 int ngroups):
     """See group_cummin_max.__doc__"""
-    group_cummin_max(out, values, labels, ngroups, is_datetimelike, compute_max=False)
+    group_cummin_max(out, values, mask, labels, ngroups, compute_max=False)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cummax(groupby_t[:, ::1] out,
                  ndarray[groupby_t, ndim=2] values,
+                 uint8_t[:, ::1] mask,
                  const int64_t[:] labels,
-                 int ngroups,
-                 bint is_datetimelike):
+                 int ngroups):
     """See group_cummin_max.__doc__"""
-    group_cummin_max(out, values, labels, ngroups, is_datetimelike, compute_max=True)
+    group_cummin_max(out, values, mask, labels, ngroups, compute_max=True)
