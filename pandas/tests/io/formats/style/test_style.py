@@ -38,6 +38,7 @@ class TestStyler:
                 {"f": [1.0, 2.0], "o": ["a", "b"], "c": pd.Categorical(["a", "b"])}
             ),
         ]
+        self.blank_value = "&nbsp;"
 
     def test_init_non_pandas(self):
         msg = "``data`` must be a Series or DataFrame"
@@ -255,9 +256,9 @@ class TestStyler:
                 {
                     "class": "blank level0",
                     "type": "th",
-                    "value": "",
+                    "value": self.blank_value,
                     "is_visible": True,
-                    "display_value": "",
+                    "display_value": self.blank_value,
                 },
                 {
                     "class": "col_heading level0 col0",
@@ -295,8 +296,8 @@ class TestStyler:
                 {
                     "class": "blank level0",
                     "type": "th",
-                    "value": "",
-                    "display_value": "",
+                    "value": self.blank_value,
+                    "display_value": self.blank_value,
                     "is_visible": True,
                 },
                 {
@@ -316,8 +317,8 @@ class TestStyler:
             ],
             [
                 {"class": "index_name level0", "type": "th", "value": "A"},
-                {"class": "blank col0", "type": "th", "value": ""},
-                {"class": "blank col1", "type": "th", "value": ""},
+                {"class": "blank col0", "type": "th", "value": self.blank_value},
+                {"class": "blank col1", "type": "th", "value": self.blank_value},
             ],
         ]
 
@@ -333,15 +334,15 @@ class TestStyler:
                 {
                     "class": "blank",
                     "type": "th",
-                    "value": "",
-                    "display_value": "",
+                    "value": self.blank_value,
+                    "display_value": self.blank_value,
                     "is_visible": True,
                 },
                 {
                     "class": "blank level0",
                     "type": "th",
-                    "value": "",
-                    "display_value": "",
+                    "value": self.blank_value,
+                    "display_value": self.blank_value,
                     "is_visible": True,
                 },
                 {
@@ -355,7 +356,7 @@ class TestStyler:
             [
                 {"class": "index_name level0", "type": "th", "value": "A"},
                 {"class": "index_name level1", "type": "th", "value": "B"},
-                {"class": "blank col0", "type": "th", "value": ""},
+                {"class": "blank col0", "type": "th", "value": self.blank_value},
             ],
         ]
 
@@ -574,24 +575,6 @@ class TestStyler:
         ]
         assert result == expected
 
-    def test_format_with_na_rep(self):
-        # GH 21527 28358
-        df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
-
-        ctx = df.style.format(None, na_rep="-")._translate()
-        assert ctx["body"][0][1]["display_value"] == "-"
-        assert ctx["body"][0][2]["display_value"] == "-"
-
-        ctx = df.style.format("{:.2%}", na_rep="-")._translate()
-        assert ctx["body"][0][1]["display_value"] == "-"
-        assert ctx["body"][0][2]["display_value"] == "-"
-        assert ctx["body"][1][1]["display_value"] == "110.00%"
-        assert ctx["body"][1][2]["display_value"] == "120.00%"
-
-        ctx = df.style.format("{:.2%}", na_rep="-", subset=["B"])._translate()
-        assert ctx["body"][0][2]["display_value"] == "-"
-        assert ctx["body"][1][2]["display_value"] == "120.00%"
-
     def test_init_with_na_rep(self):
         # GH 21527 28358
         df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
@@ -617,35 +600,6 @@ class TestStyler:
             )
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "-"
-
-    def test_format_non_numeric_na(self):
-        # GH 21527 28358
-        df = DataFrame(
-            {
-                "object": [None, np.nan, "foo"],
-                "datetime": [None, pd.NaT, pd.Timestamp("20120101")],
-            }
-        )
-
-        with tm.assert_produces_warning(FutureWarning):
-            ctx = df.style.set_na_rep("NA")._translate()
-        assert ctx["body"][0][1]["display_value"] == "NA"
-        assert ctx["body"][0][2]["display_value"] == "NA"
-        assert ctx["body"][1][1]["display_value"] == "NA"
-        assert ctx["body"][1][2]["display_value"] == "NA"
-
-        ctx = df.style.format(None, na_rep="-")._translate()
-        assert ctx["body"][0][1]["display_value"] == "-"
-        assert ctx["body"][0][2]["display_value"] == "-"
-        assert ctx["body"][1][1]["display_value"] == "-"
-        assert ctx["body"][1][2]["display_value"] == "-"
-
-    def test_format_clear(self):
-        assert (0, 0) not in self.styler._display_funcs  # using default
-        self.styler.format("{:.2f")
-        assert (0, 0) in self.styler._display_funcs  # formatter is specified
-        self.styler.format()
-        assert (0, 0) not in self.styler._display_funcs  # formatter cleared to default
 
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
@@ -773,85 +727,6 @@ class TestStyler:
         assert style1._todo == style2._todo
         style2.render()
 
-    def test_display_format(self):
-        df = DataFrame(np.random.random(size=(2, 2)))
-        ctx = df.style.format("{:0.1f}")._translate()
-
-        assert all(["display_value" in c for c in row] for row in ctx["body"])
-        assert all(
-            [len(c["display_value"]) <= 3 for c in row[1:]] for row in ctx["body"]
-        )
-        assert len(ctx["body"][0][1]["display_value"].lstrip("-")) <= 3
-
-    @pytest.mark.parametrize("formatter", [5, True, [2.0]])
-    def test_format_raises(self, formatter):
-        with pytest.raises(TypeError, match="expected str or callable"):
-            self.df.style.format(formatter)
-
-    def test_format_with_precision(self):
-        # Issue #13257
-        df = DataFrame(data=[[1.0, 2.0090], [3.2121, 4.566]], columns=["a", "b"])
-        s = Styler(df)
-
-        ctx = s.format(precision=1)._translate()
-        assert ctx["body"][0][1]["display_value"] == "1.0"
-        assert ctx["body"][0][2]["display_value"] == "2.0"
-        assert ctx["body"][1][1]["display_value"] == "3.2"
-        assert ctx["body"][1][2]["display_value"] == "4.6"
-
-        ctx = s.format(precision=2)._translate()
-        assert ctx["body"][0][1]["display_value"] == "1.00"
-        assert ctx["body"][0][2]["display_value"] == "2.01"
-        assert ctx["body"][1][1]["display_value"] == "3.21"
-        assert ctx["body"][1][2]["display_value"] == "4.57"
-
-        ctx = s.format(precision=3)._translate()
-        assert ctx["body"][0][1]["display_value"] == "1.000"
-        assert ctx["body"][0][2]["display_value"] == "2.009"
-        assert ctx["body"][1][1]["display_value"] == "3.212"
-        assert ctx["body"][1][2]["display_value"] == "4.566"
-
-    def test_format_subset(self):
-        df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
-        ctx = df.style.format(
-            {"a": "{:0.1f}", "b": "{0:.2%}"}, subset=pd.IndexSlice[0, :]
-        )._translate()
-        expected = "0.1"
-        raw_11 = "1.123400"
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == raw_11
-        assert ctx["body"][0][2]["display_value"] == "12.34%"
-
-        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, :])._translate()
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == raw_11
-
-        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice["a"])._translate()
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][0][2]["display_value"] == "0.123400"
-
-        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, "a"])._translate()
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == raw_11
-
-        ctx = df.style.format(
-            "{:0.1f}", subset=pd.IndexSlice[[0, 1], ["a"]]
-        )._translate()
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == "1.1"
-        assert ctx["body"][0][2]["display_value"] == "0.123400"
-        assert ctx["body"][1][2]["display_value"] == raw_11
-
-    def test_format_dict(self):
-        df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
-        ctx = df.style.format({"a": "{:0.1f}", "b": "{0:.2%}"})._translate()
-        assert ctx["body"][0][1]["display_value"] == "0.1"
-        assert ctx["body"][0][2]["display_value"] == "12.34%"
-        df["c"] = ["aaa", "bbb"]
-        ctx = df.style.format({"a": "{:0.1f}", "c": str.upper})._translate()
-        assert ctx["body"][0][1]["display_value"] == "0.1"
-        assert ctx["body"][0][3]["display_value"] == "AAA"
-
     def test_bad_apply_shape(self):
         df = DataFrame([[1, 2], [3, 4]])
         msg = "returned the wrong shape"
@@ -970,16 +845,16 @@ class TestStyler:
             {
                 "type": "th",
                 "class": "blank",
-                "value": "",
+                "value": self.blank_value,
                 "is_visible": True,
-                "display_value": "",
+                "display_value": self.blank_value,
             },
             {
                 "type": "th",
                 "class": "blank level0",
-                "value": "",
+                "value": self.blank_value,
                 "is_visible": True,
-                "display_value": "",
+                "display_value": self.blank_value,
             },
             {
                 "type": "th",
@@ -1013,7 +888,7 @@ class TestStyler:
         expected = [
             {"class": "index_name level0", "value": "idx_level_0", "type": "th"},
             {"class": "index_name level1", "value": "idx_level_1", "type": "th"},
-            {"class": "blank col0", "value": "", "type": "th"},
+            {"class": "blank col0", "value": self.blank_value, "type": "th"},
         ]
 
         assert head == expected
@@ -1034,8 +909,8 @@ class TestStyler:
         expected = [
             {
                 "class": "blank",
-                "value": "",
-                "display_value": "",
+                "value": self.blank_value,
+                "display_value": self.blank_value,
                 "type": "th",
                 "is_visible": True,
             },
@@ -1343,7 +1218,7 @@ class TestStyler:
   <caption>A comprehensive test</caption>
   <thead>
     <tr>
-      <th class="blank level0" ></th>
+      <th class="blank level0" >&nbsp;</th>
       <th class="col_heading level0 col0" >A</th>
     </tr>
   </thead>

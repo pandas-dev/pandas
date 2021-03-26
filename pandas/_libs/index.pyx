@@ -463,19 +463,19 @@ cdef class DatetimeEngine(Int64Engine):
     def get_indexer(self, ndarray values) -> np.ndarray:
         self._ensure_mapping_populated()
         if values.dtype != self._get_box_dtype():
-            return np.repeat(np.intp(-1), len(values))
+            return np.repeat(-1, len(values)).astype(np.intp)
         values = np.asarray(values).view('i8')
         return self.mapping.lookup(values)
 
     def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         if other.dtype != self._get_box_dtype():
-            return np.repeat(np.intp(-1), len(other))
+            return np.repeat(-1, len(other)).astype(np.intp)
         other = np.asarray(other).view('i8')
         return algos.pad(self._get_index_values(), other, limit=limit)
 
     def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         if other.dtype != self._get_box_dtype():
-            return np.repeat(np.intp(-1), len(other))
+            return np.repeat(-1, len(other)).astype(np.intp)
         other = np.asarray(other).view('i8')
         return algos.backfill(self._get_index_values(), other, limit=limit)
 
@@ -648,7 +648,7 @@ cdef class BaseMultiIndexCodesEngine:
 
         Returns
         -------
-        np.ndarray[int64_t, ndim=1] of the indexer of `target` into `values`,
+        np.ndarray[intp_t, ndim=1] of the indexer of `target` into `values`,
         filled with the `method` (and optionally `limit`) specified
         """
         assert method in ("backfill", "pad")
@@ -658,7 +658,7 @@ cdef class BaseMultiIndexCodesEngine:
             ndarray[int64_t, ndim=1] target_order
             ndarray[object, ndim=1] target_values
             ndarray[int64_t, ndim=1] new_codes, new_target_codes
-            ndarray[int64_t, ndim=1] sorted_indexer
+            ndarray[intp_t, ndim=1] sorted_indexer
 
         target_order = np.argsort(target).astype('int64')
         target_values = target[target_order]
@@ -700,7 +700,7 @@ cdef class BaseMultiIndexCodesEngine:
 
         # get the indexer, and undo the sorting of `target.values`
         algo = algos.backfill if method == "backfill" else algos.pad
-        sorted_indexer = algo(new_codes, new_target_codes, limit=limit).astype("int64")
+        sorted_indexer = algo(new_codes, new_target_codes, limit=limit)
         return sorted_indexer[np.argsort(target_order)]
 
     def get_loc(self, object key):
