@@ -71,7 +71,6 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
-import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -354,7 +353,6 @@ class BaseGrouper:
         Compute group sizes.
         """
         ids, _, ngroup = self.group_info
-        ids = ensure_platform_int(ids)
         if ngroup:
             out = np.bincount(ids[ids != -1], minlength=ngroup)
         else:
@@ -382,7 +380,7 @@ class BaseGrouper:
         comp_ids, obs_group_ids = self._get_compressed_codes()
 
         ngroups = len(obs_group_ids)
-        comp_ids = ensure_int64(comp_ids)
+        comp_ids = ensure_platform_int(comp_ids)
         return comp_ids, obs_group_ids, ngroups
 
     @final
@@ -708,7 +706,7 @@ class BaseGrouper:
         self, result, values, comp_ids, transform_func, is_datetimelike: bool, **kwargs
     ):
 
-        comp_ids, _, ngroups = self.group_info
+        _, _, ngroups = self.group_info
         transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
         return result
@@ -756,7 +754,7 @@ class BaseGrouper:
         # avoids object / Series creation overhead
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
-        group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
+        group_index = group_index.take(indexer)
         grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups)
         result, counts = grouper.get_result()
         return result, counts
@@ -919,7 +917,7 @@ class BinGrouper(BaseGrouper):
             comp_ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
 
         return (
-            comp_ids.astype("int64", copy=False),
+            ensure_platform_int(comp_ids),
             obs_group_ids.astype("int64", copy=False),
             ngroups,
         )
@@ -982,16 +980,16 @@ def _is_indexed_like(obj, axes, axis: int) -> bool:
 class DataSplitter(Generic[FrameOrSeries]):
     def __init__(self, data: FrameOrSeries, labels, ngroups: int, axis: int = 0):
         self.data = data
-        self.labels = ensure_int64(labels)
+        self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
         self.ngroups = ngroups
 
         self.axis = axis
         assert isinstance(axis, int), axis
 
     @cache_readonly
-    def slabels(self):
+    def slabels(self) -> np.ndarray:  # np.ndarray[np.intp]
         # Sorted labels
-        return algorithms.take_nd(self.labels, self._sort_idx, allow_fill=False)
+        return self.labels.take(self._sort_idx)
 
     @cache_readonly
     def _sort_idx(self) -> np.ndarray:  # np.ndarray[np.intp]
