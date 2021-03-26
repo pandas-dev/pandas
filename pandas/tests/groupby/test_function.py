@@ -846,6 +846,12 @@ def test_cummax_all_nan_column():
     tm.assert_frame_equal(expected, result)
 
 
+# @pytest.mark.parametrize("method", ["cummin", "cummax"])
+# def test_cummin_max_nullable_ints_no_float_cast(method):
+
+
+
+
 @pytest.mark.parametrize(
     "in_vals, out_vals",
     [
