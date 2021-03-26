@@ -1,16 +1,20 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    NaT,
+    PeriodIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import PeriodIndex, period_range
-from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
+from pandas.core.indexes.period import period_range
+from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import _asfreq_compat
 
 # a fixture value can be overridden by the test parameter value. Note that the
@@ -113,6 +117,30 @@ def test_resample_empty_series(freq, empty_series_dti, resample_method):
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
+def test_resample_nat_index_series(request, freq, series, resample_method):
+    # GH39227
+
+    if freq == "M":
+        request.node.add_marker(pytest.mark.xfail(reason="Don't know why this fails"))
+
+    s = series.copy()
+    s.index = PeriodIndex([NaT] * len(s), freq=freq)
+    result = getattr(s.resample(freq), resample_method)()
+
+    if resample_method == "ohlc":
+        expected = DataFrame(
+            [], index=s.index[:0].copy(), columns=["open", "high", "low", "close"]
+        )
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+    else:
+        expected = s[:0].copy()
+        tm.assert_series_equal(result, expected, check_dtype=False)
+    tm.assert_index_equal(result.index, expected.index)
+    assert result.index.freq == expected.index.freq
+
+
+@all_ts
+@pytest.mark.parametrize("freq", ["M", "D", "H"])
 @pytest.mark.parametrize("resample_method", ["count", "size"])
 def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
     # GH28427
@@ -120,7 +148,7 @@ def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
 
     index = _asfreq_compat(empty_series_dti.index, freq)
 
-    expected = pd.Series([], dtype="int64", index=index, name=empty_series_dti.name)
+    expected = Series([], dtype="int64", index=index, name=empty_series_dti.name)
 
     tm.assert_series_equal(result, expected)
 
@@ -158,7 +186,7 @@ def test_resample_count_empty_dataframe(freq, empty_frame_dti):
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
 
-    expected = pd.DataFrame({"a": []}, dtype="int64", index=index)
+    expected = DataFrame({"a": []}, dtype="int64", index=index)
 
     tm.assert_frame_equal(result, expected)
 
@@ -174,15 +202,14 @@ def test_resample_size_empty_dataframe(freq, empty_frame_dti):
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
 
-    expected = pd.Series([], dtype="int64", index=index)
+    expected = Series([], dtype="int64", index=index)
 
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
-@pytest.mark.parametrize("dtype", [np.float, np.int, np.object, "datetime64[ns]"])
+@pytest.mark.parametrize("dtype", [float, int, object, "datetime64[ns]"])
 def test_resample_empty_dtypes(index, dtype, resample_method):
-
     # Empty series were sometimes causing a segfault (for the functions
     # with Cython bounds-checking disabled) or an IndexError.  We just run
     # them to ensure they no longer do.  (GH #10228)
@@ -191,37 +218,8 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
         getattr(empty_series_dti.resample("d"), resample_method)()
     except DataError:
         # Ignore these since some combinations are invalid
-        # (ex: doing mean with dtype of np.object)
+        # (ex: doing mean with dtype of np.object_)
         pass
-
-
-@all_ts
-@pytest.mark.parametrize("arg", ["mean", {"value": "mean"}, ["mean"]])
-def test_resample_loffset_arg_type(frame, create_index, arg):
-    # GH 13218, 15002
-    df = frame
-    expected_means = [df.values[i : i + 2].mean() for i in range(0, len(df.values), 2)]
-    expected_index = create_index(df.index[0], periods=len(df.index) / 2, freq="2D")
-
-    # loffset coerces PeriodIndex to DateTimeIndex
-    if isinstance(expected_index, PeriodIndex):
-        expected_index = expected_index.to_timestamp()
-
-    expected_index += timedelta(hours=2)
-    expected = DataFrame({"value": expected_means}, index=expected_index)
-
-    result_agg = df.resample("2D", loffset="2H").agg(arg)
-
-    if isinstance(arg, list):
-        expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
-
-    # GH 13022, 7687 - TODO: fix resample w/ TimedeltaIndex
-    if isinstance(expected.index, TimedeltaIndex):
-        msg = "DataFrame are different"
-        with pytest.raises(AssertionError, match=msg):
-            tm.assert_frame_equal(result_agg, expected)
-    else:
-        tm.assert_frame_equal(result_agg, expected)
 
 
 @all_ts

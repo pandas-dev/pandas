@@ -2,7 +2,7 @@ import io
 
 import pytest
 
-import validate_unwanted_patterns
+from .. import validate_unwanted_patterns
 
 
 class TestBarePytestRaises:

@@ -1,14 +1,26 @@
 """
 Tests for scalar Timedelta arithmetic ops
 """
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import operator
 
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+from pandas.errors import OutOfBoundsTimedelta
+
 import pandas as pd
-from pandas import NaT, Timedelta, Timestamp, _is_numpy_dev, offsets
+from pandas import (
+    NaT,
+    Timedelta,
+    Timestamp,
+    compat,
+    offsets,
+)
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -93,7 +105,7 @@ class TestTimedeltaAdditionSubtraction:
         with pytest.raises(OverflowError, match=msg):
             Timestamp("1700-01-01") + Timedelta(13 * 19999, unit="D")
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
@@ -263,7 +275,10 @@ class TestTimedeltaAdditionSubtraction:
         msg = r"unsupported operand type\(s\) for \+: 'Timedelta' and 'int'"
         with pytest.raises(TypeError, match=msg):
             td + np.array([1])
-        msg = r"unsupported operand type\(s\) for \+: 'numpy.ndarray' and 'Timedelta'"
+        msg = (
+            r"unsupported operand type\(s\) for \+: 'numpy.ndarray' and 'Timedelta'|"
+            "Concatenation operation is not implemented for NumPy arrays"
+        )
         with pytest.raises(TypeError, match=msg):
             np.array([1]) + td
 
@@ -388,9 +403,9 @@ class TestTimedeltaMultiplicationDivision:
         # truediv
         td = Timedelta("1 days 2 hours 3 ns")
         result = td / np.timedelta64(1, "D")
-        assert result == td.value / float(86400 * 1e9)
+        assert result == td.value / (86400 * 10 ** 9)
         result = td / np.timedelta64(1, "s")
-        assert result == td.value / float(1e9)
+        assert result == td.value / 10 ** 9
         result = td / np.timedelta64(1, "ns")
         assert result == td.value
 
@@ -411,7 +426,7 @@ class TestTimedeltaMultiplicationDivision:
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=5)
 
-        result = td / 5.0
+        result = td / 5
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=2)
 
@@ -422,7 +437,8 @@ class TestTimedeltaMultiplicationDivision:
             pytest.param(
                 np.float64("NaN"),
                 marks=pytest.mark.xfail(
-                    _is_numpy_dev,
+                    # Works on numpy dev only in python 3.9
+                    is_numpy_dev and not compat.PY39,
                     raises=RuntimeWarning,
                     reason="https://github.com/pandas-dev/pandas/issues/31992",
                 ),
@@ -921,7 +937,7 @@ class TestTimedeltaComparison:
     def test_compare_td64_ndarray(self):
         # GG#33441
         arr = np.arange(5).astype("timedelta64[ns]")
-        td = pd.Timedelta(arr[1])
+        td = Timedelta(arr[1])
 
         expected = np.array([False, True, False, False, False], dtype=bool)
 

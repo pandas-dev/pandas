@@ -7,9 +7,14 @@ environment to use pandas. Other installation options can be found in
 the [advanced installation page]({{ base_url}}/docs/getting_started/install.html).
 
 1. Download [Anaconda](https://www.anaconda.com/distribution/) for your operating system and
-   the latest Python version, run the installer, and follow the steps. Detailed instructions
-   on how to install Anaconda can be found in the
-   [Anaconda documentation](https://docs.anaconda.com/anaconda/install/).
+   the latest Python version, run the installer, and follow the steps. Please note:
+
+    - It is not needed (and discouraged) to install Anaconda as root or administrator.
+    - When asked if you wish to initialize Anaconda3, answer yes.
+    - Restart the terminal after completing the installation.
+
+    Detailed instructions on how to install Anaconda can be found in the
+    [Anaconda documentation](https://docs.anaconda.com/anaconda/install/).
 
 2. In the Anaconda prompt (or terminal in Linux or MacOS), start JupyterLab:
 
@@ -27,8 +32,9 @@ the [advanced installation page]({{ base_url}}/docs/getting_started/install.html
 
 ## Tutorials
 
-You can learn more about pandas in the [tutorials](#), and more about JupyterLab
-in the [JupyterLab documentation](https://jupyterlab.readthedocs.io/en/stable/user/interface.html).
+You can learn more about pandas in the [tutorials]({{ base_url }}/docs/getting_started/intro_tutorials/),
+and more about JupyterLab in the
+[JupyterLab documentation](https://jupyterlab.readthedocs.io/en/stable/user/interface.html).
 
 ## Books
 

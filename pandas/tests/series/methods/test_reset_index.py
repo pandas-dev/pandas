@@ -1,11 +1,37 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
+import pandas as pd
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    RangeIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
 class TestResetIndex:
+    def test_reset_index_dti_round_trip(self):
+        dti = date_range(start="1/1/2001", end="6/1/2001", freq="D")._with_freq(None)
+        d1 = DataFrame({"v": np.random.rand(len(dti))}, index=dti)
+        d2 = d1.reset_index()
+        assert d2.dtypes[0] == np.dtype("M8[ns]")
+        d3 = d2.set_index("index")
+        tm.assert_frame_equal(d1, d3, check_names=False)
+
+        # GH#2329
+        stamp = datetime(2012, 11, 22)
+        df = DataFrame([[stamp, 12.1]], columns=["Date", "Value"])
+        df = df.set_index("Date")
+
+        assert df.index[0] == stamp
+        assert df.reset_index()["Date"][0] == stamp
+
     def test_reset_index(self):
         df = tm.makeDataFrame()[:5]
         ser = df.stack()
@@ -21,7 +47,8 @@ class TestResetIndex:
         # check inplace
         s = ser.reset_index(drop=True)
         s2 = ser
-        s2.reset_index(drop=True, inplace=True)
+        return_value = s2.reset_index(drop=True, inplace=True)
+        assert return_value is None
         tm.assert_series_equal(s, s2)
 
         # level
@@ -108,3 +135,35 @@ class TestResetIndex:
         s = Series(range(4), index=MultiIndex.from_product([[1, 2]] * 2))
         with pytest.raises(KeyError, match="not found"):
             s.reset_index("wrong", drop=True)
+
+    def test_reset_index_with_drop(self, series_with_multilevel_index):
+        ser = series_with_multilevel_index
+
+        deleveled = ser.reset_index()
+        assert isinstance(deleveled, DataFrame)
+        assert len(deleveled.columns) == len(ser.index.levels) + 1
+        assert deleveled.index.name == ser.index.name
+
+        deleveled = ser.reset_index(drop=True)
+        assert isinstance(deleveled, Series)
+        assert deleveled.index.name == ser.index.name
+
+
+@pytest.mark.parametrize(
+    "array, dtype",
+    [
+        (["a", "b"], object),
+        (
+            pd.period_range("12-1-2000", periods=2, freq="Q-DEC"),
+            pd.PeriodDtype(freq="Q-DEC"),
+        ),
+    ],
+)
+def test_reset_index_dtypes_on_empty_series_with_multiindex(array, dtype):
+    # GH 19602 - Preserve dtype on empty Series with MultiIndex
+    idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], array])
+    result = Series(dtype=object, index=idx)[:0].reset_index().dtypes
+    expected = Series(
+        {"level_0": np.int64, "level_1": np.float64, "level_2": dtype, 0: object}
+    )
+    tm.assert_series_equal(result, expected)

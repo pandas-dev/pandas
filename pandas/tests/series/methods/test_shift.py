@@ -19,6 +19,25 @@ from pandas.tseries.offsets import BDay
 
 
 class TestShift:
+    @pytest.mark.parametrize(
+        "ser",
+        [
+            Series([np.arange(5)]),
+            date_range("1/1/2011", periods=24, freq="H"),
+            Series(range(5), index=date_range("2017", periods=5)),
+        ],
+    )
+    @pytest.mark.parametrize("shift_size", [0, 1, 2])
+    def test_shift_always_copy(self, ser, shift_size):
+        # GH22397
+        assert ser.shift(shift_size) is not ser
+
+    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1min")])
+    def test_datetime_shift_always_copy(self, move_by_freq):
+        # GH#22397
+        ser = Series(range(5), index=date_range("2017", periods=5))
+        assert ser.shift(freq=move_by_freq) is not ser
+
     def test_shift(self, datetime_series):
         shifted = datetime_series.shift(1)
         unshifted = shifted.shift(-1)
@@ -135,14 +154,14 @@ class TestShift:
         result = ts.shift(2, fill_value=0.0)
         tm.assert_series_equal(result, exp)
 
-        ts = pd.Series([1, 2, 3])
+        ts = Series([1, 2, 3])
         res = ts.shift(2, fill_value=0)
         assert res.dtype == ts.dtype
 
     def test_shift_categorical_fill_value(self):
-        ts = pd.Series(["a", "b", "c", "d"], dtype="category")
+        ts = Series(["a", "b", "c", "d"], dtype="category")
         res = ts.shift(1, fill_value="a")
-        expected = pd.Series(
+        expected = Series(
             pd.Categorical(
                 ["a", "a", "b", "c"], categories=["a", "b", "c", "d"], ordered=False
             )
@@ -151,7 +170,7 @@ class TestShift:
 
         # check for incorrect fill_value
         msg = "'fill_value=f' is not present in this Categorical's categories"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             ts.shift(1, fill_value="f")
 
     def test_shift_dst(self):
@@ -181,7 +200,10 @@ class TestShift:
             tm.assert_series_equal(res, exp)
             assert res.dtype == "datetime64[ns, US/Eastern]"
 
+    @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
     def test_tshift(self, datetime_series):
+        # TODO: remove this test when tshift deprecation is enforced
+
         # PeriodIndex
         ps = tm.makePeriodSeries()
         shifted = ps.tshift(1)
@@ -220,9 +242,58 @@ class TestShift:
         tm.assert_series_equal(unshifted, inferred_ts)
 
         no_freq = datetime_series[[0, 5, 7]]
-        msg = "Freq was not given and was not set in the index"
+        msg = "Freq was not set in the index hence cannot be inferred"
         with pytest.raises(ValueError, match=msg):
             no_freq.tshift()
+
+    def test_tshift_deprecated(self, datetime_series):
+        # GH#11631
+        with tm.assert_produces_warning(FutureWarning):
+            datetime_series.tshift()
+
+    def test_period_index_series_shift_with_freq(self):
+        ps = tm.makePeriodSeries()
+
+        shifted = ps.shift(1, freq="infer")
+        unshifted = shifted.shift(-1, freq="infer")
+        tm.assert_series_equal(unshifted, ps)
+
+        shifted2 = ps.shift(freq="B")
+        tm.assert_series_equal(shifted, shifted2)
+
+        shifted3 = ps.shift(freq=BDay())
+        tm.assert_series_equal(shifted, shifted3)
+
+    def test_datetime_series_shift_with_freq(self, datetime_series):
+        shifted = datetime_series.shift(1, freq="infer")
+        unshifted = shifted.shift(-1, freq="infer")
+        tm.assert_series_equal(datetime_series, unshifted)
+
+        shifted2 = datetime_series.shift(freq=datetime_series.index.freq)
+        tm.assert_series_equal(shifted, shifted2)
+
+        inferred_ts = Series(
+            datetime_series.values, Index(np.asarray(datetime_series.index)), name="ts"
+        )
+        shifted = inferred_ts.shift(1, freq="infer")
+        expected = datetime_series.shift(1, freq="infer")
+        expected.index = expected.index._with_freq(None)
+        tm.assert_series_equal(shifted, expected)
+
+        unshifted = shifted.shift(-1, freq="infer")
+        tm.assert_series_equal(unshifted, inferred_ts)
+
+    def test_period_index_series_shift_with_freq_error(self):
+        ps = tm.makePeriodSeries()
+        msg = "Given freq M does not match PeriodIndex freq B"
+        with pytest.raises(ValueError, match=msg):
+            ps.shift(freq="M")
+
+    def test_datetime_series_shift_with_freq_error(self, datetime_series):
+        no_freq = datetime_series[[0, 5, 7]]
+        msg = "Freq was not set in the index hence cannot be inferred"
+        with pytest.raises(ValueError, match=msg):
+            no_freq.shift(freq="infer")
 
     def test_shift_int(self, datetime_series):
         ts = datetime_series.astype(int)
@@ -250,7 +321,7 @@ class TestShift:
 
     def test_shift_categorical(self):
         # GH#9416
-        s = pd.Series(["a", "b", "c", "d"], dtype="category")
+        s = Series(["a", "b", "c", "d"], dtype="category")
 
         tm.assert_series_equal(s.iloc[:-1], s.shift(1).shift(-1).dropna())
 
@@ -269,10 +340,39 @@ class TestShift:
 
     def test_shift_dt64values_int_fill_deprecated(self):
         # GH#31971
-        ser = pd.Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
+        ser = Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
 
         with tm.assert_produces_warning(FutureWarning):
             result = ser.shift(1, fill_value=0)
 
-        expected = pd.Series([pd.Timestamp(0), ser[0]])
+        expected = Series([pd.Timestamp(0), ser[0]])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("periods", [1, 2, 3, 4])
+    def test_shift_preserve_freqstr(self, periods):
+        # GH#21275
+        ser = Series(
+            range(periods),
+            index=date_range("2016-1-1 00:00:00", periods=periods, freq="H"),
+        )
+
+        result = ser.shift(1, "2H")
+
+        expected = Series(
+            range(periods),
+            index=date_range("2016-1-1 02:00:00", periods=periods, freq="H"),
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "input_data, output_data",
+        [(np.empty(shape=(0,)), []), (np.ones(shape=(2,)), [np.nan, 1.0])],
+    )
+    def test_shift_non_writable_array(self, input_data, output_data):
+        # GH21049 Verify whether non writable numpy array is shiftable
+        input_data.setflags(write=False)
+
+        result = Series(input_data).shift(1)
+        expected = Series(output_data, dtype="float64")
+
         tm.assert_series_equal(result, expected)

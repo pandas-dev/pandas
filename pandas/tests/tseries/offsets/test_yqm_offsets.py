@@ -7,6 +7,11 @@ import pytest
 
 import pandas as pd
 from pandas import Timestamp
+from pandas.tests.tseries.offsets.common import (
+    Base,
+    assert_is_on_offset,
+    assert_offset_equal,
+)
 
 from pandas.tseries.offsets import (
     BMonthBegin,
@@ -22,9 +27,6 @@ from pandas.tseries.offsets import (
     YearBegin,
     YearEnd,
 )
-
-from .common import assert_is_on_offset, assert_offset_equal
-from .test_offsets import Base
 
 # --------------------------------------------------------------------
 # Misc
@@ -65,8 +67,6 @@ def test_apply_index(cls, n):
 
     res = rng + offset
     assert res.freq is None  # not retained
-    res_v2 = offset.apply_index(rng)
-    assert (res == res_v2).all()
     assert res[0] == rng[0] + offset
     assert res[-1] == rng[-1] + offset
     res2 = ser + offset

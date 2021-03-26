@@ -3,10 +3,12 @@ import itertools
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas.core.internals import ExtensionBlock
+import pandas.util._test_decorators as td
 
-from .base import BaseExtensionTests
+import pandas as pd
+from pandas.api.extensions import ExtensionArray
+from pandas.core.internals import ExtensionBlock
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseReshapingTests(BaseExtensionTests):
@@ -27,7 +29,9 @@ class BaseReshapingTests(BaseExtensionTests):
             dtype = result.dtype
 
         assert dtype == data.dtype
-        assert isinstance(result._mgr.blocks[0], ExtensionBlock)
+        if hasattr(result._mgr, "blocks"):
+            assert isinstance(result._mgr.blocks[0], ExtensionBlock)
+        assert isinstance(result._mgr.arrays[0], ExtensionArray)
 
     @pytest.mark.parametrize("in_frame", [True, False])
     def test_concat_all_na_block(self, data_missing, in_frame):
@@ -62,11 +66,11 @@ class BaseReshapingTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
         # simple test for just EA and one other
-        result = pd.concat([df1, df2])
+        result = pd.concat([df1, df2.astype(object)])
         expected = pd.concat([df1.astype("object"), df2.astype("object")])
         self.assert_frame_equal(result, expected)
 
-        result = pd.concat([df1["A"], df2["A"]])
+        result = pd.concat([df1["A"], df2["A"].astype(object)])
         expected = pd.concat([df1["A"].astype("object"), df2["A"].astype("object")])
         self.assert_series_equal(result, expected)
 
@@ -105,6 +109,20 @@ class BaseReshapingTests(BaseExtensionTests):
             }
         )
         result = pd.concat([df1, df2], axis=1, copy=False)
+        self.assert_frame_equal(result, expected)
+
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) concat reindex
+    def test_concat_with_reindex(self, data):
+        # GH-33027
+        a = pd.DataFrame({"a": data[:5]})
+        b = pd.DataFrame({"b": data[:5]})
+        result = pd.concat([a, b], ignore_index=True)
+        expected = pd.DataFrame(
+            {
+                "a": data.take(list(range(5)) + ([-1] * 5), allow_fill=True),
+                "b": data.take(([-1] * 5) + list(range(5)), allow_fill=True),
+            }
+        )
         self.assert_frame_equal(result, expected)
 
     def test_align(self, data, na_value):
@@ -303,7 +321,9 @@ class BaseReshapingTests(BaseExtensionTests):
                 alt = df.unstack(level=level).droplevel(0, axis=1)
                 self.assert_frame_equal(result, alt)
 
-            expected = ser.astype(object).unstack(level=level)
+            expected = ser.astype(object).unstack(
+                level=level, fill_value=data.dtype.na_value
+            )
             result = result.astype(object)
 
             self.assert_frame_equal(result, expected)
@@ -318,6 +338,20 @@ class BaseReshapingTests(BaseExtensionTests):
         assert data[0] == data[1]
 
     def test_transpose(self, data):
+        result = data.transpose()
+        assert type(result) == type(data)
+
+        # check we get a new object
+        assert result is not data
+
+        # If we ever _did_ support 2D, shape should be reversed
+        assert result.shape == data.shape[::-1]
+
+        # Check that we have a view, not a copy
+        result[0] = result[1]
+        assert data[0] == data[1]
+
+    def test_transpose_frame(self, data):
         df = pd.DataFrame({"A": data[:4], "B": data[:4]}, index=["a", "b", "c", "d"])
         result = df.T
         expected = pd.DataFrame(

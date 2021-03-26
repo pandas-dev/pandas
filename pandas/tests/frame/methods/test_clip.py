@@ -1,8 +1,10 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -22,7 +24,8 @@ class TestDataFrameClip:
         median = float_frame.median().median()
         frame_copy = float_frame.copy()
 
-        frame_copy.clip(upper=median, lower=median, inplace=True)
+        return_value = frame_copy.clip(upper=median, lower=median, inplace=True)
+        assert return_value is None
         assert not (frame_copy.values != median).any()
 
     def test_dataframe_clip(self):
@@ -99,7 +102,7 @@ class TestDataFrameClip:
 
         result = original.clip(lower=lower, upper=[5, 6, 7], axis=axis, inplace=inplace)
 
-        expected = pd.DataFrame(res, columns=original.columns, index=original.index)
+        expected = DataFrame(res, columns=original.columns, index=original.index)
         if inplace:
             result = original
         tm.assert_frame_equal(result, expected, check_exact=True)

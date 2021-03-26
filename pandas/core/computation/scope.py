@@ -1,6 +1,7 @@
 """
 Module for scope operations
 """
+from __future__ import annotations
 
 import datetime
 import inspect
@@ -19,7 +20,7 @@ from pandas.compat.chainmap import DeepChainMap
 
 def ensure_scope(
     level: int, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
-) -> "Scope":
+) -> Scope:
     """Ensure that we are grabbing the correct scope."""
     return Scope(
         level + 1,
@@ -53,7 +54,7 @@ def _raw_hex_id(obj) -> str:
     return "".join(_replacer(x) for x in packed)
 
 
-_DEFAULT_GLOBALS = {
+DEFAULT_GLOBALS = {
     "Timestamp": Timestamp,
     "datetime": datetime.datetime,
     "True": True,
@@ -114,7 +115,7 @@ class Scope:
 
         # shallow copy because we don't want to keep filling this up with what
         # was there before if there are multiple calls to Scope/_ensure_scope
-        self.scope = DeepChainMap(_DEFAULT_GLOBALS.copy())
+        self.scope = DeepChainMap(DEFAULT_GLOBALS.copy())
         self.target = target
 
         if isinstance(local_dict, Scope):
@@ -129,23 +130,32 @@ class Scope:
             # shallow copy here because we don't want to replace what's in
             # scope when we align terms (alignment accesses the underlying
             # numpy array of pandas objects)
-            self.scope = self.scope.new_child((global_dict or frame.f_globals).copy())
+
+            # error: Incompatible types in assignment (expression has type
+            # "ChainMap[str, Any]", variable has type "DeepChainMap[str, Any]")
+            self.scope = self.scope.new_child(  # type: ignore[assignment]
+                (global_dict or frame.f_globals).copy()
+            )
             if not isinstance(local_dict, Scope):
-                self.scope = self.scope.new_child((local_dict or frame.f_locals).copy())
+                # error: Incompatible types in assignment (expression has type
+                # "ChainMap[str, Any]", variable has type "DeepChainMap[str, Any]")
+                self.scope = self.scope.new_child(  # type: ignore[assignment]
+                    (local_dict or frame.f_locals).copy()
+                )
         finally:
             del frame
 
         # assumes that resolvers are going from outermost scope to inner
         if isinstance(local_dict, Scope):
-            resolvers += tuple(local_dict.resolvers.maps)
+            # error: Cannot determine type of 'resolvers'
+            resolvers += tuple(local_dict.resolvers.maps)  # type: ignore[has-type]
         self.resolvers = DeepChainMap(*resolvers)
         self.temps = {}
 
     def __repr__(self) -> str:
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
-        unicode_str = f"{type(self).__name__}(scope={scope_keys}, resolvers={res_keys})"
-        return unicode_str
+        return f"{type(self).__name__}(scope={scope_keys}, resolvers={res_keys})"
 
     @property
     def has_resolvers(self) -> bool:
@@ -225,7 +235,8 @@ class Scope:
 
         for mapping in maps:
             if old_key in mapping:
-                mapping[new_key] = new_value
+                # error: Unsupported target for indexed assignment ("Mapping[Any, Any]")
+                mapping[new_key] = new_value  # type: ignore[index]
                 return
 
     def _get_vars(self, stack, scopes: List[str]):
@@ -244,7 +255,9 @@ class Scope:
         for scope, (frame, _, _, _, _, _) in variables:
             try:
                 d = getattr(frame, "f_" + scope)
-                self.scope = self.scope.new_child(d)
+                # error: Incompatible types in assignment (expression has type
+                # "ChainMap[str, Any]", variable has type "DeepChainMap[str, Any]")
+                self.scope = self.scope.new_child(d)  # type: ignore[assignment]
             finally:
                 # won't remove it, but DECREF it
                 # in Py3 this probably isn't necessary since frame won't be
@@ -311,5 +324,13 @@ class Scope:
         vars : DeepChainMap
             All variables in this scope.
         """
-        maps = [self.temps] + self.resolvers.maps + self.scope.maps
+        # error: Unsupported operand types for + ("List[Dict[Any, Any]]" and
+        # "List[Mapping[Any, Any]]")
+        # error: Unsupported operand types for + ("List[Dict[Any, Any]]" and
+        # "List[Mapping[str, Any]]")
+        maps = (
+            [self.temps]
+            + self.resolvers.maps  # type: ignore[operator]
+            + self.scope.maps  # type: ignore[operator]
+        )
         return DeepChainMap(*maps)

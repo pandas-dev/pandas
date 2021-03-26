@@ -3,7 +3,10 @@ import pytest
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    option_context,
+)
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
@@ -17,10 +20,10 @@ def test_correct_function_signature():
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
-    with pytest.raises(NumbaUtilError, match=f"The first 2"):
+    with pytest.raises(NumbaUtilError, match="The first 2"):
         data.groupby("key").transform(incorrect_function, engine="numba")
 
-    with pytest.raises(NumbaUtilError, match=f"The first 2"):
+    with pytest.raises(NumbaUtilError, match="The first 2"):
         data.groupby("key")["data"].transform(incorrect_function, engine="numba")
 
 
@@ -56,7 +59,7 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython):
         func = numba.jit(func)
 
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
     grouped = data.groupby(0)
@@ -89,7 +92,7 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
         func_2 = numba.jit(func_2)
 
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
     grouped = data.groupby(0)
@@ -112,3 +115,34 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
     result = grouped.transform(func_1, engine="numba", engine_kwargs=engine_kwargs)
     expected = grouped.transform(lambda x: x + 1, engine="cython")
     tm.assert_equal(result, expected)
+
+
+@td.skip_if_no("numba", "0.46.0")
+def test_use_global_config():
+    def func_1(values, index):
+        return values + 1
+
+    data = DataFrame(
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
+    )
+    grouped = data.groupby(0)
+    expected = grouped.transform(func_1, engine="numba")
+    with option_context("compute.use_numba", True):
+        result = grouped.transform(func_1, engine=None)
+    tm.assert_frame_equal(expected, result)
+
+
+@td.skip_if_no("numba", "0.46.0")
+@pytest.mark.parametrize(
+    "agg_func", [["min", "max"], "min", {"B": ["min", "max"], "C": "sum"}]
+)
+def test_multifunc_notimplimented(agg_func):
+    data = DataFrame(
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
+    )
+    grouped = data.groupby(0)
+    with pytest.raises(NotImplementedError, match="Numba engine can"):
+        grouped.transform(agg_func, engine="numba")
+
+    with pytest.raises(NotImplementedError, match="Numba engine can"):
+        grouped[1].transform(agg_func, engine="numba")

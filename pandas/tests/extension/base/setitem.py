@@ -3,11 +3,39 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseSetitemTests(BaseExtensionTests):
+    @pytest.fixture(
+        params=[
+            lambda x: x.index,
+            lambda x: list(x.index),
+            lambda x: slice(None),
+            lambda x: slice(0, len(x)),
+            lambda x: range(len(x)),
+            lambda x: list(range(len(x))),
+            lambda x: np.ones(len(x), dtype=bool),
+        ],
+        ids=[
+            "index",
+            "list[index]",
+            "null_slice",
+            "full_slice",
+            "range",
+            "list(range)",
+            "mask",
+        ],
+    )
+    def full_indexer(self, request):
+        """
+        Fixture for an indexer to pass to obj.loc to get/set the full length of the
+        object.
+
+        In some cases, assumes that obj.index is the default RangeIndex.
+        """
+        return request.param
+
     def test_setitem_scalar_series(self, data, box_in_series):
         if box_in_series:
             data = pd.Series(data)
@@ -40,7 +68,7 @@ class BaseSetitemTests(BaseExtensionTests):
             ser[slice(3)] = value
         self.assert_series_equal(ser, original)
 
-    def test_setitem_empty_indxer(self, data, box_in_series):
+    def test_setitem_empty_indexer(self, data, box_in_series):
         if box_in_series:
             data = pd.Series(data)
         original = data.copy()
@@ -244,16 +272,18 @@ class BaseSetitemTests(BaseExtensionTests):
 
     def test_setitem_frame_invalid_length(self, data):
         df = pd.DataFrame({"A": [1] * len(data)})
-        xpr = "Length of values does not match length of index"
+        xpr = (
+            rf"Length of values \({len(data[:5])}\) "
+            rf"does not match length of index \({len(df)}\)"
+        )
         with pytest.raises(ValueError, match=xpr):
             df["B"] = data[:5]
 
-    @pytest.mark.xfail(reason="GH#20441: setitem on extension types.")
     def test_setitem_tuple_index(self, data):
-        s = pd.Series(data[:2], index=[(0, 0), (0, 1)])
-        expected = pd.Series(data.take([1, 1]), index=s.index)
-        s[(0, 1)] = data[1]
-        self.assert_series_equal(s, expected)
+        ser = pd.Series(data[:2], index=[(0, 0), (0, 1)])
+        expected = pd.Series(data.take([1, 1]), index=ser.index)
+        ser[(0, 0)] = data[1]
+        self.assert_series_equal(ser, expected)
 
     def test_setitem_slice(self, data, box_in_series):
         arr = data[:5].copy()
@@ -301,3 +331,28 @@ class BaseSetitemTests(BaseExtensionTests):
         data[0] = data[1]
         assert view1[0] == data[1]
         assert view2[0] == data[1]
+
+    def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        result = pd.DataFrame(index=df.index)
+
+        key = full_indexer(df)
+        result.loc[key, "data"] = df["data"]
+
+        self.assert_frame_equal(result, expected)
+
+    def test_setitem_series(self, data, full_indexer):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        ser = pd.Series(data, name="data")
+        result = pd.Series(index=ser.index, dtype=object, name="data")
+
+        # because result has object dtype, the attempt to do setting inplace
+        #  is successful, and object dtype is retained
+        key = full_indexer(ser)
+        result.loc[key] = ser
+
+        expected = pd.Series(
+            data.astype(object), index=ser.index, name="data", dtype=object
+        )
+        self.assert_series_equal(result, expected)

@@ -1,3 +1,4 @@
+import re
 import sys
 
 import numpy as np
@@ -5,7 +6,13 @@ import pytest
 
 from pandas.compat import PYPY
 
-from pandas import Categorical, Index, NaT, Series, date_range
+from pandas import (
+    Categorical,
+    Index,
+    NaT,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 
@@ -92,6 +99,39 @@ class TestCategoricalAnalytics:
         )
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             getattr(cat, method)(numeric_only=True)
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_numpy_min_max_raises(self, method):
+        cat = Categorical(["a", "b", "c", "b"], ordered=False)
+        msg = (
+            f"Categorical is not ordered for operation {method}\n"
+            "you can use .as_ordered() to change the Categorical to an ordered one"
+        )
+        method = getattr(np, method)
+        with pytest.raises(TypeError, match=re.escape(msg)):
+            method(cat)
+
+    @pytest.mark.parametrize("kwarg", ["axis", "out", "keepdims"])
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_numpy_min_max_unsupported_kwargs_raises(self, method, kwarg):
+        cat = Categorical(["a", "b", "c", "b"], ordered=True)
+        msg = (
+            f"the '{kwarg}' parameter is not supported in the pandas implementation "
+            f"of {method}"
+        )
+        if kwarg == "axis":
+            msg = r"`axis` must be fewer than the number of dimensions \(1\)"
+        kwargs = {kwarg: 42}
+        method = getattr(np, method)
+        with pytest.raises(ValueError, match=msg):
+            method(cat, **kwargs)
+
+    @pytest.mark.parametrize("method, expected", [("min", "a"), ("max", "c")])
+    def test_numpy_min_max_axis_equals_none(self, method, expected):
+        cat = Categorical(["a", "b", "c", "b"], ordered=True)
+        method = getattr(np, method)
+        result = method(cat, axis=None)
+        assert result == expected
 
     @pytest.mark.parametrize(
         "values,categories,exp_mode",
@@ -323,14 +363,9 @@ class TestCategoricalAnalytics:
             cat.remove_categories(removals=["D", "E", "F"], inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            cat.remove_unused_categories(inplace=value)
+            with tm.assert_produces_warning(FutureWarning):
+                # issue #37643 inplace kwarg deprecated
+                cat.remove_unused_categories(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
             cat.sort_values(inplace=value)
-
-    def test_isna(self):
-        exp = np.array([False, False, True])
-        c = Categorical(["a", "b", np.nan])
-        res = c.isna()
-
-        tm.assert_numpy_array_equal(res, exp)

@@ -8,7 +8,7 @@ Version 0.20.3 (July 7, 2017)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *  # noqa F401, F403
 
 
 This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes

@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex
+from pandas import (
+    DataFrame,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -87,7 +90,7 @@ def test_to_frame():
 
 def test_to_frame_dtype_fidelity():
     # GH 22420
-    mi = pd.MultiIndex.from_arrays(
+    mi = MultiIndex.from_arrays(
         [
             pd.date_range("19910905", periods=6, tz="US/Eastern"),
             [1, 1, 1, 2, 2, 2],
@@ -98,7 +101,7 @@ def test_to_frame_dtype_fidelity():
     )
     original_dtypes = {name: mi.levels[i].dtype for i, name in enumerate(mi.names)}
 
-    expected_df = pd.DataFrame(
+    expected_df = DataFrame(
         {
             "dates": pd.date_range("19910905", periods=6, tz="US/Eastern"),
             "a": [1, 1, 1, 2, 2, 2],
@@ -116,7 +119,7 @@ def test_to_frame_dtype_fidelity():
 def test_to_frame_resulting_column_order():
     # GH 22420
     expected = ["z", 0, "a"]
-    mi = pd.MultiIndex.from_arrays(
+    mi = MultiIndex.from_arrays(
         [["a", "b", "c"], ["x", "y", "z"], ["q", "w", "e"]], names=expected
     )
     result = mi.to_frame().columns.tolist()

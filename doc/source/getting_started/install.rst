@@ -18,7 +18,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.6.1 and above, 3.7, and 3.8.
+Officially Python 3.7.1 and above, 3.8, and 3.9.
 
 Installing pandas
 -----------------
@@ -28,20 +28,20 @@ Installing pandas
 Installing with Anaconda
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Installing pandas and the rest of the `NumPy <https://www.numpy.org/>`__ and
-`SciPy <https://www.scipy.org/>`__ stack can be a little
+Installing pandas and the rest of the `NumPy <https://numpy.org/>`__ and
+`SciPy <https://scipy.org/>`__ stack can be a little
 difficult for inexperienced users.
 
 The simplest way to install not only pandas, but Python and the most popular
-packages that make up the `SciPy <https://www.scipy.org/>`__ stack
-(`IPython <https://ipython.org/>`__, `NumPy <https://www.numpy.org/>`__,
+packages that make up the `SciPy <https://scipy.org/>`__ stack
+(`IPython <https://ipython.org/>`__, `NumPy <https://numpy.org/>`__,
 `Matplotlib <https://matplotlib.org/>`__, ...) is with
 `Anaconda <https://docs.continuum.io/anaconda/>`__, a cross-platform
-(Linux, Mac OS X, Windows) Python distribution for data analytics and
+(Linux, macOS, Windows) Python distribution for data analytics and
 scientific computing.
 
 After running the installer, the user will have access to pandas and the
-rest of the `SciPy <https://www.scipy.org/>`__ stack without needing to install
+rest of the `SciPy <https://scipy.org/>`__ stack without needing to install
 anything else, and without needing to wait for any software to be compiled.
 
 Installation instructions for `Anaconda <https://docs.continuum.io/anaconda/>`__
@@ -179,12 +179,12 @@ In Linux/Mac you can run ``which python`` on your terminal and it will tell you 
 using. If it's something like "/usr/bin/python", you're using the Python from the system, which is not recommended.
 
 It is highly recommended to use ``conda``, for quick installation and for package and dependency updates.
-You can find simple installation instructions for pandas in this document: `installation instructions </getting_started.html>`.
+You can find simple installation instructions for pandas in this document: ``installation instructions </getting_started.html>``.
 
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
+See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a pandas development environment.
 
 Running the test suite
 ----------------------
@@ -219,10 +219,10 @@ Dependencies
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
-`NumPy <https://www.numpy.org>`__                                1.15.4
+`setuptools <https://setuptools.readthedocs.io/en/latest/>`__    38.6.0
+`NumPy <https://numpy.org>`__                                    1.16.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
-`pytz <https://pypi.org/project/pytz/>`__                        2017.2
+`pytz <https://pypi.org/project/pytz/>`__                        2017.3
 ================================================================ ==========================
 
 .. _install.recommended_dependencies:
@@ -232,7 +232,7 @@ Recommended dependencies
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.6.2 or higher.
+  If installed, must be Version 2.6.8 or higher.
 
 * `bottleneck <https://github.com/pydata/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
@@ -249,58 +249,61 @@ Recommended dependencies
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
-Pandas has many optional dependencies that are only used for specific methods.
+pandas has many optional dependencies that are only used for specific methods.
 For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 :meth:`DataFrame.to_markdown` requires the ``tabulate`` package. If the
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
+Visualization
+^^^^^^^^^^^^^
+
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-BeautifulSoup4            4.6.0              HTML parser for read_html (see :ref:`note <optional_html>`)
-Jinja2                                       Conditional formatting with DataFrame.style
-PyQt4                                        Clipboard I/O
-PyQt5                                        Clipboard I/O
-PyTables                  3.4.3              HDF5-based reading / writing
-SQLAlchemy                1.1.4              SQL support for databases other than sqlite
-SciPy                     0.19.0             Miscellaneous statistical functions
-XLsxWriter                0.9.8              Excel writing
-blosc                                        Compression for HDF5
-fastparquet               0.3.2              Parquet reading / writing
-gcsfs                     0.2.2              Google Cloud Storage access
-html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
-lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
-matplotlib                2.2.2              Visualization
-numba                     0.46.0             Alternative execution engine for rolling operations
-openpyxl                  2.5.7              Reading / writing for xlsx files
-pandas-gbq                0.8.0              Google Big Query access
-psycopg2                                     PostgreSQL engine for sqlalchemy
-pyarrow                   0.12.0             Parquet, ORC (requires 0.13.0), and feather reading / writing
-pymysql                   0.7.11             MySQL engine for sqlalchemy
-pyreadstat                                   SPSS files (.sav) reading
-pytables                  3.4.3              HDF5 reading / writing
-pyxlsb                    1.0.6              Reading for xlsb files
-qtpy                                         Clipboard I/O
-s3fs                      0.3.0              Amazon S3 access
-tabulate                  0.8.3              Printing in Markdown-friendly format (see `tabulate`_)
-xarray                    0.8.2              pandas-like API for N-dimensional data
-xclip                                        Clipboard I/O on linux
-xlrd                      1.1.0              Excel reading
-xlwt                      1.2.0              Excel writing
-xsel                                         Clipboard I/O on linux
-zlib                                         Compression for HDF5
+matplotlib                2.2.3              Plotting library
+Jinja2                    2.10               Conditional formatting with DataFrame.style
+tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
 ========================= ================== =============================================================
 
-.. _optional_html:
+Computation
+^^^^^^^^^^^
 
-Optional dependencies for parsing HTML
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+SciPy                     1.12.0             Miscellaneous statistical functions
+numba                     0.46.0             Alternative execution engine for rolling operations
+                                             (see :ref:`Enhancing Performance <enhancingperf.numba>`)
+xarray                    0.12.3             pandas-like API for N-dimensional data
+========================= ================== =============================================================
+
+Excel files
+^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+xlrd                      1.2.0              Reading Excel
+xlwt                      1.3.0              Writing Excel
+xlsxwriter                1.0.2              Writing Excel
+openpyxl                  3.0.0              Reading / writing for xlsx files
+pyxlsb                    1.0.6              Reading for xlsb files
+========================= ================== =============================================================
+
+HTML
+^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+BeautifulSoup4            4.6.0              HTML parser for read_html
+html5lib                  1.0.1              HTML parser for read_html
+lxml                      4.3.0              HTML parser for read_html
+========================= ================== =============================================================
 
 One of the following combinations of libraries is needed to use the
 top-level :func:`~pandas.read_html` function:
-
-.. versionchanged:: 0.23.0
 
 * `BeautifulSoup4`_ and `html5lib`_
 * `BeautifulSoup4`_ and `lxml`_
@@ -322,3 +325,61 @@ top-level :func:`~pandas.read_html` function:
 .. _BeautifulSoup4: https://www.crummy.com/software/BeautifulSoup
 .. _lxml: https://lxml.de
 .. _tabulate: https://github.com/astanin/python-tabulate
+
+XML
+^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+lxml                      4.3.0              XML parser for read_xml and tree builder for to_xml
+========================= ================== =============================================================
+
+SQL databases
+^^^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+SQLAlchemy                1.3.0              SQL support for databases other than sqlite
+psycopg2                  2.7                PostgreSQL engine for sqlalchemy
+pymysql                   0.8.1              MySQL engine for sqlalchemy
+========================= ================== =============================================================
+
+Other data sources
+^^^^^^^^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+PyTables                  3.5.1              HDF5-based reading / writing
+blosc                     1.17.0             Compression for HDF5
+zlib                                         Compression for HDF5
+fastparquet               0.4.0              Parquet reading / writing
+pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
+pyreadstat                                   SPSS files (.sav) reading
+========================= ================== =============================================================
+
+Access data in the cloud
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+fsspec                    0.7.4              Handling files aside from simple local and HTTP
+gcsfs                     0.6.0              Google Cloud Storage access
+pandas-gbq                0.12.0             Google Big Query access
+s3fs                      0.4.0              Amazon S3 access
+========================= ================== =============================================================
+
+Clipboard
+^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+PyQt4/PyQt5                                  Clipboard I/O
+qtpy                                         Clipboard I/O
+xclip                                        Clipboard I/O on linux
+xsel                                         Clipboard I/O on linux
+========================= ================== =============================================================

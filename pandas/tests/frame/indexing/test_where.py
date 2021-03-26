@@ -6,7 +6,14 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -162,7 +169,8 @@ class TestDataFrameIndexingWhere:
             econd = cond.reindex_like(df).fillna(True)
             expected = dfi.mask(~econd)
 
-            dfi.where(cond, np.nan, inplace=True)
+            return_value = dfi.where(cond, np.nan, inplace=True)
+            assert return_value is None
             tm.assert_frame_equal(dfi, expected)
 
             # dtypes (and confirm upcasts)x
@@ -303,7 +311,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(result > 2, np.nan, inplace=True)
+        return_value = result.where(result > 2, np.nan, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
     def test_where_bug_mixed(self, sint_dtype):
@@ -324,7 +333,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(result > 2, np.nan, inplace=True)
+        return_value = result.where(result > 2, np.nan, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
     def test_where_bug_transposition(self):
@@ -353,11 +363,11 @@ class TestDataFrameIndexingWhere:
 
         # GH 3311
         df = DataFrame(
-            dict(
-                A=date_range("20130102", periods=5),
-                B=date_range("20130104", periods=5),
-                C=np.random.randn(5),
-            )
+            {
+                "A": date_range("20130102", periods=5),
+                "B": date_range("20130104", periods=5),
+                "C": np.random.randn(5),
+            }
         )
 
         stamp = datetime(2013, 1, 3)
@@ -396,7 +406,7 @@ class TestDataFrameIndexingWhere:
 
     def test_where_empty_df_and_empty_cond_having_non_bool_dtypes(self):
         # see gh-21947
-        df = pd.DataFrame(columns=["a"])
+        df = DataFrame(columns=["a"])
         cond = df
         assert (cond.dtypes == object).all()
 
@@ -417,7 +427,8 @@ class TestDataFrameIndexingWhere:
         result = df.where(pd.notna(df), df.mean(), axis="columns")
         tm.assert_frame_equal(result, expected)
 
-        df.where(pd.notna(df), df.mean(), inplace=True, axis="columns")
+        return_value = df.where(pd.notna(df), df.mean(), inplace=True, axis="columns")
+        assert return_value is None
         tm.assert_frame_equal(df, expected)
 
         df = create().fillna(0)
@@ -453,7 +464,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(mask, s, axis="index", inplace=True)
+        return_value = result.where(mask, s, axis="index", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame([[0, 1], [0, 1]], dtype="float64")
@@ -461,7 +473,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(mask, s, axis="columns", inplace=True)
+        return_value = result.where(mask, s, axis="columns", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         # Upcast needed
@@ -474,7 +487,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(mask, s, axis="index", inplace=True)
+        return_value = result.where(mask, s, axis="index", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame([[0, np.nan], [0, np.nan]])
@@ -488,9 +502,11 @@ class TestDataFrameIndexingWhere:
             }
         )
         result = df.copy()
-        result.where(mask, s, axis="columns", inplace=True)
+        return_value = result.where(mask, s, axis="columns", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+    def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
@@ -511,7 +527,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(mask, s1, axis="columns", inplace=True)
+        return_value = result.where(mask, s1, axis="columns", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         result = df.where(mask, s2, axis="index")
@@ -521,7 +538,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(mask, s2, axis="index", inplace=True)
+        return_value = result.where(mask, s2, axis="index", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         # DataFrame vs DataFrame
@@ -534,10 +552,12 @@ class TestDataFrameIndexingWhere:
         result = df.where(mask, d1, axis="index")
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        result.where(mask, d1, inplace=True)
+        return_value = result.where(mask, d1, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        result.where(mask, d1, inplace=True, axis="index")
+        return_value = result.where(mask, d1, inplace=True, axis="index")
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         d2 = df.copy().drop(1, axis=1)
@@ -549,10 +569,12 @@ class TestDataFrameIndexingWhere:
         result = df.where(mask, d2, axis="columns")
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        result.where(mask, d2, inplace=True)
+        return_value = result.where(mask, d2, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        result.where(mask, d2, inplace=True, axis="columns")
+        return_value = result.where(mask, d2, inplace=True, axis="columns")
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
     def test_where_callable(self):
@@ -604,7 +626,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("kwargs", [dict(), dict(other=None)])
+    @pytest.mark.parametrize("kwargs", [{}, {"other": None}])
     def test_df_where_with_category(self, kwargs):
         # GH#16979
         df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
@@ -628,3 +650,62 @@ class TestDataFrameIndexingWhere:
         expected = Series(A, name="A")
 
         tm.assert_series_equal(result, expected)
+
+    def test_where_categorical_filtering(self):
+        # GH#22609 Verify filtering operations on DataFrames with categorical Series
+        df = DataFrame(data=[[0, 0], [1, 1]], columns=["a", "b"])
+        df["b"] = df["b"].astype("category")
+
+        result = df.where(df["a"] > 0)
+        expected = df.copy()
+        expected.loc[0, :] = np.nan
+
+        tm.assert_equal(result, expected)
+
+    def test_where_ea_other(self):
+        # GH#38729/GH#38742
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        arr = pd.array([7, pd.NA, 9])
+        ser = Series(arr)
+        mask = np.ones(df.shape, dtype=bool)
+        mask[1, :] = False
+
+        # TODO: ideally we would get Int64 instead of object
+        result = df.where(mask, ser, axis=0)
+        expected = DataFrame({"A": [1, pd.NA, 3], "B": [4, pd.NA, 6]}).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+        ser2 = Series(arr[:2], index=["A", "B"])
+        expected = DataFrame({"A": [1, 7, 3], "B": [4, pd.NA, 6]})
+        expected["B"] = expected["B"].astype(object)
+        result = df.where(mask, ser2, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+
+def test_where_try_cast_deprecated(frame_or_series):
+    obj = DataFrame(np.random.randn(4, 3))
+    if frame_or_series is not DataFrame:
+        obj = obj[0]
+
+    mask = obj > 0
+
+    with tm.assert_produces_warning(FutureWarning):
+        # try_cast keyword deprecated
+        obj.where(mask, -1, try_cast=False)
+
+
+def test_where_copies_with_noop(frame_or_series):
+    # GH-39595
+    result = frame_or_series([1, 2, 3, 4])
+    expected = result.copy()
+    col = result[0] if frame_or_series is DataFrame else result
+
+    where_res = result.where(col < 5)
+    where_res *= 2
+
+    tm.assert_equal(result, expected)
+
+    where_res = result.where(col > 5, [1, 2, 3, 4])
+    where_res *= 2
+
+    tm.assert_equal(result, expected)

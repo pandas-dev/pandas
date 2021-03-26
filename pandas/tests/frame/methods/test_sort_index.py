@@ -2,7 +2,16 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalDtype, DataFrame, Index, IntervalIndex, MultiIndex, Series
+from pandas import (
+    CategoricalDtype,
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    IntervalIndex,
+    MultiIndex,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -15,7 +24,7 @@ class TestDataFrameSortIndex:
                 levels=[["a", "b"], ["bb", "aa"]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]]
             ),
         )
-        assert df.index.is_lexsorted()
+        assert df.index._is_lexsorted()
         assert not df.index.is_monotonic
 
         # sort it
@@ -26,7 +35,6 @@ class TestDataFrameSortIndex:
             ),
         )
         result = df.sort_index()
-        assert result.index.is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -34,7 +42,6 @@ class TestDataFrameSortIndex:
         # reconstruct
         result = df.sort_index().copy()
         result.index = result.index._sort_levels_monotonic()
-        assert result.index.is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -218,25 +225,29 @@ class TestDataFrameSortIndex:
         unordered = frame.loc[[3, 2, 4, 1]]
         a_id = id(unordered["A"])
         df = unordered.copy()
-        df.sort_index(inplace=True)
+        return_value = df.sort_index(inplace=True)
+        assert return_value is None
         expected = frame
         tm.assert_frame_equal(df, expected)
         assert a_id != id(df["A"])
 
         df = unordered.copy()
-        df.sort_index(ascending=False, inplace=True)
+        return_value = df.sort_index(ascending=False, inplace=True)
+        assert return_value is None
         expected = frame[::-1]
         tm.assert_frame_equal(df, expected)
 
         # axis=1
         unordered = frame.loc[:, ["D", "B", "C", "A"]]
         df = unordered.copy()
-        df.sort_index(axis=1, inplace=True)
+        return_value = df.sort_index(axis=1, inplace=True)
+        assert return_value is None
         expected = frame
         tm.assert_frame_equal(df, expected)
 
         df = unordered.copy()
-        df.sort_index(axis=1, ascending=False, inplace=True)
+        return_value = df.sort_index(axis=1, ascending=False, inplace=True)
+        assert return_value is None
         expected = frame.iloc[:, ::-1]
         tm.assert_frame_equal(df, expected)
 
@@ -348,7 +359,7 @@ class TestDataFrameSortIndex:
         expected_mi = MultiIndex.from_tuples(
             [[1, 1, 1], [2, 1, 2], [2, 1, 3]], names=list("ABC")
         )
-        expected = pd.DataFrame([[5, 6], [3, 4], [1, 2]], index=expected_mi)
+        expected = DataFrame([[5, 6], [3, 4], [1, 2]], index=expected_mi)
         result = df.sort_index(level=level)
         tm.assert_frame_equal(result, expected)
 
@@ -356,7 +367,7 @@ class TestDataFrameSortIndex:
         expected_mi = MultiIndex.from_tuples(
             [[1, 1, 1], [2, 1, 3], [2, 1, 2]], names=list("ABC")
         )
-        expected = pd.DataFrame([[5, 6], [1, 2], [3, 4]], index=expected_mi)
+        expected = DataFrame([[5, 6], [1, 2], [3, 4]], index=expected_mi)
         result = df.sort_index(level=level, sort_remaining=False)
         tm.assert_frame_equal(result, expected)
 
@@ -483,7 +494,7 @@ class TestDataFrameSortIndex:
             columns=["a"],
             index=MultiIndex(
                 levels=[
-                    pd.CategoricalIndex(
+                    CategoricalIndex(
                         ["c", "a", "b"],
                         categories=["c", "a", "b"],
                         ordered=True,
@@ -511,14 +522,13 @@ class TestDataFrameSortIndex:
                 [(0.5, "a"), (0.5, "b"), (0.8, "a"), (0.8, "b")]
             ),
         )
-        assert expected.index.is_lexsorted()
+        assert expected.index._is_lexsorted()
 
         result = DataFrame(
             [[1, 1], [2, 2], [1, 1], [2, 2]],
             index=MultiIndex.from_product([[0.5, 0.8], list("ab")]),
         )
         result = result.sort_index()
-        assert result.index.is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -530,14 +540,13 @@ class TestDataFrameSortIndex:
             ),
         )
         result = result.sort_index()
-        assert result.index.is_lexsorted()
+        assert result.index._is_lexsorted()
 
         tm.assert_frame_equal(result, expected)
 
         concatted = pd.concat([df, df], keys=[0.8, 0.5])
         result = concatted.sort_index()
 
-        assert result.index.is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -551,16 +560,13 @@ class TestDataFrameSortIndex:
             ),
         )
 
-        df.columns.set_levels(
-            pd.to_datetime(df.columns.levels[1]), level=1, inplace=True
+        df.columns = df.columns.set_levels(
+            pd.to_datetime(df.columns.levels[1]), level=1
         )
-        assert not df.columns.is_lexsorted()
         assert not df.columns.is_monotonic
         result = df.sort_index(axis=1)
-        assert result.columns.is_lexsorted()
         assert result.columns.is_monotonic
         result = df.sort_index(axis=1, level=1)
-        assert result.columns.is_lexsorted()
         assert result.columns.is_monotonic
 
     # TODO: better name, de-duplicate with test_sort_index_level above
@@ -589,7 +595,8 @@ class TestDataFrameSortIndex:
 
         # inplace
         rs = frame.copy()
-        rs.sort_index(level=0, inplace=True)
+        return_value = rs.sort_index(level=0, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(rs, frame.sort_index(level=0))
 
     def test_sort_index_level_large_cardinality(self):
@@ -600,7 +607,7 @@ class TestDataFrameSortIndex:
 
         # it works!
         result = df.sort_index(level=0)
-        assert result.index.lexsort_depth == 3
+        assert result.index._lexsort_depth == 3
 
         # GH#2684 (int32)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
@@ -609,7 +616,7 @@ class TestDataFrameSortIndex:
         # it works!
         result = df.sort_index(level=0)
         assert (result.dtypes.values == df.dtypes.values).all()
-        assert result.index.lexsort_depth == 3
+        assert result.index._lexsort_depth == 3
 
     def test_sort_index_level_by_name(self):
         mi = MultiIndex(
@@ -656,6 +663,117 @@ class TestDataFrameSortIndex:
             sorted_before.drop([("foo", "three")], axis=1),
             sorted_after.drop([("foo", "three")], axis=1),
         )
+
+    def test_sort_index_preserve_levels(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        result = frame.sort_index()
+        assert result.index.names == frame.index.names
+
+    @pytest.mark.parametrize(
+        "gen,extra",
+        [
+            ([1.0, 3.0, 2.0, 5.0], 4.0),
+            ([1, 3, 2, 5], 4),
+            (
+                [
+                    Timestamp("20130101"),
+                    Timestamp("20130103"),
+                    Timestamp("20130102"),
+                    Timestamp("20130105"),
+                ],
+                Timestamp("20130104"),
+            ),
+            (["1one", "3one", "2one", "5one"], "4one"),
+        ],
+    )
+    def test_sort_index_multilevel_repr_8017(self, gen, extra):
+
+        np.random.seed(0)
+        data = np.random.randn(3, 4)
+
+        columns = MultiIndex.from_tuples([("red", i) for i in gen])
+        df = DataFrame(data, index=list("def"), columns=columns)
+        df2 = pd.concat(
+            [
+                df,
+                DataFrame(
+                    "world",
+                    index=list("def"),
+                    columns=MultiIndex.from_tuples([("red", extra)]),
+                ),
+            ],
+            axis=1,
+        )
+
+        # check that the repr is good
+        # make sure that we have a correct sparsified repr
+        # e.g. only 1 header of read
+        assert str(df2).splitlines()[0].split() == ["red"]
+
+        # GH 8017
+        # sorting fails after columns added
+
+        # construct single-dtype then sort
+        result = df.copy().sort_index(axis=1)
+        expected = df.iloc[:, [0, 2, 1, 3]]
+        tm.assert_frame_equal(result, expected)
+
+        result = df2.sort_index(axis=1)
+        expected = df2.iloc[:, [0, 2, 1, 4, 3]]
+        tm.assert_frame_equal(result, expected)
+
+        # setitem then sort
+        result = df.copy()
+        result[("red", extra)] = "world"
+
+        result = result.sort_index(axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "categories",
+        [
+            pytest.param(["a", "b", "c"], id="str"),
+            pytest.param(
+                [pd.Interval(0, 1), pd.Interval(1, 2), pd.Interval(2, 3)],
+                id="pd.Interval",
+            ),
+        ],
+    )
+    def test_sort_index_with_categories(self, categories):
+        # GH#23452
+        df = DataFrame(
+            {"foo": range(len(categories))},
+            index=CategoricalIndex(
+                data=categories, categories=categories, ordered=True
+            ),
+        )
+        df.index = df.index.reorder_categories(df.index.categories[::-1])
+        result = df.sort_index()
+        expected = DataFrame(
+            {"foo": reversed(range(len(categories)))},
+            index=CategoricalIndex(
+                data=categories[::-1], categories=categories[::-1], ordered=True
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "ascending",
+        [
+            None,
+            [True, None],
+            [False, "True"],
+        ],
+    )
+    def test_sort_index_ascending_bad_value_raises(self, ascending):
+        # GH 39434
+        df = DataFrame(np.arange(64))
+        length = len(df.index)
+        df.index = [(i - length / 2) % length for i in range(length)]
+        match = 'For argument "ascending" expected type bool'
+        with pytest.raises(ValueError, match=match):
+            df.sort_index(axis=0, ascending=ascending, na_position="first")
 
 
 class TestDataFrameSortIndexKey:
@@ -731,6 +849,21 @@ class TestDataFrameSortIndexKey:
         tm.assert_frame_equal(result, expected)
 
     def test_changes_length_raises(self):
-        df = pd.DataFrame({"A": [1, 2, 3]})
+        df = DataFrame({"A": [1, 2, 3]})
         with pytest.raises(ValueError, match="change the shape"):
             df.sort_index(key=lambda x: x[:1])
+
+    def test_sort_index_multiindex_sparse_column(self):
+        # GH 29735, testing that sort_index on a multiindexed frame with sparse
+        # columns fills with 0.
+        expected = DataFrame(
+            {
+                i: pd.array([0.0, 0.0, 0.0, 0.0], dtype=pd.SparseDtype("float64", 0.0))
+                for i in range(0, 4)
+            },
+            index=MultiIndex.from_product([[1, 2], [1, 2]]),
+        )
+
+        result = expected.sort_index(level=0)
+
+        tm.assert_frame_equal(result, expected)

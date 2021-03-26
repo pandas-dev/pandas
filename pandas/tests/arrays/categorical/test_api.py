@@ -3,7 +3,13 @@ import re
 import numpy as np
 import pytest
 
-from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.arrays.categorical import recode_for_categories
 from pandas.tests.arrays.categorical.common import TestCategorical
@@ -371,7 +377,10 @@ class TestCategoricalAPI:
         tm.assert_index_equal(res.categories, exp_categories_dropped)
         tm.assert_index_equal(c.categories, exp_categories_all)
 
-        res = c.remove_unused_categories(inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            # issue #37643 inplace kwarg deprecated
+            res = c.remove_unused_categories(inplace=True)
+
         tm.assert_index_equal(c.categories, exp_categories_dropped)
         assert res is None
 

@@ -5,19 +5,46 @@ These are not exposed to the user and provide implementations of the grouping
 operations, primarily in cython. These classes (BaseGrouper and BinGrouper)
 are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
+from __future__ import annotations
 
 import collections
-from typing import List, Optional, Sequence, Tuple, Type
+import functools
+from typing import (
+    Dict,
+    Generic,
+    Hashable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+)
 
 import numpy as np
 
-from pandas._libs import NaT, iNaT, lib
+from pandas._libs import (
+    NaT,
+    iNaT,
+    lib,
+)
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import F, FrameOrSeries, Label
+from pandas._typing import (
+    DtypeObj,
+    F,
+    FrameOrSeries,
+    Shape,
+    final,
+)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.cast import (
+    maybe_cast_result,
+    maybe_cast_result_dtype,
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
@@ -29,6 +56,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_period_dtype,
@@ -36,29 +64,94 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import _maybe_fill, isna
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.generic import ABCCategoricalIndex
+from pandas.core.dtypes.missing import (
+    isna,
+    maybe_fill,
+)
 
-import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base, grouper
-from pandas.core.indexes.api import Index, MultiIndex, ensure_index
+from pandas.core.groupby import (
+    base,
+    grouper,
+)
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    ensure_index,
+)
+from pandas.core.internals import ArrayManager
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
     decons_obs_group_ids,
-    get_flattened_iterator,
+    get_flattened_list,
     get_group_index,
     get_group_index_sorter,
     get_indexer_dict,
 )
-from pandas.core.util.numba_ import (
-    NUMBA_FUNC_CACHE,
-    generate_numba_func,
-    split_for_numba,
-)
+
+_CYTHON_FUNCTIONS = {
+    "aggregate": {
+        "add": "group_add",
+        "prod": "group_prod",
+        "min": "group_min",
+        "max": "group_max",
+        "mean": "group_mean",
+        "median": "group_median",
+        "var": "group_var",
+        "first": "group_nth",
+        "last": "group_last",
+        "ohlc": "group_ohlc",
+    },
+    "transform": {
+        "cumprod": "group_cumprod",
+        "cumsum": "group_cumsum",
+        "cummin": "group_cummin",
+        "cummax": "group_cummax",
+        "rank": "group_rank",
+    },
+}
+
+
+@functools.lru_cache(maxsize=None)
+def _get_cython_function(kind: str, how: str, dtype: np.dtype, is_numeric: bool):
+
+    dtype_str = dtype.name
+    ftype = _CYTHON_FUNCTIONS[kind][how]
+
+    # see if there is a fused-type version of function
+    # only valid for numeric
+    f = getattr(libgroupby, ftype, None)
+    if f is not None and is_numeric:
+        return f
+
+    # otherwise find dtype-specific version, falling back to object
+    for dt in [dtype_str, "object"]:
+        f2 = getattr(libgroupby, f"{ftype}_{dt}", None)
+        if f2 is not None:
+            return f2
+
+    if hasattr(f, "__signatures__"):
+        # inspect what fused types are implemented
+        if dtype_str == "object" and "object" not in f.__signatures__:
+            # disallow this function so we get a NotImplementedError below
+            #  instead of a TypeError at runtime
+            f = None
+
+    func = f
+
+    if func is None:
+        raise NotImplementedError(
+            f"function is not implemented for this dtype: "
+            f"[how->{how},dtype->{dtype_str}]"
+        )
+
+    return func
 
 
 class BaseGrouper:
@@ -86,11 +179,12 @@ class BaseGrouper:
     def __init__(
         self,
         axis: Index,
-        groupings: "Sequence[grouper.Grouping]",
+        groupings: Sequence[grouper.Grouping],
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
         indexer: Optional[np.ndarray] = None,
+        dropna: bool = True,
     ):
         assert isinstance(axis, Index), axis
 
@@ -101,13 +195,14 @@ class BaseGrouper:
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
+        self.dropna = dropna
 
     @property
-    def groupings(self) -> List["grouper.Grouping"]:
+    def groupings(self) -> List[grouper.Grouping]:
         return self._groupings
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         return tuple(ping.ngroups for ping in self.groupings)
 
     def __iter__(self):
@@ -117,7 +212,9 @@ class BaseGrouper:
     def nkeys(self) -> int:
         return len(self.groupings)
 
-    def get_iterator(self, data: FrameOrSeries, axis: int = 0):
+    def get_iterator(
+        self, data: FrameOrSeries, axis: int = 0
+    ) -> Iterator[Tuple[Hashable, FrameOrSeries]]:
         """
         Groupby iterator
 
@@ -129,9 +226,17 @@ class BaseGrouper:
         splitter = self._get_splitter(data, axis=axis)
         keys = self._get_group_keys()
         for key, (i, group) in zip(keys, splitter):
-            yield key, group
+            yield key, group.__finalize__(data, method="groupby")
 
-    def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> "DataSplitter":
+    @final
+    def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> DataSplitter:
+        """
+        Returns
+        -------
+        Generator yielding subsetted objects
+
+        __finalize__ has not been called for the subsetted objects returned.
+        """
         comp_ids, _, ngroups = self.group_info
         return get_splitter(data, comp_ids, ngroups, axis=axis)
 
@@ -144,6 +249,7 @@ class BaseGrouper:
         """
         return self.groupings[0].grouper
 
+    @final
     def _get_group_keys(self):
         if len(self.groupings) == 1:
             return self.levels[0]
@@ -151,38 +257,40 @@ class BaseGrouper:
             comp_ids, _, ngroups = self.group_info
 
             # provide "flattened" iterator for multi-group setting
-            return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
+            return get_flattened_list(comp_ids, ngroups, self.levels, self.codes)
 
+    @final
     def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
         result_values = None
 
-        sdata: FrameOrSeries = splitter._get_sorted_data()
-        if sdata.ndim == 2 and np.any(sdata.dtypes.apply(is_extension_array_dtype)):
+        if data.ndim == 2 and np.any(data.dtypes.apply(is_extension_array_dtype)):
             # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
             #  if we pass EA instead of ndarray
             #  TODO: can we have a workaround for EAs backed by ndarray?
             pass
 
+        elif isinstance(data._mgr, ArrayManager):
+            # TODO(ArrayManager) don't use fast_apply / libreduction.apply_frame_axis0
+            # for now -> relies on BlockManager internals
+            pass
         elif (
             com.get_callable_name(f) not in base.plotting_methods
             and isinstance(splitter, FrameSplitter)
             and axis == 0
             # fast_apply/libreduction doesn't allow non-numpy backed indexes
-            and not sdata.index._has_complex_internals
+            and not data.index._has_complex_internals
         ):
             try:
+                sdata = splitter.sorted_data
                 result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
-            except libreduction.InvalidApply as err:
-                # This Exception is raised if `f` triggers an exception
-                # but it is preferable to raise the exception in Python.
-                if "Let this error raise above us" not in str(err):
-                    # TODO: can we infer anything about whether this is
-                    #  worth-retrying in pure-python?
-                    raise
+            except IndexError:
+                # This is a rare case in which re-running in python-space may
+                #  make a difference, see  test_apply_mutate.test_mutate_groups
+                pass
 
             else:
                 # If the fast apply path could be used we can return here.
@@ -209,7 +317,7 @@ class BaseGrouper:
             # group might be modified
             group_axes = group.axes
             res = f(group)
-            if not _is_indexed_like(res, group_axes):
+            if not _is_indexed_like(res, group_axes, axis):
                 mutated = True
             result_values.append(res)
 
@@ -218,12 +326,14 @@ class BaseGrouper:
     @cache_readonly
     def indices(self):
         """ dict {group name -> group indices} """
-        if len(self.groupings) == 1:
+        if len(self.groupings) == 1 and isinstance(
+            self.result_index, ABCCategoricalIndex
+        ):
+            # This shows unused categories in indices GH#38642
             return self.groupings[0].indices
-        else:
-            codes_list = [ping.codes for ping in self.groupings]
-            keys = [ping.group_index for ping in self.groupings]
-            return get_indexer_dict(codes_list, keys)
+        codes_list = [ping.codes for ping in self.groupings]
+        keys = [ping.group_index for ping in self.groupings]
+        return get_indexer_dict(codes_list, keys)
 
     @property
     def codes(self) -> List[np.ndarray]:
@@ -234,15 +344,15 @@ class BaseGrouper:
         return [ping.group_index for ping in self.groupings]
 
     @property
-    def names(self) -> List[Label]:
+    def names(self) -> List[Hashable]:
         return [ping.name for ping in self.groupings]
 
+    @final
     def size(self) -> Series:
         """
         Compute group sizes.
         """
         ids, _, ngroup = self.group_info
-        ids = ensure_platform_int(ids)
         if ngroup:
             out = np.bincount(ids[ids != -1], minlength=ngroup)
         else:
@@ -250,15 +360,16 @@ class BaseGrouper:
         return Series(out, index=self.result_index, dtype="int64")
 
     @cache_readonly
-    def groups(self):
+    def groups(self) -> Dict[Hashable, np.ndarray]:
         """ dict {group name -> group labels} """
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
             to_groupby = zip(*(ping.grouper for ping in self.groupings))
-            to_groupby = Index(to_groupby)
-            return self.axis.groupby(to_groupby)
+            index = Index(to_groupby)
+            return self.axis.groupby(index)
 
+    @final
     @cache_readonly
     def is_monotonic(self) -> bool:
         # return if my group orderings are monotonic
@@ -269,9 +380,10 @@ class BaseGrouper:
         comp_ids, obs_group_ids = self._get_compressed_codes()
 
         ngroups = len(obs_group_ids)
-        comp_ids = ensure_int64(comp_ids)
+        comp_ids = ensure_platform_int(comp_ids)
         return comp_ids, obs_group_ids, ngroups
 
+    @final
     @cache_readonly
     def codes_info(self) -> np.ndarray:
         # return the codes of items in original grouped axis
@@ -281,6 +393,7 @@ class BaseGrouper:
             codes = codes[sorter]
         return codes
 
+    @final
     def _get_compressed_codes(self) -> Tuple[np.ndarray, np.ndarray]:
         all_codes = self.codes
         if len(all_codes) > 1:
@@ -290,6 +403,7 @@ class BaseGrouper:
         ping = self.groupings[0]
         return ping.codes, np.arange(len(ping.group_index))
 
+    @final
     @cache_readonly
     def ngroups(self) -> int:
         return len(self.result_index)
@@ -307,11 +421,11 @@ class BaseGrouper:
 
         codes = self.reconstructed_codes
         levels = [ping.result_index for ping in self.groupings]
-        result = MultiIndex(
+        return MultiIndex(
             levels=levels, codes=codes, verify_integrity=False, names=self.names
         )
-        return result
 
+    @final
     def get_group_levels(self) -> List[Index]:
         if not self.compressed and len(self.groupings) == 1:
             return [self.groupings[0].result_index]
@@ -328,32 +442,9 @@ class BaseGrouper:
     # ------------------------------------------------------------
     # Aggregation functions
 
-    _cython_functions = {
-        "aggregate": {
-            "add": "group_add",
-            "prod": "group_prod",
-            "min": "group_min",
-            "max": "group_max",
-            "mean": "group_mean",
-            "median": "group_median",
-            "var": "group_var",
-            "first": "group_nth",
-            "last": "group_last",
-            "ohlc": "group_ohlc",
-        },
-        "transform": {
-            "cumprod": "group_cumprod",
-            "cumsum": "group_cumsum",
-            "cummin": "group_cummin",
-            "cummax": "group_cummax",
-            "rank": "group_rank",
-        },
-    }
-
     _cython_arity = {"ohlc": 4}  # OHLC
 
-    _name_functions = {"ohlc": ["open", "high", "low", "close"]}
-
+    @final
     def _is_builtin_func(self, arg):
         """
         if we define a builtin function for this argument, return it,
@@ -361,42 +452,7 @@ class BaseGrouper:
         """
         return SelectionMixin._builtin_table.get(arg, arg)
 
-    def _get_cython_function(
-        self, kind: str, how: str, values: np.ndarray, is_numeric: bool
-    ):
-
-        dtype_str = values.dtype.name
-        ftype = self._cython_functions[kind][how]
-
-        # see if there is a fused-type version of function
-        # only valid for numeric
-        f = getattr(libgroupby, ftype, None)
-        if f is not None and is_numeric:
-            return f
-
-        # otherwise find dtype-specific version, falling back to object
-        for dt in [dtype_str, "object"]:
-            f2 = getattr(libgroupby, f"{ftype}_{dt}", None)
-            if f2 is not None:
-                return f2
-
-        if hasattr(f, "__signatures__"):
-            # inspect what fused types are implemented
-            if dtype_str == "object" and "object" not in f.__signatures__:
-                # disallow this function so we get a NotImplementedError below
-                #  instead of a TypeError at runtime
-                f = None
-
-        func = f
-
-        if func is None:
-            raise NotImplementedError(
-                f"function is not implemented for this dtype: "
-                f"[how->{how},dtype->{dtype_str}]"
-            )
-
-        return func
-
+    @final
     def _get_cython_func_and_vals(
         self, kind: str, how: str, values: np.ndarray, is_numeric: bool
     ):
@@ -405,8 +461,8 @@ class BaseGrouper:
 
         Parameters
         ----------
-        kind : sttr
-        how : srt
+        kind : str
+        how : str
         values : np.ndarray
         is_numeric : bool
 
@@ -416,7 +472,7 @@ class BaseGrouper:
         values : np.ndarray
         """
         try:
-            func = self._get_cython_function(kind, how, values, is_numeric)
+            func = _get_cython_function(kind, how, values.dtype, is_numeric)
         except NotImplementedError:
             if is_numeric:
                 try:
@@ -426,22 +482,106 @@ class BaseGrouper:
                         values = values.astype(complex)
                     else:
                         raise
-                func = self._get_cython_function(kind, how, values, is_numeric)
+                func = _get_cython_function(kind, how, values.dtype, is_numeric)
             else:
                 raise
         return func, values
 
+    @final
+    def _disallow_invalid_ops(
+        self, dtype: DtypeObj, how: str, is_numeric: bool = False
+    ):
+        """
+        Check if we can do this operation with our cython functions.
+
+        Raises
+        ------
+        NotImplementedError
+            This is either not a valid function for this dtype, or
+            valid but not implemented in cython.
+        """
+        if is_numeric:
+            # never an invalid op for those dtypes, so return early as fastpath
+            return
+
+        if is_categorical_dtype(dtype) or is_sparse(dtype):
+            # categoricals are only 1d, so we
+            #  are not setup for dim transforming
+            raise NotImplementedError(f"{dtype} dtype not supported")
+        elif is_datetime64_any_dtype(dtype):
+            # we raise NotImplemented if this is an invalid operation
+            #  entirely, e.g. adding datetimes
+            if how in ["add", "prod", "cumsum", "cumprod"]:
+                raise NotImplementedError(
+                    f"datetime64 type does not support {how} operations"
+                )
+        elif is_timedelta64_dtype(dtype):
+            if how in ["prod", "cumprod"]:
+                raise NotImplementedError(
+                    f"timedelta64 type does not support {how} operations"
+                )
+
+    @final
+    def _ea_wrap_cython_operation(
+        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
+    ) -> np.ndarray:
+        """
+        If we have an ExtensionArray, unwrap, call _cython_operation, and
+        re-wrap if appropriate.
+        """
+        # TODO: general case implementation overridable by EAs.
+        orig_values = values
+
+        if is_datetime64tz_dtype(values.dtype) or is_period_dtype(values.dtype):
+            # All of the functions implemented here are ordinal, so we can
+            #  operate on the tz-naive equivalents
+            values = values.view("M8[ns]")
+            res_values = self._cython_operation(
+                kind, values, how, axis, min_count, **kwargs
+            )
+            if how in ["rank"]:
+                # preserve float64 dtype
+                return res_values
+
+            res_values = res_values.astype("i8", copy=False)
+            result = type(orig_values)(res_values, dtype=orig_values.dtype)
+            return result
+
+        elif is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
+            # IntegerArray or BooleanArray
+            values = ensure_int_or_float(values)
+            res_values = self._cython_operation(
+                kind, values, how, axis, min_count, **kwargs
+            )
+            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            if isinstance(dtype, ExtensionDtype):
+                cls = dtype.construct_array_type()
+                return cls._from_sequence(res_values, dtype=dtype)
+
+            return res_values
+
+        elif is_float_dtype(values.dtype):
+            # FloatingArray
+            values = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
+            res_values = self._cython_operation(
+                kind, values, how, axis, min_count, **kwargs
+            )
+            result = type(orig_values)._from_sequence(res_values)
+            return result
+
+        raise NotImplementedError(
+            f"function is not implemented for this dtype: {values.dtype}"
+        )
+
+    @final
     def _cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
-    ) -> Tuple[np.ndarray, Optional[List[str]]]:
+    ) -> np.ndarray:
         """
-        Returns the values of a cython operation as a Tuple of [data, names].
-
-        Names is only useful when dealing with 2D results, like ohlc
-        (see self._name_functions).
+        Returns the values of a cython operation.
         """
-        assert kind in ["transform", "aggregate"]
         orig_values = values
+        assert kind in ["transform", "aggregate"]
 
         if values.ndim > 2:
             raise NotImplementedError("number of dimensions is currently limited to 2")
@@ -450,49 +590,33 @@ class BaseGrouper:
             #  as we can have 1D ExtensionArrays that we need to treat as 2D
             assert axis == 1, axis
 
+        dtype = values.dtype
+        is_numeric = is_numeric_dtype(dtype)
+
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
+        self._disallow_invalid_ops(dtype, how, is_numeric)
 
-        # we raise NotImplemented if this is an invalid operation
-        # entirely, e.g. adding datetimes
+        if is_extension_array_dtype(dtype):
+            return self._ea_wrap_cython_operation(
+                kind, values, how, axis, min_count, **kwargs
+            )
 
-        # categoricals are only 1d, so we
-        # are not setup for dim transforming
-        if is_categorical_dtype(values.dtype) or is_sparse(values.dtype):
-            raise NotImplementedError(f"{values.dtype} dtype not supported")
-        elif is_datetime64_any_dtype(values):
-            if how in ["add", "prod", "cumsum", "cumprod"]:
-                raise NotImplementedError(
-                    f"datetime64 type does not support {how} operations"
-                )
-        elif is_timedelta64_dtype(values):
-            if how in ["prod", "cumprod"]:
-                raise NotImplementedError(
-                    f"timedelta64 type does not support {how} operations"
-                )
-
-        if is_datetime64tz_dtype(values.dtype):
-            # Cast to naive; we'll cast back at the end of the function
-            # TODO: possible need to reshape?
-            # TODO(EA2D):kludge can be avoided when 2D EA is allowed.
-            values = values.view("M8[ns]")
-
-        is_datetimelike = needs_i8_conversion(values.dtype)
-        is_numeric = is_numeric_dtype(values.dtype)
+        is_datetimelike = needs_i8_conversion(dtype)
 
         if is_datetimelike:
             values = values.view("int64")
             is_numeric = True
-        elif is_bool_dtype(values.dtype):
-            values = ensure_float64(values)
-        elif is_integer_dtype(values):
+        elif is_bool_dtype(dtype):
+            values = ensure_int_or_float(values)
+        elif is_integer_dtype(dtype):
             # we use iNaT for the missing value on ints
             # so pre-convert to guard this condition
             if (values == iNaT).any():
                 values = ensure_float64(values)
             else:
                 values = ensure_int_or_float(values)
-        elif is_numeric and not is_complex_dtype(values):
+        elif is_numeric and not is_complex_dtype(dtype):
             values = ensure_float64(values)
         else:
             values = values.astype(object)
@@ -528,37 +652,22 @@ class BaseGrouper:
         codes, _, _ = self.group_info
 
         if kind == "aggregate":
-            result = _maybe_fill(
-                np.empty(out_shape, dtype=out_dtype), fill_value=np.nan
-            )
+            result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(result, counts, values, codes, func, min_count)
         elif kind == "transform":
-            result = _maybe_fill(
-                np.empty_like(values, dtype=out_dtype), fill_value=np.nan
-            )
+            result = maybe_fill(np.empty(values.shape, dtype=out_dtype))
 
             # TODO: min_count
             result = self._transform(
                 result, values, codes, func, is_datetimelike, **kwargs
             )
 
-        if is_integer_dtype(result) and not is_datetimelike:
+        if is_integer_dtype(result.dtype) and not is_datetimelike:
             mask = result == iNaT
             if mask.any():
                 result = result.astype("float64")
                 result[mask] = np.nan
-        elif (
-            how == "add"
-            and is_integer_dtype(orig_values.dtype)
-            and is_extension_array_dtype(orig_values.dtype)
-        ):
-            # We need this to ensure that Series[Int64Dtype].resample().sum()
-            # remains int64 dtype.
-            # Two options for avoiding this special case
-            # 1. mask-aware ops and avoid casting to float with NaN above
-            # 2. specify the result dtype when calling this method
-            result = result.astype("int64")
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
@@ -567,70 +676,45 @@ class BaseGrouper:
         if vdim == 1 and arity == 1:
             result = result[:, 0]
 
-        names: Optional[List[str]] = self._name_functions.get(how, None)
-
         if swapped:
             result = result.swapaxes(0, axis)
 
-        if is_datetime64tz_dtype(orig_values.dtype) or is_period_dtype(
-            orig_values.dtype
-        ):
-            # We need to use the constructors directly for these dtypes
-            # since numpy won't recognize them
-            # https://github.com/pandas-dev/pandas/issues/31471
-            result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
-        elif is_datetimelike and kind == "aggregate":
-            result = result.astype(orig_values.dtype)
+        if how not in base.cython_cast_blocklist:
+            # e.g. if we are int64 and need to restore to datetime64/timedelta64
+            # "rank" is the only member of cython_cast_blocklist we get here
+            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
+            result = maybe_downcast_to_dtype(result, dtype)  # type: ignore[assignment]
 
-        return result, names
+        return result
 
-    def aggregate(
-        self, values, how: str, axis: int = 0, min_count: int = -1
-    ) -> Tuple[np.ndarray, Optional[List[str]]]:
-        return self._cython_operation(
-            "aggregate", values, how, axis, min_count=min_count
-        )
-
-    def transform(self, values, how: str, axis: int = 0, **kwargs):
-        return self._cython_operation("transform", values, how, axis, **kwargs)
-
+    @final
     def _aggregate(
-        self, result, counts, values, comp_ids, agg_func, min_count: int = -1,
+        self, result, counts, values, comp_ids, agg_func, min_count: int = -1
     ):
         if agg_func is libgroupby.group_nth:
             # different signature from the others
-            # TODO: should we be using min_count instead of hard-coding it?
-            agg_func(result, counts, values, comp_ids, rank=1, min_count=-1)
+            agg_func(result, counts, values, comp_ids, min_count, rank=1)
         else:
             agg_func(result, counts, values, comp_ids, min_count)
 
         return result
 
+    @final
     def _transform(
         self, result, values, comp_ids, transform_func, is_datetimelike: bool, **kwargs
     ):
 
-        comp_ids, _, ngroups = self.group_info
+        _, _, ngroups = self.group_info
         transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
         return result
 
-    def agg_series(
-        self,
-        obj: Series,
-        func: F,
-        *args,
-        engine: str = "cython",
-        engine_kwargs=None,
-        **kwargs,
-    ):
+    def agg_series(self, obj: Series, func: F):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
-        if engine == "numba":
-            return self._aggregate_series_pure_python(
-                obj, func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-            )
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
@@ -643,19 +727,20 @@ class BaseGrouper:
             return self._aggregate_series_pure_python(obj, func)
 
         elif obj.index._has_complex_internals:
-            # Pre-empt TypeError in _aggregate_series_fast
+            # Preempt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
         try:
             return self._aggregate_series_fast(obj, func)
         except ValueError as err:
-            if "Function does not reduce" in str(err):
+            if "Must produce aggregated value" in str(err):
                 # raised in libreduction
                 pass
             else:
                 raise
         return self._aggregate_series_pure_python(obj, func)
 
+    @final
     def _aggregate_series_fast(self, obj: Series, func: F):
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
@@ -667,61 +752,44 @@ class BaseGrouper:
         group_index, _, ngroups = self.group_info
 
         # avoids object / Series creation overhead
-        dummy = obj.iloc[:0]
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
-        group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
-        grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups, dummy)
+        group_index = group_index.take(indexer)
+        grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups)
         result, counts = grouper.get_result()
         return result, counts
 
-    def _aggregate_series_pure_python(
-        self,
-        obj: Series,
-        func: F,
-        *args,
-        engine: str = "cython",
-        engine_kwargs=None,
-        **kwargs,
-    ):
-
-        if engine == "numba":
-            numba_func, cache_key = generate_numba_func(
-                func, engine_kwargs, kwargs, "groupby_agg"
-            )
-
+    @final
+    def _aggregate_series_pure_python(self, obj: Series, func: F):
         group_index, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
-        result = None
+        result = np.empty(ngroups, dtype="O")
+        initialized = False
 
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
-            if engine == "numba":
-                values, index = split_for_numba(group)
-                res = numba_func(values, index, *args)
-                if cache_key not in NUMBA_FUNC_CACHE:
-                    NUMBA_FUNC_CACHE[cache_key] = numba_func
-            else:
-                res = func(group, *args, **kwargs)
 
-            if result is None:
-                if isinstance(res, (Series, Index, np.ndarray)):
-                    if len(res) == 1:
-                        # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
-                        # FIXME: are we potentially losing important res.index info?
-                        res = res.item()
-                    else:
-                        raise ValueError("Function does not reduce")
-                result = np.empty(ngroups, dtype="O")
+            # Each step of this loop corresponds to
+            #  libreduction._BaseGrouper._apply_to_group
+            res = func(group)
+            res = libreduction.extract_result(res)
+
+            if not initialized:
+                # We only do this validation on the first iteration
+                libreduction.check_result_array(res, 0)
+                initialized = True
 
             counts[label] = group.shape[0]
             result[label] = res
 
-        assert result is not None
-        result = lib.maybe_convert_objects(result, try_float=0)
-        # TODO: maybe_cast_to_extension_array?
+        result = lib.maybe_convert_objects(result, try_float=False)
+        # error: Incompatible types in assignment (expression has type
+        # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
+        result = maybe_cast_result(  # type: ignore[assignment]
+            result, obj, numeric_only=True
+        )
 
         return result, counts
 
@@ -849,7 +917,7 @@ class BinGrouper(BaseGrouper):
             comp_ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
 
         return (
-            comp_ids.astype("int64", copy=False),
+            ensure_platform_int(comp_ids),
             obs_group_ids.astype("int64", copy=False),
             ngroups,
         )
@@ -871,45 +939,36 @@ class BinGrouper(BaseGrouper):
         return [self.binlabels]
 
     @property
-    def names(self) -> List[Label]:
+    def names(self) -> List[Hashable]:
         return [self.binlabels.name]
 
     @property
-    def groupings(self) -> "List[grouper.Grouping]":
+    def groupings(self) -> List[grouper.Grouping]:
         return [
             grouper.Grouping(lvl, lvl, in_axis=False, level=None, name=name)
             for lvl, name in zip(self.levels, self.names)
         ]
 
-    def agg_series(
-        self,
-        obj: Series,
-        func: F,
-        *args,
-        engine: str = "cython",
-        engine_kwargs=None,
-        **kwargs,
-    ):
+    def agg_series(self, obj: Series, func: F):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
 
         if is_extension_array_dtype(obj.dtype):
-            # pre-empt SeriesBinGrouper from raising TypeError
+            # preempt SeriesBinGrouper from raising TypeError
             return self._aggregate_series_pure_python(obj, func)
 
-        dummy = obj[:0]
-        grouper = libreduction.SeriesBinGrouper(obj, func, self.bins, dummy)
+        grouper = libreduction.SeriesBinGrouper(obj, func, self.bins)
         return grouper.get_result()
 
 
-def _is_indexed_like(obj, axes) -> bool:
+def _is_indexed_like(obj, axes, axis: int) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
-        return obj.index.equals(axes[0])
+        return obj.axes[axis].equals(axes[axis])
     elif isinstance(obj, DataFrame):
-        return obj.index.equals(axes[0])
+        return obj.axes[axis].equals(axes[axis])
 
     return False
 
@@ -918,27 +977,27 @@ def _is_indexed_like(obj, axes) -> bool:
 # Splitting / application
 
 
-class DataSplitter:
+class DataSplitter(Generic[FrameOrSeries]):
     def __init__(self, data: FrameOrSeries, labels, ngroups: int, axis: int = 0):
         self.data = data
-        self.labels = ensure_int64(labels)
+        self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
         self.ngroups = ngroups
 
         self.axis = axis
         assert isinstance(axis, int), axis
 
     @cache_readonly
-    def slabels(self):
+    def slabels(self) -> np.ndarray:  # np.ndarray[np.intp]
         # Sorted labels
-        return algorithms.take_nd(self.labels, self.sort_idx, allow_fill=False)
+        return self.labels.take(self._sort_idx)
 
     @cache_readonly
-    def sort_idx(self):
+    def _sort_idx(self) -> np.ndarray:  # np.ndarray[np.intp]
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 
     def __iter__(self):
-        sdata = self._get_sorted_data()
+        sdata = self.sorted_data
 
         if self.ngroups == 0:
             # we are inside a generator, rather than raise StopIteration
@@ -950,8 +1009,9 @@ class DataSplitter:
         for i, (start, end) in enumerate(zip(starts, ends)):
             yield i, self._chop(sdata, slice(start, end))
 
-    def _get_sorted_data(self) -> FrameOrSeries:
-        return self.data.take(self.sort_idx, axis=self.axis)
+    @cache_readonly
+    def sorted_data(self) -> FrameOrSeries:
+        return self.data.take(self._sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
         raise AbstractMethodError(self)
@@ -959,7 +1019,16 @@ class DataSplitter:
 
 class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
-        return sdata.iloc[slice_obj]
+        # fastpath equivalent to `sdata.iloc[slice_obj]`
+        mgr = sdata._mgr.get_slice(slice_obj)
+        # __finalize__ not called here, must be applied by caller if applicable
+
+        # fastpath equivalent to:
+        # `return sdata._constructor(mgr, name=sdata.name, fastpath=True)`
+        obj = type(sdata)._from_mgr(mgr)
+        object.__setattr__(obj, "_flags", sdata._flags)
+        object.__setattr__(obj, "_name", sdata._name)
+        return obj
 
 
 class FrameSplitter(DataSplitter):
@@ -969,10 +1038,18 @@ class FrameSplitter(DataSplitter):
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
-        if self.axis == 0:
-            return sdata.iloc[slice_obj]
-        else:
-            return sdata.iloc[:, slice_obj]
+        # Fastpath equivalent to:
+        # if self.axis == 0:
+        #     return sdata.iloc[slice_obj]
+        # else:
+        #     return sdata.iloc[:, slice_obj]
+        mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
+        # __finalize__ not called here, must be applied by caller if applicable
+
+        # fastpath equivalent to `return sdata._constructor(mgr)`
+        obj = type(sdata)._from_mgr(mgr)
+        object.__setattr__(obj, "_flags", sdata._flags)
+        return obj
 
 
 def get_splitter(

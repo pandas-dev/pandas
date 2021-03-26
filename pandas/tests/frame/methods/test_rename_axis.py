@@ -1,7 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -10,14 +14,16 @@ class TestDataFrameRenameAxis:
         # GH#15704
         expected = float_frame.rename_axis("foo")
         result = float_frame.copy()
-        no_return = result.rename_axis("foo", inplace=True)
+        return_value = no_return = result.rename_axis("foo", inplace=True)
+        assert return_value is None
 
         assert no_return is None
         tm.assert_frame_equal(result, expected)
 
         expected = float_frame.rename_axis("bar", axis=1)
         result = float_frame.copy()
-        no_return = result.rename_axis("bar", axis=1, inplace=True)
+        return_value = no_return = result.rename_axis("bar", axis=1, inplace=True)
+        assert return_value is None
 
         assert no_return is None
         tm.assert_frame_equal(result, expected)
