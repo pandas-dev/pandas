@@ -508,12 +508,12 @@ class CumminMax:
 
     def setup(self, dtype, method):
         N = 1_000_000
-        df = DataFrame(np.random.randn(N, 10), columns=list("abcdefghij"))
+        df = DataFrame(np.random.randint(0, 1000, (N, 10)), columns=list("abcdefghij"), dtype=dtype)
         df["key"] = np.random.randint(0, 100, size=N)
         self.df = df
 
-    def time_frame_agg(self, dtype, method):
-        self.df.groupby("key").agg(method)
+    def time_frame_transform(self, dtype, method):
+        self.df.groupby("key").transform(method)
 
 
 class RankWithTies:
