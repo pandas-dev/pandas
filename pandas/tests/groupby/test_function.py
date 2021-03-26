@@ -39,10 +39,14 @@ def dtypes_for_minmax(request):
         np_type = np.float64
 
     min_val = (
-        np.iinfo(np_type).min if np.dtype(np_type).kind == "i" else np.finfo(np_type).min
+        np.iinfo(np_type).min
+        if np.dtype(np_type).kind == "i"
+        else np.finfo(np_type).min
     )
     max_val = (
-        np.iinfo(np_type).max if np.dtype(np_type).kind == "i" else np.finfo(np_type).max
+        np.iinfo(np_type).max
+        if np.dtype(np_type).kind == "i"
+        else np.finfo(np_type).max
     )
 
     return (dtype, min_val, max_val)
@@ -855,11 +859,11 @@ def test_cummax(dtypes_for_minmax):
 )
 def test_nullable_int_not_cast_as_float(method, dtype, val):
     data = [val, pd.NA]
-    df = pd.DataFrame({"grp": [1, 1], "b": data}, dtype=dtype)
+    df = DataFrame({"grp": [1, 1], "b": data}, dtype=dtype)
     grouped = df.groupby("grp")
 
     result = grouped.transform(method)
-    expected = pd.DataFrame({"b": data}, dtype=dtype)
+    expected = DataFrame({"b": data}, dtype=dtype)
 
     tm.assert_frame_equal(result, expected)
 

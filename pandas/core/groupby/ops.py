@@ -20,9 +20,6 @@ from typing import (
     Tuple,
     Type,
 )
-from pandas.core.arrays.masked import (
-    BaseMaskedDtype,
-)
 
 import numpy as np
 
@@ -40,7 +37,6 @@ from pandas._typing import (
     FrameOrSeries,
     Shape,
     final,
-    ArrayLike
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
@@ -75,10 +71,11 @@ from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
 )
-from pandas.core.arrays import (
-    BaseMaskedArray
-)
 
+from pandas.core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -123,7 +120,11 @@ _CYTHON_FUNCTIONS = {
         "cummax": "group_cummax",
         "rank": "group_rank",
     },
-    "needs_mask": {"cummin", "cummax"}
+}
+
+_CYTHON_MASKED_FUNCTIONS = {
+    "cummin",
+    "cummax",
 }
 
 
@@ -163,8 +164,8 @@ def _get_cython_function(kind: str, how: str, dtype: np.dtype, is_numeric: bool)
     return func
 
 
-def does_cython_function_use_mask(kind: str) -> bool:
-    return kind in _CYTHON_FUNCTIONS["needs_mask"]
+def cython_function_uses_mask(kind: str) -> bool:
+    return kind in _CYTHON_MASKED_FUNCTIONS
 
 
 class BaseGrouper:
@@ -590,8 +591,14 @@ class BaseGrouper:
 
     @final
     def _masked_ea_wrap_cython_operation(
-        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
-    ) -> ArrayLike:
+        self,
+        kind: str,
+        values: BaseMaskedArray,
+        how: str,
+        axis: int,
+        min_count: int = -1,
+        **kwargs,
+    ) -> BaseMaskedArray:
         """
         Equivalent of `_ea_wrap_cython_operation`, but optimized for masked EA's
         and cython algorithms which accept a mask.
@@ -601,23 +608,33 @@ class BaseGrouper:
         # isna just directly returns self._mask, so copy here to prevent
         # modifying the original
         mask = isna(values).copy()
-        values = values._data
+        arr = values._data
 
         if is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
             # IntegerArray or BooleanArray
-            values = ensure_int_or_float(values)
+            arr = ensure_int_or_float(arr)
 
         res_values = self._cython_operation(
-            kind, values, how, axis, min_count, mask=mask, **kwargs
+            kind, arr, how, axis, min_count, mask=mask, **kwargs
         )
         dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+        assert isinstance(dtype, BaseMaskedDtype)
         cls = dtype.construct_array_type()
 
-        return cls(res_values.astype(dtype.type, copy=False), mask.astype(bool, copy=True))
+        return cls(
+            res_values.astype(dtype.type, copy=False), mask.astype(bool, copy=True)
+        )
 
     @final
     def _cython_operation(
-        self, kind: str, values, how: str, axis: int, min_count: int = -1, mask: Optional[np.ndarray] = None, **kwargs
+        self,
+        kind: str,
+        values,
+        how: str,
+        axis: int,
+        min_count: int = -1,
+        mask: np.ndarray | None = None,
+        **kwargs,
     ) -> ArrayLike:
         """
         Returns the values of a cython operation.
@@ -640,7 +657,7 @@ class BaseGrouper:
         self._disallow_invalid_ops(dtype, how, is_numeric)
 
         if is_extension_array_dtype(dtype):
-            if isinstance(dtype, BaseMaskedDtype) and does_cython_function_use_mask(how):
+            if isinstance(values, BaseMaskedArray) and cython_function_uses_mask(how):
                 return self._masked_ea_wrap_cython_operation(
                     kind, values, how, axis, min_count, **kwargs
                 )
@@ -689,7 +706,9 @@ class BaseGrouper:
                 )
             out_shape = (self.ngroups,) + values.shape[1:]
 
-        func, values, needs_mask = self._get_cython_func_and_vals(kind, how, values, is_numeric)
+        func, values, needs_mask = self._get_cython_func_and_vals(
+            kind, how, values, is_numeric
+        )
         use_mask = mask is not None
         if needs_mask:
             if mask is None:
@@ -716,10 +735,10 @@ class BaseGrouper:
             )
 
         if not use_mask and is_integer_dtype(result.dtype) and not is_datetimelike:
-            mask = result == iNaT
-            if mask.any():
+            result_mask = result == iNaT
+            if result_mask.any():
                 result = result.astype("float64")
-                result[mask] = np.nan
+                result[result_mask] = np.nan
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
@@ -755,12 +774,28 @@ class BaseGrouper:
 
     @final
     def _transform(
-        self, result: np.ndarray, values: np.ndarray, transform_func, is_datetimelike: bool, use_mask: bool, mask: np.ndarray | None, **kwargs
+        self,
+        result: np.ndarray,
+        values: np.ndarray,
+        transform_func,
+        is_datetimelike: bool,
+        use_mask: bool,
+        mask: np.ndarray | None,
+        **kwargs,
     ) -> np.ndarray:
 
         comp_ids, _, ngroups = self.group_info
         if mask is not None:
-            transform_func(result, values, mask, comp_ids, ngroups, is_datetimelike, use_mask, **kwargs)
+            transform_func(
+                result,
+                values,
+                mask,
+                comp_ids,
+                ngroups,
+                is_datetimelike,
+                use_mask,
+                **kwargs,
+            )
         else:
             transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 

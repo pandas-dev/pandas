@@ -395,10 +395,8 @@ class GroupByMethods:
     params = [
         ["int", "float", "object", "datetime"],
         [
-
             "cummax",
             "cummin",
-
         ],
         ["direct", "transformation"],
     ]

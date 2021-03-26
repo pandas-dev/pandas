@@ -85,7 +85,6 @@ import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
-    BaseMaskedArray
 )
 from pandas.core.base import (
     DataError,
@@ -105,7 +104,6 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
-from pandas.core.groupby.ops import does_cython_function_use_mask
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE

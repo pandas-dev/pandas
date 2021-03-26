@@ -1270,14 +1270,10 @@ def group_cummin_max(groupby_t[:, ::1] out,
         Array to store cummin/max in.
     values : array
         Values to take cummin/max of.
-<<<<<<< HEAD
     mask : array[uint8_t]
         If `use_mask`, then indices represent missing values,
         otherwise will be passed as a zeroed array
-    labels : int64 array
-=======
     labels : np.ndarray[np.intp]
->>>>>>> origin/master
         Labels to group by.
     ngroups : int
         Number of groups, larger than all entries of `labels`.
@@ -1320,14 +1316,16 @@ def group_cummin_max(groupby_t[:, ::1] out,
             for j in range(K):
                 val_is_nan = False
 
-                # If using the mask, we can avoid grabbing the
-                # value unless necessary
                 if use_mask:
                     if mask[i, j]:
+
                         # `out` does not need to be set since it
                         # will be masked anyway
                         val_is_nan = True
                     else:
+
+                        # If using the mask, we can avoid grabbing the
+                        # value unless necessary
                         val = values[i, j]
 
                 # Otherwise, `out` must be set accordingly if the
@@ -1359,7 +1357,16 @@ def group_cummin(groupby_t[:, ::1] out,
                  bint is_datetimelike,
                  bint use_mask):
     """See group_cummin_max.__doc__"""
-    group_cummin_max(out, values, mask, labels, ngroups, is_datetimelike, use_mask, compute_max=False)
+    group_cummin_max(
+        out,
+        values,
+        mask,
+        labels,
+        ngroups,
+        is_datetimelike,
+        use_mask,
+        compute_max=False
+    )
 
 
 @cython.boundscheck(False)
@@ -1372,4 +1379,13 @@ def group_cummax(groupby_t[:, ::1] out,
                  bint is_datetimelike,
                  bint use_mask):
     """See group_cummin_max.__doc__"""
-    group_cummin_max(out, values, mask, labels, ngroups, is_datetimelike, use_mask, compute_max=True)
+    group_cummin_max(
+        out,
+        values,
+        mask,
+        labels,
+        ngroups,
+        is_datetimelike,
+        use_mask,
+        compute_max=True
+    )
