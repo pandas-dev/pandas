@@ -759,7 +759,7 @@ def to_sql(
             "'frame' argument should be either a Series or a DataFrame"
         )
 
-    pandas_sql.to_sql(
+    return pandas_sql.to_sql(
         frame,
         name,
         if_exists=if_exists,
@@ -974,9 +974,8 @@ class SQLTable(PandasObject):
             data_list[i] = d  # type: ignore[call-overload]
 
         return column_names, data_list
-
-    def insert(self, chunksize: Optional[int] = None, method: Optional[str] = None):
-
+    
+    def _get_insertion_method(self, method):
         # set insert method
         if method is None:
             exec_insert = self._execute_insert
@@ -986,6 +985,36 @@ class SQLTable(PandasObject):
             exec_insert = partial(method, self)
         else:
             raise ValueError(f"Invalid parameter `method`: {method}")
+        
+        return exec_insert
+    
+    @staticmethod
+    def _get_chunks(chunksize, nrows):
+        if chunksize is None:
+            chunksize = nrows
+        elif chunksize == 0:
+            raise ValueError("chunksize argument should be non-zero")
+        
+        return (nrows // chunksize) + 1
+    
+    @staticmethod
+    def _chunk_iterator(chunks, chunksize, nrows, data_list):
+        if chunksize is None:
+            chunksize = nrows
+        elif chunksize == 0:
+            raise ValueError("chunksize argument should be non-zero")
+        
+        for i in range(chunks):
+            start_i = i * chunksize
+            end_i = min((i + 1) * chunksize, nrows)
+            if start_i >= end_i:
+                break
+
+            chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
+            yield chunk_iter
+
+    def insert(self, chunksize: Optional[int] = None, method: Optional[str] = None):
+        exec_insert = self._get_insertion_method(method)
 
         keys, data_list = self.insert_data()
 
@@ -994,21 +1023,10 @@ class SQLTable(PandasObject):
         if nrows == 0:
             return
 
-        if chunksize is None:
-            chunksize = nrows
-        elif chunksize == 0:
-            raise ValueError("chunksize argument should be non-zero")
-
-        chunks = (nrows // chunksize) + 1
+        chunks = self._get_chunks(chunksize, nrows)
 
         with self.pd_sql.run_transaction() as conn:
-            for i in range(chunks):
-                start_i = i * chunksize
-                end_i = min((i + 1) * chunksize, nrows)
-                if start_i >= end_i:
-                    break
-
-                chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
+            for chunk_iter in self._chunk_iterator(chunks, chunksize, nrows, data_list):
                 exec_insert(conn, keys, chunk_iter)
 
     def _query_iterator(
@@ -1164,7 +1182,13 @@ class SQLTable(PandasObject):
             pkc = PrimaryKeyConstraint(*keys, name=self.name + "_pk")
             columns.append(pkc)
 
-        schema = self.schema or self.pd_sql.meta.schema
+        if isinstance(self, AsyncSQLTable):
+            schema = self.schema or self.pd_sql.schema
+        elif isinstance(self, SQLTable):
+            schema = self.schema or self.pd_sql.meta.schema
+        else:
+            # This should never be triggered
+            raise TypeError('self is somehow not a SQLTable or AsyncSQLTable')
 
         # At this point, attach to new metadata, only attach to self.meta
         # once table is created.
@@ -1344,6 +1368,56 @@ class AsyncSQLTable(SQLTable):
                                            parse_dates=parse_dates,
                                            chunksize=chunksize)
 
+    async def exists(self):
+        return await self.pd_sql.has_table(self.name, self.schema)
+    
+    async def _execute_create(self):
+        metadata = await self.pd_sql.metadata
+        self.table = self.table.to_metadata(metadata)
+        print(metadata.tables)
+        async with self.pd_sql.engine.begin() as conn:
+            await conn.run_sync(self.table.create)
+    
+    async def create(self):
+        print('create is being called!')
+        if await self.exists():
+            if self.if_exists == "fail":
+                raise ValueError(f"Table '{self.name}' already exists.")
+            elif self.if_exists == "replace":
+                await self.pd_sql.drop_table(self.name, self.schema)
+                await self._execute_create()
+            elif self.if_exists == "append":
+                pass
+            else:
+                raise ValueError(f"'{self.if_exists}' is not valid for if_exists")
+        else:
+            print('table not detected!')
+            await self._execute_create()
+    
+    async def _execute_insert(self, conn, keys: List[str], data_iter):
+        data = [dict(zip(keys, row)) for row in data_iter]
+        await conn.execute(self.table.insert(), parameters=data)
+    
+    async def _execute_insert_multi(self, conn, keys: List[str], data_iter):
+        data = [dict(zip(keys, row)) for row in data_iter]
+        await conn.execute(self.table.insert().values(data))
+    
+    async def insert(self, chunksize: Optional[int] = None, method: Optional[str] = None):
+        exec_insert = self._get_insertion_method(method)
+
+        keys, data_list = self.insert_data()
+
+        nrows = len(self.frame)
+
+        if nrows == 0:
+            return
+        
+        chunks = self._get_chunks(chunksize, nrows)
+
+        async with self.pd_sql.engine.begin() as conn:
+            for chunk_iter in self._chunk_iterator(chunks, chunksize, nrows, data_list):
+                await exec_insert(conn, keys, chunk_iter)
+        
 
 class PandasSQL(PandasObject):
     """
@@ -1610,6 +1684,57 @@ class SQLDatabase(PandasSQL):
 
     read_sql = read_query
 
+    def _check_dtype(self, frame, dtype):
+        if dtype:
+            if not is_dict_like(dtype):
+                # error: Value expression in dictionary comprehension has incompatible
+                # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
+                # Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]],
+                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+                # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
+                # dtype[Any], Type[object]]"
+                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
+            else:
+                dtype = cast(dict, dtype)
+
+            from sqlalchemy.types import (
+                TypeEngine,
+                to_instance,
+            )
+
+            for col, my_type in dtype.items():
+                if not isinstance(to_instance(my_type), TypeEngine):
+                    raise ValueError(f"The type of {col} is not a SQLAlchemy type")
+        return dtype
+    
+    @staticmethod
+    @contextmanager
+    def _my_sql_error():
+        from sqlalchemy import exc
+
+        try:
+            yield
+        except exc.StatementError as err:
+            # Changed from SQLAlchemyError to StatementError
+            # is the SQLAlchemy error with the 'orig' attribute
+            # GH34431
+            msg = "(1054, \"Unknown column 'inf' in 'field list'\")"
+            err_text = str(err.orig)
+            if re.search(msg, err_text):
+                raise ValueError("inf cannot be used with MySQL") from err
+            else:
+                raise err
+    
+    @staticmethod
+    def _warn_table_name_mismatch():
+        msg = (
+            f"The provided table name '{name}' is not found exactly as "
+            "such in the database after writing the table, possibly "
+            "due to case sensitivity issues. Consider using lower "
+            "case table names."
+            )
+        warnings.warn(msg, UserWarning)
+
     def to_sql(
         self,
         frame,
@@ -1663,26 +1788,7 @@ class SQLDatabase(PandasSQL):
 
             .. versionadded:: 0.24.0
         """
-        if dtype:
-            if not is_dict_like(dtype):
-                # error: Value expression in dictionary comprehension has incompatible
-                # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
-                # Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]],
-                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
-                # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
-                # dtype[Any], Type[object]]"
-                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
-            else:
-                dtype = cast(dict, dtype)
-
-            from sqlalchemy.types import (
-                TypeEngine,
-                to_instance,
-            )
-
-            for col, my_type in dtype.items():
-                if not isinstance(to_instance(my_type), TypeEngine):
-                    raise ValueError(f"The type of {col} is not a SQLAlchemy type")
+        dtype = self._check_dtype(frame, dtype)
 
         table = SQLTable(
             name,
@@ -1696,18 +1802,8 @@ class SQLDatabase(PandasSQL):
         )
         table.create()
 
-        from sqlalchemy import exc
-
-        try:
+        with self._my_sql_error():
             table.insert(chunksize, method=method)
-        except exc.SQLAlchemyError as err:
-            # GH34431
-            msg = "(1054, \"Unknown column 'inf' in 'field list'\")"
-            err_text = str(err.orig)
-            if re.search(msg, err_text):
-                raise ValueError("inf cannot be used with MySQL") from err
-            else:
-                raise err
 
         if not name.isdigit() and not name.islower():
             # check for potentially case sensitivity issues (GH7815)
@@ -1726,13 +1822,7 @@ class SQLDatabase(PandasSQL):
                         schema=schema or self.meta.schema, connection=conn
                     )
             if name not in table_names:
-                msg = (
-                    f"The provided table name '{name}' is not found exactly as "
-                    "such in the database after writing the table, possibly "
-                    "due to case sensitivity issues. Consider using lower "
-                    "case table names."
-                )
-                warnings.warn(msg, UserWarning)
+                self._warn_table_name_mismatch()
 
     @property
     def tables(self):
@@ -1827,12 +1917,22 @@ class AsyncSQLDatabase(SQLDatabase):
         return self._metadata
 
     async def has_table(self, table_name: str, schema: Optional[str] = None):
+        # TODO: Change schema to schema or self.schema
         async with self.engine.connect() as conn:
             return await conn.run_sync(conn.dialect.has_table, table_name, schema)
     
     async def get_table(self, table_name: str, schema: Optional[str] = None):
+        # TODO: Change schema to schema or self.schema
         return (await self.metadata).tables.get(".".join([schema, table_name]) \
                                                 if schema else table_name)
+    
+    async def drop_table(self, table_name: str, schema: Optional[str] = None):
+        schema = schema or self.meta.schema
+        if await self.has_table(table_name, schema):
+            table = self.get_table(table_name, schema)
+            (await self.metadata).remove(table)
+            async with self.engine.connect() as conn:
+                await conn.run_sync(table.drop, conn)
     
     async def read_table(self,
                          table_name: str,
@@ -1869,6 +1969,36 @@ class AsyncSQLDatabase(SQLDatabase):
                                           params=params,
                                           chunksize=chunksize,
                                           dtype=dtype)
+
+    async def to_sql(self,
+                     frame,
+                     name,
+                     if_exists="fail",
+                     index=True,
+                     index_label=None,
+                     schema=None,
+                     chunksize=None,
+                     dtype: Optional[DtypeArg] = None,
+                     method=None):
+        dtype = self._check_dtype(frame, dtype)
+
+        table = AsyncSQLTable(name,
+                              self,
+                              frame=frame,
+                              index=index,
+                              if_exists=if_exists,
+                              index_label=index_label,
+                              schema=schema,
+                              dtype=dtype)
+        await table.create()
+
+        with self._my_sql_error():
+            await table.insert(chunksize=chunksize, method=method)
+        
+        if not name.isdigit() and not name.islower():
+            if await self.has_table(name):
+                self._warn_table_name_mismatch()
+        
 
 
 # ---- SQL without SQLAlchemy ---
