@@ -46,4 +46,4 @@ class TestBetween:
         with pytest.raises(ValueError):
             ser = Series(period_range("2000-01-01", periods=10, freq="D"))
             left, right = ser[[2, 7]]
-            ser.between(left, right, 8)
+            assert ser.between(left, right, 8)
