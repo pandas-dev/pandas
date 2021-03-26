@@ -16,6 +16,7 @@ import warnings
 from pandas._libs.tslibs import BaseOffset
 
 from pandas import Index
+from pandas.core.internals import BlockManager
 
 if TYPE_CHECKING:
     from pandas import (
@@ -207,6 +208,8 @@ def load_newobj(self):
     # compat
     if issubclass(cls, Index):
         obj = object.__new__(cls)
+    elif cls is BlockManager and not args:
+        obj = cls.__new__(cls, (), [], False)
     else:
         obj = cls.__new__(cls, *args)
 

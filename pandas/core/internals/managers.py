@@ -141,14 +141,7 @@ class _BlockManager(DataManager):
     This is *not* a public API class
     """
 
-    __slots__ = [
-        "axes",
-        "blocks",
-        "_known_consolidated",
-        "_is_consolidated",
-        "_blknos",
-        "_blklocs",
-    ]
+    __slots__ = ()
 
     _blknos: np.ndarray
     _blklocs: np.ndarray
@@ -302,7 +295,7 @@ class _BlockManager(DataManager):
         return axes_array, block_values, block_items, extra_state
 
     def __setstate__(self, state):
-        def unpickle_block(values, mgr_locs, ndim: int) -> Block:
+        def unpickle_block(values, mgr_locs, ndim: int):
             # TODO(EA2D): ndim would be unnecessary with 2D EAs
             # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
             values = extract_array(values, extract_numpy=True)
@@ -320,11 +313,6 @@ class _BlockManager(DataManager):
             raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
 
         self._post_setstate()
-
-    def _post_setstate(self) -> None:
-        self._is_consolidated = False
-        self._known_consolidated = False
-        self._rebuild_blknos_and_blklocs()
 
     def __repr__(self) -> str:
         output = type(self).__name__
@@ -489,7 +477,7 @@ class _BlockManager(DataManager):
         if len(result_blocks) == 0:
             return self.make_empty(self.axes)
 
-        return type(self).from_blocks(result_blocks, self.axes)
+        return type(self).from_blocks(tuple(result_blocks), self.axes)
 
     def quantile(
         self: T,
@@ -1129,6 +1117,8 @@ class _BlockManager(DataManager):
 
         block = new_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 
+        self.blknos  # ensure initialized
+
         for blkno, count in _fast_count_smallints(self.blknos[loc:]):
             blk = self.blocks[blkno]
             if count == len(blk.mgr_locs):
@@ -1406,7 +1396,7 @@ class _BlockManager(DataManager):
         )
 
 
-class BlockManager(_BlockManager):
+class BlockManager(libinternals.BlockManager, _BlockManager):
     """
     _BlockManager that holds 2D blocks.
     """
@@ -1419,8 +1409,7 @@ class BlockManager(_BlockManager):
         axes: Sequence[Index],
         verify_integrity: bool = True,
     ):
-        self.axes = [ensure_index(ax) for ax in axes]
-        self.blocks: Tuple[Block, ...] = tuple(blocks)
+        assert all(isinstance(x, Index) for x in axes)
 
         for block in blocks:
             if self.ndim != block.ndim:
@@ -1431,30 +1420,6 @@ class BlockManager(_BlockManager):
 
         if verify_integrity:
             self._verify_integrity()
-
-        # Populate known_consolidate, blknos, and blklocs lazily
-        self._known_consolidated = False
-        # error: Incompatible types in assignment (expression has type "None",
-        # variable has type "ndarray")
-        self._blknos = None  # type: ignore[assignment]
-        # error: Incompatible types in assignment (expression has type "None",
-        # variable has type "ndarray")
-        self._blklocs = None  # type: ignore[assignment]
-
-    @classmethod
-    def _simple_new(cls, blocks: Tuple[Block, ...], axes: List[Index]):
-        """
-        Fastpath constructor; does NO validation.
-        """
-        obj = cls.__new__(cls)
-        obj.axes = axes
-        obj.blocks = blocks
-
-        # Populate known_consolidate, blknos, and blklocs lazily
-        obj._known_consolidated = False
-        obj._blknos = None
-        obj._blklocs = None
-        return obj
 
     @classmethod
     def from_blocks(cls, blocks: List[Block], axes: List[Index]) -> BlockManager:
@@ -1476,7 +1441,7 @@ class BlockManager(_BlockManager):
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
-        return type(self)._simple_new(tuple(new_blocks), new_axes)
+        return type(self)(tuple(new_blocks), new_axes)
 
     def iget(self, i: int) -> SingleBlockManager:
         """
