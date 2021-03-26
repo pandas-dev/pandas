@@ -1816,7 +1816,7 @@ def validate_endpoints(closed):
 
     Parameters
     ----------
-    closed : {None, False, True, "neither", "left", "right", "both"}
+    closed : {"neither", "left", "right", "both"}
 
     Returns
     -------
@@ -1830,7 +1830,7 @@ def validate_endpoints(closed):
     left_closed = False
     right_closed = False
 
-    if closed is None or closed is True or closed == "neither":
+    if closed == "neither" or closed is True or closed is None:
         left_closed = True
         right_closed = True
     elif closed == "left":

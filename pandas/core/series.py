@@ -4684,7 +4684,7 @@ Keep all original rows and also all original values
             Left boundary.
         right : scalar or list-like
             Right boundary.
-        inclusive : boolean or str, default "True"
+        inclusive : str, default "both"
 
             Include boundaries.
 
@@ -4738,7 +4738,7 @@ Keep all original rows and also all original values
         dtype: bool
         """
 
-        if inclusive is True or inclusive == "both":
+        if inclusive == "both" or inclusive is True:
             lmask = self >= left
             rmask = self <= right
         elif inclusive == "left":
@@ -4747,7 +4747,7 @@ Keep all original rows and also all original values
         elif inclusive == "right":
             lmask = self > left
             rmask = self <= right
-        elif inclusive is False or inclusive == "neither":
+        elif inclusive == "neither" or inclusive is False:
             lmask = self > left
             rmask = self < right
         else:
