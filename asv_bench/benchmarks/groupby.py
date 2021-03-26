@@ -395,40 +395,10 @@ class GroupByMethods:
     params = [
         ["int", "float", "object", "datetime"],
         [
-            "all",
-            "any",
-            "bfill",
-            "count",
-            "cumcount",
+
             "cummax",
             "cummin",
-            "cumprod",
-            "cumsum",
-            "describe",
-            "ffill",
-            "first",
-            "head",
-            "last",
-            "mad",
-            "max",
-            "min",
-            "median",
-            "mean",
-            "nunique",
-            "pct_change",
-            "prod",
-            "quantile",
-            "rank",
-            "sem",
-            "shift",
-            "size",
-            "skew",
-            "std",
-            "sum",
-            "tail",
-            "unique",
-            "value_counts",
-            "var",
+
         ],
         ["direct", "transformation"],
     ]
@@ -494,12 +464,6 @@ class GroupByCythonAgg:
 
 
 class CumminMax:
-    """
-    Benchmarks specifically targetting our cython aggregation algorithms
-    (using a big enough dataframe with simple key, so a large part of the
-    time is actually spent in the grouped aggregation).
-    """
-
     param_names = ["dtype", "method"]
     params = [
         ["float64", "int64", "Float64", "Int64"],
@@ -509,8 +473,9 @@ class CumminMax:
     def setup(self, dtype, method):
         N = 1_000_000
         vals = np.random.randint(0, 1000, (N, 10))
-        null_vals = vals.copy()
+        null_vals = vals.astype(float, copy=True)
         null_vals[::2, :] = np.nan
+        null_vals[::3, :] = np.nan
         df = DataFrame(vals, columns=list("abcdefghij"), dtype=dtype)
         null_df = DataFrame(null_vals, columns=list("abcdefghij"), dtype=dtype)
         df["key"] = np.random.randint(0, 100, size=N)

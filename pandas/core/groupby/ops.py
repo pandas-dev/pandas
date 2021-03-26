@@ -21,7 +21,6 @@ from typing import (
     Type,
 )
 from pandas.core.arrays.masked import (
-    BaseMaskedArray,
     BaseMaskedDtype,
 )
 
@@ -599,6 +598,8 @@ class BaseGrouper:
         """
         orig_values = values
 
+        # isna just directly returns self._mask, so copy here to prevent
+        # modifying the original
         mask = isna(values).copy()
         values = values._data
 
@@ -612,7 +613,7 @@ class BaseGrouper:
         dtype = maybe_cast_result_dtype(orig_values.dtype, how)
         cls = dtype.construct_array_type()
 
-        return cls(res_values, mask.astype(bool, copy=True))
+        return cls(res_values.astype(dtype.type, copy=False), mask.astype(bool, copy=True))
 
     @final
     def _cython_operation(
