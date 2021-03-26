@@ -937,16 +937,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         df_view = df[:]
         df[["B"]] = value
 
-        # 32bit builds have unfortunately clumsy behavior
-        if isinstance(value, np.ndarray):
-            expected = DataFrame(
-                {
-                    "A": np.array([0, 0], dtype=np.int64),
-                    "B": np.array([1, 1], dtype=int),
-                }
-            )
-        else:
-            expected = DataFrame([[0, 1], [0, 1]], columns=cols)
+        expected = DataFrame([[0, 1], [0, 1]], columns=cols)
 
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(df_view, df_copy)
