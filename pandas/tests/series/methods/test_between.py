@@ -43,7 +43,8 @@ class TestBetween:
         tm.assert_series_equal(result, expected)
 
     def test_between_inclusive_is_boolean_string(self):
-        with pytest.raises(ValueError):
+       msg = "Inclusive has to be either string of 'both','left', 'right', or 'neither', or a boolean value"
+       with pytest.raises(ValueError, match=msg):
             ser = Series(period_range("2000-01-01", periods=10, freq="D"))
             left, right = ser[[2, 7]]
             assert ser.between(left, right, 8)
