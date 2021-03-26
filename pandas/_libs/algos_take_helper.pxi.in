@@ -219,8 +219,8 @@ def take_2d_multi_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                                     fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
-        ndarray[int64_t] idx0 = indexer[0]
-        ndarray[int64_t] idx1 = indexer[1]
+        ndarray[intp_t] idx0 = indexer[0]
+        ndarray[intp_t] idx1 = indexer[1]
         {{c_type_out}} fv
 
     n = len(idx0)
