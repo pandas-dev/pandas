@@ -70,6 +70,7 @@ from pandas.core.internals.base import (
 )
 from pandas.core.internals.blocks import (
     Block,
+    CategoricalBlock,
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
@@ -309,7 +310,7 @@ class BlockManager(DataManager):
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
-        return algos.take_nd(dtypes, self.blknos, allow_fill=False)
+        return dtypes.take(self.blknos)
 
     @property
     def arrays(self) -> List[ArrayLike]:
@@ -621,25 +622,6 @@ class BlockManager(DataManager):
         axis = self._normalize_axis(axis)
         if fill_value is lib.no_default:
             fill_value = None
-
-        if axis == 0 and self.ndim == 2 and self.nblocks > 1:
-            # GH#35488 we need to watch out for multi-block cases
-            # We only get here with fill_value not-lib.no_default
-            ncols = self.shape[0]
-            if periods > 0:
-                indexer = [-1] * periods + list(range(ncols - periods))
-            else:
-                nper = abs(periods)
-                indexer = list(range(nper, ncols)) + [-1] * nper
-            result = self.reindex_indexer(
-                self.items,
-                indexer,
-                axis=0,
-                fill_value=fill_value,
-                allow_dups=True,
-                consolidate=False,
-            )
-            return result
 
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
@@ -1182,7 +1164,7 @@ class BlockManager(DataManager):
             is_deleted = np.zeros(self.nblocks, dtype=np.bool_)
             is_deleted[removed_blknos] = True
 
-            new_blknos = np.empty(self.nblocks, dtype=np.int64)
+            new_blknos = np.empty(self.nblocks, dtype=np.intp)
             new_blknos.fill(-1)
             new_blknos[~is_deleted] = np.arange(self.nblocks - len(removed_blknos))
             self._blknos = new_blknos[self._blknos]
@@ -1231,9 +1213,7 @@ class BlockManager(DataManager):
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
 
-    def insert(
-        self, loc: int, item: Hashable, value: ArrayLike, allow_duplicates: bool = False
-    ):
+    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
         Insert item at selected position.
 
@@ -1242,17 +1222,7 @@ class BlockManager(DataManager):
         loc : int
         item : hashable
         value : np.ndarray or ExtensionArray
-        allow_duplicates: bool
-            If False, trying to insert non-unique item will raise
-
         """
-        if not allow_duplicates and item in self.items:
-            # Should this be a different kind of error??
-            raise ValueError(f"cannot insert {item}, already exists")
-
-        if not isinstance(loc, int):
-            raise TypeError("loc must be int")
-
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
 
@@ -1877,6 +1847,13 @@ def _form_blocks(
             items_dict["ObjectBlock"], np.object_, consolidate=consolidate
         )
         blocks.extend(object_blocks)
+
+    if len(items_dict["CategoricalBlock"]) > 0:
+        cat_blocks = [
+            new_block(array, klass=CategoricalBlock, placement=i, ndim=2)
+            for i, array in items_dict["CategoricalBlock"]
+        ]
+        blocks.extend(cat_blocks)
 
     if len(items_dict["ExtensionBlock"]):
         external_blocks = [
