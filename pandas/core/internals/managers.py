@@ -892,7 +892,7 @@ class _BlockManager(DataManager):
         if self.is_consolidated():
             return self
 
-        bm = type(self)(self.blocks, self.axes)
+        bm = type(self)(self.blocks, self.axes, verify_integrity=False)
         bm._is_consolidated = False
         bm._consolidate_inplace()
         return bm
@@ -1360,16 +1360,17 @@ class BlockManager(libinternals.BlockManager, _BlockManager):
         axes: Sequence[Index],
         verify_integrity: bool = True,
     ):
-        assert all(isinstance(x, Index) for x in axes)
-
-        for block in blocks:
-            if self.ndim != block.ndim:
-                raise AssertionError(
-                    f"Number of Block dimensions ({block.ndim}) must equal "
-                    f"number of axes ({self.ndim})"
-                )
 
         if verify_integrity:
+            assert all(isinstance(x, Index) for x in axes)
+
+            for block in blocks:
+                if self.ndim != block.ndim:
+                    raise AssertionError(
+                        f"Number of Block dimensions ({block.ndim}) must equal "
+                        f"number of axes ({self.ndim})"
+                    )
+
             self._verify_integrity()
 
     @classmethod
@@ -1407,7 +1408,7 @@ class BlockManager(libinternals.BlockManager, _BlockManager):
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
-        return type(self)(tuple(new_blocks), new_axes)
+        return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)
 
     def iget(self, i: int) -> SingleBlockManager:
         """
