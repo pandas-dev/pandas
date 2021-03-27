@@ -77,6 +77,7 @@ def _is_sqlalchemy_connectable(con):
     else:
         return False
 
+
 def _is_async_sqlalchemy_connectable(con):
     # NOTE: Call to _is_sqlalchemy_connectable
     # is to initialize _SQLALCHEMY_INSTALLED
@@ -87,7 +88,7 @@ def _is_async_sqlalchemy_connectable(con):
             from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
             return isinstance(con, (AsyncEngine, AsyncConnection))
         except ModuleNotFoundError:
-            return False 
+            return False
     return False
 
 def _gt14() -> bool:
@@ -638,7 +639,7 @@ def read_sql(
             parse_dates=parse_dates,
             chunksize=chunksize,
         )
-    
+
     if isinstance(pandas_sql, AsyncSQLDatabase):
         async def read_sql():
             if await pandas_sql.has_table(sql):
@@ -659,7 +660,7 @@ def read_sql(
                     parse_dates=parse_dates,
                     chunksize=chunksize,
                 )
-        
+
         return read_sql()
 
     try:
@@ -974,7 +975,7 @@ class SQLTable(PandasObject):
             data_list[i] = d  # type: ignore[call-overload]
 
         return column_names, data_list
-    
+
     def _get_insertion_method(self, method):
         # set insert method
         if method is None:
@@ -985,25 +986,25 @@ class SQLTable(PandasObject):
             exec_insert = partial(method, self)
         else:
             raise ValueError(f"Invalid parameter `method`: {method}")
-        
+
         return exec_insert
-    
+
     @staticmethod
     def _get_chunks(chunksize, nrows):
         if chunksize is None:
             chunksize = nrows
         elif chunksize == 0:
             raise ValueError("chunksize argument should be non-zero")
-        
+
         return (nrows // chunksize) + 1
-    
+
     @staticmethod
     def _chunk_iterator(chunks, chunksize, nrows, data_list):
         if chunksize is None:
             chunksize = nrows
         elif chunksize == 0:
             raise ValueError("chunksize argument should be non-zero")
-        
+
         for i in range(chunks):
             start_i = i * chunksize
             end_i = min((i + 1) * chunksize, nrows)
@@ -1071,9 +1072,9 @@ class SQLTable(PandasObject):
             sql_select = select(cols)
         else:
             sql_select = self.table.select()
-        
+
         return sql_select
-    
+
     def _create_df_from_result(self,
                                result,
                                coerce_float=True,
@@ -1354,11 +1355,14 @@ class AsyncSQLTable(SQLTable):
     async def __async_init__(self):
         self.table = await self.table
         return self
-    
+
     def __await__(self):
         return self.__async_init__().__await__()
-    
-    async def read(self, coerce_float=True, parse_dates=None, columns=None, chunksize=None):
+
+    async def read(self, coerce_float=True,
+                   parse_dates=None,
+                   columns=None,
+                   chunksize=None):
         sql_select = self._selector_from_columns(columns)
 
         result = await self.pd_sql.execute(sql_select)
@@ -1370,14 +1374,14 @@ class AsyncSQLTable(SQLTable):
 
     async def exists(self):
         return await self.pd_sql.has_table(self.name, self.schema)
-    
+
     async def _execute_create(self):
         metadata = await self.pd_sql.metadata
         self.table = self.table.to_metadata(metadata)
         print(metadata.tables)
         async with self.pd_sql.engine.begin() as conn:
             await conn.run_sync(self.table.create)
-    
+
     async def create(self):
         print('create is being called!')
         if await self.exists():
@@ -1393,16 +1397,18 @@ class AsyncSQLTable(SQLTable):
         else:
             print('table not detected!')
             await self._execute_create()
-    
+
     async def _execute_insert(self, conn, keys: List[str], data_iter):
         data = [dict(zip(keys, row)) for row in data_iter]
         await conn.execute(self.table.insert(), parameters=data)
-    
+
     async def _execute_insert_multi(self, conn, keys: List[str], data_iter):
         data = [dict(zip(keys, row)) for row in data_iter]
         await conn.execute(self.table.insert().values(data))
-    
-    async def insert(self, chunksize: Optional[int] = None, method: Optional[str] = None):
+
+    async def insert(self,
+                     chunksize: Optional[int] = None,
+                     method: Optional[str] = None):
         exec_insert = self._get_insertion_method(method)
 
         keys, data_list = self.insert_data()
@@ -1411,13 +1417,13 @@ class AsyncSQLTable(SQLTable):
 
         if nrows == 0:
             return
-        
+
         chunks = self._get_chunks(chunksize, nrows)
 
         async with self.pd_sql.engine.begin() as conn:
             for chunk_iter in self._chunk_iterator(chunks, chunksize, nrows, data_list):
                 await exec_insert(conn, keys, chunk_iter)
-        
+
 
 class PandasSQL(PandasObject):
     """
@@ -1583,7 +1589,7 @@ class SQLDatabase(PandasSQL):
                     parse_dates=parse_dates,
                     dtype=dtype,
                 )
-    
+
     def _convert_result_to_df(self,
                               result,
                               index_col: Optional[str] = None,
@@ -1706,7 +1712,7 @@ class SQLDatabase(PandasSQL):
                 if not isinstance(to_instance(my_type), TypeEngine):
                     raise ValueError(f"The type of {col} is not a SQLAlchemy type")
         return dtype
-    
+
     @staticmethod
     @contextmanager
     def _my_sql_error():
@@ -1724,7 +1730,7 @@ class SQLDatabase(PandasSQL):
                 raise ValueError("inf cannot be used with MySQL") from err
             else:
                 raise err
-    
+
     @staticmethod
     def _warn_table_name_mismatch():
         msg = (
@@ -1732,7 +1738,7 @@ class SQLDatabase(PandasSQL):
             "such in the database after writing the table, possibly "
             "due to case sensitivity issues. Consider using lower "
             "case table names."
-            )
+        )
         warnings.warn(msg, UserWarning)
 
     def to_sql(
@@ -1889,15 +1895,18 @@ class AsyncSQLDatabase(SQLDatabase):
         if not isinstance(connectable, (AsyncEngine, AsyncConnection)):
             raise TypeError(('connectable argument must be an AsyncEngine '
                             f'or an AsyncConnection, not {type(connectable)!r}'))
-        self.engine = connectable if isinstance(connectable, AsyncEngine) else connectable.engine
-        
+        if isinstance(connectable, AsyncEngine):
+            self.engine = connectable
+        else:
+            self.engine = connectable.engine
+
         self.schema = schema
 
         self._tables_added = False
 
         if meta:
             self._metadata = meta
-            self._tables_added = True        
+            self._tables_added = True
 
     async def execute(self, *args, **kwargs):
         async with self.engine.connect() as conn:
@@ -1908,24 +1917,24 @@ class AsyncSQLDatabase(SQLDatabase):
         if not hasattr(self, '_metadata'):
             from sqlalchemy.schema import MetaData
             self._metadata = MetaData()
-    
+
         if not self._tables_added:
             async with self.engine.connect() as conn:
                 await conn.run_sync(self._metadata.reflect)
                 self._tables_added = True
-        
+
         return self._metadata
 
     async def has_table(self, table_name: str, schema: Optional[str] = None):
         # TODO: Change schema to schema or self.schema
         async with self.engine.connect() as conn:
             return await conn.run_sync(conn.dialect.has_table, table_name, schema)
-    
+
     async def get_table(self, table_name: str, schema: Optional[str] = None):
         # TODO: Change schema to schema or self.schema
-        return (await self.metadata).tables.get(".".join([schema, table_name]) \
+        return (await self.metadata).tables.get(".".join([schema, table_name])
                                                 if schema else table_name)
-    
+
     async def drop_table(self, table_name: str, schema: Optional[str] = None):
         schema = schema or self.meta.schema
         if await self.has_table(table_name, schema):
@@ -1933,7 +1942,7 @@ class AsyncSQLDatabase(SQLDatabase):
             (await self.metadata).remove(table)
             async with self.engine.connect() as conn:
                 await conn.run_sync(table.drop, conn)
-    
+
     async def read_table(self,
                          table_name: str,
                          index_col: Optional[Union[str, Sequence[str]]] = None,
@@ -1994,7 +2003,7 @@ class AsyncSQLDatabase(SQLDatabase):
 
         with self._my_sql_error():
             await table.insert(chunksize=chunksize, method=method)
-        
+
         if not name.isdigit() and not name.islower():
             if await self.has_table(name):
                 self._warn_table_name_mismatch()
