@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.to_json` raising ``AttributeError`` when run on PyPy (:issue:`39837`)
 - Fixed regression in :meth:`DataFrame.where` not returning a copy in the case of an all True condition (:issue:`39595`)
 - Fixed regression in :meth:`DataFrame.replace` raising ``IndexError`` when ``regex`` was a multi-key dictionary (:issue:`39338`)
+- Fixed regression in :meth:`Series.replace` and :meth:`DataFrame.replace` not replacing missing values for :class:`CategoricalDtype` (:issue:`40472`)
 -
 
 .. ---------------------------------------------------------------------------

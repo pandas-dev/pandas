@@ -1652,6 +1652,17 @@ class TestDataFrameReplace:
 
         tm.assert_frame_equal(result, expected)
 
+    # Replace with an existing category and one which will add a new category
+    @pytest.mark.parametrize("new_value", ["c", "b"])
+    def test_replace_categorical_missing_vals(self, frame_or_series, unique_nulls_fixture, new_value):
+        # GH-40472
+        obj = frame_or_series([unique_nulls_fixture, "b"], dtype="category")
+
+        result = obj.replace({unique_nulls_fixture: new_value})
+        expected = frame_or_series([new_value, "b"], dtype="category")
+
+        tm.assert_equal(result, expected)
+
     def test_replace_with_compiled_regex(self):
         # https://github.com/pandas-dev/pandas/issues/35680
         df = DataFrame(["a", "b", "c"])

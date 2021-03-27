@@ -2350,7 +2350,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # other cases, like if both to_replace and value are list-like or if
         # to_replace is a dict, are handled separately in NDFrame
         for replace_value, new_value in replace_dict.items():
-            if new_value == replace_value:
+            if new_value == replace_value or (isna(replace_value) and isna(new_value)):
                 continue
             if replace_value in cat.categories:
                 if isna(new_value):
@@ -2365,16 +2365,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 else:
                     categories[index] = new_value
                     cat.rename_categories(categories, inplace=True)
+
+            # GH-40472: make sure missing values can also be replaced
             elif isna(replace_value) and (cat._codes == -1).any():
                 if new_value in cat.categories:
                     categories = cat.categories.tolist()
                     value_index = categories.index(new_value)
-                    cat._codes[cat._codes == -1] = value_index
                 else:
                     cat.add_categories(new_value, inplace=True)
-                    new_value = len(cat.categories) - 1
+                    value_index = len(cat.categories) - 1
 
-                cat._codes[cat._codes == -1] = new_value
+                cat._codes[cat._codes == -1] = value_index
 
         if not inplace:
             return cat
