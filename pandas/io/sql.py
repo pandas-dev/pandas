@@ -85,7 +85,11 @@ def _is_async_sqlalchemy_connectable(con):
     _is_sqlalchemy_connectable(con)
     if _SQLALCHEMY_INSTALLED:
         try:
-            from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
+            from sqlalchemy.ext.asyncio import (
+                AsyncEngine,
+                AsyncConnection
+            )
+
             return isinstance(con, (AsyncEngine, AsyncConnection))
         except ModuleNotFoundError:
             return False
@@ -352,12 +356,15 @@ def read_sql_table(
             async with pandas_sql.engine.connect() as conn:
                 await conn.run_sync(metadata.reflect, views=True, only=[table_name])
             pandas_sql._metadata = metadata
-            table = await pandas_sql.read_table(table_name,
-                                                index_col=index_col,
-                                                coerce_float=coerce_float,
-                                                parse_dates=parse_dates,
-                                                columns=columns,
-                                                chunksize=chunksize)
+            table = await pandas_sql.read_table(
+                table_name,
+                index_col=index_col,
+                coerce_float=coerce_float,
+                parse_dates=parse_dates,
+                columns=columns,
+                chunksize=chunksize
+            )
+
             if table is not None:
                 return table
             else:
@@ -1075,11 +1082,9 @@ class SQLTable(PandasObject):
 
         return sql_select
 
-    def _create_df_from_result(self,
-                               result,
-                               coerce_float=True,
-                               parse_dates=None,
-                               chunksize=None):
+    def _create_df_from_result(
+        self, result, coerce_float=True, parse_dates=None, chunksize=None
+    ):
         column_names = result.keys()
 
         if chunksize is not None:
@@ -1106,10 +1111,12 @@ class SQLTable(PandasObject):
     def read(self, coerce_float=True, parse_dates=None, columns=None, chunksize=None):
         sql_select = self._selector_from_columns(columns)
         result = self.pd_sql.execute(sql_select)
-        return self._create_df_from_result(result,
-                                           coerce_float=coerce_float,
-                                           parse_dates=parse_dates,
-                                           chunksize=chunksize)
+        return self._create_df_from_result(
+            result,
+            coerce_float=coerce_float,
+            parse_dates=parse_dates,
+            chunksize=chunksize
+        )
 
     def _index_name(self, index, index_label):
         # for writing: index=True to include index in sql table
@@ -1189,7 +1196,7 @@ class SQLTable(PandasObject):
             schema = self.schema or self.pd_sql.meta.schema
         else:
             # This should never be triggered
-            raise TypeError('self is somehow not a SQLTable or AsyncSQLTable')
+            raise TypeError("self is somehow not a SQLTable or AsyncSQLTable")
 
         # At this point, attach to new metadata, only attach to self.meta
         # once table is created.
@@ -1359,18 +1366,19 @@ class AsyncSQLTable(SQLTable):
     def __await__(self):
         return self.__async_init__().__await__()
 
-    async def read(self, coerce_float=True,
-                   parse_dates=None,
-                   columns=None,
-                   chunksize=None):
+    async def read(
+        self, coerce_float=True, parse_dates=None, columns=None, chunksize=None
+    ):
         sql_select = self._selector_from_columns(columns)
 
         result = await self.pd_sql.execute(sql_select)
 
-        return self._create_df_from_result(result,
-                                           coerce_float=coerce_float,
-                                           parse_dates=parse_dates,
-                                           chunksize=chunksize)
+        return self._create_df_from_result(
+            result,
+            coerce_float=coerce_float,
+            parse_dates=parse_dates,
+            chunksize=chunksize
+        )
 
     async def exists(self):
         return await self.pd_sql.has_table(self.name, self.schema)
@@ -1403,9 +1411,11 @@ class AsyncSQLTable(SQLTable):
         data = [dict(zip(keys, row)) for row in data_iter]
         await conn.execute(self.table.insert().values(data))
 
-    async def insert(self,
-                     chunksize: Optional[int] = None,
-                     method: Optional[str] = None):
+    async def insert(
+        self,
+        chunksize: Optional[int] = None,
+        method: Optional[str] = None
+    ):
         exec_insert = self._get_insertion_method(method)
 
         keys, data_list = self.insert_data()
@@ -1587,14 +1597,16 @@ class SQLDatabase(PandasSQL):
                     dtype=dtype,
                 )
 
-    def _convert_result_to_df(self,
-                              result,
-                              index_col: Optional[str] = None,
-                              coerce_float: bool = True,
-                              parse_dates=None,
-                              params=None,
-                              chunksize: Optional[int] = None,
-                              dtype: Optional[DtypeArg] = None):
+    def _convert_result_to_df(
+        self,
+        result,
+        index_col: Optional[str] = None,
+        coerce_float: bool = True,
+        parse_dates=None,
+        params=None,
+        chunksize: Optional[int] = None,
+        dtype: Optional[DtypeArg] = None
+    ):
         columns = result.keys()
 
         if chunksize is not None:
@@ -1677,13 +1689,15 @@ class SQLDatabase(PandasSQL):
         """
         args = _convert_params(sql, params)
         result = self.execute(*args)
-        return self._convert_result_to_df(result,
-                                          index_col=index_col,
-                                          coerce_float=coerce_float,
-                                          parse_dates=parse_dates,
-                                          params=params,
-                                          chunksize=chunksize,
-                                          dtype=dtype)
+        return self._convert_result_to_df(
+            result,
+            index_col=index_col,
+            coerce_float=coerce_float,
+            parse_dates=parse_dates,
+            params=params,
+            chunksize=chunksize,
+            dtype=dtype
+        )
 
     read_sql = read_query
 
@@ -1887,11 +1901,16 @@ class SQLDatabase(PandasSQL):
 
 class AsyncSQLDatabase(SQLDatabase):
     def __init__(self, connectable, schema: Optional[str] = None, meta=None):
-        from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
+        from sqlalchemy.ext.asyncio import (
+            AsyncEngine,
+            AsyncConnection
+        )
 
         if not isinstance(connectable, (AsyncEngine, AsyncConnection)):
-            raise TypeError(('connectable argument must be an AsyncEngine '
-                            f'or an AsyncConnection, not {type(connectable)!r}'))
+            raise TypeError(
+                "connectable argument must be an AsyncEngine "
+                f"or an AsyncConnection, not {type(connectable)!r}"
+            )
         if isinstance(connectable, AsyncEngine):
             self.engine = connectable
         else:
@@ -1911,7 +1930,7 @@ class AsyncSQLDatabase(SQLDatabase):
 
     @property
     async def metadata(self):
-        if not hasattr(self, '_metadata'):
+        if not hasattr(self, "_metadata"):
             from sqlalchemy.schema import MetaData
             self._metadata = MetaData()
 
@@ -1929,8 +1948,9 @@ class AsyncSQLDatabase(SQLDatabase):
 
     async def get_table(self, table_name: str, schema: Optional[str] = None):
         # TODO: Change schema to schema or self.schema
-        return (await self.metadata).tables.get(".".join([schema, table_name])
-                                                if schema else table_name)
+        return (await self.metadata).tables.get(
+            ".".join([schema, table_name]) if schema else table_name
+        )
 
     async def drop_table(self, table_name: str, schema: Optional[str] = None):
         schema = schema or self.meta.schema
@@ -1940,14 +1960,16 @@ class AsyncSQLDatabase(SQLDatabase):
             async with self.engine.connect() as conn:
                 await conn.run_sync(table.drop, conn)
 
-    async def read_table(self,
-                         table_name: str,
-                         index_col: Optional[Union[str, Sequence[str]]] = None,
-                         coerce_float: bool = True,
-                         parse_dates=None,
-                         columns=None,
-                         schema: Optional[str] = None,
-                         chunksize: Optional[int] = None):
+    async def read_table(
+        self,
+        table_name: str,
+        index_col: Optional[Union[str, Sequence[str]]] = None,
+        coerce_float: bool = True,
+        parse_dates=None,
+        columns=None,
+        schema: Optional[str] = None,
+        chunksize: Optional[int] = None
+    ):
         table = await AsyncSQLTable(table_name, self, index=index_col, schema=schema)
         return await table.read(
             coerce_float=coerce_float,
@@ -1956,46 +1978,54 @@ class AsyncSQLDatabase(SQLDatabase):
             chunksize=chunksize,
         )
 
-    async def read_query(self,
-                         sql: str,
-                         index_col: Optional[str] = None,
-                         coerce_float: bool = True,
-                         parse_dates=None,
-                         params=None,
-                         chunksize: Optional[int] = None,
-                         dtype: Optional[DtypeArg] = None):
+    async def read_query(
+        self,
+        sql: str,
+        index_col: Optional[str] = None,
+        coerce_float: bool = True,
+        parse_dates=None,
+        params=None,
+        chunksize: Optional[int] = None,
+        dtype: Optional[DtypeArg] = None
+    ):
         from sqlalchemy import text
 
         result = await self.execute(text(sql), parameters=params)
 
-        return self._convert_result_to_df(result,
-                                          index_col=index_col,
-                                          coerce_float=coerce_float,
-                                          parse_dates=parse_dates,
-                                          params=params,
-                                          chunksize=chunksize,
-                                          dtype=dtype)
+        return self._convert_result_to_df(
+            result,
+            index_col=index_col,
+            coerce_float=coerce_float,
+            parse_dates=parse_dates,
+            params=params,
+           chunksize=chunksize,
+           dtype=dtype
+        )
 
-    async def to_sql(self,
-                     frame,
-                     name,
-                     if_exists="fail",
-                     index=True,
-                     index_label=None,
-                     schema=None,
-                     chunksize=None,
-                     dtype: Optional[DtypeArg] = None,
-                     method=None):
+    async def to_sql(
+        self,
+        frame,
+        name,
+        if_exists="fail",
+        index=True,
+        index_label=None,
+        schema=None,
+        chunksize=None,
+        dtype: Optional[DtypeArg] = None,
+        method=None
+    ):
         dtype = self._check_dtype(frame, dtype)
 
-        table = AsyncSQLTable(name,
-                              self,
-                              frame=frame,
-                              index=index,
-                              if_exists=if_exists,
-                              index_label=index_label,
-                              schema=schema,
-                              dtype=dtype)
+        table = AsyncSQLTable(
+            name,
+            self,
+            frame=frame,
+            index=index,
+            if_exists=if_exists,
+            index_label=index_label,
+            schema=schema,
+            dtype=dtype
+        )
         await table.create()
 
         with self._my_sql_error():
