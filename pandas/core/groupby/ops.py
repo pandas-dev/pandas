@@ -620,7 +620,7 @@ class BaseGrouper:
         cls = dtype.construct_array_type()
 
         return cls(
-            res_values.astype(dtype.type, copy=False), mask.astype(bool, copy=True)
+            res_values.astype(dtype.type, copy=False), mask.astype(bool, copy=False)
         )
 
     @final
