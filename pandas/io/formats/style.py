@@ -983,7 +983,6 @@ class Styler:
 
         See Also
         --------
-        Styler.where: Apply CSS-styles based on a conditional function elementwise.
         Styler.applymap: Apply a CSS-styling function elementwise.
 
         Notes
@@ -1041,7 +1040,6 @@ class Styler:
 
         See Also
         --------
-        Styler.where: Apply CSS-styles based on a conditional function elementwise.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
         Notes
@@ -1076,6 +1074,8 @@ class Styler:
         Updates the HTML representation with a style which is
         selected in accordance with the return value of a function.
 
+        .. deprecated:: 1.3.0
+
         Parameters
         ----------
         cond : callable
@@ -1101,20 +1101,29 @@ class Styler:
 
         Notes
         -----
+        This method is deprecated.
+
         This method is a convenience wrapper for :meth:`Styler.applymap`, which we
         recommend using instead.
 
-        Instead of the example:
+        The example:
         >>> df = pd.DataFrame([[1, 2], [3, 4]])
-        >>> def cond(v, bad_val=4):
-        ...     return v > 1 and v != bad_val
+        >>> def cond(v, limit=4):
+        ...     return v > 1 and v != limit
         >>> df.style.where(cond, value='color:green;', other='color:red;')
 
-        we would recommend:
-        >>> def style_func(v, good_css, bad_css, bad_val=4):
-        ...     return good_css if v > 1 and v != bad_val else bad_css
-        >>> df.style.applymap(style_func, good_css='color:green;', bad_css='color:red;')
+        should be refactored to:
+        >>> def style_func(v, value, other, limit=4):
+        ...     cond = v > 1 and v != limit
+        ...     return value if cond else other
+        >>> df.style.applymap(style_func, value='color:green;', other='color:red;')
         """
+        warnings.warn(
+            "this method is deprecated in favour of `Styler.applymap()`",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         if other is None:
             other = ""
 
