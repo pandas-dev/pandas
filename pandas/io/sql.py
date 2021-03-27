@@ -1914,13 +1914,13 @@ class AsyncSQLDatabase(SQLDatabase):
         else:
             self.engine = connectable.engine
 
+        self.schema = schema
+
         self._tables_added = False
 
         if meta:
             self._metadata = meta
             self._tables_added = True
-
-        self.schema = schema or (await self.metadata).schema
 
     async def execute(self, *args, **kwargs):
         async with self.engine.connect() as conn:
@@ -1940,18 +1940,18 @@ class AsyncSQLDatabase(SQLDatabase):
         return self._metadata
 
     async def has_table(self, table_name: str, schema: Optional[str] = None):
-        schema = schema or self.schema
+        # TODO: Change schema to schema or self.schema
         async with self.engine.connect() as conn:
             return await conn.run_sync(conn.dialect.has_table, table_name, schema)
 
     async def get_table(self, table_name: str, schema: Optional[str] = None):
-        schema = schema or self.schema
+        # TODO: Change schema to schema or self.schema
         return (await self.metadata).tables.get(
             ".".join([schema, table_name]) if schema else table_name
         )
 
     async def drop_table(self, table_name: str, schema: Optional[str] = None):
-        schema = schema or self.schema
+        schema = schema or self.meta.schema
         if await self.has_table(table_name, schema):
             table = self.get_table(table_name, schema)
             (await self.metadata).remove(table)
