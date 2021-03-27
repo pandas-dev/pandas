@@ -202,6 +202,7 @@ class Styler:
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
+        self.format(formatter=None, precision=precision, na_rep=na_rep)
 
     def _repr_html_(self) -> str:
         """
