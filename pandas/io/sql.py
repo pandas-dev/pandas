@@ -1998,8 +1998,8 @@ class AsyncSQLDatabase(SQLDatabase):
             coerce_float=coerce_float,
             parse_dates=parse_dates,
             params=params,
-           chunksize=chunksize,
-           dtype=dtype
+            chunksize=chunksize,
+            dtype=dtype
         )
 
     async def to_sql(
