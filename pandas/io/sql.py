@@ -86,14 +86,15 @@ def _is_async_sqlalchemy_connectable(con):
     if _SQLALCHEMY_INSTALLED:
         try:
             from sqlalchemy.ext.asyncio import (
-                AsyncEngine,
                 AsyncConnection,
+                AsyncEngine,
             )
 
             return isinstance(con, (AsyncEngine, AsyncConnection))
         except ModuleNotFoundError:
             return False
     return False
+
 
 def _gt14() -> bool:
     """
@@ -350,6 +351,7 @@ def read_sql_table(
         else:
             raise ValueError(f"Table {table_name} not found", con)
     elif _is_async_sqlalchemy_connectable(con):
+
         async def read_table():
             metadata = MetaData()
             pandas_sql = AsyncSQLDatabase(con)
@@ -369,6 +371,7 @@ def read_sql_table(
                 return table
             else:
                 raise ValueError(f"Table {table_name} not found", con)
+
         return read_table()
     else:
         raise NotImplementedError(
@@ -1930,6 +1933,7 @@ class AsyncSQLDatabase(SQLDatabase):
     async def metadata(self):
         if not hasattr(self, "_metadata"):
             from sqlalchemy.schema import MetaData
+
             self._metadata = MetaData()
 
         if not self._tables_added:
