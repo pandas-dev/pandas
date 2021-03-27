@@ -2365,6 +2365,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 else:
                     categories[index] = new_value
                     cat.rename_categories(categories, inplace=True)
+            elif isna(replace_value) and (cat._codes == -1).any():
+                if new_value in cat.categories:
+                    categories = cat.categories.tolist()
+                    value_index = categories.index(new_value)
+                    cat._codes[cat._codes == -1] = value_index
+                else:
+                    cat.add_categories(new_value, inplace=True)
+                    new_value = len(cat.categories) - 1
+
+                cat._codes[cat._codes == -1] = new_value
+
         if not inplace:
             return cat
 
