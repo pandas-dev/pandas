@@ -962,7 +962,7 @@ ctypedef fused rank_t:
 def rank_1d(
     ndarray[rank_t, ndim=1] values,
     const intp_t[:] labels,
-    bint is_datetimelike,
+    bint is_datetimelike=False,
     ties_method="average",
     bint ascending=True,
     bint pct=False,
@@ -978,7 +978,7 @@ def rank_1d(
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`. If not called
         from a groupby operation, will be an array of 0's
-    is_datetimelike : bool
+    is_datetimelike : bool, default False
         True if `values` contains datetime-like entries.
     ties_method : {'average', 'min', 'max', 'first', 'dense'}, default
         'average'
@@ -1277,8 +1277,8 @@ def rank_1d(
 
 def rank_2d(
     ndarray[rank_t, ndim=2] in_arr,
-    bint is_datetimelike,
     int axis=0,
+    bint is_datetimelike=False,
     ties_method="average",
     bint ascending=True,
     na_option="keep",

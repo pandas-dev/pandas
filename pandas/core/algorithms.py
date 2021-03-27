@@ -1046,8 +1046,8 @@ def rank(
     elif values.ndim == 2:
         ranks = algos.rank_2d(
             values,
-            is_datetimelike=is_datetimelike,
             axis=axis,
+            is_datetimelike=is_datetimelike,
             ties_method=method,
             ascending=ascending,
             na_option=na_option,
