@@ -1951,9 +1951,9 @@ class AsyncSQLDatabase(SQLDatabase):
         )
 
     async def drop_table(self, table_name: str, schema: Optional[str] = None):
-        schema = schema or self.meta.schema
+        schema = schema or self.schema
         if await self.has_table(table_name, schema):
-            table = self.get_table(table_name, schema)
+            table = await self.get_table(table_name, schema)
             (await self.metadata).remove(table)
             async with self.engine.connect() as conn:
                 await conn.run_sync(table.drop, conn)
