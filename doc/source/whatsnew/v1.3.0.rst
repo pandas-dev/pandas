@@ -635,6 +635,8 @@ Groupby/resample/rolling
 - Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would not retain ``com``, ``span``, ``alpha`` or ``halflife`` attributes  (:issue:`40164`)
 - :class:`core.window.ewm.ExponentialMovingWindow` now raises a ``NotImplementedError`` when specifying ``times`` with ``adjust=False`` due to an incorrect calculation (:issue:`40098`)
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
+- Bug in :class:`SeriesGroupBy` and :class:`DataFrameGroupBy` computing wrong result for methods ``cummin`` and ``cummax`` with nullable data types too large to roundtrip when casting to float (:issue:`37493`)
+-
 
 Reshaping
 ^^^^^^^^^
