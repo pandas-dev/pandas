@@ -126,8 +126,9 @@ Example Usage:
    from sqlalchemy.ext.asyncio import create_async_engine
 
    engine = create_async_engine('postgresql+asyncpg://anakin:skywalker@localhost/test')
-   
+
    async def sql_operations():
+
       # Accessing a table with the AsyncEngine
       umbara = await pd.read_sql('umbara', engine)
       # Can alternatively be written as: await pd.read_sql_table('umbara', engine)
@@ -135,15 +136,15 @@ Example Usage:
       # Using an SQL query with the AsyncConnection
       async with engine.connect() as conn:
          seasons = await pd.read_sql_query('SELECT season6, season5, season7 FROM clonewars', conn)
-      
+
       favs = pd.DataFrame({
          'FirstName': ['Mace', 'Obi-Wan', 'Ahsoka'],
          'LastName': ['Windu', 'Kenobi', 'Tano']
       })
-      
+
       # Writing data with the AsyncEngine
       await favs.to_sql('jedi', engine)
-   
+
    asyncio.run(sql_operations())
 
 .. |AsyncEngine| replace:: ``AsyncEngine``
