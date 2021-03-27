@@ -488,8 +488,8 @@ class BaseGrouper:
                 raise
         else:
             if values.dtype.kind in ["i", "u"]:
-                if how in ["ohlc"]:
-                    # The output may still include nans, so we have to cast
+                if how in ["add", "var", "prod", "mean", "ohlc"]:
+                    # For OHLC the output may still include nans, so we have to cast
                     values = ensure_float64(values)
 
         return func, values

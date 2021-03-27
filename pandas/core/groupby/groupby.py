@@ -1602,7 +1602,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Standard deviation of values within each group.
         """
         return self._get_cythonized_result(
-            "group_var_float64",
+            "group_var",
             aggregate=True,
             needs_counts=True,
             needs_values=True,

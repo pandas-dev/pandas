@@ -514,7 +514,7 @@ group_add_complex128 = _group_add['double complex']
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _group_prod(floating[:, ::1] out,
+def group_prod(floating[:, ::1] out,
                 int64_t[::1] counts,
                 ndarray[floating, ndim=2] values,
                 const intp_t[:] labels,
@@ -560,14 +560,10 @@ def _group_prod(floating[:, ::1] out,
                     out[i, j] = prodx[i, j]
 
 
-group_prod_float32 = _group_prod['float']
-group_prod_float64 = _group_prod['double']
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-def _group_var(floating[:, ::1] out,
+def group_var(floating[:, ::1] out,
                int64_t[::1] counts,
                ndarray[floating, ndim=2] values,
                const intp_t[:] labels,
@@ -619,13 +615,9 @@ def _group_var(floating[:, ::1] out,
                     out[i, j] /= (ct - ddof)
 
 
-group_var_float32 = _group_var['float']
-group_var_float64 = _group_var['double']
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _group_mean(floating[:, ::1] out,
+def group_mean(floating[:, ::1] out,
                 int64_t[::1] counts,
                 ndarray[floating, ndim=2] values,
                 const intp_t[::1] labels,
@@ -673,10 +665,6 @@ def _group_mean(floating[:, ::1] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j] / count
-
-
-group_mean_float32 = _group_mean['float']
-group_mean_float64 = _group_mean['double']
 
 
 @cython.wraparound(False)
