@@ -1654,7 +1654,9 @@ class TestDataFrameReplace:
 
     # Replace with an existing category and one which will add a new category
     @pytest.mark.parametrize("new_value", ["c", "b"])
-    def test_replace_categorical_missing_vals(self, frame_or_series, unique_nulls_fixture, new_value):
+    def test_replace_categorical_missing_vals(
+        self, frame_or_series, unique_nulls_fixture, new_value
+    ):
         # GH-40472
         obj = frame_or_series([unique_nulls_fixture, "b"], dtype="category")
 
