@@ -87,7 +87,7 @@ def _is_async_sqlalchemy_connectable(con):
         try:
             from sqlalchemy.ext.asyncio import (
                 AsyncEngine,
-                AsyncConnection
+                AsyncConnection,
             )
 
             return isinstance(con, (AsyncEngine, AsyncConnection))
@@ -362,7 +362,7 @@ def read_sql_table(
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 columns=columns,
-                chunksize=chunksize
+                chunksize=chunksize,
             )
 
             if table is not None:
@@ -1115,7 +1115,7 @@ class SQLTable(PandasObject):
             result,
             coerce_float=coerce_float,
             parse_dates=parse_dates,
-            chunksize=chunksize
+            chunksize=chunksize,
         )
 
     def _index_name(self, index, index_label):
@@ -1377,7 +1377,7 @@ class AsyncSQLTable(SQLTable):
             result,
             coerce_float=coerce_float,
             parse_dates=parse_dates,
-            chunksize=chunksize
+            chunksize=chunksize,
         )
 
     async def exists(self):
@@ -1412,9 +1412,7 @@ class AsyncSQLTable(SQLTable):
         await conn.execute(self.table.insert().values(data))
 
     async def insert(
-        self,
-        chunksize: Optional[int] = None,
-        method: Optional[str] = None
+        self, chunksize: Optional[int] = None, method: Optional[str] = None
     ):
         exec_insert = self._get_insertion_method(method)
 
@@ -1605,7 +1603,7 @@ class SQLDatabase(PandasSQL):
         parse_dates=None,
         params=None,
         chunksize: Optional[int] = None,
-        dtype: Optional[DtypeArg] = None
+        dtype: Optional[DtypeArg] = None,
     ):
         columns = result.keys()
 
@@ -1696,7 +1694,7 @@ class SQLDatabase(PandasSQL):
             parse_dates=parse_dates,
             params=params,
             chunksize=chunksize,
-            dtype=dtype
+            dtype=dtype,
         )
 
     read_sql = read_query
@@ -1902,8 +1900,8 @@ class SQLDatabase(PandasSQL):
 class AsyncSQLDatabase(SQLDatabase):
     def __init__(self, connectable, schema: Optional[str] = None, meta=None):
         from sqlalchemy.ext.asyncio import (
+            AsyncConnection,
             AsyncEngine,
-            AsyncConnection
         )
 
         if not isinstance(connectable, (AsyncEngine, AsyncConnection)):
@@ -1968,7 +1966,7 @@ class AsyncSQLDatabase(SQLDatabase):
         parse_dates=None,
         columns=None,
         schema: Optional[str] = None,
-        chunksize: Optional[int] = None
+        chunksize: Optional[int] = None,
     ):
         table = await AsyncSQLTable(table_name, self, index=index_col, schema=schema)
         return await table.read(
@@ -1986,7 +1984,7 @@ class AsyncSQLDatabase(SQLDatabase):
         parse_dates=None,
         params=None,
         chunksize: Optional[int] = None,
-        dtype: Optional[DtypeArg] = None
+        dtype: Optional[DtypeArg] = None,
     ):
         from sqlalchemy import text
 
@@ -1999,7 +1997,7 @@ class AsyncSQLDatabase(SQLDatabase):
             parse_dates=parse_dates,
             params=params,
             chunksize=chunksize,
-            dtype=dtype
+            dtype=dtype,
         )
 
     async def to_sql(
@@ -2012,7 +2010,7 @@ class AsyncSQLDatabase(SQLDatabase):
         schema=None,
         chunksize=None,
         dtype: Optional[DtypeArg] = None,
-        method=None
+        method=None,
     ):
         dtype = self._check_dtype(frame, dtype)
 
@@ -2024,7 +2022,7 @@ class AsyncSQLDatabase(SQLDatabase):
             if_exists=if_exists,
             index_label=index_label,
             schema=schema,
-            dtype=dtype
+            dtype=dtype,
         )
         await table.create()
 
