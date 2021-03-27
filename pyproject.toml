@@ -35,7 +35,7 @@ exclude = '''
 
 [tool.pytest.ini_options]
 minversion =  "6.0"
-addopts = "--strict-data-files --strict-markers"
+addopts = "--strict-data-files --strict-markers --capture=no --durations=30 --junitxml=test-data.xml"
 xfail_strict = true
 testpaths = "pandas"
 doctest_optionflags = [
