@@ -510,7 +510,18 @@ class Block(libinternals.Block, PandasObject):
             res_blocks.extend(rbs)
         return res_blocks
 
+    @final
     def _maybe_downcast(self, blocks: List[Block], downcast=None) -> List[Block]:
+
+        if self.dtype == _dtype_obj:
+            # TODO: why is behavior different for object dtype?
+            if downcast is not None:
+                return blocks
+
+            # split and convert the blocks
+            return extend_blocks(
+                [blk.convert(datetime=True, numeric=False) for blk in blocks]
+            )
 
         # no need to downcast our float
         # unless indicated
@@ -520,6 +531,7 @@ class Block(libinternals.Block, PandasObject):
 
         return extend_blocks([b.downcast(downcast) for b in blocks])
 
+    @final
     def downcast(self, dtypes=None) -> List[Block]:
         """ try to downcast each item to the dict of dtypes if present """
         # turn it off completely
@@ -801,10 +813,20 @@ class Block(libinternals.Block, PandasObject):
 
         rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(pairs):
+            convert = i == src_len  # only convert once at the end
             new_rb: List[Block] = []
-            for blk in rb:
-                m = masks[i]
-                convert = i == src_len  # only convert once at the end
+
+            # GH-39338: _replace_coerce can split a block into
+            # single-column blocks, so track the index so we know
+            # where to index into the mask
+            for blk_num, blk in enumerate(rb):
+                if len(rb) == 1:
+                    m = masks[i]
+                else:
+                    mib = masks[i]
+                    assert not isinstance(mib, bool)
+                    m = mib[blk_num : blk_num + 1]
+
                 result = blk._replace_coerce(
                     to_replace=src,
                     value=dest,
@@ -1375,6 +1397,7 @@ class Block(libinternals.Block, PandasObject):
         blocks = [new_block(new_values, placement=new_placement, ndim=2)]
         return blocks, mask
 
+    @final
     def quantile(
         self, qs: Float64Index, interpolation="linear", axis: int = 0
     ) -> Block:
@@ -1951,14 +1974,6 @@ class ObjectBlock(Block):
         )
         res_values = ensure_block_shape(res_values, self.ndim)
         return [self.make_block(res_values)]
-
-    def _maybe_downcast(self, blocks: List[Block], downcast=None) -> List[Block]:
-
-        if downcast is not None:
-            return blocks
-
-        # split and convert the blocks
-        return extend_blocks([b.convert(datetime=True, numeric=False) for b in blocks])
 
     def _can_hold_element(self, element: Any) -> bool:
         return True
