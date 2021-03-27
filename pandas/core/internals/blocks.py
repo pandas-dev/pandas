@@ -13,6 +13,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -68,6 +69,7 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
+from pandas.core.dtypes.inference import is_inferred_bool_dtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -103,6 +105,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+import pandas.core.computation.expressions as expressions
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -156,21 +159,10 @@ class Block(libinternals.Block, PandasObject):
 
     __slots__ = ()
     is_numeric = False
-    is_bool = False
     is_object = False
     is_extension = False
     _can_consolidate = True
     _validate_ndim = True
-
-    @property
-    def _holder(self):
-        """
-        The array-like that can hold the underlying values.
-
-        None for 'Block', overridden by subclasses that don't
-        use an ndarray.
-        """
-        return None
 
     @final
     @property
@@ -198,7 +190,22 @@ class Block(libinternals.Block, PandasObject):
     @final
     @property
     def is_categorical(self) -> bool:
-        return self._holder is Categorical
+        warnings.warn(
+            "Block.is_categorical is deprecated and will be removed in a "
+            "future version.  Use isinstance(block.values, Categorical) "
+            "instead.  See https://github.com/pandas-dev/pandas/issues/40226",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return isinstance(self.values, Categorical)
+
+    @final
+    @property
+    def is_bool(self) -> bool:
+        """
+        We can be bool if a) we are bool dtype or b) object dtype with bool objects.
+        """
+        return is_inferred_bool_dtype(self.values)
 
     @final
     def external_values(self):
@@ -503,7 +510,18 @@ class Block(libinternals.Block, PandasObject):
             res_blocks.extend(rbs)
         return res_blocks
 
+    @final
     def _maybe_downcast(self, blocks: List[Block], downcast=None) -> List[Block]:
+
+        if self.dtype == _dtype_obj:
+            # TODO: why is behavior different for object dtype?
+            if downcast is not None:
+                return blocks
+
+            # split and convert the blocks
+            return extend_blocks(
+                [blk.convert(datetime=True, numeric=False) for blk in blocks]
+            )
 
         # no need to downcast our float
         # unless indicated
@@ -513,6 +531,7 @@ class Block(libinternals.Block, PandasObject):
 
         return extend_blocks([b.downcast(downcast) for b in blocks])
 
+    @final
     def downcast(self, dtypes=None) -> List[Block]:
         """ try to downcast each item to the dict of dtypes if present """
         # turn it off completely
@@ -757,8 +776,10 @@ class Block(libinternals.Block, PandasObject):
         """
         See BlockManager._replace_list docstring.
         """
+        values = self.values
+
         # TODO: dont special-case Categorical
-        if self.is_categorical and len(algos.unique(dest_list)) == 1:
+        if isinstance(values, Categorical) and len(algos.unique(dest_list)) == 1:
             # We likely got here by tiling value inside NDFrame.replace,
             #  so un-tile here
             return self.replace(src_list, dest_list[0], inplace, regex)
@@ -773,17 +794,17 @@ class Block(libinternals.Block, PandasObject):
 
         src_len = len(pairs) - 1
 
-        if self.is_object:
+        if values.dtype == _dtype_obj:
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
-            mask = ~isna(self.values)
+            mask = ~isna(values)
             masks = [
-                compare_or_regex_search(self.values, s[0], regex=regex, mask=mask)
+                compare_or_regex_search(values, s[0], regex=regex, mask=mask)
                 for s in pairs
             ]
         else:
             # GH#38086 faster if we know we dont need to check for regex
-            masks = [missing.mask_missing(self.values, s[0]) for s in pairs]
+            masks = [missing.mask_missing(values, s[0]) for s in pairs]
 
         # error: Argument 1 to "extract_bool_array" has incompatible type
         # "Union[ExtensionArray, ndarray, bool]"; expected "Union[ExtensionArray,
@@ -792,10 +813,20 @@ class Block(libinternals.Block, PandasObject):
 
         rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(pairs):
+            convert = i == src_len  # only convert once at the end
             new_rb: List[Block] = []
-            for blk in rb:
-                m = masks[i]
-                convert = i == src_len  # only convert once at the end
+
+            # GH-39338: _replace_coerce can split a block into
+            # single-column blocks, so track the index so we know
+            # where to index into the mask
+            for blk_num, blk in enumerate(rb):
+                if len(rb) == 1:
+                    m = masks[i]
+                else:
+                    mib = masks[i]
+                    assert not isinstance(mib, bool)
+                    m = mib[blk_num : blk_num + 1]
+
                 result = blk._replace_coerce(
                     to_replace=src,
                     value=dest,
@@ -1204,7 +1235,7 @@ class Block(libinternals.Block, PandasObject):
         Take values according to indexer and return them as a block.bb
 
         """
-        # algos.take_nd dispatches for DatetimeTZBlock
+        # algos.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
         # so need to preserve types
         # sparse is treated like an ndarray, but needs .get_values() shaping
 
@@ -1267,8 +1298,6 @@ class Block(libinternals.Block, PandasObject):
         -------
         List[Block]
         """
-        import pandas.core.computation.expressions as expressions
-
         assert cond.ndim == self.ndim
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
@@ -1287,7 +1316,8 @@ class Block(libinternals.Block, PandasObject):
 
         if noop:
             # TODO: avoid the downcasting at the end in this case?
-            result = values
+            # GH-39595: Always return a copy
+            result = values.copy()
         else:
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
@@ -1367,6 +1397,7 @@ class Block(libinternals.Block, PandasObject):
         blocks = [new_block(new_values, placement=new_placement, ndim=2)]
         return blocks, mask
 
+    @final
     def quantile(
         self, qs: Float64Index, interpolation="linear", axis: int = 0
     ) -> Block:
@@ -1403,7 +1434,7 @@ class ExtensionBlock(Block):
     Notes
     -----
     This holds all 3rd-party extension array types. It's also the immediate
-    parent class for our internal extension types' blocks.
+    parent class for our internal extension types' blocks, CategoricalBlock.
 
     ExtensionArrays are limited to 1-D.
     """
@@ -1463,11 +1494,6 @@ class ExtensionBlock(Block):
 
         new_values[mask] = new
         return [self.make_block(values=new_values)]
-
-    @property
-    def _holder(self):
-        # For extension blocks, the holder is values-dependent.
-        return type(self.values)
 
     @property
     def is_view(self) -> bool:
@@ -1674,7 +1700,7 @@ class ExtensionBlock(Block):
             # NotImplementedError for class not implementing `__setitem__`
             # TypeError for SparseArray, which implements just to raise
             # a TypeError
-            result = self._holder._from_sequence(
+            result = type(self.values)._from_sequence(
                 np.where(cond, self.values, other), dtype=dtype
             )
 
@@ -1745,10 +1771,6 @@ class NumericBlock(Block):
         # error: Argument 1 to "can_hold_element" has incompatible type
         # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
         return can_hold_element(self.dtype, element)  # type: ignore[arg-type]
-
-    @property
-    def is_bool(self):
-        return self.dtype.kind == "b"
 
 
 class NDArrayBackedExtensionBlock(HybridMixin, Block):
@@ -1864,10 +1886,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     def array_values(self):
         return ensure_wrapped_if_datetimelike(self.values)
 
-    @property
-    def _holder(self):
-        return type(self.array_values())
-
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
@@ -1916,14 +1934,6 @@ class ObjectBlock(Block):
 
     values: np.ndarray
 
-    @property
-    def is_bool(self):
-        """
-        we can be a bool if we have only bool values but are of type
-        object
-        """
-        return lib.is_bool_array(self.values.ravel("K"))
-
     @maybe_split
     def reduce(self, func, ignore_failures: bool = False) -> List[Block]:
         """
@@ -1965,16 +1975,13 @@ class ObjectBlock(Block):
         res_values = ensure_block_shape(res_values, self.ndim)
         return [self.make_block(res_values)]
 
-    def _maybe_downcast(self, blocks: List[Block], downcast=None) -> List[Block]:
-
-        if downcast is not None:
-            return blocks
-
-        # split and convert the blocks
-        return extend_blocks([b.convert(datetime=True, numeric=False) for b in blocks])
-
     def _can_hold_element(self, element: Any) -> bool:
         return True
+
+
+class CategoricalBlock(ExtensionBlock):
+    # this Block type is kept for backwards-compatibility
+    __slots__ = ()
 
 
 # -----------------------------------------------------------------
@@ -2038,7 +2045,7 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
     elif isinstance(dtype, CategoricalDtype):
-        cls = ExtensionBlock
+        cls = CategoricalBlock
     elif vtype is Timestamp:
         cls = DatetimeTZBlock
     elif vtype is Interval or vtype is Period:
