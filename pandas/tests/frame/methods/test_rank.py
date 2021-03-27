@@ -6,7 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
 from pandas._libs.algos import (
     Infinity,
     NegInfinity,
@@ -396,7 +395,10 @@ class TestRank:
                 "int64",
             ),
             ([NegInfinity(), "1", "A", "BA", "Ba", "C", Infinity()], "object"),
-            ([datetime(2001, 1, 1), datetime(2001, 1, 2), datetime(2001, 1, 5)], "datetime64"),
+            (
+                [datetime(2001, 1, 1), datetime(2001, 1, 2), datetime(2001, 1, 5)],
+                "datetime64",
+            ),
         ],
     )
     def test_rank_inf_and_nan(self, contents, dtype, frame_or_series):
@@ -404,7 +406,7 @@ class TestRank:
             "float64": np.nan,
             "float32": np.nan,
             "object": None,
-            "datetime64": np.datetime64('nat'),
+            "datetime64": np.datetime64("nat"),
         }
         # Insert nans at random positions if underlying dtype has missing
         # value. Then adjust the expected order by adding nans accordingly

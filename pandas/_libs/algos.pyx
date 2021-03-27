@@ -1062,7 +1062,7 @@ def rank_1d(
         if rank_t is object:
             nan_fill_val = NegInfinity()
         elif rank_t is int64_t:
-            nan_fill_val = np.iinfo(np.int64).min
+            nan_fill_val = NPY_NAT
         elif rank_t is uint64_t:
             nan_fill_val = 0
         else:
