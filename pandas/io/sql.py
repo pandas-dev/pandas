@@ -1998,7 +1998,6 @@ class AsyncSQLDatabase(SQLDatabase):
         if not name.isdigit() and not name.islower():
             if await self.has_table(name):
                 self._warn_table_name_mismatch()
-        
 
 
 # ---- SQL without SQLAlchemy ---
