@@ -72,6 +72,7 @@ from pandas.core.indexes.api import (
 # ----------------------------------------------------------------
 # pytest
 
+
 def pytest_addoption(parser):
     parser.addoption("--skip-slow", action="store_true", help="skip slow tests")
     parser.addoption("--skip-network", action="store_true", help="skip network tests")
