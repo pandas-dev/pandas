@@ -307,6 +307,7 @@ class StringArray(PandasArray):
 
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
+
         if is_dtype_equal(dtype, self.dtype):
             if copy:
                 return self.copy()
