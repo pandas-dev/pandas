@@ -484,7 +484,6 @@ class BaseGrouper:
         -------
         func : callable
         values : np.ndarray
-        needs_mask : True if a mask must be passed
         """
         try:
             func = _get_cython_function(kind, how, values.dtype, is_numeric)
@@ -500,8 +499,7 @@ class BaseGrouper:
                 func = _get_cython_function(kind, how, values.dtype, is_numeric)
             else:
                 raise
-        needs_mask = how in _CYTHON_FUNCTIONS["needs_mask"]
-        return func, values, needs_mask
+        return func, values
 
     @final
     def _disallow_invalid_ops(
@@ -656,8 +654,9 @@ class BaseGrouper:
         # if not raise NotImplementedError
         self._disallow_invalid_ops(dtype, how, is_numeric)
 
+        func_uses_mask = cython_function_uses_mask(how)
         if is_extension_array_dtype(dtype):
-            if isinstance(values, BaseMaskedArray) and cython_function_uses_mask(how):
+            if isinstance(values, BaseMaskedArray) and func_uses_mask:
                 return self._masked_ea_wrap_cython_operation(
                     kind, values, how, axis, min_count, **kwargs
                 )
@@ -706,11 +705,9 @@ class BaseGrouper:
                 )
             out_shape = (self.ngroups,) + values.shape[1:]
 
-        func, values, needs_mask = self._get_cython_func_and_vals(
-            kind, how, values, is_numeric
-        )
+        func, values = self._get_cython_func_and_vals(kind, how, values, is_numeric)
         use_mask = mask is not None
-        if needs_mask:
+        if func_uses_mask:
             if mask is None:
                 mask = np.zeros_like(values, dtype=np.uint8, order="C")
 

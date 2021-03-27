@@ -1299,7 +1299,7 @@ def group_cummin_max(groupby_t[:, ::1] out,
         bint val_is_nan
 
     N, K = (<object>values).shape
-    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype, order="C")
+    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
     if groupby_t is int64_t:
         accum[:] = -_int64_max if compute_max else _int64_max
     elif groupby_t is uint64_t:
