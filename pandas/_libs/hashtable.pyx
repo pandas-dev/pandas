@@ -65,6 +65,24 @@ cdef Py_ssize_t _INIT_VEC_CAP = 128
 include "hashtable_class_helper.pxi"
 include "hashtable_func_helper.pxi"
 
+
+# map derived hash-map types onto basic hash-map types:
+if np.dtype(np.intp) == np.dtype(np.int64):
+    IntpHashTable = Int64HashTable
+    value_count_intp = value_count_int64
+    duplicated_intp = duplicated_int64
+    ismember_intp = ismember_int64
+    mode_intp = mode_int64
+elif np.dtype(np.intp) == np.dtype(np.int32):
+    IntpHashTable = Int32HashTable
+    value_count_intp = value_count_int32
+    duplicated_intp = duplicated_int32
+    ismember_intp = ismember_int32
+    mode_intp = mode_int32
+else:
+    raise ValueError(np.dtype(np.intp))
+
+
 cdef class Factorizer:
     cdef readonly:
         Py_ssize_t count

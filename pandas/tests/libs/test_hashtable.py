@@ -44,6 +44,7 @@ def get_allocated_khash_memory():
         (ht.UInt16HashTable, np.uint16),
         (ht.Int8HashTable, np.int8),
         (ht.UInt8HashTable, np.uint8),
+        (ht.IntpHashTable, np.intp),
     ],
 )
 class TestHashTable:
@@ -389,6 +390,7 @@ def get_ht_function(fun_name, type_suffix):
         (np.uint16, "uint16"),
         (np.int8, "int8"),
         (np.uint8, "uint8"),
+        (np.intp, "intp"),
     ],
 )
 class TestHelpFunctions:
