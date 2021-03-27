@@ -998,7 +998,8 @@ def rank_1d(
         TiebreakEnumType tiebreak
         Py_ssize_t i, j, N, grp_start=0, dups=0, sum_ranks=0
         Py_ssize_t grp_vals_seen=1, grp_na_count=0
-        ndarray[int64_t, ndim=1] lexsort_indexer, grp_sizes
+        ndarray[int64_t, ndim=1] grp_sizes
+        ndarray[intp_t, ndim=1] lexsort_indexer
         ndarray[float64_t, ndim=1] out
         ndarray[rank_t, ndim=1] masked_vals
         ndarray[uint8_t, ndim=1] mask
@@ -1074,7 +1075,7 @@ def rank_1d(
     # each label corresponds to a different group value,
     # the mask helps you differentiate missing values before
     # performing sort on the actual values
-    lexsort_indexer = np.lexsort(order).astype(np.int64, copy=False)
+    lexsort_indexer = np.lexsort(order).astype(np.intp, copy=False)
 
     if not ascending:
         lexsort_indexer = lexsort_indexer[::-1]
