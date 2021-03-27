@@ -859,8 +859,8 @@ class Styler:
         self.ctx.clear()
         self.tooltips = None
         self.cell_context = {}
-
         self._todo.clear()
+
         self.hidden_index = False
         self.hidden_columns = []
         self.tooltips = None
