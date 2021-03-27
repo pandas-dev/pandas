@@ -1108,121 +1108,43 @@ class Block(libinternals.Block, PandasObject):
             m = missing.clean_fill_method(method)
         except ValueError:
             m = None
+        if m is None:
+            if self.dtype.kind != "f":
+                # only deal with floats
+                # bc we already checked that can_hold_na, we dont have int dtype here
+                return [self]
+
+        data = self.values if inplace else self.values.copy()
 
         if m is not None:
             if fill_value is not None:
                 # similar to validate_fillna_kwargs
                 raise ValueError("Cannot pass both fill_value and method")
 
-            return self._interpolate_with_fill(
+            interp_values = missing.interpolate_2d(
+                data,
                 method=m,
                 axis=axis,
-                inplace=inplace,
                 limit=limit,
                 limit_area=limit_area,
-                downcast=downcast,
             )
-        # validate the interp method
-        m = missing.clean_interp_method(method, **kwargs)
+        else:
+            assert index is not None  # for mypy
 
-        assert index is not None  # for mypy
-
-        return self._interpolate(
-            method=m,
-            index=index,
-            axis=axis,
-            limit=limit,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
-            fill_value=fill_value,
-            inplace=inplace,
-            downcast=downcast,
-            **kwargs,
-        )
-
-    @final
-    def _interpolate_with_fill(
-        self,
-        method: str = "pad",
-        axis: int = 0,
-        inplace: bool = False,
-        limit: Optional[int] = None,
-        limit_area: Optional[str] = None,
-        downcast: Optional[str] = None,
-    ) -> List[Block]:
-        """ fillna but using the interpolate machinery """
-        inplace = validate_bool_kwarg(inplace, "inplace")
-
-        assert self._can_hold_na  # checked by caller
-
-        values = self.values if inplace else self.values.copy()
-
-        values = missing.interpolate_2d(
-            values,
-            method=method,
-            axis=axis,
-            limit=limit,
-            limit_area=limit_area,
-        )
-
-        blocks = [self.make_block_same_class(values)]
-        return self._maybe_downcast(blocks, downcast)
-
-    @final
-    def _interpolate(
-        self,
-        method: str,
-        index: Index,
-        fill_value: Optional[Any] = None,
-        axis: int = 0,
-        limit: Optional[int] = None,
-        limit_direction: str = "forward",
-        limit_area: Optional[str] = None,
-        inplace: bool = False,
-        downcast: Optional[str] = None,
-        **kwargs,
-    ) -> List[Block]:
-        """ interpolate using scipy wrappers """
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        data = self.values if inplace else self.values.copy()
-
-        # only deal with floats
-        if self.dtype.kind != "f":
-            # bc we already checked that can_hold_na, we dont have int dtype here
-            return [self]
-
-        if is_valid_na_for_dtype(fill_value, self.dtype):
-            fill_value = self.fill_value
-
-        if method in ("krogh", "piecewise_polynomial", "pchip"):
-            if not index.is_monotonic:
-                raise ValueError(
-                    f"{method} interpolation requires that the index be monotonic."
-                )
-        # process 1-d slices in the axis direction
-
-        def func(yvalues: np.ndarray) -> np.ndarray:
-
-            # process a 1-d slice, returning it
-            # should the axis argument be handled below in apply_along_axis?
-            # i.e. not an arg to missing.interpolate_1d
-            return missing.interpolate_1d(
-                xvalues=index,
-                yvalues=yvalues,
+            interp_values = missing.interpolate_2d_with_fill(
+                data=data,
+                index=index,
+                axis=axis,
                 method=method,
                 limit=limit,
                 limit_direction=limit_direction,
                 limit_area=limit_area,
                 fill_value=fill_value,
-                bounds_error=False,
                 **kwargs,
             )
 
-        # interp each column independently
-        interp_values = np.apply_along_axis(func, axis, data)
-
-        blocks = [self.make_block_same_class(interp_values)]
-        return self._maybe_downcast(blocks, downcast)
+        nbs = [self.make_block_same_class(interp_values)]
+        return self._maybe_downcast(nbs, downcast)
 
     def take_nd(
         self,
