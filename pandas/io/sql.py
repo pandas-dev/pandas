@@ -1378,12 +1378,10 @@ class AsyncSQLTable(SQLTable):
     async def _execute_create(self):
         metadata = await self.pd_sql.metadata
         self.table = self.table.to_metadata(metadata)
-        print(metadata.tables)
         async with self.pd_sql.engine.begin() as conn:
             await conn.run_sync(self.table.create)
 
     async def create(self):
-        print('create is being called!')
         if await self.exists():
             if self.if_exists == "fail":
                 raise ValueError(f"Table '{self.name}' already exists.")
@@ -1395,7 +1393,6 @@ class AsyncSQLTable(SQLTable):
             else:
                 raise ValueError(f"'{self.if_exists}' is not valid for if_exists")
         else:
-            print('table not detected!')
             await self._execute_create()
 
     async def _execute_insert(self, conn, keys: List[str], data_iter):
