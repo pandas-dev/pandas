@@ -1732,7 +1732,7 @@ class SQLDatabase(PandasSQL):
                 raise err
 
     @staticmethod
-    def _warn_table_name_mismatch():
+    def _warn_table_name_mismatch(name):
         msg = (
             f"The provided table name '{name}' is not found exactly as "
             "such in the database after writing the table, possibly "
@@ -1828,7 +1828,7 @@ class SQLDatabase(PandasSQL):
                         schema=schema or self.meta.schema, connection=conn
                     )
             if name not in table_names:
-                self._warn_table_name_mismatch()
+                self._warn_table_name_mismatch(name)
 
     @property
     def tables(self):
@@ -2006,7 +2006,7 @@ class AsyncSQLDatabase(SQLDatabase):
 
         if not name.isdigit() and not name.islower():
             if await self.has_table(name):
-                self._warn_table_name_mismatch()
+                self._warn_table_name_mismatch(name)
 
 
 # ---- SQL without SQLAlchemy ---
