@@ -110,6 +110,47 @@ both XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
 
 For more, see :ref:`io.xml` in the user guide on IO tools.
 
+|AsyncEngine|_ and |AsyncConnection|_ now supported in Pandas SQL Functions/Methods
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:meth:`pandas.read_sql`, :meth:`pandas.read_sql_query`, :meth:`pandas.read_sql_table`, :meth:`DataFrame.to_sql`, and :meth:`Series.to_sql`
+can now accept an |AsyncEngine|_ or an |AsyncConnection|_ as a valid argument to ``con``. (:issue:`40654`)
+
+.. note::
+   Just as a friendly reminder, you **must** ``await`` the function/method when using an |AsyncEngine|_ or |AsyncConnection|_
+
+Example Usage:
+
+.. code-block:: python
+
+   import asyncio
+   from sqlalchemy.ext.asyncio import create_async_engine
+
+   engine = create_async_engine('postgresql+asyncpg://anakin:skywalker@localhost/test')
+   
+   async def sql_operations():
+      # Accessing a table with the AsyncEngine
+      umbara = await pd.read_sql('umbara', engine)
+      # Can alternatively be written as: await pd.read_sql_table('umbara', engine)
+
+      # Using an SQL query with the AsyncConnection
+      async with engine.connect() as conn:
+         seasons = await pd.read_sql_query('SELECT season6, season5, season7 FROM clonewars', conn)
+      
+      favs = pd.DataFrame({
+         'FirstName': ['Mace', 'Obi-Wan', 'Ahsoka'],
+         'LastName': ['Windu', 'Kenobi', 'Tano']
+      })
+      
+      # Writing data with the AsyncEngine
+      await favs.to_sql('jedi', engine)
+   
+   asyncio.run(sql_operations())
+
+.. |AsyncEngine| replace:: ``AsyncEngine``
+.. _AsyncEngine: https://docs.sqlalchemy.org/en/latest/orm/extensions/asyncio.html#sqlalchemy.ext.asyncio.AsyncEngine
+.. |AsyncConnection| replace:: ``AsyncConnection``
+.. _AsyncConnection: https://docs.sqlalchemy.org/en/latest/orm/extensions/asyncio.html#sqlalchemy.ext.asyncio.AsyncConnection
+
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements
