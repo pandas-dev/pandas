@@ -382,7 +382,7 @@ class TestRank:
                 "float32",
             ),
             ([np.iinfo(np.uint8).min, 1, 2, 100, np.iinfo(np.uint8).max], "uint8"),
-            pytest.param(
+            (
                 [
                     np.iinfo(np.int64).min,
                     -100,
@@ -394,20 +394,17 @@ class TestRank:
                     np.iinfo(np.int64).max,
                 ],
                 "int64",
-                marks=pytest.mark.xfail(
-                    reason="iNaT is equivalent to minimum value of dtype"
-                    "int64 pending issue GH#16674"
-                ),
             ),
             ([NegInfinity(), "1", "A", "BA", "Ba", "C", Infinity()], "object"),
+            ([datetime(2001, 1, 1), datetime(2001, 1, 2), datetime(2001, 1, 5)], "datetime64"),
         ],
     )
     def test_rank_inf_and_nan(self, contents, dtype, frame_or_series):
         dtype_na_map = {
             "float64": np.nan,
             "float32": np.nan,
-            "int64": iNaT,
             "object": None,
+            "datetime64": np.datetime64('nat'),
         }
         # Insert nans at random positions if underlying dtype has missing
         # value. Then adjust the expected order by adding nans accordingly
