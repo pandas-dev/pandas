@@ -998,13 +998,13 @@ def rank_1d(
         TiebreakEnumType tiebreak
         Py_ssize_t i, j, N, grp_start=0, dups=0, sum_ranks=0
         Py_ssize_t grp_vals_seen=1, grp_na_count=0
-        ndarray[int64_t, ndim=1] lexsort_indexer
-        ndarray[float64_t, ndim=1] grp_sizes, out
+        ndarray[int64_t, ndim=1] lexsort_indexer, grp_sizes
+        ndarray[float64_t, ndim=1] out
         ndarray[rank_t, ndim=1] masked_vals
         ndarray[uint8_t, ndim=1] mask
         bint keep_na, at_end, next_val_diff, check_labels, group_changed
         rank_t nan_fill_val
-        float64_t grp_size
+        int64_t grp_size
 
     tiebreak = tiebreakers[ties_method]
     if tiebreak == TIEBREAK_FIRST:
@@ -1017,7 +1017,7 @@ def rank_1d(
     # TODO Cython 3.0: cast won't be necessary (#2992)
     assert <Py_ssize_t>len(labels) == N
     out = np.empty(N)
-    grp_sizes = np.ones(N)
+    grp_sizes = np.ones(N, dtype=np.int64)
 
     # If all 0 labels, can short-circuit later label
     # comparisons
