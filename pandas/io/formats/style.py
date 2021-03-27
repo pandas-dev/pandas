@@ -202,7 +202,6 @@ class Styler:
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
-        self.format(formatter=None, precision=precision, na_rep=na_rep)
 
     def _repr_html_(self) -> str:
         """
@@ -860,7 +859,13 @@ class Styler:
         self.ctx.clear()
         self.tooltips = None
         self.cell_context = {}
-        self._todo = []
+
+        self._todo.clear()
+        self.hidden_index = False
+        self.hidden_columns = []
+        self.tooltips = None
+        # self.format and self.table_styles may be dependent on user
+        # input in self.__init__()
 
     def _compute(self):
         """
