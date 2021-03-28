@@ -368,7 +368,7 @@ In Excel, there are `merging of tables can be done through a VLOOKUP
 GroupBy
 -------
 
-In Excel, this can be done by using the `Query Editor <https://support.microsoft.com/en-us/office/introduction-to-the-query-editor-power-query-1d6cdb63-bf70-4ae8-a7d5-6ae9547004d9>`_.
+In Excel, this can be done by using the `Query Editor <hhttps://support.microsoft.com/en-us/office/about-power-query-in-excel-7104fbee-9e62-4cb9-a02e-5bfb1a6c536a>`_.
 
 .. image:: ../../_static/spreadsheets/group-by.png
 
