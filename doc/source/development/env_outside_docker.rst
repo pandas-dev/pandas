@@ -21,8 +21,8 @@ If you have setup your environment using ``conda``, the packages ``c-compiler``
 and ``cxx-compiler`` will install a fitting compiler for your platform that is
 compatible with the remaining conda packages. On Windows and macOS, you will
 also need to install the SDKs as they have to be distributed separately.
-These packages will be automatically installed by using ``pandas``'s
-``environment.yml``.
+These packages will automatically be installed by using the ``pandas``
+``environment.yml`` file.
 
 **Windows**
 
