@@ -96,7 +96,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string[arrow]")
     <ArrowStringArray>
     ['This is', 'some text', <NA>, 'data.']
-    Length: 4, dtype: arrow_string
+    Length: 4, dtype: string[pyarrow]
     """
 
     _dtype = StringDtype(storage="pyarrow")

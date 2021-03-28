@@ -1131,6 +1131,26 @@ def string_dtype(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[
+        "string",
+        "string[python]",
+        pytest.param(
+            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+        ),
+    ]
+)
+def nullable_string_dtype(request):
+    """
+    Parametrized fixture for string dtypes.
+
+    * 'string'
+    * 'string[python]'
+    * 'string[pyarrow]'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.BYTES_DTYPES)
 def bytes_dtype(request):
     """

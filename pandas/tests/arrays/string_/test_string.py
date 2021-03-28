@@ -14,9 +14,30 @@ from pandas.core.arrays.string_arrow import ArrowStringArray
 skip_if_no_pyarrow = td.skip_if_no("pyarrow", min_version="1.0.0")
 
 
-@pytest.fixture(params=["python", pytest.param("pyarrow", marks=skip_if_no_pyarrow)])
+def _is_pyarrow_dtype(dtype):
+    if isinstance(dtype, str):
+        if dtype == "string[pyarrow]":
+            return True
+    else:
+        if dtype.storage == "pyarrow":
+            return True
+    return False
+
+
+@pytest.fixture(
+    params=[
+        "string",
+        "string[python]",
+        pytest.param("string[pyarrow]", marks=skip_if_no_pyarrow),
+        pd.StringDtype(storage="python"),
+        pytest.param(
+            pd.StringDtype(storage="pyarrow"),
+            marks=skip_if_no_pyarrow,
+        ),
+    ]
+)
 def dtype(request):
-    return pd.StringDtype(storage=request.param)
+    return request.param
 
 
 @pytest.fixture(
@@ -30,7 +51,7 @@ def cls(request):
 
 
 def test_repr(dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         reason = (
             "AssertionError: assert '      A\n0     a\n1  None\n2     b' "
             "== '      A\n0     a\n1  <NA>\n2     b'"
@@ -91,7 +112,7 @@ def test_setitem_with_scalar_string(dtype):
     ],
 )
 def test_string_methods(input, method, dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         reason = "AttributeError: 'ArrowStringDtype' object has no attribute 'base'"
         mark = pytest.mark.xfail(reason=reason)
         request.node.add_marker(mark)
@@ -106,7 +127,7 @@ def test_string_methods(input, method, dtype, request):
 
 
 def test_astype_roundtrip(dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         reason = "ValueError: Could not convert object to NumPy datetime"
         mark = pytest.mark.xfail(reason=reason, raises=ValueError)
         request.node.add_marker(mark)
@@ -127,7 +148,7 @@ def test_astype_roundtrip(dtype, request):
 
 
 def test_add(dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         reason = (
             "TypeError: unsupported operand type(s) for +: 'ArrowStringArray' and "
             "'ArrowStringArray'"
@@ -155,7 +176,7 @@ def test_add(dtype, request):
 
 
 def test_add_2d(dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         reason = "Failed: DID NOT RAISE <class 'ValueError'>"
         mark = pytest.mark.xfail(reason=reason)
         request.node.add_marker(mark)
@@ -171,7 +192,7 @@ def test_add_2d(dtype, request):
 
 
 def test_add_sequence(dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         reason = (
             "TypeError: unsupported operand type(s) for +: 'ArrowStringArray' "
             "and 'list'"
@@ -192,7 +213,7 @@ def test_add_sequence(dtype, request):
 
 
 def test_mul(dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         reason = (
             "TypeError: unsupported operand type(s) for *: 'ArrowStringArray' and 'int'"
         )
@@ -275,7 +296,7 @@ def test_comparison_methods_scalar_not_string(all_compare_operators, dtype, requ
 
 
 def test_comparison_methods_array(all_compare_operators, dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         if all_compare_operators in ["__eq__", "__ne__"]:
             reason = "NotImplementedError: Neither scalar nor ArrowStringArray"
         else:
@@ -346,7 +367,7 @@ def test_from_sequence_no_mutate(copy, cls, request):
 
 
 def test_astype_int(dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         reason = "TypeError: Cannot interpret 'Int64Dtype()' as a data type"
         mark = pytest.mark.xfail(reason=reason)
         request.node.add_marker(mark)
@@ -358,9 +379,20 @@ def test_astype_int(dtype, request):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_astype_float(any_float_allowed_nullable_dtype):
+def test_astype_float(dtype, any_float_allowed_nullable_dtype, request):
     # Don't compare arrays (37974)
-    ser = pd.Series(["1.1", pd.NA, "3.3"], dtype="string")
+
+    if _is_pyarrow_dtype(dtype):
+        if any_float_allowed_nullable_dtype in {"Float32", "Float64"}:
+            reason = "TypeError: Cannot interpret 'Float32Dtype()' as a data type"
+        else:
+            reason = (
+                "TypeError: float() argument must be a string or a number, not 'NAType'"
+            )
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
+    ser = pd.Series(["1.1", pd.NA, "3.3"], dtype=dtype)
 
     result = ser.astype(any_float_allowed_nullable_dtype)
     expected = pd.Series([1.1, np.nan, 3.3], dtype=any_float_allowed_nullable_dtype)
@@ -378,7 +410,7 @@ def test_reduce(skipna, dtype):
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("skipna", [True, False])
 def test_min_max(method, skipna, dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         reason = "AttributeError: 'ArrowStringArray' object has no attribute 'max'"
         mark = pytest.mark.xfail(reason=reason)
         request.node.add_marker(mark)
@@ -395,7 +427,7 @@ def test_min_max(method, skipna, dtype, request):
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("box", [pd.Series, pd.array])
 def test_min_max_numpy(method, box, dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         if box is pd.array:
             reason = (
                 "TypeError: '<=' not supported between instances of 'str' and "
@@ -423,17 +455,25 @@ def test_reduce_missing(skipna, dtype):
         assert pd.isna(result)
 
 
-def test_fillna_args():
+def test_fillna_args(dtype, request):
     # GH 37987
 
-    arr = pd.array(["a", pd.NA], dtype="string")
+    if _is_pyarrow_dtype(dtype):
+        reason = (
+            "AssertionError: Regex pattern \"Cannot set non-string value '1' into "
+            "a StringArray.\" does not match 'Scalar must be NA or str'"
+        )
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
+    arr = pd.array(["a", pd.NA], dtype=dtype)
 
     res = arr.fillna(value="b")
-    expected = pd.array(["a", "b"], dtype="string")
+    expected = pd.array(["a", "b"], dtype=dtype)
     tm.assert_extension_array_equal(res, expected)
 
     res = arr.fillna(value=np.str_("b"))
-    expected = pd.array(["a", "b"], dtype="string")
+    expected = pd.array(["a", "b"], dtype=dtype)
     tm.assert_extension_array_equal(res, expected)
 
     msg = "Cannot set non-string value '1' into a StringArray."
@@ -449,7 +489,7 @@ def test_arrow_array(dtype):
     data = pd.array(["a", "b", "c"], dtype=dtype)
     arr = pa.array(data)
     expected = pa.array(list(data), type=pa.string(), from_pandas=True)
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         expected = pa.chunked_array(expected)
 
     assert arr.equals(expected)
@@ -465,14 +505,15 @@ def test_arrow_roundtrip(dtype):
     table = pa.table(df)
     assert table.field("a").type == "string"
     result = table.to_pandas()
-    assert isinstance(result["a"].dtype, type(dtype))
+    if not isinstance(dtype, str):
+        assert isinstance(result["a"].dtype, type(dtype))
     tm.assert_frame_equal(result, df)
     # ensure the missing value is represented by NA and not np.nan or None
     assert result.loc[2, "a"] is pd.NA
 
 
 def test_value_counts_na(dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         reason = "TypeError: boolean value of NA is ambiguous"
         mark = pytest.mark.xfail(reason=reason)
         request.node.add_marker(mark)
@@ -488,7 +529,7 @@ def test_value_counts_na(dtype, request):
 
 
 def test_value_counts_with_normalize(dtype, request):
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         reason = "TypeError: boolean value of NA is ambiguous"
         mark = pytest.mark.xfail(reason=reason)
         request.node.add_marker(mark)
@@ -525,7 +566,7 @@ def test_use_inf_as_na(values, expected, dtype):
 def test_memory_usage(dtype):
     # GH 33963
 
-    if dtype.storage == "pyarrow":
+    if _is_pyarrow_dtype(dtype):
         pytest.skip("not applicable")
 
     series = pd.Series(["a", "b", "c"], dtype=dtype)
