@@ -455,11 +455,11 @@ ctypedef fused complexfloating_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _group_add(complexfloating_t[:, ::1] out,
-               int64_t[::1] counts,
-               ndarray[complexfloating_t, ndim=2] values,
-               const intp_t[:] labels,
-               Py_ssize_t min_count=0):
+def group_add(complexfloating_t[:, ::1] out,
+              int64_t[::1] counts,
+              ndarray[complexfloating_t, ndim=2] values,
+              const intp_t[:] labels,
+              Py_ssize_t min_count=0):
     """
     Only aggregates on axis=0 using Kahan summation
     """
@@ -504,12 +504,6 @@ def _group_add(complexfloating_t[:, ::1] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j]
-
-
-group_add_float32 = _group_add['float32_t']
-group_add_float64 = _group_add['float64_t']
-group_add_complex64 = _group_add['float complex']
-group_add_complex128 = _group_add['double complex']
 
 
 @cython.wraparound(False)

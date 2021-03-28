@@ -489,7 +489,7 @@ class BaseGrouper:
         else:
             if values.dtype.kind in ["i", "u"]:
                 if how in ["add", "var", "prod", "mean", "ohlc"]:
-                    # For OHLC the output may still include nans, so we have to cast
+                    # result may still include NaN, so we have to cast
                     values = ensure_float64(values)
 
         return func, values
@@ -623,10 +623,9 @@ class BaseGrouper:
                 values = ensure_float64(values)
             else:
                 values = ensure_int_or_float(values)
-        elif is_numeric and not is_complex_dtype(dtype):
-            values = ensure_float64(values)
-        else:
-            values = values.astype(object)
+        elif is_numeric:
+            if not is_complex_dtype(dtype):
+                values = ensure_float64(values)
 
         arity = self._cython_arity.get(how, 1)
 
