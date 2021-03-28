@@ -69,16 +69,12 @@ include "hashtable_func_helper.pxi"
 # map derived hash-map types onto basic hash-map types:
 if np.dtype(np.intp) == np.dtype(np.int64):
     IntpHashTable = Int64HashTable
-    value_count_intp = value_count_int64
-    duplicated_intp = duplicated_int64
-    ismember_intp = ismember_int64
-    mode_intp = mode_int64
+    unique_label_indices = _unique_label_indices_int64
+    unique_label_indices_intp = _unique_label_indices_int64
 elif np.dtype(np.intp) == np.dtype(np.int32):
     IntpHashTable = Int32HashTable
-    value_count_intp = value_count_int32
-    duplicated_intp = duplicated_int32
-    ismember_intp = ismember_int32
-    mode_intp = mode_int32
+    unique_label_indices = _unique_label_indices_int64
+    unique_label_indices_intp = _unique_label_indices_int32
 else:
     raise ValueError(np.dtype(np.intp))
 
@@ -186,38 +182,3 @@ cdef class Int64Factorizer(Factorizer):
 
         self.count = len(self.uniques)
         return labels
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def unique_label_indices(const int64_t[:] labels) -> ndarray:
-    """
-    Indices of the first occurrences of the unique labels
-    *excluding* -1. equivalent to:
-        np.unique(labels, return_index=True)[1]
-    """
-    cdef:
-        int ret = 0
-        Py_ssize_t i, n = len(labels)
-        kh_int64_t *table = kh_init_int64()
-        Int64Vector idx = Int64Vector()
-        ndarray[int64_t, ndim=1] arr
-        Int64VectorData *ud = idx.data
-
-    kh_resize_int64(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
-
-    with nogil:
-        for i in range(n):
-            kh_put_int64(table, labels[i], &ret)
-            if ret != 0:
-                if needs_resize(ud):
-                    with gil:
-                        idx.resize()
-                append_data_int64(ud, i)
-
-    kh_destroy_int64(table)
-
-    arr = idx.to_array()
-    arr = arr[np.asarray(labels)[arr].argsort()]
-
-    return arr[1:] if arr.size != 0 and labels[arr[0]] == -1 else arr
