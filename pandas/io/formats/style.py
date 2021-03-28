@@ -2641,22 +2641,49 @@ def _parse_latex_cell_styles(
     `styles=[('emph', ''), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
     \emph{\cellcolor[rgb]{0,1,1}{display_value}}
 
-    Sometimes latex commands have to be wrapped with curly braces:
-    Instead of `\<command>{<text}` the necessary format is `{\<command> text}`
-    In this case if the keyphrase '--wrap' is detected in <options> it will return
-    correctly, for example:
+    Sometimes latex commands have to be wrapped with curly braces in different ways:
+    We create some parsing flags to identify the different behaviours:
+
+     - no flag (default): `\<command><options> {<display_value>}`
+     - `--wrap`         : `{\<command><options> <display_value>}`
+     - `--nowrap`       : `\<command><options> <display_value>`
+     - `--leftwrap`     : `{\<command><options>} <display_value>`
+     - `--dualwrap`     : `{\<command><options>} {<display_value>}`
+
+    For example:
     `styles=[('Huge', '--wrap'), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
     {\Huge \cellcolor[rgb]{0,1,1}{display_value}}
     """
+
     if convert_css:
         styles = _parse_latex_css_conversion(styles)
     for style in styles[::-1]:  # in reverse for most recently applied style
-        if "--wrap" in str(style[1]):
+        command = style[0]
+        options = style[1]
+
+        if "--wrap" in str(options):
             display_value = (
-                f"{{\\{style[0]}{str(style[1]).replace('--wrap','')} {display_value}}}"
+                f"{{\\{command}{_parse_latex_strip_arg(options, '--wrap')} "
+                f"{display_value}}}"
+            )
+        elif "--nowrap" in str(options):
+            display_value = (
+                f"\\{command}{_parse_latex_strip_arg(options, '--nowrap')} "
+                f"{display_value}"
+            )
+        elif "--leftwrap" in str(options):
+            display_value = (
+                f"{{\\{command}{_parse_latex_strip_arg(options, '--leftwrap')}}} "
+                f"{display_value}"
+            )
+        elif "--dualwrap" in str(options):
+            display_value = (
+                f"{{\\{command}{_parse_latex_strip_arg(options, '--dualwrap')}}} "
+                f"{{{display_value}}}"
             )
         else:
-            display_value = f"\\{style[0]}{style[1]}{{{display_value}}}"
+            display_value = f"\\{command}{options}{{{display_value}}}"
+
     return display_value
 
 
@@ -2694,23 +2721,24 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     Removed if no conversion found.
     """
 
-    def font_weight(value):
+    def font_weight(value, arg):
         if value == "bold" or value == "bolder":
-            return ("textbf", "")
+            return ("textbf", f"{arg}")
         return None
 
-    def font_style(value):
+    def font_style(value, arg):
         if value == "italic":
-            return ("textit", "")
+            return ("textit", f"{arg}")
         elif value == "oblique":
-            return ("textsl", "")
+            return ("textsl", f"{arg}")
         return None
 
-    def color(value, command):
+    def color(value, arg, command):
         if value[0] == "#" and len(value) == 7:  # color is hex code
-            return command, f"[HTML]{{{value[1:]}}}"
+            return command, f"[HTML]{{{value[1:].upper()}}}{arg}"
         if value[0] == "#" and len(value) == 4:  # color is short hex code
-            return command, f"[HTML]{{{value[1]*2}{value[2]*2}{value[3]*2}}}"
+            val = f"{value[1].upper()*2}{value[2].upper()*2}{value[3].upper()*2}"
+            return command, f"[HTML]{{{val}}}{arg}"
         elif value[:4] == "rgba":  # color is rgb with alpha
             r = re.search("(?<=\\()[0-9\\s%]+(?=,)", value)[0].strip()
             r = float(r[:-1]) / 100 if "%" in r else int(r) / 255
@@ -2719,7 +2747,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
             b = re.findall("(?<=,)[0-9\\s%]+(?=,)", value)[1].strip()
             b = float(b[:-1]) / 100 if "%" in b else int(b) / 255
             # a = re.search('(?<=,)[0-9\\s]+(?=\\))', value)[0].strip()
-            return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}"
+            return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}{arg}"
         elif value[:3] == "rgb":  # color is rgb
             r = re.search("(?<=\\()[0-9\\s%]+(?=,)", value)[0].strip()
             r = float(r[:-1]) / 100 if "%" in r else int(r) / 255
@@ -2729,7 +2757,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
             b = float(b[:-1]) / 100 if "%" in b else int(b) / 255
             return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}"
         else:
-            return command, f"{{{value}}}"  # color is likely string-named
+            return command, f"{{{value}}}{arg}"  # color is likely string-named
 
     CONVERTED_STYLES = {
         "font-weight": font_weight,
@@ -2740,11 +2768,29 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
 
     c_styles = []
     for style in styles:
-        if "--latex" in style[1]:
+        command, options = style
+
+        if "--latex" in options:
             # return the style without conversion but lose --latex option
-            c_styles.append((style[0], style[1].replace("--latex", "")))
-        if style[0] in CONVERTED_STYLES.keys():
-            c_style = CONVERTED_STYLES[style[0]](style[1])
+            c_styles.append((command, options.replace("--latex", "")))
+        if command in CONVERTED_STYLES.keys():
+            arg = ""
+            for v in ["--wrap", "--nowrap", "--leftwrap", "--dualwrap"]:
+                if v in str(options):
+                    arg, options = v, _parse_latex_strip_arg(options, v)
+                    break
+
+            c_style = CONVERTED_STYLES[command](options, arg)
             c_styles.extend([c_style] if c_style is not None else [])
 
     return c_styles
+
+
+def _parse_latex_strip_arg(options: Union[str, int, float], arg: str) -> str:
+    """
+    detect any given latex parsing arguments and css comment tags and remove them,
+    also stripping whitespace
+
+    For example: 'red /* --wrap */' --> 'red'
+    """
+    return str(options).replace(arg, "").replace("/*", "").replace("*/", "").strip()
