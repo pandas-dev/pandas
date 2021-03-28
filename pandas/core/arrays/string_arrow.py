@@ -139,7 +139,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
     @property
     def dtype(self) -> StringDtype:
         """
-        An instance of 'StringDtype[pyarrow]'.
+        An instance of 'string[pyarrow]'.
         """
         return self._dtype
 

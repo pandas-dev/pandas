@@ -141,9 +141,9 @@ class StringDtype(ExtensionDtype):
         if string == "string":
             # TODO: use global default
             return cls()
-        elif string in {"string[python]", "StringDtype[python]"}:
+        elif string == "string[python]":
             return cls(storage="python")
-        elif string in {"string[pyarrow]", "StringDtype[pyarrow]"}:
+        elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
