@@ -527,7 +527,7 @@ def test_to_numpy_alias():
         pytest.param(
             Timedelta(0).to_timedelta64(),
             marks=pytest.mark.xfail(
-                reason="td64 doesnt return NotImplemented, see numpy#17017"
+                reason="td64 doesn't return NotImplemented, see numpy#17017"
             ),
         ),
         Timestamp(0),
@@ -535,7 +535,7 @@ def test_to_numpy_alias():
         pytest.param(
             Timestamp(0).to_datetime64(),
             marks=pytest.mark.xfail(
-                reason="dt64 doesnt return NotImplemented, see numpy#17017"
+                reason="dt64 doesn't return NotImplemented, see numpy#17017"
             ),
         ),
         Timestamp(0).tz_localize("UTC"),

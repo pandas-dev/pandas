@@ -382,7 +382,8 @@ class TestDataFrameAnalytics:
             pass
 
     # TODO: Ensure warning isn't emitted in the first place
-    @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
+    # ignore mean of empty slice and all-NaN
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_median(self, float_frame_with_na, int_frame):
         def wrapper(x):
             if isna(x).any():
@@ -847,6 +848,13 @@ class TestDataFrameAnalytics:
         expected = Series([0, 0, np.nan], dtype="m8[ns]", index=idx)
         tm.assert_series_equal(result, expected)
 
+    def test_sum_nanops_min_count(self):
+        # https://github.com/pandas-dev/pandas/issues/39738
+        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+        result = df.sum(min_count=10)
+        expected = Series([np.nan, np.nan], index=["x", "y"])
+        tm.assert_series_equal(result, expected)
+
     def test_sum_object(self, float_frame):
         values = float_frame.values.astype(int)
         frame = DataFrame(values, index=float_frame.index, columns=float_frame.columns)
@@ -1155,6 +1163,9 @@ class TestDataFrameAnalytics:
         df = DataFrame({"A": ["foo", 2], "B": [True, False]}).astype(object)
         df._consolidate_inplace()
         df["C"] = Series([True, True])
+
+        # Categorical of bools is _not_ considered booly
+        df["D"] = df["C"].astype("category")
 
         # The underlying bug is in DataFrame._get_bool_data, so we check
         #  that while we're here

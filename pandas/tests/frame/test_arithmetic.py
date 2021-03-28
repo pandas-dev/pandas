@@ -7,6 +7,8 @@ import numpy as np
 import pytest
 import pytz
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -686,6 +688,7 @@ class TestFrameArithmetic:
         result = collike + df
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
     def test_df_arith_2d_array_rowlike_broadcasts(self, all_arithmetic_operators):
         # GH#23000
         opname = all_arithmetic_operators
@@ -707,6 +710,7 @@ class TestFrameArithmetic:
         result = getattr(df, opname)(rowlike)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
     def test_df_arith_2d_array_collike_broadcasts(self, all_arithmetic_operators):
         # GH#23000
         opname = all_arithmetic_operators
@@ -1351,7 +1355,7 @@ class TestFrameArithmeticUnsorted:
 
     def test_comparison_protected_from_errstate(self):
         missing_df = tm.makeDataFrame()
-        missing_df.iloc[0]["A"] = np.nan
+        missing_df.loc[missing_df.index[0], "A"] = np.nan
         with np.errstate(invalid="ignore"):
             expected = missing_df.values < 0
         with np.errstate(invalid="raise"):

@@ -46,6 +46,7 @@ from pandas._libs import (
 )
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
+    ArrayLike,
     F,
     FrameOrSeries,
     FrameOrSeriesUnion,
@@ -68,7 +69,6 @@ from pandas.core.dtypes.common import (
     ensure_float,
     is_bool_dtype,
     is_datetime64_dtype,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -84,7 +84,7 @@ from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
     Categorical,
-    DatetimeArray,
+    ExtensionArray,
 )
 from pandas.core.base import (
     DataError,
@@ -118,19 +118,19 @@ _common_see_also = """
 
 _apply_docs = {
     "template": """
-    Apply function `func` group-wise and combine the results together.
+    Apply function ``func`` group-wise and combine the results together.
 
-    The function passed to `apply` must take a {input} as its first
-    argument and return a DataFrame, Series or scalar. `apply` will
+    The function passed to ``apply`` must take a {input} as its first
+    argument and return a DataFrame, Series or scalar. ``apply`` will
     then take care of combining the results back together into a single
-    dataframe or series. `apply` is therefore a highly flexible
+    dataframe or series. ``apply`` is therefore a highly flexible
     grouping method.
 
-    While `apply` is a very flexible method, its downside is that
+    While ``apply`` is a very flexible method, its downside is that
     using it can be quite a bit slower than using more specific methods
-    like `agg` or `transform`. Pandas offers a wide range of method that will
-    be much faster than using `apply` for their specific purposes, so try to
-    use them before reaching for `apply`.
+    like ``agg`` or ``transform``. Pandas offers a wide range of method that will
+    be much faster than using ``apply`` for their specific purposes, so try to
+    use them before reaching for ``apply``.
 
     Parameters
     ----------
@@ -139,7 +139,7 @@ _apply_docs = {
         returns a dataframe, a series or a scalar. In addition the
         callable may take positional and keyword arguments.
     args, kwargs : tuple and dict
-        Optional positional and keyword arguments to pass to `func`.
+        Optional positional and keyword arguments to pass to ``func``.
 
     Returns
     -------
@@ -153,11 +153,23 @@ _apply_docs = {
     transform : Apply function column-by-column to the GroupBy object.
     Series.apply : Apply a function to a Series.
     DataFrame.apply : Apply a function to each row or column of a DataFrame.
+
+    Notes
+    -----
+    In the current implementation ``apply`` calls ``func`` twice on the
+    first group to decide whether it can take a fast or slow code
+    path. This can lead to unexpected behavior if ``func`` has
+    side-effects, as they will take effect twice for the first
+    group.
+
+    Examples
+    --------
+    {examples}
     """,
     "dataframe_examples": """
     >>> df = pd.DataFrame({'A': 'a a b'.split(),
-                           'B': [1,2,3],
-                           'C': [4,6, 5]})
+    ...                    'B': [1,2,3],
+    ...                    'C': [4,6, 5]})
     >>> g = df.groupby('A')
 
     Notice that ``g`` has two groups, ``a`` and ``b``.
@@ -192,8 +204,7 @@ _apply_docs = {
     A
     a    5
     b    2
-    dtype: int64
-    """,
+    dtype: int64""",
     "series_examples": """
     >>> s = pd.Series([0, 1, 2], index='a a b'.split())
     >>> g = s.groupby(s.index)
@@ -206,9 +217,9 @@ _apply_docs = {
     each group together into a new Series:
 
     >>> g.apply(lambda x:  x*2 if x.name == 'b' else x/2)
-    0    0.0
-    1    0.5
-    2    4.0
+    a    0.0
+    a    0.5
+    b    4.0
     dtype: float64
 
     Example 2: The function passed to `apply` takes a Series as
@@ -219,20 +230,7 @@ _apply_docs = {
     >>> g.apply(lambda x: x.max() - x.min())
     a    1
     b    0
-    dtype: int64
-
-    Notes
-    -----
-    In the current implementation `apply` calls `func` twice on the
-    first group to decide whether it can take a fast or slow code
-    path. This can lead to unexpected behavior if `func` has
-    side-effects, as they will take effect twice for the first
-    group.
-
-    Examples
-    --------
-    {examples}
-    """,
+    dtype: int64""",
 }
 
 _groupby_agg_method_template = """
@@ -330,7 +328,7 @@ f : function
 engine : str, default None
     * ``'cython'`` : Runs the function through C-extensions from cython.
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
-    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+    * ``None`` : Defaults to ``'cython'`` or the global setting ``compute.use_numba``
 
     .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
@@ -351,12 +349,12 @@ Returns
 
 See Also
 --------
-%(klass)s.groupby.apply : Apply function func group-wise
-    and combine the results together.
+%(klass)s.groupby.apply : Apply function ``func`` group-wise and combine
+    the results together.
 %(klass)s.groupby.aggregate : Aggregate using one or more
     operations over the specified axis.
-%(klass)s.transform : Transforms the Series on each group
-    based on the given function.
+%(klass)s.transform : Call ``func`` on self producing a %(klass)s with
+    transformed values.
 
 Notes
 -----
@@ -981,7 +979,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
 
         return self._wrap_applied_output(
-            keys, values, not_indexed_same=mutated or self.mutated
+            data, keys, values, not_indexed_same=mutated or self.mutated
         )
 
     def _iterate_slices(self) -> Iterable[Series]:
@@ -1027,7 +1025,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def _cython_transform(
         self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
     ):
-        output: Dict[base.OutputKey, np.ndarray] = {}
+        output: Dict[base.OutputKey, ArrayLike] = {}
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
@@ -1055,10 +1053,10 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     ):
         raise AbstractMethodError(self)
 
-    def _wrap_transformed_output(self, output: Mapping[base.OutputKey, np.ndarray]):
+    def _wrap_transformed_output(self, output: Mapping[base.OutputKey, ArrayLike]):
         raise AbstractMethodError(self)
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
+    def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
     @final
@@ -1100,7 +1098,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output: Dict[base.OutputKey, Union[np.ndarray, DatetimeArray]] = {}
+        output: Dict[base.OutputKey, ArrayLike] = {}
         # Ideally we would be able to enumerate self._iterate_slices and use
         # the index from enumeration as the key of output, but ohlc in particular
         # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
@@ -1133,7 +1131,27 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         if not output:
             raise DataError("No numeric types to aggregate")
 
-        return self._wrap_aggregated_output(output, index=self.grouper.result_index)
+        # error: Argument 1 to "_wrap_aggregated_output" of "BaseGroupBy" has
+        # incompatible type "Dict[OutputKey, Union[ndarray, DatetimeArray]]";
+        # expected "Mapping[OutputKey, ndarray]"
+        return self._wrap_aggregated_output(
+            output, index=self.grouper.result_index  # type: ignore[arg-type]
+        )
+
+    @final
+    def _numba_prep(self, func, data):
+        if not callable(func):
+            raise NotImplementedError(
+                "Numba engine can only be used with a single function."
+            )
+        labels, _, n_groups = self.grouper.group_info
+        sorted_index = get_group_index_sorter(labels, n_groups)
+        sorted_labels = labels.take(sorted_index)
+
+        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
+
+        starts, ends = lib.generate_slices(sorted_labels, n_groups)
+        return starts, ends, sorted_index, sorted_data
 
     @final
     def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
@@ -1144,16 +1162,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
-        if not callable(func):
-            raise NotImplementedError(
-                "Numba engine can only be used with a single function."
-            )
+        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
         group_keys = self.grouper._get_group_keys()
-        labels, _, n_groups = self.grouper.group_info
-        sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
-        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
-        starts, ends = lib.generate_slices(sorted_labels, n_groups)
 
         numba_transform_func = numba_.generate_numba_transform_func(
             tuple(args), kwargs, func, engine_kwargs
@@ -1179,16 +1189,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
-        if not callable(func):
-            raise NotImplementedError(
-                "Numba engine can only be used with a single function."
-            )
+        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
         group_keys = self.grouper._get_group_keys()
-        labels, _, n_groups = self.grouper.group_info
-        sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
-        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
-        starts, ends = lib.generate_slices(sorted_labels, n_groups)
 
         numba_agg_func = numba_.generate_numba_agg_func(
             tuple(args), kwargs, func, engine_kwargs
@@ -1546,11 +1548,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         2    4.0
         Name: B, dtype: float64
         """
-        return self._cython_agg_general(
+        result = self._cython_agg_general(
             "mean",
             alt=lambda x, axis: Series(x).mean(numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
+        return result.__finalize__(self.obj, method="groupby")
 
     @final
     @Substitution(name="groupby")
@@ -1572,11 +1575,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
             Median of values within each group.
         """
-        return self._cython_agg_general(
+        result = self._cython_agg_general(
             "median",
             alt=lambda x, axis: Series(x).median(axis=axis, numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
+        return result.__finalize__(self.obj, method="groupby")
 
     @final
     @Substitution(name="groupby")
@@ -1916,7 +1920,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.window import RollingGroupby
 
-        return RollingGroupby(self, *args, **kwargs)
+        return RollingGroupby(
+            self._selected_obj,
+            *args,
+            _grouper=self.grouper,
+            **kwargs,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -1928,7 +1937,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.window import ExpandingGroupby
 
-        return ExpandingGroupby(self, *args, **kwargs)
+        return ExpandingGroupby(
+            self._selected_obj,
+            *args,
+            _grouper=self.grouper,
+            **kwargs,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -1939,7 +1953,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.window import ExponentialMovingWindowGroupby
 
-        return ExponentialMovingWindowGroupby(self, *args, **kwargs)
+        return ExponentialMovingWindowGroupby(
+            self._selected_obj,
+            *args,
+            _grouper=self.grouper,
+            **kwargs,
+        )
 
     @final
     def _fill(self, direction, limit=None):
@@ -2245,27 +2264,31 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas import concat
 
-        def pre_processor(vals: np.ndarray) -> Tuple[np.ndarray, Optional[Type]]:
+        def pre_processor(vals: ArrayLike) -> Tuple[np.ndarray, Optional[np.dtype]]:
             if is_object_dtype(vals):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
 
-            inference = None
+            inference: Optional[np.dtype] = None
             if is_integer_dtype(vals.dtype):
-                if is_extension_array_dtype(vals.dtype):
-                    vals = vals.to_numpy(dtype=float, na_value=np.nan)
-                inference = np.int64
-            elif is_bool_dtype(vals.dtype) and is_extension_array_dtype(vals.dtype):
-                vals = vals.to_numpy(dtype=float, na_value=np.nan)
+                if isinstance(vals, ExtensionArray):
+                    out = vals.to_numpy(dtype=float, na_value=np.nan)
+                else:
+                    out = vals
+                inference = np.dtype(np.int64)
+            elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
+                out = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_datetime64_dtype(vals.dtype):
-                inference = "datetime64[ns]"
-                vals = np.asarray(vals).astype(float)
+                inference = np.dtype("datetime64[ns]")
+                out = np.asarray(vals).astype(float)
             elif is_timedelta64_dtype(vals.dtype):
-                inference = "timedelta64[ns]"
-                vals = np.asarray(vals).astype(float)
+                inference = np.dtype("timedelta64[ns]")
+                out = np.asarray(vals).astype(float)
+            else:
+                out = np.asarray(vals)
 
-            return vals, inference
+            return out, inference
 
         def post_processor(vals: np.ndarray, inference: Optional[Type]) -> np.ndarray:
             if inference:
@@ -2400,7 +2423,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         with group_selection_context(self):
             index = self._selected_obj.index
-            result = self._obj_1d_constructor(self.grouper.group_info[0], index)
+            result = self._obj_1d_constructor(
+                self.grouper.group_info[0], index, dtype=np.int64
+            )
             if not ascending:
                 result = self.ngroups - 1 - result
             return result
@@ -3074,18 +3099,19 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if weights is not None:
             weights = Series(weights, index=self._selected_obj.index)
-            ws = [weights[idx] for idx in self.indices.values()]
+            ws = [weights.iloc[idx] for idx in self.indices.values()]
         else:
             ws = [None] * self.ngroups
 
         if random_state is not None:
             random_state = com.random_state(random_state)
 
+        group_iterator = self.grouper.get_iterator(self._selected_obj, self.axis)
         samples = [
             obj.sample(
                 n=n, frac=frac, replace=replace, weights=w, random_state=random_state
             )
-            for (_, obj), w in zip(self, ws)
+            for (_, obj), w in zip(group_iterator, ws)
         ]
 
         return concat(samples, axis=self.axis)
