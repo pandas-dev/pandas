@@ -381,15 +381,17 @@ class TestDataFrameCombineFirst:
 
         tm.assert_frame_equal(res, exp)
 
-    def test_combine_first_string_dtype_only_na(self):
+    def test_combine_first_string_dtype_only_na(self, nullable_string_dtype):
         # GH: 37519
-        df = DataFrame({"a": ["962", "85"], "b": [pd.NA] * 2}, dtype="string")
-        df2 = DataFrame({"a": ["85"], "b": [pd.NA]}, dtype="string")
+        df = DataFrame(
+            {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
+        )
+        df2 = DataFrame({"a": ["85"], "b": [pd.NA]}, dtype=nullable_string_dtype)
         df.set_index(["a", "b"], inplace=True)
         df2.set_index(["a", "b"], inplace=True)
         result = df.combine_first(df2)
         expected = DataFrame(
-            {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype="string"
+            {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
         ).set_index(["a", "b"])
         tm.assert_frame_equal(result, expected)
 
