@@ -515,10 +515,10 @@ group_add_complex128 = _group_add['double complex']
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_prod(floating[:, ::1] out,
-                int64_t[::1] counts,
-                ndarray[floating, ndim=2] values,
-                const intp_t[:] labels,
-                Py_ssize_t min_count=0):
+               int64_t[::1] counts,
+               ndarray[floating, ndim=2] values,
+               const intp_t[:] labels,
+               Py_ssize_t min_count=0):
     """
     Only aggregates on axis=0
     """
@@ -564,11 +564,11 @@ def group_prod(floating[:, ::1] out,
 @cython.boundscheck(False)
 @cython.cdivision(True)
 def group_var(floating[:, ::1] out,
-               int64_t[::1] counts,
-               ndarray[floating, ndim=2] values,
-               const intp_t[:] labels,
-               Py_ssize_t min_count=-1,
-               int64_t ddof=1):
+              int64_t[::1] counts,
+              ndarray[floating, ndim=2] values,
+              const intp_t[:] labels,
+              Py_ssize_t min_count=-1,
+              int64_t ddof=1):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, ct, oldmean
@@ -618,10 +618,10 @@ def group_var(floating[:, ::1] out,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_mean(floating[:, ::1] out,
-                int64_t[::1] counts,
-                ndarray[floating, ndim=2] values,
-                const intp_t[::1] labels,
-                Py_ssize_t min_count=-1):
+               int64_t[::1] counts,
+               ndarray[floating, ndim=2] values,
+               const intp_t[::1] labels,
+               Py_ssize_t min_count=-1):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, count, y, t
