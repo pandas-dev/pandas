@@ -142,7 +142,7 @@ nbsphinx_requirejs_path = ""
 
 # sphinx-panels shouldn't add bootstrap css since the pydata-sphinx-theme
 # already loads it
-panels_add_boostrap_css = False
+panels_add_bootstrap_css = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]

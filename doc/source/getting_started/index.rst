@@ -539,7 +539,7 @@ the pandas-equivalent operations compared to software you already know:
     <div class="container">
         <div class="row">
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div class="card text-center intro-card shadow">
+                <div class="card text-center comparison-card shadow">
                 <img src="../_static/logo_r.svg" class="card-img-top" alt="R project logo" height="72">
                 <div class="card-body flex-fill">
                     <p class="card-text">The <a href="https://www.r-project.org/">R programming language</a> provides the <code>dataframe</code> data structure and multiple packages,
@@ -556,7 +556,7 @@ the pandas-equivalent operations compared to software you already know:
                 </div>
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div class="card text-center intro-card shadow">
+                <div class="card text-center comparison-card shadow">
                 <img src="../_static/logo_sql.svg" class="card-img-top" alt="SQL logo" height="72">
                 <div class="card-body flex-fill">
                     <p class="card-text">Already familiar to <code>SELECT</code>, <code>GROUP BY</code>, <code>JOIN</code>, etc.?
@@ -572,7 +572,7 @@ the pandas-equivalent operations compared to software you already know:
                     </div>
                 </div>
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                    <div class="card text-center intro-card shadow">
+                    <div class="card text-center comparison-card shadow">
                     <img src="../_static/logo_stata.svg" class="card-img-top" alt="STATA logo" height="52">
                     <div class="card-body flex-fill">
                         <p class="card-text">The <code>data set</code> included in the
@@ -590,7 +590,7 @@ the pandas-equivalent operations compared to software you already know:
                     </div>
                 </div>
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                    <div class="card text-center intro-card shadow">
+                    <div class="card text-center comparison-card shadow">
                     <img src="../_static/spreadsheets/logo_excel.svg" class="card-img-top" alt="Excel logo" height="52">
                     <div class="card-body flex-fill">
                         <p class="card-text">Users of <a href="https://en.wikipedia.org/wiki/Microsoft_Excel">Excel</a>
@@ -606,7 +606,7 @@ the pandas-equivalent operations compared to software you already know:
                     </div>
                 </div>
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                    <div class="card text-center intro-card shadow">
+                    <div class="card text-center comparison-card shadow">
                     <img src="../_static/logo_sas.svg" class="card-img-top" alt="SAS logo" height="52">
                     <div class="card-body flex-fill">
                         <p class="card-text">The  <a href="https://en.wikipedia.org/wiki/SAS_(software)">SAS</a> statistical software suite

@@ -131,19 +131,19 @@ ul.task-bullet > li > p:first-child {
 
 /* Getting started index page */
 
-.intro-card {
+.comparison-card {
   background:#FFF;
   border-radius:0;
   padding: 30px 10px 10px 10px;
   margin: 10px 0px;
 }
 
-.intro-card .card-text {
+.comparison-card .card-text {
   margin:20px 0px;
   /*min-height: 150px; */
 }
 
-.intro-card .card-img-top {
+.comparison-card .card-img-top {
   margin: 10px;
 }
 
