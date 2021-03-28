@@ -267,7 +267,7 @@ class MultiIndex(Index):
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html>`__
     for more.
 
     Examples
@@ -751,15 +751,6 @@ class MultiIndex(Index):
                 for idx, level in enumerate(self.levels)
             }
         )
-
-    @property
-    def shape(self) -> Shape:
-        """
-        Return a tuple of the shape of the underlying data.
-        """
-        # overriding the base Index.shape definition to avoid materializing
-        # the values (GH-27384, GH-27775)
-        return (len(self),)
 
     def __len__(self) -> int:
         return len(self.codes[0])
@@ -1952,7 +1943,7 @@ class MultiIndex(Index):
                     lev = lev.take(indexer)
 
                     # indexer to reorder the level codes
-                    indexer = ensure_int64(indexer)
+                    indexer = ensure_platform_int(indexer)
                     ri = lib.get_reverse_indexer(indexer, len(indexer))
                     level_codes = algos.take_nd(ri, level_codes)
 
@@ -3541,14 +3532,10 @@ class MultiIndex(Index):
             if not np.array_equal(self_mask, other_mask):
                 return False
             self_codes = self_codes[~self_mask]
-            self_values = algos.take_nd(
-                np.asarray(self.levels[i]._values), self_codes, allow_fill=False
-            )
+            self_values = self.levels[i]._values.take(self_codes)
 
             other_codes = other_codes[~other_mask]
-            other_values = algos.take_nd(
-                np.asarray(other.levels[i]._values), other_codes, allow_fill=False
-            )
+            other_values = other.levels[i]._values.take(other_codes)
 
             # since we use NaT both datetime64 and timedelta64 we can have a
             # situation where a level is typed say timedelta64 in self (IOW it

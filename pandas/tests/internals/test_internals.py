@@ -27,11 +27,7 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import (
-    DatetimeArray,
-    SparseArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import SparseArray
 from pandas.core.internals import (
     BlockManager,
     SingleBlockManager,
@@ -259,7 +255,7 @@ class TestBlock:
     def test_mgr_locs(self):
         assert isinstance(self.fblock.mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(
-            self.fblock.mgr_locs.as_array, np.array([0, 2, 4], dtype=np.int64)
+            self.fblock.mgr_locs.as_array, np.array([0, 2, 4], dtype=np.intp)
         )
 
     def test_attrs(self):
@@ -277,7 +273,7 @@ class TestBlock:
         newb.delete(0)
         assert isinstance(newb.mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(
-            newb.mgr_locs.as_array, np.array([2, 4], dtype=np.int64)
+            newb.mgr_locs.as_array, np.array([2, 4], dtype=np.intp)
         )
         assert (newb.values[0] == 1).all()
 
@@ -285,14 +281,14 @@ class TestBlock:
         newb.delete(1)
         assert isinstance(newb.mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(
-            newb.mgr_locs.as_array, np.array([0, 4], dtype=np.int64)
+            newb.mgr_locs.as_array, np.array([0, 4], dtype=np.intp)
         )
         assert (newb.values[1] == 2).all()
 
         newb = self.fblock.copy()
         newb.delete(2)
         tm.assert_numpy_array_equal(
-            newb.mgr_locs.as_array, np.array([0, 2], dtype=np.int64)
+            newb.mgr_locs.as_array, np.array([0, 2], dtype=np.intp)
         )
         assert (newb.values[1] == 1).all()
 
@@ -319,6 +315,12 @@ class TestBlock:
         ]
         for res, exp in zip(result, expected):
             assert_block_equal(res, exp)
+
+    def test_is_categorical_deprecated(self):
+        # GH#40571
+        blk = self.fblock
+        with tm.assert_produces_warning(DeprecationWarning):
+            blk.is_categorical
 
 
 class TestBlockManager:
@@ -665,7 +667,7 @@ class TestBlockManager:
         assert cons.nblocks == 1
         assert isinstance(cons.blocks[0].mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(
-            cons.blocks[0].mgr_locs.as_array, np.arange(len(cons.items), dtype=np.int64)
+            cons.blocks[0].mgr_locs.as_array, np.arange(len(cons.items), dtype=np.intp)
         )
 
     def test_reindex_items(self):
@@ -1095,7 +1097,7 @@ class TestBlockPlacement:
     )
     def test_slice_to_array_conversion(self, slc, arr):
         tm.assert_numpy_array_equal(
-            BlockPlacement(slc).as_array, np.asarray(arr, dtype=np.int64)
+            BlockPlacement(slc).as_array, np.asarray(arr, dtype=np.intp)
         )
 
     def test_blockplacement_add(self):
@@ -1300,21 +1302,6 @@ class TestShouldStore:
 
         # ndarray instead of Categorical
         assert not blk.should_store(np.asarray(cat))
-
-
-@pytest.mark.parametrize(
-    "typestr, holder",
-    [
-        ("category", Categorical),
-        ("M8[ns]", DatetimeArray),
-        ("M8[ns, US/Central]", DatetimeArray),
-        ("m8[ns]", TimedeltaArray),
-        ("sparse", SparseArray),
-    ],
-)
-def test_holder(typestr, holder, block_maker):
-    blk = create_block(typestr, [1], maker=block_maker)
-    assert blk._holder is holder
 
 
 def test_validate_ndim(block_maker):

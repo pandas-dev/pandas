@@ -1730,11 +1730,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             timeout -= 0.1
             assert timeout > 0, "Timed out waiting for file to appear on moto"
 
-    def test_json_pandas_na(self):
-        # GH 31615
-        result = DataFrame([[pd.NA]]).to_json()
-        assert result == '{"0":{"0":null}}'
-
     def test_json_pandas_nulls(self, nulls_fixture, request):
         # GH 31615
         if isinstance(nulls_fixture, Decimal):
