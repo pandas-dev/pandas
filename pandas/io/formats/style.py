@@ -1563,7 +1563,7 @@ class Styler:
             subset = self.data.select_dtypes(include=np.number).columns
 
         self.apply(
-            self._background_gradient,
+            partial(self._background_gradient, axis=axis),
             cmap=cmap,
             subset=subset,
             axis=axis,
@@ -1573,7 +1573,6 @@ class Styler:
             vmin=vmin,
             vmax=vmax,
             gmap=gmap,
-            axis_=axis,
         )
         return self
 
@@ -1587,7 +1586,7 @@ class Styler:
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
         gmap: Optional[Union[Sequence, np.ndarray, FrameOrSeries]] = None,
-        axis_: Optional[Axis] = None,
+        axis: Optional[Axis] = None,
     ):
         """
         Color background in a range according to the data or a gradient map
@@ -1595,7 +1594,7 @@ class Styler:
         if gmap is None:  # the data is used the gmap
             gmap = s.to_numpy(dtype=float)
         else:  # else validate gmap against the underlying data
-            gmap = _validate_apply_axis_arg(gmap, "gmap", float, axis_, s)
+            gmap = _validate_apply_axis_arg(gmap, "gmap", float, axis, s)
 
         with _mpl(Styler.background_gradient) as (plt, colors):
             smin = np.nanmin(gmap) if vmin is None else vmin
