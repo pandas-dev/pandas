@@ -5259,6 +5259,7 @@ Write to a feather file.
 Read from a feather file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_feather("example.feather")
    result
@@ -5342,6 +5343,7 @@ Write to a parquet file.
 Read from a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_parquet("example_fp.parquet", engine="fastparquet")
    result = pd.read_parquet("example_pa.parquet", engine="pyarrow")
