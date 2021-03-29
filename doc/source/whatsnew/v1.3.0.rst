@@ -302,6 +302,38 @@ cast to ``dtype=object`` (:issue:`38709`)
    ser2
 
 
+.. _whatsnew_130.notable_bug_fixes.rolling_groupby_column:
+
+GroupBy.rolling no longer returns grouped-by column in values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The group-by column will now be dropped from the result of a
+``groupby.rolling`` operation (:issue:`32262`)
+
+.. ipython:: python
+
+    df = pd.DataFrame({"A": [1, 1, 2, 3], "B": [0, 1, 2, 3]})
+    df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [1]: df.groupby("A").rolling(2).sum()
+    Out[1]:
+           A    B
+    A
+    1 0  NaN  NaN
+    1    2.0  1.0
+    2 2  NaN  NaN
+    3 3  NaN  NaN
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.groupby("A").rolling(2).sum()
+
 .. _whatsnew_130.notable_bug_fixes.rolling_var_precision:
 
 Removed artificial truncation in rolling variance and standard deviation
