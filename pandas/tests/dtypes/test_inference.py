@@ -1267,9 +1267,9 @@ class TestTypeInference:
     @pytest.mark.parametrize("klass", [pd.array, Series])
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
-    def test_string_dtype(self, data, skipna, klass, nullable_string_dtype):
+    def test_string_dtype(self, data, skipna, klass):
         # StringArray
-        val = klass(data, dtype=nullable_string_dtype)
+        val = klass(data, dtype="string")
         inferred = lib.infer_dtype(val, skipna=skipna)
         assert inferred == "string"
 
