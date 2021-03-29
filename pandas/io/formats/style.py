@@ -2567,7 +2567,9 @@ def _non_reducing_slice(slice_):
     return tuple(slice_)
 
 
-def _parse_latex_table_wrapping(styles: CSSStyles, caption: Optional[str]) -> bool:
+def _parse_latex_table_wrapping(
+    table_styles: CSSStyles, caption: Optional[str]
+) -> bool:
     """
     Discovers whether \\begin{tabular}..\\end{tabular} should be wrapped within
     \\begin{table}..\\end{table}
@@ -2578,14 +2580,14 @@ def _parse_latex_table_wrapping(styles: CSSStyles, caption: Optional[str]) -> bo
     IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
     # ignored selectors are included with {tabular} so do not need wrapping
     if (
-        styles is not None
-        and any(d["selector"] not in IGNORED_WRAPPERS for d in styles)
+        table_styles is not None
+        and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
     ) or caption:
         return True
     return False
 
 
-def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]:
+def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> Optional[str]:
     """
     Find the relevant first `props` `value` from a list of `(attribute,value)` tuples
     within `table_styles` identified by a given selector.
@@ -2598,13 +2600,13 @@ def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]
 
     Then for selector='bar', the return value is 'baz'.
     """
-    for style in styles[::-1]:  # in reverse for most recently applied style
+    for style in table_styles[::-1]:  # in reverse for most recently applied style
         if style["selector"] == selector:
             return str(style["props"][0][1]).replace("§", ":")
     return None
 
 
-def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
+def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
     r"""
     Build a recursive latex chain of commands based on CSS list values, nested around
     `display_value`.
@@ -2617,20 +2619,46 @@ def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
     `styles=[('emph', ''), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
     \emph{\cellcolor[rgb]{0,1,1}{display_value}}
 
-    Sometimes latex commands have to be wrapped with curly braces:
-    Instead of `\<command>{<text}` the necessary format is `{\<command> text}`
-    In this case if the keyphrase '--wrap' is detected in <options> it will return
-    correctly, for example:
+    Sometimes latex commands have to be wrapped with curly braces in different ways:
+    We create some parsing flags to identify the different behaviours:
+
+     - no flag (default): `\<command><options> {<display_value>}`
+     - `--wrap`         : `{\<command><options> <display_value>}`
+     - `--nowrap`       : `\<command><options> <display_value>`
+     - `--leftwrap`     : `{\<command><options>} <display_value>`
+     - `--dualwrap`     : `{\<command><options>} {<display_value>}`
+
+    For example:
     `styles=[('Huge', '--wrap'), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
     {\Huge \cellcolor[rgb]{0,1,1}{display_value}}
     """
-    for style in styles[::-1]:  # in reverse for most recently applied style
-        if "--wrap" in str(style[1]):
+    for style in latex_styles[::-1]:  # in reverse for most recently applied style
+        command = style[0]
+        options = style[1]
+
+        if "--wrap" in str(options):
             display_value = (
-                f"{{\\{style[0]}{str(style[1]).replace('--wrap','')} {display_value}}}"
+                f"{{\\{command}{_parse_latex_strip_arg(options, '--wrap')} "
+                f"{display_value}}}"
+            )
+        elif "--nowrap" in str(options):
+            display_value = (
+                f"\\{command}{_parse_latex_strip_arg(options, '--nowrap')} "
+                f"{display_value}"
+            )
+        elif "--leftwrap" in str(options):
+            display_value = (
+                f"{{\\{command}{_parse_latex_strip_arg(options, '--leftwrap')}}} "
+                f"{display_value}"
+            )
+        elif "--dualwrap" in str(options):
+            display_value = (
+                f"{{\\{command}{_parse_latex_strip_arg(options, '--dualwrap')}}}"
+                f"{{{display_value}}}"
             )
         else:
-            display_value = f"\\{style[0]}{style[1]}{{{display_value}}}"
+            display_value = f"\\{command}{options}{{{display_value}}}"
+
     return display_value
 
 
@@ -2656,3 +2684,13 @@ def _parse_latex_header_span(cell: Dict) -> str:
             rowspan = int(rowspan[: rowspan.find('"')])
             return f"\\multirow{{{rowspan}}}{{*}}{{{cell['display_value']}}}"
     return cell["display_value"]
+
+
+def _parse_latex_strip_arg(options: Union[str, int, float], arg: str) -> str:
+    """
+    Strip a css_value which may have latex wrapping arguments, css comment identifiers,
+    and whitespaces, to a valid string for latex options parsing.
+
+    For example: 'red /* --wrap */  ' --> 'red'
+    """
+    return str(options).replace(arg, "").replace("/*", "").replace("*/", "").strip()
