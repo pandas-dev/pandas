@@ -98,7 +98,8 @@ which can be used for a wide variety of time series data mining tasks.
 Visualization
 -------------
 
-While :ref:`pandas has built-in support for data visualization with matplotlib <visualization>`,
+`Pandas has its own Styler class for table visualization <user_guide/style.ipynb>`_, and while
+:ref:`pandas also has built-in support for data visualization through charts with matplotlib <visualization>`,
 there are a number of other pandas-compatible libraries.
 
 `Altair <https://altair-viz.github.io/>`__
