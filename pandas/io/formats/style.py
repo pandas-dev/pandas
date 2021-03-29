@@ -984,8 +984,6 @@ class Styler:
 
         Parameters
         ----------
-        latex : bool
-            Output in latex format rather than HTML.
         **kwargs
             Any additional keyword arguments are passed
             through to ``self.template.render``.
@@ -995,7 +993,7 @@ class Styler:
         Returns
         -------
         rendered : str
-            The rendered HTML (or LaTeX).
+            The rendered HTML.
 
         See Also
         --------
