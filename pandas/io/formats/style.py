@@ -488,7 +488,7 @@ class Styler:
         if caption:
             self.set_caption(caption)
 
-        latex = self.render(latex=True)
+        latex = self._render_latex()
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     @doc(
@@ -1023,21 +1023,27 @@ class Styler:
         """
         self._compute()
         # TODO: namespace all the pandas keys
-
-        if latex:
-            d = self._translate(blank="")
-            d = self._translate_latex(d)
-            template = self.template_latex
-            template.globals["parse_wrap"] = _parse_latex_table_wrapping
-            template.globals["parse_table"] = _parse_latex_table_styles
-            template.globals["parse_cell"] = _parse_latex_cell_styles
-            template.globals["parse_header"] = _parse_latex_header_span
-        else:  # standard CSS-HTML
-            d = self._translate()
-            template = self.template
+        d = self._translate()
 
         d.update(kwargs)
-        return template.render(**d)
+        return self.template.render(**d)
+
+    def _render_latex(self, **kwargs) -> str:
+        """
+        Render a Styler in latex format
+        """
+        self._compute()
+
+        d = self._translate(blank="")
+        d = self._translate_latex(d)
+
+        self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
+        self.template_latex.globals["parse_table"] = _parse_latex_table_styles
+        self.template_latex.globals["parse_cell"] = _parse_latex_cell_styles
+        self.template_latex.globals["parse_header"] = _parse_latex_header_span
+
+        d.update(kwargs)
+        return self.template_latex.render(**d)
 
     def _update_ctx(self, attrs: DataFrame) -> None:
         """
