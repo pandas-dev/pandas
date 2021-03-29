@@ -1668,7 +1668,7 @@ class SingleBlockManager(BlockManager, SingleDataManager):
 
     def array_values(self):
         """The array that Series.array returns"""
-        return self._block.array_values()
+        return self._block.array_values
 
     @property
     def _can_hold_na(self) -> bool:
