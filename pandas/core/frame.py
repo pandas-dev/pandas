@@ -472,12 +472,9 @@ class DataFrame(NDFrame, OpsMixin):
         Index to use for resulting frame. Will default to RangeIndex if
         no indexing information part of input data and no index provided.
     columns : Index or array-like
-        Columns to select from data or column labels to use for resulting frame.
-        Will use the provided labels for the column index if data does not
-        include column labels, defaulting to RangeIndex(0, 1, 2, ..., n).
-        If data does include column labels, will select the columns from data matching
-        with the provided labels to include in the frame, defaulting to
-        all columns.
+        Column labels to use for resulting frame when data does not have them,
+        defaulting to RangeIndex(0, 1, 2, ..., n). If data contains column labels,
+        will perform column selection instead.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
     copy : bool, default False
@@ -527,9 +524,9 @@ class DataFrame(NDFrame, OpsMixin):
     1  4  5  6
     2  7  8  9
 
-    >>> d = np.array([(1, 2, 3), (4, 5, 6), (7, 8, 9)],
-    ...              dtype=[("a", "i4"), ("b", "i4"), ("c", "i4")])
-    >>> df3 = pd.DataFrame(d, columns=['c', 'a'])
+    >>> data = np.array([(1, 2, 3), (4, 5, 6), (7, 8, 9)],
+    ...                 dtype=[("a", "i4"), ("b", "i4"), ("c", "i4")])
+    >>> df3 = pd.DataFrame(data, columns=['c', 'a'])
     ...
     >>> df3
        c  a
