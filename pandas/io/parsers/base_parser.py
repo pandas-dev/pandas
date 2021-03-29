@@ -54,6 +54,10 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
+from pandas.core.api import (
+    NA,
+    array as pd_array,
+)
 from pandas.core.arrays import Categorical
 from pandas.core.indexes.api import (
     Index,
@@ -109,6 +113,7 @@ parser_defaults = {
     "mangle_dupe_cols": True,
     "infer_datetime_format": False,
     "skip_blank_lines": True,
+    "use_nullable_dtypes": False,
 }
 
 
@@ -199,6 +204,7 @@ class ParserBase:
 
         self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
 
+        self.use_nullable_dtypes = kwds.get("use_nullable_dtypes", False)
         self.handles: Optional[IOHandles] = None
 
     def _open_handles(self, src: FilePathOrBuffer, kwds: Dict[str, Any]) -> None:
@@ -548,10 +554,7 @@ class ParserBase:
                 )
 
                 # type specified in dtype param or cast_type is an EA
-                if cast_type and (
-                    not is_dtype_equal(cvals, cast_type)
-                    or is_extension_array_dtype(cast_type)
-                ):
+                if cast_type and (not is_dtype_equal(cvals, cast_type) or is_ea):
                     if not is_ea and na_count > 0:
                         try:
                             if is_bool_dtype(cast_type):
@@ -645,12 +648,12 @@ class ParserBase:
         ----------
         values : ndarray
         na_values : set
-        try_num_bool : bool, default try
+        try_num_bool : bool, default True
            try to cast values to numeric (first preference) or boolean
 
         Returns
         -------
-        converted : ndarray
+        converted : ndarray or ExtensionArray
         na_count : int
         """
         na_count = 0
@@ -659,14 +662,24 @@ class ParserBase:
             na_count = mask.sum()
             if na_count > 0:
                 if is_integer_dtype(values):
-                    values = values.astype(np.float64)
+                    if self.use_nullable_dtypes:
+                        values = pd_array(values, dtype="Int64")
+                        values[mask] = NA  # <- This is pd.NA
+                        return values, na_count
+                    else:
+                        values = values.astype(np.float64)
                 np.putmask(values, mask, np.nan)
             return values, na_count
 
         if try_num_bool and is_object_dtype(values.dtype):
             # exclude e.g DatetimeIndex here
             try:
-                result = lib.maybe_convert_numeric(values, na_values, False)
+                result = lib.maybe_convert_numeric(
+                    values,
+                    na_values,
+                    convert_empty=False,
+                    convert_to_nullable_integer=self.use_nullable_dtypes,
+                )
             except (ValueError, TypeError):
                 # e.g. encountering datetime string gets ValueError
                 #  TypeError can be raised in floatify
@@ -684,6 +697,7 @@ class ParserBase:
                 np.asarray(values),
                 true_values=self.true_values,
                 false_values=self.false_values,
+                convert_to_nullable_boolean=self.use_nullable_dtypes,
             )
 
         return result, na_count

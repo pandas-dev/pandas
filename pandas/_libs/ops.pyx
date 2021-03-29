@@ -24,10 +24,7 @@ import_array()
 
 
 from pandas._libs.missing cimport checknull
-from pandas._libs.util cimport (
-    UINT8_MAX,
-    is_nan,
-)
+from pandas._libs.util cimport is_nan
 
 
 @cython.wraparound(False)
@@ -258,17 +255,20 @@ def vec_binop(object[:] left, object[:] right, object op):
 
 
 def maybe_convert_bool(ndarray[object] arr,
-                       true_values=None, false_values=None):
+                       true_values=None,
+                       false_values=None,
+                       convert_to_nullable_boolean=False):
     cdef:
         Py_ssize_t i, n
         ndarray[uint8_t] result
+        ndarray[uint8_t] mask
         object val
         set true_vals, false_vals
-        int na_count = 0
+        bint has_na = False
 
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
-
+    mask = np.zeros(n, dtype=np.uint8)
     # the defaults
     true_vals = {'True', 'TRUE', 'true'}
     false_vals = {'False', 'FALSE', 'false'}
@@ -292,15 +292,19 @@ def maybe_convert_bool(ndarray[object] arr,
         elif val in false_vals:
             result[i] = 0
         elif isinstance(val, float):
-            result[i] = UINT8_MAX
-            na_count += 1
+            mask[i] = 1
+            result[i] = 0  # Value here doesn't matter, will be replaced w/ nan
+            has_na = True
         else:
             return arr
 
-    if na_count > 0:
-        mask = result == UINT8_MAX
-        arr = result.view(np.bool_).astype(object)
-        np.putmask(arr, mask, np.nan)
-        return arr
+    if has_na:
+        if convert_to_nullable_boolean:
+            from pandas.core.arrays import BooleanArray
+            return BooleanArray(result.view(np.bool_), mask.view(np.bool_))
+        else:
+            arr = result.view(np.bool_).astype(object)
+            np.putmask(arr, mask, np.nan)
+            return arr
     else:
         return result.view(np.bool_)

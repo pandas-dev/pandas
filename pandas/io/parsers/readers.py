@@ -339,6 +339,13 @@ float_precision : str, optional
 
     .. versionchanged:: 1.2
 
+use_nullable_dtypes : bool, default False
+    If True, use dtypes that use pd.NA as missing value indicator for
+    the resulting DataFrame. Currently supports reading data into the nullable boolean
+    and integer array types, but not string arrays.
+
+    .. versionadded:: 1.3
+
 {storage_options}
 
     .. versionadded:: 1.2
@@ -524,6 +531,7 @@ def read_csv(
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
     float_precision=None,
+    use_nullable_dtypes=False,
     storage_options: StorageOptions = None,
 ):
     kwds = locals()
@@ -604,6 +612,7 @@ def read_table(
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
     float_precision=None,
+    use_nullable_dtypes=False,
 ):
     kwds = locals()
     del kwds["filepath_or_buffer"]
@@ -812,7 +821,6 @@ class TextFileReader(abc.Iterator):
 
         sep = options["delimiter"]
         delim_whitespace = options["delim_whitespace"]
-
         if sep is None and not delim_whitespace:
             if engine == "c":
                 fallback_reason = (

@@ -607,6 +607,18 @@ class TestInference:
 
         tm.assert_extension_array_equal(result, exp)
 
+    @pytest.mark.parametrize(
+        "exp",
+        [
+            IntegerArray(np.array([2, 0], dtype="i8"), np.array([False, True])),
+            IntegerArray(np.array([2, 0], dtype="int64"), np.array([False, True])),
+        ],
+    )
+    def test_maybe_convert_numeric_nullable_integer(self, exp):
+        arr = np.array([2, np.NaN], dtype=object)
+        result = lib.maybe_convert_numeric(arr, set(), convert_to_nullable_integer=True)
+        tm.assert_extension_array_equal(result, exp)
+
     def test_maybe_convert_objects_bool_nan(self):
         # GH32146
         ind = Index([True, False, np.nan], dtype=object)

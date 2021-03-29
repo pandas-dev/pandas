@@ -105,6 +105,11 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import union_categoricals
 
+from pandas.core.arrays import (
+    BooleanArray,
+    IntegerArray,
+)
+
 cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
@@ -323,6 +328,7 @@ cdef class TextReader:
         int64_t leading_cols, table_width, skipfooter, buffer_lines
         bint allow_leading_cols, mangle_dupe_cols, low_memory
         bint delim_whitespace
+        bint use_nullable_dtypes
         object delimiter, converters
         object na_values
         object header, orig_header, names, header_start, header_end
@@ -370,7 +376,8 @@ cdef class TextReader:
                   bint verbose=False,
                   bint mangle_dupe_cols=True,
                   float_precision=None,
-                  bint skip_blank_lines=True):
+                  bint skip_blank_lines=True,
+                  bint use_nullable_dtypes=False):
 
         # set encoding for native Python and C library
         self.c_encoding = NULL
@@ -430,6 +437,7 @@ cdef class TextReader:
             # consistent with csv module semantics, cast all to float
             dtype_order = dtype_order[1:]
         self.dtype_cast_order = [np.dtype(x) for x in dtype_order]
+        self.use_nullable_dtypes = use_nullable_dtypes
 
         if comment is not None:
             if len(comment) > 1:
@@ -1021,7 +1029,8 @@ cdef class TextReader:
             # don't try to upcast EAs
             try_upcast = upcast_na and na_count > 0
             if try_upcast and not is_extension_array_dtype(col_dtype):
-                col_res = _maybe_upcast(col_res)
+                col_res = _maybe_upcast(col_res,
+                                        use_nullable_dtypes=self.use_nullable_dtypes)
 
             if col_res is None:
                 raise ParserError(f'Unable to parse column {i}')
@@ -1318,18 +1327,36 @@ STR_NA_VALUES = {
 _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 
-def _maybe_upcast(arr):
+def _maybe_upcast(arr, use_nullable_dtypes=False):
     """
+    Tries to upcast null values for integer and boolean data types.
+    If arr of boolean dtype, arr is upcast to object dtype or BooleanArray
+    and if arr is of integer dtype, arr is upcast to float dtype, or IntegerArray.
+
+    Parameters
+    ----------
+    arr : ndarray
+        Array to upcast.
+    use_nullable_dtypes: bool, default False
+        Whether to use nullable integer/boolean(IntegerArray/BooleanArray)
+        datatypes instead of upcasting.
 
     """
     if issubclass(arr.dtype.type, np.integer):
         na_value = na_values[arr.dtype]
-        arr = arr.astype(float)
-        np.putmask(arr, arr == na_value, np.nan)
+        mask = arr == na_value
+        if use_nullable_dtypes:
+            arr = IntegerArray(arr, mask)
+        else:
+            arr = arr.astype(float)
+            np.putmask(arr, mask, np.nan)
     elif arr.dtype == np.bool_:
         mask = arr.view(np.uint8) == na_values[np.uint8]
-        arr = arr.astype(object)
-        np.putmask(arr, mask, np.nan)
+        if use_nullable_dtypes:
+            arr = BooleanArray(arr, mask)
+        else:
+            arr = arr.astype(object)
+            np.putmask(arr, mask, np.nan)
 
     return arr
 

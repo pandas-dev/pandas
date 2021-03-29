@@ -10,9 +10,11 @@ import pytest
 from pandas._libs.parsers import STR_NA_VALUES
 
 from pandas import (
+    NA,
     DataFrame,
     Index,
     MultiIndex,
+    array as pd_array,
 )
 import pandas._testing as tm
 
@@ -146,20 +148,73 @@ ignore,this,row
     tm.assert_frame_equal(result, expected)
 
 
-def test_bool_na_values(all_parsers):
+@pytest.mark.parametrize(
+    "use_nullable_dtypes, expected",
+    [
+        (
+            True,
+            DataFrame(
+                {
+                    "A": pd_array([True, NA, False], dtype="boolean"),
+                    "B": pd_array([False, True, NA], dtype="boolean"),
+                    "C": [True, False, True],
+                }
+            ),
+        ),
+        (
+            False,
+            DataFrame(
+                {
+                    "A": np.array([True, np.nan, False], dtype=object),
+                    "B": np.array([False, True, np.nan], dtype=object),
+                    "C": [True, False, True],
+                }
+            ),
+        ),
+    ],
+)
+def test_bool_na_values(all_parsers, use_nullable_dtypes, expected):
     data = """A,B,C
 True,False,True
 NA,True,False
 False,NA,True"""
     parser = all_parsers
-    result = parser.read_csv(StringIO(data))
-    expected = DataFrame(
-        {
-            "A": np.array([True, np.nan, False], dtype=object),
-            "B": np.array([False, True, np.nan], dtype=object),
-            "C": [True, False, True],
-        }
-    )
+    result = parser.read_csv(StringIO(data), use_nullable_dtypes=use_nullable_dtypes)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "use_nullable_dtypes, expected",
+    [
+        (
+            True,
+            DataFrame(
+                {
+                    "A": pd_array([1, NA, 2], dtype="Int64"),
+                    "B": pd_array([3, 2, NA], dtype="Int64"),
+                    "C": [1, 2, 3],
+                }
+            ),
+        ),
+        (
+            False,
+            DataFrame(
+                {
+                    "A": np.array([1.0, np.nan, 2.0], dtype="float64"),
+                    "B": np.array([3.0, 2.0, np.nan], dtype="float64"),
+                    "C": [1, 2, 3],
+                }
+            ),
+        ),
+    ],
+)
+def test_int_na_values(all_parsers, use_nullable_dtypes, expected):
+    data = """A,B,C
+1,3,1
+NA,2,2
+2,NA,3"""
+    parser = all_parsers
+    result = parser.read_csv(StringIO(data), use_nullable_dtypes=use_nullable_dtypes)
     tm.assert_frame_equal(result, expected)
 
 
