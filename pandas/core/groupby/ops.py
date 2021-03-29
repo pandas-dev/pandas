@@ -486,6 +486,12 @@ class BaseGrouper:
                 func = _get_cython_function(kind, how, values.dtype, is_numeric)
             else:
                 raise
+        else:
+            if values.dtype.kind in ["i", "u"]:
+                if how in ["ohlc"]:
+                    # The output may still include nans, so we have to cast
+                    values = ensure_float64(values)
+
         return func, values
 
     @final
