@@ -1991,16 +1991,15 @@ class Styler:
             left: Optional[Union[Scalar, Sequence, np.ndarray, FrameOrSeries]] = None,
             right: Optional[Union[Scalar, Sequence, np.ndarray, FrameOrSeries]] = None,
             inclusive: Union[bool, str] = True,
-            axis_: Optional[Axis] = None,
         ) -> np.ndarray:
             if np.iterable(left) and not isinstance(left, str):
                 left = _validate_apply_axis_arg(
-                    left, "left", None, axis_, data  # type: ignore[arg-type]
+                    left, "left", None, data  # type: ignore[arg-type]
                 )
 
             if np.iterable(right) and not isinstance(right, str):
                 right = _validate_apply_axis_arg(
-                    right, "right", None, axis_, data  # type: ignore[arg-type]
+                    right, "right", None, data  # type: ignore[arg-type]
                 )
 
             # get ops with correct boundary attribution
@@ -2040,7 +2039,6 @@ class Styler:
             left=left,
             right=right,
             inclusive=inclusive,
-            axis_=axis,
         )
 
     @classmethod
@@ -2506,7 +2504,6 @@ def _validate_apply_axis_arg(
     arg: Union[FrameOrSeries, Sequence, np.ndarray],
     arg_name: str,
     dtype: Optional[Any],
-    axis: Optional[Axis],
     data: FrameOrSeries,
 ) -> np.ndarray:
     """
@@ -2523,8 +2520,6 @@ def _validate_apply_axis_arg(
         name of the arg for use in error messages
     dtype : numpy dtype, optional
         forced numpy dtype if given
-    axis : {0,1, None}
-        axis over which apply-type method is used
     data : Series or DataFrame
         underling subset of Styler data on which operations are performed
 
@@ -2534,15 +2529,15 @@ def _validate_apply_axis_arg(
     """
     dtype = {"dtype": dtype} if dtype else {}
     # raise if input is wrong for axis:
-    if isinstance(arg, Series) and axis is None:
+    if isinstance(arg, Series) and isinstance(data, DataFrame) is None:
         raise ValueError(
             f"'{arg_name}' is a Series but underlying data for operations "
             f"is a DataFrame since 'axis=None'"
         )
-    elif isinstance(arg, DataFrame) and axis in [0, 1]:
+    elif isinstance(arg, DataFrame) and isinstance(data, Series):
         raise ValueError(
             f"'{arg_name}' is a DataFrame but underlying data for "
-            f"operations is a Series with 'axis={axis}'"
+            f"operations is a Series with 'axis in [0,1]'"
         )
     elif isinstance(arg, (Series, DataFrame)):  # align indx / cols to data
         arg = arg.reindex_like(data, method=None).to_numpy(**dtype)
