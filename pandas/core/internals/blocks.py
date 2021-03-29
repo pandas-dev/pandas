@@ -1810,9 +1810,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         """
         values = self.values
         if is_object_dtype(dtype):
-            # DTA/TDA constructor and astype can handle 2D
-            # error: "Callable[..., Any]" has no attribute "astype"
-            values = values.astype(object)  # type: ignore[attr-defined]
+            values = values.astype(object)
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(values).reshape(self.shape)
 
