@@ -1563,7 +1563,7 @@ class Styler:
             subset = self.data.select_dtypes(include=np.number).columns
 
         self.apply(
-            partial(self._background_gradient, axis=axis),
+            _background_gradient,
             cmap=cmap,
             subset=subset,
             axis=axis,
@@ -1575,70 +1575,6 @@ class Styler:
             gmap=gmap,
         )
         return self
-
-    @staticmethod
-    def _background_gradient(
-        s,
-        cmap="PuBu",
-        low: float = 0,
-        high: float = 0,
-        text_color_threshold: float = 0.408,
-        vmin: Optional[float] = None,
-        vmax: Optional[float] = None,
-        gmap: Optional[Union[Sequence, np.ndarray, FrameOrSeries]] = None,
-        axis: Optional[Axis] = None,
-    ):
-        """
-        Color background in a range according to the data or a gradient map
-        """
-        if gmap is None:  # the data is used the gmap
-            gmap = s.to_numpy(dtype=float)
-        else:  # else validate gmap against the underlying data
-            gmap = _validate_apply_axis_arg(gmap, "gmap", float, axis, s)
-
-        with _mpl(Styler.background_gradient) as (plt, colors):
-            smin = np.nanmin(gmap) if vmin is None else vmin
-            smax = np.nanmax(gmap) if vmax is None else vmax
-            rng = smax - smin
-            # extend lower / upper bounds, compresses color range
-            norm = colors.Normalize(smin - (rng * low), smax + (rng * high))
-            rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
-
-            def relative_luminance(rgba) -> float:
-                """
-                Calculate relative luminance of a color.
-
-                The calculation adheres to the W3C standards
-                (https://www.w3.org/WAI/GL/wiki/Relative_luminance)
-
-                Parameters
-                ----------
-                color : rgb or rgba tuple
-
-                Returns
-                -------
-                float
-                    The relative luminance as a value from 0 to 1
-                """
-                r, g, b = (
-                    x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4
-                    for x in rgba[:3]
-                )
-                return 0.2126 * r + 0.7152 * g + 0.0722 * b
-
-            def css(rgba) -> str:
-                dark = relative_luminance(rgba) < text_color_threshold
-                text_color = "#f1f1f1" if dark else "#000000"
-                return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
-
-            if s.ndim == 1:
-                return [css(rgba) for rgba in rgbas]
-            else:
-                return pd.DataFrame(
-                    [[css(rgba) for rgba in row] for row in rgbas],
-                    index=s.index,
-                    columns=s.columns,
-                )
 
     def set_properties(self, subset=None, **kwargs) -> Styler:
         """
@@ -2416,7 +2352,6 @@ def _validate_apply_axis_arg(
     arg: Union[FrameOrSeries, Sequence, np.ndarray],
     arg_name: str,
     dtype: Optional[Any],
-    axis: Optional[Axis],
     data: FrameOrSeries,
 ) -> np.ndarray:
     """
@@ -2433,8 +2368,6 @@ def _validate_apply_axis_arg(
         name of the arg for use in error messages
     dtype : numpy dtype, optional
         forced numpy dtype if given
-    axis : {0,1, None}
-        axis over which apply-type method is used
     data : Series or DataFrame
         underling subset of Styler data on which operations are performed
 
@@ -2444,15 +2377,15 @@ def _validate_apply_axis_arg(
     """
     dtype = {"dtype": dtype} if dtype else {}
     # raise if input is wrong for axis:
-    if isinstance(arg, Series) and axis is None:
+    if isinstance(arg, Series) and isinstance(data, DataFrame):
         raise ValueError(
             f"'{arg_name}' is a Series but underlying data for operations "
             f"is a DataFrame since 'axis=None'"
         )
-    elif isinstance(arg, DataFrame) and axis in [0, 1]:
+    elif isinstance(arg, DataFrame) and isinstance(data, Series):
         raise ValueError(
             f"'{arg_name}' is a DataFrame but underlying data for "
-            f"operations is a Series with 'axis={axis}'"
+            f"operations is a Series with 'axis in [0,1]'"
         )
     elif isinstance(arg, (Series, DataFrame)):  # align indx / cols to data
         arg = arg.reindex_like(data, method=None).to_numpy(**dtype)
@@ -2466,3 +2399,66 @@ def _validate_apply_axis_arg(
                 f"expected {data.shape}"
             )
     return arg
+
+
+def _background_gradient(
+    data,
+    cmap="PuBu",
+    low: float = 0,
+    high: float = 0,
+    text_color_threshold: float = 0.408,
+    vmin: Optional[float] = None,
+    vmax: Optional[float] = None,
+    gmap: Optional[Union[Sequence, np.ndarray, FrameOrSeries]] = None,
+):
+    """
+    Color background in a range according to the data or a gradient map
+    """
+    if gmap is None:  # the data is used the gmap
+        gmap = data.to_numpy(dtype=float)
+    else:  # else validate gmap against the underlying data
+        gmap = _validate_apply_axis_arg(gmap, "gmap", float, data)
+
+    with _mpl(Styler.background_gradient) as (plt, colors):
+        smin = np.nanmin(gmap) if vmin is None else vmin
+        smax = np.nanmax(gmap) if vmax is None else vmax
+        rng = smax - smin
+        # extend lower / upper bounds, compresses color range
+        norm = colors.Normalize(smin - (rng * low), smax + (rng * high))
+        rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
+
+        def relative_luminance(rgba) -> float:
+            """
+            Calculate relative luminance of a color.
+
+            The calculation adheres to the W3C standards
+            (https://www.w3.org/WAI/GL/wiki/Relative_luminance)
+
+            Parameters
+            ----------
+            color : rgb or rgba tuple
+
+            Returns
+            -------
+            float
+                The relative luminance as a value from 0 to 1
+            """
+            r, g, b = (
+                x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4
+                for x in rgba[:3]
+            )
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+        def css(rgba) -> str:
+            dark = relative_luminance(rgba) < text_color_threshold
+            text_color = "#f1f1f1" if dark else "#000000"
+            return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
+
+        if data.ndim == 1:
+            return [css(rgba) for rgba in rgbas]
+        else:
+            return pd.DataFrame(
+                [[css(rgba) for rgba in row] for row in rgbas],
+                index=data.index,
+                columns=data.columns,
+            )
