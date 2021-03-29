@@ -462,7 +462,6 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
     tm.assert_frame_equal(result, expected)
 
 
-
 def test_rolling_window_as_string(using_array_manager, center):
     # see gh-22590
     date_today = datetime.now()
