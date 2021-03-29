@@ -1,5 +1,8 @@
 include RELEASE.md
 
+graft doc
+prune doc/build
+
 graft LICENSES
 
 graft pandas

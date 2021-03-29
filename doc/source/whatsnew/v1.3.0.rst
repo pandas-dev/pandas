@@ -439,7 +439,7 @@ Other API changes
 Build
 =====
 
-- Documentation is no longer included in wheels or source distributions. (:issue:`30741`)
+- Documentation in ``.pptx`` and ``.pdf`` formats are no longer included in wheels or source distributions. (:issue:`30741`)
 
 .. ---------------------------------------------------------------------------
 
