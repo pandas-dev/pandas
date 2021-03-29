@@ -369,7 +369,7 @@ Microsoft's BCP utility, but the complexity is fully abstracted away from the en
 Rigorously tested, it is a complete replacement for ``df.to_sql``.
 
 `Deltalake <https://pypi.org/project/deltalake>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Deltalake python package lets you access tables stored in
 `Delta Lake <https://delta.io/>`__ natively in Python without the need to use Spark or
