@@ -85,6 +85,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "arm_slow: mark a test as slow for arm64 architecture"
     )
+    config.addinivalue_line(
+        "markers", "arraymanager: mark a test to run with ArrayManager enabled"
+    )
 
 
 def pytest_addoption(parser):
@@ -119,6 +122,13 @@ def pytest_runtest_setup(item):
         "--run-high-memory"
     ):
         pytest.skip("skipping high memory test since --run-high-memory was not set")
+
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        # mark all tests in the pandas/tests/frame directory with "arraymanager"
+        if "/frame/" in item.nodeid:
+            item.add_marker(pytest.mark.arraymanager)
 
 
 # Hypothesis
@@ -190,7 +200,7 @@ def add_imports(doctest_namespace):
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis {repr(x)}")
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
 def axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
@@ -326,6 +336,7 @@ def frame_or_series(request):
     return request.param
 
 
+# error: List item 0 has incompatible type "Type[Index]"; expected "Type[IndexOpsMixin]"
 @pytest.fixture(
     params=[pd.Index, pd.Series], ids=["index", "series"]  # type: ignore[list-item]
 )

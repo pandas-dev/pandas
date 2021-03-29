@@ -7,7 +7,6 @@ import pytest
 
 from pandas.compat import IS64
 from pandas.errors import PerformanceWarning
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -211,7 +210,6 @@ def test_inconsistent_return_type():
     tm.assert_series_equal(result, e)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_pass_args_kwargs(ts, tsframe):
     def f(x, q=None, axis=0):
         return np.percentile(x, q, axis=axis)
@@ -366,7 +364,6 @@ def test_indices_concatenation_order():
         df2.groupby("a").apply(f3)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_attr_wrapper(ts):
     grouped = ts.groupby(lambda x: x.weekday())
 
@@ -843,7 +840,12 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = "reduction operation 'sum' not allowed for this dtype"
+    msg = "|".join(
+        [
+            "reduction operation 'sum' not allowed for this dtype",
+            "'DatetimeArray' does not implement reduction 'sum'",
+        ]
+    )
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 

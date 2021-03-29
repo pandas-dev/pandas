@@ -33,7 +33,7 @@ from pandas._typing import (
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
-    registry,
+    _registry as registry,
 )
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -481,7 +481,6 @@ def sanitize_array(
     DataFrame constructor, as the dtype keyword there may be interpreted as only
     applying to a subset of columns, see GH#24435.
     """
-
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
 
@@ -527,7 +526,10 @@ def sanitize_array(
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
             subarr = maybe_convert_platform(data)
-            subarr = maybe_cast_to_datetime(subarr, dtype)
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray, List[Any]]", variable has type
+            # "ExtensionArray")
+            subarr = maybe_cast_to_datetime(subarr, dtype)  # type: ignore[assignment]
 
     elif isinstance(data, range):
         # GH#16804
@@ -548,13 +550,18 @@ def sanitize_array(
     subarr = _sanitize_ndim(subarr, data, dtype, index)
 
     if not (is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype)):
-        subarr = _sanitize_str_dtypes(subarr, data, dtype, copy)
+        # error: Argument 1 to "_sanitize_str_dtypes" has incompatible type
+        # "ExtensionArray"; expected "ndarray"
+        subarr = _sanitize_str_dtypes(
+            subarr, data, dtype, copy  # type: ignore[arg-type]
+        )
 
         is_object_or_str_dtype = is_object_dtype(dtype) or is_string_dtype(dtype)
         if is_object_dtype(subarr.dtype) and not is_object_or_str_dtype:
             inferred = lib.infer_dtype(subarr, skipna=False)
             if inferred in {"interval", "period"}:
                 subarr = array(subarr)
+                subarr = extract_array(subarr, extract_numpy=True)
 
     return subarr
 
@@ -577,11 +584,17 @@ def _sanitize_ndim(
             raise ValueError("Data must be 1-dimensional")
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
-            result = com.asarray_tuplesafe(data, dtype=object)
+
+            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
+            # "Type[object]"; expected "Union[str, dtype[Any], None]"
+            result = com.asarray_tuplesafe(data, dtype=object)  # type: ignore[arg-type]
             cls = dtype.construct_array_type()
             result = cls._from_sequence(result, dtype=dtype)
         else:
-            result = com.asarray_tuplesafe(data, dtype=dtype)
+            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
+            # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[str,
+            # dtype[Any], None]"
+            result = com.asarray_tuplesafe(data, dtype=dtype)  # type: ignore[arg-type]
     return result
 
 
@@ -600,7 +613,11 @@ def _sanitize_str_dtypes(
         # GH#19853: If data is a scalar, result has already the result
         if not lib.is_scalar(data):
             if not np.all(isna(data)):
-                data = np.array(data, dtype=dtype, copy=False)
+                # error: Argument "dtype" to "array" has incompatible type
+                # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[dtype[Any],
+                # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
+                # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+                data = np.array(data, dtype=dtype, copy=False)  # type: ignore[arg-type]
             result = np.array(data, dtype=object, copy=copy)
     return result
 
@@ -666,7 +683,12 @@ def _try_cast(
         # that we can convert the data to the requested dtype.
         if is_integer_dtype(dtype):
             # this will raise if we have e.g. floats
-            maybe_cast_to_integer_array(arr, dtype)
+
+            # error: Argument 2 to "maybe_cast_to_integer_array" has incompatible type
+            # "Union[dtype, ExtensionDtype, None]"; expected "Union[ExtensionDtype, str,
+            # dtype, Type[str], Type[float], Type[int], Type[complex], Type[bool],
+            # Type[object]]"
+            maybe_cast_to_integer_array(arr, dtype)  # type: ignore[arg-type]
             subarr = arr
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)

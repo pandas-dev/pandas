@@ -53,10 +53,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCDatetimeIndex,
     ABCIntervalIndex,
     ABCPeriodIndex,
-    ABCSeries,
 )
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -154,7 +154,7 @@ qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
 Notes
 -----
 See the `user guide
-<https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`_
+<https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`__
 for more.
 
 %(examples)s\
@@ -206,10 +206,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         verify_integrity: bool = True,
     ):
 
-        if isinstance(data, (ABCSeries, ABCIntervalIndex)) and is_interval_dtype(
-            data.dtype
-        ):
-            data = data._values  # TODO: extract_array?
+        data = extract_array(data, extract_numpy=True)
 
         if isinstance(data, cls):
             left = data._left
@@ -644,7 +641,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_scalar(left) and isna(left):
                 return self._fill_value
             return Interval(left, right, self.closed)
-        if np.ndim(left) > 1:
+        # error: Argument 1 to "ndim" has incompatible type "Union[ndarray,
+        # ExtensionArray]"; expected "Union[Union[int, float, complex, str, bytes,
+        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
+        if np.ndim(left) > 1:  # type: ignore[arg-type]
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)
@@ -1486,6 +1487,28 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             self._left.putmask(mask, value_left)
             self._right.putmask(mask, value_right)
 
+    def insert(self: IntervalArrayT, loc: int, item: Interval) -> IntervalArrayT:
+        """
+        Return a new IntervalArray inserting new item at location. Follows
+        Python list.append semantics for negative values.  Only Interval
+        objects and NA can be inserted into an IntervalIndex
+
+        Parameters
+        ----------
+        loc : int
+        item : Interval
+
+        Returns
+        -------
+        IntervalArray
+        """
+        left_insert, right_insert = self._validate_scalar(item)
+
+        new_left = self.left.insert(loc, left_insert)
+        new_right = self.right.insert(loc, right_insert)
+
+        return self._shallow_copy(new_left, new_right)
+
     def delete(self: IntervalArrayT, loc) -> IntervalArrayT:
         if isinstance(self._left, np.ndarray):
             new_left = np.delete(self._left, loc)
@@ -1570,9 +1593,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_dtype_equal(self.dtype, values.dtype):
                 # GH#38353 instead of casting to object, operating on a
                 #  complex128 ndarray is much more performant.
-
-                # error: "ArrayLike" has no attribute "view"
-                left = self._combined.view("complex128")  # type:ignore[attr-defined]
+                left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
                 return np.in1d(left, right)
 
@@ -1616,7 +1637,15 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         # empty lists/tuples get object dtype by default, but this is
         # prohibited for IntervalArray, so coerce to integer instead
         return np.array([], dtype=np.int64)
+    elif not is_list_like(values) or isinstance(values, ABCDataFrame):
+        # This will raise later, but we avoid passing to maybe_convert_platform
+        return values
     elif is_categorical_dtype(values):
         values = np.asarray(values)
+    elif not hasattr(values, "dtype") and not isinstance(values, (list, tuple, range)):
+        # TODO: should we just cast these to list?
+        return values
+    else:
+        values = extract_array(values, extract_numpy=True)
 
     return maybe_convert_platform(values)

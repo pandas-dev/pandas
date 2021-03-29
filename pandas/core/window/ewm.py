@@ -14,6 +14,7 @@ import numpy as np
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
+    Axis,
     FrameOrSeries,
     FrameOrSeriesUnion,
     TimedeltaConvertibleTypes,
@@ -227,7 +228,7 @@ class ExponentialMovingWindow(BaseWindow):
 
     def __init__(
         self,
-        obj,
+        obj: FrameOrSeries,
         com: Optional[float] = None,
         span: Optional[float] = None,
         halflife: Optional[Union[float, TimedeltaConvertibleTypes]] = None,
@@ -235,7 +236,7 @@ class ExponentialMovingWindow(BaseWindow):
         min_periods: int = 0,
         adjust: bool = True,
         ignore_na: bool = False,
-        axis: int = 0,
+        axis: Axis = 0,
         times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
     ):
         super().__init__(
@@ -255,19 +256,29 @@ class ExponentialMovingWindow(BaseWindow):
         self.ignore_na = ignore_na
         self.times = times
         if self.times is not None:
-            if isinstance(times, str):
-                self.times = self._selected_obj[times]
+            if not self.adjust:
+                raise NotImplementedError("times is not supported with adjust=False.")
+            if isinstance(self.times, str):
+                self.times = self._selected_obj[self.times]
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
-            if len(self.times) != len(obj):
+            # error: Argument 1 to "len" has incompatible type "Union[str, ndarray,
+            # FrameOrSeries, None]"; expected "Sized"
+            if len(self.times) != len(obj):  # type: ignore[arg-type]
                 raise ValueError("times must be the same length as the object.")
-            if not isinstance(halflife, (str, datetime.timedelta)):
+            if not isinstance(self.halflife, (str, datetime.timedelta)):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
             if isna(self.times).any():
                 raise ValueError("Cannot convert NaT values to integer")
-            _times = np.asarray(self.times.view(np.int64), dtype=np.float64)
+            # error: Item "str" of "Union[str, ndarray, FrameOrSeries, None]" has no
+            # attribute "view"
+            # error: Item "None" of "Union[str, ndarray, FrameOrSeries, None]" has no
+            # attribute "view"
+            _times = np.asarray(
+                self.times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
+            )
             _halflife = float(Timedelta(self.halflife).value)
             self._deltas = np.diff(_times) / _halflife
             # Halflife is no longer applicable when calculating COM
@@ -287,7 +298,13 @@ class ExponentialMovingWindow(BaseWindow):
             # Without times, points are equally spaced
             self._deltas = np.ones(max(len(self.obj) - 1, 0), dtype=np.float64)
             self._com = get_center_of_mass(
-                self.com, self.span, self.halflife, self.alpha
+                # error: Argument 3 to "get_center_of_mass" has incompatible type
+                # "Union[float, Any, None, timedelta64, signedinteger[_64Bit]]";
+                # expected "Optional[float]"
+                self.com,
+                self.span,
+                self.halflife,  # type: ignore[arg-type]
+                self.alpha,
             )
 
     def _get_window_indexer(self) -> BaseIndexer:
@@ -430,7 +447,7 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame , optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -497,7 +514,7 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None

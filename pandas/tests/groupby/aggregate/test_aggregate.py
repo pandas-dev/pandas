@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -46,7 +45,6 @@ def test_agg_regression1(tsframe):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile/describe
 def test_agg_must_agg(df):
     grouped = df.groupby("A")["C"]
 
@@ -760,7 +758,7 @@ def test_agg_relabel_multiindex_column(
 
 
 def test_agg_relabel_multiindex_raises_not_exist():
-    # GH 29422, add test for raises senario when aggregate column does not exist
+    # GH 29422, add test for raises scenario when aggregate column does not exist
     df = DataFrame(
         {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
     )
@@ -771,7 +769,7 @@ def test_agg_relabel_multiindex_raises_not_exist():
 
 
 def test_agg_relabel_multiindex_duplicates():
-    # GH29422, add test for raises senario when getting duplicates
+    # GH29422, add test for raises scenario when getting duplicates
     # GH28426, after this change, duplicates should also work if the relabelling is
     # different
     df = DataFrame(

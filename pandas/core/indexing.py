@@ -1598,7 +1598,11 @@ class _iLocIndexer(_LocationIndexer):
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
-        if not take_split_path and self.obj._mgr.blocks and self.ndim > 1:
+        if (
+            not take_split_path
+            and getattr(self.obj._mgr, "blocks", False)
+            and self.ndim > 1
+        ):
             # in case of dict, keys are indices
             val = list(value.values()) if isinstance(value, dict) else value
             blk = self.obj._mgr.blocks[0]
@@ -1874,7 +1878,6 @@ class _iLocIndexer(_LocationIndexer):
             ser = value
         elif is_array_like(value) and is_exact_shape_match(ser, value):
             ser = value
-
         else:
             # set the item, possibly having a dtype change
             ser = ser.copy()
