@@ -128,31 +128,22 @@ def _get_cython_function(kind: str, how: str, dtype: np.dtype, is_numeric: bool)
     # see if there is a fused-type version of function
     # only valid for numeric
     f = getattr(libgroupby, ftype, None)
-    if f is not None and is_numeric:
-        return f
+    if f is not None:
+        if is_numeric:
+            return f
+        elif dtype == object:
+            if "object" not in f.__signatures__:
+                # raise NotImplementedError here rather than TypeError later
+                raise NotImplementedError(
+                    f"function is not implemented for this dtype: "
+                    f"[how->{how},dtype->{dtype_str}]"
+                )
+            return f
 
-    # otherwise find dtype-specific version, falling back to object
-    for dt in [dtype_str, "object"]:
-        f2 = getattr(libgroupby, f"{ftype}_{dt}", None)
-        if f2 is not None:
-            return f2
-
-    if hasattr(f, "__signatures__"):
-        # inspect what fused types are implemented
-        if dtype_str == "object" and "object" not in f.__signatures__:
-            # disallow this function so we get a NotImplementedError below
-            #  instead of a TypeError at runtime
-            f = None
-
-    func = f
-
-    if func is None:
-        raise NotImplementedError(
-            f"function is not implemented for this dtype: "
-            f"[how->{how},dtype->{dtype_str}]"
-        )
-
-    return func
+    raise NotImplementedError(
+        f"function is not implemented for this dtype: "
+        f"[how->{how},dtype->{dtype_str}]"
+    )
 
 
 class BaseGrouper:
@@ -472,6 +463,18 @@ class BaseGrouper:
         func : callable
         values : np.ndarray
         """
+        if how in ["median", "cumprod"]:
+            # these two only have float64 implementations
+            if is_numeric:
+                values = ensure_float64(values)
+            else:
+                raise NotImplementedError(
+                    f"function is not implemented for this dtype: "
+                    f"[how->{how},dtype->{values.dtype.name}]"
+                )
+            func = getattr(libgroupby, f"group_{how}_float64")
+            return func, values
+
         try:
             func = _get_cython_function(kind, how, values.dtype, is_numeric)
         except NotImplementedError:
@@ -660,7 +663,10 @@ class BaseGrouper:
         if kind == "aggregate":
             result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
             counts = np.zeros(self.ngroups, dtype=np.int64)
-            result = self._aggregate(result, counts, values, codes, func, min_count)
+            try:
+                result = self._aggregate(result, counts, values, codes, func, min_count)
+            except TypeError as err:
+                raise TypeError(values.dtype) from err
         elif kind == "transform":
             result = maybe_fill(np.empty(values.shape, dtype=out_dtype))
 
