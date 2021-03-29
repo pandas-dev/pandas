@@ -30,15 +30,14 @@ def styler(df):
 def test_minimal_latex_tabular(styler):
     expected = dedent(
         """\
-        \\begin{tabular}{llll}
+        \\begin{tabular}{lrrl}
          & A & B & C \\\\
         0 & 0 & -0.61 & ab \\\\
         1 & 1 & -1.22 & cd \\\\
         \\end{tabular}
         """
     )
-    assert styler.render(latex=True) == expected
-    assert styler.to_latex() == expected.replace("llll", "lrrl")
+    assert styler.to_latex() == expected
 
 
 def test_tabular_hrules(styler):
@@ -154,7 +153,7 @@ def test_multiindex_columns(df):
     df.columns = cidx
     expected = dedent(
         """\
-        \\begin{tabular}{llll}
+        \\begin{tabular}{lrrl}
          & \\multicolumn{2}{r}{A} & B \\\\
          & a & b & c \\\\
         0 & 0 & -0.61 & ab \\\\
@@ -163,8 +162,7 @@ def test_multiindex_columns(df):
         """
     )
     s = df.style.format(precision=2)
-    assert expected == s.render(latex=True)
-    assert expected.replace("llll", "lrrl") == s.to_latex()
+    assert expected == s.to_latex()
 
 
 def test_multiindex_row(df):
@@ -174,7 +172,7 @@ def test_multiindex_row(df):
     df.index = ridx
     expected = dedent(
         """\
-        \\begin{tabular}{lllll}
+        \\begin{tabular}{llrrl}
          &  & A & B & C \\\\
         \\multirow{2}{*}{A} & a & 0 & -0.61 & ab \\\\
          & b & 1 & -1.22 & cd \\\\
@@ -183,8 +181,7 @@ def test_multiindex_row(df):
         """
     )
     s = df.style.format(precision=2)
-    assert expected == s.render(latex=True)
-    assert expected.replace("lllll", "llrrl") == s.to_latex()
+    assert expected == s.to_latex()
 
 
 def test_multiindex_row_and_col(df):
@@ -195,7 +192,7 @@ def test_multiindex_row_and_col(df):
     df.index, df.columns = ridx, cidx
     expected = dedent(
         """\
-        \\begin{tabular}{lllll}
+        \\begin{tabular}{llrrl}
          &  & \\multicolumn{2}{r}{Z} & Y \\\\
          &  & a & b & c \\\\
         \\multirow{2}{*}{A} & a & 0 & -0.61 & ab \\\\
@@ -205,19 +202,16 @@ def test_multiindex_row_and_col(df):
         """
     )
     s = df.style.format(precision=2)
-    assert expected == s.render(latex=True)
-    assert expected.replace("lllll", "llrrl") == s.to_latex()
+    assert expected == s.to_latex()
 
 
 def test_multiindex_columns_hidden(df):
     df = DataFrame([[1, 2, 3, 4]])
     df.columns = MultiIndex.from_tuples([("A", 1), ("A", 2), ("A", 3), ("B", 1)])
     s = df.style
-    assert "{tabular}{lllll}" in s.render(latex=True)
     assert "{tabular}{lrrrr}" in s.to_latex()
     s.set_table_styles([])  # reset the position command
     s.hide_columns([("A", 2)])
-    assert "{tabular}{llll}" in s.render(latex=True)
     assert "{tabular}{lrrr}" in s.to_latex()
 
 
@@ -267,7 +261,7 @@ B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
 \\end{table}
 """
     )
-    assert expected == s.format(precision=2).render(latex=True)
+    assert expected == s.format(precision=2).to_latex()
 
 
 def test_parse_latex_table_styles(styler):
