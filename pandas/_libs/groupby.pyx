@@ -1074,9 +1074,8 @@ def group_rank(float64_t[:, ::1] out,
     ngroups : int
         This parameter is not used, is needed to match signatures of other
         groupby functions.
-    is_datetimelike : bool, default False
-        unused in this method but provided for call compatibility with other
-        Cython transformations
+    is_datetimelike : bool
+        True if `values` contains datetime-like entries.
     ties_method : {'average', 'min', 'max', 'first', 'dense'}, default
         'average'
         * average: average rank of group
@@ -1104,6 +1103,7 @@ def group_rank(float64_t[:, ::1] out,
     result = rank_1d(
         values=values[:, 0],
         labels=labels,
+        is_datetimelike=is_datetimelike,
         ties_method=ties_method,
         ascending=ascending,
         pct=pct,
