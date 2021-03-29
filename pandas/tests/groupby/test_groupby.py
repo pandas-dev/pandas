@@ -2190,3 +2190,18 @@ def test_groupby_mean_duplicate_index(rand_series_with_duplicate_datetimeindex):
     result = dups.groupby(level=0).mean()
     expected = dups.groupby(dups.index).mean()
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("meth", ["max", "min", "sum", "mean", "median"])
+def test_groupy_regular_arithmetic_equivalent(meth):
+    # GH#40660
+    df = DataFrame(
+        {"a": [pd.Timedelta(hours=6), pd.Timedelta(hours=7)], "b": [12.1, 13.3]}
+    )
+    expected = df.copy()
+
+    result = getattr(df, meth)(level=0)
+    tm.assert_frame_equal(result, expected)
+
+    result = getattr(df.groupby(level=0), meth)(numeric_only=False)
+    tm.assert_frame_equal(result, expected)
