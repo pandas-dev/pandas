@@ -1103,45 +1103,27 @@ class Block(libinternals.Block, PandasObject):
             # If there are no NAs, then interpolate is a no-op
             return [self] if inplace else [self.copy()]
 
-        # a fill na type method
-        try:
-            m = missing.clean_fill_method(method)
-        except ValueError:
-            m = None
-        if m is None:
-            if self.dtype.kind != "f":
-                # only deal with floats
-                # bc we already checked that can_hold_na, we dont have int dtype here
-                return [self]
+        m = missing.try_clean_fill_method(method)
+        if m is None and self.dtype.kind != "f":
+            # only deal with floats
+            # bc we already checked that can_hold_na, we dont have int dtype here
+            # TODO: make a copy if not inplace?
+            return [self]
 
         data = self.values if inplace else self.values.copy()
+        data = cast(np.ndarray, data)  # bc overridden by ExtensionBlock
 
-        if m is not None:
-            if fill_value is not None:
-                # similar to validate_fillna_kwargs
-                raise ValueError("Cannot pass both fill_value and method")
-
-            interp_values = missing.interpolate_2d(
-                data,
-                method=m,
-                axis=axis,
-                limit=limit,
-                limit_area=limit_area,
-            )
-        else:
-            assert index is not None  # for mypy
-
-            interp_values = missing.interpolate_2d_with_fill(
-                data=data,
-                index=index,
-                axis=axis,
-                method=method,
-                limit=limit,
-                limit_direction=limit_direction,
-                limit_area=limit_area,
-                fill_value=fill_value,
-                **kwargs,
-            )
+        interp_values = missing.interpolate_array_2d(
+            data,
+            method=method,
+            axis=axis,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            **kwargs,
+        )
 
         nbs = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(nbs, downcast)

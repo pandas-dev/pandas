@@ -103,6 +103,18 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     return mask
 
 
+def try_clean_fill_method(method):
+    """
+    Variant of clean_fill_method used for choosing between interpolate_2d and
+    interpolate_2d_with_fill.
+    """
+    try:
+        m = clean_fill_method(method)
+    except ValueError:
+        return None
+    return m
+
+
 def clean_fill_method(method, allow_nearest: bool = False):
     # asfreq is compat for resampling
     if method in [None, "asfreq"]:
@@ -203,6 +215,53 @@ def find_valid_index(values, *, how: str) -> Optional[int]:
     if not chk_notna:
         return None
     return idxpos
+
+
+def interpolate_array_2d(
+    data: np.ndarray,
+    method: str = "pad",
+    axis: int = 0,
+    index: Optional[Index] = None,
+    limit: Optional[int] = None,
+    limit_direction: str = "forward",
+    limit_area: Optional[str] = None,
+    fill_value: Optional[Any] = None,
+    coerce: bool = False,
+    downcast: Optional[str] = None,
+    **kwargs,
+):
+    """
+    Wrapper to dispatch to either interpolate_2d or interpolate_2d_with_fill.
+    """
+    m = try_clean_fill_method(method)
+
+    if m is not None:
+        if fill_value is not None:
+            # similar to validate_fillna_kwargs
+            raise ValueError("Cannot pass both fill_value and method")
+
+        interp_values = interpolate_2d(
+            data,
+            method=m,
+            axis=axis,
+            limit=limit,
+            limit_area=limit_area,
+        )
+    else:
+        assert index is not None  # for mypy
+
+        interp_values = interpolate_2d_with_fill(
+            data=data,
+            index=index,
+            axis=axis,
+            method=method,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            **kwargs,
+        )
+    return interp_values
 
 
 def interpolate_2d_with_fill(
@@ -694,7 +753,7 @@ def interpolate_2d(
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
 
-       Parameters
+    Parameters
     ----------
     values: array-like
         Input array.
@@ -917,7 +976,4 @@ def _rolling_window(a: np.ndarray, window: int):
     # https://stackoverflow.com/a/6811241
     shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
     strides = a.strides + (a.strides[-1],)
-    # error: Module has no attribute "stride_tricks"
-    return np.lib.stride_tricks.as_strided(  # type: ignore[attr-defined]
-        a, shape=shape, strides=strides
-    )
+    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
