@@ -524,6 +524,8 @@ class DataFrame(NDFrame, OpsMixin):
     1  4  5  6
     2  7  8  9
 
+    Constructing DataFrame from a numpy ndarray that has labeled columns:
+
     >>> data = np.array([(1, 2, 3), (4, 5, 6), (7, 8, 9)],
     ...                 dtype=[("a", "i4"), ("b", "i4"), ("c", "i4")])
     >>> df3 = pd.DataFrame(data, columns=['c', 'a'])
