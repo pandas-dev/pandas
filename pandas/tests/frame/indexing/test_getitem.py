@@ -144,6 +144,14 @@ class TestGetitemListLike:
         with pytest.raises(KeyError, match="not in index"):
             frame[idx]
 
+    def test_getitem_iloc_generator(self):
+        # GH#39614
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        indexer = (x for x in [1, 2])
+        result = df.iloc[indexer]
+        expected = DataFrame({"a": [2, 3], "b": [5, 6]}, index=[1, 2])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestGetitemCallable:
     def test_getitem_callable(self, float_frame):
