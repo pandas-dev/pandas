@@ -2,7 +2,6 @@
 Tests for subclasses of NDArrayBackedExtensionArray
 """
 import numpy as np
-import pytest
 
 from pandas import (
     CategoricalIndex,
@@ -12,24 +11,11 @@ from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
     PandasArray,
-    PeriodArray,
     TimedeltaArray,
 )
 
 
-@pytest.fixture(
-    params=[Categorical, DatetimeArray, TimedeltaArray, PeriodArray, PandasArray]
-)
-def ea_subclass(request):
-    """
-    Fixture for subclasses of NDArrayBackedExtensionArray.
-    """
-    return request.param
-
-
 class TestEmpty:
-    # def test_empty(self, ea_subclass):
-
     def test_empty_categorical(self):
         ci = CategoricalIndex(["a", "b", "c"], ordered=True)
         dtype = ci.dtype
