@@ -650,10 +650,7 @@ class BaseGrouper:
         if kind == "aggregate":
             result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
             counts = np.zeros(self.ngroups, dtype=np.int64)
-            try:
-                result = self._aggregate(result, counts, values, codes, func, min_count)
-            except TypeError as err:
-                raise TypeError(values.dtype) from err
+            result = self._aggregate(result, counts, values, codes, func, min_count)
         elif kind == "transform":
             result = maybe_fill(np.empty(values.shape, dtype=out_dtype))
 
