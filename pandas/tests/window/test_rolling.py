@@ -563,7 +563,7 @@ def test_rolling_window_as_string(using_array_manager, center):
     if not using_array_manager:
         # INFO(ArrayManager) preserves the frequence of the index
         index = index._with_freq(None)
-    expected = Series(expData, index=index, name="metric")
+    expected = Series(expected_data, index=index, name="metric")
     tm.assert_series_equal(result, expected)
 
 
