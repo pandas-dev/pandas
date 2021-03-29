@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -569,10 +567,6 @@ class TestAstype:
         "df",
         [
             DataFrame(Series(["x", "y", "z"], dtype="string")),
-            pytest.param(
-                DataFrame(Series(["x", "y", "z"], dtype="arrow_string")),
-                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
-            ),
             DataFrame(Series(["x", "y", "z"], dtype="category")),
             DataFrame(Series(3 * [Timestamp("2020-01-01", tz="UTC")])),
             DataFrame(Series(3 * [Interval(0, 1)])),
