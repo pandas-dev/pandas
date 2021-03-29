@@ -50,23 +50,17 @@ def cls(request):
     return request.param
 
 
-def test_repr(dtype, request):
-    if _is_pyarrow_dtype(dtype):
-        reason = (
-            "AssertionError: assert '      A\n0     a\n1  None\n2     b' "
-            "== '      A\n0     a\n1  <NA>\n2     b'"
-        )
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
-
+def test_repr(dtype):
     df = pd.DataFrame({"A": pd.array(["a", pd.NA, "b"], dtype=dtype)})
     expected = "      A\n0     a\n1  <NA>\n2     b"
     assert repr(df) == expected
 
-    expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string[python]"
+    dtype_name = "pyarrow" if _is_pyarrow_dtype(dtype) else "python"
+    expected = f"0       a\n1    <NA>\n2       b\nName: A, dtype: string[{dtype_name}]"
     assert repr(df.A) == expected
 
-    expected = "<StringArray>\n['a', <NA>, 'b']\nLength: 3, dtype: string[python]"
+    arr_name = "ArrowStringArray" if _is_pyarrow_dtype(dtype) else "StringArray"
+    expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: string[{dtype_name}]"
     assert repr(df.A.array) == expected
 
 
