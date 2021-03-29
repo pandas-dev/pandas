@@ -475,25 +475,12 @@ class BaseGrouper:
             func = getattr(libgroupby, f"group_{how}_float64")
             return func, values
 
-        try:
-            func = _get_cython_function(kind, how, values.dtype, is_numeric)
-        except NotImplementedError:
-            if is_numeric:
-                try:
-                    values = ensure_float64(values)
-                except TypeError:
-                    if lib.infer_dtype(values, skipna=False) == "complex":
-                        values = values.astype(complex)
-                    else:
-                        raise
-                func = _get_cython_function(kind, how, values.dtype, is_numeric)
-            else:
-                raise
-        else:
-            if values.dtype.kind in ["i", "u"]:
-                if how in ["add", "var", "prod", "mean", "ohlc"]:
-                    # result may still include NaN, so we have to cast
-                    values = ensure_float64(values)
+        func = _get_cython_function(kind, how, values.dtype, is_numeric)
+
+        if values.dtype.kind in ["i", "u"]:
+            if how in ["add", "var", "prod", "mean", "ohlc"]:
+                # result may still include NaN, so we have to cast
+                values = ensure_float64(values)
 
         return func, values
 
