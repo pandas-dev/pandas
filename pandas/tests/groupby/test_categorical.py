@@ -241,6 +241,28 @@ def test_level_get_group(observed):
     tm.assert_frame_equal(result, expected)
 
 
+def test_sorting_with_different_categoricals():
+    # GH 24271
+    df = DataFrame(
+        {
+            "group": ["A"] * 6 + ["B"] * 6,
+            "dose": ["high", "med", "low"] * 4,
+            "outcomes": np.arange(12.0),
+        }
+    )
+
+    df.dose = Categorical(df.dose, categories=["low", "med", "high"], ordered=True)
+
+    result = df.groupby("group")["dose"].value_counts()
+    result = result.sort_index(level=0, sort_remaining=True)
+    index = ["low", "med", "high", "low", "med", "high"]
+    index = Categorical(index, categories=["low", "med", "high"], ordered=True)
+    index = [["A", "A", "A", "B", "B", "B"], CategoricalIndex(index)]
+    index = MultiIndex.from_arrays(index, names=["group", None])
+    expected = Series([2] * 6, index=index, name="dose")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -1695,9 +1717,9 @@ def test_groupby_categorical_indices_unused_categories():
     grouped = df.groupby("key", sort=False)
     result = grouped.indices
     expected = {
-        "b": np.array([0, 1], dtype="int64"),
-        "a": np.array([2], dtype="int64"),
-        "c": np.array([], dtype="int64"),
+        "b": np.array([0, 1], dtype="intp"),
+        "a": np.array([2], dtype="intp"),
+        "c": np.array([], dtype="intp"),
     }
     assert result.keys() == expected.keys()
     for key in result.keys():

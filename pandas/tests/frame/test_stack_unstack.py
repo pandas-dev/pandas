@@ -905,7 +905,7 @@ class TestDataFrameReshape:
         if using_array_manager:
             # INFO(ArrayManager) with ArrayManager preserve dtype where possible
             cols = right.columns[[1, 2, 3, 5]]
-            right[cols] = right[cols].astype("int64")
+            right[cols] = right[cols].astype(df["C"].dtype)
         tm.assert_frame_equal(left, right)
 
     def test_unstack_nan_index4(self):
@@ -1062,6 +1062,27 @@ class TestDataFrameReshape:
         # it's tested elsewhere.
         midx = MultiIndex.from_product([df.index, cidx])
         expected = Series([10, 11, 12], index=midx)
+
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("ordered", [False, True])
+    @pytest.mark.parametrize(
+        "labels,data",
+        [
+            (list("xyz"), [10, 11, 12, 13, 14, 15]),
+            (list("zyx"), [14, 15, 12, 13, 10, 11]),
+        ],
+    )
+    def test_stack_multi_preserve_categorical_dtype(self, ordered, labels, data):
+        # GH-36991
+        cidx = pd.CategoricalIndex(labels, categories=sorted(labels), ordered=ordered)
+        cidx2 = pd.CategoricalIndex(["u", "v"], ordered=ordered)
+        midx = MultiIndex.from_product([cidx, cidx2])
+        df = DataFrame([sorted(data)], columns=midx)
+        result = df.stack([0, 1])
+
+        s_cidx = pd.CategoricalIndex(sorted(labels), ordered=ordered)
+        expected = Series(data, index=MultiIndex.from_product([[0], s_cidx, cidx2]))
 
         tm.assert_series_equal(result, expected)
 
@@ -1441,9 +1462,9 @@ Sat,Dinner,No,139.63,45
 Sat,Dinner,Yes,120.77,42
 Sun,Dinner,No,180.57,57
 Sun,Dinner,Yes,66.82,19
-Thur,Dinner,No,3.0,1
-Thur,Lunch,No,117.32,44
-Thur,Lunch,Yes,51.51,17"""
+Thu,Dinner,No,3.0,1
+Thu,Lunch,No,117.32,44
+Thu,Lunch,Yes,51.51,17"""
 
         df = pd.read_csv(StringIO(data)).set_index(["day", "time", "smoker"])
 
@@ -1469,7 +1490,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_unstack_bug(self):
         df = DataFrame(
             {
-                "state": ["naive", "naive", "naive", "activ", "activ", "activ"],
+                "state": ["naive", "naive", "naive", "active", "active", "active"],
                 "exp": ["a", "b", "b", "b", "a", "a"],
                 "barcode": [1, 2, 3, 4, 1, 3],
                 "v": ["hi", "hi", "bye", "bye", "bye", "peace"],

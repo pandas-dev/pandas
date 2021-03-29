@@ -227,8 +227,10 @@ class Apply(metaclass=abc.ABCMeta):
         func = cast(AggFuncTypeBase, func)
         try:
             result = self.transform_str_or_callable(func)
-        except Exception:
-            raise ValueError("Transform function failed")
+        except TypeError:
+            raise
+        except Exception as err:
+            raise ValueError("Transform function failed") from err
 
         # Functions that transform may return empty Series/DataFrame
         # when the dtype is not appropriate
@@ -265,6 +267,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         results: Dict[Hashable, FrameOrSeriesUnion] = {}
         failed_names = []
+        all_type_errors = True
         for name, how in func.items():
             colg = obj._gotitem(name, ndim=1)
             try:
@@ -275,16 +278,18 @@ class Apply(metaclass=abc.ABCMeta):
                     "No transform functions were provided",
                 }:
                     raise err
-                else:
+                elif not isinstance(err, TypeError):
+                    all_type_errors = False
                     failed_names.append(name)
         # combine results
         if not results:
-            raise ValueError("Transform function failed")
+            klass = TypeError if all_type_errors else ValueError
+            raise klass("Transform function failed")
         if len(failed_names) > 0:
             warnings.warn(
-                f"{failed_names} did not transform successfully. "
-                f"Allowing for partial failure is deprecated, this will raise "
-                f"a ValueError in a future version of pandas."
+                f"{failed_names} did not transform successfully and did not raise "
+                f"a TypeError. If any error is raised except for TypeError, "
+                f"this will raise in a future version of pandas. "
                 f"Drop these columns/ops to avoid this warning.",
                 FutureWarning,
                 stacklevel=4,
@@ -633,28 +638,21 @@ class FrameApply(Apply):
         obj = self.obj
         axis = self.axis
 
-        # TODO: Avoid having to change state
-        self.obj = self.obj if self.axis == 0 else self.obj.T
-        self.axis = 0
-
-        result = None
-        try:
-            result = super().agg()
-        except TypeError as err:
-            exc = TypeError(
-                "DataFrame constructor called with "
-                f"incompatible data and dtype: {err}"
-            )
-            raise exc from err
-        finally:
-            self.obj = obj
-            self.axis = axis
-
         if axis == 1:
+            result = FrameRowApply(
+                obj.T,
+                self.orig_f,
+                self.raw,
+                self.result_type,
+                self.args,
+                self.kwargs,
+            ).agg()
             result = result.T if result is not None else result
+        else:
+            result = super().agg()
 
         if result is None:
-            result = self.obj.apply(self.orig_f, axis, args=self.args, **self.kwargs)
+            result = obj.apply(self.orig_f, axis, args=self.args, **self.kwargs)
 
         return result
 
@@ -1016,7 +1014,11 @@ class SeriesApply(Apply):
 
         with np.errstate(all="ignore"):
             if isinstance(f, np.ufunc):
-                return f(obj)
+                # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+                # "Series"; expected "Union[Union[int, float, complex, str, bytes,
+                # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+                # Sequence[Sequence[Any]], _SupportsArray]"
+                return f(obj)  # type: ignore[arg-type]
 
             # row-wise access
             if is_extension_array_dtype(obj.dtype) and hasattr(obj._values, "map"):
