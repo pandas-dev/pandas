@@ -978,7 +978,7 @@ class Styler:
 
         return self
 
-    def render(self, latex: bool = False, **kwargs) -> str:
+    def render(self, **kwargs) -> str:
         """
         Render the ``Styler`` including all applied styles to HTML.
 
