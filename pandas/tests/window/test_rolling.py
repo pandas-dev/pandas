@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -459,7 +462,8 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
     tm.assert_frame_equal(result, expected)
 
 
-def test_rolling_window_as_string(center):
+
+def test_rolling_window_as_string(using_array_manager, center):
     # see gh-22590
     date_today = datetime.now()
     days = date_range(date_today, date_today + timedelta(365), freq="D")
@@ -556,9 +560,11 @@ def test_rolling_window_as_string(center):
             + [95.0] * 20
         )
 
-    expected = Series(
-        expected_data, index=days.rename("DateCol")._with_freq(None), name="metric"
-    )
+    index = days.rename("DateCol")
+    if not using_array_manager:
+        # INFO(ArrayManager) preserves the frequence of the index
+        index = index._with_freq(None)
+    expected = Series(expData, index=index, name="metric")
     tm.assert_series_equal(result, expected)
 
 
@@ -1239,3 +1245,40 @@ def test_rolling_skew_kurt_large_value_range(method, values):
 def test_invalid_method():
     with pytest.raises(ValueError, match="method must be 'table' or 'single"):
         Series(range(1)).rolling(1, method="foo")
+
+
+@pytest.mark.parametrize("window", [1, "1d"])
+def test_rolling_descending_date_order_with_offset(window, frame_or_series):
+    # GH#40002
+    idx = date_range(start="2020-01-01", end="2020-01-03", freq="1d")
+    obj = frame_or_series(range(1, 4), index=idx)
+    result = obj.rolling("1d", closed="left").sum()
+    expected = frame_or_series([np.nan, 1, 2], index=idx)
+    tm.assert_equal(result, expected)
+
+    result = obj.iloc[::-1].rolling("1d", closed="left").sum()
+    idx = date_range(start="2020-01-03", end="2020-01-01", freq="-1d")
+    expected = frame_or_series([np.nan, 3, 2], index=idx)
+    tm.assert_equal(result, expected)
+
+
+def test_rolling_var_floating_artifact_precision():
+    # GH 37051
+    s = Series([7, 5, 5, 5])
+    result = s.rolling(3).var()
+    expected = Series([np.nan, np.nan, 4 / 3, 0])
+    tm.assert_series_equal(result, expected, atol=1.0e-15, rtol=1.0e-15)
+
+
+def test_rolling_std_small_values():
+    # GH 37051
+    s = Series(
+        [
+            0.00000054,
+            0.00000053,
+            0.00000054,
+        ]
+    )
+    result = s.rolling(2).std()
+    expected = Series([np.nan, 7.071068e-9, 7.071068e-9])
+    tm.assert_series_equal(result, expected, atol=1.0e-15, rtol=1.0e-15)

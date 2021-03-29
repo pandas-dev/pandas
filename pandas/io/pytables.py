@@ -6,7 +6,10 @@ from __future__ import annotations
 
 from contextlib import suppress
 import copy
-from datetime import date, tzinfo
+from datetime import (
+    date,
+    tzinfo,
+)
 import itertools
 import os
 import re
@@ -29,11 +32,23 @@ import warnings
 
 import numpy as np
 
-from pandas._config import config, get_option
+from pandas._config import (
+    config,
+    get_option,
+)
 
-from pandas._libs import lib, writers as libwriters
+from pandas._libs import (
+    lib,
+    writers as libwriters,
+)
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, DtypeArg, FrameOrSeries, FrameOrSeriesUnion, Shape
+from pandas._typing import (
+    ArrayLike,
+    DtypeArg,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    Shape,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -65,18 +80,32 @@ from pandas import (
     concat,
     isna,
 )
-from pandas.core.arrays import Categorical, DatetimeArray, PeriodArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    PeriodArray,
+)
 import pandas.core.common as com
-from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
+from pandas.core.computation.pytables import (
+    PyTablesExpr,
+    maybe_expression,
+)
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
 from pandas.core.internals import BlockManager
 
 from pandas.io.common import stringify_path
-from pandas.io.formats.printing import adjoin, pprint_thing
+from pandas.io.formats.printing import (
+    adjoin,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
-    from tables import Col, File, Node
+    from tables import (
+        Col,
+        File,
+        Node,
+    )
 
     from pandas.core.internals import Block
 
@@ -319,19 +348,15 @@ def read_hdf(
 
     Parameters
     ----------
-    path_or_buf : str, path object, pandas.HDFStore or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
-        expected. A local file could be: ``file://localhost/path/to/table.h5``.
+    path_or_buf : str, path object, pandas.HDFStore
+        Any valid string path is acceptable. Only supports the local file system,
+        remote URLs and file-like objects are not supported.
 
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
 
         Alternatively, pandas accepts an open :class:`pandas.HDFStore` object.
 
-        By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handle (e.g. via builtin ``open`` function)
-        or ``StringIO``.
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
@@ -2067,7 +2092,9 @@ class IndexCol:
                 kwargs["freq"] = None
             new_pd_index = factory(values, **kwargs)
 
-        new_pd_index = _set_tz(new_pd_index, self.tz)
+        # error: Incompatible types in assignment (expression has type
+        # "Union[ndarray, DatetimeIndex]", variable has type "Index")
+        new_pd_index = _set_tz(new_pd_index, self.tz)  # type: ignore[assignment]
         return new_pd_index, new_pd_index
 
     def take_data(self):
@@ -2229,7 +2256,9 @@ class GenericIndexCol(IndexCol):
         """
         assert isinstance(values, np.ndarray), type(values)
 
-        values = Int64Index(np.arange(len(values)))
+        # error: Incompatible types in assignment (expression has type
+        # "Int64Index", variable has type "ndarray")
+        values = Int64Index(np.arange(len(values)))  # type: ignore[assignment]
         return values, values
 
     def set_attr(self):
@@ -2333,8 +2362,9 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        # error: "ExtensionDtype" has no attribute "itemsize"
-        itemsize = dtype.itemsize  # type: ignore[attr-defined]
+        # error: Item "ExtensionDtype" of "Union[ExtensionDtype, dtype[Any]]" has no
+        # attribute "itemsize"
+        itemsize = dtype.itemsize  # type: ignore[union-attr]
 
         shape = values.shape
         if values.ndim == 1:
@@ -3062,10 +3092,17 @@ class GenericFixed(Fixed):
         elif is_datetime64tz_dtype(value.dtype):
             # store as UTC
             # with a zone
-            self._handle.create_array(self.group, key, value.asi8)
+
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+            # attribute "asi8"
+            self._handle.create_array(
+                self.group, key, value.asi8  # type: ignore[union-attr]
+            )
 
             node = getattr(self.group, key)
-            node._v_attrs.tz = _get_tz(value.tz)
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+            # attribute "tz"
+            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
             node._v_attrs.value_type = "datetime64"
         elif is_timedelta64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
@@ -3351,7 +3388,10 @@ class Table(Fixed):
     @property
     def nrows_expected(self) -> int:
         """ based on our axes, compute the expected nrows """
-        return np.prod([i.cvalues.shape[0] for i in self.index_axes])
+        # error: Incompatible return value type (got "number", expected "int")
+        return np.prod(  # type: ignore[return-value]
+            [i.cvalues.shape[0] for i in self.index_axes]
+        )
 
     @property
     def is_exists(self) -> bool:
@@ -3410,8 +3450,8 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]"
-        # and "List[Tuple[str, None]]")
+        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]" and
+        # "List[Tuple[str, None]]")
         return dict(d1 + d2 + d3)  # type: ignore[operator]
 
     def index_cols(self):
@@ -3437,8 +3477,12 @@ class Table(Fixed):
         key : str
         values : ndarray
         """
-        values = Series(values)
-        self.parent.put(
+        # error: Incompatible types in assignment (expression has type
+        # "Series", variable has type "ndarray")
+        values = Series(values)  # type: ignore[assignment]
+        # error: Value of type variable "FrameOrSeries" of "put" of "HDFStore"
+        # cannot be "ndarray"
+        self.parent.put(  # type: ignore[type-var]
             self._get_metadata_path(key),
             values,
             format="table",
@@ -3997,10 +4041,14 @@ class Table(Fixed):
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
 
+            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has no
+            # attribute "blocks"
             blocks = list(mgr.blocks)  # type: ignore[union-attr]
             blk_items = get_blk_items(mgr)
             for c in data_columns:
                 mgr = frame.reindex([c], axis=axis)._mgr
+                # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has
+                # no attribute "blocks"
                 blocks.extend(mgr.blocks)  # type: ignore[union-attr]
                 blk_items.extend(get_blk_items(mgr))
 
@@ -4010,7 +4058,7 @@ class Table(Fixed):
                 tuple(b_items.tolist()): (b, b_items)
                 for b, b_items in zip(blocks, blk_items)
             }
-            new_blocks: List["Block"] = []
+            new_blocks: List[Block] = []
             new_blk_items = []
             for ea in values_axes:
                 items = tuple(ea.values)
@@ -4789,14 +4837,18 @@ def _set_tz(
     elif coerce:
         values = np.asarray(values, dtype="M8[ns]")
 
-    return values
+    # error: Incompatible return value type (got "Union[ndarray, Index]",
+    # expected "Union[ndarray, DatetimeIndex]")
+    return values  # type: ignore[return-value]
 
 
 def _convert_index(name: str, index: Index, encoding: str, errors: str) -> IndexCol:
     assert isinstance(name, str)
 
     index_name = index.name
-    converted, dtype_name = _get_data_and_dtype_name(index)
+    # error: Argument 1 to "_get_data_and_dtype_name" has incompatible type "Index";
+    # expected "Union[ExtensionArray, ndarray]"
+    converted, dtype_name = _get_data_and_dtype_name(index)  # type: ignore[arg-type]
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
@@ -4937,7 +4989,12 @@ def _maybe_convert_for_string_atom(
                 )
 
     # itemsize is the maximum length of a string (along any dimension)
-    data_converted = _convert_string_array(data, encoding, errors).reshape(data.shape)
+
+    # error: Argument 1 to "_convert_string_array" has incompatible type "Union[ndarray,
+    # ExtensionArray]"; expected "ndarray"
+    data_converted = _convert_string_array(
+        data, encoding, errors  # type: ignore[arg-type]
+    ).reshape(data.shape)
     itemsize = data_converted.itemsize
 
     # specified min_itemsize?

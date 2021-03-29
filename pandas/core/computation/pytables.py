@@ -3,24 +3,42 @@ from __future__ import annotations
 
 import ast
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import (
+    Any,
+    Dict,
+    Optional,
+    Tuple,
+)
 
 import numpy as np
 
-from pandas._libs.tslibs import Timedelta, Timestamp
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
 from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
 
 import pandas.core.common as com
-from pandas.core.computation import expr, ops, scope as _scope
+from pandas.core.computation import (
+    expr,
+    ops,
+    scope as _scope,
+)
 from pandas.core.computation.common import ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
-from pandas.core.computation.ops import UndefinedVariableError, is_term
+from pandas.core.computation.ops import (
+    UndefinedVariableError,
+    is_term,
+)
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 
-from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
+from pandas.io.formats.printing import (
+    pprint_thing,
+    pprint_thing_encoded,
+)
 
 
 class PyTablesScope(_scope.Scope):
@@ -213,7 +231,11 @@ class BinOp(ops.BinOp):
             if v not in metadata:
                 result = -1
             else:
-                result = metadata.searchsorted(v, side="left")
+                # error: Incompatible types in assignment (expression has type
+                # "Union[Any, ndarray]", variable has type "int")
+                result = metadata.searchsorted(  # type: ignore[assignment]
+                    v, side="left"
+                )
             return TermValue(result, result, "integer")
         elif kind == "integer":
             v = int(float(v))

@@ -6,14 +6,18 @@ Offer fast expression evaluation through numexpr
 
 """
 import operator
-from typing import List, Set
+from typing import (
+    List,
+    Optional,
+    Set,
+)
 import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas._typing import FuncType
 
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 from pandas.core.ops import roperator
@@ -21,11 +25,11 @@ from pandas.core.ops import roperator
 if NUMEXPR_INSTALLED:
     import numexpr as ne
 
-_TEST_MODE = None
+_TEST_MODE: Optional[bool] = None
 _TEST_RESULT: List[bool] = []
 USE_NUMEXPR = NUMEXPR_INSTALLED
-_evaluate = None
-_where = None
+_evaluate: Optional[FuncType] = None
+_where: Optional[FuncType] = None
 
 # the set of dtypes that we will allow pass to numexpr
 _ALLOWED_DTYPES = {
@@ -34,7 +38,7 @@ _ALLOWED_DTYPES = {
 }
 
 # the minimum prod shape that we will use numexpr
-_MIN_ELEMENTS = 10000
+_MIN_ELEMENTS = 1_000_000
 
 
 def set_use_numexpr(v=True):
@@ -65,8 +69,7 @@ def _evaluate_standard(op, op_str, a, b):
     """
     if _TEST_MODE:
         _store_test_result(False)
-    with np.errstate(all="ignore"):
-        return op(a, b)
+    return op(a, b)
 
 
 def _can_use_numexpr(op, op_str, a, b, dtype_check):
@@ -74,18 +77,12 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
     if op_str is not None:
 
         # required min elements (otherwise we are adding overhead)
-        if np.prod(a.shape) > _MIN_ELEMENTS:
+        if a.size > _MIN_ELEMENTS:
             # check for dtype compatibility
             dtypes: Set[str] = set()
             for o in [a, b]:
-                # Series implements dtypes, check for dimension count as well
-                if hasattr(o, "dtypes") and o.ndim > 1:
-                    s = o.dtypes.value_counts()
-                    if len(s) > 1:
-                        return False
-                    dtypes |= set(s.index.astype(str))
                 # ndarray and Series Case
-                elif hasattr(o, "dtype"):
+                if hasattr(o, "dtype"):
                     dtypes |= {o.dtype.name}
 
             # allowed are a superset
@@ -185,8 +182,6 @@ set_use_numexpr(get_option("compute.use_numexpr"))
 
 
 def _has_bool_dtype(x):
-    if isinstance(x, ABCDataFrame):
-        return "bool" in x.dtypes
     try:
         return x.dtype == bool
     except AttributeError:

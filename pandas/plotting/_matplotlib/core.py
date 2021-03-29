@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Hashable, List, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+    List,
+    Optional,
+    Tuple,
+)
 import warnings
 
 from matplotlib.artist import Artist
@@ -29,7 +35,10 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
 import pandas.core.common as com
 
@@ -570,13 +579,24 @@ class MPLPlot:
             stringified = map(pprint_thing, self.data.columns.names)
             return ",".join(stringified)
 
-    def _add_legend_handle(self, handle, label, index=None):
-        if label is not None:
-            if self.mark_right and index is not None:
-                if self.on_right(index):
-                    label = label + " (right)"
-            self.legend_handles.append(handle)
-            self.legend_labels.append(label)
+    def _mark_right_label(self, label: str, index: int) -> str:
+        """
+        Append ``(right)`` to the label of a line if it's plotted on the right axis.
+
+        Note that ``(right)`` is only appended when ``subplots=False``.
+        """
+        if not self.subplots and self.mark_right and self.on_right(index):
+            label += " (right)"
+        return label
+
+    def _append_legend_handles_labels(self, handle: Artist, label: str) -> None:
+        """
+        Append current handle and label to ``legend_handles`` and ``legend_labels``.
+
+        These will be used to make the legend.
+        """
+        self.legend_handles.append(handle)
+        self.legend_labels.append(label)
 
     def _make_legend(self):
         ax, leg, handle = self._get_ax_legend_handle(self.axes[0])
@@ -594,17 +614,14 @@ class MPLPlot:
 
             if self.legend:
                 if self.legend == "reverse":
-                    # pandas\plotting\_matplotlib\core.py:578: error:
-                    # Incompatible types in assignment (expression has type
+                    # error: Incompatible types in assignment (expression has type
                     # "Iterator[Any]", variable has type "List[Any]")
-                    # [assignment]
                     self.legend_handles = reversed(  # type: ignore[assignment]
                         self.legend_handles
                     )
-                    # pandas\plotting\_matplotlib\core.py:579: error:
-                    # Incompatible types in assignment (expression has type
-                    # "Iterator[Optional[Hashable]]", variable has type
-                    # "List[Optional[Hashable]]")  [assignment]
+                    # error: Incompatible types in assignment (expression has type
+                    # "Iterator[Hashable]", variable has type
+                    # "List[Hashable]")
                     self.legend_labels = reversed(  # type: ignore[assignment]
                         self.legend_labels
                     )
@@ -694,12 +711,8 @@ class MPLPlot:
                 kwds["yerr"] = np.array(kwds.get("yerr"))
             return ax.errorbar(x, y, **kwds)
         else:
-            # prevent style kwarg from going to errorbar, where it is
-            # unsupported
-            if style is not None:
-                args = (x, y, style)
-            else:
-                args = (x, y)  # type: ignore[assignment]
+            # prevent style kwarg from going to errorbar, where it is unsupported
+            args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
     def _get_index_name(self) -> Optional[str]:
@@ -1076,7 +1089,7 @@ class ScatterPlot(PlanePlot):
                 cbar.ax.set_yticklabels(self.data[c].cat.categories)
 
         if label is not None:
-            self._add_legend_handle(scatter, label)
+            self._append_legend_handles_labels(scatter, label)
         else:
             self.legend = False
 
@@ -1149,10 +1162,9 @@ class LinePlot(MPLPlot):
             it = self._iter_data(data=data, keep_index=True)
         else:
             x = self._get_xticks(convert_period=True)
-            # pandas\plotting\_matplotlib\core.py:1100: error: Incompatible
-            # types in assignment (expression has type "Callable[[Any, Any,
-            # Any, Any, Any, Any, KwArg(Any)], Any]", variable has type
-            # "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")  [assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "Callable[[Any, Any, Any, Any, Any, Any, KwArg(Any)], Any]", variable has
+            # type "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")
             plotf = self._plot  # type: ignore[assignment]
             it = self._iter_data()
 
@@ -1169,6 +1181,7 @@ class LinePlot(MPLPlot):
             kwds = dict(kwds, **errors)
 
             label = pprint_thing(label)  # .encode('utf-8')
+            label = self._mark_right_label(label, index=i)
             kwds["label"] = label
 
             newlines = plotf(
@@ -1181,7 +1194,7 @@ class LinePlot(MPLPlot):
                 is_errorbar=is_errorbar,
                 **kwds,
             )
-            self._add_legend_handle(newlines[0], label, index=i)
+            self._append_legend_handles_labels(newlines[0], label)
 
             if self._is_ts_plot():
 
@@ -1457,6 +1470,7 @@ class BarPlot(MPLPlot):
             kwds = dict(kwds, **errors)
 
             label = pprint_thing(label)
+            label = self._mark_right_label(label, index=i)
 
             if (("yerr" in kwds) or ("xerr" in kwds)) and (kwds.get("ecolor") is None):
                 kwds["ecolor"] = mpl.rcParams["xtick.color"]
@@ -1507,7 +1521,7 @@ class BarPlot(MPLPlot):
                     log=self.log,
                     **kwds,
                 )
-            self._add_legend_handle(rect, label, index=i)
+            self._append_legend_handles_labels(rect, label)
 
     def _post_plot_logic(self, ax: Axes, data):
         if self.use_index:
@@ -1601,9 +1615,8 @@ class PiePlot(MPLPlot):
             if labels is not None:
                 blabels = [blank_labeler(left, value) for left, value in zip(labels, y)]
             else:
-                # pandas\plotting\_matplotlib\core.py:1546: error: Incompatible
-                # types in assignment (expression has type "None", variable has
-                # type "List[Any]")  [assignment]
+                # error: Incompatible types in assignment (expression has type "None",
+                # variable has type "List[Any]")
                 blabels = None  # type: ignore[assignment]
             results = ax.pie(y, labels=blabels, **kwds)
 
@@ -1620,4 +1633,4 @@ class PiePlot(MPLPlot):
             # leglabels is used for legend labels
             leglabels = labels if labels is not None else idx
             for p, l in zip(patches, leglabels):
-                self._add_legend_handle(p, l)
+                self._append_legend_handles_labels(p, l)

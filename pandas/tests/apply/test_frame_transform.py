@@ -1,20 +1,16 @@
 import operator
-import re
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
-from pandas.core.base import SpecificationError
-from pandas.core.groupby.base import transformation_kernels
+from pandas.tests.apply.common import frame_transform_kernels
 from pandas.tests.frame.common import zip_frames
-
-# tshift only works on time index and is deprecated
-# There is no DataFrame.cumcount
-frame_kernels = [
-    x for x in sorted(transformation_kernels) if x not in ["tshift", "cumcount"]
-]
 
 
 def unpack_obj(obj, klass, axis):
@@ -42,8 +38,8 @@ def test_transform_ufunc(axis, float_frame, frame_or_series):
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize("op", frame_kernels)
-def test_transform_groupby_kernel(axis, float_frame, op):
+@pytest.mark.parametrize("op", frame_transform_kernels)
+def test_transform_groupby_kernel(axis, float_frame, op, request):
     # GH 35964
 
     args = [0.0] if op == "fillna" else []
@@ -99,6 +95,17 @@ def test_transform_dictlike(axis, float_frame, box):
     tm.assert_frame_equal(result, expected)
 
 
+def test_transform_dictlike_mixed():
+    # GH 40018 - mix of lists and non-lists in values of a dictionary
+    df = DataFrame({"a": [1, 2], "b": [1, 4], "c": [1, 4]})
+    result = df.transform({"b": ["sqrt", "abs"], "c": "sqrt"})
+    expected = DataFrame(
+        [[1.0, 1, 1.0], [2.0, 4, 2.0]],
+        columns=MultiIndex([("b", "c"), ("sqrt", "abs")], [(0, 0, 1), (0, 1, 0)]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "ops",
     [
@@ -144,78 +151,41 @@ def test_transform_method_name(method):
     tm.assert_frame_equal(result, expected)
 
 
-def test_transform_and_agg_err(axis, float_frame):
-    # GH 35964
-    # cannot both transform and agg
-    msg = "Function did not transform"
-    with pytest.raises(ValueError, match=msg):
-        float_frame.transform(["max", "min"], axis=axis)
-
-    msg = "Function did not transform"
-    with pytest.raises(ValueError, match=msg):
-        float_frame.transform(["max", "sqrt"], axis=axis)
-
-
-def test_agg_dict_nested_renaming_depr():
-    df = DataFrame({"A": range(5), "B": 5})
-
-    # nested renaming
-    msg = r"nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        # mypy identifies the argument as an invalid type
-        df.transform({"A": {"foo": "min"}, "B": {"bar": "max"}})
-
-
-def test_transform_reducer_raises(all_reductions, frame_or_series):
-    # GH 35964
-    op = all_reductions
-
-    obj = DataFrame({"A": [1, 2, 3]})
-    if frame_or_series is not DataFrame:
-        obj = obj["A"]
-
-    msg = "Function did not transform"
-    with pytest.raises(ValueError, match=msg):
-        obj.transform(op)
-    with pytest.raises(ValueError, match=msg):
-        obj.transform([op])
-    with pytest.raises(ValueError, match=msg):
-        obj.transform({"A": op})
-    with pytest.raises(ValueError, match=msg):
-        obj.transform({"A": [op]})
-
-
 wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]
-frame_kernels_raise = [x for x in frame_kernels if x not in wont_fail]
+frame_kernels_raise = [x for x in frame_transform_kernels if x not in wont_fail]
 
 
-# mypy doesn't allow adding lists of different types
-# https://github.com/python/mypy/issues/5492
 @pytest.mark.parametrize("op", [*frame_kernels_raise, lambda x: x + 1])
-def test_transform_bad_dtype(op, frame_or_series):
+def test_transform_bad_dtype(op, frame_or_series, request):
     # GH 35964
+    if op == "rank":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="GH 40418: rank does not raise a TypeError")
+        )
+
     obj = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
     if frame_or_series is not DataFrame:
         obj = obj["A"]
 
-    msg = "Transform function failed"
-
     # tshift is deprecated
     warn = None if op != "tshift" else FutureWarning
-    with tm.assert_produces_warning(warn, check_stacklevel=False):
-        with pytest.raises(ValueError, match=msg):
+    with tm.assert_produces_warning(warn):
+        with pytest.raises(TypeError, match="unsupported operand|not supported"):
             obj.transform(op)
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match="Transform function failed"):
             obj.transform([op])
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match="Transform function failed"):
             obj.transform({"A": op})
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match="Transform function failed"):
             obj.transform({"A": [op]})
 
 
 @pytest.mark.parametrize("op", frame_kernels_raise)
-def test_transform_partial_failure(op):
+def test_transform_partial_failure_typeerror(op):
     # GH 35964
+
+    if op == "rank":
+        pytest.skip("GH 40418: rank does not raise a TypeError")
 
     # Using object makes most transform kernels fail
     df = DataFrame({"A": 3 * [object], "B": [1, 2, 3]})
@@ -225,11 +195,47 @@ def test_transform_partial_failure(op):
     tm.assert_equal(result, expected)
 
     expected = df[["B"]].transform({"B": op})
-    result = df.transform({"B": op})
+    result = df.transform({"A": op, "B": op})
     tm.assert_equal(result, expected)
 
     expected = df[["B"]].transform({"B": [op]})
-    result = df.transform({"B": [op]})
+    result = df.transform({"A": [op], "B": [op]})
+    tm.assert_equal(result, expected)
+
+    expected = df.transform({"A": ["shift"], "B": [op]})
+    result = df.transform({"A": [op, "shift"], "B": [op]})
+    tm.assert_equal(result, expected)
+
+
+def test_transform_partial_failure_valueerror():
+    # GH 40211
+    match = ".*did not transform successfully and did not raise a TypeError"
+
+    def op(x):
+        if np.sum(np.sum(x)) < 10:
+            raise ValueError
+        return x
+
+    df = DataFrame({"A": [1, 2, 3], "B": [400, 500, 600]})
+
+    expected = df[["B"]].transform([op])
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = df.transform([op])
+    tm.assert_equal(result, expected)
+
+    expected = df[["B"]].transform({"B": op})
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = df.transform({"A": op, "B": op})
+    tm.assert_equal(result, expected)
+
+    expected = df[["B"]].transform({"B": [op]})
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = df.transform({"A": [op], "B": [op]})
+    tm.assert_equal(result, expected)
+
+    expected = df.transform({"A": ["shift"], "B": [op]})
+    with tm.assert_produces_warning(FutureWarning, match=match, check_stacklevel=False):
+        result = df.transform({"A": [op, "shift"], "B": [op]})
     tm.assert_equal(result, expected)
 
 
@@ -250,30 +256,6 @@ def test_transform_passes_args(use_apply, frame_or_series):
         return x
 
     frame_or_series([1]).transform(f, 0, *expected_args, **expected_kwargs)
-
-
-def test_transform_missing_columns(axis):
-    # GH#35964
-    df = DataFrame({"A": [1, 2], "B": [3, 4]})
-    match = re.escape("Column(s) ['C'] do not exist")
-    with pytest.raises(SpecificationError, match=match):
-        df.transform({"C": "cumsum"})
-
-
-def test_transform_none_to_type():
-    # GH#34377
-    df = DataFrame({"a": [None]})
-    msg = "Transform function failed"
-    with pytest.raises(ValueError, match=msg):
-        df.transform({"a": int})
-
-
-def test_transform_mixed_column_name_dtypes():
-    # GH39025
-    df = DataFrame({"a": ["1"]})
-    msg = r"Column\(s\) \[1, 'b'\] do not exist"
-    with pytest.raises(SpecificationError, match=msg):
-        df.transform({"a": int, 1: str, "b": int})
 
 
 def test_transform_empty_dataframe():

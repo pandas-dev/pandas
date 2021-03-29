@@ -14,11 +14,22 @@ import pytest
 import pytz
 
 import pandas._libs.json as ujson
-from pandas._libs.tslib import Timestamp
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, Timedelta, date_range
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    NaT,
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 pytestmark = td.skip_array_manager_not_yet_implemented
@@ -1085,7 +1096,7 @@ class TestPandasJSONTests:
     def test_datetime_index(self):
         date_unit = "ns"
 
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         rng = DatetimeIndex(list(date_range("1/1/2000", periods=20)), freq=None)
         encoded = ujson.encode(rng, date_unit=date_unit)
 

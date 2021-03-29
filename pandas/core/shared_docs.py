@@ -41,6 +41,10 @@ Notes
 -----
 `agg` is an alias for `aggregate`. Use the alias.
 
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`udf-mutation`
+for more details.
+
 A passed user-defined-function will be passed a Series for evaluation.
 {examples}"""
 
@@ -139,7 +143,7 @@ resample : Convenience method for frequency conversion and resampling
 Notes
 -----
 See the `user guide
-<https://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
+<https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more.
 """
 
 _shared_docs[
@@ -295,6 +299,12 @@ See Also
 --------
 {klass}.agg : Only perform aggregating type operations.
 {klass}.apply : Invoke function on a {klass}.
+
+Notes
+-----
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`udf-mutation`
+for more details.
 
 Examples
 --------

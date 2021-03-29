@@ -5,14 +5,20 @@ import locale
 import re
 import time
 
-from cpython.datetime cimport date, tzinfo
+from cpython.datetime cimport (
+    date,
+    tzinfo,
+)
 
 from _thread import allocate_lock as _thread_allocate_lock
 
 import numpy as np
 import pytz
 
-from numpy cimport int64_t, ndarray
+from numpy cimport (
+    int64_t,
+    ndarray,
+)
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,

@@ -1,6 +1,12 @@
 import re
 import textwrap
-from typing import Optional, Pattern, Set, Union, cast
+from typing import (
+    Optional,
+    Pattern,
+    Set,
+    Union,
+    cast,
+)
 import unicodedata
 import warnings
 
@@ -9,9 +15,15 @@ import numpy as np
 import pandas._libs.lib as lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas._typing import Dtype, Scalar
+from pandas._typing import (
+    Dtype,
+    Scalar,
+)
 
-from pandas.core.dtypes.common import is_re, is_scalar
+from pandas.core.dtypes.common import (
+    is_re,
+    is_scalar,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.strings.base import BaseStringArrayMethods
@@ -51,10 +63,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             na_value = self._str_na_value
 
         if not len(arr):
-            return np.ndarray(0, dtype=dtype)
+            # error: Argument 1 to "ndarray" has incompatible type "int";
+            # expected "Sequence[int]"
+            return np.ndarray(0, dtype=dtype)  # type: ignore[arg-type]
 
         if not isinstance(arr, np.ndarray):
-            arr = np.asarray(arr, dtype=object)
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "ObjectStringArrayMixin")
+            arr = np.asarray(arr, dtype=object)  # type: ignore[assignment]
         mask = isna(arr)
         convert = not np.all(mask)
         try:

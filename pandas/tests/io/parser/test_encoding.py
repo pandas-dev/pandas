@@ -10,7 +10,10 @@ import tempfile
 import numpy as np
 import pytest
 
-from pandas import DataFrame, read_csv
+from pandas import (
+    DataFrame,
+    read_csv,
+)
 import pandas._testing as tm
 
 
@@ -150,7 +153,7 @@ def test_binary_mode_file_buffers(
     fpath = datapath(*file_path)
     expected = parser.read_csv(fpath, encoding=encoding)
 
-    with open(fpath, mode="r", encoding=encoding) as fa:
+    with open(fpath, encoding=encoding) as fa:
         result = parser.read_csv(fa)
         assert not fa.closed
     tm.assert_frame_equal(expected, result)

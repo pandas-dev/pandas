@@ -19,27 +19,52 @@ Instead of splitting it was decided to define sections here:
 """
 
 from collections import abc
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+    timezone,
+)
 from decimal import Decimal
 import operator
 import os
 
-from dateutil.tz import tzlocal, tzutc
+from dateutil.tz import (
+    tzlocal,
+    tzutc,
+)
 import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import FixedOffset, utc
+from pytz import (
+    FixedOffset,
+    utc,
+)
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+)
 
 import pandas as pd
-from pandas import DataFrame, Interval, Period, Series, Timedelta, Timestamp
+from pandas import (
+    DataFrame,
+    Interval,
+    Period,
+    Series,
+    Timedelta,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 
 
 # ----------------------------------------------------------------
@@ -60,6 +85,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "arm_slow: mark a test as slow for arm64 architecture"
     )
+    config.addinivalue_line(
+        "markers", "arraymanager: mark a test to run with ArrayManager enabled"
+    )
 
 
 def pytest_addoption(parser):
@@ -75,19 +103,6 @@ def pytest_addoption(parser):
         action="store_true",
         help="Fail if a test is skipped for missing data file.",
     )
-    parser.addoption(
-        "--array-manager",
-        "--am",
-        action="store_true",
-        help="Use the experimental ArrayManager as default data manager.",
-    )
-
-
-def pytest_sessionstart(session):
-    # Note: we need to set the option here and not in pytest_runtest_setup below
-    # to ensure this is run before creating fixture data
-    if session.config.getoption("--array-manager"):
-        pd.options.mode.data_manager = "array"
 
 
 def pytest_runtest_setup(item):
@@ -107,6 +122,13 @@ def pytest_runtest_setup(item):
         "--run-high-memory"
     ):
         pytest.skip("skipping high memory test since --run-high-memory was not set")
+
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        # mark all tests in the pandas/tests/frame directory with "arraymanager"
+        if "/frame/" in item.nodeid:
+            item.add_marker(pytest.mark.arraymanager)
 
 
 # Hypothesis
@@ -178,7 +200,7 @@ def add_imports(doctest_namespace):
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis {repr(x)}")
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
 def axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
@@ -279,7 +301,7 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(params=tm.NULL_OBJECTS, ids=str)
+@pytest.fixture(params=tm.NULL_OBJECTS, ids=lambda x: type(x).__name__)
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
@@ -314,6 +336,7 @@ def frame_or_series(request):
     return request.param
 
 
+# error: List item 0 has incompatible type "Type[Index]"; expected "Type[IndexOpsMixin]"
 @pytest.fixture(
     params=[pd.Index, pd.Series], ids=["index", "series"]  # type: ignore[list-item]
 )
@@ -1561,6 +1584,22 @@ def indexer_sli(request):
 def indexer_si(request):
     """
     Parametrize over __setitem__, iloc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.setitem, tm.loc])
+def indexer_sl(request):
+    """
+    Parametrize over __setitem__, loc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.at, tm.loc])
+def indexer_al(request):
+    """
+    Parametrize over at.__setitem__, loc.__setitem__
     """
     return request.param
 
