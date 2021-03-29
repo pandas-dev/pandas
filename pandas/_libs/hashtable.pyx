@@ -70,11 +70,9 @@ include "hashtable_func_helper.pxi"
 if np.dtype(np.intp) == np.dtype(np.int64):
     IntpHashTable = Int64HashTable
     unique_label_indices = _unique_label_indices_int64
-    unique_label_indices_intp = _unique_label_indices_int64
 elif np.dtype(np.intp) == np.dtype(np.int32):
     IntpHashTable = Int32HashTable
-    unique_label_indices = _unique_label_indices_int64
-    unique_label_indices_intp = _unique_label_indices_int32
+    unique_label_indices = _unique_label_indices_int32
 else:
     raise ValueError(np.dtype(np.intp))
 
