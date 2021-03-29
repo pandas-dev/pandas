@@ -1103,7 +1103,10 @@ class Block(libinternals.Block, PandasObject):
             # If there are no NAs, then interpolate is a no-op
             return [self] if inplace else [self.copy()]
 
-        m = missing.try_clean_fill_method(method)
+        try:
+            m = missing.clean_fill_method(method)
+        except ValueError:
+            m = None
         if m is None and self.dtype.kind != "f":
             # only deal with floats
             # bc we already checked that can_hold_na, we dont have int dtype here

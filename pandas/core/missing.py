@@ -103,18 +103,6 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     return mask
 
 
-def try_clean_fill_method(method):
-    """
-    Variant of clean_fill_method used for choosing between interpolate_2d and
-    interpolate_2d_with_fill.
-    """
-    try:
-        m = clean_fill_method(method)
-    except ValueError:
-        return None
-    return m
-
-
 def clean_fill_method(method, allow_nearest: bool = False):
     # asfreq is compat for resampling
     if method in [None, "asfreq"]:
@@ -233,7 +221,10 @@ def interpolate_array_2d(
     """
     Wrapper to dispatch to either interpolate_2d or interpolate_2d_with_fill.
     """
-    m = try_clean_fill_method(method)
+    try:
+        m = clean_fill_method(method)
+    except ValueError:
+        m = None
 
     if m is not None:
         if fill_value is not None:
