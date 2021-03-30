@@ -360,9 +360,7 @@ class BlockManager(DataManager):
                 if is_datetime64tz_dtype(vals.dtype):
                     # older versions will hold in DatetimeIndex instead of DTA
                     vals = extract_array(vals, extract_numpy=True)
-                    if vals.ndim == 1 and ndim == 2:
-                        vals = vals.reshape(1, -1)
-                        blk["values"] = vals
+                    blk["values"] = ensure_block_shape(vals, ndim=ndim)
 
             self.blocks = tuple(
                 unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)

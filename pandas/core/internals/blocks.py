@@ -5,7 +5,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     List,
     Optional,
     Tuple,
@@ -599,8 +598,6 @@ class Block(libinternals.Block, PandasObject):
         Block
         """
         values = self.values
-        if values.dtype.kind in ["m", "M"]:
-            values = self.array_values
 
         new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
@@ -1749,14 +1746,12 @@ class HybridMixin:
     Mixin for Blocks backed (maybe indirectly) by ExtensionArrays.
     """
 
-    array_values: Callable
-
     def _can_hold_element(self, element: Any) -> bool:
-        values = self.array_values
+        # error: "HybridMixin" has no attribute "values"
+        values = self.values  # type: ignore[attr-defined]
 
         try:
-            # error: "Callable[..., Any]" has no attribute "_validate_setitem_value"
-            values._validate_setitem_value(element)  # type: ignore[attr-defined]
+            values._validate_setitem_value(element)
             return True
         except (ValueError, TypeError):
             return False
