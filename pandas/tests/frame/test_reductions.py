@@ -382,7 +382,8 @@ class TestDataFrameAnalytics:
             pass
 
     # TODO: Ensure warning isn't emitted in the first place
-    @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
+    # ignore mean of empty slice and all-NaN
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_median(self, float_frame_with_na, int_frame):
         def wrapper(x):
             if isna(x).any():
@@ -1002,6 +1003,43 @@ class TestDataFrameAnalytics:
         expected = Series([0, 2, 0], index=[1, 2, 3])
         tm.assert_series_equal(result, expected)
 
+        # with NaTs
+        df.loc[0, 3] = pd.NaT
+        result = df.idxmax()
+        expected = Series([1, 0, 2], index=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin()
+        expected = Series([0, 2, 1], index=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+        # with multi-column dt64 block
+        df[4] = dti[::-1]
+        df._consolidate_inplace()
+
+        result = df.idxmax()
+        expected = Series([1, 0, 2, 0], index=[1, 2, 3, 4])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin()
+        expected = Series([0, 2, 1, 2], index=[1, 2, 3, 4])
+        tm.assert_series_equal(result, expected)
+
+    def test_idxmax_dt64_multicolumn_axis1(self):
+        dti = date_range("2016-01-01", periods=3)
+        df = DataFrame({3: dti, 4: dti[::-1]})
+        df.iloc[0, 0] = pd.NaT
+
+        df._consolidate_inplace()
+
+        result = df.idxmax(axis=1)
+        expected = Series([4, 3, 3])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin(axis=1)
+        expected = Series([4, 3, 4])
+        tm.assert_series_equal(result, expected)
+
     # ----------------------------------------------------------------------
     # Logical reductions
 
@@ -1162,6 +1200,9 @@ class TestDataFrameAnalytics:
         df = DataFrame({"A": ["foo", 2], "B": [True, False]}).astype(object)
         df._consolidate_inplace()
         df["C"] = Series([True, True])
+
+        # Categorical of bools is _not_ considered booly
+        df["D"] = df["C"].astype("category")
 
         # The underlying bug is in DataFrame._get_bool_data, so we check
         #  that while we're here

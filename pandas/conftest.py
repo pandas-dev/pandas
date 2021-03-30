@@ -85,6 +85,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "arm_slow: mark a test as slow for arm64 architecture"
     )
+    config.addinivalue_line(
+        "markers", "arraymanager: mark a test to run with ArrayManager enabled"
+    )
 
 
 def pytest_addoption(parser):
@@ -119,6 +122,13 @@ def pytest_runtest_setup(item):
         "--run-high-memory"
     ):
         pytest.skip("skipping high memory test since --run-high-memory was not set")
+
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        # mark all tests in the pandas/tests/frame directory with "arraymanager"
+        if "/frame/" in item.nodeid:
+            item.add_marker(pytest.mark.arraymanager)
 
 
 # Hypothesis
