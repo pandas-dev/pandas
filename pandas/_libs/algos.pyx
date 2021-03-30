@@ -795,13 +795,13 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
 
 
 def backfill_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
-    return pad_inplace(values[::-1], mask[::-1], limit=limit)
+    pad_inplace(values[::-1], mask[::-1], limit=limit)
 
 
 def backfill_2d_inplace(algos_t[:, :] values,
                         const uint8_t[:, :] mask,
                         limit=None):
-    return pad_2d_inplace(values[:, ::-1], mask[:, ::-1], limit)
+    pad_2d_inplace(values[:, ::-1], mask[:, ::-1], limit)
 
 
 @cython.boundscheck(False)
