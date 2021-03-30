@@ -1182,17 +1182,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         )
         tm.assert_frame_equal(result, expected)
 
-        ser = df[0]
-        ser.name = None
-
-        result = ser.loc[range(2)]
-        expected = Series([1.0, 0.0], dtype=SparseDtype("float64", 0.0))
-        tm.assert_series_equal(result, expected)
-
-        result = ser.loc[range(3)].loc[range(2)]
-        expected = Series([1.0, 0.0], dtype=SparseDtype("float64", 0.0))
-        tm.assert_series_equal(result, expected)
-
     @pytest.mark.parametrize("key_type", [iter, np.array, Series, Index])
     def test_loc_getitem_iterable(self, float_frame, key_type):
         idx = key_type(["A", "B", "C"])
