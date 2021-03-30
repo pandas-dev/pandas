@@ -1592,18 +1592,18 @@ class SQLDatabase(PandasSQL):
         )
         table.create()
 
-        from sqlalchemy import exc
+        from sqlalchemy.exc import (
+            OperationalError,
+            ProgrammingError,
+        )
 
         try:
             table.insert(chunksize, method=method)
-        except exc.SQLAlchemyError as err:
-            # GH34431
-            msg = "(1054, \"Unknown column 'inf' in 'field list'\")"
-            err_text = str(err.orig)
-            if re.search(msg, err_text):
-                raise ValueError("inf cannot be used with MySQL") from err
-            else:
-                raise err
+        # GH 34431 36465
+        except ProgrammingError as err:
+            raise ValueError("inf cannot be used with MySQL") from err
+        except OperationalError as err:
+            raise ValueError("column name cannot contain inf in MySQL") from err
 
         if not name.isdigit() and not name.islower():
             # check for potentially case sensitivity issues (GH7815)
