@@ -35,6 +35,7 @@ from pandas._typing import (
     Shape,
     final,
 )
+from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -164,7 +165,7 @@ class Block(libinternals.Block, PandasObject):
     _validate_ndim = True
 
     @final
-    @property
+    @cache_readonly
     def _consolidate_key(self):
         return self._can_consolidate, self.dtype.name
 
@@ -187,7 +188,7 @@ class Block(libinternals.Block, PandasObject):
         return values._can_hold_na
 
     @final
-    @property
+    @cache_readonly
     def is_categorical(self) -> bool:
         warnings.warn(
             "Block.is_categorical is deprecated and will be removed in a "
@@ -216,6 +217,7 @@ class Block(libinternals.Block, PandasObject):
         """
         return self.values
 
+    @property
     def array_values(self) -> ExtensionArray:
         """
         The array that Series.array returns. Always an ExtensionArray.
@@ -243,7 +245,7 @@ class Block(libinternals.Block, PandasObject):
         return np.asarray(self.values).reshape(self.shape)
 
     @final
-    @property
+    @cache_readonly
     def fill_value(self):
         # Used in reindex_indexer
         return na_value_for_dtype(self.dtype, compat=False)
@@ -351,7 +353,7 @@ class Block(libinternals.Block, PandasObject):
         return self.values.shape
 
     @final
-    @property
+    @cache_readonly
     def dtype(self) -> DtypeObj:
         return self.values.dtype
 
@@ -375,6 +377,11 @@ class Block(libinternals.Block, PandasObject):
         """
         self.values = np.delete(self.values, loc, 0)
         self.mgr_locs = self._mgr_locs.delete(loc)
+        try:
+            self._cache.clear()
+        except AttributeError:
+            # _cache not yet initialized
+            pass
 
     @final
     def apply(self, func, **kwargs) -> List[Block]:
@@ -593,7 +600,7 @@ class Block(libinternals.Block, PandasObject):
         """
         values = self.values
         if values.dtype.kind in ["m", "M"]:
-            values = self.array_values()
+            values = self.array_values
 
         new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
@@ -1217,7 +1224,6 @@ class Block(libinternals.Block, PandasObject):
 
         # interp each column independently
         interp_values = np.apply_along_axis(func, axis, data)
-
         interp_values = maybe_coerce_values(interp_values)
         blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
@@ -1443,7 +1449,7 @@ class ExtensionBlock(Block):
 
     values: ExtensionArray
 
-    @property
+    @cache_readonly
     def shape(self) -> Shape:
         # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
@@ -1474,6 +1480,12 @@ class ExtensionBlock(Block):
         #  see GH#33457
         assert locs.tolist() == [0]
         self.values = values
+        try:
+            # TODO(GH33457) this can be removed
+            self._cache.clear()
+        except AttributeError:
+            # _cache not yet initialized
+            pass
 
     def putmask(self, mask, new) -> List[Block]:
         """
@@ -1498,7 +1510,7 @@ class ExtensionBlock(Block):
         """Extension arrays are never treated as views."""
         return False
 
-    @property
+    @cache_readonly
     def is_numeric(self):
         return self.values.dtype._is_numeric
 
@@ -1547,6 +1559,7 @@ class ExtensionBlock(Block):
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
 
+    @cache_readonly
     def array_values(self) -> ExtensionArray:
         return self.values
 
@@ -1678,10 +1691,7 @@ class ExtensionBlock(Block):
             # The default `other` for Series / Frame is np.nan
             # we want to replace that with the correct NA value
             # for the type
-
-            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
-            # attribute "na_value"
-            other = self.dtype.na_value  # type: ignore[union-attr]
+            other = self.dtype.na_value
 
         if is_sparse(self.values):
             # TODO(SparseArray.__setitem__): remove this if condition
@@ -1742,10 +1752,11 @@ class HybridMixin:
     array_values: Callable
 
     def _can_hold_element(self, element: Any) -> bool:
-        values = self.array_values()
+        values = self.array_values
 
         try:
-            values._validate_setitem_value(element)
+            # error: "Callable[..., Any]" has no attribute "_validate_setitem_value"
+            values._validate_setitem_value(element)  # type: ignore[attr-defined]
             return True
         except (ValueError, TypeError):
             return False
@@ -1771,9 +1782,7 @@ class NumericBlock(Block):
         if isinstance(element, (IntegerArray, FloatingArray)):
             if element._mask.any():
                 return False
-        # error: Argument 1 to "can_hold_element" has incompatible type
-        # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
-        return can_hold_element(self.dtype, element)  # type: ignore[arg-type]
+        return can_hold_element(self.dtype, element)
 
 
 class NDArrayBackedExtensionBlock(HybridMixin, Block):
@@ -1783,6 +1792,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 
     values: NDArrayBackedExtensionArray
 
+    @cache_readonly
     def array_values(self):
         return self.values
 
@@ -1918,17 +1928,14 @@ class DatetimeTZBlock(DatetimeLikeBlockMixin, ExtensionBlock):
     set_inplace = Block.set_inplace
 
     _slice = Block._slice
-    # Incompatible types in assignment (expression has type
-    #  "Callable[[Block], Tuple[int, ...]]", base class "ExtensionBlock"
-    #  defined the type as "Tuple[int, ...]")
-    shape = Block.shape  # type:ignore[assignment]
+    shape = Block.shape
     # Incompatible types in assignment (expression has type
     #  "Callable[[Arg(Any, 'indexer'), Arg(int, 'axis'),
     #  DefaultArg(Any, 'new_mgr_locs'), DefaultArg(Any, 'fill_value')], Block]",
     #  base class "ExtensionBlock" defined the type as
     #  "Callable[[Arg(Any, 'indexer'), DefaultArg(int, 'axis'),
     #  DefaultArg(Any, 'new_mgr_locs'), DefaultArg(Any, 'fill_value')], Block]")
-    take_nd = Block.take_nd  # type:ignore[assignment]
+    take_nd = Block.take_nd  # type: ignore[assignment]
     _unstack = Block._unstack
 
     # TODO: we still share these with ExtensionBlock (and not DatetimeBlock)

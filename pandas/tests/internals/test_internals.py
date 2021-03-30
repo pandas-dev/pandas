@@ -443,17 +443,26 @@ class TestBlockManager:
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
 
+            bvals = blk.values
+            cpvals = cp_blk.values
+
+            tm.assert_equal(cpvals, bvals)
+
+            if isinstance(cpvals, np.ndarray):
+                lbase = cpvals.base
+                rbase = bvals.base
+            else:
+                lbase = cpvals._ndarray.base
+                rbase = bvals._ndarray.base
+
             # copy assertion we either have a None for a base or in case of
             # some blocks it is an array (e.g. datetimetz), but was copied
-            tm.assert_equal(cp_blk.values, blk.values)
-            if isinstance(cp_blk.values, DatetimeArray):
-                assert (
-                    cp_blk.values._data.base is None and blk.values._data.base is None
-                ) or (cp_blk.values._data.base is not blk.values._data.base)
-            elif not isinstance(cp_blk.values, np.ndarray):
-                assert cp_blk.values._data.base is not blk.values._data.base
+            if isinstance(cpvals, DatetimeArray):
+                assert (lbase is None and rbase is None) or (lbase is not rbase)
+            elif not isinstance(cpvals, np.ndarray):
+                assert lbase is not rbase
             else:
-                assert cp_blk.values.base is None and blk.values.base is None
+                assert lbase is None and rbase is None
 
     def test_sparse(self):
         mgr = create_mgr("a: sparse-1; b: sparse-2")

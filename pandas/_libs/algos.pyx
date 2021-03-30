@@ -962,6 +962,7 @@ ctypedef fused rank_t:
 def rank_1d(
     ndarray[rank_t, ndim=1] values,
     const intp_t[:] labels,
+    bint is_datetimelike=False,
     ties_method="average",
     bint ascending=True,
     bint pct=False,
@@ -977,6 +978,8 @@ def rank_1d(
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`. If not called
         from a groupby operation, will be an array of 0's
+    is_datetimelike : bool, default False
+        True if `values` contains datetime-like entries.
     ties_method : {'average', 'min', 'max', 'first', 'dense'}, default
         'average'
         * average: average rank of group
@@ -1032,7 +1035,7 @@ def rank_1d(
 
     if rank_t is object:
         mask = missing.isnaobj(masked_vals)
-    elif rank_t is int64_t:
+    elif rank_t is int64_t and is_datetimelike:
         mask = (masked_vals == NPY_NAT).astype(np.uint8)
     elif rank_t is float64_t:
         mask = np.isnan(masked_vals).astype(np.uint8)
@@ -1059,7 +1062,7 @@ def rank_1d(
         if rank_t is object:
             nan_fill_val = NegInfinity()
         elif rank_t is int64_t:
-            nan_fill_val = np.iinfo(np.int64).min
+            nan_fill_val = NPY_NAT
         elif rank_t is uint64_t:
             nan_fill_val = 0
         else:
@@ -1275,6 +1278,7 @@ def rank_1d(
 def rank_2d(
     ndarray[rank_t, ndim=2] in_arr,
     int axis=0,
+    bint is_datetimelike=False,
     ties_method="average",
     bint ascending=True,
     na_option="keep",
@@ -1299,7 +1303,9 @@ def rank_2d(
     tiebreak = tiebreakers[ties_method]
 
     keep_na = na_option == 'keep'
-    check_mask = rank_t is not uint64_t
+
+    # For cases where a mask is not possible, we can avoid mask checks
+    check_mask = not (rank_t is uint64_t or (rank_t is int64_t and not is_datetimelike))
 
     if axis == 0:
         values = np.asarray(in_arr).T.copy()
@@ -1310,13 +1316,15 @@ def rank_2d(
         if values.dtype != np.object_:
             values = values.astype('O')
 
-    if rank_t is not uint64_t:
+    if check_mask:
         if ascending ^ (na_option == 'top'):
             if rank_t is object:
                 nan_value = Infinity()
             elif rank_t is float64_t:
                 nan_value = np.inf
-            elif rank_t is int64_t:
+
+            # int64 and datetimelike
+            else:
                 nan_value = np.iinfo(np.int64).max
 
         else:
@@ -1324,14 +1332,18 @@ def rank_2d(
                 nan_value = NegInfinity()
             elif rank_t is float64_t:
                 nan_value = -np.inf
-            elif rank_t is int64_t:
+
+            # int64 and datetimelike
+            else:
                 nan_value = NPY_NAT
 
         if rank_t is object:
             mask = missing.isnaobj2d(values)
         elif rank_t is float64_t:
             mask = np.isnan(values)
-        elif rank_t is int64_t:
+
+        # int64 and datetimelike
+        else:
             mask = values == NPY_NAT
 
         np.putmask(values, mask, nan_value)
