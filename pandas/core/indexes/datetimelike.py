@@ -537,7 +537,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # List-like Methods
 
-    def _get_delete_freq(self, loc: Union[int, Sequence[int]]):
+    def _get_delete_freq(self, loc: Union[int, slice, Sequence[int]]):
         """
         Find the `freq` for self.delete(loc).
         """
