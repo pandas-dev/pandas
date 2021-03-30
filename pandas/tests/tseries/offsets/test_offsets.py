@@ -875,5 +875,15 @@ def test_dateoffset_immutable(attribute):
         setattr(offset, attribute, 5)
         
 
-with tm.assert_produces_warning(DeprecationWarning):
-    offsets.QuarterEnd(startingMonth=1)
+@pytest.mark.parametrize(
+    "offset_type",
+    [
+        "QuarterBegin",
+        "QuarterEnd",
+        "BQuarterBegin",
+        "BQuarterEnd",
+    ],
+)
+def test_startingMonth_deprecation_warning(offset_type):
+    with tm.assert_produces_warning(DeprecationWarning):
+        eval(f"offsets.{offset_type}(startingMonth=1)")
