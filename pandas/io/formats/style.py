@@ -698,6 +698,30 @@ class Styler:
 
         return self
 
+    def set_sticky(
+        self,
+        index: Union[bool, List[int]] = True,
+        columns: Union[bool, List[int]] = True,
+    ) -> Styler:
+        """
+        Add CSS to make the index or column headers constantly visible in the window.
+
+        Parameters
+        ----------
+        index : bool or list of ints
+            If ``True`` makes the entire index sticky, if a list, the integer values
+            should correspond to MultiIndex levels that should be made sticky.
+        columns : bool or list of ints
+            If ``True`` makes the entire column headers sticky, if a list, the integer
+            values should correspond to column MultiIndex levels that should be made
+            sticky.
+
+        Returns
+        -------
+        self : Styler
+        """
+        return self
+
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
         Set the DataFrame of strings added to the ``class`` attribute of ``<td>``
