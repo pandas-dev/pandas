@@ -423,10 +423,17 @@ def _concatenate_join_units(
                     concat_values = concat_values.copy()
             else:
                 concat_values = concat_values.copy()
-    elif any(isinstance(t, ExtensionArray) for t in to_concat):
+    elif any(isinstance(t, ExtensionArray) and t.ndim == 1 for t in to_concat):
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
-        to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
+        # error: Invalid index type "Tuple[int, slice]" for
+        # "Union[ExtensionArray, ndarray]"; expected type "Union[int, slice, ndarray]"
+        to_concat = [
+            t
+            if (isinstance(t, ExtensionArray) and t.ndim == 1)
+            else t[0, :]  # type: ignore[index]
+            for t in to_concat
+        ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
         concat_values = ensure_block_shape(concat_values, 2)
 
