@@ -2789,14 +2789,14 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
 
     def font_weight(value, arg):
         if value == "bold" or value == "bolder":
-            return "bfseries", f"{arg if arg != '' else '--nowrap'}"
+            return "bfseries", f"{arg}"
         return None
 
     def font_style(value, arg):
         if value == "italic":
-            return "itshape", f"{arg if arg != '' else '--nowrap'}"
+            return "itshape", f"{arg}"
         elif value == "oblique":
-            return "slshape", f"{arg if arg != '' else '--nowrap'}"
+            return "slshape", f"{arg}"
         return None
 
     def color(value, user_arg, command, comm_arg):
@@ -2840,8 +2840,8 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
 
     CONVERTED_STYLES = {
         "font-weight": font_weight,
-        "background-color": partial(color, command="cellcolor", comm_arg="--leftwrap"),
-        "color": partial(color, command="color", comm_arg="--nowrap"),
+        "background-color": partial(color, command="cellcolor", comm_arg="--lwrap"),
+        "color": partial(color, command="color", comm_arg=""),
         "font-style": font_style,
     }
 
@@ -2854,7 +2854,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
             c_styles.append((command, options.replace("--latex", "")))
         if command in CONVERTED_STYLES.keys():
             arg = ""
-            for v in ["--wrap", "--nowrap", "--leftwrap", "--dualwrap"]:
+            for v in ["--wrap", "--nowrap", "--lwrap", "--dwrap", "--rwrap"]:
                 if v in str(options):
                     arg, options = v, _parse_latex_strip_arg(options, v)
                     break
