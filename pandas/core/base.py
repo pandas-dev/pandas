@@ -24,6 +24,7 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     Shape,
+    final,
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
@@ -933,12 +934,8 @@ class IndexOpsMixin(OpsMixin):
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
 
-                # error: Incompatible types in assignment (expression has type
-                # "Categorical", variable has type "IndexOpsMixin")
-                self = cast("Categorical", self)  # type: ignore[assignment]
-                # error: Item "ExtensionArray" of "Union[ExtensionArray, Any]" has no
-                # attribute "map"
-                return self._values.map(mapper)  # type: ignore[union-attr]
+                cat = cast("Categorical", self._values)
+                return cat.map(mapper)
 
             values = self._values
 
@@ -955,8 +952,7 @@ class IndexOpsMixin(OpsMixin):
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
-            # error: "IndexOpsMixin" has no attribute "astype"
-            values = self.astype(object)._values  # type: ignore[attr-defined]
+            values = self._values.astype(object)
             if na_action == "ignore":
                 map_f = lambda values, f: lib.map_infer_mask(
                     values, f, isna(values).view(np.uint8)
@@ -1327,9 +1323,10 @@ class IndexOpsMixin(OpsMixin):
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first"):
-        duplicated = self.duplicated(keep=keep)
+        duplicated = self._duplicated(keep=keep)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]
 
-    def duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
+    @final
+    def _duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
         return duplicated(self._values, keep=keep)
