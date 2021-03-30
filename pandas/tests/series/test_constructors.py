@@ -1354,7 +1354,7 @@ class TestSeriesConstructors:
         msg = "|".join(
             [
                 "Could not convert object to NumPy timedelta",
-                "Invalid type for timedelta scalar: <class 'numpy.datetime64'>",
+                "Could not convert 'foo' to NumPy timedelta",
             ]
         )
         with pytest.raises(ValueError, match=msg):
