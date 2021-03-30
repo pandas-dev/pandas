@@ -154,13 +154,13 @@ def test_custom_table_styles(styler):
 
 
 def test_cell_styling(styler):
-    styler.highlight_max(props="emph:;Huge:--wrap;")
+    styler.highlight_max(props="itshape:;Huge:--wrap;")
     expected = dedent(
         """\
         \\begin{tabular}{lrrl}
         {} & {A} & {B} & {C} \\\\
-        0 & 0 & \\emph{{\\Huge -0.61}} & ab \\\\
-        1 & \\emph{{\\Huge 1}} & -1.22 & \\emph{{\\Huge cd}} \\\\
+        0 & 0 & \\itshape {\\Huge -0.61} & ab \\\\
+        1 & \\itshape {\\Huge 1} & -1.22 & \\itshape {\\Huge cd} \\\\
         \\end{tabular}
         """
     )
@@ -310,7 +310,7 @@ def test_comprehensive(df):
             {"selector": "rowcolors", "props": ":{3}{pink}{}"},  # custom command
         ]
     )
-    s.highlight_max(axis=0, props="textbf:;cellcolor:[rgb]{1,1,0.6}")
+    s.highlight_max(axis=0, props="textbf:--rwrap;cellcolor:[rgb]{1,1,0.6}--rwrap")
     s.highlight_max(axis=None, props="Huge:--wrap;", subset=[("Z", "a"), ("Z", "b")])
 
     expected = (
@@ -354,19 +354,20 @@ def test_parse_latex_table_styles(styler):
 
 
 def test_parse_latex_cell_styles_basic():  # test nesting
-    cell_style = [("emph", ""), ("cellcolor", "[rgb]{0,1,1}")]
-    expected = "\\emph{\\cellcolor[rgb]{0,1,1}{text}}"
+    cell_style = [("itshape", "--rwrap"), ("cellcolor", "[rgb]{0,1,1}--rwrap")]
+    expected = "\\itshape{\\cellcolor[rgb]{0,1,1}{text}}"
     assert _parse_latex_cell_styles(cell_style, "text") == expected
 
 
 @pytest.mark.parametrize(
     "wrap_arg, expected",
     [  # test wrapping
-        ("", "\\<command><options>{<display_value>}"),
+        ("", "\\<command><options> <display_value>"),
         ("--wrap", "{\\<command><options> <display_value>}"),
         ("--nowrap", "\\<command><options> <display_value>"),
-        ("--leftwrap", "{\\<command><options>} <display_value>"),
-        ("--dualwrap", "{\\<command><options>}{<display_value>}"),
+        ("--lwrap", "{\\<command><options>} <display_value>"),
+        ("--dwrap", "{\\<command><options>}{<display_value>}"),
+        ("--rwrap", "\\<command><options>{<display_value>}"),
     ],
 )
 def test_parse_latex_cell_styles_braces(wrap_arg, expected):
