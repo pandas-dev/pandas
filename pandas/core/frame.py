@@ -13,6 +13,7 @@ from __future__ import annotations
 import collections
 from collections import abc
 import datetime
+import functools
 from io import StringIO
 import itertools
 import mmap
@@ -103,7 +104,6 @@ from pandas.core.dtypes.cast import (
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
-    ensure_int64,
     ensure_platform_int,
     infer_dtype_from_object,
     is_bool_dtype,
@@ -528,7 +528,7 @@ class DataFrame(NDFrame, OpsMixin):
     >>> from dataclasses import make_dataclass
     >>> Point = make_dataclass("Point", [("x", int), ("y", int)])
     >>> pd.DataFrame([Point(0, 0), Point(0, 3), Point(2, 3)])
-        x  y
+       x  y
     0  0  0
     1  0  3
     2  2  3
@@ -3332,7 +3332,6 @@ class DataFrame(NDFrame, OpsMixin):
 
             # this is a cached value, mark it so
             result._set_as_cached(label, self)
-
             return result
 
     def _get_column_array(self, i: int) -> ArrayLike:
@@ -4298,8 +4297,14 @@ class DataFrame(NDFrame, OpsMixin):
                 "Cannot specify 'allow_duplicates=True' when "
                 "'self.flags.allows_duplicate_labels' is False."
             )
+        if not allow_duplicates and column in self.columns:
+            # Should this be a different kind of error??
+            raise ValueError(f"cannot insert {column}, already exists")
+        if not isinstance(loc, int):
+            raise TypeError("loc must be int")
+
         value = self._sanitize_column(value)
-        self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
+        self._mgr.insert(loc, column, value)
 
     def assign(self, **kwargs) -> DataFrame:
         r"""
@@ -4558,9 +4563,7 @@ class DataFrame(NDFrame, OpsMixin):
             indexer = row_indexer, col_indexer
             # error: Argument 2 to "take_2d_multi" has incompatible type "Tuple[Any,
             # Any]"; expected "ndarray"
-            new_values = take_2d_multi(
-                self.values, indexer, fill_value=fill_value  # type: ignore[arg-type]
-            )
+            new_values = take_2d_multi(self.values, indexer, fill_value=fill_value)
             return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
             return self._reindex_with_indexers(
@@ -5080,28 +5083,45 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         ncols = len(self.columns)
-        if axis == 1 and periods != 0 and fill_value is lib.no_default and ncols > 0:
-            # We will infer fill_value to match the closest column
 
-            # Use a column that we know is valid for our column's dtype GH#38434
-            label = self.columns[0]
+        if (
+            axis == 1
+            and periods != 0
+            and ncols > 0
+            and (fill_value is lib.no_default or len(self._mgr.arrays) > 1)
+        ):
+            # Exclude single-array-with-fill_value case so we issue a FutureWarning
+            #  if an integer is passed with datetimelike dtype GH#31971
+            from pandas import concat
+
+            # tail: the data that is still in our shifted DataFrame
+            if periods > 0:
+                tail = self.iloc[:, :-periods]
+            else:
+                tail = self.iloc[:, -periods:]
+            # pin a simple Index to avoid costly casting
+            tail.columns = range(len(tail.columns))
+
+            if fill_value is not lib.no_default:
+                # GH#35488
+                # TODO(EA2D): with 2D EAs we could construct other directly
+                ser = Series(fill_value, index=self.index)
+            else:
+                # We infer fill_value to match the closest column
+                if periods > 0:
+                    ser = self.iloc[:, 0].shift(len(self))
+                else:
+                    ser = self.iloc[:, -1].shift(len(self))
+
+            width = min(abs(periods), ncols)
+            other = concat([ser] * width, axis=1)
 
             if periods > 0:
-                result = self.iloc[:, :-periods]
-                for col in range(min(ncols, abs(periods))):
-                    # TODO(EA2D): doing this in a loop unnecessary with 2D EAs
-                    # Define filler inside loop so we get a copy
-                    filler = self.iloc[:, 0].shift(len(self))
-                    result.insert(0, label, filler, allow_duplicates=True)
+                result = concat([other, tail], axis=1)
             else:
-                result = self.iloc[:, -periods:]
-                for col in range(min(ncols, abs(periods))):
-                    # Define filler inside loop so we get a copy
-                    filler = self.iloc[:, -1].shift(len(self))
-                    result.insert(
-                        len(result.columns), label, filler, allow_duplicates=True
-                    )
+                result = concat([tail, other], axis=1)
 
+            result = cast(DataFrame, result)
             result.columns = self.columns.copy()
             return result
 
@@ -8440,7 +8460,7 @@ NaN 12.3   33.0
         return op.apply()
 
     def applymap(
-        self, func: PythonFuncType, na_action: Optional[str] = None
+        self, func: PythonFuncType, na_action: Optional[str] = None, **kwargs
     ) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
@@ -8456,6 +8476,12 @@ NaN 12.3   33.0
             If ‘ignore’, propagate NaN values, without passing them to func.
 
             .. versionadded:: 1.2
+
+        **kwargs
+            Additional keyword arguments to pass as keywords arguments to
+            `func`.
+
+            .. versionadded:: 1.3
 
         Returns
         -------
@@ -8508,6 +8534,7 @@ NaN 12.3   33.0
                 f"na_action must be 'ignore' or None. Got {repr(na_action)}"
             )
         ignore_na = na_action == "ignore"
+        func = functools.partial(func, **kwargs)
 
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
@@ -9463,7 +9490,7 @@ NaN 12.3   33.0
 
         level_name = count_axis._names[level]
         level_index = count_axis.levels[level]._rename(name=level_name)
-        level_codes = ensure_int64(count_axis.codes[level])
+        level_codes = ensure_platform_int(count_axis.codes[level])
         counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=axis)
 
         if axis == 1:
@@ -9517,6 +9544,9 @@ NaN 12.3   33.0
 
         def blk_func(values, axis=1):
             if isinstance(values, ExtensionArray):
+                if values.ndim == 2:
+                    # i.e. DatetimeArray, TimedeltaArray
+                    return values._reduce(name, axis=1, skipna=skipna, **kwds)
                 return values._reduce(name, skipna=skipna, **kwds)
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)

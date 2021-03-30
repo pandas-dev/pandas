@@ -33,7 +33,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
-    is_bool_dtype,
     is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -50,6 +49,7 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
+from pandas.core.dtypes.inference import is_inferred_bool_dtype
 from pandas.core.dtypes.missing import (
     array_equals,
     isna,
@@ -61,9 +61,7 @@ from pandas.core.array_algos.take import take_1d
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
-    IntervalArray,
     PandasArray,
-    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseDtype
@@ -87,7 +85,9 @@ from pandas.core.internals.base import (
 )
 from pandas.core.internals.blocks import (
     ensure_block_shape,
+    external_values,
     new_block,
+    to_native_types,
 )
 
 if TYPE_CHECKING:
@@ -493,9 +493,12 @@ class ArrayManager(DataManager):
             if isinstance(applied, list):
                 applied = applied[0]
             arr = applied.values
-            if self.ndim == 2:
-                if isinstance(arr, np.ndarray):
-                    arr = arr[0, :]
+            if self.ndim == 2 and arr.ndim == 2:
+                assert len(arr) == 1
+                # error: Invalid index type "Tuple[int, slice]" for
+                # "Union[ndarray, ExtensionArray]"; expected type
+                # "Union[int, slice, ndarray]"
+                arr = arr[0, :]  # type: ignore[index]
             result_arrays.append(arr)
 
         return type(self)(result_arrays, self._axes)
@@ -511,7 +514,9 @@ class ArrayManager(DataManager):
 
         arrs = [ensure_block_shape(x, 2) for x in self.arrays]
         assert axis == 1
-        new_arrs = [quantile_compat(x, qs, interpolation, axis=axis) for x in arrs]
+        new_arrs = [
+            quantile_compat(x, np.asarray(qs._values), interpolation) for x in arrs
+        ]
         for i, arr in enumerate(new_arrs):
             if arr.ndim == 2:
                 assert arr.shape[0] == 1, arr.shape
@@ -520,7 +525,7 @@ class ArrayManager(DataManager):
         axes = [qs, self._axes[1]]
         return type(self)(new_arrs, axes)
 
-    def where(self, other, cond, align: bool, errors: str, axis: int) -> ArrayManager:
+    def where(self, other, cond, align: bool, errors: str) -> ArrayManager:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -533,7 +538,6 @@ class ArrayManager(DataManager):
             other=other,
             cond=cond,
             errors=errors,
-            axis=axis,
         )
 
     # TODO what is this used for?
@@ -634,7 +638,7 @@ class ArrayManager(DataManager):
         )
 
     def to_native_types(self, **kwargs):
-        return self.apply_with_block("to_native_types", **kwargs)
+        return self.apply(to_native_types, **kwargs)
 
     @property
     def is_mixed_type(self) -> bool:
@@ -675,10 +679,7 @@ class ArrayManager(DataManager):
         copy : bool, default False
             Whether to copy the blocks
         """
-        return self._get_data_subset(
-            lambda arr: is_bool_dtype(arr.dtype)
-            or (is_object_dtype(arr.dtype) and lib.is_bool_array(arr))
-        )
+        return self._get_data_subset(is_inferred_bool_dtype)
 
     def get_numeric_data(self, copy: bool = False) -> ArrayManager:
         """
@@ -847,6 +848,7 @@ class ArrayManager(DataManager):
 
         self.arrays = [self.arrays[i] for i in np.nonzero(to_keep)[0]]
         self._axes = [self._axes[0], self._axes[1][to_keep]]
+        return self
 
     def iset(self, loc: Union[int, slice, np.ndarray], value):
         """
@@ -906,7 +908,7 @@ class ArrayManager(DataManager):
             self.arrays[mgr_idx] = value_arr
         return
 
-    def insert(self, loc: int, item: Hashable, value, allow_duplicates: bool = False):
+    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
         Insert item at selected position.
 
@@ -914,25 +916,18 @@ class ArrayManager(DataManager):
         ----------
         loc : int
         item : hashable
-        value : array_like
-        allow_duplicates: bool
-            If False, trying to insert non-unique item will raise
-
+        value : np.ndarray or ExtensionArray
         """
-        if not allow_duplicates and item in self.items:
-            # Should this be a different kind of error??
-            raise ValueError(f"cannot insert {item}, already exists")
-
-        if not isinstance(loc, int):
-            raise TypeError("loc must be int")
-
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
 
         value = extract_array(value, extract_numpy=True)
         if value.ndim == 2:
             if value.shape[0] == 1:
-                value = value[0, :]
+                # error: Invalid index type "Tuple[int, slice]" for
+                # "Union[Any, ExtensionArray, ndarray]"; expected type
+                # "Union[int, slice, ndarray]"
+                value = value[0, :]  # type: ignore[index]
             else:
                 raise ValueError(
                     f"Expected a 1D array, got an array with shape {value.shape}"
@@ -1202,12 +1197,7 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
 
     def external_values(self):
         """The array that Series.values returns"""
-        if isinstance(self.array, (PeriodArray, IntervalArray)):
-            return self.array.astype(object)
-        elif isinstance(self.array, (DatetimeArray, TimedeltaArray)):
-            return self.array._data
-        else:
-            return self.array
+        return external_values(self.array)
 
     def internal_values(self):
         """The array that Series._values returns"""
@@ -1258,7 +1248,7 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
     def setitem(self, indexer, value):
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
-    def idelete(self, indexer):
+    def idelete(self, indexer) -> SingleArrayManager:
         """
         Delete selected locations in-place (new array, same ArrayManager)
         """
@@ -1267,6 +1257,7 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
 
         self.arrays = [self.arrays[0][to_keep]]
         self._axes = [self._axes[0][to_keep]]
+        return self
 
     def _get_data_subset(self, predicate: Callable) -> ArrayManager:
         # used in get_numeric_data / get_bool_data
