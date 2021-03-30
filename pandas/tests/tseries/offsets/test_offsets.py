@@ -873,3 +873,7 @@ def test_dateoffset_immutable(attribute):
     msg = "DateOffset objects are immutable"
     with pytest.raises(AttributeError, match=msg):
         setattr(offset, attribute, 5)
+        
+
+with tm.assert_produces_warning(DeprecationWarning):
+    offsets.QuarterEnd(startingMonth=1)
