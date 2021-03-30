@@ -72,6 +72,7 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -267,7 +268,9 @@ class BaseGrouper:
         group_keys = self._get_group_keys()
         result_values = None
 
-        if data.ndim == 2 and np.any(data.dtypes.apply(is_extension_array_dtype)):
+        if data.ndim == 2 and any(
+            isinstance(x, ExtensionArray) for x in data._iter_column_arrays()
+        ):
             # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
             #  if we pass EA instead of ndarray
             #  TODO: can we have a workaround for EAs backed by ndarray?
