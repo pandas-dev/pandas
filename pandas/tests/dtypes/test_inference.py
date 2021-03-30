@@ -24,6 +24,7 @@ import pytz
 from pandas._libs import (
     lib,
     missing as libmissing,
+    ops as libops,
 )
 import pandas.util._test_decorators as td
 
@@ -60,7 +61,10 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.arrays import IntegerArray
+from pandas.core.arrays import (
+    BooleanArray,
+    IntegerArray,
+)
 
 
 @pytest.fixture(params=[True, False], ids=str)
@@ -414,6 +418,29 @@ class TestInference:
     def test_isneginf_scalar(self, value, expected):
         result = libmissing.isneginf_scalar(value)
         assert result is expected
+
+    @pytest.mark.parametrize(
+        "convert_to_nullable_boolean, exp",
+        [
+            (
+                True,
+                BooleanArray(
+                    np.array([True, False], dtype="bool"), np.array([False, True])
+                ),
+            ),
+            (False, np.array([True, np.nan], dtype="object")),
+        ],
+    )
+    def test_maybe_convert_nullable_boolean(self, convert_to_nullable_boolean, exp):
+        # GH 40687
+        arr = np.array([True, np.NaN], dtype=object)
+        result = libops.maybe_convert_bool(
+            arr, set(), convert_to_nullable_boolean=convert_to_nullable_boolean
+        )
+        if convert_to_nullable_boolean:
+            tm.assert_extension_array_equal(result, exp)
+        else:
+            tm.assert_numpy_array_equal(result, exp)
 
     @pytest.mark.parametrize("coerce_numeric", [True, False])
     @pytest.mark.parametrize(

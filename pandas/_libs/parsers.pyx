@@ -1314,6 +1314,9 @@ def _maybe_upcast(arr, use_nullable_dtypes=False):
     If arr of boolean dtype, arr is upcast to object dtype or BooleanArray
     and if arr is of integer dtype, arr is upcast to float dtype, or IntegerArray.
 
+    Note: If all values are null, array will be upcast to float64 even if
+    use_nullable_dtypes is True
+
     Parameters
     ----------
     arr : ndarray
@@ -1326,6 +1329,9 @@ def _maybe_upcast(arr, use_nullable_dtypes=False):
     if issubclass(arr.dtype.type, np.integer):
         na_value = na_values[arr.dtype]
         mask = arr == na_value
+        if np.count_nonzero(mask) == len(arr):
+            # Array of all NaN, dtype -> float64
+            use_nullable_dtypes = False
         if use_nullable_dtypes:
             arr = IntegerArray(arr, mask)
         else:
@@ -1333,6 +1339,9 @@ def _maybe_upcast(arr, use_nullable_dtypes=False):
             np.putmask(arr, mask, np.nan)
     elif arr.dtype == np.bool_:
         mask = arr.view(np.uint8) == na_values[np.uint8]
+        if np.count_nonzero(mask) == len(arr):
+            # Array of all NaN, dtype -> float64
+            use_nullable_dtypes = False
         if use_nullable_dtypes:
             arr = BooleanArray(arr, mask)
         else:

@@ -157,7 +157,8 @@ ignore,this,row
                 {
                     "A": pd_array([True, NA, False], dtype="boolean"),
                     "B": pd_array([False, True, NA], dtype="boolean"),
-                    "C": [True, False, True],
+                    "C": np.array([np.nan, np.nan, np.nan], dtype="float64"),
+                    "D": np.array([True, False, True], dtype="bool"),
                 }
             ),
         ),
@@ -167,17 +168,18 @@ ignore,this,row
                 {
                     "A": np.array([True, np.nan, False], dtype=object),
                     "B": np.array([False, True, np.nan], dtype=object),
-                    "C": [True, False, True],
+                    "C": np.array([np.nan, np.nan, np.nan], dtype="float64"),
+                    "D": np.array([True, False, True], dtype="bool"),
                 }
             ),
         ),
     ],
 )
 def test_bool_na_values(all_parsers, use_nullable_dtypes, expected):
-    data = """A,B,C
-True,False,True
-NA,True,False
-False,NA,True"""
+    data = """A,B,C,D
+True,False,NA,True
+NA,True,NA,False
+False,NA,NA,True"""
     parser = all_parsers
     result = parser.read_csv(StringIO(data), use_nullable_dtypes=use_nullable_dtypes)
     tm.assert_frame_equal(result, expected)
@@ -192,7 +194,8 @@ False,NA,True"""
                 {
                     "A": pd_array([1, NA, 2], dtype="Int64"),
                     "B": pd_array([3, 2, NA], dtype="Int64"),
-                    "C": [1, 2, 3],
+                    "C": pd_array([NA, 1, 2], dtype="Int64"),
+                    "D": np.array([1, 2, 3], dtype="int64"),
                 }
             ),
         ),
@@ -202,17 +205,18 @@ False,NA,True"""
                 {
                     "A": np.array([1.0, np.nan, 2.0], dtype="float64"),
                     "B": np.array([3.0, 2.0, np.nan], dtype="float64"),
-                    "C": [1, 2, 3],
+                    "C": np.array([np.nan, 1.0, 2.0], dtype="float64"),
+                    "D": np.array([1, 2, 3], dtype="int64"),
                 }
             ),
         ),
     ],
 )
 def test_int_na_values(all_parsers, use_nullable_dtypes, expected):
-    data = """A,B,C
-1,3,1
-NA,2,2
-2,NA,3"""
+    data = """A,B,C,D
+1,3,NA,1
+NA,2,1,2
+2,NA,2,3"""
     parser = all_parsers
     result = parser.read_csv(StringIO(data), use_nullable_dtypes=use_nullable_dtypes)
     tm.assert_frame_equal(result, expected)
