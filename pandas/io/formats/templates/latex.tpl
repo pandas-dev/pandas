@@ -5,16 +5,16 @@
 [{{position}}]
 {%- endif %}
 
-{% set float = parse_table(table_styles, 'float') %}
-{% if float is not none%}
-\{{float}}
+{% set position_float = parse_table(table_styles, 'position_float') %}
+{% if position_float is not none%}
+\{{position_float}}
 {% endif %}
 {% if caption %}
 \caption{% raw %}{{% endraw %}{{caption}}{% raw %}}{% endraw %}
 
 {% endif %}
 {% for style in table_styles %}
-{% if style['selector'] not in ['position', 'float', 'caption', 'toprule', 'midrule', 'bottomrule', 'column_format'] %}
+{% if style['selector'] not in ['position', 'position_float', 'caption', 'toprule', 'midrule', 'bottomrule', 'column_format'] %}
 \{{style['selector']}}{{parse_table(table_styles, style['selector'])}}
 {% endif %}
 {% endfor %}

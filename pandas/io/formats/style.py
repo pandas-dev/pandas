@@ -318,6 +318,7 @@ class Styler:
         buf: Optional[FilePathOrBuffer[str]] = None,
         column_format: Optional[str] = None,
         position: Optional[str] = None,
+        position_float: Optional[str] = None,
         hrules: bool = False,
         label: Optional[str] = None,
         caption: Optional[str] = None,
@@ -339,12 +340,15 @@ class Styler:
         column_format : str, optional
             The LaTeX column specification placed in location:
             `\\begin{tabular}{<column_format>}`. Defaults to 'l' for index and
-            non-numeric data columns, otherwise 'r' (or 'S' if using `siunitx` package).
+            non-numeric data columns, otherwise 'r' (or 'S' if using {siunitx} package).
         position : str, optional
-            The LaTeX positional argument for tables, placed in location:
+            The LaTeX positional argument (e.g. 'h!') for tables, placed in location:
+            `\\begin{table}[<position>]`.
+        position_float : {"centering", "raggedleft", "raggedright"}, optional
+            The LaTeX float command (e.g. `\\centering`) placed immediately after
             `\\begin{table}[<position>]`.
         hrules : bool, default False
-            Whether to add `\\toprule`, `\\midrule` and `\\bottomrule` from the
+            Set to `True` to add `\\toprule`, `\\midrule` and `\\bottomrule` from the
             {booktabs} LaTeX package.
         label : str, optional
             The LaTeX label placed in location: `\\label{<label>}`.
@@ -352,7 +356,7 @@ class Styler:
         caption : str, optional
             The LaTeX table caption placed in location: `\\caption{<caption>}`.
         sparsify : bool, optional
-            Set to False to print every item of a hierarchical MultiIndex. Defaults
+            Set to `False` to print every item of a hierarchical MultiIndex. Defaults
             to the pandas 'multi_sparse' display option.
         multirow_align : {"c", "t", "b"}
             If sparsifying hierarchical MultiIndexes whether to align text centrally,
@@ -361,7 +365,7 @@ class Styler:
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right.
         siunitx : bool, default False
-            Whether to structure LaTeX compatible with the `siunitx` package.
+            Set to `True` to structure LaTeX compatible with the {siunitx} package.
         encoding : str, default "utf-8"
             Character encoding setting.
 
@@ -374,14 +378,14 @@ class Styler:
         -----
         **Latex Packages**
 
-        For MultiIndex ``sparsify`` it is necessary to include package {multirow}.
-        Multiple columns is handled by the default `tabular` environment.
+        To ``sparsify`` MultiIndexes it is necessary to include package {multirow}.
+        Multiple columns is handled by the default {tabular} environment.
 
         For the default ``hrules`` it is necessary to include package {booktabs}.
 
         We recommend package [table]{xcolor} for coloring text and backgrounds.
 
-        If using the `siunitx` argument then the necessary {siunitx} package should
+        If using the ``siunitx`` argument then the necessary {siunitx} package should
         be included, and numeric columns will be set to format "S" instead of "r".
 
         **Cell Styles**
@@ -438,7 +442,7 @@ class Styler:
         >>> s.set_table_styles([{'selector': 'command', 'props': ':options;'}],
         ...                    overwrite=False)
 
-        If setting a ``column_format`` for example this is internally recorded as:
+        For example, if setting a ``column_format``, this is internally recorded as:
 
         >>> s.set_table_styles([{'selector': 'column_format', 'props': ':rcll;'}],
         ...                    overwrite=False])
@@ -488,6 +492,12 @@ class Styler:
         if position:
             self.set_table_styles(
                 [{"selector": "position", "props": f":{position}"}],
+                overwrite=False,
+            )
+
+        if position_float:
+            self.set_table_styles(
+                [{"selector": "position_float", "props": f":{position_float}"}],
                 overwrite=False,
             )
 
