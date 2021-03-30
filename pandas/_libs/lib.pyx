@@ -1,5 +1,6 @@
 from collections import abc
 from decimal import Decimal
+from enum import Enum
 import warnings
 
 import cython
@@ -2433,8 +2434,15 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
     return objects
 
 
+class NoDefault(Enum):
+    # We make this an Enum
+    # 1) because it round-trips through pickle correctly (see GH#40397)
+    # 2) because mypy does not understand singletons
+    no_default = "NO_DEFAULT"
+
+
 # Note: no_default is exported to the public API in pandas.api.extensions
-no_default = object()  # Sentinel indicating the default value.
+no_default = NoDefault.no_default  # Sentinel indicating the default value.
 
 
 @cython.boundscheck(False)
