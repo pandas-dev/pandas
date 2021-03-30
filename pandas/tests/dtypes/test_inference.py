@@ -615,6 +615,7 @@ class TestInference:
         ],
     )
     def test_maybe_convert_numeric_nullable_integer(self, exp):
+        # GH 40687
         arr = np.array([2, np.NaN], dtype=object)
         result = lib.maybe_convert_numeric(arr, set(), convert_to_nullable_integer=True)
         tm.assert_extension_array_equal(result, exp)

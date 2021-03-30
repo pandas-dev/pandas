@@ -2015,7 +2015,7 @@ def maybe_convert_numeric(
 
     Returns
     -------
-    np.ndarray
+    np.ndarray or ExtensionArray
         Array of converted object values to numerical ones.
     """
     if len(values) == 0:
