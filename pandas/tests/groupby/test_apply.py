@@ -1008,11 +1008,8 @@ def test_apply_function_with_indexing_return_column():
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_with_timezones_aware(using_array_manager, request):
+def test_apply_with_timezones_aware():
     # GH: 27212
-    if not using_array_manager:
-        request.node.add_marker(pytest.mark.xfail(reason="GH-34998"))
-
     dates = ["2001-01-01"] * 2 + ["2001-01-02"] * 2 + ["2001-01-03"] * 2
     index_no_tz = pd.DatetimeIndex(dates)
     index_tz = pd.DatetimeIndex(dates, tz="UTC")
