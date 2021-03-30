@@ -481,6 +481,8 @@ class DataFrame(NDFrame, OpsMixin):
         For dict data, the default of None behaves like ``copy=True``.  For DataFrame
         or 2d ndarray input, the default of None behaves like ``copy=False``.
 
+        .. versionchanged:: 1.3.0
+
     See Also
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
@@ -561,9 +563,8 @@ class DataFrame(NDFrame, OpsMixin):
     ):
 
         if copy is None:
-            # GH#38939
             if isinstance(data, dict) or data is None:
-                # retain pre-GH38939 default behavior
+                # retain pre-GH#38939 default behavior
                 copy = True
             else:
                 copy = False
