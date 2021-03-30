@@ -322,6 +322,8 @@ class Styler:
         label: Optional[str] = None,
         caption: Optional[str] = None,
         sparsify: Optional[bool] = None,
+        multirow_align: str = "c",
+        multicol_align: str = "r",
         siunitx: bool = False,
         encoding: Optional[str] = None,
     ):
@@ -352,6 +354,12 @@ class Styler:
         sparsify : bool, optional
             Set to False to print every item of a hierarchical MultiIndex. Defaults
             to the pandas 'multi_sparse' display option.
+        multirow_align : {"c", "t", "b"}
+            If sparsifying hierarchical MultiIndexes whether to align text centrally,
+            at the top or bottom.
+        multicol_align : {"r", "c", "l"}
+            If sparsifying hierarchical MultiIndex columns whether to align text at
+            the left, centrally, or at the right.
         siunitx : bool, default False
             Whether to structure LaTeX compatible with the `siunitx` package.
         encoding : str, default "utf-8"
@@ -364,6 +372,18 @@ class Styler:
 
         Notes
         -----
+        **Latex Packages**
+
+        For MultiIndex ``sparsify`` it is necessary to include package {multirow}.
+        Multiple columns is handled by the default `tabular` environment.
+
+        For the default ``hrules`` it is necessary to include package {booktabs}.
+
+        We recommend package [table]{xcolor} for coloring text and backgrounds.
+
+        If using the `siunitx` argument then the necessary {siunitx} package should
+        be included, and numeric columns will be set to format "S" instead of "r".
+
         **Cell Styles**
 
         LaTeX styling can only be rendered if the accompanying styling functions have
@@ -435,19 +455,6 @@ class Styler:
 
         >>> s.set_table_styles([{'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}],
         ...                    overwrite=False])
-
-        **Latex Packages**
-
-        It is recommended to include the LaTeX packages:
-
-         - {booktabs} for horizontal rules (`hrules`).
-         - [table]{xcolor} for cell color and font colors.
-         - {multicol} and {multirow} for MultiIndex display.
-
-        **sinunitx Package**
-
-        If using the {siunitx} package numeric columns will be set to format "S",
-        instead of the "r" format as default.
         """
         table_selectors = (
             [style["selector"] for style in self.table_styles]
@@ -464,7 +471,7 @@ class Styler:
         elif "column_format" in table_selectors:
             pass  # adopt what has been previously set in table_styles
         else:
-            # create a default: set float, complex, int cols to 'r', index to 'l'
+            # create a default: set float, complex, int cols to 'r' ('S'), index to 'l'
             numeric_cols = list(self.data.select_dtypes(include=[np.number]).columns)
             numeric_cols = self.columns.get_indexer_for(numeric_cols)
             column_format = "" if self.hidden_index else "l" * self.data.index.nlevels
@@ -505,9 +512,13 @@ class Styler:
 
         if sparsify is not None:
             with pd.option_context("display.multi_sparse", sparsify):
-                latex = self._render_latex()
+                latex = self._render_latex(
+                    multirow_align=multirow_align, multicol_align=multicol_align
+                )
         else:
-            latex = self._render_latex()
+            latex = self._render_latex(
+                multirow_align=multirow_align, multicol_align=multicol_align
+            )
 
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
@@ -2686,7 +2697,9 @@ def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
     return display_value
 
 
-def _parse_latex_header_span(cell: Dict, wrap: bool = False) -> str:
+def _parse_latex_header_span(
+    cell: Dict, multirow_align: str, multicol_align: str, wrap: bool = False
+) -> str:
     r"""
     examines a header cell dict and if it detects a 'colspan' attribute or a 'rowspan'
     attribute (which do not occur simultaneously) will reformat
@@ -2702,11 +2715,17 @@ def _parse_latex_header_span(cell: Dict, wrap: bool = False) -> str:
         if 'colspan="' in attrs:
             colspan = attrs[attrs.find('colspan="') + 9 :]
             colspan = int(colspan[: colspan.find('"')])
-            return f"\\multicolumn{{{colspan}}}{{r}}{{{cell['display_value']}}}"
+            return (
+                f"\\multicolumn{{{colspan}}}{{{multicol_align}}}"
+                f"{{{cell['display_value']}}}"
+            )
         elif 'rowspan="' in attrs:
             rowspan = attrs[attrs.find('rowspan="') + 9 :]
             rowspan = int(rowspan[: rowspan.find('"')])
-            return f"\\multirow{{{rowspan}}}{{*}}{{{cell['display_value']}}}"
+            return (
+                f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}"
+                f"{{{cell['display_value']}}}"
+            )
     if wrap:
         return f"{{{cell['display_value']}}}"
     else:

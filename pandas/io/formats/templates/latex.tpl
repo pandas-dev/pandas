@@ -33,7 +33,7 @@
 \{{toprule}}
 {% endif %}
 {% for row in head %}
-{% for c in row %}{%- if not loop.first %} & {% endif %}{{parse_header(c, True)}}{% endfor %} \\
+{% for c in row %}{%- if not loop.first %} & {% endif %}{{parse_header(c, multirow_align, multicol_align, True)}}{% endfor %} \\
 {% endfor %}
 {% set midrule = parse_table(table_styles, 'midrule') %}
 {% if midrule is not none %}
@@ -41,7 +41,7 @@
 {% endif %}
 {% for row in body %}
 {% for c in row %}{% if not loop.first %} & {% endif %}
-  {%- if c.type == 'th' %}{{parse_header(c)}}{% else %}{{parse_cell(c.cellstyle, c.display_value)}}{% endif %}
+  {%- if c.type == 'th' %}{{parse_header(c, multirow_align, multicol_align)}}{% else %}{{parse_cell(c.cellstyle, c.display_value)}}{% endif %}
 {%- endfor %} \\
 {% endfor %}
 {% set bottomrule = parse_table(table_styles, 'bottomrule') %}

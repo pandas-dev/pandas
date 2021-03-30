@@ -201,7 +201,7 @@ def test_multiindex_row(df):
         """\
         \\begin{tabular}{llrrl}
         {} & {} & {A} & {B} & {C} \\\\
-        \\multirow{2}{*}{A} & a & 0 & -0.61 & ab \\\\
+        \\multirow[c]{2}{*}{A} & a & 0 & -0.61 & ab \\\\
          & b & 1 & -1.22 & cd \\\\
         B & c & 2 & -2.22 & de \\\\
         \\end{tabular}
@@ -235,14 +235,14 @@ def test_multiindex_row_and_col(df):
         \\begin{tabular}{llrrl}
         {} & {} & \\multicolumn{2}{r}{Z} & {Y} \\\\
         {} & {} & {a} & {b} & {c} \\\\
-        \\multirow{2}{*}{A} & a & 0 & -0.61 & ab \\\\
+        \\multirow[c]{2}{*}{A} & a & 0 & -0.61 & ab \\\\
          & b & 1 & -1.22 & cd \\\\
         B & c & 2 & -2.22 & de \\\\
         \\end{tabular}
         """
     )
     s = df.style.format(precision=2)
-    assert expected == s.to_latex()
+    assert s.to_latex() == expected
 
     # non-sparse
     expected = dedent(
@@ -256,7 +256,7 @@ def test_multiindex_row_and_col(df):
         \\end{tabular}
         """
     )
-    assert expected == s.to_latex(sparsify=False)
+    assert s.to_latex(sparsify=False) == expected
 
 
 def test_multiindex_columns_hidden(df):
@@ -305,7 +305,7 @@ def test_comprehensive(df):
 {} & {} & \\multicolumn{2}{r}{Z} & {Y} \\\\
 {} & {} & {a} & {b} & {c} \\\\
 \\midrule
-\\multirow{2}{*}{A} & a & 0 & \\textbf{\\cellcolor[rgb]{1,1,0.6}{-0.61}} & ab \\\\
+\\multirow[c]{2}{*}{A} & a & 0 & \\textbf{\\cellcolor[rgb]{1,1,0.6}{-0.61}} & ab \\\\
  & b & 1 & -1.22 & cd \\\\
 B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
         """\
@@ -315,7 +315,7 @@ B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
 \\end{table}
 """
     )
-    assert expected == s.format(precision=2).to_latex()
+    assert s.format(precision=2).to_latex() == expected
 
 
 def test_parse_latex_table_styles(styler):
@@ -356,15 +356,15 @@ def test_parse_latex_cell_styles_braces(wrap_arg, expected):
 
 def test_parse_latex_header_span():
     cell = {"attributes": 'colspan="3"', "display_value": "text"}
-    expected = "\\multicolumn{3}{r}{text}"
-    assert _parse_latex_header_span(cell) == expected
+    expected = "\\multicolumn{3}{Y}{text}"
+    assert _parse_latex_header_span(cell, "X", "Y") == expected
 
     cell = {"attributes": 'rowspan="5"', "display_value": "text"}
-    expected = "\\multirow{5}{*}{text}"
-    assert _parse_latex_header_span(cell) == expected
+    expected = "\\multirow[X]{5}{*}{text}"
+    assert _parse_latex_header_span(cell, "X", "Y") == expected
 
     cell = {"display_value": "text"}
-    assert _parse_latex_header_span(cell) == "text"
+    assert _parse_latex_header_span(cell, "X", "Y") == "text"
 
 
 def test_parse_latex_table_wrapping(styler):
