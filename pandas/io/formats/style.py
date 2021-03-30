@@ -408,27 +408,27 @@ class Styler:
         The equivalent using LaTeX commands is the following:
 
         >>> s = df.style.highlight_max(axis=None,
-        ...                            props='cellcolor:{red}; textbf: ;')
+        ...                            props='color:{red}; itshape: ;')
         >>> s.to_latex()
 
         Internally these structured LaTeX ``(<command>, <options>)`` pairs
         are translated to the
         ``display_value`` with the default structure:
-        ``\\<command><options>{<display_value>}``.
+        ``\\<command><options> <display_value>``.
         Where there are multiple commands the latter is nested recursively, so that
         the above example highlighed cell is rendered as:
-        `\\cellcolor{red}{\\textbf{4}}`.
+        `\\color{red} \\itshape 4`.
 
         Occasionally this format does not suit the applied command, or
         combination of LaTeX packages that is in use, so additional flags can be
         added to the ``<options>`` to result in different positions of required
-        braces:
+        braces (the default being the same as `--npwrap`):
 
-          - (<command>,<options>): \\<command><options>{<display_value>}
-          - (<command>,<options>--wrap): {\\<command><options> <display_value>}
           - (<command>,<options>--nowrap): \\<command><options> <display_value>
-          - (<command>,<options>--leftwrap): {\\<command><options>} <display_value>
-          - (<command>,<options>--dualwrap): {\\<command><options>}{<display_value>}
+          - (<command>,<options>--rwrap): \\<command><options>{<display_value>}
+          - (<command>,<options>--wrap): {\\<command><options> <display_value>}
+          - (<command>,<options>--lwrap): {\\<command><options>} <display_value>
+          - (<command>,<options>--dwrap): {\\<command><options>}{<display_value>}
 
         For example the `Large` or `Huge` commands for font-sizing
         should always be used with `--wrap` so `'Huge: --wrap;'` will render a
@@ -2676,11 +2676,11 @@ def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
     Sometimes latex commands have to be wrapped with curly braces in different ways:
     We create some parsing flags to identify the different behaviours:
 
-     - no flag (default): `\<command><options> {<display_value>}`
+     - `--rwrap`        : `\<command><options>{<display_value>}`
      - `--wrap`         : `{\<command><options> <display_value>}`
      - `--nowrap`       : `\<command><options> <display_value>`
-     - `--leftwrap`     : `{\<command><options>} <display_value>`
-     - `--dualwrap`     : `{\<command><options>} {<display_value>}`
+     - `--lwrap`        : `{\<command><options>} <display_value>`
+     - `--dwrap`        : `{\<command><options>}{<display_value>}`
 
     For example:
     `styles=[('Huge', '--wrap'), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
@@ -2700,19 +2700,25 @@ def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
                 f"\\{command}{_parse_latex_strip_arg(options, '--nowrap')} "
                 f"{display_value}"
             )
-        elif "--leftwrap" in str(options):
+        elif "--lwrap" in str(options):
             display_value = (
-                f"{{\\{command}{_parse_latex_strip_arg(options, '--leftwrap')}}} "
+                f"{{\\{command}{_parse_latex_strip_arg(options, '--lwrap')}}} "
                 f"{display_value}"
             )
-        elif "--dualwrap" in str(options):
+        elif "--dwrap" in str(options):
             display_value = (
-                f"{{\\{command}{_parse_latex_strip_arg(options, '--dualwrap')}}}"
+                f"{{\\{command}{_parse_latex_strip_arg(options, '--dwrap')}}}"
+                f"{{{display_value}}}"
+            )
+        elif "--rwrap" in str(options):
+            display_value = (
+                f"\\{command}{_parse_latex_strip_arg(options, '--rwrap')}"
                 f"{{{display_value}}}"
             )
         else:
-            display_value = f"\\{command}{options}{{{display_value}}}"
-
+            display_value = (
+                f"\\{command}{_parse_latex_strip_arg(options, '')} {display_value}"
+            )
     return display_value
 
 
