@@ -233,16 +233,16 @@ def test_multiindex_row_and_col(df):
     expected = dedent(
         """\
         \\begin{tabular}{llrrl}
-        {} & {} & \\multicolumn{2}{r}{Z} & {Y} \\\\
+        {} & {} & \\multicolumn{2}{l}{Z} & {Y} \\\\
         {} & {} & {a} & {b} & {c} \\\\
-        \\multirow[c]{2}{*}{A} & a & 0 & -0.61 & ab \\\\
+        \\multirow[b]{2}{*}{A} & a & 0 & -0.61 & ab \\\\
          & b & 1 & -1.22 & cd \\\\
         B & c & 2 & -2.22 & de \\\\
         \\end{tabular}
         """
     )
     s = df.style.format(precision=2)
-    assert s.to_latex() == expected
+    assert s.to_latex(multirow_align="b", multicol_align="l") == expected
 
     # non-sparse
     expected = dedent(
@@ -259,7 +259,7 @@ def test_multiindex_row_and_col(df):
     assert s.to_latex(sparsify=False) == expected
 
 
-def test_multiindex_columns_hidden(df):
+def test_multiindex_columns_hidden():
     df = DataFrame([[1, 2, 3, 4]])
     df.columns = MultiIndex.from_tuples([("A", 1), ("A", 2), ("A", 3), ("B", 1)])
     s = df.style
@@ -267,6 +267,20 @@ def test_multiindex_columns_hidden(df):
     s.set_table_styles([])  # reset the position command
     s.hide_columns([("A", 2)])
     assert "{tabular}{lrrr}" in s.to_latex()
+
+
+def test_hidden_index(styler):
+    styler.hide_index()
+    expected = dedent(
+        """\
+        \\begin{tabular}{rrl}
+        {A} & {B} & {C} \\\\
+        0 & -0.61 & ab \\\\
+        1 & -1.22 & cd \\\\
+        \\end{tabular}
+        """
+    )
+    assert styler.to_latex() == expected
 
 
 def test_comprehensive(df):
