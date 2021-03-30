@@ -75,7 +75,11 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     #  known to be holdable by arr.
     # When called from Series._single_replace, values_to_mask is tuple or list
     dtype, values_to_mask = infer_dtype_from(values_to_mask)
-    values_to_mask = np.array(values_to_mask, dtype=dtype)
+    # error: Argument "dtype" to "array" has incompatible type "Union[dtype[Any],
+    # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+    # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+    # _DTypeDict, Tuple[Any, Any]]]"
+    values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
 
     na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
@@ -154,7 +158,7 @@ def clean_interp_method(method: str, **kwargs) -> str:
     return method
 
 
-def find_valid_index(values, how: str):
+def find_valid_index(values, *, how: str) -> Optional[int]:
     """
     Retrieves the index of the first valid value.
 
@@ -252,8 +256,17 @@ def interpolate_1d(
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
-    start_nans = set(range(find_valid_index(yvalues, "first")))
-    end_nans = set(range(1 + find_valid_index(yvalues, "last"), len(valid)))
+
+    first_valid_index = find_valid_index(yvalues, how="first")
+    if first_valid_index is None:  # no nan found in start
+        first_valid_index = 0
+    start_nans = set(range(first_valid_index))
+
+    last_valid_index = find_valid_index(yvalues, how="last")
+    if last_valid_index is None:  # no nan found in end
+        last_valid_index = len(yvalues)
+    end_nans = set(range(1 + last_valid_index, len(valid)))
+
     mid_nans = all_nans - start_nans - end_nans
 
     # Like the sets above, preserve_nans contains indices of invalid values,
@@ -305,7 +318,12 @@ def interpolate_1d(
 
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
-        indexer = np.argsort(inds[valid])
+
+        # error: Argument 1 to "argsort" has incompatible type "Union[ExtensionArray,
+        # Any]"; expected "Union[Union[int, float, complex, str, bytes, generic],
+        # Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
+        indexer = np.argsort(inds[valid])  # type: ignore[arg-type]
         result[invalid] = np.interp(
             inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
         )
@@ -586,8 +604,12 @@ def _interpolate_with_limit_area(
     invalid = isna(values)
 
     if not invalid.all():
-        first = find_valid_index(values, "first")
-        last = find_valid_index(values, "last")
+        first = find_valid_index(values, how="first")
+        if first is None:
+            first = 0
+        last = find_valid_index(values, how="last")
+        if last is None:
+            last = len(values)
 
         values = interpolate_2d(
             values,
@@ -670,7 +692,7 @@ def interpolate_2d(
     return result
 
 
-def _fillna_prep(values, mask=None):
+def _fillna_prep(values, mask: Optional[np.ndarray] = None) -> np.ndarray:
     # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
 
     if mask is None:

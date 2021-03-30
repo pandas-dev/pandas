@@ -24,6 +24,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    NaTType,
     Resolution,
     Tick,
 )
@@ -218,7 +219,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_na = True
 
-    _na_value = NaT
+    _na_value: NaTType = NaT
     """The expected NA value to use with this index."""
 
     def _convert_tolerance(self, tolerance, target):
@@ -645,7 +646,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
-        return type(self)._simple_new(arr, name=self.name)
+        return type(self)._simple_new(arr, name=self._name)
 
     @property
     def _has_complex_internals(self) -> bool:
@@ -772,7 +773,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            right_chunk = right._values[:loc]
+            # error: Slice index must be an integer or None
+            right_chunk = right._values[:loc]  # type: ignore[misc]
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
@@ -788,7 +790,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            right_chunk = right._values[loc:]
+            # error: Slice index must be an integer or None
+            right_chunk = right._values[loc:]  # type: ignore[misc]
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
@@ -825,7 +828,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     _join_precedence = 10
 
     def join(
-        self, other, how: str = "left", level=None, return_indexers=False, sort=False
+        self,
+        other,
+        how: str = "left",
+        level=None,
+        return_indexers: bool = False,
+        sort: bool = False,
     ):
         """
         See Index.join

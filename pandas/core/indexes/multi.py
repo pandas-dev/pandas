@@ -267,7 +267,7 @@ class MultiIndex(Index):
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html>`__
     for more.
 
     Examples
@@ -711,7 +711,9 @@ class MultiIndex(Index):
                 vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
             ):
                 vals = vals.astype(object)
-            vals = np.array(vals, copy=False)
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "Index")
+            vals = np.array(vals, copy=False)  # type: ignore[assignment]
             values.append(vals)
 
         arr = lib.fast_zip(values)
@@ -749,15 +751,6 @@ class MultiIndex(Index):
                 for idx, level in enumerate(self.levels)
             }
         )
-
-    @property
-    def shape(self) -> Shape:
-        """
-        Return a tuple of the shape of the underlying data.
-        """
-        # overriding the base Index.shape definition to avoid materializing
-        # the values (GH-27384, GH-27775)
-        return (len(self),)
 
     def __len__(self) -> int:
         return len(self.codes[0])
@@ -1716,7 +1709,7 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
-    def to_frame(self, index=True, name=None) -> DataFrame:
+    def to_frame(self, index: bool = True, name=None) -> DataFrame:
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
 
@@ -1950,7 +1943,7 @@ class MultiIndex(Index):
                     lev = lev.take(indexer)
 
                     # indexer to reorder the level codes
-                    indexer = ensure_int64(indexer)
+                    indexer = ensure_platform_int(indexer)
                     ri = lib.get_reverse_indexer(indexer, len(indexer))
                     level_codes = algos.take_nd(ri, level_codes)
 
@@ -2101,9 +2094,32 @@ class MultiIndex(Index):
                 verify_integrity=False,
             )
 
+    def _getitem_slice(self: MultiIndex, slobj: slice) -> MultiIndex:
+        """
+        Fastpath for __getitem__ when we know we have a slice.
+        """
+        sortorder = None
+        if slobj.step is None or slobj.step > 0:
+            sortorder = self.sortorder
+
+        new_codes = [level_codes[slobj] for level_codes in self.codes]
+
+        return type(self)(
+            levels=self.levels,
+            codes=new_codes,
+            names=self._names,
+            sortorder=sortorder,
+            verify_integrity=False,
+        )
+
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
-        self: MultiIndex, indices, axis=0, allow_fill=True, fill_value=None, **kwargs
+        self: MultiIndex,
+        indices,
+        axis: int = 0,
+        allow_fill: bool = True,
+        fill_value=None,
+        **kwargs,
     ) -> MultiIndex:
         nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
@@ -2200,7 +2216,11 @@ class MultiIndex(Index):
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
-                codes = com.index_labels_to_array(codes, dtype=object)
+                # error: Argument "dtype" to "index_labels_to_array" has incompatible
+                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
+                codes = com.index_labels_to_array(
+                    codes, dtype=object  # type: ignore[arg-type]
+                )
             except ValueError:
                 pass
 
@@ -2647,7 +2667,11 @@ class MultiIndex(Index):
         return key
 
     def _get_indexer(
-        self, target: Index, method=None, limit=None, tolerance=None
+        self,
+        target: Index,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
     ) -> np.ndarray:
 
         # empty indexer
@@ -2670,8 +2694,8 @@ class MultiIndex(Index):
                 raise NotImplementedError(
                     "tolerance not implemented yet for MultiIndex"
                 )
-            indexer = self._engine.get_indexer(
-                values=self._values, target=target, method=method, limit=limit
+            indexer = self._engine.get_indexer_with_fill(
+                target=target._values, values=self._values, method=method, limit=limit
             )
         elif method == "nearest":
             raise NotImplementedError(
@@ -2679,7 +2703,7 @@ class MultiIndex(Index):
                 "for MultiIndex; see GitHub issue 9365"
             )
         else:
-            indexer = self._engine.get_indexer(target)
+            indexer = self._engine.get_indexer(target._values)
 
         return ensure_platform_int(indexer)
 
@@ -3144,10 +3168,14 @@ class MultiIndex(Index):
                 indexer = codes.take(ensure_platform_int(indexer))
                 result = Series(Index(indexer).isin(r).nonzero()[0])
                 m = result.map(mapper)
-                m = np.asarray(m)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Series")
+                m = np.asarray(m)  # type: ignore[assignment]
 
             else:
-                m = np.zeros(len(codes), dtype=bool)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Series")
+                m = np.zeros(len(codes), dtype=bool)  # type: ignore[assignment]
                 m[np.in1d(codes, r, assume_unique=Index(codes).is_unique)] = True
 
             return m
@@ -3504,14 +3532,10 @@ class MultiIndex(Index):
             if not np.array_equal(self_mask, other_mask):
                 return False
             self_codes = self_codes[~self_mask]
-            self_values = algos.take_nd(
-                np.asarray(self.levels[i]._values), self_codes, allow_fill=False
-            )
+            self_values = self.levels[i]._values.take(self_codes)
 
             other_codes = other_codes[~other_mask]
-            other_values = algos.take_nd(
-                np.asarray(other.levels[i]._values), other_codes, allow_fill=False
-            )
+            other_values = other.levels[i]._values.take(other_codes)
 
             # since we use NaT both datetime64 and timedelta64 we can have a
             # situation where a level is typed say timedelta64 in self (IOW it
@@ -3619,7 +3643,7 @@ class MultiIndex(Index):
                 zip(*uniq_tuples), sortorder=0, names=result_names
             )
 
-    def _difference(self, other, sort):
+    def _difference(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
 
         this = self._get_unique_index()
@@ -3677,7 +3701,7 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     @doc(Index.astype)
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
         if is_categorical_dtype(dtype):
             msg = "> 1 ndim Categorical are not supported at this time"

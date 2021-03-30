@@ -33,7 +33,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -51,7 +50,7 @@ def get_indexer_indexer(
     na_position: str,
     sort_remaining: bool,
     key: IndexKeyFunc,
-) -> Optional[np.array]:
+) -> Optional[np.ndarray]:
     """
     Helper method that return the indexer according to input parameters for
     the sort_index method of DataFrame and Series.
@@ -238,6 +237,7 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
 
     Parameters
     ----------
+    comp_ids : np.ndarray[np.intp]
     xnull : bool
         If nulls are excluded; i.e. -1 labels are passed through.
     """
@@ -250,7 +250,8 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
         out = decons_group_index(obs_ids, shape)
         return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
-    i = unique_label_indices(comp_ids)
+    # TODO: unique_label_indices only used here, should take ndarray[np.intp]
+    i = unique_label_indices(ensure_int64(comp_ids))
     i8copy = lambda a: a.astype("i8", subok=False, copy=True)
     return [i8copy(lab[i]) for lab in labels]
 
@@ -518,7 +519,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
 
 
 def get_flattened_list(
-    comp_ids: np.ndarray,
+    comp_ids: np.ndarray,  # np.ndarray[np.intp]
     ngroups: int,
     levels: Iterable[Index],
     labels: Iterable[np.ndarray],
@@ -582,18 +583,34 @@ def get_group_index_sorter(
     Both algorithms are `stable` sort and that is necessary for correctness of
     groupby operations. e.g. consider:
         df.groupby(key)[col].transform('first')
+
+    Parameters
+    ----------
+    group_index : np.ndarray[np.intp]
+        signed integer dtype
+    ngroups : int or None, default None
+
+    Returns
+    -------
+    np.ndarray[np.intp]
     """
     if ngroups is None:
-        ngroups = 1 + group_index.max()
+        # error: Incompatible types in assignment (expression has type "number[Any]",
+        # variable has type "Optional[int]")
+        ngroups = 1 + group_index.max()  # type: ignore[assignment]
     count = len(group_index)
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
-    do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))
+    # error: Unsupported operand types for * ("float" and "None")
+    do_groupsort = count > 0 and (
+        (alpha + beta * ngroups) < (count * np.log(count))  # type: ignore[operator]
+    )
     if do_groupsort:
-        sorter, _ = algos.groupsort_indexer(ensure_int64(group_index), ngroups)
-        return ensure_platform_int(sorter)
+        sorter, _ = algos.groupsort_indexer(ensure_platform_int(group_index), ngroups)
+        # sorter _should_ already be intp, but mypy is not yet able to verify
     else:
-        return group_index.argsort(kind="mergesort")
+        sorter = group_index.argsort(kind="mergesort")
+    return ensure_platform_int(sorter)
 
 
 def compress_group_index(group_index, sort: bool = True):
@@ -627,10 +644,10 @@ def _reorder_by_uniques(uniques, labels):
     mask = labels < 0
 
     # move labels to right locations (ie, unsort ascending labels)
-    labels = algorithms.take_nd(reverse_indexer, labels, allow_fill=False)
+    labels = reverse_indexer.take(labels)
     np.putmask(labels, mask, -1)
 
     # sort observed ids
-    uniques = algorithms.take_nd(uniques, sorter, allow_fill=False)
+    uniques = uniques.take(sorter)
 
     return uniques, labels
