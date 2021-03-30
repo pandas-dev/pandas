@@ -143,7 +143,7 @@ Other enhancements
 - :class:`RangeIndex` can now be constructed by passing a ``range`` object directly e.g. ``pd.RangeIndex(range(3))`` (:issue:`12067`)
 - :meth:`round` being enabled for the nullable integer and floating dtypes (:issue:`38844`)
 - :meth:`pandas.read_csv` and :meth:`pandas.read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
-- :meth:`.Styler.clear` now clears :attr:`Styler.hidden_index`, :attr:`Styler.hidden_columns` and :attr:`Styler.tooltips` as well (:issue:`40484`)
+- :meth:`.Styler.clear` now clears :attr:`Styler.hidden_index` and :attr:`Styler.hidden_columns` as well (:issue:`40484`)
 
 .. ---------------------------------------------------------------------------
 

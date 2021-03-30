@@ -864,7 +864,6 @@ class Styler:
 
         self.hidden_index = False
         self.hidden_columns = []
-        self.tooltips = None
         # self.format and self.table_styles may be dependent on user
         # input in self.__init__()
 
