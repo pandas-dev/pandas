@@ -1003,6 +1003,43 @@ class TestDataFrameAnalytics:
         expected = Series([0, 2, 0], index=[1, 2, 3])
         tm.assert_series_equal(result, expected)
 
+        # with NaTs
+        df.loc[0, 3] = pd.NaT
+        result = df.idxmax()
+        expected = Series([1, 0, 2], index=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin()
+        expected = Series([0, 2, 1], index=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+        # with multi-column dt64 block
+        df[4] = dti[::-1]
+        df._consolidate_inplace()
+
+        result = df.idxmax()
+        expected = Series([1, 0, 2, 0], index=[1, 2, 3, 4])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin()
+        expected = Series([0, 2, 1, 2], index=[1, 2, 3, 4])
+        tm.assert_series_equal(result, expected)
+
+    def test_idxmax_dt64_multicolumn_axis1(self):
+        dti = date_range("2016-01-01", periods=3)
+        df = DataFrame({3: dti, 4: dti[::-1]})
+        df.iloc[0, 0] = pd.NaT
+
+        df._consolidate_inplace()
+
+        result = df.idxmax(axis=1)
+        expected = Series([4, 3, 3])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin(axis=1)
+        expected = Series([4, 3, 4])
+        tm.assert_series_equal(result, expected)
+
     # ----------------------------------------------------------------------
     # Logical reductions
 
