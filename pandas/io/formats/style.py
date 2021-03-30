@@ -339,25 +339,33 @@ class Styler:
             Buffer to write to. If ``None``, the output is returned as a string.
         column_format : str, optional
             The LaTeX column specification placed in location:
-            `\\begin{tabular}{<column_format>}`. Defaults to 'l' for index and
-            non-numeric data columns, otherwise 'r' (or 'S' if using {siunitx} package).
+
+            \\begin{tabular}{<column_format>}
+
+            Defaults to 'l' for index and
+            non-numeric data columns, otherwise 'r' (or 'S' if using the
+            {siunitx} package).
         position : str, optional
             The LaTeX positional argument (e.g. 'h!') for tables, placed in location:
-            `\\begin{table}[<position>]`.
+
+            \\begin{table}[<position>]
         position_float : {"centering", "raggedleft", "raggedright"}, optional
-            The LaTeX float command (e.g. `\\centering`) placed immediately after
-            `\\begin{table}[<position>]`.
+            The LaTeX float command placed in location:
+
+            \\begin{table}[<position>]
+
+            \\<position_float>
         hrules : bool, default False
-            Set to `True` to add `\\toprule`, `\\midrule` and `\\bottomrule` from the
+            Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
             {booktabs} LaTeX package.
         label : str, optional
-            The LaTeX label placed in location: `\\label{<label>}`.
-            This is used with `\\ref{<label>}` in the main .tex file.
+            The LaTeX label included as: \\label{<label>}.
+            This is used with \\ref{<label>} in the main .tex file.
         caption : str, optional
-            The LaTeX table caption placed in location: `\\caption{<caption>}`.
+            The LaTeX table caption included as: \\caption{<caption>}.
         sparsify : bool, optional
-            Set to `False` to print every item of a hierarchical MultiIndex. Defaults
-            to the pandas 'multi_sparse' display option.
+            Set to ``False`` to print every item of a hierarchical MultiIndex. Defaults
+            to the pandas ``multi_sparse`` display option.
         multirow_align : {"c", "t", "b"}
             If sparsifying hierarchical MultiIndexes whether to align text centrally,
             at the top or bottom.
@@ -365,7 +373,7 @@ class Styler:
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right.
         siunitx : bool, default False
-            Set to `True` to structure LaTeX compatible with the {siunitx} package.
+            Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         encoding : str, default "utf-8"
             Character encoding setting.
 
@@ -387,12 +395,20 @@ class Styler:
 
         If using the ``siunitx`` argument then the necessary {siunitx} package should
         be included, and numeric columns will be set to format "S" instead of "r".
+        Additionally, if combining with \\itshape and \\bfseries we recommend the
+        {etoolbox} package in combination with the preamble commands:
+
+          - \\robustify\\itshape
+          - \\robustify\\bfseries
+
+        Also within the document, but before the {table} environment adding:
+
+          - \\sisetup{detect-all = true}
 
         **Cell Styles**
 
         LaTeX styling can only be rendered if the accompanying styling functions have
-        been constructed with appropriate LaTeX commands. Styler was designed and
-        is typically used to generate HTML with a CSS Styling language. All styling
+        been constructed with appropriate LaTeX commands. All styling
         functionality is built around the concept of a CSS ``(<attribute>, <value>)``
         pair, and this should be replaced by a LaTeX ``(<command>, <options>)``
         approach and each cell will be styled individually
@@ -414,15 +430,16 @@ class Styler:
         Internally these structured LaTeX ``(<command>, <options>)`` pairs
         are translated to the
         ``display_value`` with the default structure:
-        ``\\<command><options> <display_value>``.
+        ``\<command><options> <display_value>``.
         Where there are multiple commands the latter is nested recursively, so that
         the above example highlighed cell is rendered as:
-        `\\color{red} \\itshape 4`.
+
+        \\color{red} \\itshape 4
 
         Occasionally this format does not suit the applied command, or
         combination of LaTeX packages that is in use, so additional flags can be
         added to the ``<options>`` to result in different positions of required
-        braces (the default being the same as `--npwrap`):
+        braces (the default being the same as `--nowrap`):
 
           - (<command>,<options>--nowrap): \\<command><options> <display_value>
           - (<command>,<options>--rwrap): \\<command><options>{<display_value>}
@@ -430,16 +447,17 @@ class Styler:
           - (<command>,<options>--lwrap): {\\<command><options>} <display_value>
           - (<command>,<options>--dwrap): {\\<command><options>}{<display_value>}
 
-        For example the `Large` or `Huge` commands for font-sizing
-        should always be used with `--wrap` so `'Huge: --wrap;'` will render a
-        working cell, wrapped with braces, as `'{\\Huge <display_value>}'`.
+        For example the `textbf` command for font-weight
+        should always be used with `--rwrap` so ``('textbf', '--rwrap')`` will render a
+        working cell, wrapped with braces, as '\\textbf{<display_value>}'.
 
         **Table Styles**
 
-        Internally Styler uses its ``table_styles`` to parse some of the options here.
-        All options except for ``caption`` are added in the following way:
+        Internally Styler uses the ``table_styles`` object to parse some of the
+        input arguments.
+        All commands arguments except for ``caption`` are added in the following way:
 
-        >>> s.set_table_styles([{'selector': 'command', 'props': ':options;'}],
+        >>> s.set_table_styles([{'selector': '<command>', 'props': ':<options>;'}],
         ...                    overwrite=False)
 
         For example, if setting a ``column_format``, this is internally recorded as:
@@ -447,15 +465,16 @@ class Styler:
         >>> s.set_table_styles([{'selector': 'column_format', 'props': ':rcll;'}],
         ...                    overwrite=False])
 
-        Since ``labels`` often include ':' but this is used as a CSS separator, there
-        is a character replacement, substituting ':' for '§', so a label of 'fig:item1'
-        is recorded as:
+        Note that since ``labels`` often include ':' but this is used as a
+        CSS separator, there is a character replacement,
+        substituting ':' for '§', so a label of 'fig:item1' is recorded as:
 
         >>> s.set_table_styles([{'selector': 'label', 'props': ':{fig§item1};'}],
         ...                    overwrite=False])
 
-        Any custom commands you add here are added above the '`\\begin{tabular}`' entry,
-        such as odd and even row coloring can be included with:
+        Any custom commands you add here are included and positioned immediately
+        above the '\\begin{tabular}' command. For example to add odd and
+        even row coloring, from the {colortbl} package, use:
 
         >>> s.set_table_styles([{'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}],
         ...                    overwrite=False])
