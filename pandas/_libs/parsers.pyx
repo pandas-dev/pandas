@@ -94,7 +94,6 @@ from pandas._libs.khash cimport (
 )
 
 from pandas.errors import (
-    DtypeWarning,
     EmptyDataError,
     ParserError,
     ParserWarning,
@@ -108,9 +107,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
-    pandas_dtype,
 )
-from pandas.core.dtypes.concat import union_categoricals
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -492,12 +489,10 @@ cdef class TextReader:
             raise ValueError(f'Unrecognized float_precision option: '
                              f'{float_precision}')
 
-        if isinstance(dtype, dict):
-            dtype = {k: pandas_dtype(dtype[k])
-                     for k in dtype}
-        elif dtype is not None:
-            dtype = pandas_dtype(dtype)
-
+        # Caller is responsible for ensuring we have one of
+        # - None
+        # - DtypeObj
+        # - dict[Any, DtypeObj]
         self.dtype = dtype
 
         # XXX
@@ -775,6 +770,8 @@ cdef class TextReader:
         """
         if self.low_memory:
             # Conserve intermediate space
+            # Caller is responsible for concatenating chunks,
+            #  see c_parser_wrapper._concatenatve_chunks
             columns = self._read_low_memory(rows)
         else:
             # Don't care about memory usage
@@ -818,8 +815,7 @@ cdef class TextReader:
         if len(chunks) == 0:
             raise StopIteration
 
-        # destructive to chunks
-        return _concatenate_chunks(chunks)
+        return chunks
 
     cdef _tokenize_rows(self, size_t nrows):
         cdef:
@@ -1905,49 +1901,6 @@ cdef raise_parser_error(object base, parser_t *parser):
         message += 'no error message set'
 
     raise ParserError(message)
-
-
-# chunks: list[dict[int, "ArrayLike"]]
-# -> dict[int, "ArrayLike"]
-def _concatenate_chunks(list chunks) -> dict:
-    cdef:
-        list names = list(chunks[0].keys())
-        object name
-        list warning_columns = []
-        object warning_names
-        object common_type
-
-    result = {}
-    for name in names:
-        arrs = [chunk.pop(name) for chunk in chunks]
-        # Check each arr for consistent types.
-        dtypes = {a.dtype for a in arrs}
-        numpy_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
-        if len(numpy_dtypes) > 1:
-            common_type = np.find_common_type(numpy_dtypes, [])
-            if common_type == object:
-                warning_columns.append(str(name))
-
-        dtype = dtypes.pop()
-        if is_categorical_dtype(dtype):
-            sort_categories = isinstance(dtype, str)
-            result[name] = union_categoricals(arrs,
-                                              sort_categories=sort_categories)
-        else:
-            if is_extension_array_dtype(dtype):
-                array_type = dtype.construct_array_type()
-                result[name] = array_type._concat_same_type(arrs)
-            else:
-                result[name] = np.concatenate(arrs)
-
-    if warning_columns:
-        warning_names = ','.join(warning_columns)
-        warning_message = " ".join([
-            f"Columns ({warning_names}) have mixed types."
-            f"Specify dtype option on import or set low_memory=False."
-          ])
-        warnings.warn(warning_message, DtypeWarning, stacklevel=8)
-    return result
 
 
 # ----------------------------------------------------------------------

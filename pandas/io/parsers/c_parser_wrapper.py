@@ -1,5 +1,17 @@
+import warnings
+
+import numpy as np
+
 import pandas._libs.parsers as parsers
 from pandas._typing import FilePathOrBuffer
+from pandas.errors import DtypeWarning
+
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_extension_array_dtype,
+    pandas_dtype,
+)
+from pandas.core.dtypes.concat import union_categoricals
 
 from pandas.core.indexes.api import ensure_index_from_sequences
 
@@ -47,6 +59,7 @@ class CParserWrapper(ParserBase):
             # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
             self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
+        kwds["dtype"] = ensure_dtype_objs(kwds.get("dtype", None))
         try:
             self._reader = parsers.TextReader(self.handles.handle, **kwds)
         except Exception:
@@ -183,6 +196,10 @@ class CParserWrapper(ParserBase):
             else:
                 self.close()
                 raise
+        else:
+            if self._reader.low_memory:
+                # destructive to data
+                data = _concatenate_chunks(data)
 
         # Done with first read, next time raise StopIteration
         self._first_chunk = False
@@ -265,7 +282,71 @@ class CParserWrapper(ParserBase):
 
         return names, idx_names
 
-    def _maybe_parse_dates(self, values, index, try_parse_dates=True):
+    def _maybe_parse_dates(self, values, index: int, try_parse_dates=True):
         if try_parse_dates and self._should_parse_dates(index):
             values = self._date_conv(values)
         return values
+
+
+def _concatenate_chunks(chunks: list[dict]) -> dict:
+    """
+    Concatenate chunks of data read with low_memory=True.
+
+    The tricky part is handling Categoricals, where different chunks
+    may have different inferred categories.
+    """
+    names = list(chunks[0].keys())
+    warning_columns = []
+
+    result = {}
+    for name in names:
+        arrs = [chunk.pop(name) for chunk in chunks]
+        # Check each arr for consistent types.
+        dtypes = {a.dtype for a in arrs}
+        # TODO: shouldn't we exclude all EA dtypes here?
+        numpy_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
+        if len(numpy_dtypes) > 1:
+            # error: Argument 1 to "find_common_type" has incompatible type
+            # "Set[Any]"; expected "Sequence[Union[dtype[Any], None, type,
+            # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
+            # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]]"
+            common_type = np.find_common_type(
+                numpy_dtypes,  # type: ignore[arg-type]
+                [],
+            )
+            if common_type == object:
+                warning_columns.append(str(name))
+
+        dtype = dtypes.pop()
+        if is_categorical_dtype(dtype):
+            result[name] = union_categoricals(arrs, sort_categories=False)
+        else:
+            if is_extension_array_dtype(dtype):
+                # TODO: concat_compat?
+                array_type = dtype.construct_array_type()
+                result[name] = array_type._concat_same_type(arrs)
+            else:
+                result[name] = np.concatenate(arrs)
+
+    if warning_columns:
+        warning_names = ",".join(warning_columns)
+        warning_message = " ".join(
+            [
+                f"Columns ({warning_names}) have mixed types."
+                f"Specify dtype option on import or set low_memory=False."
+            ]
+        )
+        warnings.warn(warning_message, DtypeWarning, stacklevel=8)
+    return result
+
+
+def ensure_dtype_objs(dtype):
+    """
+    Ensure we have either None, a dtype object, or a dictionary mapping to
+    dtype objects.
+    """
+    if isinstance(dtype, dict):
+        dtype = {k: pandas_dtype(dtype[k]) for k in dtype}
+    elif dtype is not None:
+        dtype = pandas_dtype(dtype)
+    return dtype
