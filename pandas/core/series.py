@@ -1874,7 +1874,7 @@ Name: Max Speed, dtype: float64
         # TODO: Add option for bins like value_counts()
         return algorithms.mode(self, dropna=dropna)
 
-    def unique(self):
+    def unique(self) -> ArrayLike:
         """
         Return unique values of Series object.
 
@@ -2020,9 +2020,7 @@ Name: Max Speed, dtype: float64
         else:
             return result
 
-    # error: Return type "Series" of "duplicated" incompatible with return type
-    # "ndarray" in supertype "IndexOpsMixin"
-    def duplicated(self, keep="first") -> Series:  # type: ignore[override]
+    def duplicated(self, keep="first") -> Series:
         """
         Indicate duplicate Series values.
 
@@ -2043,7 +2041,7 @@ Name: Max Speed, dtype: float64
 
         Returns
         -------
-        Series
+        Series[bool]
             Series indicating whether each value has occurred in the
             preceding values.
 
@@ -2098,7 +2096,7 @@ Name: Max Speed, dtype: float64
         4     True
         dtype: bool
         """
-        res = base.IndexOpsMixin.duplicated(self, keep=keep)
+        res = self._duplicated(keep=keep)
         result = self._constructor(res, index=self.index)
         return result.__finalize__(self, method="duplicated")
 
