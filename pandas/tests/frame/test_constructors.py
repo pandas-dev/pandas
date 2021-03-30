@@ -2323,18 +2323,31 @@ class TestDataFrameConstructors:
         c = pd.array([1, 2], dtype=any_nullable_numeric_dtype)
         df = DataFrame({"a": a, "b": b, "c": c}, copy=copy)
 
+        def get_base(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.base
+            elif isinstance(obj.dtype, np.dtype):
+                # i.e. DatetimeArray, TimedeltaArray
+                return obj._ndarray.base
+            else:
+                raise TypeError
+
         def check_views():
             # written to work for either BlockManager or ArrayManager
             assert sum(x is c for x in df._mgr.arrays) == 1
             assert (
                 sum(
-                    x.base is a for x in df._mgr.arrays if isinstance(x.dtype, np.dtype)
+                    get_base(x) is a
+                    for x in df._mgr.arrays
+                    if isinstance(x.dtype, np.dtype)
                 )
                 == 1
             )
             assert (
                 sum(
-                    x.base is b for x in df._mgr.arrays if isinstance(x.dtype, np.dtype)
+                    get_base(x) is b
+                    for x in df._mgr.arrays
+                    if isinstance(x.dtype, np.dtype)
                 )
                 == 1
             )
