@@ -1,5 +1,6 @@
 from collections import abc
 from decimal import Decimal
+from enum import Enum
 import warnings
 
 import cython
@@ -852,7 +853,7 @@ def get_level_sorter(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
-                   const int64_t[:] labels,
+                   const intp_t[:] labels,
                    Py_ssize_t max_bin,
                    int axis):
     cdef:
@@ -881,10 +882,10 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     return counts
 
 
-def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
+def generate_slices(const intp_t[:] labels, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, group_size, n, start
-        int64_t lab
+        intp_t lab
         object slobj
         ndarray[int64_t] starts, ends
 
@@ -910,7 +911,7 @@ def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def indices_fast(ndarray index, const int64_t[:] labels, list keys,
+def indices_fast(ndarray[intp_t] index, const int64_t[:] labels, list keys,
                  list sorted_labels) -> dict:
     """
     Parameters
@@ -2433,8 +2434,15 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
     return objects
 
 
+class NoDefault(Enum):
+    # We make this an Enum
+    # 1) because it round-trips through pickle correctly (see GH#40397)
+    # 2) because mypy does not understand singletons
+    no_default = "NO_DEFAULT"
+
+
 # Note: no_default is exported to the public API in pandas.api.extensions
-no_default = object()  # Sentinel indicating the default value.
+no_default = NoDefault.no_default  # Sentinel indicating the default value.
 
 
 @cython.boundscheck(False)
