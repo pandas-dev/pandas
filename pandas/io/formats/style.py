@@ -321,6 +321,7 @@ class Styler:
         hrules: bool = False,
         label: Optional[str] = None,
         caption: Optional[str] = None,
+        siunitx: bool = False,
         encoding: Optional[str] = None,
     ):
         r"""
@@ -335,7 +336,7 @@ class Styler:
         column_format : str, optional
             The LaTeX column specification placed in location:
             `\\begin{tabular}{<column_format>}`. Defaults to 'l' for index and
-            non-numeric data columns, otherwise 'r'.
+            non-numeric data columns, otherwise 'r' (or 'S' if using `siunitx` package).
         position : str, optional
             The LaTeX positional argument for tables, placed in location:
             `\\begin{table}[<position>]`.
@@ -347,6 +348,8 @@ class Styler:
             This is used with `\\ref{<label>}` in the main .tex file.
         caption : str, optional
             The LaTeX table caption placed in location: `\\caption{<caption>}`.
+        siunitx : bool, default False
+            Whether to structure LaTeX compatible with the `siunitx` package.
         encoding : str, default "utf-8"
             Character encoding setting.
 
@@ -360,14 +363,11 @@ class Styler:
         **Cell Styles**
 
         LaTeX styling can only be rendered if the accompanying styling functions have
-        been constructed with appropriate LaTeX commands. `Styler` was designed and
+        been constructed with appropriate LaTeX commands. Styler was designed and
         is typically used to generate HTML with a CSS Styling language. All styling
-        functionality is built around the concept of a CSS `('attribute', 'value')`
-        pair.
-
-        In order to incorporate LaTeX into Styler one needs to understand that the
-        usual CSS `('attribute', 'value')` pair must be replaced by a LaTeX
-        `('command', 'options')` approach and each cell will be styled individually
+        functionality is built around the concept of a CSS ``(<attribute>, <value>)``
+        pair, and this should be replaced by a LaTeX ``(<command>, <options>)``
+        approach and each cell will be styled individually
         using nested LaTeX commands with their accompanied options.
 
         For example the following code will highlight and bold a cell in HTML-CSS:
@@ -381,26 +381,30 @@ class Styler:
 
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='cellcolor:{red}; textbf: ;')
-        >>> s.render(latex=True)
+        >>> s.to_latex()
 
-        Internally these LaTeX `('command', 'options')` pairs are translated to the
-        `display_value` with the structure: '`\\<command><options>{<display_value>}`'.
+        Internally these structured LaTeX ``(<command>, <options>)`` pairs
+        are translated to the
+        ``display_value`` with the default structure:
+        ``\\<command><options>{<display_value>}``.
         Where there are multiple commands the latter is nested recursively, so that
         the above example highlighed cell is rendered as:
-        '`\\cellcolor{red}{\\textbf{4}}`'.
+        `\\cellcolor{red}{\\textbf{4}}`.
 
-        Occasionally this nesting does not suit the applied command. For example the
-        commands for font-sizing, e.g. `Large` or `Huge` need a different type of
-        structure. You can adapt for this by adding `--wrap` to the `options`.
-        For example: `props='Huge: ;'` will render a faulty cell as
-        '`\\Huge{<display_value>}`'. But, `props='Huge: --wrap;'` will render a
-        working cell, wrapped with braces, as '`{\\Huge <display_value>}`'.
+        Occasionally this format does not suit the applied command, or
+        combination of LaTeX packages that is in use, so additional flags can be
+        added to the ``<options>`` to result in different positions of required
+        braces:
 
-        As with CSS, ordering of styles matters and the most recent style applied (if
-        two have the same CSS-hierarchy) will be rendered. The same is true for LaTeX,
-        where the innermost nested command will dominate, so:
-        `props='cellcolor:{red};cellcolor:{green};` will result in a green rendered cell
-        with the LaTeX string: '`\\cellcolor{red}{\\cellcolor{green}{<display_value}}`'.
+          - (<command>,<options>): \\<command><options>{<display_value>}
+          - (<command>,<options>--wrap): {\\<command><options> <display_value>}
+          - (<command>,<options>--nowrap): \\<command><options> <display_value>
+          - (<command>,<options>--leftwrap): {\\<command><options>} <display_value>
+          - (<command>,<options>--dualwrap): {\\<command><options>}{<display_value>}
+
+        For example the `Large` or `Huge` commands for font-sizing
+        should always be used with `--wrap` so `'Huge: --wrap;'` will render a
+        working cell, wrapped with braces, as `'{\\Huge <display_value>}'`.
 
         **Table Styles**
 
@@ -435,6 +439,11 @@ class Styler:
          - {booktabs} for horizontal rules (`hrules`).
          - [table]{xcolor} for cell color and font colors.
          - {multicol} and {multirow} for MultiIndex display.
+
+        **sinunitx Package**
+
+        If using the {siunitx} package numeric columns will be set to format "S",
+        instead of the "r" format as default.
         """
         table_selectors = (
             [style["selector"] for style in self.table_styles]
@@ -457,7 +466,9 @@ class Styler:
             column_format = "" if self.hidden_index else "l" * self.data.index.nlevels
             for ci, _ in enumerate(self.data.columns):
                 if ci not in self.hidden_columns:
-                    column_format += "r" if ci in numeric_cols else "l"
+                    column_format += (
+                        ("r" if not siunitx else "S") if ci in numeric_cols else "l"
+                    )
             self.set_table_styles(
                 [{"selector": "column_format", "props": f":{column_format}"}],
                 overwrite=False,
