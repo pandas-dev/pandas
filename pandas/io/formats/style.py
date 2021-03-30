@@ -319,9 +319,14 @@ class Styler:
         buf: Optional[FilePathOrBuffer[str]] = None,
         column_format: Optional[str] = None,
         position: Optional[str] = None,
+        position_float: Optional[str] = None,
         hrules: bool = False,
         label: Optional[str] = None,
         caption: Optional[str] = None,
+        sparsify: Optional[bool] = None,
+        multirow_align: str = "c",
+        multicol_align: str = "r",
+        siunitx: bool = False,
         encoding: Optional[str] = None,
         convert_css: bool = False,
     ):
@@ -337,18 +342,32 @@ class Styler:
         column_format : str, optional
             The LaTeX column specification placed in location:
             `\\begin{tabular}{<column_format>}`. Defaults to 'l' for index and
-            non-numeric data columns, otherwise 'r'.
+            non-numeric data columns, otherwise 'r' (or 'S' if using {siunitx} package).
         position : str, optional
-            The LaTeX positional argument for tables, placed in location:
+            The LaTeX positional argument (e.g. 'h!') for tables, placed in location:
+            `\\begin{table}[<position>]`.
+        position_float : {"centering", "raggedleft", "raggedright"}, optional
+            The LaTeX float command (e.g. `\\centering`) placed immediately after
             `\\begin{table}[<position>]`.
         hrules : bool, default False
-            Whether to add `\\toprule`, `\\midrule` and `\\bottomrule` from the
+            Set to `True` to add `\\toprule`, `\\midrule` and `\\bottomrule` from the
             {booktabs} LaTeX package.
         label : str, optional
             The LaTeX label placed in location: `\\label{<label>}`.
             This is used with `\\ref{<label>}` in the main .tex file.
         caption : str, optional
             The LaTeX table caption placed in location: `\\caption{<caption>}`.
+        sparsify : bool, optional
+            Set to `False` to print every item of a hierarchical MultiIndex. Defaults
+            to the pandas 'multi_sparse' display option.
+        multirow_align : {"c", "t", "b"}
+            If sparsifying hierarchical MultiIndexes whether to align text centrally,
+            at the top or bottom.
+        multicol_align : {"r", "c", "l"}
+            If sparsifying hierarchical MultiIndex columns whether to align text at
+            the left, centrally, or at the right.
+        siunitx : bool, default False
+            Set to `True` to structure LaTeX compatible with the {siunitx} package.
         encoding : str, default "utf-8"
             Character encoding setting.
         convert_css : bool, default False
@@ -365,17 +384,26 @@ class Styler:
 
         Notes
         -----
+        **Latex Packages**
+
+        To ``sparsify`` MultiIndexes it is necessary to include package {multirow}.
+        Multiple columns is handled by the default {tabular} environment.
+
+        For the default ``hrules`` it is necessary to include package {booktabs}.
+
+        We recommend package [table]{xcolor} for coloring text and backgrounds.
+
+        If using the ``siunitx`` argument then the necessary {siunitx} package should
+        be included, and numeric columns will be set to format "S" instead of "r".
+
         **Cell Styles**
 
         LaTeX styling can only be rendered if the accompanying styling functions have
-        been constructed with appropriate LaTeX commands. `Styler` was designed and
+        been constructed with appropriate LaTeX commands. Styler was designed and
         is typically used to generate HTML with a CSS Styling language. All styling
-        functionality is built around the concept of a CSS `('attribute', 'value')`
-        pair.
-
-        In order to incorporate LaTeX into Styler one needs to understand that the
-        usual CSS `('attribute', 'value')` pair must be replaced by a LaTeX
-        `('command', 'options')` approach and each cell will be styled individually
+        functionality is built around the concept of a CSS ``(<attribute>, <value>)``
+        pair, and this should be replaced by a LaTeX ``(<command>, <options>)``
+        approach and each cell will be styled individually
         using nested LaTeX commands with their accompanied options.
 
         For example the following code will highlight and bold a cell in HTML-CSS:
@@ -389,26 +417,30 @@ class Styler:
 
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='cellcolor:{red}; textbf: ;')
-        >>> s.render(latex=True)
+        >>> s.to_latex()
 
-        Internally these LaTeX `('command', 'options')` pairs are translated to the
-        `display_value` with the structure: '`\\<command><options>{<display_value>}`'.
+        Internally these structured LaTeX ``(<command>, <options>)`` pairs
+        are translated to the
+        ``display_value`` with the default structure:
+        ``\\<command><options>{<display_value>}``.
         Where there are multiple commands the latter is nested recursively, so that
         the above example highlighed cell is rendered as:
-        '`\\cellcolor{red}{\\textbf{4}}`'.
+        `\\cellcolor{red}{\\textbf{4}}`.
 
-        Occasionally this nesting does not suit the applied command. For example the
-        commands for font-sizing, e.g. `Large` or `Huge` need a different type of
-        structure. You can adapt for this by adding `--wrap` to the `options`.
-        For example: `props='Huge: ;'` will render a faulty cell as
-        '`\\Huge{<display_value>}`'. But, `props='Huge: --wrap;'` will render a
-        working cell, wrapped with braces, as '`{\\Huge <display_value>}`'.
+        Occasionally this format does not suit the applied command, or
+        combination of LaTeX packages that is in use, so additional flags can be
+        added to the ``<options>`` to result in different positions of required
+        braces:
 
-        As with CSS, ordering of styles matters and the most recent style applied (if
-        two have the same CSS-hierarchy) will be rendered. The same is true for LaTeX,
-        where the innermost nested command will dominate, so:
-        `props='cellcolor:{red};cellcolor:{green};` will result in a green rendered cell
-        with the LaTeX string: '`\\cellcolor{red}{\\cellcolor{green}{<display_value}}`'.
+          - (<command>,<options>): \\<command><options>{<display_value>}
+          - (<command>,<options>--wrap): {\\<command><options> <display_value>}
+          - (<command>,<options>--nowrap): \\<command><options> <display_value>
+          - (<command>,<options>--leftwrap): {\\<command><options>} <display_value>
+          - (<command>,<options>--dualwrap): {\\<command><options>}{<display_value>}
+
+        For example the `Large` or `Huge` commands for font-sizing
+        should always be used with `--wrap` so `'Huge: --wrap;'` will render a
+        working cell, wrapped with braces, as `'{\\Huge <display_value>}'`.
 
         **Table Styles**
 
@@ -418,7 +450,7 @@ class Styler:
         >>> s.set_table_styles([{'selector': 'command', 'props': ':options;'}],
         ...                    overwrite=False)
 
-        If setting a ``column_format`` for example this is internally recorded as:
+        For example, if setting a ``column_format``, this is internally recorded as:
 
         >>> s.set_table_styles([{'selector': 'column_format', 'props': ':rcll;'}],
         ...                    overwrite=False])
@@ -436,13 +468,9 @@ class Styler:
         >>> s.set_table_styles([{'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}],
         ...                    overwrite=False])
 
-        **Latex Packages**
+        **CSS Conversion**
 
-        It is recommended to include the LaTeX packages:
-
-         - {booktabs} for horizontal rules (`hrules`).
-         - [table]{xcolor} for cell color and font colors.
-         - {multicol} and {multirow} for MultiIndex display.
+        TODO
         """
         table_selectors = (
             [style["selector"] for style in self.table_styles]
@@ -459,13 +487,15 @@ class Styler:
         elif "column_format" in table_selectors:
             pass  # adopt what has been previously set in table_styles
         else:
-            # create a default: set float, complex, int cols to 'r', index to 'l'
+            # create a default: set float, complex, int cols to 'r' ('S'), index to 'l'
             numeric_cols = list(self.data.select_dtypes(include=[np.number]).columns)
             numeric_cols = self.columns.get_indexer_for(numeric_cols)
             column_format = "" if self.hidden_index else "l" * self.data.index.nlevels
             for ci, _ in enumerate(self.data.columns):
                 if ci not in self.hidden_columns:
-                    column_format += "r" if ci in numeric_cols else "l"
+                    column_format += (
+                        ("r" if not siunitx else "S") if ci in numeric_cols else "l"
+                    )
             self.set_table_styles(
                 [{"selector": "column_format", "props": f":{column_format}"}],
                 overwrite=False,
@@ -474,6 +504,12 @@ class Styler:
         if position:
             self.set_table_styles(
                 [{"selector": "position", "props": f":{position}"}],
+                overwrite=False,
+            )
+
+        if position_float:
+            self.set_table_styles(
+                [{"selector": "position_float", "props": f":{position_float}"}],
                 overwrite=False,
             )
 
@@ -496,7 +532,20 @@ class Styler:
         if caption:
             self.set_caption(caption)
 
-        latex = self.render(latex=True, convert_css=convert_css)
+        if sparsify is not None:
+            with pd.option_context("display.multi_sparse", sparsify):
+                latex = self._render_latex(
+                    multirow_align=multirow_align,
+                    multicol_align=multicol_align,
+                    convert_css=convert_css,
+                )
+        else:
+            latex = self._render_latex(
+                multirow_align=multirow_align,
+                multicol_align=multicol_align,
+                convert_css=convert_css,
+            )
+
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     @doc(
@@ -737,27 +786,36 @@ class Styler:
         return d
 
     def _translate_latex(self, d: Dict) -> Dict:
-        # post processing of d for latex template:
-        # - remove hidden columns from the non-index part of the table
-        # - place cellstyles in individual td cells
-        # - reinsert missing index th in row if part of multiindex for multirow
+        """
+        Post process the default render dict for the LaTeX template format.
+          - Remove hidden columns from the non-headers part of the body.
+          - Place cellstyles directly in td cells rather than use cellstyle_map
+          - Remove hidden indexes or reinsert missing th elements if part of multiindex
+            or multirow sparsification.
+        """
         d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
         body = []
         for r, row in enumerate(d["body"]):
+            if self.hidden_index:
+                row_body_headers = []
+            else:
+                row_body_headers = [  # if a th element is not visible due to multiindex
+                    {  # sparsify then reinsert it for latex structuring
+                        **col,
+                        "display_value": col["display_value"]
+                        if col["is_visible"]
+                        else "",
+                    }
+                    for col in row
+                    if col["type"] == "th"
+                ]
+
             row_body_cells = [  # replicate the td cells, give them cellstyle
                 {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
                 for c, col in enumerate(row)
                 if (col["is_visible"] and col["type"] == "td")
             ]
-            row_body_headers = [  # if a th element is not visible due to multiindex
-                {  # then reinsert it for latex structuring
-                    **col,
-                    "display_value": col["display_value"] if col["is_visible"] else "",
-                }
-                for col in row
-                if col["type"] == "th"
-            ]
-            row_body_headers = [] if self.hidden_index else row_body_headers
+
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
         return d
@@ -986,22 +1044,12 @@ class Styler:
 
         return self
 
-    def render(self, latex: bool = False, convert_css: bool = False, **kwargs) -> str:
+    def render(self, **kwargs) -> str:
         """
         Render the ``Styler`` including all applied styles to HTML.
 
         Parameters
         ----------
-        latex : bool, default False
-            Output in latex format rather than HTML.
-
-        convert_css : bool, default False
-            If ``True`` converts CSS format to other specified output format, such as
-            LaTeX, or if ``False``, interprets Styler in local render format. Only
-            used if specified output format is something other than HTML.
-
-        .. versionadded:: TODO
-
         **kwargs
             Any additional keyword arguments are passed
             through to ``self.template.render``.
@@ -1011,7 +1059,7 @@ class Styler:
         Returns
         -------
         rendered : str
-            The rendered HTML (or LaTeX).
+            The rendered HTML.
 
         See Also
         --------
@@ -1036,30 +1084,30 @@ class Styler:
         * table_styles
         * caption
         * table_attributes
-
-        **Conversions**
-
-        TODO notes.
         """
         self._compute()
         # TODO: namespace all the pandas keys
-
-        if latex:
-            d = self._translate(blank="")
-            d = self._translate_latex(d)
-            template = self.template_latex
-            template.globals["parse_wrap"] = _parse_latex_table_wrapping
-            template.globals["parse_table"] = _parse_latex_table_styles
-            template.globals["parse_cell"] = _parse_latex_cell_styles
-            template.globals["parse_header"] = _parse_latex_header_span
-            if convert_css:
-                d.update({"convert_css": True})
-        else:  # standard CSS-HTML
-            d = self._translate()
-            template = self.template
+        d = self._translate()
 
         d.update(kwargs)
-        return template.render(**d)
+        return self.template.render(**d)
+
+    def _render_latex(self, **kwargs) -> str:
+        """
+        Render a Styler in latex format
+        """
+        self._compute()
+
+        d = self._translate(blank="")
+        d = self._translate_latex(d)
+
+        self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
+        self.template_latex.globals["parse_table"] = _parse_latex_table_styles
+        self.template_latex.globals["parse_cell"] = _parse_latex_cell_styles
+        self.template_latex.globals["parse_header"] = _parse_latex_header_span
+
+        d.update(kwargs)
+        return self.template_latex.render(**d)
 
     def _update_ctx(self, attrs: DataFrame) -> None:
         """
@@ -2589,7 +2637,9 @@ def _non_reducing_slice(slice_):
     return tuple(slice_)
 
 
-def _parse_latex_table_wrapping(styles: CSSStyles, caption: Optional[str]) -> bool:
+def _parse_latex_table_wrapping(
+    table_styles: CSSStyles, caption: Optional[str]
+) -> bool:
     """
     Discovers whether \\begin{tabular}..\\end{tabular} should be wrapped within
     \\begin{table}..\\end{table}
@@ -2600,14 +2650,14 @@ def _parse_latex_table_wrapping(styles: CSSStyles, caption: Optional[str]) -> bo
     IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
     # ignored selectors are included with {tabular} so do not need wrapping
     if (
-        styles is not None
-        and any(d["selector"] not in IGNORED_WRAPPERS for d in styles)
+        table_styles is not None
+        and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
     ) or caption:
         return True
     return False
 
 
-def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]:
+def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> Optional[str]:
     """
     Find the relevant first `props` `value` from a list of `(attribute,value)` tuples
     within `table_styles` identified by a given selector.
@@ -2620,14 +2670,14 @@ def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]
 
     Then for selector='bar', the return value is 'baz'.
     """
-    for style in styles[::-1]:  # in reverse for most recently applied style
+    for style in table_styles[::-1]:  # in reverse for most recently applied style
         if style["selector"] == selector:
             return str(style["props"][0][1]).replace("§", ":")
     return None
 
 
 def _parse_latex_cell_styles(
-    styles: CSSList, display_value: str, convert_css: bool = False
+    latex_styles: CSSList, display_value: str, convert_css: bool = False
 ) -> str:
     r"""
     Build a recursive latex chain of commands based on CSS list values, nested around
@@ -2654,10 +2704,9 @@ def _parse_latex_cell_styles(
     `styles=[('Huge', '--wrap'), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
     {\Huge \cellcolor[rgb]{0,1,1}{display_value}}
     """
-
     if convert_css:
-        styles = _parse_latex_css_conversion(styles)
-    for style in styles[::-1]:  # in reverse for most recently applied style
+        latex_styles = _parse_latex_css_conversion(latex_styles)
+    for style in latex_styles[::-1]:  # in reverse for most recently applied style
         command = style[0]
         options = style[1]
 
@@ -2678,7 +2727,7 @@ def _parse_latex_cell_styles(
             )
         elif "--dualwrap" in str(options):
             display_value = (
-                f"{{\\{command}{_parse_latex_strip_arg(options, '--dualwrap')}}} "
+                f"{{\\{command}{_parse_latex_strip_arg(options, '--dualwrap')}}}"
                 f"{{{display_value}}}"
             )
         else:
@@ -2687,7 +2736,9 @@ def _parse_latex_cell_styles(
     return display_value
 
 
-def _parse_latex_header_span(cell: Dict) -> str:
+def _parse_latex_header_span(
+    cell: Dict, multirow_align: str, multicol_align: str, wrap: bool = False
+) -> str:
     r"""
     examines a header cell dict and if it detects a 'colspan' attribute or a 'rowspan'
     attribute (which do not occur simultaneously) will reformat
@@ -2703,12 +2754,21 @@ def _parse_latex_header_span(cell: Dict) -> str:
         if 'colspan="' in attrs:
             colspan = attrs[attrs.find('colspan="') + 9 :]
             colspan = int(colspan[: colspan.find('"')])
-            return f"\\multicolumn{{{colspan}}}{{r}}{{{cell['display_value']}}}"
+            return (
+                f"\\multicolumn{{{colspan}}}{{{multicol_align}}}"
+                f"{{{cell['display_value']}}}"
+            )
         elif 'rowspan="' in attrs:
             rowspan = attrs[attrs.find('rowspan="') + 9 :]
             rowspan = int(rowspan[: rowspan.find('"')])
-            return f"\\multirow{{{rowspan}}}{{*}}{{{cell['display_value']}}}"
-    return cell["display_value"]
+            return (
+                f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}"
+                f"{{{cell['display_value']}}}"
+            )
+    if wrap:
+        return f"{{{cell['display_value']}}}"
+    else:
+        return cell["display_value"]
 
 
 def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
@@ -2723,17 +2783,30 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
 
     def font_weight(value, arg):
         if value == "bold" or value == "bolder":
-            return ("textbf", f"{arg}")
+            return "bfseries", f"{arg if arg != '' else '--nowrap'}"
         return None
 
     def font_style(value, arg):
         if value == "italic":
-            return ("textit", f"{arg}")
+            return "itshape", f"{arg if arg != '' else '--nowrap'}"
         elif value == "oblique":
-            return ("textsl", f"{arg}")
+            return "slshape", f"{arg if arg != '' else '--nowrap'}"
         return None
 
-    def color(value, arg, command):
+    def color(value, user_arg, command, comm_arg):
+        """
+        CSS colors have 5 formats to process:
+
+         - 6 digit hex code: "#ff23ee"     --> [HTML]{FF23EE}
+         - 3 digit hex code: "#f0e"        --> [HTML]{FF00EE}
+         - rgba: rgba(128, 255, 0, 0.5)    --> [rgb]{0.502, 1.000, 0.000}
+         - rgb: rgb(128, 255, 0,)          --> [rbg]{0.502, 1.000, 0.000}
+         - string: red                     --> {red}
+
+        Additionally rgb or rgba can be expressed in % which is also parsed.
+        """
+        arg = user_arg if user_arg != "" else comm_arg
+
         if value[0] == "#" and len(value) == 7:  # color is hex code
             return command, f"[HTML]{{{value[1:].upper()}}}{arg}"
         if value[0] == "#" and len(value) == 4:  # color is short hex code
@@ -2755,14 +2828,14 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
             g = float(g[:-1]) / 100 if "%" in g else int(g) / 255
             b = re.search("(?<=,)[0-9\\s%]+(?=\\))", value)[0].strip()
             b = float(b[:-1]) / 100 if "%" in b else int(b) / 255
-            return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}"
+            return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}{arg}"
         else:
             return command, f"{{{value}}}{arg}"  # color is likely string-named
 
     CONVERTED_STYLES = {
         "font-weight": font_weight,
-        "background-color": partial(color, command="cellcolor"),
-        "color": partial(color, command="color"),
+        "background-color": partial(color, command="cellcolor", comm_arg="--leftwrap"),
+        "color": partial(color, command="color", comm_arg="--nowrap"),
         "font-style": font_style,
     }
 
@@ -2788,9 +2861,9 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
 
 def _parse_latex_strip_arg(options: Union[str, int, float], arg: str) -> str:
     """
-    detect any given latex parsing arguments and css comment tags and remove them,
-    also stripping whitespace
+    Strip a css_value which may have latex wrapping arguments, css comment identifiers,
+    and whitespaces, to a valid string for latex options parsing.
 
-    For example: 'red /* --wrap */' --> 'red'
+    For example: 'red /* --wrap */  ' --> 'red'
     """
     return str(options).replace(arg, "").replace("/*", "").replace("*/", "").strip()
