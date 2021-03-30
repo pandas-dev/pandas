@@ -25,16 +25,19 @@ from pandas import (
     IndexSlice,
     MultiIndex,
     Period,
+    RangeIndex,
     Series,
     SparseDtype,
     Timedelta,
     Timestamp,
+    UInt64Index,
     date_range,
     timedelta_range,
     to_datetime,
     to_timedelta,
 )
 import pandas._testing as tm
+from pandas.errors import InvalidIndexError
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
 
@@ -2082,6 +2085,42 @@ class TestLabelSlicing:
             data=[[2, 3]], index=[0], columns=Index([1, 2], dtype=object)
         )
         tm.assert_frame_equal(df.loc[:, 1:], expected)
+
+
+class TestLocBooleanLabelsAndSlices(Base):
+    @pytest.mark.parametrize(
+        "msg, error_type, index",
+        [
+            (f"", KeyError, pd.RangeIndex(4)),
+            (f"", KeyError, pd.Int64Index(range(4))),
+            (f"", KeyError, pd.UInt64Index(range(4))),
+            (f"", KeyError, pd.Float64Index(range(4))),
+            (f"", KeyError, pd.CategoricalIndex(range(4))),
+            (f"", KeyError, pd.date_range(0, periods=4, freq="ns")),
+            (f"", KeyError, pd.timedelta_range(0, periods=4, freq="ns")),
+            (f"", InvalidIndexError, pd.interval_range(0, periods=4)),
+            (f"", KeyError, pd.Index([0, 1, 2, 3], dtype=object)),
+            (f"", KeyError, pd.MultiIndex.from_product([[0, 1], [0, 1]])),
+            (f"", KeyError, pd.period_range("2018Q1", freq="Q", periods=4))
+        ]
+    )
+    def test_loc_bool_slice_incompatible_index_raises(self, msg, error_type, index):
+        # GH20432
+        df = DataFrame(range(4))
+        df.index = index
+        with pytest.raises(error_type, match=msg):
+            df.loc[True]
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.Index([False, False], dtype=bool)
+        ]
+    )
+    def test_loc_bool_should_not_raise(self, index):
+        df = DataFrame(range(2))
+        df.index = index
+        result = df.loc[True]
 
 
 class TestLocBooleanMask:
