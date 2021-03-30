@@ -177,6 +177,20 @@ def test_multiindex_columns(df):
     s = df.style.format(precision=2)
     assert expected == s.to_latex()
 
+    # non-sparse
+    expected = dedent(
+        """\
+        \\begin{tabular}{lrrl}
+        {} & {A} & {A} & {B} \\\\
+        {} & {a} & {b} & {c} \\\\
+        0 & 0 & -0.61 & ab \\\\
+        1 & 1 & -1.22 & cd \\\\
+        \\end{tabular}
+        """
+    )
+    s = df.style.format(precision=2)
+    assert expected == s.to_latex(sparsify=False)
+
 
 def test_multiindex_row(df):
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
@@ -195,6 +209,19 @@ def test_multiindex_row(df):
     )
     s = df.style.format(precision=2)
     assert expected == s.to_latex()
+
+    # non-sparse
+    expected = dedent(
+        """\
+        \\begin{tabular}{llrrl}
+        {} & {} & {A} & {B} & {C} \\\\
+        A & a & 0 & -0.61 & ab \\\\
+        A & b & 1 & -1.22 & cd \\\\
+        B & c & 2 & -2.22 & de \\\\
+        \\end{tabular}
+        """
+    )
+    assert expected == s.to_latex(sparsify=False)
 
 
 def test_multiindex_row_and_col(df):
@@ -216,6 +243,20 @@ def test_multiindex_row_and_col(df):
     )
     s = df.style.format(precision=2)
     assert expected == s.to_latex()
+
+    # non-sparse
+    expected = dedent(
+        """\
+        \\begin{tabular}{llrrl}
+        {} & {} & {Z} & {Z} & {Y} \\\\
+        {} & {} & {a} & {b} & {c} \\\\
+        A & a & 0 & -0.61 & ab \\\\
+        A & b & 1 & -1.22 & cd \\\\
+        B & c & 2 & -2.22 & de \\\\
+        \\end{tabular}
+        """
+    )
+    assert expected == s.to_latex(sparsify=False)
 
 
 def test_multiindex_columns_hidden(df):

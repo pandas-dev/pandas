@@ -321,6 +321,7 @@ class Styler:
         hrules: bool = False,
         label: Optional[str] = None,
         caption: Optional[str] = None,
+        sparsify: Optional[bool] = None,
         siunitx: bool = False,
         encoding: Optional[str] = None,
     ):
@@ -348,6 +349,9 @@ class Styler:
             This is used with `\\ref{<label>}` in the main .tex file.
         caption : str, optional
             The LaTeX table caption placed in location: `\\caption{<caption>}`.
+        sparsify : bool, optional
+            Set to False to print every item of a hierarchical MultiIndex. Defaults
+            to the pandas 'multi_sparse' display option.
         siunitx : bool, default False
             Whether to structure LaTeX compatible with the `siunitx` package.
         encoding : str, default "utf-8"
@@ -499,7 +503,12 @@ class Styler:
         if caption:
             self.set_caption(caption)
 
-        latex = self._render_latex()
+        if sparsify is not None:
+            with pd.option_context("display.multi_sparse", sparsify):
+                latex = self._render_latex()
+        else:
+            latex = self._render_latex()
+
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     @doc(
