@@ -102,26 +102,6 @@ def test_series_nested_renamer(renamer):
         s.agg(renamer)
 
 
-def test_agg_dict_nested_renaming_depr_agg():
-
-    df = DataFrame({"A": range(5), "B": 5})
-
-    # nested renaming
-    msg = r"nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        df.agg({"A": {"foo": "min"}, "B": {"bar": "max"}})
-
-
-def test_agg_dict_nested_renaming_depr_transform():
-    df = DataFrame({"A": range(5), "B": 5})
-
-    # nested renaming
-    msg = r"nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        # mypy identifies the argument as an invalid type
-        df.transform({"A": {"foo": "min"}, "B": {"bar": "max"}})
-
-
 def test_apply_dict_depr():
 
     tsdf = DataFrame(
@@ -132,6 +112,17 @@ def test_apply_dict_depr():
     msg = "nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
         tsdf.A.agg({"foo": ["sum", "mean"]})
+
+
+@pytest.mark.parametrize("method", ["agg", "transform"])
+def test_dict_nested_renaming_depr(method):
+
+    df = DataFrame({"A": range(5), "B": 5})
+
+    # nested renaming
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        getattr(df, method)({"A": {"foo": "min"}, "B": {"bar": "max"}})
 
 
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
@@ -288,25 +279,21 @@ def test_transform_none_to_type():
         df.transform({"a": int})
 
 
-def test_apply_broadcast_error(int_frame_const_col):
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda x: np.array([1, 2]).reshape(-1, 2),
+        lambda x: [1, 2],
+        lambda x: Series([1, 2]),
+    ],
+)
+def test_apply_broadcast_error(int_frame_const_col, func):
     df = int_frame_const_col
 
     # > 1 ndim
-    msg = "too many dims to broadcast"
+    msg = "too many dims to broadcast|cannot broadcast result"
     with pytest.raises(ValueError, match=msg):
-        df.apply(
-            lambda x: np.array([1, 2]).reshape(-1, 2),
-            axis=1,
-            result_type="broadcast",
-        )
-
-    # cannot broadcast
-    msg = "cannot broadcast result"
-    with pytest.raises(ValueError, match=msg):
-        df.apply(lambda x: [1, 2], axis=1, result_type="broadcast")
-
-    with pytest.raises(ValueError, match=msg):
-        df.apply(lambda x: Series([1, 2]), axis=1, result_type="broadcast")
+        df.apply(func, axis=1, result_type="broadcast")
 
 
 def test_transform_and_agg_err_agg(axis, float_frame):
@@ -317,34 +304,47 @@ def test_transform_and_agg_err_agg(axis, float_frame):
             float_frame.agg(["max", "sqrt"], axis=axis)
 
 
-def test_transform_and_agg_err_series(string_series):
+@pytest.mark.parametrize(
+    "func, msg",
+    [
+        (["sqrt", "max"], "cannot combine transform and aggregation"),
+        (
+            {"foo": np.sqrt, "bar": "sum"},
+            "cannot perform both aggregation and transformation",
+        ),
+    ],
+)
+def test_transform_and_agg_err_series(string_series, func, msg):
     # we are trying to transform with an aggregator
-    msg = "cannot combine transform and aggregation"
     with pytest.raises(ValueError, match=msg):
         with np.errstate(all="ignore"):
-            string_series.agg(["sqrt", "max"])
-
-    msg = "cannot perform both aggregation and transformation"
-    with pytest.raises(ValueError, match=msg):
-        with np.errstate(all="ignore"):
-            string_series.agg({"foo": np.sqrt, "bar": "sum"})
+            string_series.agg(func)
 
 
-def test_transform_and_agg_err_frame(axis, float_frame):
+@pytest.mark.parametrize("func", [["max", "min"], ["max", "sqrt"]])
+def test_transform_wont_agg_frame(axis, float_frame, func):
     # GH 35964
     # cannot both transform and agg
     msg = "Function did not transform"
     with pytest.raises(ValueError, match=msg):
-        float_frame.transform(["max", "min"], axis=axis)
+        float_frame.transform(func, axis=axis)
 
+
+@pytest.mark.parametrize("func", [["min", "max"], ["sqrt", "max"]])
+def test_transform_wont_agg_series(string_series, func):
+    # GH 35964
+    # we are trying to transform with an aggregator
     msg = "Function did not transform"
     with pytest.raises(ValueError, match=msg):
-        float_frame.transform(["max", "sqrt"], axis=axis)
+        string_series.transform(func)
 
 
-def test_transform_reducer_raises(all_reductions, frame_or_series):
+@pytest.mark.parametrize(
+    "op_wrapper", [lambda x: x, lambda x: [x], lambda x: {"A": x}, lambda x: {"A": [x]}]
+)
+def test_transform_reducer_raises(all_reductions, frame_or_series, op_wrapper):
     # GH 35964
-    op = all_reductions
+    op = op_wrapper(all_reductions)
 
     obj = DataFrame({"A": [1, 2, 3]})
     if frame_or_series is not DataFrame:
@@ -353,22 +353,3 @@ def test_transform_reducer_raises(all_reductions, frame_or_series):
     msg = "Function did not transform"
     with pytest.raises(ValueError, match=msg):
         obj.transform(op)
-    with pytest.raises(ValueError, match=msg):
-        obj.transform([op])
-    with pytest.raises(ValueError, match=msg):
-        obj.transform({"A": op})
-    with pytest.raises(ValueError, match=msg):
-        obj.transform({"A": [op]})
-
-
-def test_transform_wont_agg(string_series):
-    # GH 35964
-    # we are trying to transform with an aggregator
-    msg = "Function did not transform"
-    with pytest.raises(ValueError, match=msg):
-        string_series.transform(["min", "max"])
-
-    msg = "Function did not transform"
-    with pytest.raises(ValueError, match=msg):
-        with np.errstate(all="ignore"):
-            string_series.transform(["sqrt", "max"])
