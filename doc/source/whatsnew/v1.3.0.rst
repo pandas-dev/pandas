@@ -302,6 +302,38 @@ cast to ``dtype=object`` (:issue:`38709`)
    ser2
 
 
+.. _whatsnew_130.notable_bug_fixes.rolling_groupby_column:
+
+GroupBy.rolling no longer returns grouped-by column in values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The group-by column will now be dropped from the result of a
+``groupby.rolling`` operation (:issue:`32262`)
+
+.. ipython:: python
+
+    df = pd.DataFrame({"A": [1, 1, 2, 3], "B": [0, 1, 2, 3]})
+    df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [1]: df.groupby("A").rolling(2).sum()
+    Out[1]:
+           A    B
+    A
+    1 0  NaN  NaN
+    1    2.0  1.0
+    2 2  NaN  NaN
+    3 3  NaN  NaN
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.groupby("A").rolling(2).sum()
+
 .. _whatsnew_130.notable_bug_fixes.rolling_var_precision:
 
 Removed artificial truncation in rolling variance and standard deviation
@@ -423,7 +455,7 @@ Deprecations
 - Using ``.astype`` to convert between ``datetime64[ns]`` dtype and :class:`DatetimeTZDtype` is deprecated and will raise in a future version, use ``obj.tz_localize`` or ``obj.dt.tz_localize`` instead (:issue:`38622`)
 - Deprecated casting ``datetime.date`` objects to ``datetime64`` when used as ``fill_value`` in :meth:`DataFrame.unstack`, :meth:`DataFrame.shift`, :meth:`Series.shift`, and :meth:`DataFrame.reindex`, pass ``pd.Timestamp(dateobj)`` instead (:issue:`39767`)
 - Deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` in favour of :meth:`.Styler.format` with ``na_rep`` and ``precision`` as existing and new input arguments respectively (:issue:`40134`, :issue:`40425`)
-- Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like; will raise if any function fails on a column in a future version (:issue:`40211`)
+- Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like and raises anything but ``TypeError``; ``func`` raising anything but a ``TypeError`` will raise in a future version (:issue:`40211`)
 - Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
 - Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
 
@@ -501,6 +533,7 @@ Numeric
 - Bug in :meth:`DataFrame.mode` and :meth:`Series.mode` not keeping consistent integer :class:`Index` for empty input (:issue:`33321`)
 - Bug in :meth:`DataFrame.rank` with ``np.inf`` and mixture of ``np.nan`` and ``np.inf`` (:issue:`32593`)
 - Bug in :meth:`DataFrame.rank` with ``axis=0`` and columns holding incomparable types raising ``IndexError`` (:issue:`38932`)
+- Bug in ``rank`` method for :class:`Series`, :class:`DataFrame`, :class:`DataFrameGroupBy`, and :class:`SeriesGroupBy` treating the most negative ``int64`` value as missing (:issue:`32859`)
 - Bug in :func:`select_dtypes` different behavior between Windows and Linux with ``include="int"`` (:issue:`36569`)
 - Bug in :meth:`DataFrame.apply` and :meth:`DataFrame.agg` when passed argument ``func="size"`` would operate on the entire ``DataFrame`` instead of rows or columns (:issue:`39934`)
 - Bug in :meth:`DataFrame.transform` would raise ``SpecificationError`` when passed a dictionary and columns were missing; will now raise a ``KeyError`` instead (:issue:`40004`)
@@ -651,6 +684,7 @@ Reshaping
 - Allow :class:`Index` to be passed to the :func:`numpy.all` function (:issue:`40180`)
 - Bug in :meth:`DataFrame.stack` not preserving ``CategoricalDtype`` in a ``MultiIndex`` (:issue:`36991`)
 - Bug in :func:`to_datetime` raising error when input sequence contains unhashable items (:issue:`39756`)
+- Bug in :meth:`Series.explode` preserving index when ``ignore_index`` was ``True`` and values were scalars (:issue:`40487`)
 
 Sparse
 ^^^^^^
