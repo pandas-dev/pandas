@@ -770,27 +770,36 @@ class Styler:
         return d
 
     def _translate_latex(self, d: Dict) -> Dict:
-        # post processing of d for latex template:
-        # - remove hidden columns from the non-index part of the table
-        # - place cellstyles in individual td cells
-        # - reinsert missing index th in row if part of multiindex for multirow
+        """
+        Post process the default render dict for the LaTeX template format.
+          - Remove hidden columns from the non-headers part of the body.
+          - Place cellstyles directly in td cells rather than use cellstyle_map
+          - Remove hidden indexes or reinsert missing th elements if part of multiindex
+            or multirow sparsification.
+        """
         d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
         body = []
         for r, row in enumerate(d["body"]):
+            if self.hidden_index:
+                row_body_headers = []
+            else:
+                row_body_headers = [  # if a th element is not visible due to multiindex
+                    {  # sparsify then reinsert it for latex structuring
+                        **col,
+                        "display_value": col["display_value"]
+                        if col["is_visible"]
+                        else "",
+                    }
+                    for col in row
+                    if col["type"] == "th"
+                ]
+
             row_body_cells = [  # replicate the td cells, give them cellstyle
                 {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
                 for c, col in enumerate(row)
                 if (col["is_visible"] and col["type"] == "td")
             ]
-            row_body_headers = [  # if a th element is not visible due to multiindex
-                {  # then reinsert it for latex structuring
-                    **col,
-                    "display_value": col["display_value"] if col["is_visible"] else "",
-                }
-                for col in row
-                if col["type"] == "th"
-            ]
-            row_body_headers = [] if self.hidden_index else row_body_headers
+
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
         return d
