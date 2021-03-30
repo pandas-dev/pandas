@@ -1,13 +1,59 @@
-.. _env_outside_docker:
+.. _contributing_environment:
 
 {{ header }}
 
-===========================================
-Setting up an environment outside of Docker
-===========================================
+==================================
+Creating a development environment
+==================================
+
+To test out code changes, you'll need to build pandas from source, which
+requires a C/C++ compiler and Python environment. If you're making documentation
+changes, you can skip to :ref:`contributing to the documentation <contributing_documentation>` but if you skip
+creating the development environment you won't be able to build the documentation
+locally before pushing your changes.
 
 .. contents:: Table of contents:
    :local:
+
+
+Creating an environment using Docker
+--------------------------------------
+
+Instead of manually setting up a development environment, you can use `Docker
+<https://docs.docker.com/get-docker/>`_ to automatically create the environment with just several
+commands. pandas provides a ``DockerFile`` in the root directory to build a Docker image
+with a full pandas development environment.
+
+**Docker Commands**
+
+Pass your GitHub username in the ``DockerFile`` to use your own fork::
+
+    # Build the image pandas-yourname-env
+    docker build --tag pandas-yourname-env .
+    # Run a container and bind your local forked repo, pandas-yourname, to the container
+    docker run -it --rm -v path-to-pandas-yourname:/home/pandas-yourname pandas-yourname-env
+
+Even easier, you can integrate Docker with the following IDEs:
+
+**Visual Studio Code**
+
+You can use the DockerFile to launch a remote session with Visual Studio Code,
+a popular free IDE, using the ``.devcontainer.json`` file.
+See https://code.visualstudio.com/docs/remote/containers for details.
+
+**PyCharm (Professional)**
+
+Enable Docker support and use the Services tool window to build and manage images as well as
+run and interact with containers.
+See https://www.jetbrains.com/help/pycharm/docker.html for details.
+
+Note that you might need to rebuild the C extensions if/when you merge with upstream/master using::
+
+    python setup.py build_ext -j 4
+
+
+Creating an environment without Docker
+---------------------------------------
 
 Installing a C compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -87,7 +133,6 @@ compiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on `Gitter <https://gitter.im/pydata/pandas/>`_.
 
-.. _contributing.dev_python:
 
 Creating a Python environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -139,7 +184,6 @@ To return to your root environment::
 
 See the full conda docs `here <https://conda.pydata.org/docs>`__.
 
-.. _contributing.pip:
 
 Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
