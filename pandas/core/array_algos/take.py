@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 from typing import (
     TYPE_CHECKING,
+    cast,
     overload,
 )
 
@@ -15,15 +16,13 @@ from pandas._libs import (
 from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_platform_int,
-)
+from pandas.core.dtypes.common import ensure_platform_int
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
     from pandas.core.arrays.base import ExtensionArray
 
 
@@ -92,7 +91,12 @@ def take_nd(
 
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
-        # includes for EA to catch DatetimeArray, TimedeltaArray
+        if arr.ndim == 2:
+            # e.g. DatetimeArray, TimedeltArray
+            arr = cast("NDArrayBackedExtensionArray", arr)
+            return arr.take(
+                indexer, fill_value=fill_value, allow_fill=allow_fill, axis=axis
+            )
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = np.asarray(arr)
@@ -201,7 +205,7 @@ def take_1d(
 
 
 def take_2d_multi(
-    arr: np.ndarray, indexer: np.ndarray, fill_value=np.nan
+    arr: np.ndarray, indexer: tuple[np.ndarray, np.ndarray], fill_value=np.nan
 ) -> np.ndarray:
     """
     Specialized Cython take which sets NaN values in one pass.
@@ -214,11 +218,9 @@ def take_2d_multi(
 
     row_idx, col_idx = indexer
 
-    row_idx = ensure_int64(row_idx)
-    col_idx = ensure_int64(col_idx)
-    # error: Incompatible types in assignment (expression has type "Tuple[Any, Any]",
-    # variable has type "ndarray")
-    indexer = row_idx, col_idx  # type: ignore[assignment]
+    row_idx = ensure_platform_int(row_idx)
+    col_idx = ensure_platform_int(col_idx)
+    indexer = row_idx, col_idx
     mask_info = None
 
     # check for promotion based on types only (do this first because
@@ -474,7 +476,7 @@ def _take_nd_object(
     if arr.dtype != out.dtype:
         arr = arr.astype(out.dtype)
     if arr.shape[axis] > 0:
-        arr.take(ensure_platform_int(indexer), axis=axis, out=out)
+        arr.take(indexer, axis=axis, out=out)
     if needs_masking:
         outindexer = [slice(None)] * arr.ndim
         outindexer[axis] = mask
@@ -482,11 +484,15 @@ def _take_nd_object(
 
 
 def _take_2d_multi_object(
-    arr: np.ndarray, indexer: np.ndarray, out: np.ndarray, fill_value, mask_info
+    arr: np.ndarray,
+    indexer: tuple[np.ndarray, np.ndarray],
+    out: np.ndarray,
+    fill_value,
+    mask_info,
 ) -> None:
     # this is not ideal, performance-wise, but it's better than raising
     # an exception (best to optimize in Cython to avoid getting here)
-    row_idx, col_idx = indexer
+    row_idx, col_idx = indexer  # both np.intp
     if mask_info is not None:
         (row_mask, col_mask), (row_needs, col_needs) = mask_info
     else:

@@ -2663,7 +2663,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        np.ndarray[bool]
 
         See Also
         --------
@@ -2699,7 +2699,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_unique:
             # fastpath available bc we are immutable
             return np.zeros(len(self), dtype=bool)
-        return super().duplicated(keep=keep)
+        return self._duplicated(keep=keep)
 
     def _get_unique_index(self: _IndexT) -> _IndexT:
         """
@@ -3925,7 +3925,7 @@ class Index(IndexOpsMixin, PandasObject):
         if len(other) == 0 and how in ("left", "outer"):
             join_index = self._view()
             if return_indexers:
-                rindexer = np.repeat(-1, len(join_index))
+                rindexer = np.repeat(np.intp(-1), len(join_index))
                 return join_index, None, rindexer
             else:
                 return join_index
@@ -3933,7 +3933,7 @@ class Index(IndexOpsMixin, PandasObject):
         if len(self) == 0 and how in ("right", "outer"):
             join_index = other._view()
             if return_indexers:
-                lindexer = np.repeat(-1, len(join_index))
+                lindexer = np.repeat(np.intp(-1), len(join_index))
                 return join_index, lindexer, None
             else:
                 return join_index
