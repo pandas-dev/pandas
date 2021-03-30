@@ -794,68 +794,14 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
     return indexer
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def backfill_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
-    cdef:
-        Py_ssize_t i, N
-        algos_t val
-        uint8_t prev_mask
-        int lim, fill_count = 0
-
-    N = len(values)
-
-    # GH#2778
-    if N == 0:
-        return
-
-    lim = validate_limit(N, limit)
-
-    val = values[N - 1]
-    prev_mask = mask[N - 1]
-    for i in range(N - 1, -1, -1):
-        if mask[i]:
-            if fill_count >= lim:
-                continue
-            fill_count += 1
-            values[i] = val
-            mask[i] = prev_mask
-        else:
-            fill_count = 0
-            val = values[i]
-            prev_mask = mask[i]
+    return pad_inplace(values[::-1], mask[::-1], limit=limit)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def backfill_2d_inplace(algos_t[:, :] values,
                         const uint8_t[:, :] mask,
                         limit=None):
-    cdef:
-        Py_ssize_t i, j, N, K
-        algos_t val
-        int lim, fill_count = 0
-
-    K, N = (<object>values).shape
-
-    # GH#2778
-    if N == 0:
-        return
-
-    lim = validate_limit(N, limit)
-
-    for j in range(K):
-        fill_count = 0
-        val = values[j, N - 1]
-        for i in range(N - 1, -1, -1):
-            if mask[j, i]:
-                if fill_count >= lim:
-                    continue
-                fill_count += 1
-                values[j, i] = val
-            else:
-                fill_count = 0
-                val = values[j, i]
+    return pad_2d_inplace(values[:, ::-1], mask[:, ::-1], limit)
 
 
 @cython.boundscheck(False)
