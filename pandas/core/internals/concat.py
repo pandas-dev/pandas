@@ -435,7 +435,7 @@ def _concatenate_join_units(
         # the non-EA values are 2D arrays with shape (1, n)
 
         # error: Invalid index type "Tuple[int, slice]" for
-        #  "Union[ExtensionArray, ndarray]"; expected type "Union[int, slice, ndarray]"
+        # "Union[ExtensionArray, ndarray]"; expected type "Union[int, slice, ndarray]"
         to_concat = [
             t if is_1d_only_ea_obj(t) else t[0, :]  # type: ignore[index]
             for t in to_concat

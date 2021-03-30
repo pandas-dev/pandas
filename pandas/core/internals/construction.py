@@ -340,7 +340,6 @@ def ndarray_to_mgr(
 
         else:
             datelike_vals = maybe_infer_to_datetimelike(values)
-            # datelike_vals = ensure_block_shape(datelike_vals, 2)
             nb = new_block(datelike_vals, placement=slice(len(columns)), ndim=2)
             block_values = [nb]
     else:
