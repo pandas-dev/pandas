@@ -1986,7 +1986,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
 
         new_obj.index = _asfreq_compat(obj.index, freq)
     else:
-        dti = date_range(obj.index[0], obj.index[-1], freq=freq)
+        dti = date_range(obj.index.min(), obj.index.max(), freq=freq)
         dti.name = obj.index.name
         new_obj = obj.reindex(dti, method=method, fill_value=fill_value)
         if normalize:

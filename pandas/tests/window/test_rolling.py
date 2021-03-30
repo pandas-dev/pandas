@@ -1150,3 +1150,25 @@ def test_rolling_descending_date_order_with_offset(window, frame_or_series):
     idx = date_range(start="2020-01-03", end="2020-01-01", freq="-1d")
     expected = frame_or_series([np.nan, 3, 2], index=idx)
     tm.assert_equal(result, expected)
+
+
+def test_rolling_var_floating_artifact_precision():
+    # GH 37051
+    s = Series([7, 5, 5, 5])
+    result = s.rolling(3).var()
+    expected = Series([np.nan, np.nan, 4 / 3, 0])
+    tm.assert_series_equal(result, expected, atol=1.0e-15, rtol=1.0e-15)
+
+
+def test_rolling_std_small_values():
+    # GH 37051
+    s = Series(
+        [
+            0.00000054,
+            0.00000053,
+            0.00000054,
+        ]
+    )
+    result = s.rolling(2).std()
+    expected = Series([np.nan, 7.071068e-9, 7.071068e-9])
+    tm.assert_series_equal(result, expected, atol=1.0e-15, rtol=1.0e-15)
