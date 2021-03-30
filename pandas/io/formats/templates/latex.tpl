@@ -33,7 +33,7 @@
 \{{toprule}}
 {% endif %}
 {% for row in head %}
-{% for c in row %}{%- if not loop.first %} & {% endif %}{{parse_header(c)}}{% endfor %} \\
+{% for c in row %}{%- if not loop.first %} & {% endif %}{{parse_header(c, True)}}{% endfor %} \\
 {% endfor %}
 {% set midrule = parse_table(table_styles, 'midrule') %}
 {% if midrule is not none %}

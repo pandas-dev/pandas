@@ -2666,7 +2666,7 @@ def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
     return display_value
 
 
-def _parse_latex_header_span(cell: Dict) -> str:
+def _parse_latex_header_span(cell: Dict, wrap: bool = False) -> str:
     r"""
     examines a header cell dict and if it detects a 'colspan' attribute or a 'rowspan'
     attribute (which do not occur simultaneously) will reformat
@@ -2687,7 +2687,10 @@ def _parse_latex_header_span(cell: Dict) -> str:
             rowspan = attrs[attrs.find('rowspan="') + 9 :]
             rowspan = int(rowspan[: rowspan.find('"')])
             return f"\\multirow{{{rowspan}}}{{*}}{{{cell['display_value']}}}"
-    return cell["display_value"]
+    if wrap:
+        return f"{{{cell['display_value']}}}"
+    else:
+        return cell["display_value"]
 
 
 def _parse_latex_strip_arg(options: Union[str, int, float], arg: str) -> str:

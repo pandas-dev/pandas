@@ -31,7 +31,7 @@ def test_minimal_latex_tabular(styler):
     expected = dedent(
         """\
         \\begin{tabular}{lrrl}
-         & A & B & C \\\\
+        {} & {A} & {B} & {C} \\\\
         0 & 0 & -0.61 & ab \\\\
         1 & 1 & -1.22 & cd \\\\
         \\end{tabular}
@@ -45,7 +45,7 @@ def test_tabular_hrules(styler):
         """\
         \\begin{tabular}{lrrl}
         \\toprule
-         & A & B & C \\\\
+        {} & {A} & {B} & {C} \\\\
         \\midrule
         0 & 0 & -0.61 & ab \\\\
         1 & 1 & -1.22 & cd \\\\
@@ -67,7 +67,7 @@ def test_tabular_custom_hrules(styler):
         """\
         \\begin{tabular}{lrrl}
         \\hline
-         & A & B & C \\\\
+        {} & {A} & {B} & {C} \\\\
         0 & 0 & -0.61 & ab \\\\
         1 & 1 & -1.22 & cd \\\\
         \\otherline
@@ -139,7 +139,7 @@ def test_cell_styling(styler):
     expected = dedent(
         """\
         \\begin{tabular}{lrrl}
-         & A & B & C \\\\
+        {} & {A} & {B} & {C} \\\\
         0 & 0 & \\emph{{\\Huge -0.61}} & ab \\\\
         1 & \\emph{{\\Huge 1}} & -1.22 & \\emph{{\\Huge cd}} \\\\
         \\end{tabular}
@@ -154,8 +154,8 @@ def test_multiindex_columns(df):
     expected = dedent(
         """\
         \\begin{tabular}{lrrl}
-         & \\multicolumn{2}{r}{A} & B \\\\
-         & a & b & c \\\\
+        {} & \\multicolumn{2}{r}{A} & {B} \\\\
+        {} & {a} & {b} & {c} \\\\
         0 & 0 & -0.61 & ab \\\\
         1 & 1 & -1.22 & cd \\\\
         \\end{tabular}
@@ -173,7 +173,7 @@ def test_multiindex_row(df):
     expected = dedent(
         """\
         \\begin{tabular}{llrrl}
-         &  & A & B & C \\\\
+        {} & {} & {A} & {B} & {C} \\\\
         \\multirow{2}{*}{A} & a & 0 & -0.61 & ab \\\\
          & b & 1 & -1.22 & cd \\\\
         B & c & 2 & -2.22 & de \\\\
@@ -193,8 +193,8 @@ def test_multiindex_row_and_col(df):
     expected = dedent(
         """\
         \\begin{tabular}{llrrl}
-         &  & \\multicolumn{2}{r}{Z} & Y \\\\
-         &  & a & b & c \\\\
+        {} & {} & \\multicolumn{2}{r}{Z} & {Y} \\\\
+        {} & {} & {a} & {b} & {c} \\\\
         \\multirow{2}{*}{A} & a & 0 & -0.61 & ab \\\\
          & b & 1 & -1.22 & cd \\\\
         B & c & 2 & -2.22 & de \\\\
@@ -248,8 +248,8 @@ def test_comprehensive(df):
 \\rowcolors{3}{pink}{}
 \\begin{tabular}{rlrlr}
 \\toprule
- &  & \\multicolumn{2}{r}{Z} & Y \\\\
- &  & a & b & c \\\\
+{} & {} & \\multicolumn{2}{r}{Z} & {Y} \\\\
+{} & {} & {a} & {b} & {c} \\\\
 \\midrule
 \\multirow{2}{*}{A} & a & 0 & \\textbf{\\cellcolor[rgb]{1,1,0.6}{-0.61}} & ab \\\\
  & b & 1 & -1.22 & cd \\\\
