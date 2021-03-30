@@ -873,7 +873,7 @@ def test_dateoffset_immutable(attribute):
     msg = "DateOffset objects are immutable"
     with pytest.raises(AttributeError, match=msg):
         setattr(offset, attribute, 5)
-        
+
 
 @pytest.mark.parametrize(
     "offset_type",
