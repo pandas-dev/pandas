@@ -36,7 +36,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -241,6 +240,7 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
 
     Parameters
     ----------
+    comp_ids : np.ndarray[np.intp]
     xnull : bool
         If nulls are excluded; i.e. -1 labels are passed through.
     """
@@ -253,7 +253,8 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
         out = decons_group_index(obs_ids, shape)
         return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
-    i = unique_label_indices(comp_ids)
+    # TODO: unique_label_indices only used here, should take ndarray[np.intp]
+    i = unique_label_indices(ensure_int64(comp_ids))
     i8copy = lambda a: a.astype("i8", subok=False, copy=True)
     return [i8copy(lab[i]) for lab in labels]
 
@@ -403,7 +404,7 @@ def nargsort(
     return indexer
 
 
-def nargminmax(values, method: str):
+def nargminmax(values, method: str, axis: int = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -412,6 +413,7 @@ def nargminmax(values, method: str):
     ----------
     values : ExtensionArray
     method : {"argmax", "argmin"}
+    axis: int, default 0
 
     Returns
     -------
@@ -423,7 +425,23 @@ def nargminmax(values, method: str):
     mask = np.asarray(isna(values))
     values = values._values_for_argsort()
 
-    idx = np.arange(len(values))
+    if values.ndim > 1:
+        if mask.any():
+            if axis == 1:
+                zipped = zip(values, mask)
+            else:
+                zipped = zip(values.T, mask.T)
+            return np.array([_nanargminmax(v, m, func) for v, m in zipped])
+        return func(values, axis=axis)
+
+    return _nanargminmax(values, mask, func)
+
+
+def _nanargminmax(values, mask, func) -> int:
+    """
+    See nanargminmax.__doc__.
+    """
+    idx = np.arange(values.shape[0])
     non_nans = values[~mask]
     non_nan_idx = idx[~mask]
 
@@ -524,7 +542,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
 
 
 def get_flattened_list(
-    comp_ids: np.ndarray,
+    comp_ids: np.ndarray,  # np.ndarray[np.intp]
     ngroups: int,
     levels: Iterable[Index],
     labels: Iterable[np.ndarray],
@@ -588,6 +606,16 @@ def get_group_index_sorter(
     Both algorithms are `stable` sort and that is necessary for correctness of
     groupby operations. e.g. consider:
         df.groupby(key)[col].transform('first')
+
+    Parameters
+    ----------
+    group_index : np.ndarray[np.intp]
+        signed integer dtype
+    ngroups : int or None, default None
+
+    Returns
+    -------
+    np.ndarray[np.intp]
     """
     if ngroups is None:
         # error: Incompatible types in assignment (expression has type "number[Any]",
@@ -601,10 +629,11 @@ def get_group_index_sorter(
         (alpha + beta * ngroups) < (count * np.log(count))  # type: ignore[operator]
     )
     if do_groupsort:
-        sorter, _ = algos.groupsort_indexer(ensure_int64(group_index), ngroups)
-        return ensure_platform_int(sorter)
+        sorter, _ = algos.groupsort_indexer(ensure_platform_int(group_index), ngroups)
+        # sorter _should_ already be intp, but mypy is not yet able to verify
     else:
-        return group_index.argsort(kind="mergesort")
+        sorter = group_index.argsort(kind="mergesort")
+    return ensure_platform_int(sorter)
 
 
 def compress_group_index(group_index, sort: bool = True):
@@ -638,10 +667,10 @@ def _reorder_by_uniques(uniques, labels):
     mask = labels < 0
 
     # move labels to right locations (ie, unsort ascending labels)
-    labels = algorithms.take_nd(reverse_indexer, labels, allow_fill=False)
+    labels = reverse_indexer.take(labels)
     np.putmask(labels, mask, -1)
 
     # sort observed ids
-    uniques = algorithms.take_nd(uniques, sorter, allow_fill=False)
+    uniques = uniques.take(sorter)
 
     return uniques, labels

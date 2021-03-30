@@ -2154,7 +2154,7 @@ def objects_to_datetime64ns(
     data = np.array(data, copy=False, dtype=np.object_)
 
     flags = data.flags
-    order = "F" if flags.f_contiguous else "C"
+    order: Literal["F", "C"] = "F" if flags.f_contiguous else "C"
     try:
         result, tz_parsed = tslib.array_to_datetime(
             data.ravel("K"),
