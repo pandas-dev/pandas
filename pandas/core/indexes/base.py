@@ -2412,7 +2412,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        numpy.ndarray[bool]
             A boolean array of whether my values are NA.
 
         See Also
