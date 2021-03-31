@@ -1756,6 +1756,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def _codes(self) -> np.ndarray:
         return self._ndarray
 
+    @_codes.setter
+    def _codes(self, value: np.ndarray):
+        self._ndarray = value
+
     def _from_backing_data(self, arr: np.ndarray) -> Categorical:
         assert isinstance(arr, np.ndarray)
         assert arr.dtype == self._ndarray.dtype
@@ -1981,9 +1985,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         categories = self.categories
         r, counts = libalgos.groupsort_indexer(
-            self.codes.astype("int64", copy=False), categories.size
+            ensure_platform_int(self.codes), categories.size
         )
-        counts = counts.cumsum()
+        counts = ensure_int64(counts).cumsum()
         _result = (r[start:end] for start, end in zip(counts, counts[1:]))
         return dict(zip(categories, _result))
 

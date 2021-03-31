@@ -59,13 +59,13 @@ def make_block(
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
 
-    ndim = _maybe_infer_ndim(values, placement, ndim)
+    ndim = maybe_infer_ndim(values, placement, ndim)
     check_ndim(values, placement, ndim)
     values = maybe_coerce_values(values)
     return klass(values, ndim=ndim, placement=placement)
 
 
-def _maybe_infer_ndim(values, placement: BlockPlacement, ndim: Optional[int]) -> int:
+def maybe_infer_ndim(values, placement: BlockPlacement, ndim: Optional[int]) -> int:
     """
     If `ndim` is not provided, infer it from placment and values.
     """

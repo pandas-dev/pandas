@@ -959,7 +959,7 @@ def mode(values, dropna: bool = True) -> Series:
     ----------
     values : array-like
         Array over which to check for duplicate values.
-    dropna : boolean, default True
+    dropna : bool, default True
         Don't consider counts of NaN/NaT.
 
         .. versionadded:: 0.24.0
@@ -1025,27 +1025,29 @@ def rank(
         - ``keep``: rank each NaN value with a NaN ranking
         - ``top``: replace each NaN with either +/- inf so that they
                    there are ranked at the top
-    ascending : boolean, default True
+    ascending : bool, default True
         Whether or not the elements should be ranked in ascending order.
-    pct : boolean, default False
+    pct : bool, default False
         Whether or not to the display the returned rankings in integer form
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
+    is_datetimelike = needs_i8_conversion(values.dtype)
+    values = _get_values_for_rank(values)
     if values.ndim == 1:
-        values = _get_values_for_rank(values)
         ranks = algos.rank_1d(
             values,
-            labels=np.zeros(len(values), dtype=np.int64),
+            labels=np.zeros(len(values), dtype=np.intp),
+            is_datetimelike=is_datetimelike,
             ties_method=method,
             ascending=ascending,
             na_option=na_option,
             pct=pct,
         )
     elif values.ndim == 2:
-        values = _get_values_for_rank(values)
         ranks = algos.rank_2d(
             values,
             axis=axis,
+            is_datetimelike=is_datetimelike,
             ties_method=method,
             ascending=ascending,
             na_option=na_option,
@@ -1307,7 +1309,9 @@ class SelectNSeries(SelectN):
         narr = len(arr)
         n = min(n, narr)
 
-        kth_val = algos.kth_smallest(arr.copy(), n - 1)
+        # arr passed into kth_smallest must be contiguous. We copy
+        # here because kth_smallest will modify its input
+        kth_val = algos.kth_smallest(arr.copy(order="C"), n - 1)
         (ns,) = np.nonzero(arr <= kth_val)
         inds = ns[arr[ns].argsort(kind="mergesort")]
 
