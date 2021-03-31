@@ -402,9 +402,9 @@ def group_any_all(uint8_t[::1] out,
         ordering matching up to the corresponding record in `values`
     values : array containing the truth value of each element
     mask : array indicating whether a value is na or not
-    val_test : str {'any', 'all'}
+    val_test : {'any', 'all'}
         String object dictating whether to use any or all truth testing
-    skipna : boolean
+    skipna : bool
         Flag to ignore nan values during truth testing
 
     Notes
@@ -455,11 +455,11 @@ ctypedef fused complexfloating_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _group_add(complexfloating_t[:, ::1] out,
-               int64_t[::1] counts,
-               ndarray[complexfloating_t, ndim=2] values,
-               const intp_t[:] labels,
-               Py_ssize_t min_count=0):
+def group_add(complexfloating_t[:, ::1] out,
+              int64_t[::1] counts,
+              ndarray[complexfloating_t, ndim=2] values,
+              const intp_t[:] labels,
+              Py_ssize_t min_count=0):
     """
     Only aggregates on axis=0 using Kahan summation
     """
@@ -506,19 +506,13 @@ def _group_add(complexfloating_t[:, ::1] out,
                     out[i, j] = sumx[i, j]
 
 
-group_add_float32 = _group_add['float32_t']
-group_add_float64 = _group_add['float64_t']
-group_add_complex64 = _group_add['float complex']
-group_add_complex128 = _group_add['double complex']
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _group_prod(floating[:, ::1] out,
-                int64_t[::1] counts,
-                ndarray[floating, ndim=2] values,
-                const intp_t[:] labels,
-                Py_ssize_t min_count=0):
+def group_prod(floating[:, ::1] out,
+               int64_t[::1] counts,
+               ndarray[floating, ndim=2] values,
+               const intp_t[:] labels,
+               Py_ssize_t min_count=0):
     """
     Only aggregates on axis=0
     """
@@ -560,19 +554,15 @@ def _group_prod(floating[:, ::1] out,
                     out[i, j] = prodx[i, j]
 
 
-group_prod_float32 = _group_prod['float']
-group_prod_float64 = _group_prod['double']
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-def _group_var(floating[:, ::1] out,
-               int64_t[::1] counts,
-               ndarray[floating, ndim=2] values,
-               const intp_t[:] labels,
-               Py_ssize_t min_count=-1,
-               int64_t ddof=1):
+def group_var(floating[:, ::1] out,
+              int64_t[::1] counts,
+              ndarray[floating, ndim=2] values,
+              const intp_t[:] labels,
+              Py_ssize_t min_count=-1,
+              int64_t ddof=1):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, ct, oldmean
@@ -619,17 +609,13 @@ def _group_var(floating[:, ::1] out,
                     out[i, j] /= (ct - ddof)
 
 
-group_var_float32 = _group_var['float']
-group_var_float64 = _group_var['double']
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _group_mean(floating[:, ::1] out,
-                int64_t[::1] counts,
-                ndarray[floating, ndim=2] values,
-                const intp_t[::1] labels,
-                Py_ssize_t min_count=-1):
+def group_mean(floating[:, ::1] out,
+               int64_t[::1] counts,
+               ndarray[floating, ndim=2] values,
+               const intp_t[::1] labels,
+               Py_ssize_t min_count=-1):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, count, y, t
@@ -673,10 +659,6 @@ def _group_mean(floating[:, ::1] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j] / count
-
-
-group_mean_float32 = _group_mean['float']
-group_mean_float64 = _group_mean['double']
 
 
 @cython.wraparound(False)
@@ -1083,10 +1065,10 @@ def group_rank(float64_t[:, ::1] out,
         * max: highest rank in group
         * first: ranks assigned in order they appear in the array
         * dense: like 'min', but rank always increases by 1 between groups
-    ascending : boolean, default True
+    ascending : bool, default True
         False for ranks by high (1) to low (N)
         na_option : {'keep', 'top', 'bottom'}, default 'keep'
-    pct : boolean, default False
+    pct : bool, default False
         Compute percentage rank of data within each group
     na_option : {'keep', 'top', 'bottom'}, default 'keep'
         * keep: leave NA values where they are

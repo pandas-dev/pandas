@@ -980,7 +980,7 @@ class HDFStore:
         columns : the columns I want back
         start : integer (defaults to None), row number to start selection
         stop  : integer (defaults to None), row number to stop selection
-        iterator : boolean, return an iterator, default False
+        iterator : bool, return an iterator, default False
         chunksize : nrows to include in iteration, return an iterator
         auto_close : bool, default False
             Should automatically close the store when finished.
@@ -1145,7 +1145,7 @@ class HDFStore:
 
         Parameters
         ----------
-        key : string
+        key : str
             Node to remove or delete rows from
         where : list of Term (or convertible) objects, optional
         start : integer (defaults to None), row number to start selection
@@ -3540,7 +3540,7 @@ class Table(Fixed):
             return
 
         q = self.queryables()
-        for k, v in min_itemsize.items():
+        for k in min_itemsize:
 
             # ok, apply generally
             if k == "values":
