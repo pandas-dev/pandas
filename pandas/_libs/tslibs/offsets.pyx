@@ -1999,6 +1999,8 @@ cdef class QuarterOffset(SingleConstructorOffset):
     month : int
         The calendar month number (1 for January) of the beginning or ending
         month in a custom-defined quarter to be used as an offset.
+
+        .. versionadded:: 1.X.X
     startingMonth : int
         The calendar month number (1 for January) of the beginning or ending
         month in a custom-defined quarter to be used as an offset.
@@ -2114,6 +2116,8 @@ cdef class BQuarterEnd(QuarterOffset):
     month : int, default 3
         The calendar month number (3 for March) of the last month
         in a custom-defined business quarter to be used as an offset.
+
+        .. versionadded:: 1.X.X
     startingMonth : int, default 3
         The calendar month number (3 for March) of the last month
         in a custom-defined business quarter to be used as an offset.
@@ -2158,6 +2162,8 @@ cdef class BQuarterBegin(QuarterOffset):
     month : int, default 1
         The calendar month number (1 for January) of the first month
         in a custom-defined business quarter to be used as an offset.
+
+        .. versionadded:: 1.X.X
     startingMonth : int, default 1
         The calendar month number (1 for January) of the first month
         in a custom-defined business quarter to be used as an offset.
@@ -2202,6 +2208,8 @@ cdef class QuarterEnd(QuarterOffset):
     month : int, default 3
         The calendar month number (3 for March) of the last month
         in a custom-defined quarter to be used as an offset.
+
+        .. versionadded:: 1.X.X
     startingMonth : int, default 3
         The calendar month number (3 for March) of the last month
         in a custom-defined quarter to be used as an offset.
@@ -2243,6 +2251,8 @@ cdef class QuarterBegin(QuarterOffset):
     month : int, default 1
         The calendar month number (1 for January) of the first month
         in a custom-defined quarter to be used as an offset.
+
+        .. versionadded:: 1.X.X
     startingMonth : int, default 1
         The calendar month number (1 for January) of the first month
         in a custom-defined quarter to be used as an offset.
