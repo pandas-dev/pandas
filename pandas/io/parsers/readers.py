@@ -410,7 +410,7 @@ def validate_integer(name, val, min_val=0):
 
     Parameters
     ----------
-    name : string
+    name : str
         Parameter name (used for error reporting)
     val : int or float
         The value to check

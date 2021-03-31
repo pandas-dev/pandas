@@ -320,7 +320,7 @@ class Index(IndexOpsMixin, PandasObject):
     # would we like our indexing holder to defer to us
     _defer_to_indexing = False
 
-    _engine_type = libindex.ObjectEngine
+    _engine_type: Type[libindex.IndexEngine] = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
     # in DatetimeIndex and PeriodIndex
     _supports_partial_string_indexing = False
@@ -723,8 +723,8 @@ class Index(IndexOpsMixin, PandasObject):
         self._engine.clear_mapping()
 
     @cache_readonly
-    def _engine(self) -> libindex.ObjectEngine:
-        # property, for now, slow to look up
+    def _engine(self) -> libindex.IndexEngine:
+        # For base class (object dtype) we get ObjectEngine
 
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
@@ -2663,7 +2663,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        np.ndarray[bool]
 
         See Also
         --------
@@ -2699,7 +2699,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_unique:
             # fastpath available bc we are immutable
             return np.zeros(len(self), dtype=bool)
-        return super().duplicated(keep=keep)
+        return self._duplicated(keep=keep)
 
     def _get_unique_index(self: _IndexT) -> _IndexT:
         """

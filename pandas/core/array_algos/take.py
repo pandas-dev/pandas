@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 from typing import (
     TYPE_CHECKING,
+    cast,
     overload,
 )
 
@@ -21,6 +22,7 @@ from pandas.core.dtypes.missing import na_value_for_dtype
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
     from pandas.core.arrays.base import ExtensionArray
 
 
@@ -74,7 +76,7 @@ def take_nd(
         Axis to take from
     fill_value : any, default np.nan
         Fill value to replace -1 values with
-    allow_fill : boolean, default True
+    allow_fill : bool, default True
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
         undefined if allow_fill == False and -1 is present in indexer.
@@ -89,7 +91,12 @@ def take_nd(
 
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
-        # includes for EA to catch DatetimeArray, TimedeltaArray
+        if arr.ndim == 2:
+            # e.g. DatetimeArray, TimedeltArray
+            arr = cast("NDArrayBackedExtensionArray", arr)
+            return arr.take(
+                indexer, fill_value=fill_value, allow_fill=allow_fill, axis=axis
+            )
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = np.asarray(arr)
