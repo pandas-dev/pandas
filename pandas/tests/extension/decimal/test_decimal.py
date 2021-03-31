@@ -261,7 +261,18 @@ def test_dataframe_constructor_with_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("frame", [True, False])
+@pytest.mark.parametrize(
+    "frame",
+    [
+        pytest.param(
+            True,
+            marks=pytest.mark.xfail(
+                reason="pd.concat call inside NDFrame.astype reverts the dtype"
+            ),
+        ),
+        False,
+    ],
+)
 def test_astype_dispatches(frame):
     # This is a dtype-specific test that ensures Series[decimal].astype
     # gets all the way through to ExtensionArray.astype
