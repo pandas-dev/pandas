@@ -234,7 +234,7 @@ _shared_doc_kwargs = {
         If 0 or 'index': apply function to each column.
         If 1 or 'columns': apply function to each row.""",
     "inplace": """
-    inplace : boolean, default False
+    inplace : bool, default False
         If True, performs operation inplace and returns None.""",
     "optional_by": """
         by : str or list of str
@@ -254,7 +254,7 @@ _shared_doc_kwargs = {
     you to specify a location to update with some value.""",
 }
 
-_numeric_only_doc = """numeric_only : boolean, default None
+_numeric_only_doc = """numeric_only : bool or None, default None
     Include only float, int, boolean data. If None, will attempt to use
     everything, then use only numeric data
 """

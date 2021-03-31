@@ -564,7 +564,7 @@ def _maybe_coerce_freq(code) -> str:
 
     Parameters
     ----------
-    source : string or DateOffset
+    source : str or DateOffset
         Frequency converting from
 
     Returns
