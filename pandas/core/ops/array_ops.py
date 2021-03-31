@@ -118,7 +118,10 @@ def _masked_arith_op(x: np.ndarray, y, op):
 
         # mask is only meaningful for x
         result = np.empty(x.size, dtype=x.dtype)
-        mask = notna(xrav)
+        if isna(y):
+            mask = np.zeros(x.size, dtype=bool)
+        else:
+            mask = notna(xrav)
 
         # 1 ** np.nan is 1. So we have to unmask those.
         if op is pow:
@@ -291,6 +294,7 @@ def na_logical_op(x: np.ndarray, y, op):
             y = ensure_object(y)
             result = libops.vec_binop(x.ravel(), y.ravel(), op)
         else:
+            x = ensure_object(x)
             # let null fall thru
             assert lib.is_scalar(y)
             if not isna(y):

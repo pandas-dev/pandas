@@ -1204,7 +1204,12 @@ class TestFrameArithmeticUnsorted:
         _check_mixed_float(added, dtype="float64")
 
     def test_combine_series(
-        self, float_frame, mixed_float_frame, mixed_int_frame, datetime_frame
+        self,
+        float_frame,
+        mixed_float_frame,
+        mixed_int_frame,
+        datetime_frame,
+        using_array_manager,
     ):
 
         # Series
@@ -1227,7 +1232,14 @@ class TestFrameArithmeticUnsorted:
 
         # no upcast needed
         added = mixed_float_frame + series
-        assert np.all(added.dtypes == series.dtype)
+        if using_array_manager:
+            # INFO(ArrayManager) addition is performed column-wise, and
+            # apparently in numpy the dtype of array gets priority in
+            # arithmetic casting rules (array[float32] + scalar[float64] gives
+            # array[float32] and not array[float64])
+            assert np.all(added.dtypes == mixed_float_frame.dtypes)
+        else:
+            assert np.all(added.dtypes == series.dtype)
 
         # vs mix (upcast) as needed
         added = mixed_float_frame + series.astype("float32")
@@ -1587,7 +1599,7 @@ class TestFrameArithmeticUnsorted:
         expected = id(df)
         assert id(df) == expected
 
-    def test_alignment_non_pandas(self):
+    def test_alignment_non_pandas(self, using_array_manager):
         index = ["A", "B", "C"]
         columns = ["X", "Y", "Z"]
         df = DataFrame(np.random.randn(3, 3), index=index, columns=columns)
@@ -1600,13 +1612,21 @@ class TestFrameArithmeticUnsorted:
             range(1, 4),
         ]:
 
-            expected = DataFrame({"X": val, "Y": val, "Z": val}, index=df.index)
-            tm.assert_frame_equal(align(df, val, "index")[1], expected)
+            if not using_array_manager:
+                expected = DataFrame({"X": val, "Y": val, "Z": val}, index=df.index)
+                tm.assert_frame_equal(align(df, val, "index")[1], expected)
+            else:
+                expected = Series(val, index=index)
+                tm.assert_series_equal(align(df, val, "index")[1], expected)
 
-            expected = DataFrame(
-                {"X": [1, 1, 1], "Y": [2, 2, 2], "Z": [3, 3, 3]}, index=df.index
-            )
-            tm.assert_frame_equal(align(df, val, "columns")[1], expected)
+            if not using_array_manager:
+                expected = DataFrame(
+                    {"X": [1, 1, 1], "Y": [2, 2, 2], "Z": [3, 3, 3]}, index=df.index
+                )
+                tm.assert_frame_equal(align(df, val, "columns")[1], expected)
+            else:
+                expected = Series(val, index=columns)
+                tm.assert_series_equal(align(df, val, "columns")[1], expected)
 
         # length mismatch
         msg = "Unable to coerce to Series, length must be 3: given 2"
