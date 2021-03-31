@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Index,
@@ -196,6 +198,7 @@ def test_pivot_list_like_columns(
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) concat axis=0
 def test_pivot_multiindexed_rows_and_cols():
     # GH 36360
 

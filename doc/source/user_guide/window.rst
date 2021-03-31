@@ -101,7 +101,7 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
 
 All windowing operations support a ``min_periods`` argument that dictates the minimum amount of
 non-``np.nan`` values a window must have; otherwise, the resulting value is ``np.nan``.
-``min_peridos`` defaults to 1 for time-based windows and ``window`` for fixed windows
+``min_periods`` defaults to 1 for time-based windows and ``window`` for fixed windows
 
 .. ipython:: python
 

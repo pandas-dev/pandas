@@ -8,19 +8,26 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import Shape
+from pandas._typing import (
+    F,
+    Shape,
+)
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._validators import validate_fillna_kwargs
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_fillna_kwargs,
+)
 
 from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.missing import array_equivalent
@@ -35,13 +42,14 @@ from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
+from pandas.core.sorting import nargminmax
 
 NDArrayBackedExtensionArrayT = TypeVar(
     "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
 )
 
 
-def ravel_compat(meth):
+def ravel_compat(meth: F) -> F:
     """
     Decorator to ravel a 2D array before passing it to a cython operation,
     then reshape the result to our own shape.
@@ -58,7 +66,7 @@ def ravel_compat(meth):
         order = "F" if flags.f_contiguous else "C"
         return result.reshape(self.shape, order=order)
 
-    return method
+    return cast(F, method)
 
 
 class NDArrayBackedExtensionArray(ExtensionArray):
@@ -184,6 +192,22 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     def _values_for_argsort(self):
         return self._ndarray
+
+    # Signature of "argmin" incompatible with supertype "ExtensionArray"
+    def argmin(self, axis: int = 0, skipna: bool = True):  # type:ignore[override]
+        # override base class by adding axis keyword
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self.isna().any():
+            raise NotImplementedError
+        return nargminmax(self, "argmin", axis=axis)
+
+    # Signature of "argmax" incompatible with supertype "ExtensionArray"
+    def argmax(self, axis: int = 0, skipna: bool = True):  # type:ignore[override]
+        # override base class by adding axis keyword
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self.isna().any():
+            raise NotImplementedError
+        return nargminmax(self, "argmax", axis=axis)
 
     def copy(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
         new_data = self._ndarray.copy()

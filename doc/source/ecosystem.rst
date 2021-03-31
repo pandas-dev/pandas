@@ -98,7 +98,8 @@ which can be used for a wide variety of time series data mining tasks.
 Visualization
 -------------
 
-While :ref:`pandas has built-in support for data visualization with matplotlib <visualization>`,
+`Pandas has its own Styler class for table visualization <user_guide/style.ipynb>`_, and while
+:ref:`pandas also has built-in support for data visualization through charts with matplotlib <visualization>`,
 there are a number of other pandas-compatible libraries.
 
 `Altair <https://altair-viz.github.io/>`__
@@ -367,6 +368,14 @@ BCPandas provides high performance writes from pandas to Microsoft SQL Server,
 far exceeding the performance of the native ``df.to_sql`` method. Internally, it uses
 Microsoft's BCP utility, but the complexity is fully abstracted away from the end user.
 Rigorously tested, it is a complete replacement for ``df.to_sql``.
+
+`Deltalake <https://pypi.org/project/deltalake>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Deltalake python package lets you access tables stored in
+`Delta Lake <https://delta.io/>`__ natively in Python without the need to use Spark or
+JVM. It provides the ``delta_table.to_pyarrow_table().to_pandas()`` method to convert
+any Delta table into Pandas dataframe.
 
 
 .. _ecosystem.out-of-core:

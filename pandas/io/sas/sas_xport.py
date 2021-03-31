@@ -63,23 +63,23 @@ _fieldkeys = [
 _base_params_doc = """\
 Parameters
 ----------
-filepath_or_buffer : string or file-like object
+filepath_or_buffer : str or file-like object
     Path to SAS file or object implementing binary read method."""
 
 _params2_doc = """\
 index : identifier of index column
     Identifier of column that should be used as index of the DataFrame.
-encoding : string
+encoding : str
     Encoding for text data.
 chunksize : int
     Read file `chunksize` lines at a time, returns iterator."""
 
 _format_params_doc = """\
-format : string
+format : str
     File format, only `xport` is currently supported."""
 
 _iterator_doc = """\
-iterator : boolean, default False
+iterator : bool, default False
     Return XportReader object for reading file incrementally."""
 
 

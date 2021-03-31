@@ -302,7 +302,7 @@ class PandasSQLTest:
         self.drop_table("iris")
         self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
 
-        with open(iris_csv_file, mode="r", newline=None) as iris_csv:
+        with open(iris_csv_file, newline=None) as iris_csv:
             r = csv.reader(iris_csv)
             next(r)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]
@@ -1991,8 +1991,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         def main(connectable):
             with connectable.connect() as conn:
                 with conn.begin():
-                    foo_data = conn.run_callable(foo)
-                    conn.run_callable(bar, foo_data)
+                    if _gt14():
+                        # https://github.com/sqlalchemy/sqlalchemy/commit/
+                        #  00b5c10846e800304caa86549ab9da373b42fa5d#r48323973
+                        foo_data = foo(conn)
+                        bar(conn, foo_data)
+                    else:
+                        foo_data = conn.run_callable(foo)
+                        conn.run_callable(bar, foo_data)
 
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
