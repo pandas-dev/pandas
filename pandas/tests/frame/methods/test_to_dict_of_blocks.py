@@ -20,7 +20,7 @@ class TestToDictOfBlocks:
 
         # use the default copy=True, change a column
         blocks = df._to_dict_of_blocks(copy=True)
-        for dtype, _df in blocks.items():
+        for _df in blocks.values():
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
 
@@ -34,7 +34,7 @@ class TestToDictOfBlocks:
 
         # use the copy=False, change a column
         blocks = df._to_dict_of_blocks(copy=False)
-        for dtype, _df in blocks.items():
+        for _df in blocks.values():
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
 

@@ -3540,7 +3540,7 @@ class Table(Fixed):
             return
 
         q = self.queryables()
-        for k, v in min_itemsize.items():
+        for k in min_itemsize:
 
             # ok, apply generally
             if k == "values":

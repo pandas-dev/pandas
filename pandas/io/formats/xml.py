@@ -307,7 +307,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             f"{self.prefix_uri}{self.root_name}", attrib=self.other_namespaces()
         )
 
-        for k, d in self.frame_dicts.items():
+        for d in self.frame_dicts.values():
             self.d = d
             self.elem_row = SubElement(self.root, f"{self.prefix_uri}{self.row_name}")
 
@@ -477,7 +477,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
 
         self.root = Element(f"{self.prefix_uri}{self.root_name}", nsmap=self.namespaces)
 
-        for k, d in self.frame_dicts.items():
+        for d in self.frame_dicts.values():
             self.d = d
             self.elem_row = SubElement(self.root, f"{self.prefix_uri}{self.row_name}")
 

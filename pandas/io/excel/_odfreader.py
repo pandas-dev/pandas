@@ -101,12 +101,12 @@ class ODFReader(BaseExcelReader):
 
         table: List[List[Scalar]] = []
 
-        for i, sheet_row in enumerate(sheet_rows):
+        for sheet_row in sheet_rows:
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0
             table_row: List[Scalar] = []
 
-            for j, sheet_cell in enumerate(sheet_cells):
+            for sheet_cell in sheet_cells:
                 if sheet_cell.qname == table_cell_name:
                     value = self._get_cell_value(sheet_cell, convert_float)
                 else:
