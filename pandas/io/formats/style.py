@@ -2776,11 +2776,11 @@ def _parse_latex_header_span(
         return cell["display_value"]
 
 
-def _parse_latex_strip_arg(options: Union[str, int, float], arg: str) -> str:
+def _parse_latex_strip_arg(value: Union[str, int, float], arg: str) -> str:
     """
     Strip a css_value which may have latex wrapping arguments, css comment identifiers,
     and whitespaces, to a valid string for latex options parsing.
 
     For example: 'red /* --wrap */  ' --> 'red'
     """
-    return str(options).replace(arg, "").replace("/*", "").replace("*/", "").strip()
+    return str(value).replace(arg, "").replace("/*", "").replace("*/", "").strip()
