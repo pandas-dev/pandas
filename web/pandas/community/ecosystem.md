@@ -363,7 +363,7 @@ DataFrame.
 ### [Pandas-Genomics](https://pandas-genomics.readthedocs.io/en/latest/)
 
 Pandas-Genomics provides an extension type and extension array for working
- with genomics data.  It also includes `genomics` accessors for many useful properties 
+ with genomics data.  It also includes `genomics` accessors for many useful properties
  and methods related to QC and analysis of genomics data.
 
 ### [Pint-Pandas](https://github.com/hgrecco/pint-pandas)
