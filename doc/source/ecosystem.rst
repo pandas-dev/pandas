@@ -369,6 +369,14 @@ far exceeding the performance of the native ``df.to_sql`` method. Internally, it
 Microsoft's BCP utility, but the complexity is fully abstracted away from the end user.
 Rigorously tested, it is a complete replacement for ``df.to_sql``.
 
+`Deltalake <https://pypi.org/project/deltalake>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Deltalake python package lets you access tables stored in
+`Delta Lake <https://delta.io/>`__ natively in Python without the need to use Spark or
+JVM. It provides the ``delta_table.to_pyarrow_table().to_pandas()`` method to convert
+any Delta table into Pandas dataframe.
+
 
 .. _ecosystem.out-of-core:
 
