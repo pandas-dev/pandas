@@ -1031,7 +1031,7 @@ default 'raise'
 
         Returns
         -------
-        datetimes : ndarray
+        datetimes : ndarray[object]
         """
         return ints_to_pydatetime(self.asi8, tz=self.tz)
 

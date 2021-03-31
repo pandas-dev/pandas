@@ -576,7 +576,7 @@ def _adjust_to_origin(arg, origin, unit):
         date to be adjusted
     origin : 'julian' or Timestamp
         origin offset for the arg
-    unit : string
+    unit : str
         passed unit from to_datetime, must be 'D'
 
     Returns

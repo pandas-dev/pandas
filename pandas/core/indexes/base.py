@@ -2470,7 +2470,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        numpy.ndarray[bool]
             Boolean array to indicate which entries are not NA.
 
         See Also
@@ -5499,7 +5499,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        is_contained : ndarray
+        is_contained : ndarray[bool]
             NumPy array of boolean values.
 
         See Also
