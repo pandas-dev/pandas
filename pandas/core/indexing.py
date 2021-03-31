@@ -2248,7 +2248,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
         """
         Require integer args. (and convert to label arguments)
         """
-        for a, i in zip(self.obj.axes, key):
+        for i in key:
             if not is_integer(i):
                 raise ValueError("iAt based indexing can only have integer indexers")
         return key
