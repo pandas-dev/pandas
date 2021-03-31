@@ -10,12 +10,12 @@ from pandas import (
     IndexSlice,
     MultiIndex,
     Series,
+    SparseDtype,
     Timedelta,
     Timestamp,
     date_range,
     period_range,
     timedelta_range,
-    SparseDtype,
 )
 import pandas._testing as tm
 
