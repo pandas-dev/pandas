@@ -205,38 +205,60 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Reductions
 
-    def any(self, *, axis=None, out=None, keepdims: bool = False, skipna: bool = True):
+    def any(
+        self,
+        *,
+        axis: Optional[int] = None,
+        out=None,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
         nv.validate_any((), {"out": out, "keepdims": keepdims})
         result = nanops.nanany(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def all(self, *, axis=None, out=None, keepdims: bool = False, skipna: bool = True):
+    def all(
+        self,
+        *,
+        axis: Optional[int] = None,
+        out=None,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
         nv.validate_all((), {"out": out, "keepdims": keepdims})
         result = nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def min(self, *, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def min(
+        self, *, axis: Optional[int] = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_min((), kwargs)
         result = nanops.nanmin(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def max(self, *, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def max(
+        self, *, axis: Optional[int] = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_max((), kwargs)
         result = nanops.nanmax(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def sum(self, *, axis=None, skipna: bool = True, min_count=0, **kwargs) -> Scalar:
+    def sum(
+        self, *, axis: Optional[int] = None, skipna: bool = True, min_count=0, **kwargs
+    ) -> Scalar:
         nv.validate_sum((), kwargs)
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
         return self._wrap_reduction_result(axis, result)
 
-    def prod(self, *, axis=None, skipna: bool = True, min_count=0, **kwargs) -> Scalar:
+    def prod(
+        self, *, axis: Optional[int] = None, skipna: bool = True, min_count=0, **kwargs
+    ) -> Scalar:
         nv.validate_prod((), kwargs)
         result = nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
@@ -246,7 +268,7 @@ class PandasArray(
     def mean(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         dtype: Optional[NpDtype] = None,
         out=None,
         keepdims: bool = False,
@@ -259,7 +281,7 @@ class PandasArray(
     def median(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         out=None,
         overwrite_input: bool = False,
         keepdims: bool = False,
@@ -274,7 +296,7 @@ class PandasArray(
     def std(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         dtype: Optional[NpDtype] = None,
         out=None,
         ddof=1,
@@ -290,7 +312,7 @@ class PandasArray(
     def var(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         dtype: Optional[NpDtype] = None,
         out=None,
         ddof=1,
@@ -306,7 +328,7 @@ class PandasArray(
     def sem(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         dtype: Optional[NpDtype] = None,
         out=None,
         ddof=1,
@@ -322,7 +344,7 @@ class PandasArray(
     def kurt(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         dtype: Optional[NpDtype] = None,
         out=None,
         keepdims: bool = False,
@@ -337,7 +359,7 @@ class PandasArray(
     def skew(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         dtype: Optional[NpDtype] = None,
         out=None,
         keepdims: bool = False,
