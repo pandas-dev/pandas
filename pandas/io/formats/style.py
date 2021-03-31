@@ -702,9 +702,12 @@ class Styler:
         self,
         index: Union[bool, List[int]] = True,
         columns: Union[bool, List[int]] = True,
+        index_width: int = 70,
+        column_height: int = 25,
     ) -> Styler:
         """
-        Add CSS to make the index or column headers constantly visible in the window.
+        Add CSS to make the index or column headers constantly visible in
+        the HTML frame.
 
         Parameters
         ----------
@@ -715,11 +718,62 @@ class Styler:
             If ``True`` makes the entire column headers sticky, if a list, the integer
             values should correspond to column MultiIndex levels that should be made
             sticky.
+        index_width : int
+            If index is a MultiIndex the explicit width of the sticky levels must be
+            given for frame alignment, in pixels.
+        column_height : int
+            If columns is a MultiIndex the explicit height of the sticky levels must be
+            given for frame alignment, in pixels.
 
         Returns
         -------
         self : Styler
         """
+        if index is True and not isinstance(self.data.index, pd.MultiIndex):
+            return self.set_table_styles(
+                [{"selector": "tbody th", "props": "position: sticky; left: 0px;"}],
+                overwrite=False,
+            )
+        elif columns is True and not isinstance(self.data.columns, pd.MultiIndex):
+            return self.set_table_styles(
+                [{"selector": "thead th", "props": "position: sticky; top: 0px;"}],
+                overwrite=False,
+            )
+
+        if index is True and isinstance(self.data.index, pd.MultiIndex):
+            index = list(range(self.data.index.nlevels))
+        if columns is True and isinstance(self.data.columns, pd.MultiIndex):
+            columns = list(range(self.data.columns.nlevels))
+
+        if isinstance(index, list) and len(index) > 0:
+            for i, level in enumerate(sorted(index)):
+                self.set_table_styles(
+                    [
+                        {
+                            "selector": f"tbody th.level{level}",
+                            "props": f"position: sticky; "
+                            f"left: {i * index_width}px; "
+                            f"min-width: {index_width}px; "
+                            f"max-width: {index_width}px; "
+                            f"background-color: white;",
+                        }
+                    ],
+                    overwrite=False,
+                )
+        if isinstance(columns, list) and len(columns) > 0:
+            for i, level in enumerate(sorted(columns)):
+                self.set_table_styles(
+                    [
+                        {
+                            "selector": f"thead th.level{level}",
+                            "props": f"position: sticky; "
+                            f"top: {i * column_height}px; "
+                            f"height: {column_height}px; "
+                            f"background-color: white;",
+                        }
+                    ],
+                    overwrite=False,
+                )
         return self
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
