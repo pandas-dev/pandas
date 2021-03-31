@@ -1986,6 +1986,26 @@ cdef class YearBegin(YearOffset):
 # Quarter-Based Offset Classes
 
 cdef class QuarterOffset(SingleConstructorOffset):
+    """
+    Base for quarter-based offset classes.
+
+    Parameters
+    ----------
+    n : int, default 1
+        Number of quarters to offset.
+    normalize : bool, default False
+        If true, the time component of the resulting date-time is converted to
+        00:00:00, i.e. midnight (the start, not the end of date-time).
+    month : int
+        The calendar month number (1 for January) of the beginning or ending
+        month in a custom-defined quarter to be used as offset.
+    startingMonth : int
+        The calendar month number (1 for January) of the beginning or ending
+        month in a custom-defined quarter to be used as offset.
+
+        .. deprecated:: 1.X.X
+    """
+
     _attributes = tuple(["n", "normalize", "month"])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
     #       point. Also apply_index, is_on_offset, rule_code.
