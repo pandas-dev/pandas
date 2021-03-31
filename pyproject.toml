@@ -34,6 +34,7 @@ exclude = '''
 '''
 
 [tool.pytest.ini_options]
+# sync minversion with pyproject.toml & install.rst
 minversion =  "6.0"
 addopts = "--strict-data-files --strict-markers --capture=no --durations=30 --junitxml=test-data.xml"
 xfail_strict = true
