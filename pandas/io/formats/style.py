@@ -2779,8 +2779,8 @@ def _parse_latex_header_span(
 
 def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     """
-    Accept list of CSS attribute value pairs and convert to equivalent LaTeX
-    command options pairs.
+    Accept list of CSS (attribute,value) pairs and convert to equivalent LaTeX
+    (command,options) pairs.
 
     Ignore conversion if tagged with `--latex` option
 
@@ -2832,38 +2832,35 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
         else:
             return command, f"{{{value}}}{arg}"  # color is likely string-named
 
-    CONVERTED_STYLES = {
+    CONVERTED_ATTRIBUTES = {
         "font-weight": font_weight,
         "background-color": partial(color, command="cellcolor", comm_arg="--lwrap"),
         "color": partial(color, command="color", comm_arg=""),
         "font-style": font_style,
     }
 
-    c_styles = []
-    for style in styles:
-        command, options = style
-
-        if "--latex" in options:
+    latex_styles = []
+    for (attribute, value) in styles:
+        if "--latex" in value:
             # return the style without conversion but lose --latex option
-            c_styles.append((command, options.replace("--latex", "")))
-        if command in CONVERTED_STYLES.keys():
+            latex_styles.append((attribute, value.replace("--latex", "")))
+        if attribute in CONVERTED_ATTRIBUTES.keys():
             arg = ""
-            for v in ["--wrap", "--nowrap", "--lwrap", "--dwrap", "--rwrap"]:
-                if v in str(options):
-                    arg, options = v, _parse_latex_strip_arg(options, v)
+            for x in ["--wrap", "--nowrap", "--lwrap", "--dwrap", "--rwrap"]:
+                if x in str(value):
+                    arg, value = x, _parse_latex_strip_arg(value, x)
                     break
+            latex_style = CONVERTED_ATTRIBUTES[attribute](value, arg)
+            if latex_style is not None:
+                latex_styles.extend([latex_style])
+    return latex_styles
 
-            c_style = CONVERTED_STYLES[command](options, arg)
-            c_styles.extend([c_style] if c_style is not None else [])
 
-    return c_styles
-
-
-def _parse_latex_strip_arg(options: Union[str, int, float], arg: str) -> str:
+def _parse_latex_strip_arg(value: Union[str, int, float], arg: str) -> str:
     """
     Strip a css_value which may have latex wrapping arguments, css comment identifiers,
     and whitespaces, to a valid string for latex options parsing.
 
     For example: 'red /* --wrap */  ' --> 'red'
     """
-    return str(options).replace(arg, "").replace("/*", "").replace("*/", "").strip()
+    return str(value).replace(arg, "").replace("/*", "").replace("*/", "").strip()
