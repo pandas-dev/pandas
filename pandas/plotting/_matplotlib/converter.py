@@ -506,7 +506,7 @@ def period_break(dates: PeriodIndex, period: str) -> np.ndarray:
     ----------
     dates : PeriodIndex
         Array of intervals to monitor.
-    period : string
+    period : str
         Name of the period to monitor.
     """
     current = getattr(dates, period)

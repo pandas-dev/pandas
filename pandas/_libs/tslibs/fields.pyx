@@ -635,9 +635,9 @@ def get_locale_names(name_type: str, locale: object = None):
 
     Parameters
     ----------
-    name_type : string, attribute of LocaleTime() in which to return localized
-        names
-    locale : string
+    name_type : str
+        Attribute of LocaleTime() in which to return localized names.
+    locale : str
 
     Returns
     -------

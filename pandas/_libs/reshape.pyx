@@ -48,13 +48,13 @@ def unstack(reshape_t[:, :] values, const uint8_t[:] mask,
     Parameters
     ----------
     values : typed ndarray
-    mask : boolean ndarray
+    mask : np.ndarray[bool]
     stride : int
     length : int
     width : int
     new_values : typed ndarray
         result array
-    new_mask : boolean ndarray
+    new_mask : np.ndarray[bool]
         result mask
     """
     cdef:

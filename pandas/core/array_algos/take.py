@@ -76,7 +76,7 @@ def take_nd(
         Axis to take from
     fill_value : any, default np.nan
         Fill value to replace -1 values with
-    allow_fill : boolean, default True
+    allow_fill : bool, default True
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
         undefined if allow_fill == False and -1 is present in indexer.

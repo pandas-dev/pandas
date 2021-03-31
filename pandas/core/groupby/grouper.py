@@ -293,7 +293,7 @@ class Grouper:
         Parameters
         ----------
         obj : the subject object
-        validate : boolean, default True
+        validate : bool, default True
             if True, validate the grouper
 
         Returns

@@ -817,8 +817,8 @@ class BinGrouper(BaseGrouper):
     ----------
     bins : the split index of binlabels to group the item of axis
     binlabels : the label list
-    filter_empty : boolean, default False
-    mutated : boolean, default False
+    filter_empty : bool, default False
+    mutated : bool, default False
     indexer : a intp array
 
     Examples

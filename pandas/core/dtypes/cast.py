@@ -508,7 +508,7 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray) -> np.ndarray:
     result : ndarray
         The destination array. This will be mutated in-place if no upcasting is
         necessary.
-    mask : boolean ndarray
+    mask : np.ndarray[bool]
 
     Returns
     -------

@@ -523,7 +523,7 @@ cdef class {{name}}HashTable(HashTable):
             any value "val" satisfying val != val is considered missing.
             If na_value is not None, then _additionally_, any value "val"
             satisfying val == na_value is considered missing.
-        ignore_na : boolean, default False
+        ignore_na : bool, default False
             Whether NA-values should be ignored for calculating the uniques. If
             True, the labels corresponding to missing values will be set to
             na_sentinel.
@@ -531,7 +531,7 @@ cdef class {{name}}HashTable(HashTable):
             If not None, the mask is used as indicator for missing values
             (True = missing, False = valid) instead of `na_value` or
             condition "val != val".
-        return_inverse : boolean, default False
+        return_inverse : bool, default False
             Whether the mapping of the original array values to their location
             in the vector of uniques should be returned.
 
@@ -625,7 +625,7 @@ cdef class {{name}}HashTable(HashTable):
         ----------
         values : ndarray[{{dtype}}]
             Array of values of which unique will be calculated
-        return_inverse : boolean, default False
+        return_inverse : bool, default False
             Whether the mapping of the original array values to their location
             in the vector of uniques should be returned.
 
@@ -906,11 +906,11 @@ cdef class StringHashTable(HashTable):
             that is not a string is considered missing. If na_value is
             not None, then _additionally_ any value "val" satisfying
             val == na_value is considered missing.
-        ignore_na : boolean, default False
+        ignore_na : bool, default False
             Whether NA-values should be ignored for calculating the uniques. If
             True, the labels corresponding to missing values will be set to
             na_sentinel.
-        return_inverse : boolean, default False
+        return_inverse : bool, default False
             Whether the mapping of the original array values to their location
             in the vector of uniques should be returned.
 
@@ -998,7 +998,7 @@ cdef class StringHashTable(HashTable):
         ----------
         values : ndarray[object]
             Array of values of which unique will be calculated
-        return_inverse : boolean, default False
+        return_inverse : bool, default False
             Whether the mapping of the original array values to their location
             in the vector of uniques should be returned.
 
@@ -1181,11 +1181,11 @@ cdef class PyObjectHashTable(HashTable):
             any value "val" satisfying val != val is considered missing.
             If na_value is not None, then _additionally_, any value "val"
             satisfying val == na_value is considered missing.
-        ignore_na : boolean, default False
+        ignore_na : bool, default False
             Whether NA-values should be ignored for calculating the uniques. If
             True, the labels corresponding to missing values will be set to
             na_sentinel.
-        return_inverse : boolean, default False
+        return_inverse : bool, default False
             Whether the mapping of the original array values to their location
             in the vector of uniques should be returned.
 
@@ -1251,7 +1251,7 @@ cdef class PyObjectHashTable(HashTable):
         ----------
         values : ndarray[object]
             Array of values of which unique will be calculated
-        return_inverse : boolean, default False
+        return_inverse : bool, default False
             Whether the mapping of the original array values to their location
             in the vector of uniques should be returned.
 

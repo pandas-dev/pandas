@@ -435,18 +435,18 @@ class ExcelFormatter:
             Format string for floating point numbers
     cols : sequence, optional
         Columns to write
-    header : boolean or sequence of str, default True
+    header : bool or sequence of str, default True
         Write out column names. If a list of string is given it is
         assumed to be aliases for the column names
-    index : boolean, default True
+    index : bool, default True
         output row names (index)
     index_label : string or sequence, default None
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
-    merge_cells : boolean, default False
+    merge_cells : bool, default False
             Format MultiIndex and Hierarchical Rows as merged cells.
-    inf_rep : string, default `'inf'`
+    inf_rep : str, default `'inf'`
         representation for np.inf values (which aren't representable in Excel)
         A `'-'` sign will be added in front of -inf.
     style_converter : callable, optional
@@ -796,7 +796,7 @@ class ExcelFormatter:
         """
         writer : path-like, file-like, or ExcelWriter object
             File path or existing ExcelWriter
-        sheet_name : string, default 'Sheet1'
+        sheet_name : str, default 'Sheet1'
             Name of sheet which will contain DataFrame
         startrow :
             upper left cell row to dump data frame

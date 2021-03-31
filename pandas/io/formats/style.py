@@ -1280,7 +1280,7 @@ class Styler:
 
             .. versionadded:: 1.2.0
 
-        overwrite : boolean, default True
+        overwrite : bool, default True
             Styles are replaced if `True`, or extended if `False`. CSS
             rules are preserved so most recent styles set will dominate
             if selectors intersect.

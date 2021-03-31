@@ -23,7 +23,7 @@ class ODFReader(BaseExcelReader):
 
     Parameters
     ----------
-    filepath_or_buffer : string, path to be parsed or
+    filepath_or_buffer : str, path to be parsed or
         an open readable stream.
     storage_options : dict, optional
         passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)

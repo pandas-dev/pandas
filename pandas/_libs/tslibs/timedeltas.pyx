@@ -540,7 +540,7 @@ cdef inline int64_t timedelta_as_neg(int64_t value, bint neg):
     Parameters
     ----------
     value : int64_t of the timedelta value
-    neg : boolean if the a negative value
+    neg : bool if the a negative value
     """
     if neg:
         return -value
