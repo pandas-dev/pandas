@@ -490,7 +490,7 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
         int64_t total_discordant = 0
         float64_t kendall_tau
         int64_t n_obs
-        const int64_t[:] labels_n
+        const intp_t[:] labels_n
 
     N, K = (<object>mat).shape
 
@@ -499,7 +499,7 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
 
     ranked_mat = np.empty((N, K), dtype=np.float64)
     # For compatibility when calling rank_1d
-    labels_n = np.zeros(N, dtype=np.int64)
+    labels_n = np.zeros(N, dtype=np.intp)
 
     for i in range(K):
         ranked_mat[:, i] = rank_1d(mat[:, i], labels_n)
@@ -591,16 +591,17 @@ def validate_limit(nobs: int, limit=None) -> int:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
+def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
+    # -> ndarray[intp_t, ndim=1]
     cdef:
         Py_ssize_t i, j, nleft, nright
-        ndarray[int64_t, ndim=1] indexer
+        ndarray[intp_t, ndim=1] indexer
         algos_t cur, next_val
         int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int64)
+    indexer = np.empty(nright, dtype=np.intp)
     indexer[:] = -1
 
     lim = validate_limit(nright, limit)
@@ -737,15 +738,16 @@ D
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
+    # -> ndarray[intp_t, ndim=1]
     cdef:
         Py_ssize_t i, j, nleft, nright
-        ndarray[int64_t, ndim=1] indexer
+        ndarray[intp_t, ndim=1] indexer
         algos_t cur, prev
         int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int64)
+    indexer = np.empty(nright, dtype=np.intp)
     indexer[:] = -1
 
     lim = validate_limit(nright, limit)
@@ -792,68 +794,14 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
     return indexer
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def backfill_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
-    cdef:
-        Py_ssize_t i, N
-        algos_t val
-        uint8_t prev_mask
-        int lim, fill_count = 0
-
-    N = len(values)
-
-    # GH#2778
-    if N == 0:
-        return
-
-    lim = validate_limit(N, limit)
-
-    val = values[N - 1]
-    prev_mask = mask[N - 1]
-    for i in range(N - 1, -1, -1):
-        if mask[i]:
-            if fill_count >= lim:
-                continue
-            fill_count += 1
-            values[i] = val
-            mask[i] = prev_mask
-        else:
-            fill_count = 0
-            val = values[i]
-            prev_mask = mask[i]
+    pad_inplace(values[::-1], mask[::-1], limit=limit)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def backfill_2d_inplace(algos_t[:, :] values,
                         const uint8_t[:, :] mask,
                         limit=None):
-    cdef:
-        Py_ssize_t i, j, N, K
-        algos_t val
-        int lim, fill_count = 0
-
-    K, N = (<object>values).shape
-
-    # GH#2778
-    if N == 0:
-        return
-
-    lim = validate_limit(N, limit)
-
-    for j in range(K):
-        fill_count = 0
-        val = values[j, N - 1]
-        for i in range(N - 1, -1, -1):
-            if mask[j, i]:
-                if fill_count >= lim:
-                    continue
-                fill_count += 1
-                values[j, i] = val
-            else:
-                fill_count = 0
-                val = values[j, i]
+    pad_2d_inplace(values[:, ::-1], mask[:, ::-1], limit)
 
 
 @cython.boundscheck(False)
@@ -959,7 +907,8 @@ ctypedef fused rank_t:
 @cython.boundscheck(False)
 def rank_1d(
     ndarray[rank_t, ndim=1] values,
-    const int64_t[:] labels,
+    const intp_t[:] labels,
+    bint is_datetimelike=False,
     ties_method="average",
     bint ascending=True,
     bint pct=False,
@@ -971,9 +920,12 @@ def rank_1d(
     Parameters
     ----------
     values : array of rank_t values to be ranked
-    labels : array containing unique label for each group, with its ordering
+    labels : np.ndarray[np.intp]
+        Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`. If not called
         from a groupby operation, will be an array of 0's
+    is_datetimelike : bool, default False
+        True if `values` contains datetime-like entries.
     ties_method : {'average', 'min', 'max', 'first', 'dense'}, default
         'average'
         * average: average rank of group
@@ -1029,7 +981,7 @@ def rank_1d(
 
     if rank_t is object:
         mask = missing.isnaobj(masked_vals)
-    elif rank_t is int64_t:
+    elif rank_t is int64_t and is_datetimelike:
         mask = (masked_vals == NPY_NAT).astype(np.uint8)
     elif rank_t is float64_t:
         mask = np.isnan(masked_vals).astype(np.uint8)
@@ -1056,7 +1008,7 @@ def rank_1d(
         if rank_t is object:
             nan_fill_val = NegInfinity()
         elif rank_t is int64_t:
-            nan_fill_val = np.iinfo(np.int64).min
+            nan_fill_val = NPY_NAT
         elif rank_t is uint64_t:
             nan_fill_val = 0
         else:
@@ -1272,6 +1224,7 @@ def rank_1d(
 def rank_2d(
     ndarray[rank_t, ndim=2] in_arr,
     int axis=0,
+    bint is_datetimelike=False,
     ties_method="average",
     bint ascending=True,
     na_option="keep",
@@ -1296,7 +1249,9 @@ def rank_2d(
     tiebreak = tiebreakers[ties_method]
 
     keep_na = na_option == 'keep'
-    check_mask = rank_t is not uint64_t
+
+    # For cases where a mask is not possible, we can avoid mask checks
+    check_mask = not (rank_t is uint64_t or (rank_t is int64_t and not is_datetimelike))
 
     if axis == 0:
         values = np.asarray(in_arr).T.copy()
@@ -1307,13 +1262,15 @@ def rank_2d(
         if values.dtype != np.object_:
             values = values.astype('O')
 
-    if rank_t is not uint64_t:
+    if check_mask:
         if ascending ^ (na_option == 'top'):
             if rank_t is object:
                 nan_value = Infinity()
             elif rank_t is float64_t:
                 nan_value = np.inf
-            elif rank_t is int64_t:
+
+            # int64 and datetimelike
+            else:
                 nan_value = np.iinfo(np.int64).max
 
         else:
@@ -1321,14 +1278,18 @@ def rank_2d(
                 nan_value = NegInfinity()
             elif rank_t is float64_t:
                 nan_value = -np.inf
-            elif rank_t is int64_t:
+
+            # int64 and datetimelike
+            else:
                 nan_value = NPY_NAT
 
         if rank_t is object:
             mask = missing.isnaobj2d(values)
         elif rank_t is float64_t:
             mask = np.isnan(values)
-        elif rank_t is int64_t:
+
+        # int64 and datetimelike
+        else:
             mask = values == NPY_NAT
 
         np.putmask(values, mask, nan_value)
