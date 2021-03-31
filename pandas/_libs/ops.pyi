@@ -39,5 +39,6 @@ def vec_binop(
 def maybe_convert_bool(
     arr: np.ndarray,  # np.ndarray[object]
     true_values=...,
-    false_values=...
+    false_values=...,
+    convert_to_nullable_boolean: bool = True,
 ) -> np.ndarray: ...

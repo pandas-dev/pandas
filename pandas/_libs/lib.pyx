@@ -2081,8 +2081,8 @@ def maybe_convert_numeric(
                 seen.null_ = True
                 mask[i] = 1
             else:
-                floats[i] = complexes[i] = NaN
                 seen.saw_null()
+            floats[i] = complexes[i] = NaN
         elif util.is_float_object(val):
             fval = val
             if fval != fval:

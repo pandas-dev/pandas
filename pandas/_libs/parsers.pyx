@@ -1329,7 +1329,7 @@ def _maybe_upcast(arr, use_nullable_dtypes=False):
     if issubclass(arr.dtype.type, np.integer):
         na_value = na_values[arr.dtype]
         mask = arr == na_value
-        if np.count_nonzero(mask) == len(arr):
+        if mask.all():
             # Array of all NaN, dtype -> float64
             use_nullable_dtypes = False
         if use_nullable_dtypes:
@@ -1339,7 +1339,7 @@ def _maybe_upcast(arr, use_nullable_dtypes=False):
             np.putmask(arr, mask, np.nan)
     elif arr.dtype == np.bool_:
         mask = arr.view(np.uint8) == na_values[np.uint8]
-        if np.count_nonzero(mask) == len(arr):
+        if mask.all():
             # Array of all NaN, dtype -> float64
             use_nullable_dtypes = False
         if use_nullable_dtypes:
