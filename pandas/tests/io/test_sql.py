@@ -23,7 +23,6 @@ from datetime import (
     datetime,
     time,
 )
-from distutils.version import LooseVersion
 from io import StringIO
 import sqlite3
 import warnings
@@ -2020,7 +2019,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # TODO: remove this version check after GH 36465 is fixed
             import pymysql
 
-            if LooseVersion(pymysql.VERSION_STRING) >= "0.10" and "infe0" in df.columns:
+            if pymysql.VERSION[0:3] < (0, 10, 0) and "infe0" in df.columns:
                 return
 
             msg = "inf cannot be used with MySQL"
