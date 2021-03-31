@@ -93,7 +93,7 @@ def build_field_sarray(const int64_t[:] dtindex):
     return out
 
 
-def month_position_check(fields, weekdays):
+def month_position_check(fields, weekdays) -> str | None:
     cdef:
         int32_t daysinmonth, y, m, d
         bint calendar_end = True
@@ -198,7 +198,7 @@ cdef inline bint _is_on_month(int month, int compare_month, int modby) nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def get_start_end_field(const int64_t[:] dtindex, str field,
-                        object freqstr=None, int month_kw=12):
+                        str freqstr=None, int month_kw=12):
     """
     Given an int64-based datetime index return array of indicators
     of whether timestamps are at the start/end of the month/quarter/year
@@ -755,7 +755,7 @@ cdef inline ndarray[int64_t] _roundup_int64(values, int64_t unit):
     return _floor_int64(values + unit // 2, unit)
 
 
-def round_nsint64(values: np.ndarray, mode: RoundTo, nanos) -> np.ndarray:
+def round_nsint64(values: np.ndarray, mode: RoundTo, nanos: int) -> np.ndarray:
     """
     Applies rounding mode at given frequency
 
