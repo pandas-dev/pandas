@@ -2818,21 +2818,15 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
         if value[0] == "#" and len(value) == 4:  # color is short hex code
             val = f"{value[1].upper()*2}{value[2].upper()*2}{value[3].upper()*2}"
             return command, f"[HTML]{{{val}}}{arg}"
-        elif value[:4] == "rgba":  # color is rgb with alpha
-            r = re.search("(?<=\\()[0-9\\s%]+(?=,)", value)[0].strip()
-            r = float(r[:-1]) / 100 if "%" in r else int(r) / 255
-            g = re.findall("(?<=,)[0-9\\s%]+(?=,)", value)[0].strip()
-            g = float(g[:-1]) / 100 if "%" in g else int(g) / 255
-            b = re.findall("(?<=,)[0-9\\s%]+(?=,)", value)[1].strip()
-            b = float(b[:-1]) / 100 if "%" in b else int(b) / 255
-            # a = re.search('(?<=,)[0-9\\s]+(?=\\))', value)[0].strip()
-            return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}{arg}"
-        elif value[:3] == "rgb":  # color is rgb
+        elif value[:3] == "rgb":  # color is rgb or rgba
             r = re.search("(?<=\\()[0-9\\s%]+(?=,)", value)[0].strip()
             r = float(r[:-1]) / 100 if "%" in r else int(r) / 255
             g = re.search("(?<=,)[0-9\\s%]+(?=,)", value)[0].strip()
             g = float(g[:-1]) / 100 if "%" in g else int(g) / 255
-            b = re.search("(?<=,)[0-9\\s%]+(?=\\))", value)[0].strip()
+            if value[3] == "a":  # color is rgba
+                b = re.findall("(?<=,)[0-9\\s%]+(?=,)", value)[1].strip()
+            else:  # color is rgb
+                b = re.search("(?<=,)[0-9\\s%]+(?=\\))", value)[0].strip()
             b = float(b[:-1]) / 100 if "%" in b else int(b) / 255
             return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}{arg}"
         else:
