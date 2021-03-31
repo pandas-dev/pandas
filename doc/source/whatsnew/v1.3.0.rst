@@ -458,6 +458,7 @@ Deprecations
 - Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like and raises anything but ``TypeError``; ``func`` raising anything but a ``TypeError`` will raise in a future version (:issue:`40211`)
 - Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
 - Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
+- Deprecated the use of keyword argument ``startingMonth`` in quarter-based offsets :class:`QuarterBegin`, :class:`QuarterEnd`, :class:`BQuarterBegin`, :class:`BQuarterEnd`; use ``month`` instead (:issue:`5307`)
 
 .. ---------------------------------------------------------------------------
 
@@ -511,6 +512,7 @@ Datetimelike
 - Bug in :meth:`Timedelta.round`, :meth:`Timedelta.floor`, :meth:`Timedelta.ceil` for values near the implementation bounds of :class:`Timedelta` (:issue:`38964`)
 - Bug in :func:`date_range` incorrectly creating :class:`DatetimeIndex` containing ``NaT`` instead of raising ``OutOfBoundsDatetime`` in corner cases (:issue:`24124`)
 - Bug in :func:`infer_freq` incorrectly fails to infer 'H' frequency of :class:`DatetimeIndex` if the latter has a timezone and crosses DST boundaries (:issue:`39556`)
+- Bug in offsets :class:`QuarterBegin` and :class:`BQuarterBegin` returning days that are not conventional quarter beginnings (:issue:`8435`)
 
 Timedelta
 ^^^^^^^^^
