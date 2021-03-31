@@ -2003,32 +2003,17 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
 
-    @pytest.mark.parametrize("input", [{"foo": [np.inf]}, {"foo": [-np.inf]}])
+    @pytest.mark.parametrize(
+        "input",
+        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
+    )
     def test_to_sql_with_negative_npinf(self, input):
-        # GH 34431
+        # GH 34431 36465
 
         df = DataFrame(input)
 
         if self.flavor == "mysql":
             msg = "inf cannot be used with MySQL"
-            with pytest.raises(ValueError, match=msg):
-                df.to_sql("foobar", self.conn, index=False)
-        else:
-            df.to_sql("foobar", self.conn, index=False)
-            res = sql.read_sql_table("foobar", self.conn)
-            tm.assert_equal(df, res)
-
-    @pytest.mark.parametrize(
-        "input",
-        [{"foo": [-np.inf], "-infe0": ["bar"]}, {"foo": [-np.inf], "infe0": ["bar"]}],
-    )
-    def test_to_sql_with_inf_in_col_name(self, input):
-        # GH 36465
-
-        df = DataFrame(input)
-
-        if self.flavor == "mysql":
-            msg = "column name cannot contain inf in MySQL"
             with pytest.raises(ValueError, match=msg):
                 df.to_sql("foobar", self.conn, index=False)
         else:
