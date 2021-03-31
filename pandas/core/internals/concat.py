@@ -4,7 +4,6 @@ import copy
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Any,
     Dict,
     List,
     Sequence,
@@ -102,7 +101,7 @@ def _concatenate_array_managers(
         return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
 
 
-def concat_arrays(to_concat: List[Any]) -> ArrayLike:
+def concat_arrays(to_concat: List) -> ArrayLike:
     """
     Alternative for concat_compat but specialized for use in the ArrayManager.
 
