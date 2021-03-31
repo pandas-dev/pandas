@@ -2019,7 +2019,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # TODO: remove this version check after GH 36465 is fixed
             import pymysql
 
-            if pymysql.VERSION[0:3] < (0, 10, 0) and "infe0" in df.columns:
+            if pymysql.VERSION[0:3] >= (0, 10, 0) and "infe0" in df.columns:
                 return
 
             msg = "inf cannot be used with MySQL"
