@@ -402,9 +402,9 @@ def group_any_all(uint8_t[::1] out,
         ordering matching up to the corresponding record in `values`
     values : array containing the truth value of each element
     mask : array indicating whether a value is na or not
-    val_test : str {'any', 'all'}
+    val_test : {'any', 'all'}
         String object dictating whether to use any or all truth testing
-    skipna : boolean
+    skipna : bool
         Flag to ignore nan values during truth testing
 
     Notes
@@ -681,18 +681,17 @@ group_mean_float64 = _group_mean['double']
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _group_ohlc(floating[:, ::1] out,
-                int64_t[::1] counts,
-                ndarray[floating, ndim=2] values,
-                const intp_t[:] labels,
-                Py_ssize_t min_count=-1):
+def group_ohlc(floating[:, ::1] out,
+               int64_t[::1] counts,
+               ndarray[floating, ndim=2] values,
+               const intp_t[:] labels,
+               Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, lab
-        floating val, count
-        Py_ssize_t ngroups = len(counts)
+        floating val
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
@@ -725,10 +724,6 @@ def _group_ohlc(floating[:, ::1] out,
                 out[lab, 1] = max(out[lab, 1], val)
                 out[lab, 2] = min(out[lab, 2], val)
                 out[lab, 3] = val
-
-
-group_ohlc_float32 = _group_ohlc['float']
-group_ohlc_float64 = _group_ohlc['double']
 
 
 @cython.boundscheck(False)
@@ -1079,9 +1074,8 @@ def group_rank(float64_t[:, ::1] out,
     ngroups : int
         This parameter is not used, is needed to match signatures of other
         groupby functions.
-    is_datetimelike : bool, default False
-        unused in this method but provided for call compatibility with other
-        Cython transformations
+    is_datetimelike : bool
+        True if `values` contains datetime-like entries.
     ties_method : {'average', 'min', 'max', 'first', 'dense'}, default
         'average'
         * average: average rank of group
@@ -1089,10 +1083,10 @@ def group_rank(float64_t[:, ::1] out,
         * max: highest rank in group
         * first: ranks assigned in order they appear in the array
         * dense: like 'min', but rank always increases by 1 between groups
-    ascending : boolean, default True
+    ascending : bool, default True
         False for ranks by high (1) to low (N)
         na_option : {'keep', 'top', 'bottom'}, default 'keep'
-    pct : boolean, default False
+    pct : bool, default False
         Compute percentage rank of data within each group
     na_option : {'keep', 'top', 'bottom'}, default 'keep'
         * keep: leave NA values where they are
@@ -1109,6 +1103,7 @@ def group_rank(float64_t[:, ::1] out,
     result = rank_1d(
         values=values[:, 0],
         labels=labels,
+        is_datetimelike=is_datetimelike,
         ties_method=ties_method,
         ascending=ascending,
         pct=pct,
