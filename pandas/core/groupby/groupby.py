@@ -1807,7 +1807,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             result = self.apply(lambda x: x.describe(**kwargs))
             if self.axis == 1:
                 return result.T
-            return result.unstack()
+            # FIXME: not being consolidated breaks
+            #  test_describe_with_duplicate_output_column_names
+            return result._consolidate().unstack()
 
     @final
     def resample(self, rule, *args, **kwargs):

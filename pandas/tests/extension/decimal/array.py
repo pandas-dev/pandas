@@ -150,7 +150,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return self._from_sequence(result)
 
     def copy(self):
-        return type(self)(self._data.copy())
+        return type(self)(self._data.copy(), dtype=self.dtype)
 
     def astype(self, dtype, copy=True):
         if is_dtype_equal(dtype, self._dtype):

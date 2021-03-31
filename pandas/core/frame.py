@@ -476,8 +476,12 @@ class DataFrame(NDFrame, OpsMixin):
         RangeIndex (0, 1, 2, ..., n) if no column labels are provided.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
-    copy : bool, default False
-        Copy data from inputs. Only affects DataFrame / 2d ndarray input.
+    copy : bool or None, default None
+        Copy data from inputs.
+        For dict data, the default of None behaves like ``copy=True``.  For DataFrame
+        or 2d ndarray input, the default of None behaves like ``copy=False``.
+
+        .. versionchanged:: 1.3.0
 
     See Also
     --------
@@ -555,8 +559,16 @@ class DataFrame(NDFrame, OpsMixin):
         index: Optional[Axes] = None,
         columns: Optional[Axes] = None,
         dtype: Optional[Dtype] = None,
-        copy: bool = False,
+        copy: Optional[bool] = None,
     ):
+
+        if copy is None:
+            if isinstance(data, dict) or data is None:
+                # retain pre-GH#38939 default behavior
+                copy = True
+            else:
+                copy = False
+
         if data is None:
             data = {}
         if dtype is not None:
@@ -565,18 +577,13 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(data, DataFrame):
             data = data._mgr
 
-        # first check if a Manager is passed without any other arguments
-        # -> use fastpath (without checking Manager type)
-        if (
-            index is None
-            and columns is None
-            and dtype is None
-            and copy is False
-            and isinstance(data, (BlockManager, ArrayManager))
-        ):
-            # GH#33357 fastpath
-            NDFrame.__init__(self, data)
-            return
+        if isinstance(data, (BlockManager, ArrayManager)):
+            # first check if a Manager is passed without any other arguments
+            # -> use fastpath (without checking Manager type)
+            if index is None and columns is None and dtype is None and not copy:
+                # GH#33357 fastpath
+                NDFrame.__init__(self, data)
+                return
 
         manager = get_option("mode.data_manager")
 
@@ -586,7 +593,8 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif isinstance(data, dict):
-            mgr = dict_to_mgr(data, index, columns, dtype=dtype, typ=manager)
+            # GH#38939 de facto copy defaults to False only in non-dict cases
+            mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
