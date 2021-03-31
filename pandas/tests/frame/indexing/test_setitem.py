@@ -926,7 +926,9 @@ class TestDataFrameSetitemCopyViewSemantics:
         tm.assert_frame_equal(df_view, df_copy)
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("value", [1, np.array([[1], [1]]), [[1], [1]]])
+    @pytest.mark.parametrize(
+        "value", [1, np.array([[1], [1]], dtype="int64"), [[1], [1]]]
+    )
     def test_setitem_same_dtype_not_inplace(self, value, using_array_manager, request):
         # GH#39510
         if not using_array_manager:
