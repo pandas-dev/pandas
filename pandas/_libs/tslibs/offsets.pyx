@@ -1994,14 +1994,14 @@ cdef class QuarterOffset(SingleConstructorOffset):
     n : int, default 1
         Number of quarters to offset.
     normalize : bool, default False
-        If true, the time component of the resulting date-time is converted to
-        00:00:00, i.e. midnight (the start, not the end of date-time).
+        If true, the time component of the resulting date-time is converted
+        to 00:00:00, i.e. midnight (the start, not the end of date-time).
     month : int
         The calendar month number (1 for January) of the beginning or ending
-        month in a custom-defined quarter to be used as offset.
+        month in a custom-defined quarter to be used as an offset.
     startingMonth : int
         The calendar month number (1 for January) of the beginning or ending
-        month in a custom-defined quarter to be used as offset.
+        month in a custom-defined quarter to be used as an offset.
 
         .. deprecated:: 1.X.X
     """
@@ -2098,11 +2098,27 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
 cdef class BQuarterEnd(QuarterOffset):
     """
-    DateOffset increments between the last business day of each Quarter.
+    DateOffset increments between the last business day of each quarter.
 
     month = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     month = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     month = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
+
+    Parameters
+    ----------
+    n : int, default 1
+        Number of business quarters to offset.
+    normalize : bool, default False
+        If true, the time component of the resulting date-time is converted
+        to 00:00:00, i.e. midnight (the start, not the end of date-time).
+    month : int, default 3
+        The calendar month number (3 for March) of the last month
+        in a custom-defined business quarter to be used as an offset.
+    startingMonth : int, default 3
+        The calendar month number (3 for March) of the last month
+        in a custom-defined business quarter to be used as an offset.
+
+        .. deprecated:: 1.X.X
 
     Examples
     --------
@@ -2132,6 +2148,22 @@ cdef class BQuarterBegin(QuarterOffset):
     month = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     month = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
 
+    Parameters
+    ----------
+    n : int, default 1
+        Number of business quarters to offset.
+    normalize : bool, default False
+        If true, the time component of the resulting date-time is converted
+        to 00:00:00, i.e. midnight (the start, not the end of date-time).
+    month : int, default 1
+        The calendar month number (1 for January) of the first month
+        in a custom-defined business quarter to be used as an offset.
+    startingMonth : int, default 1
+        The calendar month number (1 for January) of the first month
+        in a custom-defined business quarter to be used as an offset.
+
+        .. deprecated:: 1.X.X
+
     Examples
     --------
     >>> from pandas.tseries.offsets import BQuarterBegin
@@ -2159,6 +2191,22 @@ cdef class QuarterEnd(QuarterOffset):
     month = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     month = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     month = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
+
+    Parameters
+    ----------
+    n : int, default 1
+        Number of quarters to offset.
+    normalize : bool, default False
+        If true, the time component of the resulting date-time is converted
+        to 00:00:00, i.e. midnight (the start, not the end of date-time).
+    month : int, default 3
+        The calendar month number (3 for March) of the last month
+        in a custom-defined quarter to be used as an offset.
+    startingMonth : int, default 3
+        The calendar month number (3 for March) of the last month
+        in a custom-defined quarter to be used as an offset.
+
+        .. deprecated:: 1.X.X
     """
     _default_month = 3
     _from_name_month = 3
@@ -2184,6 +2232,22 @@ cdef class QuarterBegin(QuarterOffset):
     month = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
     month = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     month = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
+
+    Parameters
+    ----------
+    n : int, default 1
+        Number of quarters to offset.
+    normalize : bool, default False
+        If true, the time component of the resulting date-time is converted
+        to 00:00:00, i.e. midnight (the start, not the end of date-time).
+    month : int, default 1
+        The calendar month number (1 for January) of the first month
+        in a custom-defined quarter to be used as an offset.
+    startingMonth : int, default 1
+        The calendar month number (1 for January) of the first month
+        in a custom-defined quarter to be used as an offset.
+
+        .. deprecated:: 1.X.X
     """
     _default_month = 1
     _from_name_month = 1
