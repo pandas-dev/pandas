@@ -52,7 +52,10 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import (
     Float64Index,
@@ -990,6 +993,8 @@ class BlockManager(DataManager):
             # Any]]"
             result = np.empty(n, dtype=dtype)  # type: ignore[arg-type]
 
+        result = ensure_wrapped_if_datetimelike(result)
+
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
@@ -1692,7 +1697,7 @@ class SingleBlockManager(BlockManager, SingleDataManager):
 
 
 def create_block_manager_from_blocks(
-    blocks: List[Block], axes: List[Index]
+    blocks: List[Block], axes: List[Index], consolidate: bool = True
 ) -> BlockManager:
     try:
         mgr = BlockManager(blocks, axes)
@@ -1702,7 +1707,8 @@ def create_block_manager_from_blocks(
         tot_items = sum(arr.shape[0] for arr in arrays)
         raise construction_error(tot_items, arrays[0].shape[1:], axes, err)
 
-    mgr._consolidate_inplace()
+    if consolidate:
+        mgr._consolidate_inplace()
     return mgr
 
 
@@ -1712,7 +1718,10 @@ def _extract_array(obj):
 
 
 def create_block_manager_from_arrays(
-    arrays, names: Index, axes: List[Index]
+    arrays,
+    names: Index,
+    axes: List[Index],
+    consolidate: bool = True,
 ) -> BlockManager:
     assert isinstance(names, Index)
     assert isinstance(axes, list)
@@ -1721,12 +1730,13 @@ def create_block_manager_from_arrays(
     arrays = [_extract_array(x) for x in arrays]
 
     try:
-        blocks = _form_blocks(arrays, names, axes)
+        blocks = _form_blocks(arrays, names, axes, consolidate)
         mgr = BlockManager(blocks, axes)
-        mgr._consolidate_inplace()
-        return mgr
     except ValueError as e:
         raise construction_error(len(arrays), arrays[0].shape, axes, e)
+    if consolidate:
+        mgr._consolidate_inplace()
+    return mgr
 
 
 def construction_error(
@@ -1759,7 +1769,7 @@ def construction_error(
 
 
 def _form_blocks(
-    arrays: List[ArrayLike], names: Index, axes: List[Index]
+    arrays: List[ArrayLike], names: Index, axes: List[Index], consolidate: bool
 ) -> List[Block]:
     # put "leftover" items in float bucket, where else?
     # generalize?
@@ -1785,11 +1795,15 @@ def _form_blocks(
 
     blocks: List[Block] = []
     if len(items_dict["NumericBlock"]):
-        numeric_blocks = _multi_blockify(items_dict["NumericBlock"])
+        numeric_blocks = _multi_blockify(
+            items_dict["NumericBlock"], consolidate=consolidate
+        )
         blocks.extend(numeric_blocks)
 
     if len(items_dict["DatetimeLikeBlock"]):
-        dtlike_blocks = _multi_blockify(items_dict["DatetimeLikeBlock"])
+        dtlike_blocks = _multi_blockify(
+            items_dict["DatetimeLikeBlock"], consolidate=consolidate
+        )
         blocks.extend(dtlike_blocks)
 
     if len(items_dict["DatetimeTZBlock"]):
@@ -1800,7 +1814,9 @@ def _form_blocks(
         blocks.extend(dttz_blocks)
 
     if len(items_dict["ObjectBlock"]) > 0:
-        object_blocks = _simple_blockify(items_dict["ObjectBlock"], np.object_)
+        object_blocks = _simple_blockify(
+            items_dict["ObjectBlock"], np.object_, consolidate=consolidate
+        )
         blocks.extend(object_blocks)
 
     if len(items_dict["CategoricalBlock"]) > 0:
@@ -1839,11 +1855,14 @@ def _form_blocks(
     return blocks
 
 
-def _simple_blockify(tuples, dtype) -> List[Block]:
+def _simple_blockify(tuples, dtype, consolidate: bool) -> List[Block]:
     """
     return a single array of a block that has a single dtype; if dtype is
     not None, coerce to this dtype
     """
+    if not consolidate:
+        return _tuples_to_blocks_no_consolidate(tuples, dtype=dtype)
+
     values, placement = _stack_arrays(tuples, dtype)
 
     # TODO: CHECK DTYPE?
@@ -1854,8 +1873,12 @@ def _simple_blockify(tuples, dtype) -> List[Block]:
     return [block]
 
 
-def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
+def _multi_blockify(tuples, dtype: Optional[DtypeObj] = None, consolidate: bool = True):
     """ return an array of blocks that potentially have different dtypes """
+
+    if not consolidate:
+        return _tuples_to_blocks_no_consolidate(tuples, dtype=dtype)
+
     # group by dtype
     grouper = itertools.groupby(tuples, lambda x: x[1].dtype)
 
@@ -1873,6 +1896,18 @@ def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
         new_blocks.append(block)
 
     return new_blocks
+
+
+def _tuples_to_blocks_no_consolidate(tuples, dtype: Optional[DtypeObj]) -> List[Block]:
+    # tuples produced within _form_blocks are of the form (placement, whatever, array)
+    if dtype is not None:
+        return [
+            new_block(
+                np.atleast_2d(x[1].astype(dtype, copy=False)), placement=x[0], ndim=2
+            )
+            for x in tuples
+        ]
+    return [new_block(np.atleast_2d(x[1]), placement=x[0], ndim=2) for x in tuples]
 
 
 def _stack_arrays(tuples, dtype: np.dtype):
