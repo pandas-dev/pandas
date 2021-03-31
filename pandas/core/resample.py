@@ -1272,7 +1272,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         """
         Parameters
         ----------
-        method : string {'backfill', 'bfill', 'pad', 'ffill'}
+        method : {'backfill', 'bfill', 'pad', 'ffill'}
             Method for upsampling.
         limit : int, default None
             Maximum size gap to fill when reindexing.

@@ -149,7 +149,7 @@ class TestFromRecords:
         # from the dict
         blocks = df._to_dict_of_blocks()
         columns = []
-        for dtype, b in blocks.items():
+        for b in blocks.values():
             columns.extend(b.columns)
 
         asdict = {x: y for x, y in df.items()}

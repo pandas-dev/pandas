@@ -789,7 +789,7 @@ def _interp_limit(invalid, fw_limit, bw_limit):
 
     Parameters
     ----------
-    invalid : boolean ndarray
+    invalid : np.ndarray[bool]
     fw_limit : int or None
         forward limit to index
     bw_limit : int or None
