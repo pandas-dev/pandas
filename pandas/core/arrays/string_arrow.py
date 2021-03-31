@@ -695,12 +695,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         from pandas.arrays import (
             BooleanArray,
             IntegerArray,
-            StringArray,
         )
-        from pandas.core.arrays.string_ import StringDtype
 
         if dtype is None:
-            dtype = StringDtype()
+            dtype = self.dtype
         if na_value is None:
             na_value = self.dtype.na_value
 
@@ -741,7 +739,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             result = lib.map_infer_mask(
                 arr, f, mask.view("uint8"), convert=False, na_value=na_value
             )
-            return StringArray(result)
+            return self._from_sequence(result)
         else:
             # This is when the result type is object. We reach this when
             # -> We know the result type is truly object (e.g. .encode returns bytes
