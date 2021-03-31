@@ -26,6 +26,7 @@ from datetime import (
 from io import StringIO
 import sqlite3
 import warnings
+from distutils.version import LooseVersion
 
 import numpy as np
 import pytest
@@ -2005,14 +2006,23 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     @pytest.mark.parametrize(
         "input",
-        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"infe0": ["bar"]}],
+        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
     )
     def test_to_sql_with_negative_npinf(self, input):
-        # GH 34431 36465
+        # GH 34431
 
         df = DataFrame(input)
 
         if self.flavor == "mysql":
+            # GH 36465
+            # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
+            # for pymysql version >= 0.10
+            # TODO: remove this version check after GH 36465 is fixed
+            import pymysql
+
+            if LooseVersion(pymysql.VERSION_STRING) >= "0.10" and "infe0" in df.columns:
+                return
+
             msg = "inf cannot be used with MySQL"
             with pytest.raises(ValueError, match=msg):
                 df.to_sql("foobar", self.conn, index=False)
