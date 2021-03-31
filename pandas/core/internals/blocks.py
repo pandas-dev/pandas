@@ -17,8 +17,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
-    Interval,
-    Period,
     Timestamp,
     algos as libalgos,
     internals as libinternals,
@@ -628,8 +626,7 @@ class Block(libinternals.Block, PandasObject):
     def _can_hold_element(self, element: Any) -> bool:
         """ require the same dtype as ourselves """
         element = extract_array(element, extract_numpy=True)
-        arr = ensure_wrapped_if_datetimelike(self.values)
-        return can_hold_element(arr, element)
+        return can_hold_element(self.values, element)
 
     @final
     def should_store(self, value: ArrayLike) -> bool:
@@ -1547,7 +1544,7 @@ class ExtensionBlock(Block):
         be a compatible shape.
         """
         if not self._can_hold_element(value):
-            # This is only relevant for DatetimeTZBlock, ObjectValuesExtensionBlock,
+            # This is only relevant for DatetimeTZBlock, PeriodDtype, IntervalDtype,
             #  which has a non-trivial `_can_hold_element`.
             # https://github.com/pandas-dev/pandas/issues/24020
             # Need a dedicated setitem until GH#24020 (type promotion in setitem
@@ -1742,17 +1739,6 @@ class ExtensionBlock(Block):
             for indices, place in zip(new_values.T, new_placement)
         ]
         return blocks, mask
-
-
-class ObjectValuesExtensionBlock(ExtensionBlock):
-    """
-    Block providing backwards-compatibility for `.values`.
-
-    Used by PeriodArray and IntervalArray to ensure that
-    Series[T].values is an ndarray of objects.
-    """
-
-    pass
 
 
 class NumericBlock(Block):
@@ -2021,8 +2007,6 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
         cls = CategoricalBlock
     elif vtype is Timestamp:
         cls = DatetimeTZBlock
-    elif vtype is Interval or vtype is Period:
-        cls = ObjectValuesExtensionBlock
     elif isinstance(dtype, ExtensionDtype):
         # Note: need to be sure PandasArray is unwrapped before we get here
         cls = ExtensionBlock
