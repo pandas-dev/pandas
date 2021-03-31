@@ -38,6 +38,10 @@ def is_platform_mac():
     return sys.platform == "darwin"
 
 
+def is_platform_linux():
+    return sys.platform == "linux"
+
+
 min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
 
 try:
@@ -327,6 +331,10 @@ else:
 
 extra_compile_args = []
 extra_link_args = []
+
+if is_platform_linux():
+    extra_link_args.append("-L/usr/lib/x86_64-linux-gnu/")
+
 if is_platform_windows():
     if debugging_symbols_requested:
         extra_compile_args.append("/Z7")
