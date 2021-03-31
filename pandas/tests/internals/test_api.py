@@ -30,7 +30,6 @@ def test_namespace():
         "DatetimeBlock",
         "DatetimeTZBlock",
         "ExtensionBlock",
-        "FloatBlock",
         "ObjectBlock",
         "TimeDeltaBlock",
         "make_block",
