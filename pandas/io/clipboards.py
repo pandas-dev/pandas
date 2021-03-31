@@ -86,7 +86,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
     Parameters
     ----------
     obj : the object to write to the clipboard
-    excel : boolean, defaults to True
+    excel : bool, defaults to True
             if True, use the provided separator, writing in a csv
             format for allowing easy pasting into excel.
             if False, write a string representation of the object
