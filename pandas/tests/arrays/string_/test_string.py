@@ -92,16 +92,10 @@ def test_setitem_with_scalar_string(dtype):
     "input, method",
     [
         (["a", "b", "c"], operator.methodcaller("capitalize")),
-        (["a", "b", "c"], operator.methodcaller("capitalize")),
         (["a b", "a bc. de"], operator.methodcaller("capitalize")),
     ],
 )
-def test_string_methods(input, method, dtype, request):
-    if dtype == "arrow_string":
-        reason = "AttributeError: 'ArrowStringDtype' object has no attribute 'base'"
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
-
+def test_string_methods(input, method, dtype):
     a = pd.Series(input, dtype=dtype)
     b = pd.Series(input, dtype="object")
     result = method(a.str)
