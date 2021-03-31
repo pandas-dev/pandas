@@ -402,9 +402,9 @@ def group_any_all(uint8_t[::1] out,
         ordering matching up to the corresponding record in `values`
     values : array containing the truth value of each element
     mask : array indicating whether a value is na or not
-    val_test : str {'any', 'all'}
+    val_test : {'any', 'all'}
         String object dictating whether to use any or all truth testing
-    skipna : boolean
+    skipna : bool
         Flag to ignore nan values during truth testing
 
     Notes
@@ -1083,10 +1083,10 @@ def group_rank(float64_t[:, ::1] out,
         * max: highest rank in group
         * first: ranks assigned in order they appear in the array
         * dense: like 'min', but rank always increases by 1 between groups
-    ascending : boolean, default True
+    ascending : bool, default True
         False for ranks by high (1) to low (N)
         na_option : {'keep', 'top', 'bottom'}, default 'keep'
-    pct : boolean, default False
+    pct : bool, default False
         Compute percentage rank of data within each group
     na_option : {'keep', 'top', 'bottom'}, default 'keep'
         * keep: leave NA values where they are
