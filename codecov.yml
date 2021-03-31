@@ -1,13 +1,14 @@
 codecov:
   branch: master
-
+  notify:
+    after_n_builds: 10
 comment: false
 
 coverage:
   status:
     project:
       default:
-        target: '82'
+        target: '72'
     patch:
       default:
         target: '50'

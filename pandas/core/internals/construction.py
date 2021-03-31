@@ -101,9 +101,11 @@ def arrays_to_mgr(
     arr_names,
     index,
     columns,
+    *,
     dtype: Optional[DtypeObj] = None,
     verify_integrity: bool = True,
     typ: Optional[str] = None,
+    consolidate: bool = True,
 ) -> Manager:
     """
     Segregate Series based on type and coerce into matrices.
@@ -131,7 +133,9 @@ def arrays_to_mgr(
     axes = [columns, index]
 
     if typ == "block":
-        return create_block_manager_from_arrays(arrays, arr_names, axes)
+        return create_block_manager_from_arrays(
+            arrays, arr_names, axes, consolidate=consolidate
+        )
     elif typ == "array":
         if len(columns) != len(arrays):
             assert len(arrays) == 0
@@ -181,7 +185,7 @@ def rec_array_to_mgr(
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype, typ=typ)
+    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype=dtype, typ=typ)
 
     if copy:
         mgr = mgr.copy()
@@ -368,12 +372,21 @@ def maybe_squeeze_dt64tz(dta: ArrayLike) -> ArrayLike:
     # TODO(EA2D): kludge not needed with 2D EAs
     if isinstance(dta, DatetimeArray) and dta.ndim == 2 and dta.tz is not None:
         assert dta.shape[0] == 1
-        dta = dta[0]
+        # error: Incompatible types in assignment (expression has type
+        # "Union[DatetimeLikeArrayMixin, Union[Any, NaTType]]", variable has
+        # type "Union[ExtensionArray, ndarray]")
+        dta = dta[0]  # type: ignore[assignment]
     return dta
 
 
 def dict_to_mgr(
-    data: Dict, index, columns, dtype: Optional[DtypeObj], typ: str
+    data: Dict,
+    index,
+    columns,
+    *,
+    dtype: Optional[DtypeObj] = None,
+    typ: str = "block",
+    copy: bool = True,
 ) -> Manager:
     """
     Segregate Series based on type and coerce into matrices.
@@ -399,17 +412,19 @@ def dict_to_mgr(
 
         # no obvious "empty" int column
         if missing.any() and not is_integer_dtype(dtype):
+            nan_dtype: DtypeObj
+
             if dtype is None or (
                 isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.flexible)
             ):
                 # GH#1783
                 nan_dtype = np.dtype("object")
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "Union[dtype, ExtensionDtype]", variable has type "dtype")
-                nan_dtype = dtype  # type: ignore[assignment]
+                nan_dtype = dtype
             val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
             arrays.loc[missing] = [val] * missing.sum()
+
+        arrays = list(arrays)
 
     else:
         keys = list(data.keys())
@@ -421,7 +436,21 @@ def dict_to_mgr(
         arrays = [
             arr if not is_datetime64tz_dtype(arr) else arr.copy() for arr in arrays
         ]
-    return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype, typ=typ)
+
+    if copy:
+        # arrays_to_mgr (via form_blocks) won't make copies for EAs
+        # dtype attr check to exclude EADtype-castable strs
+        arrays = [
+            x
+            if not hasattr(x, "dtype") or not isinstance(x.dtype, ExtensionDtype)
+            else x.copy()
+            for x in arrays
+        ]
+        # TODO: can we get rid of the dt64tz special case above?
+
+    return arrays_to_mgr(
+        arrays, data_names, index, columns, dtype=dtype, typ=typ, consolidate=copy
+    )
 
 
 def nested_data_to_arrays(
@@ -727,27 +756,18 @@ def to_arrays(
         return arrays, columns
 
     if isinstance(data[0], (list, tuple)):
-        content = _list_to_arrays(data)
+        arr = _list_to_arrays(data)
     elif isinstance(data[0], abc.Mapping):
-        content, columns = _list_of_dict_to_arrays(data, columns)
+        arr, columns = _list_of_dict_to_arrays(data, columns)
     elif isinstance(data[0], ABCSeries):
-        content, columns = _list_of_series_to_arrays(data, columns)
+        arr, columns = _list_of_series_to_arrays(data, columns)
     else:
         # last ditch effort
         data = [tuple(x) for x in data]
-        content = _list_to_arrays(data)
+        arr = _list_to_arrays(data)
 
-    # error: Incompatible types in assignment (expression has type "List[ndarray]",
-    # variable has type "List[Union[Union[str, int, float, bool], Union[Any, Any, Any,
-    # Any]]]")
-    content, columns = _finalize_columns_and_data(  # type: ignore[assignment]
-        content, columns, dtype
-    )
-    # error: Incompatible return value type (got "Tuple[ndarray, Index]", expected
-    # "Tuple[List[ExtensionArray], Index]")
-    # error: Incompatible return value type (got "Tuple[ndarray, Index]", expected
-    # "Tuple[List[ndarray], Index]")
-    return content, columns  # type: ignore[return-value]
+    content, columns = _finalize_columns_and_data(arr, columns, dtype)
+    return content, columns
 
 
 def _list_to_arrays(data: List[Union[Tuple, List]]) -> np.ndarray:
@@ -838,38 +858,22 @@ def _finalize_columns_and_data(
     content: np.ndarray,  # ndim == 2
     columns: Optional[Index],
     dtype: Optional[DtypeObj],
-) -> Tuple[List[np.ndarray], Index]:
+) -> Tuple[List[ArrayLike], Index]:
     """
     Ensure we have valid columns, cast object dtypes if possible.
     """
-    # error: Incompatible types in assignment (expression has type "List[Any]", variable
-    # has type "ndarray")
-    content = list(content.T)  # type: ignore[assignment]
+    contents = list(content.T)
 
     try:
-        # error: Argument 1 to "_validate_or_indexify_columns" has incompatible type
-        # "ndarray"; expected "List[Any]"
-        columns = _validate_or_indexify_columns(
-            content, columns  # type: ignore[arg-type]
-        )
+        columns = _validate_or_indexify_columns(contents, columns)
     except AssertionError as err:
         # GH#26429 do not raise user-facing AssertionError
         raise ValueError(err) from err
 
-    if len(content) and content[0].dtype == np.object_:
-        # error: Incompatible types in assignment (expression has type
-        # "List[Union[Union[str, int, float, bool], Union[Any, Any, Any, Any]]]",
-        # variable has type "ndarray")
-        # error: Argument 1 to "_convert_object_array" has incompatible type "ndarray";
-        # expected "List[Union[Union[str, int, float, bool], Union[Any, Any, Any,
-        # Any]]]"
-        content = _convert_object_array(  # type: ignore[assignment]
-            content, dtype=dtype  # type: ignore[arg-type]
-        )
-    # error: Incompatible return value type (got "Tuple[ndarray, Union[Index,
-    # List[Union[str, int]]]]", expected "Tuple[List[ndarray], Union[Index,
-    # List[Union[str, int]]]]")
-    return content, columns  # type: ignore[return-value]
+    if len(contents) and contents[0].dtype == np.object_:
+        contents = _convert_object_array(contents, dtype=dtype)
+
+    return contents, columns
 
 
 def _validate_or_indexify_columns(

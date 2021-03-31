@@ -3963,7 +3963,9 @@ class Table(Fixed):
 
             typ = klass._get_atom(data_converted)
             kind = _dtype_to_kind(data_converted.dtype.name)
-            tz = _get_tz(data_converted.tz) if hasattr(data_converted, "tz") else None
+            tz = None
+            if getattr(data_converted, "tz", None) is not None:
+                tz = _get_tz(data_converted.tz)
 
             meta = metadata = ordered = None
             if is_categorical_dtype(data_converted.dtype):
@@ -4058,7 +4060,7 @@ class Table(Fixed):
                 tuple(b_items.tolist()): (b, b_items)
                 for b, b_items in zip(blocks, blk_items)
             }
-            new_blocks: List["Block"] = []
+            new_blocks: List[Block] = []
             new_blk_items = []
             for ea in values_axes:
                 items = tuple(ea.values)

@@ -7,6 +7,8 @@ TODO: these should be split among the indexer tests
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -146,6 +148,10 @@ class TestPartialSetting:
         df.at[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager)
+    # df.loc[0] = Series(1, index=range(4)) case creates float columns
+    # instead of object dtype
+    @td.skip_array_manager_not_yet_implemented
     def test_partial_setting_mixed_dtype(self):
 
         # in a mixed dtype environment, try to preserve dtypes
@@ -165,7 +171,8 @@ class TestPartialSetting:
         tm.assert_frame_equal(df, DataFrame(columns=["A", "B"], index=[0]))
 
         # columns will align
-        df = DataFrame(columns=["A", "B"])
+        # TODO: it isn't great that this behavior depends on consolidation
+        df = DataFrame(columns=["A", "B"])._consolidate()
         df.loc[0] = Series(1, index=["B"])
 
         exp = DataFrame([[np.nan, 1]], columns=["A", "B"], index=[0], dtype="float64")

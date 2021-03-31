@@ -469,14 +469,11 @@ def test_is_datetime_or_timedelta_dtype():
 
 
 def test_is_numeric_v_string_like():
-    assert not com.is_numeric_v_string_like(1, 1)
-    assert not com.is_numeric_v_string_like(1, "foo")
-    assert not com.is_numeric_v_string_like("foo", "foo")
+    assert not com.is_numeric_v_string_like(np.array([1]), 1)
     assert not com.is_numeric_v_string_like(np.array([1]), np.array([2]))
     assert not com.is_numeric_v_string_like(np.array(["foo"]), np.array(["foo"]))
 
     assert com.is_numeric_v_string_like(np.array([1]), "foo")
-    assert com.is_numeric_v_string_like("foo", np.array([1]))
     assert com.is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
     assert com.is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
 
@@ -519,14 +516,6 @@ def test_is_numeric_dtype():
     assert com.is_numeric_dtype(np.uint64)
     assert com.is_numeric_dtype(pd.Series([1, 2]))
     assert com.is_numeric_dtype(pd.Index([1, 2.0]))
-
-
-def test_is_string_like_dtype():
-    assert not com.is_string_like_dtype(object)
-    assert not com.is_string_like_dtype(pd.Series([1, 2]))
-
-    assert com.is_string_like_dtype(str)
-    assert com.is_string_like_dtype(np.array(["a", "b"]))
 
 
 def test_is_float_dtype():
