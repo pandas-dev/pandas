@@ -821,7 +821,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...    "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous_type
         False
         """
-        if isinstance(self._mgr, ArrayManager):
+        if self._using_array_manager:
             return len({arr.dtype for arr in self._mgr.arrays}) == 1
         if self._mgr.any_extension_types:
             return len({block.dtype for block in self._mgr.blocks}) == 1
@@ -833,7 +833,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Can we transpose this DataFrame without creating any new array objects.
         """
-        if isinstance(self._mgr, ArrayManager):
+        if self._using_array_manager:
             return False
         blocks = self._mgr.blocks
         if len(blocks) != 1:
