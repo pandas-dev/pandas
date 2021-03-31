@@ -2005,7 +2005,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     @pytest.mark.parametrize(
         "input",
-        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
+        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"infe0": ["bar"]}],
     )
     def test_to_sql_with_negative_npinf(self, input):
         # GH 34431 36465
