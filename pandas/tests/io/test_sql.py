@@ -23,10 +23,10 @@ from datetime import (
     datetime,
     time,
 )
+from distutils.version import LooseVersion
 from io import StringIO
 import sqlite3
 import warnings
-from distutils.version import LooseVersion
 
 import numpy as np
 import pytest
