@@ -5,7 +5,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     List,
     Optional,
     Tuple,
@@ -210,6 +209,7 @@ class Block(libinternals.Block, PandasObject):
     def external_values(self):
         return external_values(self.values)
 
+    @final
     def internal_values(self):
         """
         The array that Series._values returns (internal values).
@@ -596,8 +596,6 @@ class Block(libinternals.Block, PandasObject):
         Block
         """
         values = self.values
-        if values.dtype.kind in ["m", "M"]:
-            values = self.array_values
 
         new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
@@ -1751,14 +1749,13 @@ class HybridMixin:
     Mixin for Blocks backed (maybe indirectly) by ExtensionArrays.
     """
 
-    array_values: Callable
+    values: NDArrayBackedExtensionArray | IntervalArray
 
     def _can_hold_element(self, element: Any) -> bool:
-        values = self.array_values
+        values = self.values
 
         try:
-            # error: "Callable[..., Any]" has no attribute "_validate_setitem_value"
-            values._validate_setitem_value(element)  # type: ignore[attr-defined]
+            values._validate_setitem_value(element)
             return True
         except (ValueError, TypeError):
             return False
@@ -1771,6 +1768,8 @@ class ObjectValuesExtensionBlock(HybridMixin, ExtensionBlock):
     Used by PeriodArray and IntervalArray to ensure that
     Series[T].values is an ndarray of objects.
     """
+
+    values: IntervalArray | PeriodArray
 
     pass
 
@@ -1800,8 +1799,8 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
 
-    def internal_values(self):
-        # Override to return DatetimeArray and TimedeltaArray
+    @property
+    def array_values(self):
         return self.values
 
     def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
@@ -1901,10 +1900,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
     is_numeric = False
 
-    @cache_readonly
-    def array_values(self):
-        return self.values
-
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
@@ -1919,7 +1914,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlockMixin):
     is_extension = True
     is_numeric = False
 
-    internal_values = Block.internal_values
     _can_hold_element = DatetimeBlock._can_hold_element
     diff = DatetimeBlock.diff
     where = DatetimeBlock.where

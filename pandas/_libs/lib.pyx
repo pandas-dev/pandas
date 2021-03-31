@@ -2440,6 +2440,9 @@ class NoDefault(Enum):
     # 2) because mypy does not understand singletons
     no_default = "NO_DEFAULT"
 
+    def __repr__(self) -> str:
+        return "<no_default>"
+
 
 # Note: no_default is exported to the public API in pandas.api.extensions
 no_default = NoDefault.no_default  # Sentinel indicating the default value.
