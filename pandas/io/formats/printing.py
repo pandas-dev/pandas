@@ -303,7 +303,7 @@ def format_object_summary(
         must be iterable and support __getitem__
     formatter : callable
         string formatter for an element
-    is_justify : boolean
+    is_justify : bool
         should justify the display
     name : name, optional
         defaults to the class name of the obj
