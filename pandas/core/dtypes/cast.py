@@ -1733,6 +1733,8 @@ def maybe_cast_to_datetime(
                     except ValueError:
                         # TODO(GH#40048): only catch dateutil's ParserError
                         #  once we can reliably import it in all supported versions
+                        if is_timedelta64:
+                            raise
                         pass
 
         # coerce datetimelike to object
