@@ -58,7 +58,7 @@ VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 cdef class IntervalMixin:
 
     @property
-    def closed_left(self):
+    def closed_left(self) -> bool:
         """
         Check if the interval is closed on the left side.
 
@@ -72,7 +72,7 @@ cdef class IntervalMixin:
         return self.closed in ('left', 'both')
 
     @property
-    def closed_right(self):
+    def closed_right(self) -> bool:
         """
         Check if the interval is closed on the right side.
 
@@ -86,7 +86,7 @@ cdef class IntervalMixin:
         return self.closed in ('right', 'both')
 
     @property
-    def open_left(self):
+    def open_left(self) -> bool:
         """
         Check if the interval is open on the left side.
 
@@ -100,7 +100,7 @@ cdef class IntervalMixin:
         return not self.closed_left
 
     @property
-    def open_right(self):
+    def open_right(self) -> bool:
         """
         Check if the interval is open on the right side.
 
@@ -184,7 +184,7 @@ cdef class IntervalMixin:
         """
         return (self.right == self.left) & (self.closed != 'both')
 
-    def _check_closed_matches(self, other, name='other'):
+    def _check_closed_matches(self, other, name: str = "other") -> None:
         """
         Check if the closed attribute of `other` matches.
 
@@ -441,7 +441,7 @@ cdef class Interval(IntervalMixin):
                 self.left // y, self.right // y, closed=self.closed)
         return NotImplemented
 
-    def overlaps(self, other):
+    def overlaps(self, other) -> bool:
         """
         Check whether two Interval objects overlap.
 
