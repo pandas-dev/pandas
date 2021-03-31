@@ -267,7 +267,7 @@ class MultiIndex(Index):
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html>`__
     for more.
 
     Examples
@@ -557,7 +557,7 @@ class MultiIndex(Index):
             arrays = [[]] * len(names)
         elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
-                tuples = tuples._values
+                tuples = np.asarray(tuples._values)
 
             arrays = list(lib.tuples_to_object_array(tuples).T)
         elif isinstance(tuples, list):
@@ -751,15 +751,6 @@ class MultiIndex(Index):
                 for idx, level in enumerate(self.levels)
             }
         )
-
-    @property
-    def shape(self) -> Shape:
-        """
-        Return a tuple of the shape of the underlying data.
-        """
-        # overriding the base Index.shape definition to avoid materializing
-        # the values (GH-27384, GH-27775)
-        return (len(self),)
 
     def __len__(self) -> int:
         return len(self.codes[0])
@@ -1623,11 +1614,15 @@ class MultiIndex(Index):
         return [i.inferred_type for i in self.levels]
 
     @doc(Index.duplicated)
-    def duplicated(self, keep="first"):
+    def duplicated(self, keep="first") -> np.ndarray:
         shape = map(len, self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
         return duplicated_int64(ids, keep)
+
+    # error: Cannot override final attribute "_duplicated"
+    # (previously declared in base class "IndexOpsMixin")
+    _duplicated = duplicated  # type: ignore[misc]
 
     def fillna(self, value=None, downcast=None):
         """
@@ -1952,7 +1947,7 @@ class MultiIndex(Index):
                     lev = lev.take(indexer)
 
                     # indexer to reorder the level codes
-                    indexer = ensure_int64(indexer)
+                    indexer = ensure_platform_int(indexer)
                     ri = lib.get_reverse_indexer(indexer, len(indexer))
                     level_codes = algos.take_nd(ri, level_codes)
 
@@ -2225,11 +2220,7 @@ class MultiIndex(Index):
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
-                # error: Argument "dtype" to "index_labels_to_array" has incompatible
-                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
-                codes = com.index_labels_to_array(
-                    codes, dtype=object  # type: ignore[arg-type]
-                )
+                codes = com.index_labels_to_array(codes, dtype=np.dtype("object"))
             except ValueError:
                 pass
 
@@ -2676,7 +2667,11 @@ class MultiIndex(Index):
         return key
 
     def _get_indexer(
-        self, target: Index, method=None, limit=None, tolerance=None
+        self,
+        target: Index,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
     ) -> np.ndarray:
 
         # empty indexer
@@ -2694,13 +2689,18 @@ class MultiIndex(Index):
                         target, method=method, limit=limit, tolerance=tolerance
                     )
 
+                # TODO: explicitly raise here?  we only have one test that
+                #  gets here, and it is checking that we raise with method="nearest"
+
         if method == "pad" or method == "backfill":
             if tolerance is not None:
                 raise NotImplementedError(
                     "tolerance not implemented yet for MultiIndex"
                 )
-            indexer = self._engine.get_indexer(
-                values=self._values, target=target, method=method, limit=limit
+            # TODO: get_indexer_with_fill docstring says values must be _sorted_
+            #  but that doesn't appear to be enforced
+            indexer = self._engine.get_indexer_with_fill(
+                target=target._values, values=self._values, method=method, limit=limit
             )
         elif method == "nearest":
             raise NotImplementedError(
@@ -2708,8 +2708,10 @@ class MultiIndex(Index):
                 "for MultiIndex; see GitHub issue 9365"
             )
         else:
-            indexer = self._engine.get_indexer(target)
+            indexer = self._engine.get_indexer(target._values)
 
+        # Note: we only get here (in extant tests at least) with
+        #  target.nlevels == self.nlevels
         return ensure_platform_int(indexer)
 
     def get_slice_bound(
@@ -3537,14 +3539,10 @@ class MultiIndex(Index):
             if not np.array_equal(self_mask, other_mask):
                 return False
             self_codes = self_codes[~self_mask]
-            self_values = algos.take_nd(
-                np.asarray(self.levels[i]._values), self_codes, allow_fill=False
-            )
+            self_values = self.levels[i]._values.take(self_codes)
 
             other_codes = other_codes[~other_mask]
-            other_values = algos.take_nd(
-                np.asarray(other.levels[i]._values), other_codes, allow_fill=False
-            )
+            other_values = other.levels[i]._values.take(other_codes)
 
             # since we use NaT both datetime64 and timedelta64 we can have a
             # situation where a level is typed say timedelta64 in self (IOW it

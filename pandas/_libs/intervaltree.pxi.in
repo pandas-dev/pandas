@@ -238,6 +238,8 @@ NODE_CLASSES = {}
 {{for dtype, dtype_title, closed, closed_title, cmp_left, cmp_right,
       cmp_left_converse, cmp_right_converse, fused_prefix in nodes}}
 
+
+@cython.internal
 cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
     """Non-terminal node for an IntervalTree
 
