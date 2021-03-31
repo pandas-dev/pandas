@@ -223,7 +223,7 @@ def pandas_validate(func_name: str):
         )
 
     if doc.see_also:
-        for rel_name, rel_desc in doc.see_also.items():
+        for rel_name in doc.see_also:
             if rel_name.startswith("pandas."):
                 result["errors"].append(
                     pandas_error(

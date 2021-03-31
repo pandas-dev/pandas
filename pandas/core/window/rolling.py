@@ -558,6 +558,10 @@ class BaseWindowGroupby(BaseWindow):
         if _grouper is None:
             raise ValueError("Must pass a Grouper object.")
         self._grouper = _grouper
+        # GH 32262: It's convention to keep the grouping column in
+        # groupby.<agg_func>, but unexpected to users in
+        # groupby.rolling.<agg_func>
+        obj = obj.drop(columns=self._grouper.names, errors="ignore")
         super().__init__(obj, *args, **kwargs)
 
     def _apply(
