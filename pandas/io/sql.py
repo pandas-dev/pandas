@@ -666,7 +666,7 @@ def to_sql(
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
         - append: If table exists, insert data. Create if does not exist.
-    index : boolean, default True
+    index : bool, default True
         Write DataFrame index as a column.
     index_label : str or sequence, optional
         Column label for index column(s). If None is given (default) and
@@ -1341,11 +1341,11 @@ class SQLDatabase(PandasSQL):
 
         Parameters
         ----------
-        table_name : string
+        table_name : str
             Name of SQL table in database.
         index_col : string, optional, default: None
             Column to set as index.
-        coerce_float : boolean, default True
+        coerce_float : bool, default True
             Attempts to convert values of non-string, non-numeric objects
             (like decimal.Decimal) to floating point. This can result in
             loss of precision.
@@ -1436,11 +1436,11 @@ class SQLDatabase(PandasSQL):
 
         Parameters
         ----------
-        sql : string
+        sql : str
             SQL query to be executed.
         index_col : string, optional, default: None
             Column name to use as index for the returned DataFrame object.
-        coerce_float : boolean, default True
+        coerce_float : bool, default True
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets.
         params : list, tuple or dict, optional, default: None
@@ -1530,7 +1530,7 @@ class SQLDatabase(PandasSQL):
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
-        index : boolean, default True
+        index : bool, default True
             Write DataFrame index as a column.
         index_label : string or sequence, default None
             Column label for index column(s). If None is given (default) and
@@ -2028,7 +2028,7 @@ class SQLiteDatabase(PandasSQL):
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if it does not exist.
-        index : boolean, default True
+        index : bool, default True
             Write DataFrame index as a column
         index_label : string or sequence, default None
             Column label for index column(s). If None is given (default) and
@@ -2135,7 +2135,7 @@ def get_schema(
     Parameters
     ----------
     frame : DataFrame
-    name : string
+    name : str
         name of SQL table
     keys : string or sequence, default: None
         columns to use a primary key

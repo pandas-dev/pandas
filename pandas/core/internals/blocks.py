@@ -26,7 +26,6 @@ from pandas._libs import (
     writers,
 )
 from pandas._libs.internals import BlockPlacement
-from pandas._libs.tslibs import conversion
 from pandas._typing import (
     ArrayLike,
     Dtype,
@@ -46,7 +45,6 @@ from pandas.core.dtypes.cast import (
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_upcast,
-    sanitize_to_nanoseconds,
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
@@ -940,7 +938,11 @@ class Block(libinternals.Block, PandasObject):
             return self.coerce_to_target_dtype(value).setitem(indexer, value)
 
         if self.dtype.kind in ["m", "M"]:
-            arr = self.array_values.T
+            arr = self.values
+            if self.ndim > 1:
+                # Dont transpose with ndim=1 bc we would fail to invalidate
+                #  arr.freq
+                arr = arr.T
             arr[indexer] = value
             return self
 
@@ -1174,6 +1176,7 @@ class Block(libinternals.Block, PandasObject):
             limit_area=limit_area,
         )
 
+        values = maybe_coerce_values(values)
         blocks = [self.make_block_same_class(values)]
         return self._maybe_downcast(blocks, downcast)
 
@@ -1229,6 +1232,7 @@ class Block(libinternals.Block, PandasObject):
 
         # interp each column independently
         interp_values = np.apply_along_axis(func, axis, data)
+        interp_values = maybe_coerce_values(interp_values)
 
         blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
@@ -1761,30 +1765,36 @@ class NDArrayBackedExtensionBlock(Block):
     Block backed by an NDArrayBackedExtensionArray
     """
 
+    values: NDArrayBackedExtensionArray
+
+    @property
     def array_values(self) -> NDArrayBackedExtensionArray:
-        return ensure_wrapped_if_datetimelike(self.values)
+        return self.values
+
+    @property
+    def is_view(self) -> bool:
+        """ return a boolean if I am possibly a view """
+        # check the ndarray values of the DatetimeIndex values
+        return self.values._ndarray.base is not None
 
     def internal_values(self):
         # Override to return DatetimeArray and TimedeltaArray
-        return self.array_values
+        return self.values
 
     def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
-        values = self.array_values
+        values = self.values
         if is_object_dtype(dtype):
-            # DTA/TDA constructor and astype can handle 2D
-            # error: "Callable[..., Any]" has no attribute "astype"
-            values = values.astype(object)  # type: ignore[attr-defined]
+            values = values.astype(object)
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(values).reshape(self.shape)
 
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
         # TODO(EA2D): this can be removed if we ever have 2D EA
-        # error: "Callable[..., Any]" has no attribute "reshape"
-        return self.array_values.reshape(self.shape)[key]  # type: ignore[attr-defined]
+        return self.values.reshape(self.shape)[key]
 
     def putmask(self, mask, new) -> List[Block]:
         mask = extract_bool_array(mask)
@@ -1793,16 +1803,13 @@ class NDArrayBackedExtensionBlock(Block):
             return self.astype(object).putmask(mask, new)
 
         # TODO(EA2D): reshape unnecessary with 2D EAs
-        # error: "Callable[..., Any]" has no attribute "reshape"
-        arr = self.array_values.reshape(self.shape)  # type: ignore[attr-defined]
-        arr = cast("NDArrayBackedExtensionArray", arr)
+        arr = self.values.reshape(self.shape)
         arr.T.putmask(mask, new)
         return [self]
 
     def where(self, other, cond, errors="raise") -> List[Block]:
         # TODO(EA2D): reshape unnecessary with 2D EAs
-        # error: "Callable[..., Any]" has no attribute "reshape"
-        arr = self.array_values.reshape(self.shape)  # type: ignore[attr-defined]
+        arr = self.values.reshape(self.shape)
 
         cond = extract_bool_array(cond)
 
@@ -1813,8 +1820,7 @@ class NDArrayBackedExtensionBlock(Block):
 
         # TODO(EA2D): reshape not needed with 2D EAs
         res_values = res_values.reshape(self.values.shape)
-        coerced = maybe_coerce_values(res_values)
-        nb = self.make_block_same_class(coerced)
+        nb = self.make_block_same_class(res_values)
         return [nb]
 
     def diff(self, n: int, axis: int = 0) -> List[Block]:
@@ -1838,20 +1844,16 @@ class NDArrayBackedExtensionBlock(Block):
         by apply.
         """
         # TODO(EA2D): reshape not necessary with 2D EAs
-        # error: "Callable[..., Any]" has no attribute "reshape"
-        values = self.array_values.reshape(self.shape)  # type: ignore[attr-defined]
+        values = self.values.reshape(self.shape)
 
         new_values = values - values.shift(n, axis=axis)
-        coerced = maybe_coerce_values(new_values)
-        return [self.make_block(coerced)]
+        return [self.make_block(new_values)]
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
-        # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EA
-        # error: "Callable[..., Any]" has no attribute "reshape"
-        values = self.array_values.reshape(self.shape)  # type: ignore[attr-defined]
+        # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
+        values = self.values.reshape(self.shape)
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
-        coerced = maybe_coerce_values(new_values)
-        return [self.make_block_same_class(coerced)]
+        return [self.make_block_same_class(new_values)]
 
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
@@ -1863,37 +1865,22 @@ class NDArrayBackedExtensionBlock(Block):
             # TODO: don't special-case td64
             return self.astype(object).fillna(value, limit, inplace, downcast)
 
-        values = self.array_values
-        # error: "Callable[..., Any]" has no attribute "copy"
-        values = values if inplace else values.copy()  # type: ignore[attr-defined]
-        # error: "Callable[..., Any]" has no attribute "fillna"
-        new_values = values.fillna(  # type: ignore[attr-defined]
-            value=value, limit=limit
-        )
-        new_values = maybe_coerce_values(new_values)
+        values = self.values
+        values = values if inplace else values.copy()
+        new_values = values.fillna(value=value, limit=limit)
         return [self.make_block_same_class(values=new_values)]
 
 
 class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
-    is_numeric = False
+    values: Union[DatetimeArray, TimedeltaArray]
 
-    @cache_readonly
-    def array_values(self):
-        return ensure_wrapped_if_datetimelike(self.values)
+    is_numeric = False
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
-
-    def set_inplace(self, locs, values):
-        """
-        See Block.set.__doc__
-        """
-        values = conversion.ensure_datetime64ns(values, copy=False)
-
-        self.values[locs] = values
 
 
 class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlockMixin):
@@ -1911,16 +1898,10 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlockMixin):
     putmask = DatetimeLikeBlockMixin.putmask
     fillna = DatetimeLikeBlockMixin.fillna
 
-    # error: Incompatible types in assignment (expression has type "Callable[[],
-    # ExtensionArray]", base class "NDArrayBackedExtensionBlock" defined the
-    # type as "Callable[[], Union[TimedeltaArray, DatetimeArray]]")
-    array_values = ExtensionBlock.array_values  # type: ignore[assignment]
-
-    @property
-    def is_view(self) -> bool:
-        """ return a boolean if I am possibly a view """
-        # check the ndarray values of the DatetimeIndex values
-        return self.values._data.base is not None
+    # error: Incompatible types in assignment (expression has type
+    # "Callable[[NDArrayBackedExtensionBlock], bool]", base class "ExtensionBlock"
+    # defined the type as "bool")  [assignment]
+    is_view = NDArrayBackedExtensionBlock.is_view  # type: ignore[assignment]
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
@@ -2004,14 +1985,10 @@ def maybe_coerce_values(values) -> ArrayLike:
     values = extract_array(values, extract_numpy=True)
 
     if isinstance(values, np.ndarray):
-        values = sanitize_to_nanoseconds(values)
+        values = ensure_wrapped_if_datetimelike(values)
 
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
-
-    elif isinstance(values.dtype, np.dtype):
-        # i.e. not datetime64tz, extract DTA/TDA -> ndarray
-        values = values._data
 
     return values
 

@@ -101,9 +101,11 @@ def arrays_to_mgr(
     arr_names,
     index,
     columns,
+    *,
     dtype: Optional[DtypeObj] = None,
     verify_integrity: bool = True,
     typ: Optional[str] = None,
+    consolidate: bool = True,
 ) -> Manager:
     """
     Segregate Series based on type and coerce into matrices.
@@ -131,7 +133,9 @@ def arrays_to_mgr(
     axes = [columns, index]
 
     if typ == "block":
-        return create_block_manager_from_arrays(arrays, arr_names, axes)
+        return create_block_manager_from_arrays(
+            arrays, arr_names, axes, consolidate=consolidate
+        )
     elif typ == "array":
         if len(columns) != len(arrays):
             assert len(arrays) == 0
@@ -181,7 +185,7 @@ def rec_array_to_mgr(
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype, typ=typ)
+    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype=dtype, typ=typ)
 
     if copy:
         mgr = mgr.copy()
@@ -376,7 +380,13 @@ def maybe_squeeze_dt64tz(dta: ArrayLike) -> ArrayLike:
 
 
 def dict_to_mgr(
-    data: Dict, index, columns, dtype: Optional[DtypeObj], typ: str
+    data: Dict,
+    index,
+    columns,
+    *,
+    dtype: Optional[DtypeObj] = None,
+    typ: str = "block",
+    copy: bool = True,
 ) -> Manager:
     """
     Segregate Series based on type and coerce into matrices.
@@ -414,6 +424,8 @@ def dict_to_mgr(
             val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
             arrays.loc[missing] = [val] * missing.sum()
 
+        arrays = list(arrays)
+
     else:
         keys = list(data.keys())
         columns = data_names = Index(keys)
@@ -424,7 +436,21 @@ def dict_to_mgr(
         arrays = [
             arr if not is_datetime64tz_dtype(arr) else arr.copy() for arr in arrays
         ]
-    return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype, typ=typ)
+
+    if copy:
+        # arrays_to_mgr (via form_blocks) won't make copies for EAs
+        # dtype attr check to exclude EADtype-castable strs
+        arrays = [
+            x
+            if not hasattr(x, "dtype") or not isinstance(x.dtype, ExtensionDtype)
+            else x.copy()
+            for x in arrays
+        ]
+        # TODO: can we get rid of the dt64tz special case above?
+
+    return arrays_to_mgr(
+        arrays, data_names, index, columns, dtype=dtype, typ=typ, consolidate=copy
+    )
 
 
 def nested_data_to_arrays(
