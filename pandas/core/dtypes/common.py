@@ -1386,7 +1386,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         # we don't have a boolean Index class
         # so its object, we need to infer to
         # guess this
-        return arr_or_dtype.is_object and arr_or_dtype.inferred_type == "boolean"
+        return arr_or_dtype.is_object() and arr_or_dtype.inferred_type == "boolean"
     elif is_extension_array_dtype(arr_or_dtype):
         return getattr(dtype, "_is_boolean", False)
 

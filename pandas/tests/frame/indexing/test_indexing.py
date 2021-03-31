@@ -947,16 +947,16 @@ class TestDataFrameIndexing:
     def test_getitem_setitem_ix_bool_keyerror(self):
         # #2199
         df = DataFrame({"a": [1, 2, 3]})
-
-        with pytest.raises(KeyError, match=r"^False$"):
+        message = "Boolean label can not be used without a boolean index"
+        with pytest.raises(TypeError, match=message):
             df.loc[False]
-        with pytest.raises(KeyError, match=r"^True$"):
+        with pytest.raises(TypeError, match=message):
             df.loc[True]
 
         msg = "cannot use a single bool to index into setitem"
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.loc[False] = 0
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.loc[True] = 0
 
     # TODO: rename?  remove?
