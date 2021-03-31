@@ -310,9 +310,8 @@ def align_method_FRAME(
             right, join="outer", axis=axis, level=level, copy=False
         )
 
-        from pandas.core.internals import BlockManager
-
-        if isinstance(left._mgr, BlockManager):
+        if not left._using_array_manager:
+            # for BlockManager maybe broadcast Series to a DataFrame
             right = _maybe_align_series_as_frame(left, right, axis)
 
     return left, right
