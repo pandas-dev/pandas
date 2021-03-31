@@ -1131,6 +1131,26 @@ def string_dtype(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[
+        "string",
+        pytest.param(
+            "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+        ),
+    ]
+)
+def nullable_string_dtype(request):
+    """
+    Parametrized fixture for string dtypes.
+
+    * 'string'
+    * 'arrow_string'
+    """
+    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa
+
+    return request.param
+
+
 @pytest.fixture(params=tm.BYTES_DTYPES)
 def bytes_dtype(request):
     """

@@ -43,6 +43,7 @@ from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
 )
+from pandas.core.strings.arrow_array import ArrowStringArrayMixin
 
 try:
     import pyarrow as pa
@@ -153,7 +154,7 @@ class ArrowStringDtype(ExtensionDtype):
             return False
 
 
-class ArrowStringArray(OpsMixin, ExtensionArray):
+class ArrowStringArray(OpsMixin, ExtensionArray, ArrowStringArrayMixin):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
@@ -198,6 +199,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
     """
 
     _dtype = ArrowStringDtype()
+    _str_na_value = ArrowStringDtype.na_value
 
     def __init__(self, values):
         self._chk_pyarrow_available()

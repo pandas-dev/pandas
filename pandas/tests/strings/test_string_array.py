@@ -11,14 +11,14 @@ from pandas import (
 )
 
 
-def test_string_array(any_string_method):
+def test_string_array(nullable_string_dtype, any_string_method):
     method_name, args, kwargs = any_string_method
     if method_name == "decode":
         pytest.skip("decode requires bytes.")
 
     data = ["a", "bb", np.nan, "ccc"]
     a = Series(data, dtype=object)
-    b = Series(data, dtype="string")
+    b = Series(data, dtype=nullable_string_dtype)
 
     expected = getattr(a.str, method_name)(*args, **kwargs)
     result = getattr(b.str, method_name)(*args, **kwargs)
@@ -60,8 +60,8 @@ def test_string_array(any_string_method):
         ("rindex", [2, None]),
     ],
 )
-def test_string_array_numeric_integer_array(method, expected):
-    s = Series(["aba", None], dtype="string")
+def test_string_array_numeric_integer_array(nullable_string_dtype, method, expected):
+    s = Series(["aba", None], dtype=nullable_string_dtype)
     result = getattr(s.str, method)("a")
     expected = Series(expected, dtype="Int64")
     tm.assert_series_equal(result, expected)
@@ -76,17 +76,17 @@ def test_string_array_numeric_integer_array(method, expected):
         ("isdigit", [False, None, True]),
     ],
 )
-def test_string_array_boolean_array(method, expected):
-    s = Series(["a", None, "1"], dtype="string")
+def test_string_array_boolean_array(nullable_string_dtype, method, expected):
+    s = Series(["a", None, "1"], dtype=nullable_string_dtype)
     result = getattr(s.str, method)()
     expected = Series(expected, dtype="boolean")
     tm.assert_series_equal(result, expected)
 
 
-def test_string_array_extract():
+def test_string_array_extract(nullable_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/30969
     # Only expand=False & multiple groups was failing
-    a = Series(["a1", "b2", "cc"], dtype="string")
+    a = Series(["a1", "b2", "cc"], dtype=nullable_string_dtype)
     b = Series(["a1", "b2", "cc"], dtype="object")
     pat = r"(\w)(\d)"
 
@@ -98,8 +98,8 @@ def test_string_array_extract():
     tm.assert_equal(result, expected)
 
 
-def test_str_get_stringarray_multiple_nans():
-    s = Series(pd.array(["a", "ab", pd.NA, "abc"]))
+def test_str_get_stringarray_multiple_nans(nullable_string_dtype):
+    s = Series(pd.array(["a", "ab", pd.NA, "abc"], dtype=nullable_string_dtype))
     result = s.str.get(2)
     expected = Series(pd.array([pd.NA, pd.NA, pd.NA, "c"]))
     tm.assert_series_equal(result, expected)
