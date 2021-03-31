@@ -30,6 +30,11 @@ fi
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
 
+if [ "$COVERAGE" ]; then
+    COVERAGE="-s --cov=pandas --cov-report=xml --cov-append"
+fi
+
+
 PYTEST_AM_CMD="PANDAS_DATA_MANAGER=array pytest -m \"$PATTERN and arraymanager\" -n $PYTEST_WORKERS  --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
 
 echo $PYTEST_AM_CMD
