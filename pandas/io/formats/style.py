@@ -2717,7 +2717,7 @@ def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
         for arg in ["--nowrap", "--wrap", "--lwrap", "--rwrap", "--dwrap"]:
             if arg in str(options):
                 display_value = formatter[arg].replace(
-                    "--to_parse", _parse_latex_strip_arg(value=options, arg=arg)
+                    "--to_parse", _parse_latex_options_strip(value=options, arg=arg)
                 )
     return display_value
 
@@ -2757,7 +2757,7 @@ def _parse_latex_header_span(
         return cell["display_value"]
 
 
-def _parse_latex_strip_arg(value: Union[str, int, float], arg: str) -> str:
+def _parse_latex_options_strip(value: Union[str, int, float], arg: str) -> str:
     """
     Strip a css_value which may have latex wrapping arguments, css comment identifiers,
     and whitespaces, to a valid string for latex options parsing.
