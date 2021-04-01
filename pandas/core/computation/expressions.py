@@ -72,6 +72,47 @@ def _evaluate_standard(op, op_str, a, b):
     return op(a, b)
 
 
+def can_use_numexpr(op, size=None, dtypes=None, scalar=None):
+    """
+    Initial check whether numexpr can be used with the given size and
+    involved data types and/or scalar operand.
+
+    Returns False if it definitely cannot use numexpr, otherwise returns
+    True (which doesn't mean we always end up using numexpr)
+
+    Parameters
+    ----------
+    op : operator
+    size : int
+    dtypes : list
+        List of dtypes involved in the operation
+    scalar :
+        Optionally a scalar, eg if the right operand is a scalar.
+
+    Returns
+    -------
+    bool
+    """
+    if size is not None:
+        if size < _MIN_ELEMENTS:
+            return False
+
+    op_str = _op_str_mapping.get(op, None)
+    if op_str is None:
+        return False
+
+    if scalar is not None:
+        if isinstance(scalar, str):
+            return False
+
+    # allowed are a superset
+    if dtypes is not None:
+        return _ALLOWED_DTYPES["evaluate"] >= set(dtypes)
+
+    # safe fallback if dtypes were not specified
+    return True
+
+
 def _can_use_numexpr(op, op_str, a, b, dtype_check):
     """ return a boolean if we WILL be using numexpr """
     if op_str is not None:

@@ -6678,11 +6678,25 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame
         """
+        import pandas.core.computation.expressions as expressions
+
         # Get the appropriate array-op to apply to each column/block's values.
         array_op = ops.get_array_op(func)
 
         right = lib.item_from_zerodim(right)
         if not is_list_like(right):
+
+            if isinstance(self._mgr, ArrayManager):
+                use_numexpr = expressions.USE_NUMEXPR and expressions.can_use_numexpr(
+                    func, self.shape[0], None, right
+                )
+            else:
+                use_numexpr = expressions.USE_NUMEXPR and expressions.can_use_numexpr(
+                    func, None, None, right
+                )
+
+            array_op = ops.get_array_op(func, use_numexpr=use_numexpr)
+
             # i.e. scalar, faster than checking np.ndim(right) == 0
             with np.errstate(all="ignore"):
                 bm = self._mgr.apply(array_op, right=right)
@@ -6694,6 +6708,16 @@ class DataFrame(NDFrame, OpsMixin):
             # TODO: The previous assertion `assert right._indexed_same(self)`
             #  fails in cases with empty columns reached via
             #  _frame_arith_method_with_reindex
+
+            if isinstance(self._mgr, ArrayManager):
+                use_numexpr = expressions.USE_NUMEXPR and expressions.can_use_numexpr(
+                    func, self.shape[0], None, None
+                )
+            else:
+                use_numexpr = expressions.USE_NUMEXPR
+
+            # breakpoint()
+            array_op = ops.get_array_op(func, use_numexpr=use_numexpr)
 
             # TODO operate_blockwise expects a manager of the same type
             with np.errstate(all="ignore"):

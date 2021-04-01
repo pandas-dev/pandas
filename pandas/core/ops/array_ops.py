@@ -84,6 +84,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
     y : np.ndarray, Series, Index
     op : binary operator
     """
+    print("n\n!!!!!!!!!! ", op, x.dtype, type(y), getattr(y, "dtype", ""))
     # For Series `x` is 1D so ravel() is a no-op; calling it anyway makes
     # the logic valid for both Series and DataFrame ops.
     xrav = x.ravel()
@@ -134,7 +135,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
     return result
 
 
-def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
+def _na_arithmetic_op(left, right, op, is_cmp: bool = False, use_numexpr=True):
     """
     Return the result of evaluating op on the passed in values.
 
@@ -156,14 +157,18 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     TypeError : invalid operation
     """
     try:
-        result = expressions.evaluate(op, left, right)
+        result = expressions.evaluate(op, left, right, use_numexpr=use_numexpr)
     except TypeError:
         if is_cmp:
             # numexpr failed on comparison op, e.g. ndarray[float] > datetime
             #  In this case we do not fall back to the masked op, as that
             #  will handle complex numbers incorrectly, see GH#32047
             raise
-        result = _masked_arith_op(left, right, op)
+        # breakpoint()
+        if is_object_dtype(left) or is_object_dtype(right):
+            result = _masked_arith_op(left, right, op)
+        else:
+            raise
 
     if is_cmp and (is_scalar(result) or result is NotImplemented):
         # numpy returned a scalar instead of operating element-wise
@@ -173,7 +178,7 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     return missing.dispatch_fill_zeros(op, left, right, result)
 
 
-def arithmetic_op(left: ArrayLike, right: Any, op):
+def arithmetic_op(left: ArrayLike, right: Any, op, use_numexpr=True):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
 
@@ -212,7 +217,7 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     return res_values
 
 
-def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
+def comparison_op(left: ArrayLike, right: Any, op, use_numexpr=True) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
 
@@ -267,7 +272,9 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        res_values = _na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
+        res_values = _na_arithmetic_op(
+            lvalues, rvalues, op, is_cmp=True, use_numexpr=use_numexpr
+        )
 
     return res_values
 
@@ -313,7 +320,7 @@ def na_logical_op(x: np.ndarray, y, op):
     return result.reshape(x.shape)
 
 
-def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
+def logical_op(left: ArrayLike, right: Any, op, use_numexpr=True) -> ArrayLike:
     """
     Evaluate a logical operation `|`, `&`, or `^`.
 
@@ -379,7 +386,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     return res_values
 
 
-def get_array_op(op):
+def get_array_op(op, use_numexpr=True):
     """
     Return a binary array operation corresponding to the given operator op.
 
@@ -403,9 +410,9 @@ def get_array_op(op):
         return op
 
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
-        return partial(comparison_op, op=op)
+        return partial(comparison_op, op=op, use_numexpr=use_numexpr)
     elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
-        return partial(logical_op, op=op)
+        return partial(logical_op, op=op, use_numexpr=use_numexpr)
     elif op_name in {
         "add",
         "sub",
@@ -416,7 +423,7 @@ def get_array_op(op):
         "divmod",
         "pow",
     }:
-        return partial(arithmetic_op, op=op)
+        return partial(arithmetic_op, op=op, use_numexpr=use_numexpr)
     else:
         raise NotImplementedError(op_name)
 
