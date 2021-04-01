@@ -115,6 +115,10 @@ def _evaluate_numexpr(op, op_str, a, b):
             # (https://github.com/pydata/numexpr/issues/379)
             pass
 
+        if is_reversed:
+            # reverse order to original for fallback
+            a, b = b, a
+
     if _TEST_MODE:
         _store_test_result(result is not None)
 
