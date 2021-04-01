@@ -1654,10 +1654,10 @@ class TestDataFrameConstructors:
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype="U5")
         tm.assert_frame_equal(df, expected)
 
-    def test_constructor_empty_with_string_extension(self, nullable_string_dtype):
+    def test_constructor_empty_with_string_extension(self):
         # GH 34915
-        expected = DataFrame(index=[], columns=["c1"], dtype=nullable_string_dtype)
-        df = DataFrame(columns=["c1"], dtype=nullable_string_dtype)
+        expected = DataFrame(index=[], columns=["c1"], dtype="string")
+        df = DataFrame(columns=["c1"], dtype="string")
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_single_value(self):
