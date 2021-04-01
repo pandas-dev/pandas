@@ -877,7 +877,9 @@ class TestiLocBaseIndependent:
             request.node.add_marker(mark)
 
         cat = Categorical(["A", "B", "C"])
-        df = DataFrame({1: cat, 2: [1, 2, 3]})
+        df = DataFrame({1: cat, 2: [1, 2, 3]}, copy=False)
+        blk = df._mgr.blocks[1]
+        assert blk.values is cat
 
         # This should modify our original values in-place
         df.iloc[:, 0] = cat[::-1]

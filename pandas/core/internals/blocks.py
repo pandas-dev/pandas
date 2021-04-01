@@ -1483,8 +1483,6 @@ class ExtensionBlock(Block):
             return self.values
 
     def set_inplace(self, locs, values):
-        # NB: This is a misnomer, is supposed to be inplace but is not,
-        #  see GH#33457
         assert locs.tolist() == [0]
         self.values[:] = values
 
