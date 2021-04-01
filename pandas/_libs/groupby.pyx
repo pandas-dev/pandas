@@ -1230,7 +1230,7 @@ def group_min(groupby_t[:, ::1] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_cummin_max(groupby_t[:, ::1] out,
+cdef group_cummin_max(groupby_t[:, ::1] out,
                      ndarray[groupby_t, ndim=2] values,
                      uint8_t[:, ::1] mask,
                      const intp_t[:] labels,
@@ -1268,9 +1268,11 @@ def group_cummin_max(groupby_t[:, ::1] out,
         groupby_t val, mval
         ndarray[groupby_t, ndim=2] accum
         intp_t lab
+        uint8_t[:, ::1] mask_
         bint val_is_nan, use_mask
 
     use_mask = mask is not None
+    mask_ = mask if use_mask else np.zeros_like(values)
 
     N, K = (<object>values).shape
     accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
