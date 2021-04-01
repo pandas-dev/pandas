@@ -2705,39 +2705,22 @@ def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
     `styles=[('Huge', '--wrap'), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
     {\Huge \cellcolor[rgb]{0,1,1}{display_value}}
     """
-    for style in latex_styles[::-1]:  # in reverse for most recently applied style
-        command = style[0]
-        options = style[1]
-
-        if "--wrap" in str(options):
-            display_value = (
-                f"{{\\{command}{_parse_latex_strip_arg(options, '--wrap')} "
-                f"{display_value}}}"
-            )
-        elif "--nowrap" in str(options):
-            display_value = (
-                f"\\{command}{_parse_latex_strip_arg(options, '--nowrap')} "
-                f"{display_value}"
-            )
-        elif "--lwrap" in str(options):
-            display_value = (
-                f"{{\\{command}{_parse_latex_strip_arg(options, '--lwrap')}}} "
-                f"{display_value}"
-            )
-        elif "--dwrap" in str(options):
-            display_value = (
-                f"{{\\{command}{_parse_latex_strip_arg(options, '--dwrap')}}}"
-                f"{{{display_value}}}"
-            )
-        elif "--rwrap" in str(options):
-            display_value = (
-                f"\\{command}{_parse_latex_strip_arg(options, '--rwrap')}"
-                f"{{{display_value}}}"
-            )
-        else:
-            display_value = (
-                f"\\{command}{_parse_latex_strip_arg(options, '')} {display_value}"
-            )
+    for (command, options) in latex_styles[
+        ::-1
+    ]:  # in reverse for most recently applied style
+        formatter = {
+            "--wrap": f"{{\\{command}--to_parse {display_value}}}",
+            "--nowrap": f"\\{command}--to_parse {display_value}",
+            "--lwrap": f"{{\\{command}--to_parse}} {display_value}",
+            "--rwrap": f"\\{command}--to_parse{{{display_value}}}",
+            "--dwrap": f"{{\\{command}--to_parse}}{{{display_value}}}",
+        }
+        display_value = f"\\{command}{options} {display_value}"
+        for arg in ["--nowrap", "--wrap", "--lwrap", "--rwrap", "--dwrap"]:
+            if arg in str(options):
+                display_value = formatter[arg].replace(
+                    "--to_parse", _parse_latex_strip_arg(value=options, arg=arg)
+                )
     return display_value
 
 
