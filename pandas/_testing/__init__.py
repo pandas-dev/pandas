@@ -957,7 +957,7 @@ def get_op_from_name(op_name: str) -> Callable:
 
     Parameters
     ----------
-    op_name : string
+    op_name : str
         The op name, in form of "add" or "__add__".
 
     Returns
