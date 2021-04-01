@@ -1231,12 +1231,12 @@ def group_min(groupby_t[:, ::1] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef group_cummin_max(groupby_t[:, ::1] out,
-                     ndarray[groupby_t, ndim=2] values,
-                     uint8_t[:, ::1] mask,
-                     const intp_t[:] labels,
-                     int ngroups,
-                     bint is_datetimelike,
-                     bint compute_max):
+                      ndarray[groupby_t, ndim=2] values,
+                      uint8_t[:, ::1] mask,
+                      const intp_t[:] labels,
+                      int ngroups,
+                      bint is_datetimelike,
+                      bint compute_max):
     """
     Cumulative minimum/maximum of columns of `values`, in row groups `labels`.
 
@@ -1246,9 +1246,9 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
         Array to store cummin/max in.
     values : array
         Values to take cummin/max of.
-    mask : array[uint8_t]
-        If `use_mask`, then indices represent missing values,
-        otherwise will be passed as a zeroed array
+    mask : array[uint8_t] or None
+        If not None, indices represent missing values,
+        otherwise the mask will not be used
     labels : np.ndarray[np.intp]
         Labels to group by.
     ngroups : int
@@ -1266,16 +1266,14 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
     cdef:
         Py_ssize_t i, j, N, K, size
         groupby_t val, mval
-        ndarray[groupby_t, ndim=2] accum
+        groupby_t[:, ::1] accum
         intp_t lab
-        uint8_t[:, ::1] mask_
         bint val_is_nan, use_mask
 
     use_mask = mask is not None
-    mask_ = mask if use_mask else np.zeros_like(values, dtype=np.uint8)
 
     N, K = (<object>values).shape
-    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
+    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype, order='C')
     if groupby_t is int64_t:
         accum[:] = -_int64_max if compute_max else _int64_max
     elif groupby_t is uint64_t:
@@ -1293,7 +1291,7 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
                 val_is_nan = False
 
                 if use_mask:
-                    if mask_[i, j]:
+                    if mask[i, j]:
 
                         # `out` does not need to be set since it
                         # will be masked anyway
