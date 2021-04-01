@@ -171,7 +171,7 @@ def _maybe_cache(
     arg : listlike, tuple, 1-d array, Series
     format : string
         Strftime format to parse time
-    cache : boolean
+    cache : bool
         True attempts to create a cache of converted values
     convert_listlike : function
         Conversion function to apply on dates
@@ -313,9 +313,9 @@ def _convert_listlike_datetimes(
         error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'
     infer_datetime_format : bool, default False
         inferring format behavior from to_datetime
-    dayfirst : boolean
+    dayfirst : bool
         dayfirst parsing behavior from to_datetime
-    yearfirst : boolean
+    yearfirst : bool
         yearfirst parsing behavior from to_datetime
     exact : bool, default True
         exact format matching behavior from to_datetime
