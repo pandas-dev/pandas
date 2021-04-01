@@ -365,7 +365,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         from pandas.io.formats.format import is_dates_only
 
-        return self.tz is None and is_dates_only(self._values)
+        # error: Argument 1 to "is_dates_only" has incompatible type
+        # "Union[ExtensionArray, ndarray]"; expected "Union[ndarray,
+        # DatetimeArray, Index, DatetimeIndex]"
+        return self.tz is None and is_dates_only(self._values)  # type: ignore[arg-type]
 
     def __reduce__(self):
 
@@ -533,7 +536,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # preserve the tz & copy
             values = self.copy(deep=True)
         else:
-            values = self._values.view("M8[ns]").copy()
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "DatetimeIndex")
+            values = self._values.view("M8[ns]").copy()  # type: ignore[assignment]
 
         return Series(values, index=index, name=name)
 
@@ -631,7 +636,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # See also GH14826
             raise KeyError
 
-        if reso == "microsecond":
+        if reso.attrname == "microsecond":
             # _partial_date_slice doesn't allow microsecond resolution, but
             # _parsed_string_to_bounds allows it.
             raise KeyError
@@ -743,11 +748,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if isinstance(label, str):
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
             try:
-                parsed, reso = parsing.parse_time_string(label, freq)
+                parsed, reso_str = parsing.parse_time_string(label, freq)
             except parsing.DateParseError as err:
                 raise self._invalid_indexer("slice", label) from err
 
-            reso = Resolution.from_attrname(reso)
+            reso = Resolution.from_attrname(reso_str)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
             #   [parsed, parsed + 1 freq)
@@ -767,8 +772,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def _get_string_slice(self, key: str):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
-        parsed, reso = parsing.parse_time_string(key, freq)
-        reso = Resolution.from_attrname(reso)
+        parsed, reso_str = parsing.parse_time_string(key, freq)
+        reso = Resolution.from_attrname(reso_str)
         return self._partial_date_slice(reso, parsed)
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):

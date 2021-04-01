@@ -30,6 +30,7 @@ from typing import (
 
 import numpy as np
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
@@ -83,6 +84,16 @@ class JSONArray(ExtensionArray):
         return cls([UserDict(x) for x in values if x != ()])
 
     def __getitem__(self, item):
+        if isinstance(item, tuple):
+            if len(item) > 1:
+                if item[0] is Ellipsis:
+                    item = item[1:]
+                elif item[-1] is Ellipsis:
+                    item = item[:-1]
+            if len(item) > 1:
+                raise IndexError("too many indices for array.")
+            item = item[0]
+
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, slice) and item == slice(None):
@@ -207,11 +218,9 @@ class JSONArray(ExtensionArray):
         return frozen, ()
 
     def _values_for_argsort(self):
-        # Disable NumPy's shape inference by including an empty tuple...
-        # If all the elements of self are the same size P, NumPy will
-        # cast them to an (N, P) array, instead of an (N,) array of tuples.
-        frozen = [()] + [tuple(x.items()) for x in self]
-        return np.array(frozen, dtype=object)[1:]
+        # Bypass NumPy's shape inference to get a (N,) array of tuples.
+        frozen = [tuple(x.items()) for x in self]
+        return construct_1d_object_array_from_listlike(frozen)
 
 
 def make_data():

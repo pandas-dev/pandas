@@ -32,10 +32,6 @@ from pandas.tests.io.pytables.common import (
     safe_close,
 )
 
-# TODO(ArrayManager) HDFStore relies on accessing the blocks
-pytestmark = td.skip_array_manager_not_yet_implemented
-
-
 _default_compressor = "blosc"
 ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"
@@ -46,7 +42,8 @@ from pandas.io.pytables import (
     read_hdf,
 )
 
-pytestmark = pytest.mark.single
+# TODO(ArrayManager) HDFStore relies on accessing the blocks
+pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
 
 
 def test_context(setup_path):

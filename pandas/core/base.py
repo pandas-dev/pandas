@@ -23,6 +23,8 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     IndexLabel,
+    Shape,
+    final,
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
@@ -113,9 +115,9 @@ class PandasObject(DirNamesMixin):
         Generates the total memory usage for an object that returns
         either a value or Series of values
         """
-        if hasattr(self, "memory_usage"):
-            # error: "PandasObject" has no attribute "memory_usage"
-            mem = self.memory_usage(deep=True)  # type: ignore[attr-defined]
+        memory_usage = getattr(self, "memory_usage", None)
+        if memory_usage:
+            mem = memory_usage(deep=True)
             return int(mem if is_scalar(mem) else mem.sum())
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
@@ -389,7 +391,7 @@ class IndexOpsMixin(OpsMixin):
     )
 
     @property
-    def shape(self):
+    def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
         """
@@ -511,7 +513,7 @@ class IndexOpsMixin(OpsMixin):
         copy: bool = False,
         na_value=lib.no_default,
         **kwargs,
-    ):
+    ) -> np.ndarray:
         """
         A NumPy ndarray representing the values in this Series or Index.
 
@@ -617,7 +619,12 @@ class IndexOpsMixin(OpsMixin):
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
 
-        result = np.asarray(self._values, dtype=dtype)
+        # error: Argument "dtype" to "asarray" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
+        # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+        result = np.asarray(self._values, dtype=dtype)  # type: ignore[arg-type]
         # TODO(GH-24345): Avoid potential double copy
         if copy or na_value is not lib.no_default:
             result = result.copy()
@@ -735,7 +742,11 @@ class IndexOpsMixin(OpsMixin):
             else:
                 return delegate.argmax()
         else:
-            return nanops.nanargmax(delegate, skipna=skipna)
+            # error: Incompatible return value type (got "Union[int, ndarray]", expected
+            # "int")
+            return nanops.nanargmax(  # type: ignore[return-value]
+                delegate, skipna=skipna
+            )
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
         """
@@ -793,7 +804,11 @@ class IndexOpsMixin(OpsMixin):
             else:
                 return delegate.argmin()
         else:
-            return nanops.nanargmin(delegate, skipna=skipna)
+            # error: Incompatible return value type (got "Union[int, ndarray]", expected
+            # "int")
+            return nanops.nanargmin(  # type: ignore[return-value]
+                delegate, skipna=skipna
+            )
 
     def tolist(self):
         """
@@ -839,7 +854,7 @@ class IndexOpsMixin(OpsMixin):
             return map(self._values.item, range(self._values.size))
 
     @cache_readonly
-    def hasnans(self):
+    def hasnans(self) -> bool:
         """
         Return if I have any nans; enables various perf speedups.
         """
@@ -919,12 +934,8 @@ class IndexOpsMixin(OpsMixin):
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
 
-                # error: Incompatible types in assignment (expression has type
-                # "Categorical", variable has type "IndexOpsMixin")
-                self = cast("Categorical", self)  # type: ignore[assignment]
-                # error: Item "ExtensionArray" of "Union[ExtensionArray, Any]" has no
-                # attribute "map"
-                return self._values.map(mapper)  # type: ignore[union-attr]
+                cat = cast("Categorical", self._values)
+                return cat.map(mapper)
 
             values = self._values
 
@@ -941,8 +952,7 @@ class IndexOpsMixin(OpsMixin):
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
-            # error: "IndexOpsMixin" has no attribute "astype"
-            values = self.astype(object)._values  # type: ignore[attr-defined]
+            values = self._values.astype(object)
             if na_action == "ignore":
                 map_f = lambda values, f: lib.map_infer_mask(
                     values, f, isna(values).view(np.uint8)
@@ -1313,9 +1323,10 @@ class IndexOpsMixin(OpsMixin):
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first"):
-        duplicated = self.duplicated(keep=keep)
+        duplicated = self._duplicated(keep=keep)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]
 
-    def duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
+    @final
+    def _duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
         return duplicated(self._values, keep=keep)

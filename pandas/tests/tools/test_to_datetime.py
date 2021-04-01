@@ -515,7 +515,7 @@ class TestToDatetime:
         assert actual == datetime(2008, 1, 15)
 
     def test_to_datetime_unparseable_ignore(self):
-        # unparseable
+        # unparsable
         s = "Month 1, 1999"
         assert to_datetime(s, errors="ignore") == s
 
@@ -1157,7 +1157,7 @@ class TestToDatetimeUnit:
         tm.assert_index_equal(result, expected)
 
         msg = "cannot convert input 11111111 with the unit 'D'"
-        with pytest.raises(tslib.OutOfBoundsDatetime, match=msg):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(values, unit="D", errors="raise", cache=cache)
 
         values = [1420043460000, iNaT, NaT, np.nan, "NaT"]
@@ -1171,7 +1171,7 @@ class TestToDatetimeUnit:
         tm.assert_index_equal(result, expected)
 
         msg = "cannot convert input 1420043460000 with the unit 's'"
-        with pytest.raises(tslib.OutOfBoundsDatetime, match=msg):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(values, errors="raise", unit="s", cache=cache)
 
         # if we have a string, then we raise a ValueError
@@ -1179,7 +1179,7 @@ class TestToDatetimeUnit:
         for val in ["foo", Timestamp("20130101")]:
             try:
                 to_datetime(val, errors="raise", unit="s", cache=cache)
-            except tslib.OutOfBoundsDatetime as err:
+            except OutOfBoundsDatetime as err:
                 raise AssertionError("incorrect exception raised") from err
             except ValueError:
                 pass
@@ -1650,6 +1650,12 @@ class TestToDatetimeMisc:
         msg = "invalid string coercion to datetime"
         with pytest.raises(TypeError, match=msg):
             to_datetime([1, "1"], errors="raise", cache=cache)
+
+    @pytest.mark.parametrize("cache", [True, False])
+    def test_to_datetime_unhashable_input(self, cache):
+        series = Series([["a"]] * 100)
+        result = to_datetime(series, errors="ignore", cache=cache)
+        tm.assert_series_equal(series, result)
 
     def test_to_datetime_other_datetime64_units(self):
         # 5/25/2012
@@ -2341,7 +2347,7 @@ class TestOrigin:
             ("random_string", ValueError),
             ("epoch", ValueError),
             ("13-24-1990", ValueError),
-            (datetime(1, 1, 1), tslib.OutOfBoundsDatetime),
+            (datetime(1, 1, 1), OutOfBoundsDatetime),
         ],
     )
     def test_invalid_origins(self, origin, exc, units, units_from_epochs):
@@ -2469,7 +2475,7 @@ def test_empty_string_datetime_coerce__format():
     with pytest.raises(ValueError, match="does not match format"):
         result = to_datetime(td, format=format, errors="raise")
 
-    # don't raise an expection in case no format is given
+    # don't raise an exception in case no format is given
     result = to_datetime(td, errors="raise")
     tm.assert_series_equal(result, expected)
 

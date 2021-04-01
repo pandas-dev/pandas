@@ -639,6 +639,14 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         m8arr = self._ndarray.view("M8[ns]")
         return m8arr.searchsorted(value, side=side, sorter=sorter)
 
+    def fillna(self, value=None, method=None, limit=None) -> PeriodArray:
+        if method is not None:
+            # view as dt64 so we get treated as timelike in core.missing
+            dta = self.view("M8[ns]")
+            result = dta.fillna(value=value, method=method, limit=limit)
+            return result.view(self.dtype)
+        return super().fillna(value=value, method=method, limit=limit)
+
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
@@ -1117,9 +1125,12 @@ def _make_field_arrays(*fields):
             elif length is None:
                 length = len(x)
 
+    # error: Argument 2 to "repeat" has incompatible type "Optional[int]"; expected
+    # "Union[Union[int, integer[Any]], Union[bool, bool_], ndarray, Sequence[Union[int,
+    # integer[Any]]], Sequence[Union[bool, bool_]], Sequence[Sequence[Any]]]"
     return [
         np.asarray(x)
         if isinstance(x, (np.ndarray, list, ABCSeries))
-        else np.repeat(x, length)
+        else np.repeat(x, length)  # type: ignore[arg-type]
         for x in fields
     ]

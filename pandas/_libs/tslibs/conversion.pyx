@@ -267,7 +267,7 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
     Parameters
     ----------
     arr : ndarray
-    copy : boolean, default True
+    copy : bool, default True
 
     Returns
     -------

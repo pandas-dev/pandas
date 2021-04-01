@@ -565,9 +565,9 @@ def get_handle(
            Passing compression options as keys in dict is now
            supported for compression modes 'gzip' and 'bz2' as well as 'zip'.
 
-    memory_map : boolean, default False
+    memory_map : bool, default False
         See parsers._parser_params for more information.
-    is_text : boolean, default True
+    is_text : bool, default True
         Whether the type of the content passed to the file/buffer is string or
         bytes. This is not the same as `"b" not in mode`. If a string content is
         passed to a binary file/buffer, a wrapper is inserted.
@@ -583,11 +583,31 @@ def get_handle(
     Returns the dataclass IOHandles
     """
     # Windows does not default to utf-8. Set to utf-8 for a consistent behavior
-    encoding_passed, encoding = encoding, encoding or "utf-8"
+    encoding = encoding or "utf-8"
 
     # read_csv does not know whether the buffer is opened in binary/text mode
     if _is_binary_mode(path_or_buf, mode) and "b" not in mode:
         mode += "b"
+
+    # valdiate errors
+    if isinstance(errors, str):
+        errors = errors.lower()
+    if errors not in (
+        None,
+        "strict",
+        "ignore",
+        "replace",
+        "xmlcharrefreplace",
+        "backslashreplace",
+        "namereplace",
+        "surrogateescape",
+        "surrogatepass",
+    ):
+        raise ValueError(
+            f"Invalid value for `encoding_errors` ({errors}). Please see "
+            + "https://docs.python.org/3/library/codecs.html#error-handlers "
+            + "for valid values."
+        )
 
     # open URLs
     ioargs = _get_filepath_or_buffer(
@@ -677,9 +697,6 @@ def get_handle(
         # Check whether the filename is to be opened in binary mode.
         # Binary mode does not support 'encoding' and 'newline'.
         if ioargs.encoding and "b" not in ioargs.mode:
-            if errors is None and encoding_passed is None:
-                # ignore errors when no encoding is specified
-                errors = "replace"
             # Encoding
             handle = open(
                 handle,

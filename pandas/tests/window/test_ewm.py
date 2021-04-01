@@ -171,3 +171,13 @@ def test_ewm_vol_deprecated():
         result = ser.ewm(com=0.1).vol()
     expected = ser.ewm(com=0.1).std()
     tm.assert_series_equal(result, expected)
+
+
+def test_ewma_times_adjust_false_raises():
+    # GH 40098
+    with pytest.raises(
+        NotImplementedError, match="times is not supported with adjust=False."
+    ):
+        Series(range(1)).ewm(
+            0.1, adjust=False, times=date_range("2000", freq="D", periods=1)
+        )

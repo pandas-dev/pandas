@@ -20,6 +20,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -142,6 +143,8 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas._typing import (
         TimedeltaConvertibleTypes,
         TimestampConvertibleTypes,
@@ -159,7 +162,7 @@ _shared_doc_kwargs = {
     "axes_single_arg": "{0 or 'index'}",
     "axis": """axis : {0 or 'index'}
         Parameter needed for compatibility with DataFrame.""",
-    "inplace": """inplace : boolean, default False
+    "inplace": """inplace : bool, default False
         If True, performs operation inplace and returns None.""",
     "unique": "np.ndarray",
     "duplicated": "Series",
@@ -267,7 +270,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     )
 
     # Override cache_readonly bc Series is mutable
-    hasnans = property(
+    # error: Incompatible types in assignment (expression has type "property",
+    # base class "IndexOpsMixin" defined the type as "Callable[[IndexOpsMixin], bool]")
+    hasnans = property(  # type: ignore[assignment]
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
     __hash__ = generic.NDFrame.__hash__
@@ -353,7 +358,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 copy = False
 
             elif isinstance(data, np.ndarray):
-                if len(data.dtype):
+                # error: Argument 1 to "len" has incompatible type "dtype"; expected
+                # "Sized"
+                if len(data.dtype):  # type: ignore[arg-type]
                     # GH#13296 we are dealing with a compound dtype, which
                     #  should be treated as 2D
                     raise ValueError(
@@ -454,7 +461,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # TODO: passing np.float64 to not break anything yet. See GH-17261
         s = create_series_with_explicit_dtype(
-            values, index=keys, dtype=dtype, dtype_if_empty=np.float64
+            # error: Argument "index" to "create_series_with_explicit_dtype" has
+            # incompatible type "Tuple[Any, ...]"; expected "Union[ExtensionArray,
+            # ndarray, Index, None]"
+            values,
+            index=keys,  # type: ignore[arg-type]
+            dtype=dtype,
+            dtype_if_empty=np.float64,
         )
 
         # Now we just make sure the order is respected, if any
@@ -983,7 +996,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_values(self, indexer):
         try:
-            return self._constructor(self._mgr.get_slice(indexer)).__finalize__(self)
+            new_mgr = self._mgr.getitem_mgr(indexer)
+            return self._constructor(new_mgr).__finalize__(self)
         except ValueError:
             # mpl compat if we look up e.g. ser[:, np.newaxis];
             #  see tests.series.timeseries.test_mpl_compat_hack
@@ -1052,7 +1066,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_with_engine(self, key, value):
         # fails with AttributeError for IntervalIndex
         loc = self.index._engine.get_loc(key)
-        validate_numeric_casting(self.dtype, value)
+        # error: Argument 1 to "validate_numeric_casting" has incompatible type
+        # "Union[dtype, ExtensionDtype]"; expected "dtype"
+        validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
         self._values[loc] = value
 
     def _set_with(self, key, value):
@@ -1858,7 +1874,7 @@ Name: Max Speed, dtype: float64
         # TODO: Add option for bins like value_counts()
         return algorithms.mode(self, dropna=dropna)
 
-    def unique(self):
+    def unique(self) -> ArrayLike:
         """
         Return unique values of Series object.
 
@@ -2025,7 +2041,7 @@ Name: Max Speed, dtype: float64
 
         Returns
         -------
-        Series
+        Series[bool]
             Series indicating whether each value has occurred in the
             preceding values.
 
@@ -2080,7 +2096,7 @@ Name: Max Speed, dtype: float64
         4     True
         dtype: bool
         """
-        res = base.IndexOpsMixin.duplicated(self, keep=keep)
+        res = self._duplicated(keep=keep)
         result = self._constructor(res, index=self.index)
         return result.__finalize__(self, method="duplicated")
 
@@ -2987,39 +3003,59 @@ Keep all original rows and also all original values
             # TODO: can we do this for only SparseDtype?
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-            new_values = maybe_cast_to_extension_array(type(self._values), new_values)
+
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "List[Any]")
+            new_values = maybe_cast_to_extension_array(  # type: ignore[assignment]
+                # error: Argument 2 to "maybe_cast_to_extension_array" has incompatible
+                # type "List[Any]"; expected "Union[ExtensionArray, ndarray]"
+                type(self._values),
+                new_values,  # type: ignore[arg-type]
+            )
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> Series:
         """
-        Combine Series values, choosing the calling Series's values first.
+        Update null elements with value in the same location in 'other'.
+
+        Combine two Series objects by filling null values in one Series with
+        non-null values from the other Series. Result index will be the union
+        of the two indexes.
 
         Parameters
         ----------
         other : Series
-            The value(s) to be combined with the `Series`.
+            The value(s) to be used for filling null values.
 
         Returns
         -------
         Series
-            The result of combining the Series with the other object.
+            The result of combining the provided Series with the other object.
 
         See Also
         --------
-        Series.combine : Perform elementwise operation on two Series
+        Series.combine : Perform element-wise operation on two Series
             using a given function.
-
-        Notes
-        -----
-        Result index will be the union of the two indexes.
 
         Examples
         --------
         >>> s1 = pd.Series([1, np.nan])
-        >>> s2 = pd.Series([3, 4])
+        >>> s2 = pd.Series([3, 4, 5])
         >>> s1.combine_first(s2)
         0    1.0
         1    4.0
+        2    5.0
+        dtype: float64
+
+        Null values still persist if the location of that null value
+        does not exist in `other`
+
+        >>> s1 = pd.Series({'falcon': np.nan, 'eagle': 160.0})
+        >>> s2 = pd.Series({'eagle': 200.0, 'duck': 30.0})
+        >>> s1.combine_first(s2)
+        duck       30.0
+        eagle     160.0
+        falcon      NaN
         dtype: float64
         """
         new_index = self.index.union(other.index)
@@ -3819,7 +3855,8 @@ Keep all original rows and also all original values
         dtype: object
         """
         if not len(self) or not is_object_dtype(self):
-            return self.copy()
+            result = self.copy()
+            return result.reset_index(drop=True) if ignore_index else result
 
         values, counts = reshape.explode(np.asarray(self._values))
 
@@ -4193,7 +4230,7 @@ Keep all original rows and also all original values
         )
         return self._constructor(new_values, index=new_index)
 
-    def _needs_reindex_multi(self, axes, method, level):
+    def _needs_reindex_multi(self, axes, method, level) -> bool:
         """
         Check if we do need a multi reindex; this is for compat with
         higher dims.
@@ -4306,6 +4343,26 @@ Keep all original rows and also all original values
             )
         else:
             return self._set_name(index, inplace=inplace)
+
+    @overload
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: Literal[False] = ...
+    ) -> Series:
+        ...
+
+    @overload
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: bool = ...
+    ) -> Optional[Series]:
+        ...
 
     @Appender(
         """
@@ -5029,7 +5086,8 @@ Keep all original rows and also all original values
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
 
-        res_values = ops.comparison_op(lvalues, rvalues, op)
+        with np.errstate(all="ignore"):
+            res_values = ops.comparison_op(lvalues, rvalues, op)
 
         return self._construct_result(res_values, name=res_name)
 
@@ -5049,7 +5107,8 @@ Keep all original rows and also all original values
 
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
-        result = ops.arithmetic_op(lvalues, rvalues, op)
+        with np.errstate(all="ignore"):
+            result = ops.arithmetic_op(lvalues, rvalues, op)
 
         return self._construct_result(result, name=res_name)
 

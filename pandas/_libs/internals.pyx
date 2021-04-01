@@ -13,23 +13,26 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    NPY_INT64,
+    NPY_INTP,
     int64_t,
+    intp_t,
     ndarray,
 )
 
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
+
 from pandas._libs.util cimport is_integer_object
 
 
 @cython.final
+@cython.freelist(32)
 cdef class BlockPlacement:
     # __slots__ = '_as_slice', '_as_array', '_len'
     cdef:
         slice _as_slice
-        ndarray _as_array  # Note: this still allows `None`
+        ndarray _as_array  # Note: this still allows `None`; will be intp_t
         bint _has_slice, _has_array, _is_known_slice_like
 
     def __cinit__(self, val):
@@ -52,12 +55,12 @@ cdef class BlockPlacement:
                 self._as_slice = slc
                 self._has_slice = True
             else:
-                arr = np.empty(0, dtype=np.int64)
+                arr = np.empty(0, dtype=np.intp)
                 self._as_array = arr
                 self._has_array = True
         else:
             # Cython memoryview interface requires ndarray to be writeable.
-            arr = np.require(val, dtype=np.int64, requirements='W')
+            arr = np.require(val, dtype=np.intp, requirements='W')
             assert arr.ndim == 1, arr.shape
             self._as_array = arr
             self._has_array = True
@@ -124,8 +127,8 @@ cdef class BlockPlacement:
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
             # NOTE: this is the C-optimized equivalent of
-            #  `np.arange(start, stop, step, dtype=np.int64)`
-            self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INT64)
+            #  `np.arange(start, stop, step, dtype=np.intp)`
+            self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INTP)
             self._has_array = True
 
         return self._as_array
@@ -324,13 +327,13 @@ cdef slice_getitem(slice slc, ind):
     else:
         # NOTE:
         # this is the C-optimized equivalent of
-        # `np.arange(s_start, s_stop, s_step, dtype=np.int64)[ind]`
-        return cnp.PyArray_Arange(s_start, s_stop, s_step, NPY_INT64)[ind]
+        # `np.arange(s_start, s_stop, s_step, dtype=np.intp)[ind]`
+        return cnp.PyArray_Arange(s_start, s_stop, s_step, NPY_INTP)[ind]
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef slice indexer_as_slice(int64_t[:] vals):
+cdef slice indexer_as_slice(intp_t[:] vals):
     cdef:
         Py_ssize_t i, n, start, stop
         int64_t d
@@ -452,3 +455,53 @@ def get_blkno_placements(blknos, group: bool = True):
 
     for blkno, indexer in get_blkno_indexers(blknos, group):
         yield blkno, BlockPlacement(indexer)
+
+
+@cython.freelist(64)
+cdef class Block:
+    """
+    Defining __init__ in a cython class significantly improves performance.
+    """
+    cdef:
+        public BlockPlacement _mgr_locs
+        readonly int ndim
+        public object values
+
+    def __cinit__(self, values, placement: BlockPlacement, ndim: int):
+        """
+        Parameters
+        ----------
+        values : np.ndarray or ExtensionArray
+            We assume maybe_coerce_values has already been called.
+        placement : BlockPlacement
+        ndim : int
+            1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
+        """
+        self._mgr_locs = placement
+        self.ndim = ndim
+        self.values = values
+
+    cpdef __reduce__(self):
+        # We have to do some gymnastics b/c "ndim" is keyword-only
+        from functools import partial
+
+        from pandas.core.internals.blocks import new_block
+
+        args = (self.values, self.mgr_locs.indexer)
+        func = partial(new_block, ndim=self.ndim)
+        return func, args
+
+    cpdef __setstate__(self, state):
+        from pandas.core.construction import extract_array
+
+        self.mgr_locs = BlockPlacement(state[0])
+        self.values = extract_array(state[1], extract_numpy=True)
+        if len(state) > 2:
+            # we stored ndim
+            self.ndim = state[2]
+        else:
+            # older pickle
+            from pandas.core.internals.api import maybe_infer_ndim
+
+            ndim = maybe_infer_ndim(self.values, self.mgr_locs)
+            self.ndim = ndim

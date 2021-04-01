@@ -758,7 +758,7 @@ def test_agg_relabel_multiindex_column(
 
 
 def test_agg_relabel_multiindex_raises_not_exist():
-    # GH 29422, add test for raises senario when aggregate column does not exist
+    # GH 29422, add test for raises scenario when aggregate column does not exist
     df = DataFrame(
         {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
     )
@@ -769,7 +769,7 @@ def test_agg_relabel_multiindex_raises_not_exist():
 
 
 def test_agg_relabel_multiindex_duplicates():
-    # GH29422, add test for raises senario when getting duplicates
+    # GH29422, add test for raises scenario when getting duplicates
     # GH28426, after this change, duplicates should also work if the relabelling is
     # different
     df = DataFrame(

@@ -145,6 +145,12 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         If the index is not datetime-like.
     ValueError
         If there are fewer than three values.
+
+    Examples
+    --------
+    >>> idx = pd.date_range(start='2020/12/01', end='2020/12/30', periods=30)
+    >>> pd.infer_freq(idx)
+    'D'
     """
     import pandas as pd
 
@@ -385,7 +391,8 @@ class _FrequencyInferer:
         shifts = np.diff(self.index.asi8)
         shifts = np.floor_divide(shifts, _ONE_DAY)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
-        return np.all(
+        # error: Incompatible return value type (got "bool_", expected "bool")
+        return np.all(  # type: ignore[return-value]
             ((weekdays == 0) & (shifts == 3))
             | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
         )
@@ -557,7 +564,7 @@ def _maybe_coerce_freq(code) -> str:
 
     Parameters
     ----------
-    source : string or DateOffset
+    source : str or DateOffset
         Frequency converting from
 
     Returns

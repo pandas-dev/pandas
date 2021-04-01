@@ -63,10 +63,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             na_value = self._str_na_value
 
         if not len(arr):
-            return np.ndarray(0, dtype=dtype)
+            # error: Argument 1 to "ndarray" has incompatible type "int";
+            # expected "Sequence[int]"
+            return np.ndarray(0, dtype=dtype)  # type: ignore[arg-type]
 
         if not isinstance(arr, np.ndarray):
-            arr = np.asarray(arr, dtype=object)
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "ObjectStringArrayMixin")
+            arr = np.asarray(arr, dtype=object)  # type: ignore[assignment]
         mask = isna(arr)
         convert = not np.all(mask)
         try:

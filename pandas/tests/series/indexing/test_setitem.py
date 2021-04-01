@@ -306,8 +306,8 @@ class TestSetitemViewCopySemantics:
         ser = Series(dti)
         assert ser._values is not dti
         assert ser._values._data.base is not dti._data._data.base
-        assert ser._mgr.blocks[0].values is not dti
-        assert ser._mgr.blocks[0].values._data.base is not dti._data._data.base
+        assert ser._mgr.arrays[0] is not dti
+        assert ser._mgr.arrays[0]._data.base is not dti._data._data.base
 
         ser[::3] = NaT
         assert ser[0] is NaT

@@ -1233,7 +1233,9 @@ class StataReader(StataParser, abc.Iterator):
             if typ <= 2045:
                 return str(typ)
             try:
-                return self.DTYPE_MAP_XML[typ]
+                # error: Incompatible return value type (got "Type[number]", expected
+                # "Union[str, dtype]")
+                return self.DTYPE_MAP_XML[typ]  # type: ignore[return-value]
             except KeyError as err:
                 raise ValueError(f"cannot convert stata dtype [{typ}]") from err
 
@@ -1666,7 +1668,12 @@ the string values returned are correct."""
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
                 dtype = data[col].dtype
-                if dtype != np.dtype(object) and dtype != self.dtyplist[i]:
+                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
+                # "object"
+                if (
+                    dtype != np.dtype(object)  # type: ignore[type-var]
+                    and dtype != self.dtyplist[i]
+                ):
                     requires_type_conversion = True
                     data_formatted.append(
                         (col, Series(data[col], ix, self.dtyplist[i]))

@@ -293,7 +293,7 @@ class Grouper:
         Parameters
         ----------
         obj : the subject object
-        validate : boolean, default True
+        validate : bool, default True
             if True, validate the grouper
 
         Returns
@@ -583,7 +583,9 @@ class Grouping:
     def codes(self) -> np.ndarray:
         if self._codes is None:
             self._make_codes()
-        return self._codes
+        # error: Incompatible return value type (got "Optional[ndarray]",
+        # expected "ndarray")
+        return self._codes  # type: ignore[return-value]
 
     @cache_readonly
     def result_index(self) -> Index:
@@ -787,7 +789,7 @@ def get_grouper(
             #  lambda here
             return False
 
-    for i, (gpr, level) in enumerate(zip(keys, levels)):
+    for gpr, level in zip(keys, levels):
 
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis, name = True, gpr.name

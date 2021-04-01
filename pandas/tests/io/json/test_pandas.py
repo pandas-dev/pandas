@@ -63,7 +63,7 @@ class TestPandasContainer:
     @pytest.fixture
     def datetime_series(self):
         # Same as usual datetime_series, but with index freq set to None,
-        #  since that doesnt round-trip, see GH#33711
+        #  since that doesn't round-trip, see GH#33711
         ser = tm.makeTimeSeries()
         ser.name = "ts"
         ser.index = ser.index._with_freq(None)
@@ -72,7 +72,7 @@ class TestPandasContainer:
     @pytest.fixture
     def datetime_frame(self):
         # Same as usual datetime_frame, but with index freq set to None,
-        #  since that doesnt round-trip, see GH#33711
+        #  since that doesn't round-trip, see GH#33711
         df = DataFrame(tm.getTimeSeriesData())
         df.index = df.index._with_freq(None)
         return df
@@ -459,7 +459,7 @@ class TestPandasContainer:
 
     def test_v12_compat(self, datapath):
         dti = pd.date_range("2000-01-03", "2000-01-07")
-        # freq doesnt roundtrip
+        # freq doesn't roundtrip
         dti = DatetimeIndex(np.asarray(dti), freq=None)
         df = DataFrame(
             [
@@ -489,7 +489,7 @@ class TestPandasContainer:
 
     def test_blocks_compat_GH9037(self):
         index = pd.date_range("20000101", periods=10, freq="H")
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         index = DatetimeIndex(list(index), freq=None)
 
         df_mixed = DataFrame(
@@ -637,8 +637,10 @@ class TestPandasContainer:
         tm.assert_series_equal(
             s, read_json(s.to_json(orient="split"), orient="split", typ="series")
         )
-        unser = read_json(s.to_json(orient="records"), orient="records", typ="series")
-        tm.assert_numpy_array_equal(s.values, unser.values)
+        unserialized = read_json(
+            s.to_json(orient="records"), orient="records", typ="series"
+        )
+        tm.assert_numpy_array_equal(s.values, unserialized.values)
 
     def test_series_default_orient(self, string_series):
         assert string_series.to_json() == string_series.to_json(orient="index")
@@ -1727,11 +1729,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             time.sleep(0.1)
             timeout -= 0.1
             assert timeout > 0, "Timed out waiting for file to appear on moto"
-
-    def test_json_pandas_na(self):
-        # GH 31615
-        result = DataFrame([[pd.NA]]).to_json()
-        assert result == '{"0":{"0":null}}'
 
     def test_json_pandas_nulls(self, nulls_fixture, request):
         # GH 31615
