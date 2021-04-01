@@ -385,7 +385,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
 
     Returns
     -------
-    iter : iterator of (int, slice or array)
+    list[tuple[int, slice | np.ndarray]]
     """
     # There's blkno in this function's name because it's used in block &
     # blockno handling.

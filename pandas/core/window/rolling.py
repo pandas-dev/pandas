@@ -239,7 +239,7 @@ class BaseWindow(SelectionMixin):
         Parameters
         ----------
         key : str / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             requested ndim of result
         subset : object, default None
             subset to act on

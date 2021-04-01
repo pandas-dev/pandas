@@ -52,7 +52,7 @@ def unstack(reshape_t[:, :] values, const uint8_t[:] mask,
     stride : int
     length : int
     width : int
-    new_values : typed ndarray
+    new_values : np.ndarray[bool]
         result array
     new_mask : np.ndarray[bool]
         result mask

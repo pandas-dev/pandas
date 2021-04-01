@@ -853,7 +853,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         Returns
         -------
-        datetimes : ndarray
+        timedeltas : ndarray[object]
         """
         return tslibs.ints_to_pytimedelta(self.asi8)
 

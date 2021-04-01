@@ -916,7 +916,7 @@ def indices_fast(ndarray[intp_t] index, const int64_t[:] labels, list keys,
     """
     Parameters
     ----------
-    index : ndarray
+    index : ndarray[intp]
     labels : ndarray[int64]
     keys : list
     sorted_labels : list[ndarray[int64]]

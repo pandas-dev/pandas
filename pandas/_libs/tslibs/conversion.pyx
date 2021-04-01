@@ -316,7 +316,7 @@ def datetime_to_datetime64(ndarray[object] values):
 
     Returns
     -------
-    result : ndarray[int64_t]
+    result : ndarray[datetime64ns]
     inferred_tz : tzinfo or None
     """
     cdef:

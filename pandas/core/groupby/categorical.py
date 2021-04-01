@@ -41,7 +41,7 @@ def recode_for_groupby(
 
     Returns
     -------
-    New Categorical
+    Categorical
         If sort=False, the new categories are set to the order of
         appearance in codes (unless ordered=True, in which case the
         original order is preserved), followed by any unrepresented

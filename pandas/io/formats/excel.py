@@ -431,8 +431,8 @@ class ExcelFormatter:
     ----------
     df : DataFrame or Styler
     na_rep: na representation
-    float_format : string, default None
-            Format string for floating point numbers
+    float_format : str, default None
+        Format string for floating point numbers
     cols : sequence, optional
         Columns to write
     header : bool or sequence of str, default True
@@ -440,12 +440,12 @@ class ExcelFormatter:
         assumed to be aliases for the column names
     index : bool, default True
         output row names (index)
-    index_label : string or sequence, default None
-            Column label for index column(s) if desired. If None is given, and
-            `header` and `index` are True, then the index names are used. A
-            sequence should be given if the DataFrame uses MultiIndex.
+    index_label : str or sequence, default None
+        Column label for index column(s) if desired. If None is given, and
+        `header` and `index` are True, then the index names are used. A
+        sequence should be given if the DataFrame uses MultiIndex.
     merge_cells : bool, default False
-            Format MultiIndex and Hierarchical Rows as merged cells.
+        Format MultiIndex and Hierarchical Rows as merged cells.
     inf_rep : str, default `'inf'`
         representation for np.inf values (which aren't representable in Excel)
         A `'-'` sign will be added in front of -inf.
