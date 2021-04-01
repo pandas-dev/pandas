@@ -1272,7 +1272,7 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
         bint val_is_nan, use_mask
 
     use_mask = mask is not None
-    mask_ = mask if use_mask else np.zeros_like(values)
+    mask_ = mask if use_mask else np.zeros_like(values, dtype=np.uint8)
 
     N, K = (<object>values).shape
     accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
@@ -1293,7 +1293,7 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
                 val_is_nan = False
 
                 if use_mask:
-                    if mask[i, j]:
+                    if mask_[i, j]:
 
                         # `out` does not need to be set since it
                         # will be masked anyway
