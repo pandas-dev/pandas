@@ -17,6 +17,7 @@ Fixed regressions
 
 - Fixed regression in :meth:`DataFrame.sum` when ``min_count`` greater than the :class:`DataFrame` shape was passed resulted in a ``ValueError`` (:issue:`39738`)
 - Fixed regression in :meth:`DataFrame.to_json` raising ``AttributeError`` when run on PyPy (:issue:`39837`)
+- Fixed regression in (in)equality comparison of ``pd.NaT`` with a non-datetimelike numpy array returning a scalar instead of an array (:issue:`40722`)
 - Fixed regression in :meth:`DataFrame.where` not returning a copy in the case of an all True condition (:issue:`39595`)
 - Fixed regression in :meth:`DataFrame.replace` raising ``IndexError`` when ``regex`` was a multi-key dictionary (:issue:`39338`)
 -
