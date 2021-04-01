@@ -1236,7 +1236,6 @@ def group_cummin_max(groupby_t[:, ::1] out,
                      const intp_t[:] labels,
                      int ngroups,
                      bint is_datetimelike,
-                     bint use_mask,
                      bint compute_max):
     """
     Cumulative minimum/maximum of columns of `values`, in row groups `labels`.
@@ -1256,10 +1255,6 @@ def group_cummin_max(groupby_t[:, ::1] out,
         Number of groups, larger than all entries of `labels`.
     is_datetimelike : bool
         True if `values` contains datetime-like entries.
-    use_mask : bool
-        True if the mask should be used (otherwise we continue
-        as if it is not a masked algorithm). Avoids the cost
-        of checking for a completely zeroed mask.
     compute_max : bool
         True if cumulative maximum should be computed, False
         if cumulative minimum should be computed
@@ -1273,7 +1268,9 @@ def group_cummin_max(groupby_t[:, ::1] out,
         groupby_t val, mval
         ndarray[groupby_t, ndim=2] accum
         intp_t lab
-        bint val_is_nan
+        bint val_is_nan, use_mask
+
+    use_mask = mask is not None
 
     N, K = (<object>values).shape
     accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
@@ -1331,8 +1328,7 @@ def group_cummin(groupby_t[:, ::1] out,
                  uint8_t[:, ::1] mask,
                  const intp_t[:] labels,
                  int ngroups,
-                 bint is_datetimelike,
-                 bint use_mask):
+                 bint is_datetimelike):
     """See group_cummin_max.__doc__"""
     group_cummin_max(
         out,
@@ -1341,7 +1337,6 @@ def group_cummin(groupby_t[:, ::1] out,
         labels,
         ngroups,
         is_datetimelike,
-        use_mask,
         compute_max=False
     )
 
@@ -1353,8 +1348,7 @@ def group_cummax(groupby_t[:, ::1] out,
                  uint8_t[:, ::1] mask,
                  const intp_t[:] labels,
                  int ngroups,
-                 bint is_datetimelike,
-                 bint use_mask):
+                 bint is_datetimelike):
     """See group_cummin_max.__doc__"""
     group_cummin_max(
         out,
@@ -1363,6 +1357,5 @@ def group_cummax(groupby_t[:, ::1] out,
         labels,
         ngroups,
         is_datetimelike,
-        use_mask,
         compute_max=True
     )

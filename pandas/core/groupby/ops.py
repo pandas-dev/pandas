@@ -652,6 +652,7 @@ class BaseGrouper:
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
         self._disallow_invalid_ops(dtype, how, is_numeric)
+
         func_uses_mask = cython_function_uses_mask(how)
         if is_extension_array_dtype(dtype):
             if isinstance(values, BaseMaskedArray) and func_uses_mask:
@@ -718,10 +719,6 @@ class BaseGrouper:
             out_shape = (ngroups,) + values.shape[1:]
 
         func, values = self._get_cython_func_and_vals(kind, how, values, is_numeric)
-        use_mask = mask is not None
-        if func_uses_mask:
-            if mask is None:
-                mask = np.zeros_like(values, dtype=np.uint8, order="C")
 
         if how == "rank":
             out_dtype = "float"
@@ -740,10 +737,10 @@ class BaseGrouper:
         elif kind == "transform":
             # TODO: min_count
             result = self._transform(
-                result, values, func, is_datetimelike, use_mask, mask, **kwargs
+                result, values, func, is_datetimelike, mask, func_uses_mask, **kwargs
             )
 
-        if not use_mask and is_integer_dtype(result.dtype) and not is_datetimelike:
+        if mask is None and is_integer_dtype(result.dtype) and not is_datetimelike:
             result_mask = result == iNaT
             if result_mask.any():
                 result = result.astype("float64")
@@ -784,13 +781,13 @@ class BaseGrouper:
         values: np.ndarray,
         transform_func,
         is_datetimelike: bool,
-        use_mask: bool,
         mask: np.ndarray | None,
+        needs_mask: bool = False,
         **kwargs,
     ) -> np.ndarray:
 
         comp_ids, _, ngroups = self.group_info
-        if mask is not None:
+        if needs_mask:
             transform_func(
                 result,
                 values,
@@ -798,7 +795,6 @@ class BaseGrouper:
                 comp_ids,
                 ngroups,
                 is_datetimelike,
-                use_mask,
                 **kwargs,
             )
         else:
