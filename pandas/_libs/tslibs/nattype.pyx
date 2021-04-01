@@ -127,6 +127,10 @@ cdef class _NaT(datetime):
                 result.fill(_nat_scalar_rules[op])
             elif other.dtype.kind == "O":
                 result = np.array([PyObject_RichCompare(self, x, op) for x in other])
+            elif op == Py_EQ:
+                result = np.zeros(other.shape, dtype=bool)
+            elif op == Py_NE:
+                result = np.ones(other.shape, dtype=bool)
             else:
                 return NotImplemented
             return result
