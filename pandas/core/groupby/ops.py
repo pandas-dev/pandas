@@ -103,6 +103,10 @@ class WrappedCythonOp:
     Dispatch logic for functions defined in _libs.groupby
     """
 
+    def __init__(self, kind: str, how: str):
+        self.kind = kind
+        self.how = how
+
     _CYTHON_FUNCTIONS = {
         "aggregate": {
             "add": "group_add",
@@ -127,12 +131,16 @@ class WrappedCythonOp:
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
-    @staticmethod
+    # Note: we make this a classmethod and pass kind+how so that caching
+    #  works at the class level and not the instance level
+    @classmethod
     @functools.lru_cache(maxsize=None)
-    def get_cython_function(kind: str, how: str, dtype: np.dtype, is_numeric: bool):
+    def _get_cython_function(
+        cls, kind: str, how: str, dtype: np.dtype, is_numeric: bool
+    ):
 
         dtype_str = dtype.name
-        ftype = WrappedCythonOp._CYTHON_FUNCTIONS[kind][how]
+        ftype = cls._CYTHON_FUNCTIONS[kind][how]
 
         # see if there is a fused-type version of function
         # only valid for numeric
@@ -154,17 +162,12 @@ class WrappedCythonOp:
             f"[how->{how},dtype->{dtype_str}]"
         )
 
-    @classmethod
-    def get_cython_func_and_vals(
-        cls, kind: str, how: str, values: np.ndarray, is_numeric: bool
-    ):
+    def get_cython_func_and_vals(self, values: np.ndarray, is_numeric: bool):
         """
         Find the appropriate cython function, casting if necessary.
 
         Parameters
         ----------
-        kind : str
-        how : str
         values : np.ndarray
         is_numeric : bool
 
@@ -173,6 +176,9 @@ class WrappedCythonOp:
         func : callable
         values : np.ndarray
         """
+        how = self.how
+        kind = self.kind
+
         if how in ["median", "cumprod"]:
             # these two only have float64 implementations
             if is_numeric:
@@ -185,7 +191,7 @@ class WrappedCythonOp:
             func = getattr(libgroupby, f"group_{how}_float64")
             return func, values
 
-        func = cls.get_cython_function(kind, how, values.dtype, is_numeric)
+        func = self._get_cython_function(kind, how, values.dtype, is_numeric)
 
         if values.dtype.kind in ["i", "u"]:
             if how in ["add", "var", "prod", "mean", "ohlc"]:
@@ -194,8 +200,7 @@ class WrappedCythonOp:
 
         return func, values
 
-    @staticmethod
-    def disallow_invalid_ops(dtype: DtypeObj, how: str, is_numeric: bool = False):
+    def disallow_invalid_ops(self, dtype: DtypeObj, is_numeric: bool = False):
         """
         Check if we can do this operation with our cython functions.
 
@@ -205,6 +210,8 @@ class WrappedCythonOp:
             This is either not a valid function for this dtype, or
             valid but not implemented in cython.
         """
+        how = self.how
+
         if is_numeric:
             # never an invalid op for those dtypes, so return early as fastpath
             return
@@ -226,13 +233,13 @@ class WrappedCythonOp:
                     f"timedelta64 type does not support {how} operations"
                 )
 
-    @staticmethod
-    def get_output_shape(
-        how: str, kind: str, ngroups: int, values: np.ndarray
-    ) -> Shape:
+    def get_output_shape(self, ngroups: int, values: np.ndarray) -> Shape:
+        how = self.how
+        kind = self.kind
 
-        arity = WrappedCythonOp._cython_arity.get(how, 1)
+        arity = self._cython_arity.get(how, 1)
 
+        out_shape: Shape
         if how == "ohlc":
             out_shape = (ngroups, 4)
         elif arity > 1:
@@ -245,8 +252,9 @@ class WrappedCythonOp:
             out_shape = (ngroups,) + values.shape[1:]
         return out_shape
 
-    @staticmethod
-    def get_out_dtype(how: str, dtype: np.dtype) -> np.dtype:
+    def get_out_dtype(self, dtype: np.dtype) -> np.dtype:
+        how = self.how
+
         if how == "rank":
             out_dtype = "float64"
         else:
@@ -627,9 +635,11 @@ class BaseGrouper:
         dtype = values.dtype
         is_numeric = is_numeric_dtype(dtype)
 
+        cy_op = WrappedCythonOp(kind=kind, how=how)
+
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
-        WrappedCythonOp.disallow_invalid_ops(dtype, how, is_numeric)
+        cy_op.disallow_invalid_ops(dtype, is_numeric)
 
         if is_extension_array_dtype(dtype):
             return self._ea_wrap_cython_operation(
@@ -677,11 +687,9 @@ class BaseGrouper:
         assert axis == 1
         values = values.T
 
-        out_shape = WrappedCythonOp.get_output_shape(how, kind, ngroups, values)
-        func, values = WrappedCythonOp.get_cython_func_and_vals(
-            kind, how, values, is_numeric
-        )
-        out_dtype = WrappedCythonOp.get_out_dtype(how, values.dtype)
+        out_shape = cy_op.get_output_shape(ngroups, values)
+        func, values = cy_op.get_cython_func_and_vals(values, is_numeric)
+        out_dtype = cy_op.get_out_dtype(values.dtype)
 
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if kind == "aggregate":
