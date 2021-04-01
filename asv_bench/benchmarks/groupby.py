@@ -501,15 +501,21 @@ class CumminMax:
     ]
 
     def setup(self, dtype, method):
-        N = 1_000_000
-        vals = np.random.randint(0, 1000, (N, 10))
+        N = 500_000
+        rg = np.random.default_rng(seed=0)
+        vals = rg.integers(
+            0,
+            1000,
+            (N, 5),
+        )
         null_vals = vals.astype(float, copy=True)
         null_vals[::2, :] = np.nan
         null_vals[::3, :] = np.nan
-        df = DataFrame(vals, columns=list("abcdefghij"), dtype=dtype)
-        null_df = DataFrame(null_vals, columns=list("abcdefghij"), dtype=dtype)
-        df["key"] = np.random.randint(0, 100, size=N)
-        null_df["key"] = np.random.randint(0, 100, size=N)
+        df = DataFrame(vals, columns=list("abcde"), dtype=dtype)
+        null_df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
+        keys = rg.integers(0, 100, size=N)
+        df["key"] = keys
+        null_df["key"] = keys
         self.df = df
         self.null_df = null_df
 
