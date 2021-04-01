@@ -909,10 +909,7 @@ def nanvar(values, *, axis=None, skipna=True, ddof=1, mask=None):
         if mask is not None:
             values[mask] = np.nan
 
-    if is_float_dtype(values.dtype):
-        count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
-    else:
-        count, d = _get_counts_nanvar(values.shape, mask, axis, ddof)
+    count, d = _get_counts_nanvar(values.shape, mask, axis, ddof)
 
     if skipna and mask is not None:
         values = values.copy()
