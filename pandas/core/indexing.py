@@ -17,7 +17,7 @@ import numpy as np
 from pandas._config.config import option_context
 
 from pandas._libs.indexing import NDFrameIndexerBase
-from pandas._libs.lib import item_from_zerodim, infer_dtype
+from pandas._libs.lib import item_from_zerodim
 from pandas.errors import (
     AbstractMethodError,
     InvalidIndexError,
@@ -966,11 +966,12 @@ class _LocIndexer(_LocationIndexer):
         # slice of integers (only if in the labels)
         # boolean not in slice and with boolean index
         if not is_bool_dtype(self.obj.index) and isinstance(key, bool):
-            raise TypeError('Boolean label can not be used without a boolean index')
+            raise TypeError("Boolean label can not be used without a boolean index")
 
-        if isinstance(key, slice) and \
-            (isinstance(key.start, bool) or isinstance(key.stop, bool)):
-            raise TypeError('Boolean values can not be used in a slice')
+        if isinstance(key, slice) and (
+            isinstance(key.start, bool) or isinstance(key.stop, bool)
+        ):
+            raise TypeError("Boolean values can not be used in a slice")
 
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         return True

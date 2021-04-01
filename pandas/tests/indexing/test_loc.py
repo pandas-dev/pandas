@@ -23,6 +23,7 @@ from pandas import (
     DatetimeIndex,
     Index,
     IndexSlice,
+    Int64Index,
     MultiIndex,
     Period,
     RangeIndex,
@@ -37,7 +38,6 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.errors import InvalidIndexError
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
 
@@ -2092,32 +2092,27 @@ class TestLocBooleanLabelsAndSlices(Base):
     @pytest.mark.parametrize(
         "index",
         [
-            pd.RangeIndex(4),
-            pd.Int64Index(range(4)),
-            pd.UInt64Index(range(4)),
+            RangeIndex(4),
+            Int64Index(range(4)),
+            UInt64Index(range(4)),
             pd.Float64Index(range(4)),
-            pd.CategoricalIndex(range(4)),
-            pd.date_range(0, periods=4, freq="ns"),
-            pd.timedelta_range(0, periods=4, freq="ns"),
+            CategoricalIndex(range(4)),
+            date_range(0, periods=4, freq="ns"),
+            timedelta_range(0, periods=4, freq="ns"),
             pd.interval_range(0, periods=4),
-            pd.Index([0, 1, 2, 3], dtype=object),
-            pd.MultiIndex.from_product([[0, 1], [0, 1]]),
-            pd.period_range("2018Q1", freq="Q", periods=4)
-        ]
+            Index([0, 1, 2, 3], dtype=object),
+            MultiIndex.from_product([[0, 1], [0, 1]]),
+            pd.period_range("2018Q1", freq="Q", periods=4),
+        ],
     )
     def test_loc_bool_incompatible_index_raises(self, index, frame_or_series):
         # GH20432
-        message = 'Boolean label can not be used without a boolean index'
+        message = "Boolean label can not be used without a boolean index"
         obj = frame_or_series(range(4), index=index)
         with pytest.raises(TypeError, match=message):
             obj.loc[True]
 
-    @pytest.mark.parametrize(
-        "index",
-        [
-            pd.Index([True, False], dtype="boolean")
-        ]
-    )
+    @pytest.mark.parametrize("index", [Index([True, False], dtype="boolean")])
     def test_loc_bool_should_not_raise(self, index, frame_or_series):
         obj = frame_or_series(range(2), index=index)
         obj.loc[True]
@@ -2125,23 +2120,23 @@ class TestLocBooleanLabelsAndSlices(Base):
     @pytest.mark.parametrize(
         "index",
         [
-            pd.RangeIndex(4),
-            pd.Int64Index(range(4)),
-            pd.UInt64Index(range(4)),
+            RangeIndex(4),
+            Int64Index(range(4)),
+            UInt64Index(range(4)),
             pd.Float64Index(range(4)),
-            pd.CategoricalIndex(range(4)),
-            pd.date_range(0, periods=4, freq="ns"),
-            pd.timedelta_range(0, periods=4, freq="ns"),
+            CategoricalIndex(range(4)),
+            date_range(0, periods=4, freq="ns"),
+            timedelta_range(0, periods=4, freq="ns"),
             pd.interval_range(0, periods=4),
-            pd.Index([0, 1, 2, 3], dtype=object),
-            pd.Index([True, True, False, False], dtype=object),
-            pd.MultiIndex.from_product([[0, 1], [0, 1]]),
-            pd.period_range("2018Q1", freq="Q", periods=4)
-        ]
+            Index([0, 1, 2, 3], dtype=object),
+            Index([True, True, False, False], dtype=object),
+            MultiIndex.from_product([[0, 1], [0, 1]]),
+            pd.period_range("2018Q1", freq="Q", periods=4),
+        ],
     )
     def test_loc_bool_slice_raises(self, index, frame_or_series):
         # GH20432
-        message = 'Boolean values can not be used in a slice'
+        message = "Boolean values can not be used in a slice"
         obj = frame_or_series(range(4), index=index)
         with pytest.raises(TypeError, match=message):
             obj.loc[True:False]
