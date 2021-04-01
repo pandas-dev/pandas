@@ -405,12 +405,7 @@ class StringArray(PandasArray):
     _str_na_value = StringDtype.na_value
 
     def _str_map(self, f, na_value=None, dtype: Optional[Dtype] = None):
-        from pandas.arrays import (
-            BooleanArray,
-            IntegerArray,
-            StringArray,
-        )
-        from pandas.core.arrays.string_ import StringDtype
+        from pandas.arrays import BooleanArray
 
         if dtype is None:
             dtype = StringDtype()
