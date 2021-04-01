@@ -1111,8 +1111,6 @@ _TYPE_MAP = {
     "complex128": "complex",
     "c": "complex",
     "string": "string",
-    "string[python]": "string",
-    "string[pyarrow]": "string",
     "S": "bytes",
     "U": "string",
     "bool": "boolean",
