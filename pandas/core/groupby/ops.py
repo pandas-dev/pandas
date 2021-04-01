@@ -808,7 +808,7 @@ class BinGrouper(BaseGrouper):
     binlabels : the label list
     filter_empty : bool, default False
     mutated : bool, default False
-    indexer : a intp array
+    indexer : np.ndarray[np.intp]
 
     Examples
     --------
