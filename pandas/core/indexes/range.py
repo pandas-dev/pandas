@@ -99,7 +99,6 @@ class RangeIndex(NumericIndex):
     _typ = "rangeindex"
     _engine_type = libindex.Int64Engine
     _can_hold_na = False
-    inferred_type = "integer"
     _range: range
 
     # --------------------------------------------------------------------
@@ -383,6 +382,10 @@ class RangeIndex(NumericIndex):
         except TypeError:
             return False
         return key in self._range
+
+    @property
+    def inferred_type(self) -> str:
+        return "integer"
 
     # --------------------------------------------------------------------
     # Indexing Methods
