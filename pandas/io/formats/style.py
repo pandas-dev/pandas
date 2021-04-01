@@ -2725,39 +2725,20 @@ def _parse_latex_cell_styles(
     """
     if convert_css:
         latex_styles = _parse_latex_css_conversion(latex_styles)
-    for style in latex_styles[::-1]:  # in reverse for most recently applied style
-        command = style[0]
-        options = style[1]
-
-        if "--wrap" in str(options):
-            display_value = (
-                f"{{\\{command}{_parse_latex_strip_arg(options, '--wrap')} "
-                f"{display_value}}}"
-            )
-        elif "--nowrap" in str(options):
-            display_value = (
-                f"\\{command}{_parse_latex_strip_arg(options, '--nowrap')} "
-                f"{display_value}"
-            )
-        elif "--lwrap" in str(options):
-            display_value = (
-                f"{{\\{command}{_parse_latex_strip_arg(options, '--lwrap')}}} "
-                f"{display_value}"
-            )
-        elif "--dwrap" in str(options):
-            display_value = (
-                f"{{\\{command}{_parse_latex_strip_arg(options, '--dwrap')}}}"
-                f"{{{display_value}}}"
-            )
-        elif "--rwrap" in str(options):
-            display_value = (
-                f"\\{command}{_parse_latex_strip_arg(options, '--rwrap')}"
-                f"{{{display_value}}}"
-            )
-        else:
-            display_value = (
-                f"\\{command}{_parse_latex_strip_arg(options, '')} {display_value}"
-            )
+    for (command, options) in latex_styles[::-1]:  # in reverse for most recent style
+        formatter = {
+            "--wrap": f"{{\\{command}--to_parse {display_value}}}",
+            "--nowrap": f"\\{command}--to_parse {display_value}",
+            "--lwrap": f"{{\\{command}--to_parse}} {display_value}",
+            "--rwrap": f"\\{command}--to_parse{{{display_value}}}",
+            "--dwrap": f"{{\\{command}--to_parse}}{{{display_value}}}",
+        }
+        display_value = f"\\{command}{options} {display_value}"
+        for arg in ["--nowrap", "--wrap", "--lwrap", "--rwrap", "--dwrap"]:
+            if arg in str(options):
+                display_value = formatter[arg].replace(
+                    "--to_parse", _parse_latex_options_strip(value=options, arg=arg)
+                )
     return display_value
 
 
@@ -2867,7 +2848,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
             arg = ""
             for x in ["--wrap", "--nowrap", "--lwrap", "--dwrap", "--rwrap"]:
                 if x in str(value):
-                    arg, value = x, _parse_latex_strip_arg(value, x)
+                    arg, value = x, _parse_latex_options_strip(value, x)
                     break
             latex_style = CONVERTED_ATTRIBUTES[attribute](value, arg)
             if latex_style is not None:
@@ -2875,7 +2856,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     return latex_styles
 
 
-def _parse_latex_strip_arg(value: Union[str, int, float], arg: str) -> str:
+def _parse_latex_options_strip(value: Union[str, int, float], arg: str) -> str:
     """
     Strip a css_value which may have latex wrapping arguments, css comment identifiers,
     and whitespaces, to a valid string for latex options parsing.
