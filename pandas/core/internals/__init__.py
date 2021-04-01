@@ -12,7 +12,6 @@ from pandas.core.internals.blocks import (  # io.pytables, io.packers
     DatetimeBlock,
     DatetimeTZBlock,
     ExtensionBlock,
-    FloatBlock,
     NumericBlock,
     ObjectBlock,
     TimeDeltaBlock,
@@ -27,11 +26,11 @@ from pandas.core.internals.managers import (
 
 __all__ = [
     "Block",
+    "CategoricalBlock",
     "NumericBlock",
     "DatetimeBlock",
     "DatetimeTZBlock",
     "ExtensionBlock",
-    "FloatBlock",
     "ObjectBlock",
     "TimeDeltaBlock",
     "make_block",
@@ -55,9 +54,11 @@ def __getattr__(name: str):
         warnings.warn(
             "CategoricalBlock is deprecated and will be removed in a future version. "
             "Use ExtensionBlock instead.",
-            FutureWarning,
+            DeprecationWarning,
             stacklevel=2,
         )
-        return ExtensionBlock
+        from pandas.core.internals.blocks import CategoricalBlock
+
+        return CategoricalBlock
 
     raise AttributeError(f"module 'pandas.core.internals' has no attribute '{name}'")

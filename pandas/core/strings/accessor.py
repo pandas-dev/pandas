@@ -1925,13 +1925,13 @@ class StringMethods(NoNewAttributesMixin):
         Examples
         --------
         >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()
-        a  b  c
+           a  b  c
         0  1  1  0
         1  1  0  0
         2  1  0  1
 
         >>> pd.Series(['a|b', np.nan, 'a|c']).str.get_dummies()
-        a  b  c
+           a  b  c
         0  1  1  0
         1  0  0  0
         2  1  0  1
