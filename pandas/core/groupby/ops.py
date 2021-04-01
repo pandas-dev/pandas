@@ -72,14 +72,11 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
-<<<<<<< HEAD
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
-=======
 from pandas.core.arrays import ExtensionArray
->>>>>>> origin/master
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
