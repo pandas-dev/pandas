@@ -5,7 +5,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     List,
     Optional,
     Tuple,
@@ -146,7 +145,7 @@ def maybe_split(meth: F) -> F:
     return cast(F, newfunc)
 
 
-class Block(libinternals.Block, PandasObject):
+class Block(PandasObject):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
     data structure
@@ -155,6 +154,7 @@ class Block(libinternals.Block, PandasObject):
     """
 
     values: Union[np.ndarray, ExtensionArray]
+    ndim: int
 
     __slots__ = ()
     is_numeric = False
@@ -1438,7 +1438,7 @@ class Block(libinternals.Block, PandasObject):
         return new_block(result, placement=self._mgr_locs, ndim=2)
 
 
-class ExtensionBlock(Block):
+class ExtensionBlock(libinternals.Block, Block):
     """
     Block for holding extension types.
 
@@ -1751,10 +1751,10 @@ class HybridMixin:
     Mixin for Blocks backed (maybe indirectly) by ExtensionArrays.
     """
 
-    array_values: Callable
+    values: ExtensionArray  # type: ignore[misc]
 
     def _can_hold_element(self, element: Any) -> bool:
-        values = self.array_values
+        values = self.values
 
         try:
             # error: "Callable[..., Any]" has no attribute "_validate_setitem_value"
@@ -1775,7 +1775,7 @@ class ObjectValuesExtensionBlock(HybridMixin, ExtensionBlock):
     pass
 
 
-class NumericBlock(Block):
+class NumericBlock(libinternals.NumpyBlock, Block):
     __slots__ = ()
     is_numeric = True
 
@@ -1906,7 +1906,7 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
         return self.values
 
 
-class DatetimeBlock(DatetimeLikeBlockMixin):
+class DatetimeBlock(libinternals.Block, DatetimeLikeBlockMixin):
     __slots__ = ()
 
 
@@ -1932,11 +1932,12 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlockMixin):
     is_view = NDArrayBackedExtensionBlock.is_view  # type: ignore[assignment]
 
 
-class TimeDeltaBlock(DatetimeLikeBlockMixin):
+class TimeDeltaBlock(libinternals.Block, DatetimeLikeBlockMixin):
     __slots__ = ()
+    values: TimedeltaArray
 
 
-class ObjectBlock(Block):
+class ObjectBlock(libinternals.NumpyBlock, Block):
     __slots__ = ()
     is_object = True
 

@@ -50,9 +50,16 @@ class BlockPlacement:
     def append(self, others: list[BlockPlacement]) -> BlockPlacement: ...
 
 
-class Block:
+class SharedBlock:
     _mgr_locs: BlockPlacement
     ndim: int
     values: ArrayLike
 
     def __init__(self, values: ArrayLike, placement: BlockPlacement, ndim: int): ...
+
+class NumpyBlock(SharedBlock):
+    values: np.ndarray
+    def getitem_block_index(self, slicer: slice) -> NumpyBlock: ...
+
+class Block(SharedBlock):
+    ...
