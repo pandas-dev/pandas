@@ -760,13 +760,10 @@ class TestDataFramePlots(TestPlotBase):
             # default to Greys
             assert ax.collections[0].cmap.name == "Greys"
 
-            # n.b. there appears to be no public method
-            # to get the colorbar label
             if mpl_ge_3_4_0():
-                mark = pytest.mark.xfail(reason="_label attribute removed")
-                request.node.add_marker(mark)
-
-            assert ax.collections[0].colorbar._label == "z"
+                assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
+            else:
+                assert ax.collections[0].colorbar._label == "z"
 
         cm = "cubehelix"
         ax = df.plot.scatter(x="x", y="y", c="z", colormap=cm)
