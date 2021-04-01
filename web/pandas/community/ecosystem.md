@@ -360,6 +360,12 @@ Cyberpandas provides an extension type for storing arrays of IP
 Addresses. These arrays can be stored inside pandas' Series and
 DataFrame.
 
+### [Pandas-Genomics](https://pandas-genomics.readthedocs.io/en/latest/)
+
+Pandas-Genomics provides an extension type and extension array for working
+ with genomics data.  It also includes `genomics` accessors for many useful properties
+ and methods related to QC and analysis of genomics data.
+
 ### [Pint-Pandas](https://github.com/hgrecco/pint-pandas)
 
 Pint-Pandas provides an extension type for storing numeric arrays with units.
@@ -373,10 +379,11 @@ A directory of projects providing
 `extension accessors <extending.register-accessors>`. This is for users to discover new accessors and for library
 authors to coordinate on the namespace.
 
-  | Library                                                       | Accessor |  Classes              |
-  | --------------------------------------------------------------|----------|-----------------------|
-  | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)   | `ip`     | `Series`              |
-  | [pdvega](https://altair-viz.github.io/pdvega/)                | `vgplot` | `Series`, `DataFrame` |
-  | [pandas_path](https://github.com/drivendataorg/pandas-path/)  | `path`   | `Index`, `Series` |
-  | [pint-pandas](https://github.com/hgrecco/pint-pandas)         | `pint`   | `Series`, `DataFrame` |
-  | [composeml](https://github.com/FeatureLabs/compose)           | `slice`  | `DataFrame`           |
+  | Library                                                              | Accessor   |  Classes              |
+  | ---------------------------------------------------------------------|------------|-----------------------|
+  | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)          | `ip`       | `Series`              |
+  | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
+  | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
+  | [pandas_path](https://github.com/drivendataorg/pandas-path/)         | `path`     | `Index`, `Series`     |
+  | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
+  | [composeml](https://github.com/FeatureLabs/compose)                  | `slice`    | `DataFrame`           |
