@@ -2705,9 +2705,7 @@ def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
     `styles=[('Huge', '--wrap'), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
     {\Huge \cellcolor[rgb]{0,1,1}{display_value}}
     """
-    for (command, options) in latex_styles[
-        ::-1
-    ]:  # in reverse for most recently applied style
+    for (command, options) in latex_styles[::-1]:  # in reverse for most recent style
         formatter = {
             "--wrap": f"{{\\{command}--to_parse {display_value}}}",
             "--nowrap": f"\\{command}--to_parse {display_value}",
