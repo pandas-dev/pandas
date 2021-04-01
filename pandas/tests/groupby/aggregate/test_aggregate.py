@@ -235,10 +235,10 @@ def test_aggregate_item_by_item(df):
 
     # GH5782
     # odd comparisons can result here, so cast to make easy
-    exp = Series(np.array([foo] * K), index=list("BCD"), dtype=np.float64, name="foo")
+    exp = Series(np.array([foo] * K), index=list("BCD"), name="foo")
     tm.assert_series_equal(result.xs("foo"), exp)
 
-    exp = Series(np.array([bar] * K), index=list("BCD"), dtype=np.float64, name="bar")
+    exp = Series(np.array([bar] * K), index=list("BCD"), name="bar")
     tm.assert_almost_equal(result.xs("bar"), exp)
 
     def aggfun(ser):
@@ -455,7 +455,7 @@ def test_order_aggregate_multiple_funcs():
 
 
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
-@pytest.mark.parametrize("how", ["first", "last", "min", "max", "mean", "median"])
+@pytest.mark.parametrize("how", ["first", "last", "min", "max"])
 def test_uint64_type_handling(dtype, how):
     # GH 26310
     df = DataFrame({"x": 6903052872240755750, "y": [1, 2]})
@@ -850,7 +850,7 @@ def test_multiindex_custom_func(func):
     df = DataFrame(data, columns=MultiIndex.from_arrays([[1, 1, 2], [3, 4, 3]]))
     result = df.groupby(np.array([0, 1])).agg(func)
     expected_dict = {(1, 3): {0: 1, 1: 5}, (1, 4): {0: 4, 1: 7}, (2, 3): {0: 2, 1: 1}}
-    expected = DataFrame(expected_dict)
+    expected = DataFrame(expected_dict, dtype="float64")
     tm.assert_frame_equal(result, expected)
 
 

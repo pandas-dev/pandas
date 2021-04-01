@@ -285,8 +285,6 @@ def test_apply(ordered):
     result = grouped.apply(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
 
-    # we coerce back to ints
-    expected = expected.astype("int")
     result = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -371,7 +369,7 @@ def test_observed(observed, using_array_manager):
     result = groups_double_key.agg("mean")
     expected = DataFrame(
         {
-            "val": [10, 30, 20, 40],
+            "val": [10., 30, 20, 40],
             "cat": Categorical(
                 ["a", "a", "b", "b"], categories=["a", "b", "c"], ordered=True
             ),
