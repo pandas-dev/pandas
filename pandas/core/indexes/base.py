@@ -2412,7 +2412,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        numpy.ndarray[bool]
             A boolean array of whether my values are NA.
 
         See Also
@@ -2470,7 +2470,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        numpy.ndarray[bool]
             Boolean array to indicate which entries are not NA.
 
         See Also
@@ -4482,7 +4482,7 @@ class Index(IndexOpsMixin, PandasObject):
         TypeError
             If the value cannot be inserted into an array of this dtype.
         """
-        if not can_hold_element(self.dtype, value):
+        if not can_hold_element(self._values, value):
             raise TypeError
         return value
 
@@ -5499,7 +5499,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        is_contained : ndarray
+        is_contained : ndarray[bool]
             NumPy array of boolean values.
 
         See Also
