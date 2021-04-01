@@ -271,7 +271,7 @@ class BaseGrouper:
             # TODO(ArrayManager) don't use fast_apply / libreduction.apply_frame_axis0
             # for now -> relies on BlockManager internals
             pass
-        elif False and (
+        elif (
             com.get_callable_name(f) not in base.plotting_methods
             and isinstance(splitter, FrameSplitter)
             and axis == 0
@@ -293,7 +293,6 @@ class BaseGrouper:
                 if len(result_values) == len(group_keys):
                     return group_keys, result_values, mutated
 
-        # This is where __iter__ is called
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, "name", key)
 
@@ -308,7 +307,6 @@ class BaseGrouper:
             # fast apply loop was broken prematurely but we have
             # already the result for the first group which we can reuse.
             elif i == 0:
-                assert False
                 continue
 
             # group might be modified
