@@ -72,11 +72,11 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
-from pandas.core.arrays import ExtensionArray
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -652,7 +652,6 @@ class BaseGrouper:
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
         self._disallow_invalid_ops(dtype, how, is_numeric)
-
         func_uses_mask = cython_function_uses_mask(how)
         if is_extension_array_dtype(dtype):
             if isinstance(values, BaseMaskedArray) and func_uses_mask:
@@ -667,8 +666,6 @@ class BaseGrouper:
         elif values.ndim == 1:
             # expand to 2d, dispatch, then squeeze if appropriate
             values2d = values[None, :]
-            if mask is not None:
-                mask = mask[None, :]
             res = self._cython_operation(
                 kind=kind,
                 values=values2d,
@@ -705,9 +702,10 @@ class BaseGrouper:
         arity = self._cython_arity.get(how, 1)
         ngroups = self.ngroups
 
-
         assert axis == 1
         values = values.T
+        if mask is not None:
+            mask = mask.reshape(values.shape, order="C")
         if how == "ohlc":
             out_shape = (ngroups, 4)
         elif arity > 1:
@@ -732,7 +730,6 @@ class BaseGrouper:
                 out_dtype = f"{values.dtype.kind}{values.dtype.itemsize}"
             else:
                 out_dtype = "object"
-
 
         codes, _, _ = self.group_info
 
