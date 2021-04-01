@@ -923,7 +923,7 @@ class _BlockManager(DataManager):
         nbs = self._slice_take_blocks_ax0(taker, only_slice=True)
         new_columns = self.items[~is_deleted]
         axes = [new_columns, self.axes[1]]
-        return type(self)._simple_new(tuple(nbs), axes)
+        return type(self)(tuple(nbs), axes)
 
     def iset(self, loc: Union[int, slice, np.ndarray], value):
         """
