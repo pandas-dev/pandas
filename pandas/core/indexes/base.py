@@ -4482,7 +4482,7 @@ class Index(IndexOpsMixin, PandasObject):
         TypeError
             If the value cannot be inserted into an array of this dtype.
         """
-        if not can_hold_element(self.dtype, value):
+        if not can_hold_element(self._values, value):
             raise TypeError
         return value
 
