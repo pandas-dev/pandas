@@ -315,6 +315,10 @@ def array_to_timedelta64(ndarray[object] values, str unit=None, str errors="rais
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
+
+    Returns
+    -------
+    np.ndarray[timedelta64ns]
     """
 
     cdef:
