@@ -39,6 +39,7 @@ from pandas.api.extensions import (
     ExtensionDtype,
 )
 from pandas.api.types import is_bool_dtype
+from pandas.core.arrays.string_arrow import ArrowStringDtype
 
 
 class JSONDtype(ExtensionDtype):
@@ -194,7 +195,7 @@ class JSONArray(ExtensionArray):
             if copy:
                 return self.copy()
             return self
-        elif isinstance(dtype, StringDtype):
+        elif isinstance(dtype, (StringDtype, ArrowStringDtype)):
             value = self.astype(str)  # numpy doesn'y like nested dicts
             return dtype.construct_array_type()._from_sequence(value, copy=False)
 
