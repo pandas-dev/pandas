@@ -762,7 +762,7 @@ class TestDataFramePlots(TestPlotBase):
 
             # n.b. there appears to be no public method
             # to get the colorbar label
-            if mpl_ge_3_4_0:
+            if mpl_ge_3_4_0():
                 mark = pytest.mark.xfail(reason="_label attribute removed")
                 request.node.add_marker(mark)
 
