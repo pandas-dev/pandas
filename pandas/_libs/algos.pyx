@@ -947,12 +947,14 @@ def rank_1d(
         TiebreakEnumType tiebreak
         Py_ssize_t i, j, N, grp_start=0, dups=0, sum_ranks=0
         Py_ssize_t grp_vals_seen=1, grp_na_count=0
-        ndarray[int64_t, ndim=1] lexsort_indexer
-        ndarray[float64_t, ndim=1] grp_sizes, out
+        ndarray[int64_t, ndim=1] grp_sizes
+        ndarray[intp_t, ndim=1] lexsort_indexer
+        ndarray[float64_t, ndim=1] out
         ndarray[rank_t, ndim=1] masked_vals
         ndarray[uint8_t, ndim=1] mask
         bint keep_na, at_end, next_val_diff, check_labels, group_changed
         rank_t nan_fill_val
+        int64_t grp_size
 
     tiebreak = tiebreakers[ties_method]
     if tiebreak == TIEBREAK_FIRST:
@@ -965,7 +967,7 @@ def rank_1d(
     # TODO Cython 3.0: cast won't be necessary (#2992)
     assert <Py_ssize_t>len(labels) == N
     out = np.empty(N)
-    grp_sizes = np.ones(N)
+    grp_sizes = np.ones(N, dtype=np.int64)
 
     # If all 0 labels, can short-circuit later label
     # comparisons
@@ -1022,7 +1024,7 @@ def rank_1d(
     # each label corresponds to a different group value,
     # the mask helps you differentiate missing values before
     # performing sort on the actual values
-    lexsort_indexer = np.lexsort(order).astype(np.int64, copy=False)
+    lexsort_indexer = np.lexsort(order).astype(np.intp, copy=False)
 
     if not ascending:
         lexsort_indexer = lexsort_indexer[::-1]
@@ -1093,13 +1095,15 @@ def rank_1d(
                     for j in range(i - dups + 1, i + 1):
                         out[lexsort_indexer[j]] = grp_vals_seen
 
-                # Look forward to the next value (using the sorting in lexsort_indexer)
-                # if the value does not equal the current value then we need to
-                # reset the dups and sum_ranks, knowing that a new value is
-                # coming up. The conditional also needs to handle nan equality
-                # and the end of iteration
-                if next_val_diff or (mask[lexsort_indexer[i]]
-                                     ^ mask[lexsort_indexer[i+1]]):
+                # Look forward to the next value (using the sorting in
+                # lexsort_indexer). If the value does not equal the current
+                # value then we need to reset the dups and sum_ranks, knowing
+                # that a new value is coming up. The conditional also needs
+                # to handle nan equality and the end of iteration. If group
+                # changes we do not record seeing a new value in the group
+                if not group_changed and (next_val_diff or
+                                          (mask[lexsort_indexer[i]]
+                                           ^ mask[lexsort_indexer[i+1]])):
                     dups = sum_ranks = 0
                     grp_vals_seen += 1
 
@@ -1110,14 +1114,21 @@ def rank_1d(
                 # group encountered (used by pct calculations later). Also be
                 # sure to reset any of the items helping to calculate dups
                 if group_changed:
+
+                    # If not dense tiebreak, group size used to compute
+                    # percentile will be # of non-null elements in group
                     if tiebreak != TIEBREAK_DENSE:
-                        for j in range(grp_start, i + 1):
-                            grp_sizes[lexsort_indexer[j]] = \
-                                (i - grp_start + 1 - grp_na_count)
+                        grp_size = i - grp_start + 1 - grp_na_count
+
+                    # Otherwise, it will be the number of distinct values
+                    # in the group, subtracting 1 if NaNs are present
+                    # since that is a distinct value we shouldn't count
                     else:
-                        for j in range(grp_start, i + 1):
-                            grp_sizes[lexsort_indexer[j]] = \
-                                (grp_vals_seen - 1 - (grp_na_count > 0))
+                        grp_size = grp_vals_seen - (grp_na_count > 0)
+
+                    for j in range(grp_start, i + 1):
+                        grp_sizes[lexsort_indexer[j]] = grp_size
+
                     dups = sum_ranks = 0
                     grp_na_count = 0
                     grp_start = i + 1
@@ -1184,12 +1195,14 @@ def rank_1d(
                             out[lexsort_indexer[j]] = grp_vals_seen
 
                     # Look forward to the next value (using the sorting in
-                    # lexsort_indexer) if the value does not equal the current
+                    # lexsort_indexer). If the value does not equal the current
                     # value then we need to reset the dups and sum_ranks, knowing
                     # that a new value is coming up. The conditional also needs
-                    # to handle nan equality and the end of iteration
-                    if next_val_diff or (mask[lexsort_indexer[i]]
-                                         ^ mask[lexsort_indexer[i+1]]):
+                    # to handle nan equality and the end of iteration. If group
+                    # changes we do not record seeing a new value in the group
+                    if not group_changed and (next_val_diff or
+                                              (mask[lexsort_indexer[i]]
+                                               ^ mask[lexsort_indexer[i+1]])):
                         dups = sum_ranks = 0
                         grp_vals_seen += 1
 
@@ -1200,14 +1213,21 @@ def rank_1d(
                     # group encountered (used by pct calculations later). Also be
                     # sure to reset any of the items helping to calculate dups
                     if group_changed:
+
+                        # If not dense tiebreak, group size used to compute
+                        # percentile will be # of non-null elements in group
                         if tiebreak != TIEBREAK_DENSE:
-                            for j in range(grp_start, i + 1):
-                                grp_sizes[lexsort_indexer[j]] = \
-                                    (i - grp_start + 1 - grp_na_count)
+                            grp_size = i - grp_start + 1 - grp_na_count
+
+                        # Otherwise, it will be the number of distinct values
+                        # in the group, subtracting 1 if NaNs are present
+                        # since that is a distinct value we shouldn't count
                         else:
-                            for j in range(grp_start, i + 1):
-                                grp_sizes[lexsort_indexer[j]] = \
-                                    (grp_vals_seen - 1 - (grp_na_count > 0))
+                            grp_size = grp_vals_seen - (grp_na_count > 0)
+
+                        for j in range(grp_start, i + 1):
+                            grp_sizes[lexsort_indexer[j]] = grp_size
+
                         dups = sum_ranks = 0
                         grp_na_count = 0
                         grp_start = i + 1
