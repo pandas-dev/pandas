@@ -299,6 +299,11 @@ We'll now kick off a three-step process:
    python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
+.. note::
+    If the ``python setup.py build_ext -j 4`` command fails on a linux distribution you might
+    be able to fix it by adding ``"-L/usr/lib/x86_64-linux-gnu/"`` to the
+    ``extra_link_args`` list.
+
 At this point you should be able to import pandas from your locally built version::
 
    $ python  # start an interpreter
