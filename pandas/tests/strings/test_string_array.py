@@ -81,6 +81,7 @@ def test_string_array_numeric_integer_array(nullable_string_dtype, method, expec
         ("isdigit", [False, None, True]),
         ("isalpha", [True, None, False]),
         ("isalnum", [True, None, True]),
+        ("isnumeric", [False, None, True]),
     ],
 )
 def test_string_array_boolean_array(nullable_string_dtype, method, expected):
