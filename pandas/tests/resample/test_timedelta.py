@@ -77,7 +77,7 @@ def test_resample_timedelta_idempotency():
     index = timedelta_range("0", periods=9, freq="10L")
     series = Series(range(9), index=index)
     result = series.resample("10L").mean()
-    expected = series
+    expected = series.astype(float)
     tm.assert_series_equal(result, expected)
 
 
@@ -162,7 +162,7 @@ def test_resample_with_timedelta_yields_no_empty_groups():
     result = df.loc["1s":, :].resample("3s").apply(lambda x: len(x))
 
     expected = DataFrame(
-        [[768.0] * 4] * 12 + [[528.0] * 4],
+        [[768] * 4] * 12 + [[528] * 4],
         index=timedelta_range(start="1s", periods=13, freq="3s"),
     )
     tm.assert_frame_equal(result, expected)
