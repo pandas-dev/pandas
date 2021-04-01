@@ -181,7 +181,7 @@ _shared_doc_kwargs = {
     "axes_single_arg": "int or labels for object",
     "args_transpose": "axes to permute (int or label for object)",
     "inplace": """
-    inplace : boolean, default False
+    inplace : bool, default False
         If True, performs operation inplace and returns None.""",
     "optional_by": """
         by : str or list of str
@@ -4063,7 +4063,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # there was no match, this call should raise the appropriate
             # exception:
             loc = self.axes[-1].get_loc(key)
-            self._mgr.idelete(loc)
+            self._mgr = self._mgr.idelete(loc)
 
         # delete from the caches
         try:

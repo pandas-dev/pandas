@@ -162,7 +162,7 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
-    for name, (column, aggfunc) in zip(columns, pairs):
+    for column, aggfunc in pairs:
         aggspec[column].append(aggfunc)
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
 
