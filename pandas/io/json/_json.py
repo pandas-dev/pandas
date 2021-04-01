@@ -174,6 +174,11 @@ class Writer(ABC):
 
     def write(self):
         iso_dates = self.date_format == "iso"
+        print(type(self.obj_to_write["data"]))
+        print(self.obj_to_write["data"])
+        print(self.default_handler)
+        print(dumps(self.obj_to_write["data"]))
+        print("---")
         return dumps(
             self.obj_to_write,
             orient=self.orient,

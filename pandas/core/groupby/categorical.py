@@ -71,6 +71,10 @@ def recode_for_groupby(
 
     # Already sorted according to c.categories; all is fine
     if sort:
+        # categories = c.categories.take(c.codes)
+        # codes = recode_for_categories(c.codes, c.categories, categories)
+        # dtype = CategoricalDtype(categories, ordered=c.ordered)
+        # return Categorical(codes, dtype=dtype, fastpath=True), c
         return c, None
 
     # sort=False should order groups in as-encountered order (GH-8868)
