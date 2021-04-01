@@ -392,7 +392,7 @@ def handle_shared_axes(
             row_num = lambda x: x.rowNum
             col_num = lambda x: x.colNum
 
-        if compat.mpl_ge_3_4_0:
+        if compat.mpl_ge_3_4_0():
             is_first_col = lambda x: x.get_subplotspec().is_first_col()
         else:
             is_first_col = lambda x: x.is_first_col()
