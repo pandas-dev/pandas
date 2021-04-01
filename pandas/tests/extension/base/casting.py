@@ -12,14 +12,21 @@ class BaseCastingTests(BaseExtensionTests):
     def test_astype_object_series(self, all_data):
         ser = pd.Series(all_data, name="A")
         result = ser.astype(object)
-        assert isinstance(result._mgr.blocks[0], ObjectBlock)
+        assert result.dtype == np.dtype(object)
+        if hasattr(result._mgr, "blocks"):
+            assert isinstance(result._mgr.blocks[0], ObjectBlock)
+        assert isinstance(result._mgr.array, np.ndarray)
+        assert result._mgr.array.dtype == np.dtype(object)
 
     def test_astype_object_frame(self, all_data):
         df = pd.DataFrame({"A": all_data})
 
         result = df.astype(object)
-        blk = result._data.blocks[0]
-        assert isinstance(blk, ObjectBlock), type(blk)
+        if hasattr(result._mgr, "blocks"):
+            blk = result._data.blocks[0]
+            assert isinstance(blk, ObjectBlock), type(blk)
+        assert isinstance(result._mgr.arrays[0], np.ndarray)
+        assert result._mgr.arrays[0].dtype == np.dtype(object)
 
         # FIXME: these currently fail; dont leave commented-out
         # check that we can compare the dtypes

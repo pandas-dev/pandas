@@ -10,6 +10,7 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
+    intp_t,
     ndarray,
 )
 
@@ -200,7 +201,7 @@ cdef class SeriesGrouper(_BaseGrouper):
         ndarray arr, index, dummy_arr, dummy_index
         object f, labels, values, typ, ityp, name
 
-    def __init__(self, object series, object f, object labels,
+    def __init__(self, object series, object f, ndarray[intp_t] labels,
                  Py_ssize_t ngroups):
 
         if len(series) == 0:
@@ -228,7 +229,8 @@ cdef class SeriesGrouper(_BaseGrouper):
         cdef:
             # Define result to avoid UnboundLocalError
             ndarray arr, result = None
-            ndarray[int64_t] labels, counts
+            ndarray[intp_t] labels
+            ndarray[int64_t] counts
             Py_ssize_t i, n, group_size, lab, start, end
             object res
             bint initialized = 0

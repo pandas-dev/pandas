@@ -83,7 +83,7 @@ class PandasExtensionDtype(ExtensionDtype):
     num = 100
     shape: Tuple[int, ...] = ()
     itemsize = 8
-    base = None
+    base: Optional[DtypeObj] = None
     isbuiltin = 0
     isnative = 0
     _cache: Dict[str_type, PandasExtensionDtype] = {}
@@ -180,9 +180,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     type: Type[CategoricalDtypeType] = CategoricalDtypeType
     kind: str_type = "O"
     str = "|O08"
-    # error: Incompatible types in assignment (expression has type "dtype",
-    # base class "PandasExtensionDtype" defined the type as "None")
-    base = np.dtype("O")  # type: ignore[assignment]
+    base = np.dtype("O")
     _metadata = ("categories", "ordered")
     _cache: Dict[str_type, PandasExtensionDtype] = {}
 
@@ -676,9 +674,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     kind: str_type = "M"
     str = "|M8[ns]"
     num = 101
-    # error: Incompatible types in assignment (expression has type "dtype",
-    # base class "PandasExtensionDtype" defined the type as "None")
-    base = np.dtype("M8[ns]")  # type: ignore[assignment]
+    base = np.dtype("M8[ns]")
     na_value = NaT
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
@@ -844,9 +840,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
     type: Type[Period] = Period
     kind: str_type = "O"
     str = "|O08"
-    # error: Incompatible types in assignment (expression has type "dtype",
-    # base class "PandasExtensionDtype" defined the type as "None")
-    base = np.dtype("O")  # type: ignore[assignment]
+    base = np.dtype("O")
     num = 102
     _metadata = ("freq",)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
@@ -1046,9 +1040,7 @@ class IntervalDtype(PandasExtensionDtype):
     name = "interval"
     kind: str_type = "O"
     str = "|O08"
-    # error: Incompatible types in assignment (expression has type "dtype",
-    # base class "PandasExtensionDtype" defined the type as "None")
-    base = np.dtype("O")  # type: ignore[assignment]
+    base = np.dtype("O")
     num = 103
     _metadata = (
         "subtype",

@@ -8,6 +8,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -966,7 +968,7 @@ class TestPivotTable:
         # GH 17013
 
         df = self.data.copy()
-        df[["D", "E", "F"]] = np.arange(len(df) * 3).reshape(len(df), 3)
+        df[["D", "E", "F"]] = np.arange(len(df) * 3).reshape(len(df), 3).astype("i8")
 
         mi_val = list(product(["bar", "foo"], ["one", "two"])) + [("All", "")]
         mi = MultiIndex.from_tuples(mi_val, names=("A", "B"))
@@ -1197,6 +1199,7 @@ class TestPivotTable:
                 margins_name=margin_name,
             )
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) concat axis=0
     def test_pivot_timegrouper(self):
         df = DataFrame(
             {

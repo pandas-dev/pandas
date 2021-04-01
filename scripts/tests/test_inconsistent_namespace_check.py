@@ -1,6 +1,6 @@
 import pytest
 
-from scripts.check_for_inconsistent_pandas_namespace import (
+from ..check_for_inconsistent_pandas_namespace import (
     check_for_inconsistent_pandas_namespace,
 )
 

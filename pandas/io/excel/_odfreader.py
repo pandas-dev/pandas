@@ -23,7 +23,7 @@ class ODFReader(BaseExcelReader):
 
     Parameters
     ----------
-    filepath_or_buffer : string, path to be parsed or
+    filepath_or_buffer : str, path to be parsed or
         an open readable stream.
     storage_options : dict, optional
         passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
@@ -101,12 +101,12 @@ class ODFReader(BaseExcelReader):
 
         table: List[List[Scalar]] = []
 
-        for i, sheet_row in enumerate(sheet_rows):
+        for sheet_row in sheet_rows:
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0
             table_row: List[Scalar] = []
 
-            for j, sheet_cell in enumerate(sheet_cells):
+            for sheet_cell in sheet_cells:
                 if sheet_cell.qname == table_cell_name:
                     value = self._get_cell_value(sheet_cell, convert_float)
                 else:
@@ -202,7 +202,8 @@ class ODFReader(BaseExcelReader):
         elif cell_type == "time":
             result = pd.to_datetime(str(cell))
             result = cast(pd.Timestamp, result)
-            return result.time()
+            # error: Item "str" of "Union[float, str, NaTType]" has no attribute "time"
+            return result.time()  # type: ignore[union-attr]
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")

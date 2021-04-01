@@ -326,7 +326,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __setitem__(self, key: Union[int, np.ndarray], value: Any) -> None:
+    def __setitem__(self, key: Union[int, slice, np.ndarray], value: Any) -> None:
         """
         Set one or more values inplace.
 

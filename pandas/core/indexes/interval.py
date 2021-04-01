@@ -187,6 +187,31 @@ def setop_check(method):
     return wrapped
 
 
+def _setop(op_name: str):
+    """
+    Implement set operation.
+    """
+
+    def func(self, other, sort=None):
+        # At this point we are assured
+        #  isinstance(other, IntervalIndex)
+        #  other.closed == self.closed
+
+        result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)
+        result_name = get_op_result_name(self, other)
+
+        # GH 19101: ensure empty results have correct dtype
+        if result.empty:
+            result = result._values.astype(self.dtype.subtype)
+        else:
+            result = result._values
+
+        return type(self).from_tuples(result, closed=self.closed, name=result_name)
+
+    func.__name__ = op_name
+    return setop_check(func)
+
+
 @Appender(
     _interval_shared_docs["class"]
     % {
@@ -218,12 +243,30 @@ def setop_check(method):
     }
 )
 @inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
-@inherit_names(["__array__", "overlaps", "contains"], IntervalArray)
+@inherit_names(
+    [
+        "__array__",
+        "overlaps",
+        "contains",
+        "closed_left",
+        "closed_right",
+        "open_left",
+        "open_right",
+        "is_empty",
+    ],
+    IntervalArray,
+)
 @inherit_names(["is_non_overlapping_monotonic", "closed"], IntervalArray, cache=True)
-class IntervalIndex(IntervalMixin, ExtensionIndex):
+class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
     _comparables = ["name"]
     _attributes = ["name", "closed"]
+
+    # annotate properties pinned via inherit_names
+    closed: str
+    is_non_overlapping_monotonic: bool
+    closed_left: bool
+    closed_right: bool
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
@@ -231,6 +274,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     _data: IntervalArray
     _values: IntervalArray
     _can_hold_strings = False
+    _data_cls = IntervalArray
 
     # --------------------------------------------------------------------
     # Constructors
@@ -241,7 +285,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         closed=None,
         dtype: Optional[Dtype] = None,
         copy: bool = False,
-        name=None,
+        name: Hashable = None,
         verify_integrity: bool = True,
     ):
 
@@ -257,26 +301,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             )
 
         return cls._simple_new(array, name)
-
-    @classmethod
-    def _simple_new(cls, array: IntervalArray, name: Hashable = None):
-        """
-        Construct from an IntervalArray
-
-        Parameters
-        ----------
-        array : IntervalArray
-        name : Label, default None
-            Attached as result.name
-        """
-        assert isinstance(array, IntervalArray), type(array)
-
-        result = IntervalMixin.__new__(cls)
-        result._data = array
-        result.name = name
-        result._cache = {}
-        result._reset_identity()
-        return result
 
     @classmethod
     @Appender(
@@ -598,14 +622,14 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return key_i8
 
-    def _searchsorted_monotonic(self, label, side, exclude_label=False):
+    def _searchsorted_monotonic(self, label, side: str = "left"):
         if not self.is_non_overlapping_monotonic:
             raise KeyError(
                 "can only get slices from an IntervalIndex if bounds are "
                 "non-overlapping and all monotonic increasing or decreasing"
             )
 
-        if isinstance(label, IntervalMixin):
+        if isinstance(label, (IntervalMixin, IntervalIndex)):
             raise NotImplementedError("Interval objects are not currently supported")
 
         # GH 20921: "not is_monotonic_increasing" for the second condition
@@ -615,11 +639,11 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             side == "right" and not self.left.is_monotonic_increasing
         ):
             sub_idx = self.right
-            if self.open_right or exclude_label:
+            if self.open_right:
                 label = _get_next_label(label)
         else:
             sub_idx = self.left
-            if self.open_left or exclude_label:
+            if self.open_left:
                 label = _get_prev_label(label)
 
         return sub_idx._searchsorted_monotonic(label, side)
@@ -1011,26 +1035,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                 mask[i] = True
 
         return self[mask]
-
-    def _setop(op_name: str, sort=None):
-        def func(self, other, sort=sort):
-            # At this point we are assured
-            #  isinstance(other, IntervalIndex)
-            #  other.closed == self.closed
-
-            result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)
-            result_name = get_op_result_name(self, other)
-
-            # GH 19101: ensure empty results have correct dtype
-            if result.empty:
-                result = result._values.astype(self.dtype.subtype)
-            else:
-                result = result._values
-
-            return type(self).from_tuples(result, closed=self.closed, name=result_name)
-
-        func.__name__ = op_name
-        return setop_check(func)
 
     _union = _setop("union")
     _difference = _setop("difference")

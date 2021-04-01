@@ -6,9 +6,9 @@ dependencies:
 
   # tools
   - pytest>=5.0.1
+  - pytest-cov
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
-  - pytest-azurepipelines
 
   # pandas dependencies
   - pytz

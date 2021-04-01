@@ -342,6 +342,8 @@ def length_of_indexer(indexer, target=None) -> int:
             # GH#25774
             return indexer.sum()
         return len(indexer)
+    elif isinstance(indexer, range):
+        return (indexer.stop - indexer.start) // indexer.step
     elif not is_list_like_indexer(indexer):
         return 1
     raise AssertionError("cannot find the length of the indexer")

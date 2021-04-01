@@ -6,11 +6,10 @@ from io import StringIO
 
 import pytest
 
-from pandas._libs.tslib import Timestamp
-
 from pandas import (
     DataFrame,
     Index,
+    Timestamp,
 )
 import pandas._testing as tm
 
