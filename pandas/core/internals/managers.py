@@ -975,19 +975,6 @@ class _BlockManager(DataManager):
         values = block.iget(self.blklocs[i])
         return values
 
-    def idelete(self, indexer) -> BlockManager:
-        """
-        Delete selected locations, returning a new BlockManager.
-        """
-        is_deleted = np.zeros(self.shape[0], dtype=np.bool_)
-        is_deleted[indexer] = True
-        taker = (~is_deleted).nonzero()[0]
-
-        nbs = self._slice_take_blocks_ax0(taker, only_slice=True)
-        new_columns = self.items[~is_deleted]
-        axes = [new_columns, self.axes[1]]
-        return type(self)._simple_new(tuple(nbs), axes)
-
     def iset(self, loc: Union[int, slice, np.ndarray], value):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
@@ -1489,6 +1476,19 @@ class BlockManager(_BlockManager):
         values = maybe_coerce_values(values)
         nb = type(block)(values, placement=bp, ndim=1)
         return SingleBlockManager(nb, self.axes[1])
+
+    def idelete(self, indexer) -> BlockManager:
+        """
+        Delete selected locations, returning a new BlockManager.
+        """
+        is_deleted = np.zeros(self.shape[0], dtype=np.bool_)
+        is_deleted[indexer] = True
+        taker = (~is_deleted).nonzero()[0]
+
+        nbs = self._slice_take_blocks_ax0(taker, only_slice=True)
+        new_columns = self.items[~is_deleted]
+        axes = [new_columns, self.axes[1]]
+        return type(self)._simple_new(tuple(nbs), axes)
 
     # ----------------------------------------------------------------
     # Block-wise Operation
