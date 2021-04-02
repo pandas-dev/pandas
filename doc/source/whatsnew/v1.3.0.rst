@@ -572,6 +572,7 @@ Conversion
 - Bug in creating a :class:`DataFrame` from an empty ``np.recarray`` not retaining the original dtypes (:issue:`40121`)
 - Bug in :class:`DataFrame` failing to raise ``TypeError`` when constructing from a ``frozenset`` (:issue:`40163`)
 - Bug in :class:`Index` construction silently ignoring a passed ``dtype`` when the data cannot be cast to that dtype (:issue:`21311`)
+- Bug in :meth:`StringArray.astype` falling back to numpy and raising when converting to ``dtype='categorical'`` (:issue:`40450`)
 - Bug in :class:`DataFrame` construction with a dictionary containing an arraylike with ``ExtensionDtype`` and ``copy=True`` failing to make a copy (:issue:`38939`)
 -
 
