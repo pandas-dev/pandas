@@ -3023,7 +3023,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
     """
     from pandas import (
         DataFrame,
-        array,
+        array as pd_array,
     )
 
     regex = re.compile(pat, flags=flags)
@@ -3034,7 +3034,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
         result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
         name = _get_single_group_name(regex)
         # not dispatching, so we have to reconstruct here.
-        result = array(result, dtype=result_dtype)
+        result = pd_array(result, dtype=result_dtype)
     else:
         if isinstance(arr, ABCIndex):
             raise ValueError("only one regex group is supported with Index")
