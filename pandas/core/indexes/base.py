@@ -888,14 +888,15 @@ class Index(IndexOpsMixin, PandasObject):
         axis : int, optional
             The axis over which to select values, always 0.
         allow_fill : bool, default True
-        fill_value : bool, default None
+        fill_value : scalar, default None
             If allow_fill=True and fill_value is not None, indices specified by
-            -1 is regarded as NA. If Index doesn't hold NA, raise ValueError.
+            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
 
         Returns
         -------
         Index
-            An index formed of elements at the given indices.
+            An index formed of elements at the given indices. Will be the same
+            type as self, except for RangeIndex.
 
         See Also
         --------
@@ -905,25 +906,17 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
-        self,
-        indices: Union[AnyArrayLike, Sequence[int]],
-        axis: int = 0,
-        allow_fill: bool = True,
-        fill_value=None,
-        **kwargs,
+        self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
     ):
         if kwargs:
             nv.validate_take((), kwargs)
-        indices_as_array = ensure_platform_int(indices)
-        allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices_as_array)
+        indices = ensure_platform_int(indices)
+        allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
         # Note: we discard fill_value and use self._na_value, only relevant
         #  in the case where allow_fill is True and fill_value is not None
         taken = algos.take(
-            self._values,
-            indices_as_array,
-            allow_fill=allow_fill,
-            fill_value=self._na_value,
+            self._values, indices, allow_fill=allow_fill, fill_value=self._na_value
         )
         return type(self)._simple_new(taken, name=self.name)
 
