@@ -12,7 +12,6 @@ from typing import (
     FrozenSet,
     Hashable,
     List,
-    NewType,
     Optional,
     Sequence,
     Set,
@@ -198,9 +197,6 @@ str_t = str
 _o_dtype = np.dtype("object")
 
 
-_Identity = NewType("_Identity", object)
-
-
 def disallow_kwargs(kwargs: Dict[str, Any]):
     if kwargs:
         raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
@@ -323,7 +319,7 @@ class Index(IndexOpsMixin, PandasObject):
     # would we like our indexing holder to defer to us
     _defer_to_indexing = False
 
-    _engine_type = libindex.ObjectEngine
+    _engine_type: Type[libindex.IndexEngine] = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
     # in DatetimeIndex and PeriodIndex
     _supports_partial_string_indexing = False
@@ -726,8 +722,8 @@ class Index(IndexOpsMixin, PandasObject):
         self._engine.clear_mapping()
 
     @cache_readonly
-    def _engine(self) -> libindex.ObjectEngine:
-        # property, for now, slow to look up
+    def _engine(self) -> libindex.IndexEngine:
+        # For base class (object dtype) we get ObjectEngine
 
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
@@ -2379,7 +2375,7 @@ class Index(IndexOpsMixin, PandasObject):
     """The expected NA value to use with this index."""
 
     @cache_readonly
-    def _isnan(self):
+    def _isnan(self) -> np.ndarray:
         """
         Return if each value is NaN.
         """
@@ -2415,7 +2411,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        numpy.ndarray[bool]
             A boolean array of whether my values are NA.
 
         See Also
@@ -2473,7 +2469,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        numpy.ndarray[bool]
             Boolean array to indicate which entries are not NA.
 
         See Also
@@ -2666,7 +2662,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        np.ndarray[bool]
 
         See Also
         --------
@@ -2702,7 +2698,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_unique:
             # fastpath available bc we are immutable
             return np.zeros(len(self), dtype=bool)
-        return super().duplicated(keep=keep)
+        return self._duplicated(keep=keep)
 
     def _get_unique_index(self: _IndexT) -> _IndexT:
         """
@@ -3928,7 +3924,7 @@ class Index(IndexOpsMixin, PandasObject):
         if len(other) == 0 and how in ("left", "outer"):
             join_index = self._view()
             if return_indexers:
-                rindexer = np.repeat(-1, len(join_index))
+                rindexer = np.repeat(np.intp(-1), len(join_index))
                 return join_index, None, rindexer
             else:
                 return join_index
@@ -3936,7 +3932,7 @@ class Index(IndexOpsMixin, PandasObject):
         if len(self) == 0 and how in ("right", "outer"):
             join_index = other._view()
             if return_indexers:
-                lindexer = np.repeat(-1, len(join_index))
+                lindexer = np.repeat(np.intp(-1), len(join_index))
                 return join_index, lindexer, None
             else:
                 return join_index
@@ -4408,9 +4404,9 @@ class Index(IndexOpsMixin, PandasObject):
         # ndarray]", expected "ndarray")
         return self._values  # type: ignore[return-value]
 
-    @doc(IndexOpsMixin.memory_usage)
+    @doc(IndexOpsMixin._memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
-        result = super().memory_usage(deep=deep)
+        result = self._memory_usage(deep=deep)
 
         # include our engine hashtable
         result += self._engine.sizeof(deep=deep)
@@ -4485,7 +4481,7 @@ class Index(IndexOpsMixin, PandasObject):
         TypeError
             If the value cannot be inserted into an array of this dtype.
         """
-        if not can_hold_element(self.dtype, value):
+        if not can_hold_element(self._values, value):
             raise TypeError
         return value
 
@@ -5324,7 +5320,7 @@ class Index(IndexOpsMixin, PandasObject):
     _requires_unique_msg = "Reindexing only valid with uniquely valued Index objects"
 
     @final
-    def _maybe_promote(self, other: Index):
+    def _maybe_promote(self, other: Index) -> Tuple[Index, Index]:
         """
         When dealing with an object-dtype Index and a non-object Index, see
         if we can upcast the object-dtype one to improve performance.
@@ -5499,7 +5495,7 @@ class Index(IndexOpsMixin, PandasObject):
             items = [func(x) for x in self]
             return Index(items, name=self.name, tupleize_cols=False)
 
-    def isin(self, values, level=None):
+    def isin(self, values, level=None) -> np.ndarray:
         """
         Return a boolean array where the index values are in `values`.
 
@@ -5517,7 +5513,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        is_contained : ndarray
+        is_contained : ndarray[bool]
             NumPy array of boolean values.
 
         See Also
@@ -5867,7 +5863,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return start_slice, end_slice
 
-    def delete(self, loc):
+    def delete(self, loc) -> Index:
         """
         Make new Index with passed location(-s) deleted.
 
@@ -5899,7 +5895,7 @@ class Index(IndexOpsMixin, PandasObject):
         res_values = np.delete(self._data, loc)
         return type(self)._simple_new(res_values, name=self.name)
 
-    def insert(self, loc: int, item):
+    def insert(self, loc: int, item) -> Index:
         """
         Make new Index inserting new item at location.
 
@@ -5934,7 +5930,7 @@ class Index(IndexOpsMixin, PandasObject):
         idx = np.concatenate((arr[:loc], item, arr[loc:]))
         return Index(idx, name=self.name)
 
-    def drop(self: _IndexT, labels, errors: str_t = "raise") -> _IndexT:
+    def drop(self, labels, errors: str_t = "raise") -> Index:
         """
         Make new Index with passed list of labels deleted.
 
@@ -5947,6 +5943,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         dropped : Index
+            Will be same type as self, except for RangeIndex.
 
         Raises
         ------
