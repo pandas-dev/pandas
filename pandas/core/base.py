@@ -1164,7 +1164,7 @@ class IndexOpsMixin(OpsMixin):
 
         return Index(self).is_monotonic_decreasing
 
-    def memory_usage(self, deep=False):
+    def _memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of the values.
 

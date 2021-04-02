@@ -207,6 +207,7 @@ class Block(libinternals.Block, PandasObject):
     def external_values(self):
         return external_values(self.values)
 
+    @final
     def internal_values(self):
         """
         The array that Series._values returns (internal values).
@@ -593,8 +594,6 @@ class Block(libinternals.Block, PandasObject):
         Block
         """
         values = self.values
-        if values.dtype.kind in ["m", "M"]:
-            values = self.array_values
 
         new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
@@ -1763,10 +1762,6 @@ class NDArrayBackedExtensionBlock(Block):
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
 
-    def internal_values(self):
-        # Override to return DatetimeArray and TimedeltaArray
-        return self.values
-
     def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
@@ -1878,7 +1873,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlockMixin):
     is_extension = True
     is_numeric = False
 
-    internal_values = Block.internal_values
     diff = DatetimeBlock.diff
     where = DatetimeBlock.where
     putmask = DatetimeLikeBlockMixin.putmask
