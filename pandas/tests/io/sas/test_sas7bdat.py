@@ -95,9 +95,11 @@ class TestSAS7BDAT:
         # github #13654
         for j in 0, 1:
             for k in self.test_ix[j]:
-                for chunksize in 3, 5, 10, 11:
+                for chunksize in (3, 5, 10, 11):
                     fname = os.path.join(self.dirpath, f"test{k}.sas7bdat")
-                    with pd.read_sas(fname, chunksize=10, encoding="utf-8") as rdr:
+                    with pd.read_sas(
+                        fname, chunksize=chunksize, encoding="utf-8"
+                    ) as rdr:
                         y = 0
                         for x in rdr:
                             y += x.shape[0]

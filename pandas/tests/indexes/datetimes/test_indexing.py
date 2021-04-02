@@ -173,7 +173,7 @@ class TestWhere:
         i = date_range("20130101", periods=3, tz="US/Eastern")
 
         for arr in [np.nan, pd.NaT]:
-            result = i.where(notna(i), other=np.nan)
+            result = i.where(notna(i), other=arr)
             expected = i
             tm.assert_index_equal(result, expected)
 

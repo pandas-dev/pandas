@@ -36,7 +36,7 @@ repos:
     rev: 3.9.0
     hooks:
     -   id: flake8
-        additional_dependencies: [flake8-comprehensions>=3.1.0]
+        additional_dependencies: [flake8-comprehensions>=3.1.0, flake8-bugbear>=21.3.2]
     -   id: flake8
         name: flake8 (cython)
         types: [cython]

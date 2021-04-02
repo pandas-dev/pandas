@@ -336,7 +336,7 @@ def get_callable_name(obj):
     if isinstance(obj, partial):
         return get_callable_name(obj.func)
     # fall back to class name
-    if hasattr(obj, "__call__"):
+    if callable(obj):
         return type(obj).__name__
     # everything failed (probably because the argument
     # wasn't actually callable); we return None

@@ -458,7 +458,7 @@ def _convert_by(by):
     elif (
         is_scalar(by)
         or isinstance(by, (np.ndarray, Index, ABCSeries, Grouper))
-        or hasattr(by, "__call__")
+        or callable(by)
     ):
         by = [by]
     else:

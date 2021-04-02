@@ -9,6 +9,7 @@ cython>=0.29.21
 black==20.8b1
 cpplint
 flake8
+flake8-bugbear>=21.3.2
 flake8-comprehensions>=3.1.0
 isort>=5.2.1
 mypy==0.812

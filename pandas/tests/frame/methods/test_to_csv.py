@@ -773,10 +773,7 @@ class TestDataFrameToCSV:
             [df_float, df_int, df_bool, df_object, df_dt], axis=1, ignore_index=True
         )
 
-        cols = []
-        for i in range(5):
-            cols.extend([0, 1, 2])
-        df.columns = cols
+        df.columns = [0, 1, 2] * 5
 
         with tm.ensure_clean() as filename:
             df.to_csv(filename)
