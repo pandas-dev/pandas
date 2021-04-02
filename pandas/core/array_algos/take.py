@@ -99,7 +99,7 @@ def take_nd(
             # i.e. DatetimeArray, TimedeltaArray
             arr = cast("NDArrayBackedExtensionArray", arr)
             return arr.take(
-                indexer, axis=axis, fill_value=fill_value, allow_fill=allow_fill
+                indexer, fill_value=fill_value, allow_fill=allow_fill, axis=axis
             )
 
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
