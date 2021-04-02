@@ -12,9 +12,11 @@ import pandas._testing as tm
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import (  # isort:skip
     Styler,
+)
+from pandas.io.formats.style_render import (
     _get_level_lengths,
-    _maybe_convert_css_to_tuples,
     _non_reducing_slice,
+    maybe_convert_css_to_tuples,
 )
 
 
@@ -670,15 +672,15 @@ class TestStyler:
 
     def test_maybe_convert_css_to_tuples(self):
         expected = [("a", "b"), ("c", "d e")]
-        assert _maybe_convert_css_to_tuples("a:b;c:d e;") == expected
-        assert _maybe_convert_css_to_tuples("a: b ;c:  d e  ") == expected
+        assert maybe_convert_css_to_tuples("a:b;c:d e;") == expected
+        assert maybe_convert_css_to_tuples("a: b ;c:  d e  ") == expected
         expected = []
-        assert _maybe_convert_css_to_tuples("") == expected
+        assert maybe_convert_css_to_tuples("") == expected
 
     def test_maybe_convert_css_to_tuples_err(self):
         msg = "Styles supplied as string must follow CSS rule formats"
         with pytest.raises(ValueError, match=msg):
-            _maybe_convert_css_to_tuples("err")
+            maybe_convert_css_to_tuples("err")
 
     def test_table_attributes(self):
         attributes = 'class="foo" data-bar'
