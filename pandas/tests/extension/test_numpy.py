@@ -18,6 +18,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
@@ -46,6 +47,12 @@ def _extract_array_patched(obj):
         obj = obj.to_numpy()
 
     return obj
+
+
+def _can_hold_element_patched(obj, element) -> bool:
+    if isinstance(element, PandasArray):
+        element = element.to_numpy()
+    return can_hold_element(obj, element)
 
 
 @pytest.fixture(params=["float", "object"])
@@ -95,6 +102,7 @@ def allow_in_pandas(monkeypatch):
         m.setattr(PandasArray, "_typ", "extension")
         m.setattr(blocks.ExtensionBlock, "__init__", __init__)
         m.setattr(managers, "_extract_array", _extract_array_patched)
+        m.setattr(blocks, "can_hold_element", _can_hold_element_patched)
         yield
 
 
