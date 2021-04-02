@@ -1342,7 +1342,7 @@ def test_resample_nunique():
     assert expected.name == "ID"
 
     for t in [r, g]:
-        result = r.ID.nunique()
+        result = t.ID.nunique()
         tm.assert_series_equal(result, expected)
 
     result = df.ID.resample("D").nunique()
