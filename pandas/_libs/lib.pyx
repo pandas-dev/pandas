@@ -77,6 +77,7 @@ from pandas._libs.util cimport (
     INT64_MAX,
     INT64_MIN,
     UINT64_MAX,
+    get_itemsize,
     is_nan,
 )
 
@@ -2187,7 +2188,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
 
     Parameters
     ----------
-    values : ndarray[object]
+    objects : ndarray[object]
         Array of object elements to convert.
     try_float : bool, default False
         If an array-like object contains only float or NaN values is
@@ -2211,7 +2212,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
         Array of converted object values to more specific dtypes if applicable.
     """
     cdef:
-        Py_ssize_t i, n
+        Py_ssize_t i, n, itemsize_max = 0
         ndarray[float64_t] floats
         ndarray[complex128_t] complexes
         ndarray[int64_t] ints
@@ -2244,6 +2245,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
 
     for i in range(n):
         val = objects[i]
+        if itemsize_max != -1:
+            itemsize = get_itemsize(val)
+            if itemsize == -1 or itemsize > itemsize_max:
+                itemsize_max = itemsize
 
         if val is None:
             seen.null_ = True
@@ -2345,50 +2350,52 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
         seen.object_ = True
 
     if not seen.object_:
+        result = None
         if not safe:
             if seen.null_ or seen.nan_:
                 if seen.is_float_or_complex:
                     if seen.complex_:
-                        return complexes
+                        result = complexes
                     elif seen.float_:
-                        return floats
+                        result = floats
                     elif seen.int_:
                         if convert_to_nullable_integer:
                             from pandas.core.arrays import IntegerArray
-                            return IntegerArray(ints, mask)
+                            result = IntegerArray(ints, mask)
+                            itemsize_max = -1
                         else:
-                            return floats
+                            result = floats
                     elif seen.nan_:
-                        return floats
+                        result = floats
             else:
                 if not seen.bool_:
                     if seen.datetime_:
                         if not seen.numeric_ and not seen.timedelta_:
-                            return datetimes
+                            result = datetimes
                     elif seen.timedelta_:
                         if not seen.numeric_:
-                            return timedeltas
+                            result = timedeltas
                     elif seen.nat_:
                         if not seen.numeric_:
                             if convert_datetime and convert_timedelta:
                                 # TODO: array full of NaT ambiguity resolve here needed
                                 pass
                             elif convert_datetime:
-                                return datetimes
+                                result = datetimes
                             elif convert_timedelta:
-                                return timedeltas
+                                result = timedeltas
                     else:
                         if seen.complex_:
-                            return complexes
+                            result = complexes
                         elif seen.float_:
-                            return floats
+                            result = floats
                         elif seen.int_:
                             if seen.uint_:
-                                return uints
+                                result = uints
                             else:
-                                return ints
+                                result = ints
                 elif seen.is_bool:
-                    return bools.view(np.bool_)
+                    result = bools.view(np.bool_)
 
         else:
             # don't cast int to float, etc.
@@ -2396,41 +2403,47 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                 if seen.is_float_or_complex:
                     if seen.complex_:
                         if not seen.int_:
-                            return complexes
+                            result = complexes
                     elif seen.float_ or seen.nan_:
                         if not seen.int_:
-                            return floats
+                            result = floats
             else:
                 if not seen.bool_:
                     if seen.datetime_:
                         if not seen.numeric_ and not seen.timedelta_:
-                            return datetimes
+                            result = datetimes
                     elif seen.timedelta_:
                         if not seen.numeric_:
-                            return timedeltas
+                            result = timedeltas
                     elif seen.nat_:
                         if not seen.numeric_:
                             if convert_datetime and convert_timedelta:
                                 # TODO: array full of NaT ambiguity resolve here needed
                                 pass
                             elif convert_datetime:
-                                return datetimes
+                                result = datetimes
                             elif convert_timedelta:
-                                return timedeltas
+                                result = timedeltas
                     else:
                         if seen.complex_:
                             if not seen.int_:
-                                return complexes
+                                result = complexes
                         elif seen.float_ or seen.nan_:
                             if not seen.int_:
-                                return floats
+                                result = floats
                         elif seen.int_:
                             if seen.uint_:
-                                return uints
+                                result = uints
                             else:
-                                return ints
+                                result = ints
                 elif seen.is_bool and not seen.nan_:
-                    return bools.view(np.bool_)
+                    result = bools.view(np.bool_)
+        if result is not None:
+            if itemsize > 0:
+                curr_itemsize = cnp.PyArray_ITEMSIZE(result)
+                if itemsize != curr_itemsize:
+                    result = result.astype(result.dtype.kind + str(itemsize))
+            return result
 
     return objects
 
