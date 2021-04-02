@@ -1880,13 +1880,11 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlock):
     is_extension = True
     is_numeric = False
 
-    _can_hold_element = NDArrayBackedExtensionBlock._can_hold_element
     diff = NDArrayBackedExtensionBlock.diff
     where = NDArrayBackedExtensionBlock.where
     putmask = NDArrayBackedExtensionBlock.putmask
     fillna = NDArrayBackedExtensionBlock.fillna
 
-    array_values = NDArrayBackedExtensionBlock.array_values
     get_values = NDArrayBackedExtensionBlock.get_values
 
     # error: Incompatible types in assignment (expression has type
