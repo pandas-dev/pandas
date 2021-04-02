@@ -181,7 +181,7 @@ _shared_doc_kwargs = {
     "axes_single_arg": "int or labels for object",
     "args_transpose": "axes to permute (int or label for object)",
     "inplace": """
-    inplace : boolean, default False
+    inplace : bool, default False
         If True, performs operation inplace and returns None.""",
     "optional_by": """
         by : str or list of str
@@ -1656,9 +1656,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key: str
+        key : str
             Potential label name
-        axis: int, default 0
+        axis : int, default 0
             Axis perpendicular to the axis that labels are associated with
             (0 means search for column labels, 1 means search for index labels)
 
@@ -1687,14 +1687,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key: str
+        key : str
             Potential label or level name
-        axis: int, default 0
+        axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
 
         Returns
         -------
-        is_label_or_level: bool
+        bool
         """
         return self._is_level_reference(key, axis=axis) or self._is_label_reference(
             key, axis=axis
@@ -1710,9 +1710,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key: str or object
+        key : str or object
             Label or level name.
-        axis: int, default 0
+        axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns).
 
         Raises
@@ -1760,14 +1760,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key: str
+        key : str
             Label or level name.
-        axis: int, default 0
+        axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
 
         Returns
         -------
-        values: np.ndarray
+        values : np.ndarray
 
         Raises
         ------
