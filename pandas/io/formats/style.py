@@ -1413,7 +1413,10 @@ class Styler:
         """
         subset = _non_reducing_slice(subset)
         hidden_df = self.data.loc[subset]
-        self.hidden_columns = self.columns.get_indexer_for(hidden_df.columns)
+        hcols = self.columns.get_indexer_for(hidden_df.columns)
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "Sequence[int]")
+        self.hidden_columns = hcols  # type: ignore[assignment]
         return self
 
     # -----------------------------------------------------------------------

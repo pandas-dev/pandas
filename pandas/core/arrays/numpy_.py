@@ -205,38 +205,60 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Reductions
 
-    def any(self, *, axis=None, out=None, keepdims=False, skipna=True):
+    def any(
+        self,
+        *,
+        axis: Optional[int] = None,
+        out=None,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
         nv.validate_any((), {"out": out, "keepdims": keepdims})
         result = nanops.nanany(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def all(self, *, axis=None, out=None, keepdims=False, skipna=True):
+    def all(
+        self,
+        *,
+        axis: Optional[int] = None,
+        out=None,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
         nv.validate_all((), {"out": out, "keepdims": keepdims})
         result = nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def min(self, *, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def min(
+        self, *, axis: Optional[int] = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_min((), kwargs)
         result = nanops.nanmin(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def max(self, *, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def max(
+        self, *, axis: Optional[int] = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_max((), kwargs)
         result = nanops.nanmax(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def sum(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+    def sum(
+        self, *, axis: Optional[int] = None, skipna: bool = True, min_count=0, **kwargs
+    ) -> Scalar:
         nv.validate_sum((), kwargs)
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
         return self._wrap_reduction_result(axis, result)
 
-    def prod(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+    def prod(
+        self, *, axis: Optional[int] = None, skipna: bool = True, min_count=0, **kwargs
+    ) -> Scalar:
         nv.validate_prod((), kwargs)
         result = nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
@@ -246,18 +268,24 @@ class PandasArray(
     def mean(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         dtype: Optional[NpDtype] = None,
         out=None,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_mean((), {"dtype": dtype, "out": out, "keepdims": keepdims})
         result = nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
     def median(
-        self, *, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True
+        self,
+        *,
+        axis: Optional[int] = None,
+        out=None,
+        overwrite_input: bool = False,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_median(
             (), {"out": out, "overwrite_input": overwrite_input, "keepdims": keepdims}
@@ -268,12 +296,12 @@ class PandasArray(
     def std(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         dtype: Optional[NpDtype] = None,
         out=None,
         ddof=1,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="std"
@@ -284,12 +312,12 @@ class PandasArray(
     def var(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         dtype: Optional[NpDtype] = None,
         out=None,
         ddof=1,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="var"
@@ -300,12 +328,12 @@ class PandasArray(
     def sem(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         dtype: Optional[NpDtype] = None,
         out=None,
         ddof=1,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="sem"
@@ -316,11 +344,11 @@ class PandasArray(
     def kurt(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         dtype: Optional[NpDtype] = None,
         out=None,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="kurt"
@@ -331,11 +359,11 @@ class PandasArray(
     def skew(
         self,
         *,
-        axis=None,
+        axis: Optional[int] = None,
         dtype: Optional[NpDtype] = None,
         out=None,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="skew"
@@ -368,7 +396,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Ops
 
-    def __invert__(self):
+    def __invert__(self) -> PandasArray:
         return type(self)(~self._ndarray)
 
     def _cmp_method(self, other, op):

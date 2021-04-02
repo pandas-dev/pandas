@@ -411,7 +411,7 @@ cdef class {{name}}HashTable(HashTable):
         k = kh_get_{{dtype}}(self.table, ckey)
         return k != self.table.n_buckets
 
-    def sizeof(self, deep=False):
+    def sizeof(self, deep: bool = False) -> int:
         """ return the size of my table in bytes """
         overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
         for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
@@ -419,7 +419,7 @@ cdef class {{name}}HashTable(HashTable):
                                              sizeof(Py_ssize_t))   # vals
         return overhead + for_flags + for_pairs
 
-    def get_state(self):
+    def get_state(self) -> dict[str, int]:
         """ returns infos about the state of the hashtable"""
         return {
             'n_buckets' : self.table.n_buckets,
@@ -747,14 +747,14 @@ cdef class StringHashTable(HashTable):
             kh_destroy_str(self.table)
             self.table = NULL
 
-    def sizeof(self, deep=False):
+    def sizeof(self, deep: bool = False) -> int:
         overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
         for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
         for_pairs =  self.table.n_buckets * (sizeof(char *) +      # keys
                                              sizeof(Py_ssize_t))   # vals
         return overhead + for_flags + for_pairs
 
-    def get_state(self):
+    def get_state(self) -> dict[str, int]:
         """ returns infos about the state of the hashtable"""
         return {
             'n_buckets' : self.table.n_buckets,
@@ -1079,7 +1079,7 @@ cdef class PyObjectHashTable(HashTable):
         k = kh_get_pymap(self.table, <PyObject*>key)
         return k != self.table.n_buckets
 
-    def sizeof(self, deep=False):
+    def sizeof(self, deep: bool = False) -> int:
         """ return the size of my table in bytes """
         overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
         for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
@@ -1087,7 +1087,7 @@ cdef class PyObjectHashTable(HashTable):
                                              sizeof(Py_ssize_t))   # vals
         return overhead + for_flags + for_pairs
 
-    def get_state(self):
+    def get_state(self) -> dict[str, int]:
         """
         returns infos about the current state of the hashtable like size,
         number of buckets and so on.
