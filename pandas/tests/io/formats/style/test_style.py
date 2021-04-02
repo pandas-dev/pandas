@@ -268,6 +268,7 @@ class TestStyler:
                     "type": "th",
                     "value": "A",
                     "is_visible": True,
+                    "attributes": "",
                 },
                 {
                     "class": "col_heading level0 col1",
@@ -275,6 +276,7 @@ class TestStyler:
                     "type": "th",
                     "value": "B",
                     "is_visible": True,
+                    "attributes": "",
                 },
                 {
                     "class": "col_heading level0 col2",
@@ -282,6 +284,7 @@ class TestStyler:
                     "type": "th",
                     "value": "C",
                     "is_visible": True,
+                    "attributes": "",
                 },
             ]
         ]
@@ -290,6 +293,7 @@ class TestStyler:
 
     def test_index_name(self):
         # https://github.com/pandas-dev/pandas/issues/11655
+        # TODO: this test can be minimised to address the test more directly
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
         result = df.set_index("A").style._translate()
 
@@ -308,6 +312,7 @@ class TestStyler:
                     "value": "B",
                     "display_value": "B",
                     "is_visible": True,
+                    "attributes": "",
                 },
                 {
                     "class": "col_heading level0 col1",
@@ -315,12 +320,31 @@ class TestStyler:
                     "value": "C",
                     "display_value": "C",
                     "is_visible": True,
+                    "attributes": "",
                 },
             ],
             [
-                {"class": "index_name level0", "type": "th", "value": "A"},
-                {"class": "blank col0", "type": "th", "value": self.blank_value},
-                {"class": "blank col1", "type": "th", "value": self.blank_value},
+                {
+                    "class": "index_name level0",
+                    "type": "th",
+                    "value": "A",
+                    "is_visible": True,
+                    "display_value": "A",
+                },
+                {
+                    "class": "blank col0",
+                    "type": "th",
+                    "value": self.blank_value,
+                    "is_visible": True,
+                    "display_value": self.blank_value,
+                },
+                {
+                    "class": "blank col1",
+                    "type": "th",
+                    "value": self.blank_value,
+                    "is_visible": True,
+                    "display_value": self.blank_value,
+                },
             ],
         ]
 
@@ -328,6 +352,7 @@ class TestStyler:
 
     def test_multiindex_name(self):
         # https://github.com/pandas-dev/pandas/issues/11655
+        # TODO: this test can be minimised to address the test more directly
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
         result = df.set_index(["A", "B"]).style._translate()
 
@@ -353,12 +378,31 @@ class TestStyler:
                     "value": "C",
                     "display_value": "C",
                     "is_visible": True,
+                    "attributes": "",
                 },
             ],
             [
-                {"class": "index_name level0", "type": "th", "value": "A"},
-                {"class": "index_name level1", "type": "th", "value": "B"},
-                {"class": "blank col0", "type": "th", "value": self.blank_value},
+                {
+                    "class": "index_name level0",
+                    "type": "th",
+                    "value": "A",
+                    "is_visible": True,
+                    "display_value": "A",
+                },
+                {
+                    "class": "index_name level1",
+                    "type": "th",
+                    "value": "B",
+                    "is_visible": True,
+                    "display_value": "B",
+                },
+                {
+                    "class": "blank col0",
+                    "type": "th",
+                    "value": self.blank_value,
+                    "is_visible": True,
+                    "display_value": self.blank_value,
+                },
             ],
         ]
 
@@ -818,7 +862,7 @@ class TestStyler:
             "class": "row_heading level0 row0",
             "id": "level0_row0",
         }
-        tm.assert_dict_equal(body_0, expected_0)
+        assert body_0 == expected_0
 
         body_1 = result["body"][0][1]
         expected_1 = {
@@ -828,8 +872,9 @@ class TestStyler:
             "type": "th",
             "class": "row_heading level1 row0",
             "id": "level1_row0",
+            "attributes": "",
         }
-        tm.assert_dict_equal(body_1, expected_1)
+        assert body_1 == expected_1
 
         body_10 = result["body"][1][0]
         expected_10 = {
@@ -839,8 +884,9 @@ class TestStyler:
             "type": "th",
             "class": "row_heading level0 row1",
             "id": "level0_row1",
+            "attributes": "",
         }
-        tm.assert_dict_equal(body_10, expected_10)
+        assert body_10 == expected_10
 
         head = result["head"][0]
         expected = [
@@ -864,21 +910,26 @@ class TestStyler:
                 "value": "A",
                 "is_visible": True,
                 "display_value": "A",
+                "attributes": "",
             },
         ]
         assert head == expected
 
     def test_mi_sparse_disabled(self):
+        df = DataFrame(
+            {"A": [1, 2]}, index=pd.MultiIndex.from_arrays([["a", "a"], [0, 1]])
+        )
+        result = df.style._translate()["body"]
+        assert 'rowspan="2"' in result[0][0]["attributes"]
+        assert result[1][0]["is_visible"] is False
+
         with pd.option_context("display.multi_sparse", False):
-            df = DataFrame(
-                {"A": [1, 2]}, index=pd.MultiIndex.from_arrays([["a", "a"], [0, 1]])
-            )
-            result = df.style._translate()
-        body = result["body"]
-        for row in body:
-            assert "attributes" not in row[0]
+            result = df.style._translate()["body"]
+        assert 'rowspan="2"' not in result[0][0]["attributes"]
+        assert result[1][0]["is_visible"] is True
 
     def test_mi_sparse_index_names(self):
+        # TODO this test is verbose can be minimised to more directly target test
         df = DataFrame(
             {"A": [1, 2]},
             index=pd.MultiIndex.from_arrays(
@@ -888,14 +939,33 @@ class TestStyler:
         result = df.style._translate()
         head = result["head"][1]
         expected = [
-            {"class": "index_name level0", "value": "idx_level_0", "type": "th"},
-            {"class": "index_name level1", "value": "idx_level_1", "type": "th"},
-            {"class": "blank col0", "value": self.blank_value, "type": "th"},
+            {
+                "class": "index_name level0",
+                "value": "idx_level_0",
+                "type": "th",
+                "is_visible": True,
+                "display_value": "idx_level_0",
+            },
+            {
+                "class": "index_name level1",
+                "value": "idx_level_1",
+                "type": "th",
+                "is_visible": True,
+                "display_value": "idx_level_1",
+            },
+            {
+                "class": "blank col0",
+                "value": self.blank_value,
+                "type": "th",
+                "is_visible": True,
+                "display_value": self.blank_value,
+            },
         ]
 
         assert head == expected
 
     def test_mi_sparse_column_names(self):
+        # TODO this test is verbose - could be minimised
         df = DataFrame(
             np.arange(16).reshape(4, 4),
             index=pd.MultiIndex.from_arrays(
@@ -929,6 +999,7 @@ class TestStyler:
                 "is_visible": True,
                 "type": "th",
                 "value": 1,
+                "attributes": "",
             },
             {
                 "class": "col_heading level1 col1",
@@ -936,6 +1007,7 @@ class TestStyler:
                 "is_visible": True,
                 "type": "th",
                 "value": 0,
+                "attributes": "",
             },
             {
                 "class": "col_heading level1 col2",
@@ -943,6 +1015,7 @@ class TestStyler:
                 "is_visible": True,
                 "type": "th",
                 "value": 1,
+                "attributes": "",
             },
             {
                 "class": "col_heading level1 col3",
@@ -950,6 +1023,7 @@ class TestStyler:
                 "is_visible": True,
                 "type": "th",
                 "value": 0,
+                "attributes": "",
             },
         ]
         assert head == expected
