@@ -1239,12 +1239,12 @@ def group_min(groupby_t[:, ::1] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_cummin_max(groupby_t[:, ::1] out,
-                     ndarray[groupby_t, ndim=2] values,
-                     const intp_t[:] labels,
-                     int ngroups,
-                     bint is_datetimelike,
-                     bint compute_max):
+cdef group_cummin_max(groupby_t[:, ::1] out,
+                      ndarray[groupby_t, ndim=2] values,
+                      const intp_t[:] labels,
+                      int ngroups,
+                      bint is_datetimelike,
+                      bint compute_max):
     """
     Cumulative minimum/maximum of columns of `values`, in row groups `labels`.
 
