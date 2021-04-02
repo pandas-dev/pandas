@@ -212,3 +212,10 @@ repos:
             |\#\ type:\s?ignore(?!\[)
         language: pygrep
         types: [python]
+    -   id: use-pd_array-in-core
+        name: Import pandas.array as pd_array in core
+        language: python
+        entry: python scripts/use_pd_array_in_core.py
+        files: ^pandas/core/
+        exclude: ^pandas/core/api\.py$
+        types: [python]
