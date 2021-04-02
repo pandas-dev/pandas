@@ -1,3 +1,4 @@
+import datetime
 from typing import (
     Any,
     Dict,
@@ -218,6 +219,7 @@ class XlsxWriter(ExcelWriter):
             self.sheets[sheet_name] = wks
 
         style_dict = {"null": None}
+        datetime_cols = []
 
         if validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
@@ -235,6 +237,14 @@ class XlsxWriter(ExcelWriter):
                 style = self.book.add_format(_XlsxStyler.convert(cell.style, fmt))
                 style_dict[stylekey] = style
 
+            if (
+                isinstance(val, datetime.date) or isinstance(val, datetime.datetime)
+            ) and stylekey.startswith("null"):
+                if cell.col not in datetime_cols:
+                    self.set_column_format(sheet_name, startcol + cell.col, None, style)
+                    datetime_cols.append(cell.col)
+                style = None
+
             if cell.mergestart is not None and cell.mergeend is not None:
                 wks.merge_range(
                     startrow + cell.row,
@@ -246,3 +256,9 @@ class XlsxWriter(ExcelWriter):
                 )
             else:
                 wks.write(startrow + cell.row, startcol + cell.col, val, style)
+
+    def set_column_format(self, sheet_name, col, width, format):
+        """
+        Sets format for a column in the WorkSheet
+        """
+        self.sheets[sheet_name].set_column(col, col, width=width, cell_format=format)

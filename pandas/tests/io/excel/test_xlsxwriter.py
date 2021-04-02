@@ -1,8 +1,13 @@
+from datetime import datetime
 import warnings
 
+import numpy as np
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+)
 import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter
@@ -12,7 +17,46 @@ xlsxwriter = pytest.importorskip("xlsxwriter")
 pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
 
 
-def test_column_format(ext):
+def ts_df():
+    df = tm.makeTimeDataFrame()[:5]
+    index = DatetimeIndex(np.asarray(df.index), freq=None)
+    df.index = index
+    return df
+
+
+@pytest.mark.parametrize(
+    "data,num_format,fmt,col,expected",
+    [
+        (
+            DataFrame({"A": [123456, 123456], "B": [123456, 123456]}),
+            "#,##0",
+            None,
+            "B",
+            "#,##0",
+        ),
+        (
+            DataFrame(
+                {
+                    "A": [
+                        datetime(2013, 1, 13, 1, 2, 3),
+                        datetime(2013, 1, 13, 2, 45, 56),
+                    ],
+                    "B": [
+                        datetime(1998, 5, 26, 23, 33, 4),
+                        datetime(2014, 2, 28, 13, 5, 13),
+                    ],
+                }
+            ),
+            "DD-MMM-YYYY HH:MM:SS",
+            None,
+            "B",
+            "DD-MMM-YYYY HH:MM:SS",
+        ),
+        (ts_df(), "MMM", None, "A", "YYYY-MM-DD HH:MM:SS"),
+        (ts_df(), "MMM", "DD-MMM-YYYY HH:MM:SS", "A", "DD-MMM-YYYY HH:MM:SS"),
+    ],
+)
+def test_column_format(ext, data, num_format, fmt, col, expected):
     # Test that column formats are applied to cells. Test for issue #9167.
     # Applicable to xlsxwriter only.
     with warnings.catch_warnings():
@@ -21,17 +65,16 @@ def test_column_format(ext):
         openpyxl = pytest.importorskip("openpyxl")
 
     with tm.ensure_clean(ext) as path:
-        frame = DataFrame({"A": [123456, 123456], "B": [123456, 123456]})
+        frame = data
 
-        with ExcelWriter(path) as writer:
+        with ExcelWriter(path, datetime_format=fmt) as writer:
             frame.to_excel(writer)
 
-            # Add a number format to col B and ensure it is applied to cells.
-            num_format = "#,##0"
+            # Add a number format to col
             write_workbook = writer.book
             write_worksheet = write_workbook.worksheets()[0]
             col_format = write_workbook.add_format({"num_format": num_format})
-            write_worksheet.set_column("B:B", None, col_format)
+            write_worksheet.set_column(f"{col}:{col}", None, col_format)
 
         read_workbook = openpyxl.load_workbook(path)
         try:
@@ -42,17 +85,17 @@ def test_column_format(ext):
 
         # Get the number format from the cell.
         try:
-            cell = read_worksheet["B2"]
+            cell = read_worksheet[f"{col}2"]
         except TypeError:
             # compat
-            cell = read_worksheet.cell("B2")
+            cell = read_worksheet.cell(f"{col}2")
 
         try:
             read_num_format = cell.number_format
         except AttributeError:
             read_num_format = cell.style.number_format._format_code
 
-        assert read_num_format == num_format
+        assert read_num_format == expected
 
 
 def test_write_append_mode_raises(ext):
