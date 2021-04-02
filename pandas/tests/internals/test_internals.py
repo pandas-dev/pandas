@@ -30,6 +30,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import (
     DatetimeArray,
     SparseArray,
+    TimedeltaArray,
 )
 from pandas.core.internals import (
     BlockManager,
@@ -299,6 +300,23 @@ class TestBlock:
 
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
+
+    def test_delete_datetimelike(self):
+        # dont use np.delete on values, as that will coerce from DTA/TDA to ndarray
+        arr = np.arange(20, dtype="i8").reshape(5, 4).view("m8[ns]")
+        df = DataFrame(arr)
+        blk = df._mgr.blocks[0]
+        assert isinstance(blk.values, TimedeltaArray)
+
+        blk.delete(1)
+        assert isinstance(blk.values, TimedeltaArray)
+
+        df = DataFrame(arr.view("M8[ns]"))
+        blk = df._mgr.blocks[0]
+        assert isinstance(blk.values, DatetimeArray)
+
+        blk.delete([1, 3])
+        assert isinstance(blk.values, DatetimeArray)
 
     def test_split(self):
         # GH#37799

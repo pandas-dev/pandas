@@ -278,6 +278,11 @@ class Block(libinternals.Block, PandasObject):
         """ Wrap given values in a block of same type as self. """
         if placement is None:
             placement = self._mgr_locs
+
+        if values.dtype.kind == "m":
+            # TODO: remove this once fastparquet has stopped relying on it
+            values = ensure_wrapped_if_datetimelike(values)
+
         # We assume maybe_coerce_values has already been called
         return type(self)(values, placement=placement, ndim=self.ndim)
 
@@ -369,7 +374,6 @@ class Block(libinternals.Block, PandasObject):
         """
         self.values[locs] = values
 
-    @final
     def delete(self, loc) -> None:
         """
         Delete given loc(-s) from block in-place.
@@ -1851,6 +1855,19 @@ class NDArrayBackedExtensionBlock(Block):
         new_values = values.fillna(value=value, limit=limit)
         return [self.make_block_same_class(values=new_values)]
 
+    def delete(self, loc) -> None:
+        """
+        Delete given loc(-s) from block in-place.
+        """
+        # This will be unnecessary if/when __array_function__ is implemented
+        self.values = self.values.delete(loc, axis=0)
+        self.mgr_locs = self._mgr_locs.delete(loc)
+        try:
+            self._cache.clear()
+        except AttributeError:
+            # _cache not yet initialized
+            pass
+
 
 class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
@@ -2120,7 +2137,9 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
-            values = np.asarray(values).reshape(1, -1)
+            values = cast(Union[np.ndarray, DatetimeArray, TimedeltaArray], values)
+            values = values.reshape(1, -1)
+
     return values
 
 
