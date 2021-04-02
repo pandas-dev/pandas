@@ -479,7 +479,7 @@ class Styler(StylerRenderer):
             result.columns = data.columns
         else:
             result = func(data, **kwargs)
-            if not isinstance(result, pd.DataFrame):
+            if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):
                     raise TypeError(
                         f"Function {repr(func)} must return a DataFrame or ndarray "
@@ -1131,7 +1131,7 @@ class Styler(StylerRenderer):
             if s.ndim == 1:
                 return [css(rgba) for rgba in rgbas]
             else:
-                return pd.DataFrame(
+                return DataFrame(
                     [[css(rgba) for rgba in row] for row in rgbas],
                     index=s.index,
                     columns=s.columns,
@@ -1221,7 +1221,7 @@ class Styler(StylerRenderer):
         if s.ndim == 1:
             return [css(x) for x in normed]
         else:
-            return pd.DataFrame(
+            return DataFrame(
                 [[css(x) for x in row] for row in normed],
                 index=s.index,
                 columns=s.columns,
