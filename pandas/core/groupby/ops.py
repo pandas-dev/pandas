@@ -25,7 +25,6 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
-    iNaT,
     lib,
 )
 import pandas._libs.groupby as libgroupby
@@ -697,12 +696,10 @@ class BaseGrouper:
         if kind == "aggregate":
             # i.e. counts is defined
             if is_integer_dtype(result.dtype) and not is_datetimelike:
-                mask = result == iNaT
-                if mask.any():
-                    # TODO: we dont have any tests that get here with min_count > 1
-                    cutoff = max(1, min_count)
-                    empty_groups = counts < cutoff
-
+                # TODO: we don't have any tests that get here with min_count > 1
+                cutoff = max(1, min_count)
+                empty_groups = counts < cutoff
+                if empty_groups.any():
                     result = result.astype("float64")  # TODO: could be lossy
                     result[empty_groups] = np.nan
 
