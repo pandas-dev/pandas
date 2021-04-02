@@ -50,6 +50,8 @@ from pandas.core.indexes.api import Index
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 from markupsafe import escape as escape_func  # markupsafe is jinja2 dependency
 
+from pandas.io.formats.style_core.render import StylerRender
+
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
 CSSPair = Tuple[str, Union[str, int, float]]
@@ -78,7 +80,7 @@ def _mpl(func: Callable):
         raise ImportError(no_mpl_message.format(func.__name__))
 
 
-class Styler:
+class Styler(StylerRender):
     """
     Helps style a DataFrame or Series according to the data with HTML and CSS.
 
@@ -198,13 +200,16 @@ class Styler:
         self.cell_ids = cell_ids
 
         # assign additional default vars
-        self.hidden_index: bool = False
-        self.hidden_columns: Sequence[int] = []
-        self.ctx: DefaultDict[Tuple[int, int], CSSList] = defaultdict(list)
-        self.cell_context: DefaultDict[Tuple[int, int], str] = defaultdict(str)
-        self._todo: List[Tuple[Callable, Tuple, Dict]] = []
+        # self.hidden_index: bool = False
+        # self.hidden_columns: Sequence[int] = []
+        # self.ctx: DefaultDict[Tuple[int, int], CSSList] = defaultdict(list)
+        # self.cell_context: DefaultDict[Tuple[int, int], str] = defaultdict(str)
+        # self._todo: List[Tuple[Callable, Tuple, Dict]] = []
+        super().__init__()
+
         self.tooltips: Optional[_Tooltips] = None
         def_precision = get_option("display.precision")
+
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             Tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
@@ -769,48 +774,48 @@ class Styler:
 
         return self
 
-    def render(self, **kwargs) -> str:
-        """
-        Render the ``Styler`` including all applied styles to HTML.
-
-        Parameters
-        ----------
-        **kwargs
-            Any additional keyword arguments are passed
-            through to ``self.template.render``.
-            This is useful when you need to provide
-            additional variables for a custom template.
-
-        Returns
-        -------
-        rendered : str
-            The rendered HTML.
-
-        Notes
-        -----
-        Styler objects have defined the ``_repr_html_`` method
-        which automatically calls ``self.render()`` when it's the
-        last item in a Notebook cell. When calling ``Styler.render()``
-        directly, wrap the result in ``IPython.display.HTML`` to view
-        the rendered HTML in the notebook.
-
-        Pandas uses the following keys in render. Arguments passed
-        in ``**kwargs`` take precedence, so think carefully if you want
-        to override them:
-
-        * head
-        * cellstyle
-        * body
-        * uuid
-        * table_styles
-        * caption
-        * table_attributes
-        """
-        self._compute()
-        # TODO: namespace all the pandas keys
-        d = self._translate()
-        d.update(kwargs)
-        return self.template.render(**d)
+    # def render(self, **kwargs) -> str:
+    #     """
+    #     Render the ``Styler`` including all applied styles to HTML.
+    #
+    #     Parameters
+    #     ----------
+    #     **kwargs
+    #         Any additional keyword arguments are passed
+    #         through to ``self.template.render``.
+    #         This is useful when you need to provide
+    #         additional variables for a custom template.
+    #
+    #     Returns
+    #     -------
+    #     rendered : str
+    #         The rendered HTML.
+    #
+    #     Notes
+    #     -----
+    #     Styler objects have defined the ``_repr_html_`` method
+    #     which automatically calls ``self.render()`` when it's the
+    #     last item in a Notebook cell. When calling ``Styler.render()``
+    #     directly, wrap the result in ``IPython.display.HTML`` to view
+    #     the rendered HTML in the notebook.
+    #
+    #     Pandas uses the following keys in render. Arguments passed
+    #     in ``**kwargs`` take precedence, so think carefully if you want
+    #     to override them:
+    #
+    #     * head
+    #     * cellstyle
+    #     * body
+    #     * uuid
+    #     * table_styles
+    #     * caption
+    #     * table_attributes
+    #     """
+    #     self._compute()
+    #     # TODO: namespace all the pandas keys
+    #     d = self._translate()
+    #     d.update(kwargs)
+    #     return self.template.render(**d)
 
     def _update_ctx(self, attrs: DataFrame) -> None:
         """
@@ -883,20 +888,20 @@ class Styler:
         self.cell_context.clear()
         self._todo = []
 
-    def _compute(self):
-        """
-        Execute the style functions built up in `self._todo`.
-
-        Relies on the conventions that all style functions go through
-        .apply or .applymap. The append styles to apply as tuples of
-
-        (application method, *args, **kwargs)
-        """
-        self.ctx.clear()
-        r = self
-        for func, args, kwargs in self._todo:
-            r = func(self)(*args, **kwargs)
-        return r
+    # def _compute(self):
+    #     """
+    #     Execute the style functions built up in `self._todo`.
+    #
+    #     Relies on the conventions that all style functions go through
+    #     .apply or .applymap. The append styles to apply as tuples of
+    #
+    #     (application method, *args, **kwargs)
+    #     """
+    #     self.ctx.clear()
+    #     r = self
+    #     for func, args, kwargs in self._todo:
+    #         r = func(self)(*args, **kwargs)
+    #     return r
 
     def _apply(
         self,
