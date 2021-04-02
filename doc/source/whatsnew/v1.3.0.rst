@@ -110,6 +110,31 @@ both XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
 
 For more, see :ref:`io.xml` in the user guide on IO tools.
 
+Styler Upgrades
+^^^^^^^^^^^^^^^
+
+We provided some focused development on :class:`.Styler`, including altering methods
+to accept more universal CSS language for arguments, such as ``'color:red;'`` instead of
+``[('color', 'red')]`` (:issue:`39564`). This is also added to the built-in methods
+to allow custom CSS highlighting instead of default background coloring (:issue:`40242`).
+
+The :meth:`.Styler.apply` now consistently allows functions with ``ndarray`` output to
+allow more flexible development of UDFs when ``axis`` is ``None`` ``0`` or ``1`` (:issue:`39393`).
+
+:meth:`.Styler.set_tooltips` is a new method that allows adding on hover tooltips to
+enhance interactive displays (:issue:`35643`). :meth:`.Styler.set_td_classes`, which was recently
+introduced in v1.2.0 (:issue:`36159`) to allow adding specific CSS classes to data cells, has
+been made as performant as :meth:`.Styler.apply` and :meth:`.Styler.applymap` (:issue:`40453`),
+if not more performant in some cases. The overall performance of HTML
+render times has been considerably improved to
+match :meth:`DataFrame.to_html` (:issue:`39952` :issue:`37792` :issue:`40425`).
+
+The :meth:`.Styler.format` has had upgrades to easily format missing data,
+precision, and perform HTML escaping (:issue:`40437` :issue:`40134`). There have been numerous other bug fixes to
+properly format HTML and eliminate some inconsistencies (:issue:`39942` :issue:`40356` :issue:`39807` :issue:`39889` :issue:`39627`)
+
+Documentation has also seen major revisions in light of new features (:issue:`39720` :issue:`39317` :issue:`40493`)
+
 .. _whatsnew_130.dataframe_honors_copy_with_dict:
 
 DataFrame constructor honors ``copy=False`` with dict
