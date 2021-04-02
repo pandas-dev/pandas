@@ -6,6 +6,7 @@ from datetime import (
 )
 from typing import (
     Any,
+    Hashable,
     Optional,
 )
 import warnings
@@ -218,10 +219,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         ordinal=None,
         freq=None,
         dtype: Optional[Dtype] = None,
-        copy=False,
-        name=None,
+        copy: bool = False,
+        name: Hashable = None,
         **fields,
-    ):
+    ) -> PeriodIndex:
 
         valid_field_set = {
             "year",
@@ -325,7 +326,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # ------------------------------------------------------------------------
     # Rendering Methods
 
-    def _mpl_repr(self):
+    def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
         return self.astype(object)._values
 
@@ -389,7 +390,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
         """
         where : array of timestamps
-        mask : array of booleans where data is not NA
+        mask : np.ndarray[bool]
+            Array of booleans where data is not NA.
         """
         if isinstance(where, DatetimeIndex):
             where = PeriodIndex(where._values, freq=self.freq)
