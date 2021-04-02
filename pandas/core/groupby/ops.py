@@ -758,7 +758,7 @@ class BaseGrouper:
 
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if kind == "aggregate":
-            counts = np.zeros(self.ngroups, dtype=np.int64)
+            counts = np.zeros(ngroups, dtype=np.int64)
             func(result, counts, values, comp_ids, min_count)
         elif kind == "transform":
             # TODO: min_count
