@@ -58,7 +58,7 @@ CSSStyles = List[Dict[str, CSSProperties]]  # = List[CSSDict]
 #     props: CSSProperties
 
 
-class StylerRender:
+class StylerRenderer:
     """
     Base class to process rendering a Styler with a specified jinja2 template.
     """
@@ -363,7 +363,7 @@ class StylerRender:
         na_rep: Optional[str] = None,
         precision: Optional[int] = None,
         escape: bool = False,
-    ) -> StylerRender:
+    ) -> StylerRenderer:
         """
         Format the text display value of cells.
 

@@ -37,7 +37,7 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from pandas.io.formats.style_render import (
     CSSProperties,
     CSSStyles,
-    StylerRender,
+    StylerRenderer,
     Tooltips,
     maybe_convert_css_to_tuples,
     non_reducing_slice,
@@ -61,7 +61,7 @@ def _mpl(func: Callable):
         raise ImportError(no_mpl_message.format(func.__name__))
 
 
-class Styler(StylerRender):
+class Styler(StylerRenderer):
     """
     Helps style a DataFrame or Series according to the data with HTML and CSS.
 
@@ -620,7 +620,7 @@ class Styler(StylerRender):
             lambda val: value if cond(val) else other, subset=subset, **kwargs
         )
 
-    def set_precision(self, precision: int) -> StylerRender:
+    def set_precision(self, precision: int) -> StylerRenderer:
         """
         Set the precision used to display values.
 
@@ -866,7 +866,7 @@ class Styler(StylerRender):
             self.table_styles = table_styles
         return self
 
-    def set_na_rep(self, na_rep: str) -> StylerRender:
+    def set_na_rep(self, na_rep: str) -> StylerRenderer:
         """
         Set the missing data representation on a ``Styler``.
 
