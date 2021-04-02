@@ -7,10 +7,10 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.internals import (
     ArrayManager,
+    BlockManager,
     SingleArrayManager,
     SingleBlockManager,
 )
-from pandas.core.internals.managers import BlockManager
 
 
 def test_dataframe_creation():

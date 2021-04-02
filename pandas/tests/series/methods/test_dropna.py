@@ -70,7 +70,7 @@ class TestDropna:
         tm.assert_series_equal(result, expected)
 
     def test_datetime64_tz_dropna(self):
-        # DatetimeBlock
+        # DatetimeLikeBlock
         ser = Series(
             [
                 Timestamp("2011-01-01 10:00"),
@@ -85,7 +85,7 @@ class TestDropna:
         )
         tm.assert_series_equal(result, expected)
 
-        # DatetimeBlockTZ
+        # DatetimeTZBlock
         idx = DatetimeIndex(
             ["2011-01-01 10:00", NaT, "2011-01-03 10:00", NaT], tz="Asia/Tokyo"
         )

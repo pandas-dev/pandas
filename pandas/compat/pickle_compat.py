@@ -181,10 +181,6 @@ _class_locations_map = {
         "pandas.compat.pickle_compat",
         "_LoadSparseFrame",
     ),
-    ("pandas.core.internals", "BlockManager"): (
-        "pandas.core.internals.managers",
-        "BlockManager",
-    ),
 }
 
 

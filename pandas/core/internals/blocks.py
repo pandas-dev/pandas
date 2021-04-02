@@ -208,13 +208,6 @@ class Block(libinternals.Block, PandasObject):
     def external_values(self):
         return external_values(self.values)
 
-    @final
-    def internal_values(self):
-        """
-        The array that Series._values returns (internal values).
-        """
-        return self.values
-
     @property
     def array_values(self) -> ExtensionArray:
         """
@@ -1820,7 +1813,7 @@ class NDArrayBackedExtensionBlock(Block):
 
         Returns
         -------
-        A list with a new TimeDeltaBlock.
+        A list with a new Block.
 
         Notes
         -----
@@ -1866,23 +1859,19 @@ class NDArrayBackedExtensionBlock(Block):
             pass
 
 
-class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
-    """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
+class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
+    """Mixin class for DatetimeLikeBlock, DatetimeTZBlock."""
 
-    values: Union[DatetimeArray, TimedeltaArray]
-
+    __slots__ = ()
     is_numeric = False
+    values: Union[DatetimeArray, TimedeltaArray]
 
     def get_block_values_for_json(self):
         # Not necessary to override, but helps perf
         return self.values._ndarray
 
 
-class DatetimeBlock(DatetimeLikeBlockMixin):
-    __slots__ = ()
-
-
-class DatetimeTZBlock(DatetimeLikeBlockMixin, ExtensionBlock):
+class DatetimeTZBlock(DatetimeLikeBlock, ExtensionBlock):
     """ implement a datetime64 block with a tz attribute """
 
     values: DatetimeArray
@@ -1910,10 +1899,6 @@ class DatetimeTZBlock(DatetimeLikeBlockMixin, ExtensionBlock):
     # [x for x in dir(DatetimeTZBlock) if hasattr(ExtensionBlock, x)
     #  and getattr(DatetimeTZBlock, x) is getattr(ExtensionBlock, x)
     #  and getattr(ExtensionBlock, x) is not getattr(Block, x)]
-
-
-class TimeDeltaBlock(DatetimeLikeBlockMixin):
-    __slots__ = ()
 
 
 class ObjectBlock(Block):
@@ -2033,10 +2018,8 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
         # Note: need to be sure PandasArray is unwrapped before we get here
         cls = ExtensionBlock
 
-    elif kind == "M":
-        cls = DatetimeBlock
-    elif kind == "m":
-        cls = TimeDeltaBlock
+    elif kind in ["M", "m"]:
+        cls = DatetimeLikeBlock
     elif kind in ["f", "c", "i", "u", "b"]:
         cls = NumericBlock
     else:
@@ -2149,7 +2132,6 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
-            values = extract_array(values, extract_numpy=True)
             values = cast(Union[np.ndarray, DatetimeArray, TimedeltaArray], values)
             values = values.reshape(1, -1)
 

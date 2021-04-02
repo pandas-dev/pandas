@@ -8,12 +8,7 @@ authors
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    Sequence,
-    cast,
-)
+from typing import Optional
 
 import numpy as np
 
@@ -35,10 +30,6 @@ from pandas.core.internals.blocks import (
     get_block_type,
     maybe_coerce_values,
 )
-from pandas.core.internals.managers import BlockManager as BM
-
-if TYPE_CHECKING:
-    from pandas import Index
 
 
 def make_block(
@@ -96,31 +87,3 @@ def maybe_infer_ndim(values, placement: BlockPlacement, ndim: Optional[int]) -> 
         else:
             ndim = values.ndim
     return ndim
-
-
-# TODO: deprecate following https://github.com/dask/fastparquet/pull/571
-class BlockManager(BM):
-    """
-    For backwards-compatibility for fastparquet, we patch incorrectly-shaped
-    blocks on construction.
-    """
-
-    def __new__(
-        cls,
-        blocks: Sequence[Block],
-        axes: Sequence[Index],
-        verify_integrity: bool = True,
-    ):
-        blocks = list(blocks)
-        for blk in blocks:
-            if isinstance(blk, DatetimeTZBlock):
-                fixed = ensure_block_shape(blk.values, 2)
-                fixed = cast(DatetimeArray, fixed)
-                blk.values = fixed
-
-        return BM(blocks, axes, verify_integrity=verify_integrity)
-
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError(
-            "No instance of this wrapper class should ever by fully instantiated."
-        )
