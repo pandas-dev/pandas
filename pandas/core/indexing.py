@@ -965,7 +965,7 @@ class _LocIndexer(_LocationIndexer):
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
         # boolean not in slice and with boolean index
-        if not is_bool_dtype(self.obj.index) and isinstance(key, bool):
+        if isinstance(key, bool) and not is_bool_dtype(self.obj.index):
             raise TypeError("Boolean label can not be used without a boolean index")
 
         if isinstance(key, slice) and (
