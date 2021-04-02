@@ -182,7 +182,7 @@ class Styler:
         escape: bool = False,
     ):
         # validate ordered args
-        if isinstance(data, pd.Series):
+        if isinstance(data, Series):
             data = data.to_frame()
         if not isinstance(data, DataFrame):
             raise TypeError("``data`` must be a Series or DataFrame")
@@ -2464,7 +2464,7 @@ def _background_gradient(
         if data.ndim == 1:
             return [css(rgba) for rgba in rgbas]
         else:
-            return pd.DataFrame(
+            return DataFrame(
                 [[css(rgba) for rgba in row] for row in rgbas],
                 index=data.index,
                 columns=data.columns,
