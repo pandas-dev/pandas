@@ -1167,7 +1167,7 @@ class Index(IndexOpsMixin, PandasObject):
         return header + result
 
     @final
-    def to_native_types(self, slicer=None, **kwargs):
+    def to_native_types(self, slicer=None, **kwargs) -> np.ndarray:
         """
         Format specified values of `self` and return them.
 
@@ -4410,7 +4410,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def where(self, cond, other=None):
+    def where(self, cond, other=None) -> Index:
         """
         Replace values where the condition is False.
 
@@ -4626,7 +4626,7 @@ class Index(IndexOpsMixin, PandasObject):
             return name in self
         return False
 
-    def append(self, other):
+    def append(self, other) -> Index:
         """
         Append a collection of Index options together.
 
@@ -4636,7 +4636,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        appended : Index
+        Index
         """
         to_concat = [self]
 
@@ -4866,7 +4866,7 @@ class Index(IndexOpsMixin, PandasObject):
                 loc = loc.indices(len(self))[-1]
             return self[loc]
 
-    def asof_locs(self, where: Index, mask) -> np.ndarray:
+    def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
         """
         Return the locations (indices) of labels in the index.
 
@@ -4883,13 +4883,13 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         where : Index
             An Index consisting of an array of timestamps.
-        mask : array-like
+        mask : np.ndarray[bool]
             Array of booleans denoting where values in the original
             data are not NA.
 
         Returns
         -------
-        numpy.ndarray
+        np.ndarray[np.intp]
             An array of locations (indices) of the labels from the Index
             which correspond to the return values of the `asof` function
             for every element in `where`.
@@ -4897,10 +4897,12 @@ class Index(IndexOpsMixin, PandasObject):
         locs = self._values[mask].searchsorted(where._values, side="right")
         locs = np.where(locs > 0, locs - 1, 0)
 
-        result = np.arange(len(self))[mask].take(locs)
+        result = np.arange(len(self), dtype=np.intp)[mask].take(locs)
 
         # TODO: overload return type of ExtensionArray.__getitem__
-        first_value = cast(Any, self._values[mask.argmax()])
+        # error: Invalid index type "signedinteger[Any]" for
+        # "Union[ExtensionArray, ndarray]"; expected type "Union[int, slice, ndarray]"
+        first_value = cast(Any, self._values[mask.argmax()])  # type: ignore[index]
         result[(locs == 0) & (where._values < first_value)] = -1
 
         return result
@@ -5070,7 +5072,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        np.ndarray[np.intp]
             Integer indices that would sort the index if used as
             an indexer.
 
@@ -5858,7 +5860,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
-            New Index with passed location(-s) deleted.
+            Will be same type as self, except for RangeIndex.
 
         See Also
         --------
@@ -6017,7 +6019,7 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO: __inv__ vs __invert__?
         return self._unary_method(lambda x: -x)
 
-    def any(self, *args, **kwargs):
+    def any(self, *args, **kwargs) -> bool:
         """
         Return whether any element is Truthy.
 
@@ -6059,9 +6061,9 @@ class Index(IndexOpsMixin, PandasObject):
         # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
         # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
         # _SupportsArray]"
-        return np.any(self.values)  # type: ignore[arg-type]
+        return bool(np.any(self.values))  # type: ignore[arg-type]
 
-    def all(self, *args, **kwargs):
+    def all(self, *args, **kwargs) -> bool:
         """
         Return whether all elements are Truthy.
 
@@ -6120,7 +6122,7 @@ class Index(IndexOpsMixin, PandasObject):
         # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
         # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
         # _SupportsArray]"
-        return np.all(self.values)  # type: ignore[arg-type]
+        return bool(np.all(self.values))  # type: ignore[arg-type]
 
     @final
     def _maybe_disable_logical_methods(self, opname: str_t):
@@ -6374,8 +6376,8 @@ def _maybe_cast_data_without_dtype(subarr):
 
     elif inferred == "interval":
         try:
-            data = IntervalArray._from_sequence(subarr, copy=False)
-            return data
+            ia_data = IntervalArray._from_sequence(subarr, copy=False)
+            return ia_data
         except (ValueError, TypeError):
             # GH27172: mixed closed Intervals --> object dtype
             pass
