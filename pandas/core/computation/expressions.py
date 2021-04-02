@@ -104,11 +104,20 @@ def _evaluate_numexpr(op, op_str, a, b):
         a_value = a
         b_value = b
 
-        result = ne.evaluate(
-            f"a_value {op_str} b_value",
-            local_dict={"a_value": a_value, "b_value": b_value},
-            casting="safe",
-        )
+        try:
+            result = ne.evaluate(
+                f"a_value {op_str} b_value",
+                local_dict={"a_value": a_value, "b_value": b_value},
+                casting="safe",
+            )
+        except TypeError:
+            # numexpr raises eg for array ** array with integers
+            # (https://github.com/pydata/numexpr/issues/379)
+            pass
+
+        if is_reversed:
+            # reverse order to original for fallback
+            a, b = b, a
 
     if _TEST_MODE:
         _store_test_result(result is not None)
