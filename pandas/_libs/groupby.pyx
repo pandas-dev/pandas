@@ -154,9 +154,9 @@ def group_cumprod_float64(float64_t[:, ::1] out,
 
     Parameters
     ----------
-    out : float64 array
+    out : np.ndarray[np.float64, ndim=2]
         Array to store cumprod in.
-    values : float64 array
+    values : np.ndarray[np.float64, ndim=2]
         Values to take cumprod of.
     labels : np.ndarray[np.intp]
         Labels to group by.
@@ -211,9 +211,9 @@ def group_cumsum(numeric[:, ::1] out,
 
     Parameters
     ----------
-    out : array
+    out : np.ndarray[ndim=2]
         Array to store cumsum in.
-    values : array
+    values : np.ndarray[ndim=2]
         Values to take cumsum of.
     labels : np.ndarray[np.intp]
         Labels to group by.
@@ -329,12 +329,15 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
 
     Parameters
     ----------
-    out : array of int64_t values which this method will write its results to
-        Missing values will be written to with a value of -1
+    out : np.ndarray[np.uint8]
+        Values into which this method will write its results.
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`.
-    mask : array of int64_t values where a 1 indicates a missing value
+    values : np.ndarray[np.uint8]
+        Containing the truth value of each element.
+    mask : np.ndarray[np.uint8]
+        Indicating whether a value is na or not.
     direction : {'ffill', 'bfill'}
         Direction for fill to be applied (forwards or backwards, respectively)
     limit : Consecutive values to fill before stopping, or -1 for no limit
@@ -396,12 +399,15 @@ def group_any_all(uint8_t[::1] out,
 
     Parameters
     ----------
-    out : array of values which this method will write its results to
+    out : np.ndarray[np.uint8]
+        Values into which this method will write its results.
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its
         ordering matching up to the corresponding record in `values`
-    values : array containing the truth value of each element
-    mask : array indicating whether a value is na or not
+    values : np.ndarray[np.uint8]
+        Containing the truth value of each element.
+    mask : np.ndarray[np.uint8]
+        Indicating whether a value is na or not.
     val_test : {'any', 'all'}
         String object dictating whether to use any or all truth testing
     skipna : bool
@@ -721,14 +727,17 @@ def group_quantile(ndarray[float64_t] out,
 
     Parameters
     ----------
-    out : ndarray
+    out : np.ndarray[np.float64]
         Array of aggregated values that will be written to.
+    values : np.ndarray
+        Array containing the values to apply the function against.
     labels : ndarray[np.intp]
         Array containing the unique group labels.
     values : ndarray
         Array containing the values to apply the function against.
     q : float
         The quantile value to search for.
+    interpolation : {'linear', 'lower', 'highest', 'nearest', 'midpoint'}
 
     Notes
     -----
@@ -1048,8 +1057,9 @@ def group_rank(float64_t[:, ::1] out,
 
     Parameters
     ----------
-    out : array of float64_t values which this method will write its results to
-    values : array of rank_t values to be ranked
+    out : np.ndarray[np.float64, ndim=2]
+        Values to which this method will write its results.
+    values : np.ndarray of rank_t values to be ranked
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`
@@ -1058,8 +1068,7 @@ def group_rank(float64_t[:, ::1] out,
         groupby functions.
     is_datetimelike : bool
         True if `values` contains datetime-like entries.
-    ties_method : {'average', 'min', 'max', 'first', 'dense'}, default
-        'average'
+    ties_method : {'average', 'min', 'max', 'first', 'dense'}, default 'average'
         * average: average rank of group
         * min: lowest rank in group
         * max: highest rank in group
@@ -1120,9 +1129,9 @@ cdef group_min_max(groupby_t[:, ::1] out,
 
     Parameters
     ----------
-    out : array
+    out : np.ndarray[groupby_t, ndim=2]
         Array to store result in.
-    counts : int64 array
+    counts : np.ndarray[int64]
         Input as a zeroed array, populated by group sizes during algorithm
     values : array
         Values to find column-wise min/max of.
@@ -1230,20 +1239,20 @@ def group_min(groupby_t[:, ::1] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_cummin_max(groupby_t[:, ::1] out,
-                     ndarray[groupby_t, ndim=2] values,
-                     const intp_t[:] labels,
-                     int ngroups,
-                     bint is_datetimelike,
-                     bint compute_max):
+cdef group_cummin_max(groupby_t[:, ::1] out,
+                      ndarray[groupby_t, ndim=2] values,
+                      const intp_t[:] labels,
+                      int ngroups,
+                      bint is_datetimelike,
+                      bint compute_max):
     """
     Cumulative minimum/maximum of columns of `values`, in row groups `labels`.
 
     Parameters
     ----------
-    out : array
+    out : np.ndarray[groupby_t, ndim=2]
         Array to store cummin/max in.
-    values : array
+    values : np.ndarray[groupby_t, ndim=2]
         Values to take cummin/max of.
     labels : np.ndarray[np.intp]
         Labels to group by.

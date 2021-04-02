@@ -46,6 +46,7 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
 )
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.array_manager import (
     ArrayManager,
     NullArrayProxy,
@@ -212,8 +213,9 @@ def concatenate_managers(
             else:
                 # TODO(EA2D): special-casing not needed with 2D EAs
                 values = concat_compat(vals)
-                if not isinstance(values, ExtensionArray):
-                    values = values.reshape(1, len(values))
+                values = ensure_block_shape(values, ndim=2)
+
+            values = ensure_wrapped_if_datetimelike(values)
 
             if blk.values.dtype == values.dtype:
                 # Fast-path
@@ -575,11 +577,15 @@ def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
     _concatenate_join_units (which uses `concat_compat`).
 
     """
-    # TODO: require dtype match in addition to same type?  e.g. DatetimeTZBlock
-    #  cannot necessarily join
     return (
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units)  # noqa
+        and
+        # e.g. DatetimeLikeBlock can be dt64 or td64, but these are not uniform
+        all(
+            is_dtype_equal(ju.block.dtype, join_units[0].block.dtype)
+            for ju in join_units
+        )
         and
         # no blocks that would get missing values (can lead to type upcasts)
         # unless we're an extension dtype.

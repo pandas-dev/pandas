@@ -222,7 +222,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             raise ImportError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, dtype: Optional[Dtype] = None, copy: bool = False):
         cls._chk_pyarrow_available()
         # convert non-na-likes to str, and nan-likes to ArrowStringDtype.na_value
         scalars = lib.ensure_string_array(scalars, copy=False)
@@ -230,7 +230,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype: Optional[Dtype] = None, copy=False
+        cls, strings, dtype: Optional[Dtype] = None, copy: bool = False
     ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -431,7 +431,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             new_values = self.copy()
         return new_values
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         if name in ["min", "max"]:
             return getattr(self, name)(skipna=skipna)
 
