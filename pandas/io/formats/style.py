@@ -183,53 +183,6 @@ class Styler(StylerRenderer):
         """
         return self.render()
 
-    @doc(
-        NDFrame.to_excel,
-        klass="Styler",
-        storage_options=generic._shared_docs["storage_options"],
-    )
-    def to_excel(
-        self,
-        excel_writer,
-        sheet_name: str = "Sheet1",
-        na_rep: str = "",
-        float_format: Optional[str] = None,
-        columns: Optional[Sequence[Hashable]] = None,
-        header: Union[Sequence[Hashable], bool] = True,
-        index: bool = True,
-        index_label: Optional[IndexLabel] = None,
-        startrow: int = 0,
-        startcol: int = 0,
-        engine: Optional[str] = None,
-        merge_cells: bool = True,
-        encoding: Optional[str] = None,
-        inf_rep: str = "inf",
-        verbose: bool = True,
-        freeze_panes: Optional[Tuple[int, int]] = None,
-    ) -> None:
-
-        from pandas.io.formats.excel import ExcelFormatter
-
-        formatter = ExcelFormatter(
-            self,
-            na_rep=na_rep,
-            cols=columns,
-            header=header,
-            float_format=float_format,
-            index=index,
-            index_label=index_label,
-            merge_cells=merge_cells,
-            inf_rep=inf_rep,
-        )
-        formatter.write(
-            excel_writer,
-            sheet_name=sheet_name,
-            startrow=startrow,
-            startcol=startcol,
-            freeze_panes=freeze_panes,
-            engine=engine,
-        )
-
     def set_tooltips(
         self,
         ttips: DataFrame,
@@ -320,6 +273,53 @@ class Styler(StylerRenderer):
             self.tooltips.class_name = css_class
 
         return self
+
+    @doc(
+        NDFrame.to_excel,
+        klass="Styler",
+        storage_options=generic._shared_docs["storage_options"],
+    )
+    def to_excel(
+        self,
+        excel_writer,
+        sheet_name: str = "Sheet1",
+        na_rep: str = "",
+        float_format: Optional[str] = None,
+        columns: Optional[Sequence[Hashable]] = None,
+        header: Union[Sequence[Hashable], bool] = True,
+        index: bool = True,
+        index_label: Optional[IndexLabel] = None,
+        startrow: int = 0,
+        startcol: int = 0,
+        engine: Optional[str] = None,
+        merge_cells: bool = True,
+        encoding: Optional[str] = None,
+        inf_rep: str = "inf",
+        verbose: bool = True,
+        freeze_panes: Optional[Tuple[int, int]] = None,
+    ) -> None:
+
+        from pandas.io.formats.excel import ExcelFormatter
+
+        formatter = ExcelFormatter(
+            self,
+            na_rep=na_rep,
+            cols=columns,
+            header=header,
+            float_format=float_format,
+            index=index,
+            index_label=index_label,
+            merge_cells=merge_cells,
+            inf_rep=inf_rep,
+        )
+        formatter.write(
+            excel_writer,
+            sheet_name=sheet_name,
+            startrow=startrow,
+            startcol=startcol,
+            freeze_panes=freeze_panes,
+            engine=engine,
+        )
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
