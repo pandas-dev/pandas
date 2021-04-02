@@ -5,7 +5,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     List,
     Optional,
     Tuple,
@@ -18,8 +17,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
-    Interval,
-    Period,
     Timestamp,
     algos as libalgos,
     internals as libinternals,
@@ -102,6 +99,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 import pandas.core.computation.expressions as expressions
@@ -122,7 +120,6 @@ if TYPE_CHECKING:
         Float64Index,
         Index,
     )
-    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 # comparison is faster than is_object_dtype
 _dtype_obj = np.dtype("object")
@@ -210,6 +207,7 @@ class Block(libinternals.Block, PandasObject):
     def external_values(self):
         return external_values(self.values)
 
+    @final
     def internal_values(self):
         """
         The array that Series._values returns (internal values).
@@ -596,8 +594,6 @@ class Block(libinternals.Block, PandasObject):
         Block
         """
         values = self.values
-        if values.dtype.kind in ["m", "M"]:
-            values = self.array_values
 
         new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
@@ -625,9 +621,11 @@ class Block(libinternals.Block, PandasObject):
         """
         return [self.copy()] if copy else [self]
 
+    @final
     def _can_hold_element(self, element: Any) -> bool:
         """ require the same dtype as ourselves """
-        raise NotImplementedError("Implemented on subclasses")
+        element = extract_array(element, extract_numpy=True)
+        return can_hold_element(self.values, element)
 
     @final
     def should_store(self, value: ArrayLike) -> bool:
@@ -1545,7 +1543,7 @@ class ExtensionBlock(Block):
         be a compatible shape.
         """
         if not self._can_hold_element(value):
-            # This is only relevant for DatetimeTZBlock, ObjectValuesExtensionBlock,
+            # This is only relevant for DatetimeTZBlock, PeriodDtype, IntervalDtype,
             #  which has a non-trivial `_can_hold_element`.
             # https://github.com/pandas-dev/pandas/issues/24020
             # Need a dedicated setitem until GH#24020 (type promotion in setitem
@@ -1596,10 +1594,6 @@ class ExtensionBlock(Block):
             new_mgr_locs = self._mgr_locs
 
         return self.make_block_same_class(new_values, new_mgr_locs)
-
-    def _can_hold_element(self, element: Any) -> bool:
-        # TODO: We may need to think about pushing this onto the array.
-        return True
 
     def _slice(self, slicer):
         """
@@ -1746,48 +1740,12 @@ class ExtensionBlock(Block):
         return blocks, mask
 
 
-class HybridMixin:
-    """
-    Mixin for Blocks backed (maybe indirectly) by ExtensionArrays.
-    """
-
-    array_values: Callable
-
-    def _can_hold_element(self, element: Any) -> bool:
-        values = self.array_values
-
-        try:
-            # error: "Callable[..., Any]" has no attribute "_validate_setitem_value"
-            values._validate_setitem_value(element)  # type: ignore[attr-defined]
-            return True
-        except (ValueError, TypeError):
-            return False
-
-
-class ObjectValuesExtensionBlock(HybridMixin, ExtensionBlock):
-    """
-    Block providing backwards-compatibility for `.values`.
-
-    Used by PeriodArray and IntervalArray to ensure that
-    Series[T].values is an ndarray of objects.
-    """
-
-    pass
-
-
 class NumericBlock(Block):
     __slots__ = ()
     is_numeric = True
 
-    def _can_hold_element(self, element: Any) -> bool:
-        element = extract_array(element, extract_numpy=True)
-        if isinstance(element, (IntegerArray, FloatingArray)):
-            if element._mask.any():
-                return False
-        return can_hold_element(self.dtype, element)
 
-
-class NDArrayBackedExtensionBlock(HybridMixin, Block):
+class NDArrayBackedExtensionBlock(Block):
     """
     Block backed by an NDArrayBackedExtensionArray
     """
@@ -1795,14 +1753,14 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
     values: NDArrayBackedExtensionArray
 
     @property
+    def array_values(self) -> NDArrayBackedExtensionArray:
+        return self.values
+
+    @property
     def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
-
-    def internal_values(self):
-        # Override to return DatetimeArray and TimedeltaArray
-        return self.values
 
     def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
         """
@@ -1901,10 +1859,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
     is_numeric = False
 
-    @cache_readonly
-    def array_values(self):
-        return self.values
-
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
@@ -1919,8 +1873,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlockMixin):
     is_extension = True
     is_numeric = False
 
-    internal_values = Block.internal_values
-    _can_hold_element = DatetimeBlock._can_hold_element
     diff = DatetimeBlock.diff
     where = DatetimeBlock.where
     putmask = DatetimeLikeBlockMixin.putmask
@@ -1982,9 +1934,6 @@ class ObjectBlock(Block):
         )
         res_values = ensure_block_shape(res_values, self.ndim)
         return [self.make_block(res_values)]
-
-    def _can_hold_element(self, element: Any) -> bool:
-        return True
 
 
 class CategoricalBlock(ExtensionBlock):
@@ -2052,8 +2001,6 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
         cls = CategoricalBlock
     elif vtype is Timestamp:
         cls = DatetimeTZBlock
-    elif vtype is Interval or vtype is Period:
-        cls = ObjectValuesExtensionBlock
     elif isinstance(dtype, ExtensionDtype):
         # Note: need to be sure PandasArray is unwrapped before we get here
         cls = ExtensionBlock
