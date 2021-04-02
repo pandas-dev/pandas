@@ -6,7 +6,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    T,
+)
 
 def slice_len(slc: slice, objlen: int = ...) -> int: ...
 
@@ -59,7 +62,7 @@ class SharedBlock:
 
 class NumpyBlock(SharedBlock):
     values: np.ndarray
-    def getitem_block_index(self, slicer: slice) -> NumpyBlock: ...
+    def getitem_block_index(self: T, slicer: slice) -> T: ...
 
 class Block(SharedBlock):
     ...
