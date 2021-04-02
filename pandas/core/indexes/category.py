@@ -219,9 +219,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         categories=None,
         ordered=None,
         dtype: Optional[Dtype] = None,
-        copy=False,
-        name=None,
-    ):
+        copy: bool = False,
+        name: Hashable = None,
+    ) -> CategoricalIndex:
 
         name = maybe_extract_name(name, data, cls)
 
@@ -241,7 +241,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         self,
         values: Categorical,
         name: Hashable = no_default,
-    ):
+    ) -> CategoricalIndex:
         name = self._name if name is no_default else name
 
         if values is not None:
