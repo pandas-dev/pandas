@@ -566,7 +566,6 @@ class TestAstype:
     @pytest.mark.parametrize(
         "df",
         [
-            DataFrame(Series(["x", "y", "z"], dtype="string")),
             DataFrame(Series(["x", "y", "z"], dtype="category")),
             DataFrame(Series(3 * [Timestamp("2020-01-01", tz="UTC")])),
             DataFrame(Series(3 * [Interval(0, 1)])),
@@ -575,6 +574,20 @@ class TestAstype:
     @pytest.mark.parametrize("errors", ["raise", "ignore"])
     def test_astype_ignores_errors_for_extension_dtypes(self, df, errors):
         # https://github.com/pandas-dev/pandas/issues/35471
+        if errors == "ignore":
+            expected = df
+            result = df.astype(float, errors=errors)
+            tm.assert_frame_equal(result, expected)
+        else:
+            msg = "(Cannot cast)|(could not convert)"
+            with pytest.raises((ValueError, TypeError), match=msg):
+                df.astype(float, errors=errors)
+
+    @pytest.mark.parametrize("errors", ["raise", "ignore"])
+    def test_astype_ignores_errors_for_nullable_string_dtypes(
+        self, nullable_string_dtype, errors
+    ):
+        df = DataFrame(Series(["x", "y", "z"], dtype=nullable_string_dtype))
         if errors == "ignore":
             expected = df
             result = df.astype(float, errors=errors)
