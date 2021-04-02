@@ -516,7 +516,7 @@ class Base:
             return
         elif isinstance(index, DatetimeIndexOpsMixin):
             values[1] = iNaT
-        elif isinstance(index, (Int64Index, UInt64Index)):
+        elif isinstance(index, (Int64Index, UInt64Index, RangeIndex)):
             return
         else:
             values[1] = np.nan
@@ -555,7 +555,7 @@ class Base:
 
             if isinstance(index, DatetimeIndexOpsMixin):
                 values[1] = iNaT
-            elif isinstance(index, (Int64Index, UInt64Index)):
+            elif isinstance(index, (Int64Index, UInt64Index, RangeIndex)):
                 return
             else:
                 values[1] = np.nan

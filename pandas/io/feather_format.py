@@ -56,7 +56,7 @@ def to_feather(
     # validate that we have only a default index
     # raise on anything else as we don't serialize the index
 
-    if not isinstance(df.index, Int64Index):
+    if not isinstance(df.index, (Int64Index, RangeIndex)):
         typ = type(df.index)
         raise ValueError(
             f"feather does not support serializing {typ} "
