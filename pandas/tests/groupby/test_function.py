@@ -77,11 +77,12 @@ def test_groupby_bool_aggs(agg_func, skipna, vals):
 
 
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-def test_bool_aggs_dup_column_labels(bool_agg_func):
+@pytest.mark.parametrize("skipna", [True, False])
+def test_bool_aggs_dup_column_labels(bool_agg_func, skipna):
     # 21668
     df = DataFrame([[True, True]], columns=["a", "a"])
     grp_by = df.groupby([0])
-    result = getattr(grp_by, bool_agg_func)()
+    result = getattr(grp_by, bool_agg_func)(skipna=skipna)
 
     expected = df
     tm.assert_frame_equal(result, expected)
