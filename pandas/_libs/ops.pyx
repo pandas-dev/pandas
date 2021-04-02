@@ -257,7 +257,7 @@ def vec_binop(object[:] left, object[:] right, object op) -> ndarray:
 def maybe_convert_bool(ndarray[object] arr,
                        true_values=None,
                        false_values=None,
-                       convert_to_nullable_boolean=False):
+                       convert_to_nullable_boolean=False) -> "ArrayLike":
     cdef:
         Py_ssize_t i, n
         ndarray[uint8_t] result
