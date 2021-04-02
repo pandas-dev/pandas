@@ -812,11 +812,15 @@ class TestParquetPyArrow(Base):
     def test_additional_extension_arrays(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol
+
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype="Int64"),
                 "b": pd.Series([1, 2, 3], dtype="UInt32"),
                 "c": pd.Series(["a", None, "c"], dtype="string"),
+                "d": pd.Series(["a", None, "c"], dtype="arrow_string"),
             }
         )
         if LooseVersion(pyarrow.__version__) >= LooseVersion("0.16.0"):
