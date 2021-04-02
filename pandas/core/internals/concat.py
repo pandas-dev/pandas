@@ -45,6 +45,7 @@ from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
 )
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import (
     ensure_block_shape,
@@ -142,8 +143,11 @@ def concatenate_managers(
                 #  than concat_compat
                 values = np.concatenate(vals, axis=blk.ndim - 1)
             else:
+                # TODO(EA2D): special-casing not needed with 2D EAs
                 values = concat_compat(vals, axis=1)
                 values = ensure_block_shape(values, blk.ndim)
+
+            values = ensure_wrapped_if_datetimelike(values)
 
             if blk.values.dtype == values.dtype:
                 # Fast-path
