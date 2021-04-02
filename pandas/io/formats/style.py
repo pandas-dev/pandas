@@ -42,8 +42,8 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from pandas.io.formats.style_render import (
     StylerRender,
     Tooltips,
-    _non_reducing_slice,
     maybe_convert_css_to_tuples,
+    non_reducing_slice,
 )
 
 BaseFormatter = Union[str, Callable]
@@ -480,7 +480,7 @@ class Styler(StylerRender):
         **kwargs,
     ) -> Styler:
         subset = slice(None) if subset is None else subset
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
         if axis is not None:
             result = data.apply(func, axis=axis, result_type="expand", **kwargs)
@@ -587,7 +587,7 @@ class Styler(StylerRender):
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
             subset = pd.IndexSlice[:]
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         result = self.data.loc[subset].applymap(func)
         self._update_ctx(result)
         return self
@@ -985,7 +985,7 @@ class Styler(StylerRender):
         -------
         self : Styler
         """
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         hidden_df = self.data.loc[subset]
         hcols = self.columns.get_indexer_for(hidden_df.columns)
         # error: Incompatible types in assignment (expression has type

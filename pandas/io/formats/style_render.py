@@ -479,7 +479,7 @@ class StylerRender:
             return self  # clear the formatter / revert to default and avoid looping
 
         subset = slice(None) if subset is None else subset
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
 
         columns = data.columns
@@ -632,7 +632,7 @@ def _maybe_wrap_formatter(
         return lambda x: na_rep if isna(x) else display_func(x)
 
 
-def _non_reducing_slice(slice_):
+def non_reducing_slice(slice_):
     """
     Ensure that a slice doesn't reduce to a Series or Scalar.
 

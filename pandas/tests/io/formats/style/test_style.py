@@ -15,8 +15,8 @@ from pandas.io.formats.style import (  # isort:skip
 )
 from pandas.io.formats.style_render import (
     _get_level_lengths,
-    _non_reducing_slice,
     maybe_convert_css_to_tuples,
+    non_reducing_slice,
 )
 
 
@@ -1258,7 +1258,7 @@ class TestStyler:
     def test_non_reducing_slice(self, slc):
         df = DataFrame([[0, 1], [2, 3]])
 
-        tslice_ = _non_reducing_slice(slc)
+        tslice_ = non_reducing_slice(slc)
         assert isinstance(df.loc[tslice_], DataFrame)
 
     @pytest.mark.parametrize("box", [list, pd.Series, np.array])
@@ -1269,7 +1269,7 @@ class TestStyler:
         df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
         expected = pd.IndexSlice[:, ["A"]]
 
-        result = _non_reducing_slice(subset)
+        result = non_reducing_slice(subset)
         tm.assert_frame_equal(df.loc[result], df.loc[expected])
 
     def test_non_reducing_slice_on_multiindex(self):
@@ -1283,7 +1283,7 @@ class TestStyler:
         df = DataFrame(dic, index=[0, 1])
         idx = pd.IndexSlice
         slice_ = idx[:, idx["b", "d"]]
-        tslice_ = _non_reducing_slice(slice_)
+        tslice_ = non_reducing_slice(slice_)
 
         result = df.loc[tslice_]
         expected = DataFrame({("b", "d"): [4, 1]})
@@ -1322,7 +1322,7 @@ class TestStyler:
         df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
 
         expected = df.loc[slice_]
-        result = df.loc[_non_reducing_slice(slice_)]
+        result = df.loc[non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
 
 
