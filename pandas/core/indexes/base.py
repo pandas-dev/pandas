@@ -6019,7 +6019,7 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO: __inv__ vs __invert__?
         return self._unary_method(lambda x: -x)
 
-    def any(self, *args, **kwargs) -> bool:
+    def any(self, *args, **kwargs):
         """
         Return whether any element is Truthy.
 
@@ -6061,9 +6061,9 @@ class Index(IndexOpsMixin, PandasObject):
         # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
         # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
         # _SupportsArray]"
-        return bool(np.any(self.values))  # type: ignore[arg-type]
+        return np.any(self.values)  # type: ignore[arg-type]
 
-    def all(self, *args, **kwargs) -> bool:
+    def all(self, *args, **kwargs):
         """
         Return whether all elements are Truthy.
 
@@ -6122,7 +6122,7 @@ class Index(IndexOpsMixin, PandasObject):
         # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
         # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
         # _SupportsArray]"
-        return bool(np.all(self.values))  # type: ignore[arg-type]
+        return np.all(self.values)  # type: ignore[arg-type]
 
     @final
     def _maybe_disable_logical_methods(self, opname: str_t):
