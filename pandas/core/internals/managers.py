@@ -1062,17 +1062,17 @@ class BlockManager(DataManager):
         axes = [new_columns, self.axes[1]]
         return type(self)._simple_new(tuple(nbs), axes)
 
-    def iset(self, loc: Union[int, slice, np.ndarray], value):
+    def iset(self, loc: Union[int, slice, np.ndarray], value: ArrayLike):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
-        value = extract_array(value, extract_numpy=True)
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
         if self._blklocs is None and self.ndim > 1:
             self._rebuild_blknos_and_blklocs()
 
+        # Note: we exclude DTA/TDA here
         value_is_extension_type = is_extension_array_dtype(value)
 
         # categorical/sparse/datetimetz
@@ -1429,7 +1429,7 @@ class BlockManager(DataManager):
 
         return blocks
 
-    def _make_na_block(self, placement, fill_value=None):
+    def _make_na_block(self, placement: BlockPlacement, fill_value=None) -> Block:
 
         if fill_value is None:
             fill_value = np.nan
