@@ -36,7 +36,11 @@ from pandas.core.dtypes.common import (
     is_numeric_v_string_like,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+    na_value_for_dtype,
+)
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -145,7 +149,7 @@ SP_METHODS = [
 ]
 
 
-def clean_interp_method(method: str, **kwargs) -> str:
+def clean_interp_method(method: str, index: Index, **kwargs) -> str:
     order = kwargs.get("order")
 
     if method in ("spline", "polynomial") and order is None:
@@ -154,6 +158,12 @@ def clean_interp_method(method: str, **kwargs) -> str:
     valid = NP_METHODS + SP_METHODS
     if method not in valid:
         raise ValueError(f"method must be one of {valid}. Got '{method}' instead.")
+
+    if method in ("krogh", "piecewise_polynomial", "pchip"):
+        if not index.is_monotonic:
+            raise ValueError(
+                f"{method} interpolation requires that the index be monotonic."
+            )
 
     return method
 
@@ -193,6 +203,102 @@ def find_valid_index(values, *, how: str) -> Optional[int]:
     if not chk_notna:
         return None
     return idxpos
+
+
+def interpolate_array_2d(
+    data: np.ndarray,
+    method: str = "pad",
+    axis: int = 0,
+    index: Optional[Index] = None,
+    limit: Optional[int] = None,
+    limit_direction: str = "forward",
+    limit_area: Optional[str] = None,
+    fill_value: Optional[Any] = None,
+    coerce: bool = False,
+    downcast: Optional[str] = None,
+    **kwargs,
+):
+    """
+    Wrapper to dispatch to either interpolate_2d or interpolate_2d_with_fill.
+    """
+    try:
+        m = clean_fill_method(method)
+    except ValueError:
+        m = None
+
+    if m is not None:
+        if fill_value is not None:
+            # similar to validate_fillna_kwargs
+            raise ValueError("Cannot pass both fill_value and method")
+
+        interp_values = interpolate_2d(
+            data,
+            method=m,
+            axis=axis,
+            limit=limit,
+            limit_area=limit_area,
+        )
+    else:
+        assert index is not None  # for mypy
+
+        interp_values = interpolate_2d_with_fill(
+            data=data,
+            index=index,
+            axis=axis,
+            method=method,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            **kwargs,
+        )
+    return interp_values
+
+
+def interpolate_2d_with_fill(
+    data: np.ndarray,  # floating dtype
+    index: Index,
+    axis: int,
+    method: str = "linear",
+    limit: Optional[int] = None,
+    limit_direction: str = "forward",
+    limit_area: Optional[str] = None,
+    fill_value: Optional[Any] = None,
+    **kwargs,
+) -> np.ndarray:
+    """
+    Column-wise application of interpolate_1d.
+
+    Notes
+    -----
+    The signature does differs from interpolate_1d because it only
+    includes what is needed for Block.interpolate.
+    """
+    # validate the interp method
+    clean_interp_method(method, index, **kwargs)
+
+    if is_valid_na_for_dtype(fill_value, data.dtype):
+        fill_value = na_value_for_dtype(data.dtype, compat=False)
+
+    def func(yvalues: np.ndarray) -> np.ndarray:
+        # process 1-d slices in the axis direction, returning it
+
+        # should the axis argument be handled below in apply_along_axis?
+        # i.e. not an arg to interpolate_1d
+        return interpolate_1d(
+            xvalues=index,
+            yvalues=yvalues,
+            method=method,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            bounds_error=False,
+            **kwargs,
+        )
+
+    # interp each column independently
+    return np.apply_along_axis(func, axis, data)
 
 
 def interpolate_1d(
@@ -638,7 +744,7 @@ def interpolate_2d(
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
 
-       Parameters
+    Parameters
     ----------
     values: array-like
         Input array.
