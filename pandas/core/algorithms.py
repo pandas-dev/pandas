@@ -1619,7 +1619,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0, stacklevel=3):
+def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1865,7 +1865,7 @@ def safe_sort(
     return ordered, ensure_platform_int(new_codes)
 
 
-def _sort_mixed(values):
+def _sort_mixed(values) -> np.ndarray:
     """ order ints before strings in 1d arrays, safe in py3 """
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
     nums = np.sort(values[~str_pos])

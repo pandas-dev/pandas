@@ -1085,17 +1085,11 @@ class BlockManager(DataManager):
         else:
             if value.ndim == 2:
                 value = value.T
-
-            if value.ndim == self.ndim - 1:
+            else:
                 value = ensure_block_shape(value, ndim=2)
 
-                def value_getitem(placement):
-                    return value
-
-            else:
-
-                def value_getitem(placement):
-                    return value[placement.indexer]
+            def value_getitem(placement):
+                return value[placement.indexer]
 
             if value.shape[1:] != self.shape[1:]:
                 raise AssertionError(
