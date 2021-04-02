@@ -278,7 +278,7 @@ def lexsort_indexer(
     ----------
     keys : sequence of arrays
         Sequence of ndarrays to be sorted by the indexer
-    orders : boolean or list of booleans, optional
+    orders : bool or list of booleans, optional
         Determines the sorting order for each element in keys. If a list,
         it must be the same length as keys. This determines whether the
         corresponding element in keys should be sorted in ascending

@@ -43,7 +43,7 @@ def assert_stat_op_calc(
 
     Parameters
     ----------
-    opname : string
+    opname : str
         Name of the operator to test on frame
     alternative : function
         Function that opname is tested against; i.e. "frame.opname()" should
@@ -146,7 +146,7 @@ def assert_stat_op_api(opname, float_frame, float_string_frame, has_numeric_only
 
     Parameters
     ----------
-    opname : string
+    opname : str
         Name of the operator to test on frame
     float_frame : DataFrame
         DataFrame with columns of type float
@@ -172,7 +172,7 @@ def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
 
     Parameters
     ----------
-    opname : string
+    opname : str
         Name of the operator to test on frame
     alternative : function
         Function that opname is tested against; i.e. "frame.opname()" should
@@ -237,7 +237,7 @@ def assert_bool_op_api(
 
     Parameters
     ----------
-    opname : string
+    opname : str
         Name of the operator to test on frame
     float_frame : DataFrame
         DataFrame with columns of type float
