@@ -133,8 +133,14 @@ def _quantile_ea_compat(
 
     if not is_sparse(orig.dtype):
         # shape[0] should be 1 as long as EAs are 1D
-        assert result.shape == (1, len(qs)), result.shape
-        result = type(orig)._from_factorized(result[0], orig)
+
+        if orig.ndim == 2:
+            # i.e. DatetimeArray
+            result = type(orig)._from_factorized(result, orig)
+
+        else:
+            assert result.shape == (1, len(qs)), result.shape
+            result = type(orig)._from_factorized(result[0], orig)
 
     # error: Incompatible return value type (got "ndarray", expected "ExtensionArray")
     return result  # type: ignore[return-value]

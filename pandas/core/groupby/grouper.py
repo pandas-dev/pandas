@@ -293,7 +293,7 @@ class Grouper:
         Parameters
         ----------
         obj : the subject object
-        validate : boolean, default True
+        validate : bool, default True
             if True, validate the grouper
 
         Returns
@@ -789,7 +789,7 @@ def get_grouper(
             #  lambda here
             return False
 
-    for i, (gpr, level) in enumerate(zip(keys, levels)):
+    for gpr, level in zip(keys, levels):
 
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis, name = True, gpr.name
