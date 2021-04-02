@@ -23,6 +23,7 @@ from pandas._libs import (
     algos,
     lib,
 )
+from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
     IncompatibleFrequency,
@@ -272,12 +273,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     @cache_readonly
     def _data(self) -> np.ndarray:
         return self._ndarray
-
-    def _from_backing_data(
-        self: DatetimeLikeArrayT, arr: np.ndarray
-    ) -> DatetimeLikeArrayT:
-        # Note: we do not retain `freq`
-        return type(self)._simple_new(arr, dtype=self.dtype)
 
     # ------------------------------------------------------------------
 
@@ -1713,10 +1708,15 @@ _ceil_example = """>>> rng.ceil('H')
     """
 
 
-class TimelikeOps(DatetimeLikeArrayMixin):
+class TimelikeOps(NDArrayBacked, DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
+
+    def copy(self: TimelikeOps) -> TimelikeOps:
+        result = NDArrayBacked.copy(self)
+        result._freq = self._freq
+        return result
 
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
