@@ -104,7 +104,6 @@ from pandas.core.dtypes.cast import (
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
-    ensure_int64,
     ensure_platform_int,
     infer_dtype_from_object,
     is_bool_dtype,
@@ -232,7 +231,7 @@ _shared_doc_kwargs = {
         If 0 or 'index': apply function to each column.
         If 1 or 'columns': apply function to each row.""",
     "inplace": """
-    inplace : boolean, default False
+    inplace : bool, default False
         If True, performs operation inplace and returns None.""",
     "optional_by": """
         by : str or list of str
@@ -252,7 +251,7 @@ _shared_doc_kwargs = {
     you to specify a location to update with some value.""",
 }
 
-_numeric_only_doc = """numeric_only : boolean, default None
+_numeric_only_doc = """numeric_only : bool or None, default None
     Include only float, int, boolean data. If None, will attempt to use
     everything, then use only numeric data
 """
@@ -473,12 +472,17 @@ class DataFrame(NDFrame, OpsMixin):
         Index to use for resulting frame. Will default to RangeIndex if
         no indexing information part of input data and no index provided.
     columns : Index or array-like
-        Column labels to use for resulting frame. Will default to
-        RangeIndex (0, 1, 2, ..., n) if no column labels are provided.
+        Column labels to use for resulting frame when data does not have them,
+        defaulting to RangeIndex(0, 1, 2, ..., n). If data contains column labels,
+        will perform column selection instead.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
-    copy : bool, default False
-        Copy data from inputs. Only affects DataFrame / 2d ndarray input.
+    copy : bool or None, default None
+        Copy data from inputs.
+        For dict data, the default of None behaves like ``copy=True``.  For DataFrame
+        or 2d ndarray input, the default of None behaves like ``copy=False``.
+
+        .. versionchanged:: 1.3.0
 
     See Also
     --------
@@ -524,12 +528,24 @@ class DataFrame(NDFrame, OpsMixin):
     1  4  5  6
     2  7  8  9
 
+    Constructing DataFrame from a numpy ndarray that has labeled columns:
+
+    >>> data = np.array([(1, 2, 3), (4, 5, 6), (7, 8, 9)],
+    ...                 dtype=[("a", "i4"), ("b", "i4"), ("c", "i4")])
+    >>> df3 = pd.DataFrame(data, columns=['c', 'a'])
+    ...
+    >>> df3
+       c  a
+    0  3  1
+    1  6  4
+    2  9  7
+
     Constructing DataFrame from dataclass:
 
     >>> from dataclasses import make_dataclass
     >>> Point = make_dataclass("Point", [("x", int), ("y", int)])
     >>> pd.DataFrame([Point(0, 0), Point(0, 3), Point(2, 3)])
-        x  y
+       x  y
     0  0  0
     1  0  3
     2  2  3
@@ -557,8 +573,16 @@ class DataFrame(NDFrame, OpsMixin):
         index: Optional[Axes] = None,
         columns: Optional[Axes] = None,
         dtype: Optional[Dtype] = None,
-        copy: bool = False,
+        copy: Optional[bool] = None,
     ):
+
+        if copy is None:
+            if isinstance(data, dict) or data is None:
+                # retain pre-GH#38939 default behavior
+                copy = True
+            else:
+                copy = False
+
         if data is None:
             data = {}
         if dtype is not None:
@@ -567,18 +591,13 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(data, DataFrame):
             data = data._mgr
 
-        # first check if a Manager is passed without any other arguments
-        # -> use fastpath (without checking Manager type)
-        if (
-            index is None
-            and columns is None
-            and dtype is None
-            and copy is False
-            and isinstance(data, (BlockManager, ArrayManager))
-        ):
-            # GH#33357 fastpath
-            NDFrame.__init__(self, data)
-            return
+        if isinstance(data, (BlockManager, ArrayManager)):
+            # first check if a Manager is passed without any other arguments
+            # -> use fastpath (without checking Manager type)
+            if index is None and columns is None and dtype is None and not copy:
+                # GH#33357 fastpath
+                NDFrame.__init__(self, data)
+                return
 
         manager = get_option("mode.data_manager")
 
@@ -588,7 +607,8 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif isinstance(data, dict):
-            mgr = dict_to_mgr(data, index, columns, dtype=dtype, typ=manager)
+            # GH#38939 de facto copy defaults to False only in non-dict cases
+            mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
@@ -4318,8 +4338,14 @@ class DataFrame(NDFrame, OpsMixin):
                 "Cannot specify 'allow_duplicates=True' when "
                 "'self.flags.allows_duplicate_labels' is False."
             )
+        if not allow_duplicates and column in self.columns:
+            # Should this be a different kind of error??
+            raise ValueError(f"cannot insert {column}, already exists")
+        if not isinstance(loc, int):
+            raise TypeError("loc must be int")
+
         value = self._sanitize_column(value)
-        self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
+        self._mgr.insert(loc, column, value)
 
     def assign(self, **kwargs) -> DataFrame:
         r"""
@@ -4578,9 +4604,7 @@ class DataFrame(NDFrame, OpsMixin):
             indexer = row_indexer, col_indexer
             # error: Argument 2 to "take_2d_multi" has incompatible type "Tuple[Any,
             # Any]"; expected "ndarray"
-            new_values = take_2d_multi(
-                self.values, indexer, fill_value=fill_value  # type: ignore[arg-type]
-            )
+            new_values = take_2d_multi(self.values, indexer, fill_value=fill_value)
             return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
             return self._reindex_with_indexers(
@@ -8187,7 +8211,7 @@ NaN 12.3   33.0
         Parameters
         ----------
         key : string / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             requested ndim of result
         subset : object, default None
             subset to act on
@@ -9507,7 +9531,7 @@ NaN 12.3   33.0
 
         level_name = count_axis._names[level]
         level_index = count_axis.levels[level]._rename(name=level_name)
-        level_codes = ensure_int64(count_axis.codes[level])
+        level_codes = ensure_platform_int(count_axis.codes[level])
         counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=axis)
 
         if axis == 1:
@@ -9561,6 +9585,9 @@ NaN 12.3   33.0
 
         def blk_func(values, axis=1):
             if isinstance(values, ExtensionArray):
+                if values.ndim == 2:
+                    # i.e. DatetimeArray, TimedeltaArray
+                    return values._reduce(name, axis=1, skipna=skipna, **kwds)
                 return values._reduce(name, skipna=skipna, **kwds)
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
