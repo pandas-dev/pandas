@@ -178,7 +178,10 @@ from pandas.core.indexing import (
     check_bool_indexer,
     convert_to_index_sliceable,
 )
-from pandas.core.internals import ArrayManager
+from pandas.core.internals import (
+    ArrayManager,
+    BlockManager,
+)
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
@@ -191,7 +194,6 @@ from pandas.core.internals.construction import (
     to_arrays,
     treat_as_nested,
 )
-from pandas.core.internals.managers import BlockManager
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.sorting import (
