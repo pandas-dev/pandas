@@ -161,6 +161,7 @@ Other enhancements
 - :meth:`.Styler.apply` now more consistently accepts ndarray function returns, i.e. in all cases for ``axis`` is ``0, 1 or None`` (:issue:`39359`)
 - :meth:`.Styler.apply` and :meth:`.Styler.applymap` now raise errors if wrong format CSS is passed on render (:issue:`39660`)
 - :meth:`.Styler.format` adds keyword argument ``escape`` for optional HTML escaping (:issue:`40437`)
+- :meth:`.Styler.clear` now clears :attr:`Styler.hidden_index` and :attr:`Styler.hidden_columns` as well (:issue:`40484`)
 - Builtin highlighting methods in :class:`Styler` have a more consistent signature and css customisability (:issue:`40242`)
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
@@ -571,6 +572,7 @@ Conversion
 - Bug in creating a :class:`DataFrame` from an empty ``np.recarray`` not retaining the original dtypes (:issue:`40121`)
 - Bug in :class:`DataFrame` failing to raise ``TypeError`` when constructing from a ``frozenset`` (:issue:`40163`)
 - Bug in :class:`Index` construction silently ignoring a passed ``dtype`` when the data cannot be cast to that dtype (:issue:`21311`)
+- Bug in :meth:`StringArray.astype` falling back to numpy and raising when converting to ``dtype='categorical'`` (:issue:`40450`)
 - Bug in :class:`DataFrame` construction with a dictionary containing an arraylike with ``ExtensionDtype`` and ``copy=True`` failing to make a copy (:issue:`38939`)
 -
 
