@@ -86,11 +86,10 @@ repos:
         types: [python]
         exclude: ^pandas/_typing\.py$
     -   id: inconsistent-namespace-usage
-        name: 'Check for inconsistent use of pandas namespace in tests'
+        name: 'Check for inconsistent use of pandas namespace'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
         language: python
         types: [python]
-        files: ^pandas/tests/
     -   id: incorrect-code-directives
         name: Check for incorrect code block or IPython directives
         language: pygrep
