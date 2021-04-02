@@ -35,21 +35,13 @@ from pandas.core.frame import DataFrame
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
 from pandas.io.formats.style_render import (
+    CSSProperties,
+    CSSStyles,
     StylerRender,
     Tooltips,
     maybe_convert_css_to_tuples,
     non_reducing_slice,
 )
-
-BaseFormatter = Union[str, Callable]
-ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
-CSSPair = Tuple[str, Union[str, int, float]]
-CSSList = List[CSSPair]
-CSSProperties = Union[str, CSSList]
-CSSStyles = List[Dict[str, CSSProperties]]  # = List[CSSDict]
-# class CSSDict(TypedDict):  # available when TypedDict is valid in pandas
-#     selector: str
-#     props: CSSProperties
 
 try:
     from matplotlib import colors
