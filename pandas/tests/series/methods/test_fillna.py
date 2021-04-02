@@ -334,7 +334,7 @@ class TestSeriesFillNA:
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "Asia/Tokyo"])
     def test_datetime64_tz_fillna(self, tz):
-        # DatetimeBlock
+        # DatetimeLikeBlock
         ser = Series(
             [
                 Timestamp("2011-01-01 10:00"),
@@ -414,7 +414,7 @@ class TestSeriesFillNA:
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        # DatetimeBlockTZ
+        # DatetimeTZBlock
         idx = DatetimeIndex(["2011-01-01 10:00", NaT, "2011-01-03 10:00", NaT], tz=tz)
         ser = Series(idx)
         assert ser.dtype == f"datetime64[ns, {tz}]"

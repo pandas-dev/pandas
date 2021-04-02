@@ -471,7 +471,7 @@ class ArrayManager(DataManager):
             # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
             # attribute "tz"
             if hasattr(arr, "tz") and arr.tz is None:  # type: ignore[union-attr]
-                # DatetimeArray needs to be converted to ndarray for DatetimeBlock
+                # DatetimeArray needs to be converted to ndarray for DatetimeLikeBlock
 
                 # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
                 # attribute "_data"
