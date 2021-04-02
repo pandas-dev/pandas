@@ -7,7 +7,6 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
-    Hashable,
     List,
     Optional,
     Sequence,
@@ -22,12 +21,8 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import (
-    FrameOrSeriesUnion,
-    IndexLabel,
-)
+from pandas._typing import FrameOrSeriesUnion
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
 
 from pandas.core.dtypes.generic import ABCSeries
 
@@ -40,9 +35,7 @@ from pandas import (
     isna,
 )
 from pandas.api.types import is_list_like
-from pandas.core import generic
 import pandas.core.common as com
-from pandas.core.generic import NDFrame
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 from markupsafe import escape as escape_func  # markupsafe is jinja2 dependency
@@ -507,59 +500,6 @@ class StylerRenderer:
                 self._display_funcs[(i, j)] = format_func
 
         return self
-
-    def _repr_html_(self) -> str:
-        """
-        Hooks into Jupyter notebook rich display system.
-        """
-        return self.render()
-
-    @doc(
-        NDFrame.to_excel,
-        klass="Styler",
-        storage_options=generic._shared_docs["storage_options"],
-    )
-    def to_excel(
-        self,
-        excel_writer,
-        sheet_name: str = "Sheet1",
-        na_rep: str = "",
-        float_format: Optional[str] = None,
-        columns: Optional[Sequence[Hashable]] = None,
-        header: Union[Sequence[Hashable], bool] = True,
-        index: bool = True,
-        index_label: Optional[IndexLabel] = None,
-        startrow: int = 0,
-        startcol: int = 0,
-        engine: Optional[str] = None,
-        merge_cells: bool = True,
-        encoding: Optional[str] = None,
-        inf_rep: str = "inf",
-        verbose: bool = True,
-        freeze_panes: Optional[Tuple[int, int]] = None,
-    ) -> None:
-
-        from pandas.io.formats.excel import ExcelFormatter
-
-        formatter = ExcelFormatter(
-            self,
-            na_rep=na_rep,
-            cols=columns,
-            header=header,
-            float_format=float_format,
-            index=index,
-            index_label=index_label,
-            merge_cells=merge_cells,
-            inf_rep=inf_rep,
-        )
-        formatter.write(
-            excel_writer,
-            sheet_name=sheet_name,
-            startrow=startrow,
-            startcol=startcol,
-            freeze_panes=freeze_panes,
-            engine=engine,
-        )
 
 
 def _get_level_lengths(index, hidden_elements=None):

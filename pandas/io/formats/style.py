@@ -10,8 +10,10 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Hashable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Union,
 )
@@ -26,11 +28,14 @@ from pandas._typing import (
     IndexLabel,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
 
 import pandas as pd
 from pandas.api.types import is_list_like
+from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
+from pandas.core.generic import NDFrame
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
@@ -171,6 +176,59 @@ class Styler(StylerRenderer):
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
         self.format(formatter=None, precision=precision, na_rep=na_rep, escape=escape)
+
+    def _repr_html_(self) -> str:
+        """
+        Hooks into Jupyter notebook rich display system.
+        """
+        return self.render()
+
+    @doc(
+        NDFrame.to_excel,
+        klass="Styler",
+        storage_options=generic._shared_docs["storage_options"],
+    )
+    def to_excel(
+        self,
+        excel_writer,
+        sheet_name: str = "Sheet1",
+        na_rep: str = "",
+        float_format: Optional[str] = None,
+        columns: Optional[Sequence[Hashable]] = None,
+        header: Union[Sequence[Hashable], bool] = True,
+        index: bool = True,
+        index_label: Optional[IndexLabel] = None,
+        startrow: int = 0,
+        startcol: int = 0,
+        engine: Optional[str] = None,
+        merge_cells: bool = True,
+        encoding: Optional[str] = None,
+        inf_rep: str = "inf",
+        verbose: bool = True,
+        freeze_panes: Optional[Tuple[int, int]] = None,
+    ) -> None:
+
+        from pandas.io.formats.excel import ExcelFormatter
+
+        formatter = ExcelFormatter(
+            self,
+            na_rep=na_rep,
+            cols=columns,
+            header=header,
+            float_format=float_format,
+            index=index,
+            index_label=index_label,
+            merge_cells=merge_cells,
+            inf_rep=inf_rep,
+        )
+        formatter.write(
+            excel_writer,
+            sheet_name=sheet_name,
+            startrow=startrow,
+            startcol=startcol,
+            freeze_panes=freeze_panes,
+            engine=engine,
+        )
 
     def set_tooltips(
         self,
