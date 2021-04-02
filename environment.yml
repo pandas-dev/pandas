@@ -21,6 +21,7 @@ dependencies:
   - black=20.8b1
   - cpplint
   - flake8
+  - flake8-bugbear>=21.3.2  # used by flake8, find likely bugs
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.812

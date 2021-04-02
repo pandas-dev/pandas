@@ -186,8 +186,8 @@ class Styler:
         if not data.index.is_unique or not data.columns.is_unique:
             raise ValueError("style is not supported for non-unique indices.")
         self.data: DataFrame = data
-        self.index: pd.Index = data.index
-        self.columns: pd.Index = data.columns
+        self.index: Index = data.index
+        self.columns: Index = data.columns
         self.table_styles = table_styles
         if not isinstance(uuid_len, int) or not uuid_len >= 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
@@ -375,11 +375,15 @@ class Styler:
         cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
 
         # copied attributes
-        table_styles = self.table_styles or []
-        caption = self.caption
         hidden_index = self.hidden_index
         hidden_columns = self.hidden_columns
-        uuid = self.uuid
+
+        # construct render dict
+        d = {
+            "uuid": self.uuid,
+            "table_styles": _format_table_styles(self.table_styles or []),
+            "caption": self.caption,
+        }
 
         # for sparsifying a MultiIndex
         idx_lengths = _get_level_lengths(self.index)
@@ -468,6 +472,7 @@ class Styler:
             )
 
             head.append(index_header_row)
+        d.update({"head": head})
 
         body = []
         for r, row_tup in enumerate(self.data.itertuples()):
@@ -517,11 +522,13 @@ class Styler:
                 if props:  # (), [] won't be in cellstyle_map, cellstyle respectively
                     cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
             body.append(row_es)
+        d.update({"body": body})
 
         cellstyle: List[Dict[str, Union[CSSList, List[str]]]] = [
             {"props": list(props), "selectors": selectors}
             for props, selectors in cellstyle_map.items()
         ]
+        d.update({"cellstyle": cellstyle})
 
         table_attr = self.table_attributes
         use_mathjax = get_option("display.html.use_mathjax")
@@ -531,16 +538,8 @@ class Styler:
                 table_attr = table_attr.replace('class="', 'class="tex2jax_ignore ')
             else:
                 table_attr += ' class="tex2jax_ignore"'
+        d.update({"table_attributes": table_attr})
 
-        d = {
-            "head": head,
-            "cellstyle": cellstyle,
-            "body": body,
-            "uuid": uuid,
-            "table_styles": _format_table_styles(table_styles),
-            "caption": caption,
-            "table_attributes": table_attr,
-        }
         if self.tooltips:
             d = self.tooltips._translate(self.data, self.uuid, d)
 
@@ -882,7 +881,12 @@ class Styler:
         self.ctx.clear()
         self.tooltips = None
         self.cell_context.clear()
-        self._todo = []
+        self._todo.clear()
+
+        self.hidden_index = False
+        self.hidden_columns = []
+        # self.format and self.table_styles may be dependent on user
+        # input in self.__init__()
 
     def _compute(self):
         """
@@ -914,7 +918,7 @@ class Styler:
             result.columns = data.columns
         else:
             result = func(data, **kwargs)
-            if not isinstance(result, pd.DataFrame):
+            if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):
                     raise TypeError(
                         f"Function {repr(func)} must return a DataFrame or ndarray "
@@ -1414,7 +1418,10 @@ class Styler:
         """
         subset = _non_reducing_slice(subset)
         hidden_df = self.data.loc[subset]
-        self.hidden_columns = self.columns.get_indexer_for(hidden_df.columns)
+        hcols = self.columns.get_indexer_for(hidden_df.columns)
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "Sequence[int]")
+        self.hidden_columns = hcols  # type: ignore[assignment]
         return self
 
     # -----------------------------------------------------------------------
@@ -1563,7 +1570,7 @@ class Styler:
             if s.ndim == 1:
                 return [css(rgba) for rgba in rgbas]
             else:
-                return pd.DataFrame(
+                return DataFrame(
                     [[css(rgba) for rgba in row] for row in rgbas],
                     index=s.index,
                     columns=s.columns,
@@ -1653,7 +1660,7 @@ class Styler:
         if s.ndim == 1:
             return [css(x) for x in normed]
         else:
-            return pd.DataFrame(
+            return DataFrame(
                 [[css(x) for x in row] for row in normed],
                 index=s.index,
                 columns=s.columns,
