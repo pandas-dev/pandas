@@ -2091,7 +2091,7 @@ class TestLocBooleanLabelsAndSlices(Base):
         message = "Boolean label can not be used without a boolean index"
         if index.inferred_type != "boolean":
             obj = frame_or_series(index=index)
-            with pytest.raises(TypeError, match=message):
+            with pytest.raises(KeyError, match=message):
                 obj.loc[True]
 
     def test_loc_bool_should_not_raise(self, frame_or_series):

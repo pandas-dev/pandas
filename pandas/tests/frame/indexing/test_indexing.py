@@ -948,9 +948,9 @@ class TestDataFrameIndexing:
         # #2199
         df = DataFrame({"a": [1, 2, 3]})
         message = "Boolean label can not be used without a boolean index"
-        with pytest.raises(TypeError, match=message):
+        with pytest.raises(KeyError, match=message):
             df.loc[False]
-        with pytest.raises(TypeError, match=message):
+        with pytest.raises(KeyError, match=message):
             df.loc[True]
 
         msg = "cannot use a single bool to index into setitem"
