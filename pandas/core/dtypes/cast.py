@@ -498,55 +498,6 @@ def maybe_cast_to_extension_array(
     return result
 
 
-def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    """
-    A safe version of putmask that potentially upcasts the result.
-
-    The result is replaced with the first N elements of other,
-    where N is the number of True values in mask.
-    If the length of other is shorter than N, other will be repeated.
-
-    Parameters
-    ----------
-    result : ndarray
-        The destination array. This will be mutated in-place if no upcasting is
-        necessary.
-    mask : np.ndarray[bool]
-
-    Returns
-    -------
-    result : ndarray
-
-    Examples
-    --------
-    >>> arr = np.arange(1, 6)
-    >>> mask = np.array([False, True, False, True, True])
-    >>> result = maybe_upcast_putmask(arr, mask)
-    >>> result
-    array([ 1., nan,  3., nan, nan])
-    """
-    if not isinstance(result, np.ndarray):
-        raise ValueError("The result input must be a ndarray.")
-
-    # NB: we never get here with result.dtype.kind in ["m", "M"]
-
-    if mask.any():
-
-        # we want to decide whether place will work
-        # if we have nans in the False portion of our mask then we need to
-        # upcast (possibly), otherwise we DON't want to upcast (e.g. if we
-        # have values, say integers, in the success portion then it's ok to not
-        # upcast)
-        new_dtype = ensure_dtype_can_hold_na(result.dtype)
-
-        if new_dtype != result.dtype:
-            result = result.astype(new_dtype, copy=True)
-
-        np.place(result, mask, np.nan)
-
-    return result
-
-
 @overload
 def ensure_dtype_can_hold_na(dtype: np.dtype) -> np.dtype:
     ...
