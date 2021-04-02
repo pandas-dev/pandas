@@ -73,7 +73,6 @@ from pandas.core.internals.blocks import (
     CategoricalBlock,
     DatetimeTZBlock,
     ExtensionBlock,
-    ObjectValuesExtensionBlock,
     ensure_block_shape,
     extend_blocks,
     get_block_type,
@@ -1086,17 +1085,11 @@ class BlockManager(DataManager):
         else:
             if value.ndim == 2:
                 value = value.T
-
-            if value.ndim == self.ndim - 1:
+            else:
                 value = ensure_block_shape(value, ndim=2)
 
-                def value_getitem(placement):
-                    return value
-
-            else:
-
-                def value_getitem(placement):
-                    return value[placement.indexer]
+            def value_getitem(placement):
+                return value[placement.indexer]
 
             if value.shape[1:] != self.shape[1:]:
                 raise AssertionError(
@@ -1837,14 +1830,6 @@ def _form_blocks(
         external_blocks = [
             new_block(array, klass=ExtensionBlock, placement=i, ndim=2)
             for i, array in items_dict["ExtensionBlock"]
-        ]
-
-        blocks.extend(external_blocks)
-
-    if len(items_dict["ObjectValuesExtensionBlock"]):
-        external_blocks = [
-            new_block(array, klass=ObjectValuesExtensionBlock, placement=i, ndim=2)
-            for i, array in items_dict["ObjectValuesExtensionBlock"]
         ]
 
         blocks.extend(external_blocks)
