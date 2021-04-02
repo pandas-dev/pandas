@@ -2371,7 +2371,7 @@ def convert_missing_indexer(indexer):
         indexer = indexer["key"]
 
         if isinstance(indexer, bool):
-            raise TypeError("cannot use a single bool to index into setitem")
+            raise KeyError("cannot use a single bool to index into setitem")
         return indexer, True
 
     return indexer, False

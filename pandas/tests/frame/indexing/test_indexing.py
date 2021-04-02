@@ -954,9 +954,9 @@ class TestDataFrameIndexing:
             df.loc[True]
 
         msg = "cannot use a single bool to index into setitem"
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match=msg):
             df.loc[False] = 0
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match=msg):
             df.loc[True] = 0
 
     # TODO: rename?  remove?
