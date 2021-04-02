@@ -1062,7 +1062,7 @@ class _LocIndexer(_LocationIndexer):
         ----------
         key : iterable
             Targeted labels.
-        axis: int
+        axis : int
             Dimension on which the indexing is being made.
 
         Raises
@@ -1262,7 +1262,7 @@ class _LocIndexer(_LocationIndexer):
         ----------
         key : list-like
             Targeted labels.
-        axis: int
+        axis:  int
             Dimension on which the indexing is being made.
         raise_missing: bool, default False
             Whether to raise a KeyError if some labels were not found.
@@ -1317,7 +1317,7 @@ class _LocIndexer(_LocationIndexer):
         indexer: array-like of booleans
             Indices corresponding to the key,
             (with -1 indicating not found).
-        axis: int
+        axis : int
             Dimension on which the indexing is being made.
         raise_missing: bool
             Whether to raise a KeyError if some labels are not found. Will be

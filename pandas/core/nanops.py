@@ -509,7 +509,7 @@ def nanall(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -552,7 +552,7 @@ def nansum(
     Parameters
     ----------
     values : ndarray[dtype]
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     min_count: int, default 0
     mask : ndarray[bool], optional
@@ -627,7 +627,7 @@ def nanmean(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -683,7 +683,7 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -840,7 +840,7 @@ def nanstd(values, *, axis=None, skipna=True, ddof=1, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     ddof : int, default 1
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
@@ -880,7 +880,7 @@ def nanvar(values, *, axis=None, skipna=True, ddof=1, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     ddof : int, default 1
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
@@ -955,7 +955,7 @@ def nansem(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     ddof : int, default 1
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
@@ -1036,7 +1036,7 @@ def nanargmax(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -1082,7 +1082,7 @@ def nanargmin(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -1134,7 +1134,7 @@ def nanskew(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -1221,7 +1221,7 @@ def nankurt(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -1312,7 +1312,7 @@ def nanprod(
     Parameters
     ----------
     values : ndarray[dtype]
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     min_count: int, default 0
     mask : ndarray[bool], optional

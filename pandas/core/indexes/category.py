@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import (
     Any,
     Hashable,
@@ -50,7 +52,7 @@ from pandas.core.indexes.extension import (
     inherit_names,
 )
 
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
+_index_doc_kwargs: dict[str, str] = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 
 

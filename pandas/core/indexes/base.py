@@ -179,7 +179,7 @@ __all__ = ["Index"]
 
 _unsortable_types = frozenset(("mixed", "mixed-integer"))
 
-_index_doc_kwargs = {
+_index_doc_kwargs: dict[str, str] = {
     "klass": "Index",
     "inplace": "",
     "target_klass": "Index",
@@ -187,7 +187,7 @@ _index_doc_kwargs = {
     "unique": "Index",
     "duplicated": "np.ndarray",
 }
-_index_shared_docs = {}
+_index_shared_docs: dict[str, str] = {}
 str_t = str
 
 

@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    List,
     Optional,
     Sequence,
     Type,
@@ -160,10 +159,10 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     _infer_matches = ("period",)
 
     # Names others delegate to us
-    _other_ops: List[str] = []
-    _bool_ops = ["is_leap_year"]
-    _object_ops = ["start_time", "end_time", "freq"]
-    _field_ops = [
+    _other_ops: list[str] = []
+    _bool_ops: list[str] = ["is_leap_year"]
+    _object_ops: list[str] = ["start_time", "end_time", "freq"]
+    _field_ops: list[str] = [
         "year",
         "month",
         "day",

@@ -106,12 +106,16 @@ common_apply_allowlist = (
     | plotting_methods
 )
 
-series_apply_allowlist = (
+series_apply_allowlist: frozenset[str] = (
     common_apply_allowlist
-    | {"nlargest", "nsmallest", "is_monotonic_increasing", "is_monotonic_decreasing"}
+    | frozenset(
+        {"nlargest", "nsmallest", "is_monotonic_increasing", "is_monotonic_decreasing"}
+    )
 ) | frozenset(["dtype", "unique"])
 
-dataframe_apply_allowlist = common_apply_allowlist | frozenset(["dtypes", "corrwith"])
+dataframe_apply_allowlist: frozenset[str] = common_apply_allowlist | frozenset(
+    ["dtypes", "corrwith"]
+)
 
 # cythonized transformations or canned "agg+broadcast", which do not
 # require postprocessing of the result by transform.
