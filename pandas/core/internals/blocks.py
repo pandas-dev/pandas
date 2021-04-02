@@ -1012,7 +1012,8 @@ class Block(libinternals.Block, PandasObject):
 
         pi = indexer[0]
         values = self.values
-        if isinstance(values, np.ndarray):
+        if isinstance(values.dtype, np.dtype):
+            # includes DaetimeArray, TimedeltaArray
             blkloc = indexer[1]
             values[blkloc, pi] = value
         else:
@@ -1953,6 +1954,7 @@ class ObjectBlock(Block):
             copy=copy,
         )
         res_values = ensure_block_shape(res_values, self.ndim)
+        res_values = ensure_wrapped_if_datetimelike(res_values)
         return [self.make_block(res_values)]
 
 
