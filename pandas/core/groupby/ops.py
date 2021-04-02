@@ -671,12 +671,7 @@ class BaseGrouper:
         elif is_bool_dtype(dtype):
             values = ensure_int_or_float(values)
         elif is_integer_dtype(dtype):
-            # we use iNaT for the missing value on ints
-            # so pre-convert to guard this condition
-            if (values == iNaT).any():
-                values = ensure_float64(values)
-            else:
-                values = ensure_int_or_float(values)
+            values = ensure_int_or_float(values)
         elif is_numeric:
             if not is_complex_dtype(dtype):
                 values = ensure_float64(values)
@@ -699,15 +694,21 @@ class BaseGrouper:
             # TODO: min_count
             func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
-        if is_integer_dtype(result.dtype) and not is_datetimelike:
-            mask = result == iNaT
-            if mask.any():
-                result = result.astype("float64")
-                result[mask] = np.nan
+        if kind == "aggregate":
+            # i.e. counts is defined
+            if is_integer_dtype(result.dtype) and not is_datetimelike:
+                mask = result == iNaT
+                if mask.any():
+                    # TODO: we dont have any tests that get here with min_count > 1
+                    cutoff = max(1, min_count)
+                    empty_groups = counts < cutoff
 
-        if kind == "aggregate" and self._filter_empty_groups and not counts.all():
-            assert result.ndim != 2
-            result = result[counts > 0]
+                    result = result.astype("float64")  # TODO: could be lossy
+                    result[empty_groups] = np.nan
+
+            if self._filter_empty_groups and not counts.all():
+                assert result.ndim != 2
+                result = result[counts > 0]
 
         result = result.T
 
