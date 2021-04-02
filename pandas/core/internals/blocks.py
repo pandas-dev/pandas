@@ -1750,8 +1750,8 @@ class NDArrayBackedExtensionBlock(Block):
 
     values: NDArrayBackedExtensionArray
 
-    @cache_readonly
-    def array_values(self):
+    @property
+    def array_values(self) -> NDArrayBackedExtensionArray:
         return self.values
 
     def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
