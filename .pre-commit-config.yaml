@@ -86,11 +86,10 @@ repos:
         types: [python]
         exclude: ^pandas/_typing\.py$
     -   id: inconsistent-namespace-usage
-        name: 'Check for inconsistent use of pandas namespace in tests'
+        name: 'Check for inconsistent use of pandas namespace'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
         language: python
         types: [python]
-        files: ^pandas/tests/
     -   id: incorrect-code-directives
         name: Check for incorrect code block or IPython directives
         language: pygrep
@@ -212,4 +211,11 @@ repos:
             \#\ type:\ (?!ignore)
             |\#\ type:\s?ignore(?!\[)
         language: pygrep
+        types: [python]
+    -   id: use-pd_array-in-core
+        name: Import pandas.array as pd_array in core
+        language: python
+        entry: python scripts/use_pd_array_in_core.py
+        files: ^pandas/core/
+        exclude: ^pandas/core/api\.py$
         types: [python]

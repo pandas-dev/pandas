@@ -174,10 +174,13 @@ class TestStyler:
         tt = DataFrame({"A": [None, "tt"]})
         css = DataFrame({"A": [None, "cls-a"]})
         s = self.df.style.highlight_max().set_tooltips(tt).set_td_classes(css)
+        s = s.hide_index().hide_columns("A")
         # _todo, tooltips and cell_context items added to..
         assert len(s._todo) > 0
         assert s.tooltips
         assert len(s.cell_context) > 0
+        assert s.hidden_index is True
+        assert len(s.hidden_columns) > 0
 
         s = s._compute()
         # ctx item affected when a render takes place. _todo is maintained
@@ -190,6 +193,8 @@ class TestStyler:
         assert len(s._todo) == 0
         assert not s.tooltips
         assert len(s.cell_context) == 0
+        assert s.hidden_index is False
+        assert len(s.hidden_columns) == 0
 
     def test_render(self):
         df = DataFrame({"A": [0, 1]})
