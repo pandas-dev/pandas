@@ -142,7 +142,7 @@ class InvalidComparison(Exception):
     pass
 
 
-class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
+class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArray):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -254,21 +254,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
-
-    def __setstate__(self, state):
-        if isinstance(state, dict):
-            if "_data" in state and "_ndarray" not in state:
-                # backward compat, changed what is property vs attribute
-                state["_ndarray"] = state.pop("_data")
-            for key, value in state.items():
-                setattr(self, key, value)
-        else:
-            # PeriodArray, bc it mixes in a cython class
-            if isinstance(state, tuple) and len(state) == 1:
-                state = state[0]
-                self.__setstate__(state)
-            else:
-                raise TypeError(state)
 
     @cache_readonly
     def _data(self) -> np.ndarray:
@@ -1708,7 +1693,7 @@ _ceil_example = """>>> rng.ceil('H')
     """
 
 
-class TimelikeOps(NDArrayBacked, DatetimeLikeArrayMixin):
+class TimelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """

@@ -12,11 +12,13 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import BaseOffset
 
 from pandas import Index
 from pandas.core.arrays import (
     DatetimeArray,
+    PeriodArray,
     TimedeltaArray,
 )
 
@@ -56,6 +58,10 @@ def load_reduce(self):
             # TypeError: object.__new__(Day) is not safe, use Day.__new__()
             cls = args[0]
             stack[-1] = cls.__new__(*args)
+            return
+        elif args and issubclass(args[0], PeriodArray):
+            cls = args[0]
+            stack[-1] = NDArrayBacked.__new__(*args)
             return
 
         raise

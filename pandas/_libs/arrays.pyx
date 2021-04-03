@@ -92,6 +92,9 @@ cdef class NDArrayBacked:
                 setattr(self, key, val)
         elif isinstance(state, tuple):
             if len(state) != 3:
+                if len(state) == 1 and isinstance(state[0], dict):
+                    self.__setstate__(state[0])
+                    return
                 raise NotImplementedError(state)
 
             data, dtype = state[:2]
