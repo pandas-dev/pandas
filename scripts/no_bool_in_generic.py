@@ -65,9 +65,13 @@ def replace_bool_with_bool_t(to_replace, content: str) -> str:
 def check_for_bool_in_generic(content: str) -> Tuple[bool, str]:
     tree = ast.parse(content)
     to_replace = visit(tree)
+
     if not to_replace:
-        return False, content
-    return True, replace_bool_with_bool_t(to_replace, content)
+        mutated = False
+        return mutated, content
+
+    mutated = True
+    return mutated, replace_bool_with_bool_t(to_replace, content)
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
@@ -78,8 +82,8 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     for path in args.paths:
         with open(path, encoding="utf-8") as fd:
             content = fd.read()
-        replace, new_content = check_for_bool_in_generic(content)
-        if replace:
+        mutated, new_content = check_for_bool_in_generic(content)
+        if mutated:
             with open(path, "w", encoding="utf-8") as fd:
                 fd.write(new_content)
 
