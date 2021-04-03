@@ -23,9 +23,8 @@ from typing import (
 )
 
 
-def visit(
-    tree: ast.Module,
-) -> Dict[int, List[int]]:
+def visit(tree: ast.Module) -> Dict[int, List[int]]:
+    "Step through tree, recording when nodes are in annotations."
     in_annotation = False
     nodes: List[Tuple[bool, ast.AST]] = [(in_annotation, tree)]
     to_replace = collections.defaultdict(list)
