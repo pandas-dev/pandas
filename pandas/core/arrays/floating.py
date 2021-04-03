@@ -10,10 +10,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
+from pandas._libs import missing as libmissing
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -28,7 +25,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
-    is_object_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -134,21 +130,7 @@ def coerce_to_array(
         return values, mask
 
     values = np.array(values, copy=copy)
-    if is_object_dtype(values):
-        inferred_type = lib.infer_dtype(values, skipna=True)
-        if inferred_type == "empty":
-            values = np.empty(len(values))
-            values.fill(np.nan)
-        elif inferred_type not in [
-            "floating",
-            "integer",
-            "mixed-integer",
-            "integer-na",
-            "mixed-integer-float",
-        ]:
-            raise TypeError(f"{values.dtype} cannot be converted to a FloatingDtype")
-
-    elif is_bool_dtype(values) and is_float_dtype(dtype):
+    if is_bool_dtype(values) and is_float_dtype(dtype):
         values = np.array(values, dtype=float, copy=copy)
 
     elif not (is_integer_dtype(values) or is_float_dtype(values)):

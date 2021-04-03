@@ -363,6 +363,10 @@ def test_astype_int(dtype, request):
     expected = pd.array([1, pd.NA, 3], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
+    result = pd.Series(["1", "2", "3", "4"], dtype="Int64")
+    expected = pd.Series([1, 2, 3, 4], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
 
 def test_astype_float(dtype, any_float_allowed_nullable_dtype, request):
     # Don't compare arrays (37974)
@@ -381,6 +385,10 @@ def test_astype_float(dtype, any_float_allowed_nullable_dtype, request):
 
     result = ser.astype(any_float_allowed_nullable_dtype)
     expected = pd.Series([1.1, np.nan, 3.3], dtype=any_float_allowed_nullable_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = pd.Series(["1", "2", "3", "4"], dtype="Float64")
+    expected = pd.Series([1, 2, 3, 4], dtype="Float64")
     tm.assert_series_equal(result, expected)
 
 
