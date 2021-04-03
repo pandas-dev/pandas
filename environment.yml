@@ -78,6 +78,7 @@ dependencies:
   - bottleneck>=1.2.1
   - ipykernel
   - ipython>=7.11.1
+  - decorator=4  # temporary pin (dependency of IPython), see GH-40768
   - jinja2  # pandas.Styler
   - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.6.8
