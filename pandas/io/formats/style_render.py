@@ -513,6 +513,27 @@ class StylerRenderer:
         return self
 
 
+def _element(
+    html_element: str,
+    html_class: str,
+    value: Any,
+    is_visible: bool,
+    **kwargs,
+) -> Dict:
+    """
+    Template to return container with information for a <td></td> or <th></th> element.
+    """
+    if "display_value" not in kwargs:
+        kwargs["display_value"] = value
+    return {
+        "type": html_element,
+        "value": value,
+        "class": html_class,
+        "is_visible": is_visible,
+        **kwargs,
+    }
+
+
 def _get_level_lengths(index, hidden_elements=None):
     """
     Given an index, find the level length for each element.
@@ -868,24 +889,3 @@ class Tooltips:
             d["table_styles"].extend(self.table_styles)
 
         return d
-
-
-def _element(
-    html_element: str,
-    html_class: str,
-    value: Any,
-    is_visible: bool,
-    **kwargs,
-):
-    """
-    Template to return container with information for a <td></td> or <th></th> element.
-    """
-    if "display_value" not in kwargs:
-        kwargs["display_value"] = value
-    return {
-        "type": html_element,
-        "value": value,
-        "class": html_class,
-        "is_visible": is_visible,
-        **kwargs,
-    }
