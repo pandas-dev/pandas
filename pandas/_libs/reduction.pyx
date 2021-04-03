@@ -1,17 +1,30 @@
 from copy import copy
 
-from libc.stdlib cimport free, malloc
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int64_t, ndarray
+from numpy cimport (
+    int64_t,
+    intp_t,
+    ndarray,
+)
 
 cnp.import_array()
 
-from pandas._libs.util cimport is_array, set_array_not_contiguous
+from pandas._libs.util cimport (
+    is_array,
+    set_array_not_contiguous,
+)
 
-from pandas._libs.lib import is_scalar, maybe_convert_objects
+from pandas._libs.lib import (
+    is_scalar,
+    maybe_convert_objects,
+)
 
 
 cpdef check_result_array(object obj, Py_ssize_t cnt):
@@ -54,9 +67,7 @@ cdef class _BaseGrouper:
             object.__setattr__(cached_ityp, '_index_data', islider.buf)
             cached_ityp._engine.clear_mapping()
             cached_ityp._cache.clear()  # e.g. inferred_freq must go
-            object.__setattr__(cached_typ._mgr._block, 'values', vslider.buf)
-            object.__setattr__(cached_typ._mgr._block, 'mgr_locs',
-                               slice(len(vslider.buf)))
+            cached_typ._mgr.set_values(vslider.buf)
             object.__setattr__(cached_typ, '_index', cached_ityp)
             object.__setattr__(cached_typ, 'name', self.name)
 
@@ -97,9 +108,8 @@ cdef class SeriesBinGrouper(_BaseGrouper):
         ndarray arr, index, dummy_arr, dummy_index
         object values, f, bins, typ, ityp, name
 
-    def __init__(self, object series, object f, object bins, object dummy):
+    def __init__(self, object series, object f, object bins):
 
-        assert dummy is not None  # always obj[:0]
         assert len(bins) > 0  # otherwise we get IndexError in get_result
 
         self.bins = bins
@@ -115,6 +125,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
         self.index = series.index.values
         self.name = series.name
 
+        dummy = series.iloc[:0]
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
 
         # kludge for #1688
@@ -190,11 +201,8 @@ cdef class SeriesGrouper(_BaseGrouper):
         ndarray arr, index, dummy_arr, dummy_index
         object f, labels, values, typ, ityp, name
 
-    def __init__(self, object series, object f, object labels,
-                 Py_ssize_t ngroups, object dummy):
-
-        # in practice we always pass obj.iloc[:0] or equivalent
-        assert dummy is not None
+    def __init__(self, object series, object f, ndarray[intp_t] labels,
+                 Py_ssize_t ngroups):
 
         if len(series) == 0:
             # get_result would never assign `result`
@@ -213,6 +221,7 @@ cdef class SeriesGrouper(_BaseGrouper):
         self.index = series.index.values
         self.name = series.name
 
+        dummy = series.iloc[:0]
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
         self.ngroups = ngroups
 
@@ -220,7 +229,8 @@ cdef class SeriesGrouper(_BaseGrouper):
         cdef:
             # Define result to avoid UnboundLocalError
             ndarray arr, result = None
-            ndarray[int64_t] labels, counts
+            ndarray[intp_t] labels
+            ndarray[int64_t] counts
             Py_ssize_t i, n, group_size, lab, start, end
             object res
             bint initialized = 0

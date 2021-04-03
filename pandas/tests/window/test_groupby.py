@@ -83,6 +83,11 @@ class TestRolling:
 
         result = getattr(r, f)()
         expected = g.apply(lambda x: getattr(x.rolling(4), f)())
+        # groupby.apply doesn't drop the grouped-by column
+        expected = expected.drop("A", axis=1)
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["std", "var"])
@@ -92,6 +97,11 @@ class TestRolling:
 
         result = getattr(r, f)(ddof=1)
         expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
+        # groupby.apply doesn't drop the grouped-by column
+        expected = expected.drop("A", axis=1)
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -100,10 +110,16 @@ class TestRolling:
     def test_rolling_quantile(self, interpolation):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
+
         result = r.quantile(0.4, interpolation=interpolation)
         expected = g.apply(
             lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
         )
+        # groupby.apply doesn't drop the grouped-by column
+        expected = expected.drop("A", axis=1)
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["corr", "cov"])
@@ -117,6 +133,9 @@ class TestRolling:
             return getattr(x.rolling(4), f)(self.frame)
 
         expected = g.apply(func)
+        # GH 39591: The grouped column should be all np.nan
+        # (groupby.apply inserts 0s for cov)
+        expected["A"] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = getattr(r.B, f)(pairwise=True)
@@ -134,6 +153,11 @@ class TestRolling:
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
         expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
+        # groupby.apply doesn't drop the grouped-by column
+        expected = expected.drop("A", axis=1)
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     def test_rolling_apply_mutability(self):
@@ -426,6 +450,8 @@ class TestRolling:
         # GH 36197
         expected = DataFrame({"s1": []})
         result = expected.groupby("s1").rolling(window=1).sum()
+        # GH 32262
+        expected = expected.drop(columns="s1")
         # GH-38057 from_tuples gives empty object dtype, we now get float/int levels
         # expected.index = MultiIndex.from_tuples([], names=["s1", None])
         expected.index = MultiIndex.from_product(
@@ -435,6 +461,8 @@ class TestRolling:
 
         expected = DataFrame({"s1": [], "s2": []})
         result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
+        # GH 32262
+        expected = expected.drop(columns=["s1", "s2"])
         expected.index = MultiIndex.from_product(
             [
                 Index([], dtype="float64"),
@@ -487,6 +515,8 @@ class TestRolling:
             columns=["foo", "bar"],
             index=MultiIndex.from_tuples([(2, 0), (1, 1)], names=["foo", None]),
         )
+        # GH 32262
+        expected = expected.drop(columns="foo")
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_rolling_count_closed_on(self):
@@ -537,6 +567,8 @@ class TestRolling:
                 [("a", 0), ("a", 1), ("b", 2), ("b", 3), ("b", 4)], names=["a", None]
             ),
         )
+        # GH 32262
+        expected = expected.drop(columns="a")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -640,6 +672,29 @@ class TestRolling:
         )
         tm.assert_index_equal(result.index, expected_index)
 
+    def test_groupby_rolling_object_doesnt_affect_groupby_apply(self):
+        # GH 39732
+        g = self.frame.groupby("A")
+        expected = g.apply(lambda x: x.rolling(4).sum()).index
+        _ = g.rolling(window=4)
+        result = g.apply(lambda x: x.rolling(4).sum()).index
+        tm.assert_index_equal(result, expected)
+        assert not g.mutated
+        assert not g.grouper.mutated
+
+    @pytest.mark.parametrize(
+        "columns", [MultiIndex.from_tuples([("A", ""), ("B", "C")]), ["A", "B"]]
+    )
+    def test_by_column_not_in_values(self, columns):
+        # GH 32262
+        df = DataFrame([[1, 0]] * 20 + [[2, 0]] * 12 + [[3, 0]] * 8, columns=columns)
+        g = df.groupby("A")
+        original_obj = g.obj.copy(deep=True)
+        r = g.rolling(4)
+        result = r.sum()
+        assert "A" not in result.columns
+        tm.assert_frame_equal(g.obj, original_obj)
+
 
 class TestExpanding:
     def setup_method(self):
@@ -654,6 +709,11 @@ class TestExpanding:
 
         result = getattr(r, f)()
         expected = g.apply(lambda x: getattr(x.expanding(), f)())
+        # groupby.apply doesn't drop the grouped-by column
+        expected = expected.drop("A", axis=1)
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["std", "var"])
@@ -663,6 +723,11 @@ class TestExpanding:
 
         result = getattr(r, f)(ddof=0)
         expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
+        # groupby.apply doesn't drop the grouped-by column
+        expected = expected.drop("A", axis=1)
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -671,10 +736,16 @@ class TestExpanding:
     def test_expanding_quantile(self, interpolation):
         g = self.frame.groupby("A")
         r = g.expanding()
+
         result = r.quantile(0.4, interpolation=interpolation)
         expected = g.apply(
             lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
         )
+        # groupby.apply doesn't drop the grouped-by column
+        expected = expected.drop("A", axis=1)
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["corr", "cov"])
@@ -688,6 +759,13 @@ class TestExpanding:
             return getattr(x.expanding(), f)(self.frame)
 
         expected = g.apply(func)
+        # GH 39591: groupby.apply returns 1 instead of nan for windows
+        # with all nan values
+        null_idx = list(range(20, 61)) + list(range(72, 113))
+        expected.iloc[null_idx, 1] = np.nan
+        # GH 39591: The grouped column should be all np.nan
+        # (groupby.apply inserts 0s for cov)
+        expected["A"] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = getattr(r.B, f)(pairwise=True)
@@ -705,6 +783,11 @@ class TestExpanding:
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
         expected = g.apply(lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw))
+        # groupby.apply doesn't drop the grouped-by column
+        expected = expected.drop("A", axis=1)
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
 

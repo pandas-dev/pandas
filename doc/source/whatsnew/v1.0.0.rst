@@ -27,7 +27,7 @@ version releases. Briefly,
 
 See :ref:`policies.version` for more.
 
-.. _2019 Pandas User Survey: http://dev.pandas.io/pandas-blog/2019-pandas-user-survey.html
+.. _2019 Pandas User Survey: https://pandas.pydata.org/community/blog/2019-user-survey.html
 .. _SemVer: https://semver.org
 
 {{ header }}
@@ -702,7 +702,7 @@ If installed, we now require:
 | pytest (dev)    | 4.0.2           |          |         |
 +-----------------+-----------------+----------+---------+
 
-For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
+For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 

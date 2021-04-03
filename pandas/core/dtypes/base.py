@@ -2,14 +2,28 @@
 Extend pandas with custom array types.
 """
 
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, Union
+from __future__ import annotations
+
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
 from pandas._typing import DtypeObj
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
 
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
@@ -139,7 +153,7 @@ class ExtensionDtype:
         return np.nan
 
     @property
-    def type(self) -> Type:
+    def type(self) -> Type[Any]:
         """
         The scalar type for the array, e.g. ``int``
 
@@ -186,7 +200,7 @@ class ExtensionDtype:
         return None
 
     @classmethod
-    def construct_array_type(cls) -> Type["ExtensionArray"]:
+    def construct_array_type(cls) -> Type[ExtensionArray]:
         """
         Return the array type associated with this dtype.
 
@@ -374,7 +388,7 @@ def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
     ... class MyExtensionDtype(ExtensionDtype):
     ...     name = "myextension"
     """
-    registry.register(cls)
+    _registry.register(cls)
     return cls
 
 
@@ -438,4 +452,4 @@ class Registry:
         return None
 
 
-registry = Registry()
+_registry = Registry()

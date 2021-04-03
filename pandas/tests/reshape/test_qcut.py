@@ -23,7 +23,10 @@ import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.algorithms import quantile
 
-from pandas.tseries.offsets import Day, Nano
+from pandas.tseries.offsets import (
+    Day,
+    Nano,
+)
 
 
 def test_qcut():

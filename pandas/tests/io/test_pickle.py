@@ -13,6 +13,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 import bz2
 import datetime
 import functools
+from functools import partial
 import glob
 import gzip
 import io
@@ -20,22 +21,41 @@ import os
 from pathlib import Path
 import pickle
 import shutil
-from warnings import catch_warnings, simplefilter
+from warnings import (
+    catch_warnings,
+    simplefilter,
+)
 import zipfile
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY38, get_lzma_file, import_lzma, is_platform_little_endian
+from pandas.compat import (
+    PY38,
+    get_lzma_file,
+    import_lzma,
+    is_platform_little_endian,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Index, Series, period_range
+from pandas import (
+    Index,
+    Series,
+    period_range,
+)
 import pandas._testing as tm
 
-from pandas.tseries.offsets import Day, MonthEnd
+from pandas.tseries.offsets import (
+    Day,
+    MonthEnd,
+)
 
 lzma = import_lzma()
+
+
+# TODO(ArrayManager) pickling
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture(scope="module")
@@ -412,7 +432,7 @@ class TestProtocol:
 @pytest.mark.parametrize(
     ["pickle_file", "excols"],
     [
-        ("test_py27.pkl", pd.Index(["a", "b", "c"])),
+        ("test_py27.pkl", Index(["a", "b", "c"])),
         (
             "test_mi_py27.pkl",
             pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),
@@ -594,3 +614,14 @@ def test_pickle_preserves_block_ndim():
 
     # GH#37631 OP issue was about indexing, underlying problem was pickle
     tm.assert_series_equal(res[[True]], ser)
+
+
+@pytest.mark.parametrize("protocol", [pickle.DEFAULT_PROTOCOL, pickle.HIGHEST_PROTOCOL])
+def test_pickle_big_dataframe_compression(protocol, compression):
+    # GH#39002
+    df = pd.DataFrame(range(100000))
+    result = tm.round_trip_pathlib(
+        partial(df.to_pickle, protocol=protocol, compression=compression),
+        partial(pd.read_pickle, compression=compression),
+    )
+    tm.assert_frame_equal(df, result)

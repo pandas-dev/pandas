@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, date_range, period_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 

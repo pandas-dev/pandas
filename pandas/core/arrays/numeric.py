@@ -1,10 +1,22 @@
+from __future__ import annotations
+
 import datetime
 import numbers
-from typing import TYPE_CHECKING, Any, List, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import Timedelta, missing as libmissing
+from pandas._libs import (
+    Timedelta,
+    missing as libmissing,
+)
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
@@ -16,16 +28,20 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core import ops
-
-from .masked import BaseMaskedArray, BaseMaskedDtype
+from pandas.core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
 
 if TYPE_CHECKING:
     import pyarrow
 
+T = TypeVar("T", bound="NumericArray")
+
 
 class NumericDtype(BaseMaskedDtype):
     def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
     ) -> BaseMaskedArray:
         """
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
@@ -136,7 +152,7 @@ class NumericArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For NumericArray inputs, we apply the ufunc to ._data
         # and mask the result.
         if method == "reduce":
@@ -187,3 +203,40 @@ class NumericArray(BaseMaskedArray):
             return tuple(reconstruct(x) for x in result)
         else:
             return reconstruct(result)
+
+    def __neg__(self):
+        return type(self)(-self._data, self._mask.copy())
+
+    def __pos__(self):
+        return self
+
+    def __abs__(self):
+        return type(self)(abs(self._data), self._mask.copy())
+
+    def round(self: T, decimals: int = 0, *args, **kwargs) -> T:
+        """
+        Round each value in the array a to the given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, default 0
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
+        *args, **kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
+
+        Returns
+        -------
+        NumericArray
+            Rounded values of the NumericArray.
+
+        See Also
+        --------
+        numpy.around : Round values of an np.array.
+        DataFrame.round : Round values of a DataFrame.
+        Series.round : Round values of a Series.
+        """
+        nv.validate_round(args, kwargs)
+        values = np.round(self._data, decimals=decimals, **kwargs)
+        return type(self)(values, self._mask.copy())

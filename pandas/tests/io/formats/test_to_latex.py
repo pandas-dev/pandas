@@ -5,7 +5,10 @@ from textwrap import dedent
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 from pandas.io.formats.format import DataFrameFormatter
