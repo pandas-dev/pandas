@@ -299,9 +299,9 @@ class StylerRenderer:
     def _translate_body(self, data_class, row_heading_class):
         """
         Build each <tr> in table <body> in the following format:
-          +------------------+-----+-------------------+---------------------------+
+          +--------------------------------------------+---------------------------+
           |  index_header_0    ...    index_header_n   |  data_by_column           |
-          +------------------+-----+-------------------+---------------------------+
+          +--------------------------------------------+---------------------------+
 
         Also add elements to the cellstyle_map for more efficient grouped elements in
         <style></style> block
