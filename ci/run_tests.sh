@@ -10,7 +10,7 @@ if [[ "not network" == *"$PATTERN"* ]]; then
 fi
 
 if [ "$COVERAGE" ]; then
-    COVERAGE="-s --cov=pandas --cov-report=xml"
+    COVERAGE="-s --cov=pandas --cov-report=xml --cov-append"
 fi
 
 # If no X server is found, we use xvfb to emulate it
