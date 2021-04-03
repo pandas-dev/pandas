@@ -1650,7 +1650,7 @@ class NumericBlock(Block):
 
 class NDArrayBackedExtensionBlock(Block):
     """
-    Block backed by an NDArrayBackedExtensionArray, supporting 2D values.
+    Block backed by an NDArrayBackedExtensionArray
     """
 
     values: NDArrayBackedExtensionArray
@@ -1658,6 +1658,12 @@ class NDArrayBackedExtensionBlock(Block):
     @property
     def array_values(self) -> NDArrayBackedExtensionArray:
         return self.values
+
+    @property
+    def is_view(self) -> bool:
+        """ return a boolean if I am possibly a view """
+        # check the ndarray values of the DatetimeIndex values
+        return self.values._ndarray.base is not None
 
     def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
         # We override instead of putting the np.asarray in Block.values for
@@ -1687,12 +1693,6 @@ class NDArrayBackedExtensionBlock(Block):
 
         nb = self.make_block_same_class(res_values)
         return [nb]
-
-    @property
-    def is_view(self) -> bool:
-        """ return a boolean if I am possibly a view """
-        # check the ndarray values of the DatetimeIndex values
-        return self.values._ndarray.base is not None
 
     def setitem(self, indexer, value):
         if not self._can_hold_element(value):

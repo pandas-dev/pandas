@@ -32,7 +32,7 @@ def quantile_compat(values: ArrayLike, qs: np.ndarray, interpolation: str) -> Ar
     -------
     np.ndarray or ExtensionArray
     """
-    if isinstance(values.dtype, np.dtype):
+    if isinstance(values, np.ndarray):
         # i.e. np.ndarray, DatetimeArray, TimedeltaArray
         fill_value = na_value_for_dtype(values.dtype, compat=False)
         mask = isna(values)
