@@ -2121,7 +2121,7 @@ class TestLocBooleanLabelsAndSlices(Base):
         # GH20432
         message = "Boolean label can not be used without a boolean index"
         if index.inferred_type != "boolean":
-            obj = frame_or_series(index=index)
+            obj = frame_or_series(index=index, dtype="object")
             with pytest.raises(KeyError, match=message):
                 obj.loc[True]
 
@@ -2132,7 +2132,7 @@ class TestLocBooleanLabelsAndSlices(Base):
     def test_loc_bool_slice_raises(self, index, frame_or_series):
         # GH20432
         message = "Boolean values can not be used in a slice"
-        obj = frame_or_series(index=index)
+        obj = frame_or_series(index=index, dtype="object")
         with pytest.raises(TypeError, match=message):
             obj.loc[True:False]
 
