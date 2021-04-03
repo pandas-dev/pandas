@@ -1338,10 +1338,12 @@ class Block(libinternals.Block, PandasObject):
         return new_block(result, placement=self._mgr_locs, ndim=2)
 
 
-class EABackedBlockMixin:
+class EABackedBlock(Block):
     """
     Mixin for Block subclasses backed by ExtensionArray.
     """
+
+    values: ExtensionArray
 
     def delete(self, loc) -> None:
         """
@@ -1357,7 +1359,7 @@ class EABackedBlockMixin:
             pass
 
 
-class ExtensionBlock(EABackedBlockMixin, Block):
+class ExtensionBlock(EABackedBlock):
     """
     Block for holding extension types.
 
@@ -1666,7 +1668,7 @@ class NumericBlock(Block):
     is_numeric = True
 
 
-class NDArrayBackedExtensionBlock(EABackedBlockMixin, Block):
+class NDArrayBackedExtensionBlock(EABackedBlock):
     """
     Block backed by an NDArrayBackedExtensionArray
     """
