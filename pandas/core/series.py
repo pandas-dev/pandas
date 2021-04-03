@@ -1761,7 +1761,7 @@ Name: Max Speed, dtype: float64
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        squeeze: bool = no_default,
+        squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> SeriesGroupBy:
@@ -1783,6 +1783,8 @@ Name: Max Speed, dtype: float64
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
+        # error: Argument "squeeze" to "SeriesGroupBy" has incompatible type
+        # "Union[bool, NoDefault]"; expected "bool"
         return SeriesGroupBy(
             obj=self,
             keys=by,
@@ -1791,7 +1793,7 @@ Name: Max Speed, dtype: float64
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,
+            squeeze=squeeze,  # type: ignore[arg-type]
             observed=observed,
             dropna=dropna,
         )

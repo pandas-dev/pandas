@@ -128,18 +128,19 @@ def maybe_convert_platform(
     values: Union[list, tuple, range, np.ndarray, ExtensionArray]
 ) -> ArrayLike:
     """ try to do platform conversion, allow ndarray or list here """
+    arr: ArrayLike
+
     if isinstance(values, (list, tuple, range)):
         arr = construct_1d_object_array_from_listlike(values)
     else:
         # The caller is responsible for ensuring that we have np.ndarray
         #  or ExtensionArray here.
-
-        # error: Incompatible types in assignment (expression has type "Union[ndarray,
-        # ExtensionArray]", variable has type "ndarray")
-        arr = values  # type: ignore[assignment]
+        arr = values
 
     if arr.dtype == object:
-        arr = lib.maybe_convert_objects(arr)
+        # error: Argument 1 to "maybe_convert_objects" has incompatible type
+        # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+        arr = lib.maybe_convert_objects(arr)  # type: ignore[arg-type]
 
     return arr
 
@@ -1400,11 +1401,13 @@ def soft_convert_objects(
         # GH 20380, when datetime is beyond year 2262, hence outside
         # bound of nanosecond-resolution 64-bit integers.
         try:
-            values = lib.maybe_convert_objects(
+            converted = lib.maybe_convert_objects(
                 values, convert_datetime=datetime, convert_timedelta=timedelta
             )
         except (OutOfBoundsDatetime, ValueError):
             return values
+        if converted is not values:
+            return converted
 
     if numeric and is_object_dtype(values.dtype):
         converted = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
@@ -1443,13 +1446,16 @@ def convert_dtypes(
 
     Returns
     -------
+    str, np.dtype, or ExtensionDtype
     dtype
         new dtype
     """
-    is_extension = is_extension_array_dtype(input_array.dtype)
+    inferred_dtype: str | np.dtype | ExtensionDtype
+    # TODO: rule out str
+
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
-    ) and not is_extension:
+    ) and isinstance(input_array, np.ndarray):
         inferred_dtype = lib.infer_dtype(input_array)
 
         if not convert_string and is_string_dtype(inferred_dtype):
