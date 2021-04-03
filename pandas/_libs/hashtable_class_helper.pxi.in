@@ -220,7 +220,7 @@ cdef class {{name}}Vector:
     def __len__(self) -> int:
         return self.data.n
 
-    cpdef to_array(self):
+    cpdef ndarray to_array(self):
         if self.data.m != self.data.n:
             if self.external_view_exists:
                 # should never happen
@@ -288,7 +288,7 @@ cdef class StringVector:
     def __len__(self) -> int:
         return self.data.n
 
-    def to_array(self):
+    cpdef ndarray[object, ndim=1] to_array(self):
         cdef:
             ndarray ao
             Py_ssize_t n
@@ -345,7 +345,7 @@ cdef class ObjectVector:
         self.data[self.n] = <PyObject*>obj
         self.n += 1
 
-    def to_array(self):
+    cpdef ndarray[object, ndim=1] to_array(self):
         if self.m != self.n:
             if self.external_view_exists:
                 raise ValueError("should have raised on append()")
@@ -403,7 +403,7 @@ cdef class {{name}}HashTable(HashTable):
             kh_destroy_{{dtype}}(self.table)
             self.table = NULL
 
-    def __contains__(self, object key):
+    def __contains__(self, object key) -> bool:
         cdef:
             khiter_t k
             {{c_type}} ckey
@@ -452,7 +452,7 @@ cdef class {{name}}HashTable(HashTable):
             raise KeyError(key)
 
     @cython.boundscheck(False)
-    def map(self, const {{dtype}}_t[:] keys, const int64_t[:] values):
+    def map(self, const {{dtype}}_t[:] keys, const int64_t[:] values) -> None:
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -466,7 +466,7 @@ cdef class {{name}}HashTable(HashTable):
                 self.table.vals[k] = <Py_ssize_t>values[i]
 
     @cython.boundscheck(False)
-    def map_locations(self, const {{dtype}}_t[:] values):
+    def map_locations(self, const {{dtype}}_t[:] values) -> None:
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -480,7 +480,8 @@ cdef class {{name}}HashTable(HashTable):
                 self.table.vals[k] = i
 
     @cython.boundscheck(False)
-    def lookup(self, const {{dtype}}_t[:] values):
+    def lookup(self, const {{dtype}}_t[:] values) -> ndarray:
+        # -> np.ndarray[np.intp]
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -818,7 +819,8 @@ cdef class StringHashTable(HashTable):
         return labels
 
     @cython.boundscheck(False)
-    def lookup(self, ndarray[object] values):
+    def lookup(self, ndarray[object] values) -> ndarray:
+        # -> np.ndarray[np.intp]
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -853,7 +855,7 @@ cdef class StringHashTable(HashTable):
         return np.asarray(locs)
 
     @cython.boundscheck(False)
-    def map_locations(self, ndarray[object] values):
+    def map_locations(self, ndarray[object] values) -> None:
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -1071,7 +1073,7 @@ cdef class PyObjectHashTable(HashTable):
     def __len__(self) -> int:
         return self.table.size
 
-    def __contains__(self, object key):
+    def __contains__(self, object key) -> bool:
         cdef:
             khiter_t k
         hash(key)
@@ -1123,7 +1125,7 @@ cdef class PyObjectHashTable(HashTable):
         else:
             raise KeyError(key)
 
-    def map_locations(self, ndarray[object] values):
+    def map_locations(self, ndarray[object] values) -> None:
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -1137,7 +1139,8 @@ cdef class PyObjectHashTable(HashTable):
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             self.table.vals[k] = i
 
-    def lookup(self, ndarray[object] values):
+    def lookup(self, ndarray[object] values) -> ndarray:
+        # -> np.ndarray[np.intp]
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
