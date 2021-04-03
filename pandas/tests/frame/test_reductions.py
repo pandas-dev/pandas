@@ -1025,6 +1025,17 @@ class TestDataFrameAnalytics:
         expected = Series([0, 2, 1, 2], index=[1, 2, 3, 4])
         tm.assert_series_equal(result, expected)
 
+        # with a column of NaNs?
+        df[5] = [0] + [np.NaN] * 2
+
+        result = df.idxmax()
+        expected = Series([1, 0, 2, 0, 0], index=[1, 2, 3, 4, 5])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin()
+        expected = Series([0, 2, 1, 2, 0], index=[1, 2, 3, 4, 5])
+        tm.assert_series_equal(result, expected)
+
     def test_idxmax_dt64_multicolumn_axis1(self):
         dti = date_range("2016-01-01", periods=3)
         df = DataFrame({3: dti, 4: dti[::-1]})
