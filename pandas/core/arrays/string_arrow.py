@@ -9,6 +9,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 
 import numpy as np
@@ -351,6 +352,15 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
                     "Only integers, slices and integer or "
                     "boolean arrays are valid indices."
                 )
+        elif isinstance(item, tuple):
+            # possibly unpack arr[..., n] to arr[n]
+            if len(item) == 1:
+                item = item[0]
+            elif len(item) == 2:
+                if item[0] is Ellipsis:
+                    item = item[1]
+                elif item[1] is Ellipsis:
+                    item = item[0]
 
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
@@ -418,7 +428,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             new_values = self.copy()
         return new_values
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         if name in ["min", "max"]:
             return getattr(self, name)(skipna=skipna)
 
@@ -473,7 +483,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
         return BooleanArray._from_sequence(result.to_pandas().values)
 
-    def __setitem__(self, key: Union[int, np.ndarray], value: Any) -> None:
+    def __setitem__(self, key: Union[int, slice, np.ndarray], value: Any) -> None:
         """Set one or more values inplace.
 
         Parameters
@@ -497,6 +507,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         key = check_array_indexer(self, key)
 
         if is_integer(key):
+            key = cast(int, key)
+
             if not is_scalar(value):
                 raise ValueError("Must pass scalars with scalar indexer")
             elif isna(value):
@@ -506,8 +518,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
             # Slice data and insert in-between
             new_data = [
-                # error: Slice index must be an integer or None
-                *self._data[0:key].chunks,  # type: ignore[misc]
+                *self._data[0:key].chunks,
                 pa.array([value], type=pa.string()),
                 *self._data[(key + 1) :].chunks,
             ]
@@ -518,11 +529,11 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             #       This is probably extremely slow.
 
             # Convert all possible input key types to an array of integers
-            if is_bool_dtype(key):
+            if isinstance(key, slice):
+                key_array = np.array(range(len(self))[key])
+            elif is_bool_dtype(key):
                 # TODO(ARROW-9430): Directly support setitem(booleans)
                 key_array = np.argwhere(key).flatten()
-            elif isinstance(key, slice):
-                key_array = np.array(range(len(self))[key])
             else:
                 # TODO(ARROW-9431): Directly support setitem(integers)
                 key_array = np.asanyarray(key)

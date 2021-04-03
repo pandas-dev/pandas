@@ -20,6 +20,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -142,6 +143,8 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas._typing import (
         TimedeltaConvertibleTypes,
         TimestampConvertibleTypes,
@@ -159,7 +162,7 @@ _shared_doc_kwargs = {
     "axes_single_arg": "{0 or 'index'}",
     "axis": """axis : {0 or 'index'}
         Parameter needed for compatibility with DataFrame.""",
-    "inplace": """inplace : boolean, default False
+    "inplace": """inplace : bool, default False
         If True, performs operation inplace and returns None.""",
     "unique": "np.ndarray",
     "duplicated": "Series",
@@ -1871,7 +1874,7 @@ Name: Max Speed, dtype: float64
         # TODO: Add option for bins like value_counts()
         return algorithms.mode(self, dropna=dropna)
 
-    def unique(self):
+    def unique(self) -> ArrayLike:
         """
         Return unique values of Series object.
 
@@ -2017,9 +2020,7 @@ Name: Max Speed, dtype: float64
         else:
             return result
 
-    # error: Return type "Series" of "duplicated" incompatible with return type
-    # "ndarray" in supertype "IndexOpsMixin"
-    def duplicated(self, keep="first") -> Series:  # type: ignore[override]
+    def duplicated(self, keep="first") -> Series:
         """
         Indicate duplicate Series values.
 
@@ -2040,7 +2041,7 @@ Name: Max Speed, dtype: float64
 
         Returns
         -------
-        Series
+        Series[bool]
             Series indicating whether each value has occurred in the
             preceding values.
 
@@ -2095,7 +2096,7 @@ Name: Max Speed, dtype: float64
         4     True
         dtype: bool
         """
-        res = base.IndexOpsMixin.duplicated(self, keep=keep)
+        res = self._duplicated(keep=keep)
         result = self._constructor(res, index=self.index)
         return result.__finalize__(self, method="duplicated")
 
@@ -3854,7 +3855,8 @@ Keep all original rows and also all original values
         dtype: object
         """
         if not len(self) or not is_object_dtype(self):
-            return self.copy()
+            result = self.copy()
+            return result.reset_index(drop=True) if ignore_index else result
 
         values, counts = reshape.explode(np.asarray(self._values))
 
@@ -3997,7 +3999,7 @@ Keep all original rows and also all original values
         Parameters
         ----------
         key : string / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             Requested ndim of result.
         subset : object, default None
             Subset to act on.
@@ -4342,6 +4344,26 @@ Keep all original rows and also all original values
         else:
             return self._set_name(index, inplace=inplace)
 
+    @overload
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: Literal[False] = ...
+    ) -> Series:
+        ...
+
+    @overload
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: bool = ...
+    ) -> Optional[Series]:
+        ...
+
     @Appender(
         """
         Examples
@@ -4587,7 +4609,7 @@ Keep all original rows and also all original values
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
         )
 
-    def memory_usage(self, index=True, deep=False):
+    def memory_usage(self, index: bool = True, deep: bool = False) -> int:
         """
         Return the memory usage of the Series.
 
@@ -4636,7 +4658,7 @@ Keep all original rows and also all original values
         >>> s.memory_usage(deep=True)
         244
         """
-        v = super().memory_usage(deep=deep)
+        v = self._memory_usage(deep=deep)
         if index:
             v += self.index.memory_usage(deep=deep)
         return v
@@ -5064,7 +5086,8 @@ Keep all original rows and also all original values
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
 
-        res_values = ops.comparison_op(lvalues, rvalues, op)
+        with np.errstate(all="ignore"):
+            res_values = ops.comparison_op(lvalues, rvalues, op)
 
         return self._construct_result(res_values, name=res_name)
 
@@ -5084,7 +5107,8 @@ Keep all original rows and also all original values
 
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
-        result = ops.arithmetic_op(lvalues, rvalues, op)
+        with np.errstate(all="ignore"):
+            result = ops.arithmetic_op(lvalues, rvalues, op)
 
         return self._construct_result(result, name=res_name)
 

@@ -6,6 +6,7 @@ from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Hashable,
     List,
     Optional,
@@ -45,6 +46,7 @@ from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.numeric import (
     Float64Index,
     Int64Index,
+    NumericIndex,
 )
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -54,7 +56,7 @@ if TYPE_CHECKING:
 _empty_range = range(0)
 
 
-class RangeIndex(Int64Index):
+class RangeIndex(NumericIndex):
     """
     Immutable Index implementing a monotonic integer range.
 
@@ -96,6 +98,7 @@ class RangeIndex(Int64Index):
 
     _typ = "rangeindex"
     _engine_type = libindex.Int64Engine
+    _can_hold_na = False
     _range: range
 
     # --------------------------------------------------------------------
@@ -380,6 +383,10 @@ class RangeIndex(Int64Index):
             return False
         return key in self._range
 
+    @property
+    def inferred_type(self) -> str:
+        return "integer"
+
     # --------------------------------------------------------------------
     # Indexing Methods
 
@@ -395,7 +402,13 @@ class RangeIndex(Int64Index):
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
-    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
+    def _get_indexer(
+        self,
+        target: Index,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        tolerance=None,
+    ) -> np.ndarray:
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -429,10 +442,11 @@ class RangeIndex(Int64Index):
         return self._int64index.repeat(repeats, axis=axis)
 
     def delete(self, loc) -> Int64Index:
-        return self._int64index.delete(loc)
+        # error: Incompatible return value type (got "Index", expected "Int64Index")
+        return self._int64index.delete(loc)  # type: ignore[return-value]
 
     def take(
-        self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs
+        self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
     ) -> Int64Index:
         with rewrite_exception("Int64Index", type(self).__name__):
             return self._int64index.take(
@@ -443,7 +457,7 @@ class RangeIndex(Int64Index):
                 **kwargs,
             )
 
-    def tolist(self):
+    def tolist(self) -> list[int]:
         return list(self._range)
 
     @doc(Int64Index.__iter__)
@@ -459,12 +473,18 @@ class RangeIndex(Int64Index):
         return Int64Index._simple_new(values, name=name)
 
     def _view(self: RangeIndex) -> RangeIndex:
-        result = type(self)._simple_new(self._range, name=self.name)
+        result = type(self)._simple_new(self._range, name=self._name)
         result._cache = self._cache
         return result
 
     @doc(Int64Index.copy)
-    def copy(self, name=None, deep=False, dtype: Optional[Dtype] = None, names=None):
+    def copy(
+        self,
+        name: Hashable = None,
+        deep: bool = False,
+        dtype: Optional[Dtype] = None,
+        names=None,
+    ):
         name = self._validate_names(name=name, names=names, deep=deep)[0]
         new_index = self._rename(name=name)
 
@@ -487,13 +507,13 @@ class RangeIndex(Int64Index):
 
         return self.start + self.step * no_steps
 
-    def min(self, axis=None, skipna=True, *args, **kwargs) -> int:
+    def min(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
         """The minimum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_min(args, kwargs)
         return self._minmax("min")
 
-    def max(self, axis=None, skipna=True, *args, **kwargs) -> int:
+    def max(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
         """The maximum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_max(args, kwargs)
@@ -810,7 +830,7 @@ class RangeIndex(Int64Index):
         """
         if isinstance(key, slice):
             new_range = self._range[key]
-            return self._simple_new(new_range, name=self.name)
+            return self._simple_new(new_range, name=self._name)
         elif is_integer(key):
             new_key = int(key)
             try:
@@ -900,7 +920,7 @@ class RangeIndex(Int64Index):
         ]:
             return op(self._int64index, other)
 
-        step = False
+        step: Optional[Callable] = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
@@ -913,8 +933,7 @@ class RangeIndex(Int64Index):
             # apply if we have an override
             if step:
                 with np.errstate(all="ignore"):
-                    # error: "bool" not callable
-                    rstep = step(left.step, right)  # type: ignore[operator]
+                    rstep = step(left.step, right)
 
                 # we don't have a representable op
                 # so return a base index

@@ -40,10 +40,7 @@ from pandas.util._decorators import (
     cache_readonly,
     deprecate_kwarg,
 )
-from pandas.util._validators import (
-    validate_bool_kwarg,
-    validate_fillna_kwargs,
-)
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
@@ -52,6 +49,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
+    ensure_platform_int,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
@@ -105,7 +103,6 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.indexers import deprecate_ndim_indexing
-from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
 from pandas.core.strings.object_array import ObjectStringArrayMixin
@@ -309,7 +306,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html>`__
     for more.
 
     Examples
@@ -537,7 +534,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # error: Incompatible types in assignment (expression has type "ndarray",
             # variable has type "Categorical")
             result = take_nd(  # type: ignore[assignment]
-                new_cats, libalgos.ensure_platform_int(self._codes)
+                new_cats, ensure_platform_int(self._codes)
             )
 
         return result
@@ -609,7 +606,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 if true_values is None:
                     true_values = ["True", "TRUE", "true"]
 
-                cats = cats.isin(true_values)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Index")
+                cats = cats.isin(true_values)  # type: ignore[assignment]
 
         if known_categories:
             # Recode from observation order to dtype.categories order.
@@ -1447,7 +1446,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         return self._codes.nbytes + self.dtype.categories.memory_usage(deep=deep)
 
-    def isna(self):
+    def isna(self) -> np.ndarray:
         """
         Detect missing values
 
@@ -1455,7 +1454,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        a boolean array of whether my values are null
+        np.ndarray[bool] of whether my values are null
 
         See Also
         --------
@@ -1468,7 +1467,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     isnull = isna
 
-    def notna(self):
+    def notna(self) -> np.ndarray:
         """
         Inverse of isna
 
@@ -1477,7 +1476,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        a boolean array of whether my values are not null
+        np.ndarray[bool] of whether my values are not null
 
         See Also
         --------
@@ -1734,7 +1733,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise NotImplementedError(dtype)
         return self._from_backing_data(self._ndarray)
 
-    def to_dense(self):
+    def to_dense(self) -> np.ndarray:
         """
         Return my 'dense' representation
 
@@ -1752,73 +1751,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         )
         return np.asarray(self)
 
-    def fillna(self, value=None, method=None, limit=None):
-        """
-        Fill NA/NaN values using the specified method.
-
-        Parameters
-        ----------
-        value : scalar, dict, Series
-            If a scalar value is passed it is used to fill all missing values.
-            Alternatively, a Series or dict can be used to fill in different
-            values for each index. The value should not be a list. The
-            value(s) passed should either be in the categories or should be
-            NaN.
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        limit : int, default None
-            (Not implemented yet for Categorical!)
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled.
-
-        Returns
-        -------
-        filled : Categorical with NA/NaN filled
-        """
-        value, method = validate_fillna_kwargs(
-            value, method, validate_scalar_dict_value=False
-        )
-        value = extract_array(value, extract_numpy=True)
-
-        if value is None:
-            value = np.nan
-        if limit is not None:
-            raise NotImplementedError(
-                "specifying a limit for fillna has not been implemented yet"
-            )
-
-        if method is not None:
-            # pad / bfill
-
-            # TODO: dispatch when self.categories is EA-dtype
-            values = np.asarray(self).reshape(-1, len(self))
-            values = interpolate_2d(values, method, 0, None).astype(
-                self.categories.dtype
-            )[0]
-            codes = _get_codes_for_values(values, self.categories)
-
-        else:
-            # We copy even if there is nothing to fill
-            codes = self._ndarray.copy()
-            mask = self.isna()
-
-            new_codes = self._validate_setitem_value(value)
-            np.putmask(codes, mask, new_codes)
-
-        return self._from_backing_data(codes)
-
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
 
     @property
     def _codes(self) -> np.ndarray:
         return self._ndarray
+
+    @_codes.setter
+    def _codes(self, value: np.ndarray):
+        self._ndarray = value
 
     def _from_backing_data(self, arr: np.ndarray) -> Categorical:
         assert isinstance(arr, np.ndarray)
@@ -1864,14 +1806,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         # if key is a NaN, check if any NaN is in self.
         if is_valid_na_for_dtype(key, self.categories.dtype):
-            return self.isna().any()
+            return bool(self.isna().any())
 
         return contains(self, key, container=self._codes)
 
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed=False):
+    def _formatter(self, boxed: bool = False):
         # Defer to CategoricalFormatter's formatter.
         return None
 
@@ -1949,7 +1891,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         info = self._repr_categories_info()
         return f"Length: {len(self)}\n{info}"
 
-    def _get_repr(self, length=True, na_rep="NaN", footer=True) -> str:
+    def _get_repr(self, length: bool = True, na_rep="NaN", footer: bool = True) -> str:
         from pandas.io.formats import format as fmt
 
         formatter = fmt.CategoricalFormatter(
@@ -2026,7 +1968,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        dict of categories -> indexers
+        Dict[Hashable, np.ndarray[np.intp]]
+            dict of categories -> indexers
 
         Examples
         --------
@@ -2044,9 +1987,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         categories = self.categories
         r, counts = libalgos.groupsort_indexer(
-            self.codes.astype("int64"), categories.size
+            ensure_platform_int(self.codes), categories.size
         )
-        counts = counts.cumsum()
+        counts = ensure_int64(counts).cumsum()
         _result = (r[start:end] for start, end in zip(counts, counts[1:]))
         return dict(zip(categories, _result))
 

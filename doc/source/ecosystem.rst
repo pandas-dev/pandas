@@ -98,7 +98,8 @@ which can be used for a wide variety of time series data mining tasks.
 Visualization
 -------------
 
-While :ref:`pandas has built-in support for data visualization with matplotlib <visualization>`,
+`Pandas has its own Styler class for table visualization <user_guide/style.ipynb>`_, and while
+:ref:`pandas also has built-in support for data visualization through charts with matplotlib <visualization>`,
 there are a number of other pandas-compatible libraries.
 
 `Altair <https://altair-viz.github.io/>`__
@@ -368,6 +369,14 @@ far exceeding the performance of the native ``df.to_sql`` method. Internally, it
 Microsoft's BCP utility, but the complexity is fully abstracted away from the end user.
 Rigorously tested, it is a complete replacement for ``df.to_sql``.
 
+`Deltalake <https://pypi.org/project/deltalake>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Deltalake python package lets you access tables stored in
+`Delta Lake <https://delta.io/>`__ natively in Python without the need to use Spark or
+JVM. It provides the ``delta_table.to_pyarrow_table().to_pandas()`` method to convert
+any Delta table into Pandas dataframe.
+
 
 .. _ecosystem.out-of-core:
 
@@ -466,7 +475,7 @@ arrays can be stored inside pandas' Series and DataFrame.
 `Pandas-Genomics`_
 ~~~~~~~~~~~~~~~~~~
 
-Pandas-Genomics provides extension types and extension arrays for working with genomics data
+Pandas-Genomics provides extension types, extension arrays, and extension accessors for working with genomics data
 
 `Pint-Pandas`_
 ~~~~~~~~~~~~~~
@@ -493,16 +502,17 @@ A directory of projects providing
 :ref:`extension accessors <extending.register-accessors>`. This is for users to
 discover new accessors and for library authors to coordinate on the namespace.
 
-=============== ============ ==================================== ===============================================================
-Library         Accessor     Classes                              Description
-=============== ============ ==================================== ===============================================================
-`cyberpandas`_  ``ip``       ``Series``                           Provides common operations for working with IP addresses.
-`pdvega`_       ``vgplot``   ``Series``, ``DataFrame``            Provides plotting functions from the Altair_ library.
-`pandas_path`_  ``path``     ``Index``, ``Series``                Provides `pathlib.Path`_ functions for Series.
-`pint-pandas`_  ``pint``     ``Series``, ``DataFrame``            Provides units support for numeric Series and DataFrames.
-`composeml`_    ``slice``    ``DataFrame``                        Provides a generator for enhanced data slicing.
-`datatest`_     ``validate`` ``Series``, ``DataFrame``, ``Index`` Provides validation, differences, and acceptance managers.
-=============== ============ ==================================== ===============================================================
+================== ============ ==================================== ===============================================================================
+Library            Accessor     Classes                              Description
+================== ============ ==================================== ===============================================================================
+`cyberpandas`_     ``ip``       ``Series``                           Provides common operations for working with IP addresses.
+`pdvega`_          ``vgplot``   ``Series``, ``DataFrame``            Provides plotting functions from the Altair_ library.
+`pandas-genomics`_ ``genomics`` ``Series``, ``DataFrame``            Provides common operations for quality control and analysis of genomics data
+`pandas_path`_     ``path``     ``Index``, ``Series``                Provides `pathlib.Path`_ functions for Series.
+`pint-pandas`_     ``pint``     ``Series``, ``DataFrame``            Provides units support for numeric Series and DataFrames.
+`composeml`_       ``slice``    ``DataFrame``                        Provides a generator for enhanced data slicing.
+`datatest`_        ``validate`` ``Series``, ``DataFrame``, ``Index`` Provides validation, differences, and acceptance managers.
+================== ============ ==================================== ===============================================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://altair-viz.github.io/pdvega/

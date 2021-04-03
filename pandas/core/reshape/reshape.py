@@ -145,7 +145,7 @@ class _Unstacker:
         ngroups = len(obs_ids)
 
         indexer = get_group_index_sorter(comp_index, ngroups)
-
+        indexer = ensure_platform_int(indexer)
         return indexer, to_sort
 
     @cache_readonly
@@ -1039,7 +1039,8 @@ def _get_dummies_1d(
         return out
 
     else:
-        dummy_mat = np.eye(number_of_cols, dtype=dtype).take(codes, axis=0)
+        # take on axis=1 + transpose to ensure ndarray layout is column-major
+        dummy_mat = np.eye(number_of_cols, dtype=dtype).take(codes, axis=1).T
 
         if not dummy_na:
             # reset NaN GH4446
