@@ -553,11 +553,13 @@ class BaseWindowGroupby(BaseWindow):
         obj: FrameOrSeries,
         *args,
         _grouper=None,
+        _as_index=True,
         **kwargs,
     ):
         if _grouper is None:
             raise ValueError("Must pass a Grouper object.")
         self._grouper = _grouper
+        self._as_index = _as_index
         # GH 32262: It's convention to keep the grouping column in
         # groupby.<agg_func>, but unexpected to users in
         # groupby.rolling.<agg_func>
@@ -622,6 +624,9 @@ class BaseWindowGroupby(BaseWindow):
         )
 
         result.index = result_index
+        if not self._as_index:
+            pass
+            # result = result_index.reset_index(levels=list(range(len(groupby_keys))))
         return result
 
     def _apply_pairwise(

@@ -695,6 +695,33 @@ class TestRolling:
         assert "A" not in result.columns
         tm.assert_frame_equal(g.obj, original_obj)
 
+    def test_as_index_false(self):
+        # GH 39433
+        data = [
+            ["A", "2018-01-01", 100],
+            ["A", "2018-01-02", 200],
+            ["B", "2018-01-01", 150],
+            ["B", "2018-01-02", 250],
+        ]
+        df = DataFrame(data, columns=["id", "date", "num"])
+        df["date"] = to_datetime(df["date"])
+        expected = df.set_index(["date"])
+
+        result = (
+            expected.groupby([expected.id], as_index=False)
+            .rolling(window=2, min_periods=1)
+            .mean()
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = (
+            expected.groupby([expected.id, expected.index.weekday], as_index=False)
+            .rolling(window=2, min_periods=1)
+            .mean()
+        )
+        expected = DataFrame()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExpanding:
     def setup_method(self):
