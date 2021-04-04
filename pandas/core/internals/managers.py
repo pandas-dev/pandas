@@ -35,7 +35,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
-    ensure_int64,
+    ensure_platform_int,
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
@@ -1979,8 +1979,7 @@ def _preprocess_slice_or_indexer(
             dtype = getattr(slice_or_indexer, "dtype", None)
             raise TypeError(type(slice_or_indexer), dtype)
 
-        # TODO: np.intp?
-        indexer = ensure_int64(slice_or_indexer)
+        indexer = ensure_platform_int(slice_or_indexer)
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return "fancy", indexer, len(indexer)
