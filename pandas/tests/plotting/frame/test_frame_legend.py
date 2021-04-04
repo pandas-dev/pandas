@@ -1,9 +1,16 @@
 from matplotlib.collections import LineCollection
 from matplotlib.lines import Line2D
+import pytest
 
 from pandas import DataFrame
 
 
+@pytest.mark.xfail(
+    reason=(
+        "Open bug in matplotlib "
+        "https://github.com/matplotlib/matplotlib/issues/11357"
+    )
+)
 def test_mixed_yerr():
     # https://github.com/pandas-dev/pandas/issues/39522
     df = DataFrame([{"x": 1, "a": 1, "b": 1}, {"x": 2, "a": 2, "b": 3}])
