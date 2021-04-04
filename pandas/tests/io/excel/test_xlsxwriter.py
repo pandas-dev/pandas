@@ -1,13 +1,9 @@
 from datetime import datetime
 import warnings
 
-import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-)
+from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter
@@ -15,13 +11,6 @@ from pandas.io.excel import ExcelWriter
 xlsxwriter = pytest.importorskip("xlsxwriter")
 
 pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
-
-
-def ts_df():
-    df = tm.makeTimeDataFrame()[:5]
-    index = DatetimeIndex(np.asarray(df.index), freq=None)
-    df.index = index
-    return df
 
 
 @pytest.mark.parametrize(
@@ -52,8 +41,14 @@ def ts_df():
             "B",
             "DD-MMM-YYYY HH:MM:SS",
         ),
-        (ts_df(), "MMM", None, "A", "YYYY-MM-DD HH:MM:SS"),
-        (ts_df(), "MMM", "DD-MMM-YYYY HH:MM:SS", "A", "DD-MMM-YYYY HH:MM:SS"),
+        (tm.makeTimeDataFrame()[:5], "MMM", None, "A", "YYYY-MM-DD HH:MM:SS"),
+        (
+            tm.makeTimeDataFrame()[:5],
+            "MMM",
+            "DD-MMM-YYYY HH:MM:SS",
+            "A",
+            "DD-MMM-YYYY HH:MM:SS",
+        ),
     ],
 )
 def test_column_format(ext, data, num_format, fmt, col, expected):

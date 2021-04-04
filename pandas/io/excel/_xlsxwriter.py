@@ -237,11 +237,14 @@ class XlsxWriter(ExcelWriter):
                 style = self.book.add_format(_XlsxStyler.convert(cell.style, fmt))
                 style_dict[stylekey] = style
 
+            # if val is of type datetime or date and if the associated cell
+            # doesn't have a pre existing style then set the column format
+            # and change the cell style to None
             if (
-                isinstance(val, datetime.date) or isinstance(val, datetime.datetime)
+                isinstance(val, (datetime.date, datetime.datetime))
             ) and stylekey.startswith("null"):
                 if cell.col not in datetime_cols:
-                    self.set_column_format(sheet_name, startcol + cell.col, None, style)
+                    self._set_column_format(sheet_name, startcol + cell.col, style)
                     datetime_cols.append(cell.col)
                 style = None
 
@@ -257,8 +260,18 @@ class XlsxWriter(ExcelWriter):
             else:
                 wks.write(startrow + cell.row, startcol + cell.col, val, style)
 
-    def set_column_format(self, sheet_name, col, width, format):
+    def _set_column_format(self, sheet_name, col, format, width=None):
         """
-        Sets format for a column in the WorkSheet
+        Sets format for a column in the WorkSheet.
+
+        Parameters
+        ----------
+        sheet_name : str
+            Name of the Worksheet
+        col : int
+            Column to be formatted in the worksheet
+        format : xlsxwriter.format.Format object
+            Format to be applied to the column
+        width : float, default None
         """
         self.sheets[sheet_name].set_column(col, col, width=width, cell_format=format)

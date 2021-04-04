@@ -682,6 +682,7 @@ I/O
 - Bug in :func:`read_hdf` returning unexpected records when filtering on categorical string columns using ``where`` parameter (:issue:`39189`)
 - Bug in :func:`read_sas` raising ``ValueError`` when ``datetimes`` were null (:issue:`39725`)
 - Bug in :func:`read_excel` dropping empty values from single-column spreadsheets (:issue:`39808`)
+- Allow the usage of :func:`set_column` to add the formatting for date/datetime type columns when used with :class:`ExcelWriter` using ``engine='xlsxwriter'`` (:issue:`30275`)
 
 Period
 ^^^^^^
