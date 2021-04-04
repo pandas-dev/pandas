@@ -991,7 +991,8 @@ def _get_dummies_1d(
     if prefix is None:
         dummy_cols = levels
     else:
-        dummy_cols = [f"{prefix}{prefix_sep}{level}" for level in levels]
+        template = f"{prefix}{prefix_sep}" + "{label}"
+        dummy_cols = levels.map(template.format)
 
     index: Optional[Index]
     if isinstance(data, Series):
