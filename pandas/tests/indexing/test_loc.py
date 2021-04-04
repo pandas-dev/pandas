@@ -2126,7 +2126,9 @@ class TestLocBooleanLabelsAndSlices(Base):
                 obj.loc[True]
 
     def test_loc_bool_should_not_raise(self, frame_or_series):
-        obj = frame_or_series(index=Index([True, False], dtype="boolean"))
+        obj = frame_or_series(
+            index=Index([True, False], dtype="boolean"), dtype="object"
+        )
         obj.loc[True]
 
     def test_loc_bool_slice_raises(self, index, frame_or_series):
