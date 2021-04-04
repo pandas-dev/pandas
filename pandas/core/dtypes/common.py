@@ -23,7 +23,7 @@ from pandas._typing import (
     Optional,
 )
 
-from pandas.core.dtypes.base import registry
+from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -1576,7 +1576,7 @@ def _is_dtype(arr_or_dtype, condition) -> bool:
         return False
     try:
         dtype = get_dtype(arr_or_dtype)
-    except (TypeError, ValueError, UnicodeEncodeError):
+    except (TypeError, ValueError):
         return False
     return condition(dtype)
 
@@ -1651,7 +1651,7 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
 
     try:
         tipo = pandas_dtype(arr_or_dtype).type
-    except (TypeError, ValueError, UnicodeEncodeError):
+    except (TypeError, ValueError):
         if is_scalar(arr_or_dtype):
             return condition(type(None))
 

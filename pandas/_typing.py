@@ -80,7 +80,7 @@ AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 # scalars
 
 PythonScalar = Union[str, int, float, bool]
-DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timedelta")
+DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
 

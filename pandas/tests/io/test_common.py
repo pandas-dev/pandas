@@ -258,7 +258,9 @@ bar2,12,13,14,15
             ),
         ],
     )
-    @pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings(
+        "ignore:CategoricalBlock is deprecated:DeprecationWarning"
+    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)

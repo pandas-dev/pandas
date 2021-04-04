@@ -573,7 +573,7 @@ class TestBasic(Base):
         self.check_error_on_write(df, engine, ValueError, msg)
 
 
-@pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:FutureWarning")
+@pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
 
