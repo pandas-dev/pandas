@@ -131,7 +131,6 @@ class ArrayManager(DataManager):
         # Note: we are storing the axes in "_axes" in the (row, columns) order
         # which contrasts the order how it is stored in BlockManager
         self._axes = axes
-
         self.arrays = arrays
 
         if verify_integrity:
@@ -496,7 +495,6 @@ class ArrayManager(DataManager):
             if self.ndim == 2 and arr.ndim == 2:
                 # 2D for np.ndarray or DatetimeArray/TimedeltaArray
                 assert len(arr) == 1
-
                 # error: Invalid index type "Tuple[int, slice]" for
                 # "Union[ndarray, ExtensionArray]"; expected type
                 # "Union[int, slice, ndarray]"

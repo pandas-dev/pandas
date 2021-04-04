@@ -347,12 +347,10 @@ def ndarray_to_mgr(
             nb = new_block(datelike_vals, placement=slice(len(columns)), ndim=2)
             block_values = [nb]
     else:
-        new_values = values
-        nb = new_block(new_values, placement=slice(len(columns)), ndim=2)
+        nb = new_block(values, placement=slice(len(columns)), ndim=2)
         block_values = [nb]
 
     if len(columns) == 0:
-        # TODO: require len(values) == 0?
         block_values = []
 
     return create_block_manager_from_blocks(block_values, [columns, index])
