@@ -15,6 +15,8 @@ Instructions for installing from source,
 `PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <https://github.com/pandas-dev/pandas>`__ are also provided.
 
+.. _install.version:
+
 Python version support
 ----------------------
 
