@@ -222,6 +222,33 @@ NA,2,1,2
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "use_nullable_dtypes, expected",
+    [
+        (
+            True,
+            DataFrame(
+                {
+                    "A": np.array(["hi", "hello", "hey"], dtype=object),
+                    "B": pd_array(["hi", NA, "hello"], dtype="string"),
+                    "C": pd_array([NA, "hi", "hey"], dtype="string"),
+                    "D": np.array([np.nan, np.nan, np.nan], dtype="float64"),
+                }
+            ),
+        )
+    ],
+)
+def test_string_na_values(all_parsers, use_nullable_dtypes, expected):
+    data = """A,B,C,D
+hi,hi,NA,NA
+hello,NA,hi,NA
+hey,hello,hey,NA"""
+    parser = all_parsers
+    result = parser.read_csv(StringIO(data), use_nullable_dtypes=use_nullable_dtypes)
+    print(result)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_na_value_dict(all_parsers):
     data = """A,B,C
 foo,bar,NA

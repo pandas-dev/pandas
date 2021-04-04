@@ -2007,6 +2007,7 @@ def maybe_convert_numeric(
     bint convert_empty=True,
     bint coerce_numeric=False,
     bint convert_to_nullable_integer=False,
+    bint convert_to_floating_array=False,
 ) -> "ArrayLike":
     """
     Convert object array to a numeric array if possible.
@@ -2034,7 +2035,9 @@ def maybe_convert_numeric(
     convert_to_nullable_integer : bool, default False
         If an array-like object contains only integer values (and NaN) is
         encountered, whether to convert and return an IntegerArray.
-
+    convert_to_floating_array : bool, default False
+        If an array-like object contains only float values (and NaN) is
+        encountered, whether to convert and return an FloatingArray.
     Returns
     -------
     np.ndarray or ExtensionArray
@@ -2074,21 +2077,26 @@ def maybe_convert_numeric(
         # a) convert_to_nullable_integer = True
         # b) no floats have been seen ( assuming an int shows up later )
         # However, if no ints present (all null array), we need to return floats
-        allow_nullable_dtypes = convert_to_nullable_integer and not seen.float_
+        allow_null_in_int = convert_to_nullable_integer and not seen.float_
 
         if val.__hash__ is not None and val in na_values:
-            if allow_nullable_dtypes:
+            if allow_null_in_int:
                 seen.null_ = True
                 mask[i] = 1
             else:
+                if convert_to_floating_array:
+                    mask[i] = 1
                 seen.saw_null()
             floats[i] = complexes[i] = NaN
         elif util.is_float_object(val):
             fval = val
             if fval != fval:
-                mask[i] = 1
                 seen.null_ = True
-                if not allow_nullable_dtypes:
+                if allow_null_in_int:
+                    mask[i] = 1
+                else:
+                    if convert_to_floating_array:
+                        mask[i] = 1
                     seen.float_ = True
             else:
                 seen.float_ = True
@@ -2115,10 +2123,12 @@ def maybe_convert_numeric(
             floats[i] = uints[i] = ints[i] = bools[i] = val
             seen.bool_ = True
         elif val is None or val is C_NA:
-            if allow_nullable_dtypes:
+            if allow_null_in_int:
                 seen.null_ = True
                 mask[i] = 1
             else:
+                if convert_to_floating_array:
+                    mask[i] = 1
                 seen.saw_null()
             floats[i] = complexes[i] = NaN
         elif hasattr(val, '__len__') and len(val) == 0:
@@ -2192,6 +2202,9 @@ def maybe_convert_numeric(
     if seen.complex_:
         return complexes
     elif seen.float_:
+        if seen.null_ and convert_to_floating_array:
+            from pandas.core.arrays import FloatingArray
+            return FloatingArray(floats, mask.view(np.bool_))
         return floats
     elif seen.int_:
         if seen.null_ and convert_to_nullable_integer:

@@ -63,7 +63,9 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import (
     BooleanArray,
+    FloatingArray,
     IntegerArray,
+    StringArray,
 )
 
 
@@ -646,6 +648,29 @@ class TestInference:
         arr = np.array([2, np.NaN], dtype=object)
         result = lib.maybe_convert_numeric(arr, set(), convert_to_nullable_integer=True)
         tm.assert_extension_array_equal(result, exp)
+
+    @pytest.mark.parametrize(
+        "convert_to_floating_array, exp",
+        [
+            (
+                True,
+                FloatingArray(
+                    np.array([2.0, 0.0], dtype="float64"), np.array([False, True])
+                ),
+            ),
+            (False, np.array([2.0, np.nan])),
+        ],
+    )
+    def test_maybe_convert_numeric_floating_array(self, convert_to_floating_array, exp):
+        # GH 40687
+        arr = np.array([2, np.nan], dtype=object)
+        result = lib.maybe_convert_numeric(
+            arr, set(), convert_to_floating_array=convert_to_floating_array
+        )
+        if convert_to_floating_array:
+            tm.assert_extension_array_equal(result, exp)
+        else:
+            tm.assert_numpy_array_equal(result, exp)
 
     def test_maybe_convert_objects_bool_nan(self):
         # GH32146

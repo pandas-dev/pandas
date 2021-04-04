@@ -92,6 +92,7 @@ from pandas._libs.khash cimport (
     kh_strbox_t,
     khiter_t,
 )
+from pandas._libs.missing cimport C_NA
 
 from pandas.errors import (
     DtypeWarning,
@@ -114,7 +115,9 @@ from pandas.core.dtypes.concat import union_categoricals
 
 from pandas.core.arrays import (
     BooleanArray,
+    FloatingArray,
     IntegerArray,
+    StringArray,
 )
 
 cdef:
@@ -1017,8 +1020,11 @@ cdef class TextReader:
             # don't try to upcast EAs
             try_upcast = upcast_na and na_count > 0
             if try_upcast and not is_extension_array_dtype(col_dtype):
-                col_res = _maybe_upcast(col_res,
-                                        use_nullable_dtypes=self.use_nullable_dtypes)
+                if na_count < len(col_res):
+                    col_res = _maybe_upcast(col_res, self.use_nullable_dtypes)
+                else:
+                    # All NaN -> float64
+                    col_res = col_res.astype("float64")
 
             if col_res is None:
                 raise ParserError(f'Unable to parse column {i}')
@@ -1314,9 +1320,6 @@ def _maybe_upcast(arr, use_nullable_dtypes=False):
     If arr of boolean dtype, arr is upcast to object dtype or BooleanArray
     and if arr is of integer dtype, arr is upcast to float dtype, or IntegerArray.
 
-    Note: If all values are null, array will be upcast to float64 even if
-    use_nullable_dtypes is True
-
     Parameters
     ----------
     arr : ndarray
@@ -1326,27 +1329,31 @@ def _maybe_upcast(arr, use_nullable_dtypes=False):
         datatypes instead of upcasting.
 
     """
+    na_value = na_values[arr.dtype]
     if issubclass(arr.dtype.type, np.integer):
-        na_value = na_values[arr.dtype]
         mask = arr == na_value
-        if mask.all():
-            # Array of all NaN, dtype -> float64
-            use_nullable_dtypes = False
         if use_nullable_dtypes:
             arr = IntegerArray(arr, mask)
         else:
             arr = arr.astype(float)
             np.putmask(arr, mask, np.nan)
     elif arr.dtype == np.bool_:
-        mask = arr.view(np.uint8) == na_values[np.uint8]
-        if mask.all():
-            # Array of all NaN, dtype -> float64
-            use_nullable_dtypes = False
+        mask = arr.view(np.uint8) == na_value
         if use_nullable_dtypes:
             arr = BooleanArray(arr, mask)
         else:
             arr = arr.astype(object)
             np.putmask(arr, mask, np.nan)
+    elif use_nullable_dtypes and arr.dtype == np.floating:
+        mask = arr == na_value
+        if mask.any():
+            arr = FloatingArray(arr, mask)
+    elif use_nullable_dtypes and arr.dtype == np.object_:
+        # Maybe convert StringArray & catch error for non-strings
+        try:
+            arr = StringArray(arr)
+        except ValueError:
+            pass
 
     return arr
 
