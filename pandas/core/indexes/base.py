@@ -5264,13 +5264,15 @@ class Index(IndexOpsMixin, PandasObject):
 
     @overload
     def _get_indexer_non_comparable(
-        self, target: Index, method, unique: Literal[False] = ...
+        self, target: Index, method, unique: Literal[False]
     ) -> tuple[np.ndarray, np.ndarray]:
         # both returned ndarrays are np.intp
         ...
 
     @final
-    def _get_indexer_non_comparable(self, target: Index, method, unique: bool = True):
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: bool = True
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         """
         Called from get_indexer or get_indexer_non_unique when the target
         is of a non-comparable dtype.
