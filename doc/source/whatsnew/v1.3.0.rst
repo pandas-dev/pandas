@@ -363,22 +363,26 @@ as a time anchor parameter (:issue:`5307`). Its default value for :class:`~panda
 and :class:`~pandas.tseries.offsets.BQuarterBegin` is now 1 (January) instead of 3 (March),
 as a result these offsets are aligned with standard calendar quarters (:issue:`8435`).
 
+.. ipython:: python
+
+   from datetime import datetime
+
 *pandas 1.2.x*
 
 .. code-block:: ipython
 
-   In [1]: datetime.datetime(2014,10,10) + pd.tseries.offsets.QuarterBegin()
+   In [1]: datetime(2014, 10, 10) + pd.tseries.offsets.QuarterBegin()
    Out[2]: Timestamp('2014-12-01 00:00:00')
-   In [3]: datetime.datetime(2014,10,10) + pd.tseries.offsets.BQuarterBegin()
+   In [3]: datetime(2014, 10, 10) + pd.tseries.offsets.BQuarterBegin()
    Out[4]: Timestamp('2014-12-01 00:00:00')
 
 *pandas 1.3.0*
 
 .. ipython:: python
 
-   In [1]: datetime.datetime(2014,10,10) + pd.tseries.offsets.QuarterBegin()
+   In [1]: datetime(2014, 10, 10) + pd.tseries.offsets.QuarterBegin()
    Out[2]: Timestamp('2015-01-01 00:00:00')
-   In [3]: datetime.datetime(2014,10,10) + pd.tseries.offsets.BQuarterBegin()
+   In [3]: datetime(2014, 10, 10) + pd.tseries.offsets.BQuarterBegin()
    Out[4]: Timestamp('2015-01-01 00:00:00')
 
 .. _whatsnew_130.api_breaking.deps:
