@@ -132,6 +132,7 @@ cdef class IndexEngine:
         return self._maybe_get_bool_indexer(val)
 
     cdef _maybe_get_bool_indexer(self, object val):
+        # Returns ndarray[bool] or int
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
 
@@ -247,7 +248,7 @@ cdef class IndexEngine:
 
         self.need_unique_check = 0
 
-    cdef void _call_map_locations(self, values):
+    cdef void _call_map_locations(self, ndarray values):
         self.mapping.map_locations(values)
 
     def clear_mapping(self):

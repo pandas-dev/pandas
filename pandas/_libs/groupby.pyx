@@ -106,7 +106,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
                          ndarray[int64_t] counts,
                          ndarray[float64_t, ndim=2] values,
                          ndarray[intp_t] labels,
-                         Py_ssize_t min_count=-1):
+                         Py_ssize_t min_count=-1) -> None:
     """
     Only aggregates on axis=0
     """
@@ -148,7 +148,7 @@ def group_cumprod_float64(float64_t[:, ::1] out,
                           const intp_t[:] labels,
                           int ngroups,
                           bint is_datetimelike,
-                          bint skipna=True):
+                          bint skipna=True) -> None:
     """
     Cumulative product of columns of `values`, in row groups `labels`.
 
@@ -205,7 +205,7 @@ def group_cumsum(numeric[:, ::1] out,
                  const intp_t[:] labels,
                  int ngroups,
                  is_datetimelike,
-                 bint skipna=True):
+                 bint skipna=True) -> None:
     """
     Cumulative sum of columns of `values`, in row groups `labels`.
 
@@ -270,7 +270,7 @@ def group_cumsum(numeric[:, ::1] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_shift_indexer(int64_t[::1] out, const intp_t[:] labels,
-                        int ngroups, int periods):
+                        int ngroups, int periods) -> None:
     cdef:
         Py_ssize_t N, i, j, ii, lab
         int offset = 0, sign
@@ -322,14 +322,14 @@ def group_shift_indexer(int64_t[::1] out, const intp_t[:] labels,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
-                         ndarray[uint8_t] mask, object direction,
-                         int64_t limit, bint dropna):
+                         ndarray[uint8_t] mask, str direction,
+                         int64_t limit, bint dropna) -> None:
     """
     Indexes how to fill values forwards or backwards within a group.
 
     Parameters
     ----------
-    out : np.ndarray[np.uint8]
+    out : np.ndarray[np.int64]
         Values into which this method will write its results.
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its ordering
@@ -392,8 +392,8 @@ def group_any_all(uint8_t[::1] out,
                   const uint8_t[::1] values,
                   const intp_t[:] labels,
                   const uint8_t[::1] mask,
-                  object val_test,
-                  bint skipna):
+                  str val_test,
+                  bint skipna) -> None:
     """
     Aggregated boolean values to show truthfulness of group elements.
 
@@ -465,7 +465,7 @@ def group_add(complexfloating_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[complexfloating_t, ndim=2] values,
               const intp_t[:] labels,
-              Py_ssize_t min_count=0):
+              Py_ssize_t min_count=0) -> None:
     """
     Only aggregates on axis=0 using Kahan summation
     """
@@ -518,7 +518,7 @@ def group_prod(floating[:, ::1] out,
                int64_t[::1] counts,
                ndarray[floating, ndim=2] values,
                const intp_t[:] labels,
-               Py_ssize_t min_count=0):
+               Py_ssize_t min_count=0) -> None:
     """
     Only aggregates on axis=0
     """
@@ -568,7 +568,7 @@ def group_var(floating[:, ::1] out,
               ndarray[floating, ndim=2] values,
               const intp_t[:] labels,
               Py_ssize_t min_count=-1,
-              int64_t ddof=1):
+              int64_t ddof=1) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, ct, oldmean
@@ -621,7 +621,7 @@ def group_mean(floating[:, ::1] out,
                int64_t[::1] counts,
                ndarray[floating, ndim=2] values,
                const intp_t[::1] labels,
-               Py_ssize_t min_count=-1):
+               Py_ssize_t min_count=-1) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, count, y, t
@@ -673,7 +673,7 @@ def group_ohlc(floating[:, ::1] out,
                int64_t[::1] counts,
                ndarray[floating, ndim=2] values,
                const intp_t[:] labels,
-               Py_ssize_t min_count=-1):
+               Py_ssize_t min_count=-1) -> None:
     """
     Only aggregates on axis=0
     """
@@ -721,7 +721,7 @@ def group_quantile(ndarray[float64_t] out,
                    ndarray[intp_t] labels,
                    ndarray[uint8_t] mask,
                    float64_t q,
-                   object interpolation):
+                   str interpolation) -> None:
     """
     Calculate the quantile per group.
 
@@ -733,8 +733,6 @@ def group_quantile(ndarray[float64_t] out,
         Array containing the values to apply the function against.
     labels : ndarray[np.intp]
         Array containing the unique group labels.
-    values : ndarray
-        Array containing the values to apply the function against.
     q : float
         The quantile value to search for.
     interpolation : {'linear', 'lower', 'highest', 'nearest', 'midpoint'}
@@ -865,7 +863,7 @@ def group_last(rank_t[:, ::1] out,
                int64_t[::1] counts,
                ndarray[rank_t, ndim=2] values,
                const intp_t[:] labels,
-               Py_ssize_t min_count=-1):
+               Py_ssize_t min_count=-1) -> None:
     """
     Only aggregates on axis=0
     """
@@ -957,8 +955,9 @@ def group_nth(rank_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[rank_t, ndim=2] values,
               const intp_t[:] labels,
-              int64_t min_count=-1, int64_t rank=1
-              ):
+              int64_t min_count=-1,
+              int64_t rank=1,
+              ) -> None:
     """
     Only aggregates on axis=0
     """
@@ -1050,8 +1049,8 @@ def group_rank(float64_t[:, ::1] out,
                ndarray[rank_t, ndim=2] values,
                const intp_t[:] labels,
                int ngroups,
-               bint is_datetimelike, object ties_method="average",
-               bint ascending=True, bint pct=False, object na_option="keep"):
+               bint is_datetimelike, str ties_method="average",
+               bint ascending=True, bint pct=False, str na_option="keep") -> None:
     """
     Provides the rank of values within each group.
 
@@ -1221,7 +1220,7 @@ def group_max(groupby_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[groupby_t, ndim=2] values,
               const intp_t[:] labels,
-              Py_ssize_t min_count=-1):
+              Py_ssize_t min_count=-1) -> None:
     """See group_min_max.__doc__"""
     group_min_max(out, counts, values, labels, min_count=min_count, compute_max=True)
 
@@ -1232,7 +1231,7 @@ def group_min(groupby_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[groupby_t, ndim=2] values,
               const intp_t[:] labels,
-              Py_ssize_t min_count=-1):
+              Py_ssize_t min_count=-1) -> None:
     """See group_min_max.__doc__"""
     group_min_max(out, counts, values, labels, min_count=min_count, compute_max=False)
 
@@ -1311,7 +1310,7 @@ def group_cummin(groupby_t[:, ::1] out,
                  ndarray[groupby_t, ndim=2] values,
                  const intp_t[:] labels,
                  int ngroups,
-                 bint is_datetimelike):
+                 bint is_datetimelike) -> None:
     """See group_cummin_max.__doc__"""
     group_cummin_max(out, values, labels, ngroups, is_datetimelike, compute_max=False)
 
@@ -1322,6 +1321,6 @@ def group_cummax(groupby_t[:, ::1] out,
                  ndarray[groupby_t, ndim=2] values,
                  const intp_t[:] labels,
                  int ngroups,
-                 bint is_datetimelike):
+                 bint is_datetimelike) -> None:
     """See group_cummin_max.__doc__"""
     group_cummin_max(out, values, labels, ngroups, is_datetimelike, compute_max=True)

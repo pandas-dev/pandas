@@ -61,7 +61,7 @@ cdef class Factorizer:
         ObjectVector uniques
         Py_ssize_t count
 
-    def __init__(self, size_hint):
+    def __init__(self, size_hint: int):
         self.table = PyObjectHashTable(size_hint)
         self.uniques = ObjectVector()
         self.count = 0
@@ -116,12 +116,12 @@ cdef class Int64Factorizer:
         Int64Vector uniques
         Py_ssize_t count
 
-    def __init__(self, size_hint):
+    def __init__(self, size_hint: int):
         self.table = Int64HashTable(size_hint)
         self.uniques = Int64Vector()
         self.count = 0
 
-    def get_count(self):
+    def get_count(self) -> int:
         return self.count
 
     def factorize(self, const int64_t[:] values, sort=False,
