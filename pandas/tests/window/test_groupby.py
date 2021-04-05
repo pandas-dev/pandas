@@ -735,28 +735,37 @@ class TestRolling:
     def test_as_index_false(self):
         # GH 39433
         data = [
-            ["A", "2018-01-01", 100],
-            ["A", "2018-01-02", 200],
-            ["B", "2018-01-01", 150],
-            ["B", "2018-01-02", 250],
+            ["A", "2018-01-01", 100.0],
+            ["A", "2018-01-02", 200.0],
+            ["B", "2018-01-01", 150.0],
+            ["B", "2018-01-02", 250.0],
         ]
         df = DataFrame(data, columns=["id", "date", "num"])
         df["date"] = to_datetime(df["date"])
-        expected = df.set_index(["date"])
+        df = df.set_index(["date"])
 
         result = (
-            expected.groupby([expected.id], as_index=False)
-            .rolling(window=2, min_periods=1)
-            .mean()
+            df.groupby([df.id], as_index=False).rolling(window=2, min_periods=1).mean()
+        )
+        expected = DataFrame(
+            {"id": ["A", "A", "B", "B"], "num": [100.0, 150.0, 150.0, 200.0]},
+            index=df.index,
         )
         tm.assert_frame_equal(result, expected)
 
         result = (
-            expected.groupby([expected.id, expected.index.weekday], as_index=False)
+            df.groupby([df.id, df.index.weekday], as_index=False)
             .rolling(window=2, min_periods=1)
             .mean()
         )
-        expected = DataFrame()
+        expected = DataFrame(
+            {
+                "id": ["A", "A", "B", "B"],
+                "date": [0, 1, 0, 1],
+                "num": [100.0, 200.0, 150.0, 250.0],
+            },
+            index=df.index,
+        )
         tm.assert_frame_equal(result, expected)
 
 

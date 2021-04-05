@@ -622,7 +622,7 @@ class BaseWindowGroupby(BaseWindow):
 
         result.index = result_index
         if not self._as_index:
-            result = result_index.reset_index(levels=list(range(len(groupby_keys))))
+            result = result.reset_index(level=list(range(len(groupby_keys))))
         return result
 
     def _apply_pairwise(
