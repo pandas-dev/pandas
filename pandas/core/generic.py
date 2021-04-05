@@ -3541,7 +3541,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         The object has called back to us saying maybe it has changed.
         """
         loc = self._info_axis.get_loc(item)
-        self._mgr.iset(loc, value)
+        arraylike = value._values
+        self._mgr.iset(loc, arraylike)
 
     @final
     @property
