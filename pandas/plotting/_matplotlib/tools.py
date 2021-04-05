@@ -2,7 +2,14 @@
 from __future__ import annotations
 
 from math import ceil
-from typing import TYPE_CHECKING, Iterable, List, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    List,
+    Sequence,
+    Tuple,
+    Union,
+)
 import warnings
 
 import matplotlib.table
@@ -12,7 +19,11 @@ import numpy as np
 from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
 
 from pandas.plotting._matplotlib import compat
 
@@ -381,6 +392,11 @@ def handle_shared_axes(
             row_num = lambda x: x.rowNum
             col_num = lambda x: x.colNum
 
+        if compat.mpl_ge_3_4_0():
+            is_first_col = lambda x: x.get_subplotspec().is_first_col()
+        else:
+            is_first_col = lambda x: x.is_first_col()
+
         if nrows > 1:
             try:
                 # first find out the ax layout,
@@ -412,7 +428,7 @@ def handle_shared_axes(
                 # only the first column should get y labels -> set all other to
                 # off as we only have labels in the first column and we always
                 # have a subplot there, we can skip the layout test
-                if ax.is_first_col():
+                if is_first_col(ax):
                     continue
                 if sharey or _has_externally_shared_axis(ax, "y"):
                     _remove_labels_from_axis(ax.yaxis)

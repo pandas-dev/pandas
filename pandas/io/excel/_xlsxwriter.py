@@ -1,4 +1,10 @@
-from typing import Dict, List, Tuple
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+)
 
 import pandas._libs.json as json
 from pandas._typing import StorageOptions
@@ -171,10 +177,12 @@ class XlsxWriter(ExcelWriter):
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        **engine_kwargs,
+        engine_kwargs: Optional[Dict[str, Any]] = None,
     ):
         # Use the xlsxwriter module as the Excel writer.
         from xlsxwriter import Workbook
+
+        engine_kwargs = engine_kwargs or {}
 
         if mode == "a":
             raise ValueError("Append mode is not supported with xlsxwriter!")
@@ -186,7 +194,7 @@ class XlsxWriter(ExcelWriter):
             datetime_format=datetime_format,
             mode=mode,
             storage_options=storage_options,
-            **engine_kwargs,
+            engine_kwargs=engine_kwargs,
         )
 
         self.book = Workbook(self.handles.handle, **engine_kwargs)

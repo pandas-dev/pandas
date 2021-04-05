@@ -512,6 +512,27 @@ class TestPeriodIndex:
         tm.assert_index_equal(res, expected)
 
 
+class TestShallowCopy:
+    def test_shallow_copy_empty(self):
+        # GH#13067
+        idx = PeriodIndex([], freq="M")
+        result = idx._view()
+        expected = idx
+
+        tm.assert_index_equal(result, expected)
+
+    def test_shallow_copy_disallow_i8(self):
+        # GH#24391
+        pi = period_range("2018-01-01", periods=3, freq="2D")
+        with pytest.raises(AssertionError, match="ndarray"):
+            pi._shallow_copy(pi.asi8)
+
+    def test_shallow_copy_requires_disallow_period_index(self):
+        pi = period_range("2018-01-01", periods=3, freq="2D")
+        with pytest.raises(AssertionError, match="PeriodIndex"):
+            pi._shallow_copy(pi)
+
+
 class TestSeriesPeriod:
     def setup_method(self, method):
         self.series = Series(period_range("2000-01-01", periods=10, freq="D"))

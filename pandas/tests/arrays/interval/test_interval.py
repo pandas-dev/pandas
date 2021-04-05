@@ -90,7 +90,7 @@ class TestMethods:
         tm.assert_interval_array_equal(result, expected)
 
     def test_shift_datetime(self):
-        a = IntervalArray.from_breaks(pd.date_range("2000", periods=4))
+        a = IntervalArray.from_breaks(date_range("2000", periods=4))
         result = a.shift(2)
         expected = a.take([-1, -1, 0], allow_fill=True)
         tm.assert_interval_array_equal(result, expected)
@@ -248,7 +248,7 @@ def test_arrow_array_missing():
 @pyarrow_skip
 @pytest.mark.parametrize(
     "breaks",
-    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
+    [[0.0, 1.0, 2.0, 3.0], date_range("2017", periods=4, freq="D")],
     ids=["float", "datetime64[ns]"],
 )
 def test_arrow_table_roundtrip(breaks):
@@ -275,7 +275,7 @@ def test_arrow_table_roundtrip(breaks):
 @pyarrow_skip
 @pytest.mark.parametrize(
     "breaks",
-    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
+    [[0.0, 1.0, 2.0, 3.0], date_range("2017", periods=4, freq="D")],
     ids=["float", "datetime64[ns]"],
 )
 def test_arrow_table_roundtrip_without_metadata(breaks):

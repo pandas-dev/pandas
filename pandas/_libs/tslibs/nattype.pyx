@@ -30,7 +30,10 @@ from numpy cimport int64_t
 cnp.import_array()
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
+from pandas._libs.tslibs.np_datetime cimport (
+    get_datetime64_value,
+    get_timedelta64_value,
+)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -124,6 +127,10 @@ cdef class _NaT(datetime):
                 result.fill(_nat_scalar_rules[op])
             elif other.dtype.kind == "O":
                 result = np.array([PyObject_RichCompare(self, x, op) for x in other])
+            elif op == Py_EQ:
+                result = np.zeros(other.shape, dtype=bool)
+            elif op == Py_NE:
+                result = np.ones(other.shape, dtype=bool)
             else:
                 return NotImplemented
             return result
@@ -283,7 +290,7 @@ cdef class _NaT(datetime):
         # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
         return "NaT"
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return NPY_NAT
 
     @property

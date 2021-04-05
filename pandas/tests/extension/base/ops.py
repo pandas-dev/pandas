@@ -1,4 +1,7 @@
-from typing import Optional, Type
+from typing import (
+    Optional,
+    Type,
+)
 
 import pytest
 

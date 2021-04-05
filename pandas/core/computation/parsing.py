@@ -6,7 +6,11 @@ from io import StringIO
 from keyword import iskeyword
 import token
 import tokenize
-from typing import Hashable, Iterator, Tuple
+from typing import (
+    Hashable,
+    Iterator,
+    Tuple,
+)
 
 # A token value Python's tokenizer probably will never use.
 BACKTICK_QUOTED_STRING = 100

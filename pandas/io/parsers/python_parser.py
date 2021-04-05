@@ -1,19 +1,39 @@
-from collections import abc, defaultdict
+from collections import (
+    abc,
+    defaultdict,
+)
 import csv
 from io import StringIO
 import re
 import sys
-from typing import DefaultDict, Iterator, List, Optional, Set, Tuple, cast
+from typing import (
+    DefaultDict,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    cast,
+)
 
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import FilePathOrBuffer, Union
-from pandas.errors import EmptyDataError, ParserError
+from pandas._typing import (
+    FilePathOrBuffer,
+    Union,
+)
+from pandas.errors import (
+    EmptyDataError,
+    ParserError,
+)
 
 from pandas.core.dtypes.common import is_integer
 
-from pandas.io.parsers.base_parser import ParserBase, parser_defaults
+from pandas.io.parsers.base_parser import (
+    ParserBase,
+    parser_defaults,
+)
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness
@@ -217,10 +237,9 @@ class PythonParser(ParserBase):
 
             reader = _read()
 
-        # pandas\io\parsers.py:2427: error: Incompatible types in assignment
-        # (expression has type "_reader", variable has type "Union[IO[Any],
-        # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap, None]")
-        # [assignment]
+        # error: Incompatible types in assignment (expression has type "_reader",
+        # variable has type "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+        # TextIOWrapper, mmap, None]")
         self.data = reader  # type: ignore[assignment]
 
     def read(self, rows=None):
@@ -278,8 +297,7 @@ class PythonParser(ParserBase):
     # legacy
     def get_chunk(self, size=None):
         if size is None:
-            # pandas\io\parsers.py:2528: error: "PythonParser" has no attribute
-            # "chunksize"  [attr-defined]
+            # error: "PythonParser" has no attribute "chunksize"
             size = self.chunksize  # type: ignore[attr-defined]
         return self.read(rows=size)
 

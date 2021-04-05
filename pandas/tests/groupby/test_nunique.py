@@ -5,7 +5,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, NaT, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    NaT,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 

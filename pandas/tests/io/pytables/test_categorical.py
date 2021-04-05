@@ -1,14 +1,23 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, DataFrame, Series, _testing as tm, concat, read_hdf
+import pandas.util._test_decorators as td
+
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+    _testing as tm,
+    concat,
+    read_hdf,
+)
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
 
 
 def test_categorical(setup_path):

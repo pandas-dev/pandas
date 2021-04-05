@@ -1,11 +1,19 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, bdate_range, notna
+from pandas import (
+    DataFrame,
+    Series,
+    bdate_range,
+    notna,
+)
 
 
 @pytest.fixture(params=[True, False])

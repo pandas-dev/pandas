@@ -10,13 +10,18 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Union,
 )
 
 import numpy as np
 
-from pandas._libs import algos, hashtable, lib
+from pandas._libs import (
+    algos,
+    hashtable,
+    lib,
+)
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import IndexKeyFunc
 
@@ -28,7 +33,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -41,12 +45,12 @@ _INT64_MAX = np.iinfo(np.int64).max
 def get_indexer_indexer(
     target: Index,
     level: Union[str, int, List[str], List[int]],
-    ascending: bool,
+    ascending: Union[Sequence[Union[bool, int]], Union[bool, int]],
     kind: str,
     na_position: str,
     sort_remaining: bool,
     key: IndexKeyFunc,
-) -> Optional[np.array]:
+) -> Optional[np.ndarray]:
     """
     Helper method that return the indexer according to input parameters for
     the sort_index method of DataFrame and Series.
@@ -233,6 +237,7 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
 
     Parameters
     ----------
+    comp_ids : np.ndarray[np.intp]
     xnull : bool
         If nulls are excluded; i.e. -1 labels are passed through.
     """
@@ -245,7 +250,8 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
         out = decons_group_index(obs_ids, shape)
         return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
-    i = unique_label_indices(comp_ids)
+    # TODO: unique_label_indices only used here, should take ndarray[np.intp]
+    i = unique_label_indices(ensure_int64(comp_ids))
     i8copy = lambda a: a.astype("i8", subok=False, copy=True)
     return [i8copy(lab[i]) for lab in labels]
 
@@ -272,7 +278,7 @@ def lexsort_indexer(
     ----------
     keys : sequence of arrays
         Sequence of ndarrays to be sorted by the indexer
-    orders : boolean or list of booleans, optional
+    orders : bool or list of booleans, optional
         Determines the sorting order for each element in keys. If a list,
         it must be the same length as keys. This determines whether the
         corresponding element in keys should be sorted in ascending
@@ -392,7 +398,7 @@ def nargsort(
     return indexer
 
 
-def nargminmax(values, method: str):
+def nargminmax(values, method: str, axis: int = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -401,6 +407,7 @@ def nargminmax(values, method: str):
     ----------
     values : ExtensionArray
     method : {"argmax", "argmin"}
+    axis: int, default 0
 
     Returns
     -------
@@ -412,7 +419,23 @@ def nargminmax(values, method: str):
     mask = np.asarray(isna(values))
     values = values._values_for_argsort()
 
-    idx = np.arange(len(values))
+    if values.ndim > 1:
+        if mask.any():
+            if axis == 1:
+                zipped = zip(values, mask)
+            else:
+                zipped = zip(values.T, mask.T)
+            return np.array([_nanargminmax(v, m, func) for v, m in zipped])
+        return func(values, axis=axis)
+
+    return _nanargminmax(values, mask, func)
+
+
+def _nanargminmax(values, mask, func) -> int:
+    """
+    See nanargminmax.__doc__.
+    """
+    idx = np.arange(values.shape[0])
     non_nans = values[~mask]
     non_nan_idx = idx[~mask]
 
@@ -513,7 +536,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
 
 
 def get_flattened_list(
-    comp_ids: np.ndarray,
+    comp_ids: np.ndarray,  # np.ndarray[np.intp]
     ngroups: int,
     levels: Iterable[Index],
     labels: Iterable[np.ndarray],
@@ -562,7 +585,9 @@ def get_indexer_dict(
 # sorting levels...cleverly?
 
 
-def get_group_index_sorter(group_index, ngroups: int):
+def get_group_index_sorter(
+    group_index: np.ndarray, ngroups: int | None = None
+) -> np.ndarray:
     """
     algos.groupsort_indexer implements `counting sort` and it is at least
     O(ngroups), where
@@ -575,16 +600,34 @@ def get_group_index_sorter(group_index, ngroups: int):
     Both algorithms are `stable` sort and that is necessary for correctness of
     groupby operations. e.g. consider:
         df.groupby(key)[col].transform('first')
+
+    Parameters
+    ----------
+    group_index : np.ndarray[np.intp]
+        signed integer dtype
+    ngroups : int or None, default None
+
+    Returns
+    -------
+    np.ndarray[np.intp]
     """
+    if ngroups is None:
+        # error: Incompatible types in assignment (expression has type "number[Any]",
+        # variable has type "Optional[int]")
+        ngroups = 1 + group_index.max()  # type: ignore[assignment]
     count = len(group_index)
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
-    do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))
+    # error: Unsupported operand types for * ("float" and "None")
+    do_groupsort = count > 0 and (
+        (alpha + beta * ngroups) < (count * np.log(count))  # type: ignore[operator]
+    )
     if do_groupsort:
-        sorter, _ = algos.groupsort_indexer(ensure_int64(group_index), ngroups)
-        return ensure_platform_int(sorter)
+        sorter, _ = algos.groupsort_indexer(ensure_platform_int(group_index), ngroups)
+        # sorter _should_ already be intp, but mypy is not yet able to verify
     else:
-        return group_index.argsort(kind="mergesort")
+        sorter = group_index.argsort(kind="mergesort")
+    return ensure_platform_int(sorter)
 
 
 def compress_group_index(group_index, sort: bool = True):
@@ -618,10 +661,10 @@ def _reorder_by_uniques(uniques, labels):
     mask = labels < 0
 
     # move labels to right locations (ie, unsort ascending labels)
-    labels = algorithms.take_nd(reverse_indexer, labels, allow_fill=False)
+    labels = reverse_indexer.take(labels)
     np.putmask(labels, mask, -1)
 
     # sort observed ids
-    uniques = algorithms.take_nd(uniques, sorter, allow_fill=False)
+    uniques = uniques.take(sorter)
 
     return uniques, labels

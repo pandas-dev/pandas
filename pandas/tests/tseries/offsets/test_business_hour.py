@@ -1,15 +1,32 @@
 """
 Tests for offsets.BusinessHour
 """
-from datetime import datetime, time as dt_time
+from datetime import (
+    datetime,
+    time as dt_time,
+)
 
 import pytest
 
-from pandas._libs.tslibs import Timedelta, Timestamp
-from pandas._libs.tslibs.offsets import BDay, BusinessHour, Nano
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
+from pandas._libs.tslibs.offsets import (
+    BDay,
+    BusinessHour,
+    Nano,
+)
 
-from pandas import DatetimeIndex, _testing as tm, date_range
-from pandas.tests.tseries.offsets.common import Base, assert_offset_equal
+from pandas import (
+    DatetimeIndex,
+    _testing as tm,
+    date_range,
+)
+from pandas.tests.tseries.offsets.common import (
+    Base,
+    assert_offset_equal,
+)
 
 
 class TestBusinessHour(Base):

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import collections
 from datetime import datetime
+from decimal import Decimal
 from functools import wraps
 import operator
 import os
@@ -99,10 +100,18 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray, period_array
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+    period_array,
+)
 
 if TYPE_CHECKING:
-    from pandas import PeriodIndex, TimedeltaIndex
+    from pandas import (
+        PeriodIndex,
+        TimedeltaIndex,
+    )
 
 _N = 30
 _K = 4
@@ -138,7 +147,7 @@ ALL_NUMPY_DTYPES = (
     + BYTES_DTYPES
 )
 
-NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA]
+NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 
 EMPTY_STRING_PATTERN = re.compile("^$")
 
@@ -198,17 +207,19 @@ def box_expected(expected, box_cls, transpose=True):
     """
     if box_cls is pd.array:
         expected = pd.array(expected)
-    elif box_cls is pd.Index:
-        expected = pd.Index(expected)
-    elif box_cls is pd.Series:
-        expected = pd.Series(expected)
-    elif box_cls is pd.DataFrame:
-        expected = pd.Series(expected).to_frame()
+    elif box_cls is Index:
+        expected = Index(expected)
+    elif box_cls is Series:
+        expected = Series(expected)
+    elif box_cls is DataFrame:
+        expected = Series(expected).to_frame()
         if transpose:
             # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
-            #  vectors of the same length.
+            #  vectors of the same length. But convert to two rows to avoid
+            #  single-row special cases in datetime arithmetic
             expected = expected.T
+            expected = pd.concat([expected] * 2, ignore_index=True)
     elif box_cls is PeriodArray:
         # the PeriodArray constructor is not as flexible as period_array
         expected = period_array(expected)
@@ -389,7 +400,7 @@ def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None)
         "x": state.rand(n) * 2 - 1,
         "y": state.rand(n) * 2 - 1,
     }
-    df = pd.DataFrame(columns, index=index, columns=sorted(columns))
+    df = DataFrame(columns, index=index, columns=sorted(columns))
     if df.index[-1] == end:
         df = df.iloc[:-1]
     return df
@@ -549,7 +560,7 @@ def makeCustomIndex(
         names = [names]
 
     # specific 1D index type requested?
-    idx_func = {
+    idx_func_dict: dict[str, Callable[..., Index]] = {
         "i": makeIntIndex,
         "f": makeFloatIndex,
         "s": makeStringIndex,
@@ -557,10 +568,10 @@ def makeCustomIndex(
         "dt": makeDateIndex,
         "td": makeTimedeltaIndex,
         "p": makePeriodIndex,
-    }.get(idx_type)
+    }
+    idx_func = idx_func_dict.get(idx_type)
     if idx_func:
-        # pandas\_testing.py:2120: error: Cannot call function of unknown type
-        idx = idx_func(nentries)  # type: ignore[operator]
+        idx = idx_func(nentries)
         # but we need to fill in the name
         if names:
             idx.name = names[0]
@@ -941,7 +952,7 @@ def get_op_from_name(op_name: str) -> Callable:
 
     Parameters
     ----------
-    op_name : string
+    op_name : str
         The op name, in form of "add" or "__add__".
 
     Returns

@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import PeriodIndex, Series
+from pandas import (
+    PeriodIndex,
+    Series,
+)
 import pandas._testing as tm
 
 

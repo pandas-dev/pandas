@@ -167,7 +167,10 @@ class TestGrouping:
 
         # GH 7885
         # with level and freq specified in a pd.Grouper
-        from datetime import date, timedelta
+        from datetime import (
+            date,
+            timedelta,
+        )
 
         d0 = date.today() - timedelta(days=14)
         dates = date_range(d0, date.today())
@@ -608,7 +611,7 @@ class TestGrouping:
 
     def test_list_grouper_with_nat(self):
         # GH 14715
-        df = DataFrame({"date": pd.date_range("1/1/2011", periods=365, freq="D")})
+        df = DataFrame({"date": date_range("1/1/2011", periods=365, freq="D")})
         df.iloc[-1] = pd.NaT
         grouper = pd.Grouper(key="date", freq="AS")
 
@@ -660,7 +663,7 @@ class TestGrouping:
         # check group properties
         assert len(gr.grouper.groupings) == 1
         tm.assert_numpy_array_equal(
-            gr.grouper.group_info[0], np.array([], dtype=np.dtype("int64"))
+            gr.grouper.group_info[0], np.array([], dtype=np.dtype(np.intp))
         )
 
         tm.assert_numpy_array_equal(

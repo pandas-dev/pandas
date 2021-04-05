@@ -4,7 +4,13 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series, _testing as tm
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    _testing as tm,
+)
 
 
 def test_extract_expand_None():

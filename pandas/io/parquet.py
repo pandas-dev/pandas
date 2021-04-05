@@ -4,15 +4,29 @@ from __future__ import annotations
 from distutils.version import LooseVersion
 import io
 import os
-from typing import Any, AnyStr, Dict, List, Optional, Tuple
+from typing import (
+    Any,
+    AnyStr,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+)
 from warnings import catch_warnings
 
-from pandas._typing import FilePathOrBuffer, StorageOptions
+from pandas._typing import (
+    FilePathOrBuffer,
+    StorageOptions,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
-from pandas import DataFrame, MultiIndex, get_option
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    get_option,
+)
 from pandas.core import generic
 
 from pandas.io.common import (

@@ -13,21 +13,33 @@ hack around pandas by using UserDicts.
 """
 from __future__ import annotations
 
-from collections import UserDict, abc
+from collections import (
+    UserDict,
+    abc,
+)
 import itertools
 import numbers
 import random
 import string
 import sys
-from typing import Any, Mapping, Type
+from typing import (
+    Any,
+    Mapping,
+    Type,
+)
 
 import numpy as np
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
-from pandas.api.extensions import ExtensionArray, ExtensionDtype
+from pandas.api.extensions import (
+    ExtensionArray,
+    ExtensionDtype,
+)
 from pandas.api.types import is_bool_dtype
+from pandas.core.arrays.string_arrow import ArrowStringDtype
 
 
 class JSONDtype(ExtensionDtype):
@@ -73,6 +85,16 @@ class JSONArray(ExtensionArray):
         return cls([UserDict(x) for x in values if x != ()])
 
     def __getitem__(self, item):
+        if isinstance(item, tuple):
+            if len(item) > 1:
+                if item[0] is Ellipsis:
+                    item = item[1:]
+                elif item[-1] is Ellipsis:
+                    item = item[:-1]
+            if len(item) > 1:
+                raise IndexError("too many indices for array.")
+            item = item[0]
+
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, slice) and item == slice(None):
@@ -173,7 +195,7 @@ class JSONArray(ExtensionArray):
             if copy:
                 return self.copy()
             return self
-        elif isinstance(dtype, StringDtype):
+        elif isinstance(dtype, (StringDtype, ArrowStringDtype)):
             value = self.astype(str)  # numpy doesn'y like nested dicts
             return dtype.construct_array_type()._from_sequence(value, copy=False)
 
@@ -197,11 +219,9 @@ class JSONArray(ExtensionArray):
         return frozen, ()
 
     def _values_for_argsort(self):
-        # Disable NumPy's shape inference by including an empty tuple...
-        # If all the elements of self are the same size P, NumPy will
-        # cast them to an (N, P) array, instead of an (N,) array of tuples.
-        frozen = [()] + [tuple(x.items()) for x in self]
-        return np.array(frozen, dtype=object)[1:]
+        # Bypass NumPy's shape inference to get a (N,) array of tuples.
+        frozen = [tuple(x.items()) for x in self]
+        return construct_1d_object_array_from_listlike(frozen)
 
 
 def make_data():

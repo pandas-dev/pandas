@@ -4,7 +4,11 @@ import pytest
 from pandas._libs import lib
 
 import pandas as pd
-from pandas import DataFrame, Series, _testing as tm
+from pandas import (
+    DataFrame,
+    Series,
+    _testing as tm,
+)
 
 
 def test_string_array(any_string_method):

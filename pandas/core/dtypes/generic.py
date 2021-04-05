@@ -1,7 +1,11 @@
 """ define generic base classes for pandas objects """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Type, cast
+from typing import (
+    TYPE_CHECKING,
+    Type,
+    cast,
+)
 
 if TYPE_CHECKING:
     from pandas import (

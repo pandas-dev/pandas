@@ -4,7 +4,12 @@ import pytest
 from pandas.compat import np_version_under1p17
 
 import pandas as pd
-from pandas import Index, MultiIndex, date_range, period_range
+from pandas import (
+    Index,
+    MultiIndex,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 

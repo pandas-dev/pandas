@@ -3,7 +3,11 @@ import pytest
 
 from pandas.errors import UnsupportedFunctionCall
 
-from pandas import DataFrame, DatetimeIndex, Series
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.window import Expanding
 
@@ -49,7 +53,7 @@ def test_constructor_invalid(frame_or_series, w):
 @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
 def test_numpy_compat(method):
     # see gh-12811
-    e = Expanding(Series([2, 4, 6]), window=2)
+    e = Expanding(Series([2, 4, 6]))
 
     msg = "numpy operations are not valid with window objects"
 

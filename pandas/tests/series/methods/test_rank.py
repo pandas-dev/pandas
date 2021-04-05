@@ -1,12 +1,23 @@
-from itertools import chain, product
+from itertools import (
+    chain,
+    product,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs.algos import Infinity, NegInfinity
+from pandas._libs.algos import (
+    Infinity,
+    NegInfinity,
+)
 import pandas.util._test_decorators as td
 
-from pandas import NaT, Series, Timestamp, date_range
+from pandas import (
+    NaT,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 

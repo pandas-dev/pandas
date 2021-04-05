@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import sys
 from typing import (
     IO,
@@ -16,7 +19,10 @@ from typing import (
 
 from pandas._config import get_option
 
-from pandas._typing import Dtype, FrameOrSeriesUnion
+from pandas._typing import (
+    Dtype,
+    FrameOrSeriesUnion,
+)
 
 from pandas.core.indexes.api import Index
 

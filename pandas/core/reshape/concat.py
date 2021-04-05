@@ -23,7 +23,10 @@ from pandas._typing import FrameOrSeriesUnion
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.categorical import (
@@ -40,10 +43,13 @@ from pandas.core.indexes.api import (
     get_unanimous_names,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.internals import concatenate_block_managers
+from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
     from pandas.core.generic import NDFrame
 
 # ---------------------------------------------------------------------
@@ -518,7 +524,7 @@ class _Concatenator:
 
                 mgrs_indexers.append((obj._mgr, indexers))
 
-            new_data = concatenate_block_managers(
+            new_data = concatenate_managers(
                 mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy
             )
             if not self.copy:
