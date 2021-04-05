@@ -884,6 +884,11 @@ def test_dateoffset_immutable(attribute):
         "BQuarterEnd",
     ],
 )
-def test_startingMonth_deprecation_warning(offset_type):
-    with tm.assert_produces_warning(DeprecationWarning):
+def test_startingMonth_deprecation(offset_type):
+    # GH#5307
+    with tm.assert_produces_warning(FutureWarning):
         eval(f"offsets.{offset_type}(startingMonth=1)")
+
+    msg = "Offset received both month and startingMonth"
+    with pytest.raises(TypeError, match=msg):
+        eval(f"offsets.{offset_type}(startingMonth=1,month=2)")
