@@ -2014,6 +2014,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
     cdef readonly:
         int month
+        int startingMonth  # GH#5307 backwards compatibility
 
     def __init__(self, n:int=1, normalize:bool=False, month:int=None,
                  *, startingMonth:int=None):  # GH#5307 backwards compatibility
