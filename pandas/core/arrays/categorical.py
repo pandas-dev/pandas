@@ -17,7 +17,11 @@ from typing import (
     Union,
     cast,
 )
-from warnings import catch_warnings, simplefilter, warn
+from warnings import (
+    catch_warnings,
+    simplefilter,
+    warn,
+)
 
 import numpy as np
 
