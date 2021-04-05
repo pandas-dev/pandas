@@ -2000,12 +2000,12 @@ cdef class QuarterOffset(SingleConstructorOffset):
         The calendar month number (1 for January) of the beginning or ending
         month in a custom-defined quarter to be used as an offset.
 
-        .. versionadded:: 1.3
+        .. versionadded:: 1.3.0
     startingMonth : int
         The calendar month number (1 for January) of the beginning or ending
         month in a custom-defined quarter to be used as an offset.
 
-        .. deprecated:: 1.3
+        .. deprecated:: 1.3.0
     """
 
     _attributes = tuple(["n", "normalize", "month"])
@@ -2014,10 +2014,10 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
     cdef readonly:
         int month
-        int startingMonth  # GH#5307 backwards compatibility
+        # int startingMonth  # GH#5307 backwards compatibility
 
-    def __init__(self, n:int=1, normalize:bool=False, month:int=None,
-                 *, startingMonth:int=None):  # GH#5307 backwards compatibility
+    def __init__(self, n: int=1, normalize: bool=False, month: int=None,
+                 *, startingMonth: int=None):  # GH#5307 backwards compatibility
         BaseOffset.__init__(self, n, normalize)
 
         # GH#5307 backwards compatibility
@@ -2116,12 +2116,12 @@ cdef class BQuarterEnd(QuarterOffset):
         The calendar month number (3 for March) of the last month
         in a custom-defined business quarter to be used as an offset.
 
-        .. versionadded:: 1.3
+        .. versionadded:: 1.3.0
     startingMonth : int, default 3
         The calendar month number (3 for March) of the last month
         in a custom-defined business quarter to be used as an offset.
 
-        .. deprecated:: 1.3
+        .. deprecated:: 1.3.0
 
     Examples
     --------
@@ -2162,12 +2162,12 @@ cdef class BQuarterBegin(QuarterOffset):
         The calendar month number (1 for January) of the first month
         in a custom-defined business quarter to be used as an offset.
 
-        .. versionadded:: 1.3
+        .. versionadded:: 1.3.0
     startingMonth : int, default 1
         The calendar month number (1 for January) of the first month
         in a custom-defined business quarter to be used as an offset.
 
-        .. deprecated:: 1.3
+        .. deprecated:: 1.3.0
 
     Examples
     --------
@@ -2208,12 +2208,12 @@ cdef class QuarterEnd(QuarterOffset):
         The calendar month number (3 for March) of the last month
         in a custom-defined quarter to be used as an offset.
 
-        .. versionadded:: 1.3
+        .. versionadded:: 1.3.0
     startingMonth : int, default 3
         The calendar month number (3 for March) of the last month
         in a custom-defined quarter to be used as an offset.
 
-        .. deprecated:: 1.3
+        .. deprecated:: 1.3.0
     """
     _default_month = 3
     _from_name_month = 3
@@ -2223,8 +2223,8 @@ cdef class QuarterEnd(QuarterOffset):
     cdef readonly:
         int _period_dtype_code
 
-    def __init__(self, n:int=1, normalize:bool=False, month:int=None,
-                 *, startingMonth:int=None):  # GH#5307 backwards compatibility
+    def __init__(self, n: int=1, normalize: bool=False, month: int=None,
+                 *, startingMonth: int=None):  # GH#5307 backwards compatibility
         # Because QuarterEnd can be the freq for a Period, define its
         #  _period_dtype_code at construction for performance
         QuarterOffset.__init__(self, n, normalize, month,
@@ -2251,12 +2251,12 @@ cdef class QuarterBegin(QuarterOffset):
         The calendar month number (1 for January) of the first month
         in a custom-defined quarter to be used as an offset.
 
-        .. versionadded:: 1.3
+        .. versionadded:: 1.3.0
     startingMonth : int, default 1
         The calendar month number (1 for January) of the first month
         in a custom-defined quarter to be used as an offset.
 
-        .. deprecated:: 1.3
+        .. deprecated:: 1.3.0
     """
     _default_month = 1
     _from_name_month = 1
