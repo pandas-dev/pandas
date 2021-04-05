@@ -651,6 +651,7 @@ def read_sql(
         )
 
     if isinstance(pandas_sql, AsyncSQLDatabase):
+
         async def read_sql():
             if await pandas_sql.has_table(sql):
                 return await pandas_sql.read_table(
