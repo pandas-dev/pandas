@@ -46,6 +46,7 @@ from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.numeric import (
     Float64Index,
     Int64Index,
+    NumericIndex,
 )
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -55,7 +56,7 @@ if TYPE_CHECKING:
 _empty_range = range(0)
 
 
-class RangeIndex(Int64Index):
+class RangeIndex(NumericIndex):
     """
     Immutable Index implementing a monotonic integer range.
 
@@ -97,6 +98,7 @@ class RangeIndex(Int64Index):
 
     _typ = "rangeindex"
     _engine_type = libindex.Int64Engine
+    _can_hold_na = False
     _range: range
 
     # --------------------------------------------------------------------
@@ -381,6 +383,10 @@ class RangeIndex(Int64Index):
             return False
         return key in self._range
 
+    @property
+    def inferred_type(self) -> str:
+        return "integer"
+
     # --------------------------------------------------------------------
     # Indexing Methods
 
@@ -402,7 +408,7 @@ class RangeIndex(Int64Index):
         method: Optional[str] = None,
         limit: Optional[int] = None,
         tolerance=None,
-    ):
+    ) -> np.ndarray:
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -436,10 +442,11 @@ class RangeIndex(Int64Index):
         return self._int64index.repeat(repeats, axis=axis)
 
     def delete(self, loc) -> Int64Index:
-        return self._int64index.delete(loc)
+        # error: Incompatible return value type (got "Index", expected "Int64Index")
+        return self._int64index.delete(loc)  # type: ignore[return-value]
 
     def take(
-        self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs
+        self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
     ) -> Int64Index:
         with rewrite_exception("Int64Index", type(self).__name__):
             return self._int64index.take(
@@ -471,7 +478,13 @@ class RangeIndex(Int64Index):
         return result
 
     @doc(Int64Index.copy)
-    def copy(self, name=None, deep=False, dtype: Optional[Dtype] = None, names=None):
+    def copy(
+        self,
+        name: Hashable = None,
+        deep: bool = False,
+        dtype: Optional[Dtype] = None,
+        names=None,
+    ):
         name = self._validate_names(name=name, names=names, deep=deep)[0]
         new_index = self._rename(name=name)
 

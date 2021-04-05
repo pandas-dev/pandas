@@ -110,6 +110,31 @@ both XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
 
 For more, see :ref:`io.xml` in the user guide on IO tools.
 
+Styler Upgrades
+^^^^^^^^^^^^^^^
+
+We provided some focused development on :class:`.Styler`, including altering methods
+to accept more universal CSS language for arguments, such as ``'color:red;'`` instead of
+``[('color', 'red')]`` (:issue:`39564`). This is also added to the built-in methods
+to allow custom CSS highlighting instead of default background coloring (:issue:`40242`).
+
+The :meth:`.Styler.apply` now consistently allows functions with ``ndarray`` output to
+allow more flexible development of UDFs when ``axis`` is ``None`` ``0`` or ``1`` (:issue:`39393`).
+
+:meth:`.Styler.set_tooltips` is a new method that allows adding on hover tooltips to
+enhance interactive displays (:issue:`35643`). :meth:`.Styler.set_td_classes`, which was recently
+introduced in v1.2.0 (:issue:`36159`) to allow adding specific CSS classes to data cells, has
+been made as performant as :meth:`.Styler.apply` and :meth:`.Styler.applymap` (:issue:`40453`),
+if not more performant in some cases. The overall performance of HTML
+render times has been considerably improved to
+match :meth:`DataFrame.to_html` (:issue:`39952` :issue:`37792` :issue:`40425`).
+
+The :meth:`.Styler.format` has had upgrades to easily format missing data,
+precision, and perform HTML escaping (:issue:`40437` :issue:`40134`). There have been numerous other bug fixes to
+properly format HTML and eliminate some inconsistencies (:issue:`39942` :issue:`40356` :issue:`39807` :issue:`39889` :issue:`39627`)
+
+Documentation has also seen major revisions in light of new features (:issue:`39720` :issue:`39317` :issue:`40493`)
+
 .. _whatsnew_130.dataframe_honors_copy_with_dict:
 
 DataFrame constructor honors ``copy=False`` with dict
@@ -161,6 +186,7 @@ Other enhancements
 - :meth:`.Styler.apply` now more consistently accepts ndarray function returns, i.e. in all cases for ``axis`` is ``0, 1 or None`` (:issue:`39359`)
 - :meth:`.Styler.apply` and :meth:`.Styler.applymap` now raise errors if wrong format CSS is passed on render (:issue:`39660`)
 - :meth:`.Styler.format` adds keyword argument ``escape`` for optional HTML escaping (:issue:`40437`)
+- :meth:`.Styler.clear` now clears :attr:`Styler.hidden_index` and :attr:`Styler.hidden_columns` as well (:issue:`40484`)
 - Builtin highlighting methods in :class:`Styler` have a more consistent signature and css customisability (:issue:`40242`)
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
@@ -374,6 +400,38 @@ However, floating point artifacts may now exist in the results when rolling over
    s = pd.Series([7, 5, 5, 5])
    s.rolling(3).var()
 
+.. _whatsnew_130.notable_bug_fixes.rolling_groupby_multiindex:
+
+GroupBy.rolling with MultiIndex no longer drops levels in the result
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`core.window.rolling.RollingGroupby` will no longer drop levels of a :class:`DataFrame`
+with a :class:`MultiIndex` in the result. This can lead to a perceived duplication of levels in the resulting
+:class:`MultiIndex`, but this change restores the behavior that was present in version 1.1.3 (:issue:`38787`, :issue:`38523`).
+
+
+.. ipython:: python
+
+   index = pd.MultiIndex.from_tuples([('idx1', 'idx2')], names=['label1', 'label2'])
+   df = pd.DataFrame({'a': [1], 'b': [2]}, index=index)
+   df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [1]: df.groupby('label1').rolling(1).sum()
+    Out[1]:
+              a    b
+    label1
+    idx1    1.0  2.0
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.groupby('label1').rolling(1).sum()
+
 
 .. _whatsnew_130.api_breaking.deps:
 
@@ -561,6 +619,7 @@ Numeric
 - Bug in :func:`select_dtypes` different behavior between Windows and Linux with ``include="int"`` (:issue:`36569`)
 - Bug in :meth:`DataFrame.apply` and :meth:`DataFrame.agg` when passed argument ``func="size"`` would operate on the entire ``DataFrame`` instead of rows or columns (:issue:`39934`)
 - Bug in :meth:`DataFrame.transform` would raise ``SpecificationError`` when passed a dictionary and columns were missing; will now raise a ``KeyError`` instead (:issue:`40004`)
+- Bug in :meth:`DataFrameGroupBy.rank` giving incorrect results with ``pct=True`` and equal values between consecutive groups (:issue:`40518`)
 -
 
 Conversion
@@ -570,6 +629,7 @@ Conversion
 - Bug in creating a :class:`DataFrame` from an empty ``np.recarray`` not retaining the original dtypes (:issue:`40121`)
 - Bug in :class:`DataFrame` failing to raise ``TypeError`` when constructing from a ``frozenset`` (:issue:`40163`)
 - Bug in :class:`Index` construction silently ignoring a passed ``dtype`` when the data cannot be cast to that dtype (:issue:`21311`)
+- Bug in :meth:`StringArray.astype` falling back to numpy and raising when converting to ``dtype='categorical'`` (:issue:`40450`)
 - Bug in :class:`DataFrame` construction with a dictionary containing an arraylike with ``ExtensionDtype`` and ``copy=True`` failing to make a copy (:issue:`38939`)
 -
 
@@ -614,6 +674,7 @@ Indexing
 - Bug in setting ``numpy.timedelta64`` values into an object-dtype :class:`Series` using a boolean indexer (:issue:`39488`)
 - Bug in setting numeric values into a into a boolean-dtypes :class:`Series` using ``at`` or ``iat`` failing to cast to object-dtype (:issue:`39582`)
 - Bug in :meth:`DataFrame.loc.__setitem__` when setting-with-expansion incorrectly raising when the index in the expanding axis contains duplicates (:issue:`40096`)
+- Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
 
 Missing
 ^^^^^^^

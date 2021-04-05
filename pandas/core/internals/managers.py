@@ -35,7 +35,6 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
     ensure_int64,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -73,7 +72,6 @@ from pandas.core.internals.blocks import (
     CategoricalBlock,
     DatetimeTZBlock,
     ExtensionBlock,
-    ObjectValuesExtensionBlock,
     ensure_block_shape,
     extend_blocks,
     get_block_type,
@@ -1064,7 +1062,7 @@ class BlockManager(DataManager):
         axes = [new_columns, self.axes[1]]
         return type(self)._simple_new(tuple(nbs), axes)
 
-    def iset(self, loc: Union[int, slice, np.ndarray], value):
+    def iset(self, loc: Union[int, slice, np.ndarray], value: ArrayLike):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
@@ -1075,6 +1073,7 @@ class BlockManager(DataManager):
         if self._blklocs is None and self.ndim > 1:
             self._rebuild_blknos_and_blklocs()
 
+        # Note: we exclude DTA/TDA here
         value_is_extension_type = is_extension_array_dtype(value)
 
         # categorical/sparse/datetimetz
@@ -1086,17 +1085,11 @@ class BlockManager(DataManager):
         else:
             if value.ndim == 2:
                 value = value.T
-
-            if value.ndim == self.ndim - 1:
+            else:
                 value = ensure_block_shape(value, ndim=2)
 
-                def value_getitem(placement):
-                    return value
-
-            else:
-
-                def value_getitem(placement):
-                    return value[placement.indexer]
+            def value_getitem(placement):
+                return value[placement.indexer]
 
             if value.shape[1:] != self.shape[1:]:
                 raise AssertionError(
@@ -1437,7 +1430,7 @@ class BlockManager(DataManager):
 
         return blocks
 
-    def _make_na_block(self, placement, fill_value=None):
+    def _make_na_block(self, placement: BlockPlacement, fill_value=None) -> Block:
 
         if fill_value is None:
             fill_value = np.nan
@@ -1646,7 +1639,7 @@ class SingleBlockManager(BlockManager, SingleDataManager):
 
     def internal_values(self):
         """The array that Series._values returns"""
-        return self._block.internal_values()
+        return self._block.values
 
     def array_values(self):
         """The array that Series.array returns"""
@@ -1801,17 +1794,11 @@ def _form_blocks(
         )
         blocks.extend(numeric_blocks)
 
-    if len(items_dict["TimeDeltaBlock"]):
-        timedelta_blocks = _multi_blockify(
-            items_dict["TimeDeltaBlock"], consolidate=consolidate
+    if len(items_dict["DatetimeLikeBlock"]):
+        dtlike_blocks = _multi_blockify(
+            items_dict["DatetimeLikeBlock"], consolidate=consolidate
         )
-        blocks.extend(timedelta_blocks)
-
-    if len(items_dict["DatetimeBlock"]):
-        datetime_blocks = _simple_blockify(
-            items_dict["DatetimeBlock"], DT64NS_DTYPE, consolidate=consolidate
-        )
-        blocks.extend(datetime_blocks)
+        blocks.extend(dtlike_blocks)
 
     if len(items_dict["DatetimeTZBlock"]):
         dttz_blocks = [
@@ -1837,14 +1824,6 @@ def _form_blocks(
         external_blocks = [
             new_block(array, klass=ExtensionBlock, placement=i, ndim=2)
             for i, array in items_dict["ExtensionBlock"]
-        ]
-
-        blocks.extend(external_blocks)
-
-    if len(items_dict["ObjectValuesExtensionBlock"]):
-        external_blocks = [
-            new_block(array, klass=ObjectValuesExtensionBlock, placement=i, ndim=2)
-            for i, array in items_dict["ObjectValuesExtensionBlock"]
         ]
 
         blocks.extend(external_blocks)

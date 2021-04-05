@@ -113,6 +113,9 @@ if TYPE_CHECKING:
     from pandas.core.arrays import (
         DatetimeArray,
         ExtensionArray,
+        IntervalArray,
+        PeriodArray,
+        TimedeltaArray,
     )
 
 _int8_max = np.iinfo(np.int8).max
@@ -492,55 +495,6 @@ def maybe_cast_to_extension_array(
     except Exception:
         # We can't predict what downstream EA constructors may raise
         result = obj
-    return result
-
-
-def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    """
-    A safe version of putmask that potentially upcasts the result.
-
-    The result is replaced with the first N elements of other,
-    where N is the number of True values in mask.
-    If the length of other is shorter than N, other will be repeated.
-
-    Parameters
-    ----------
-    result : ndarray
-        The destination array. This will be mutated in-place if no upcasting is
-        necessary.
-    mask : boolean ndarray
-
-    Returns
-    -------
-    result : ndarray
-
-    Examples
-    --------
-    >>> arr = np.arange(1, 6)
-    >>> mask = np.array([False, True, False, True, True])
-    >>> result = maybe_upcast_putmask(arr, mask)
-    >>> result
-    array([ 1., nan,  3., nan, nan])
-    """
-    if not isinstance(result, np.ndarray):
-        raise ValueError("The result input must be a ndarray.")
-
-    # NB: we never get here with result.dtype.kind in ["m", "M"]
-
-    if mask.any():
-
-        # we want to decide whether place will work
-        # if we have nans in the False portion of our mask then we need to
-        # upcast (possibly), otherwise we DON't want to upcast (e.g. if we
-        # have values, say integers, in the success portion then it's ok to not
-        # upcast)
-        new_dtype = ensure_dtype_can_hold_na(result.dtype)
-
-        if new_dtype != result.dtype:
-            result = result.astype(new_dtype, copy=True)
-
-        np.place(result, mask, np.nan)
-
     return result
 
 
@@ -1446,11 +1400,13 @@ def soft_convert_objects(
         # GH 20380, when datetime is beyond year 2262, hence outside
         # bound of nanosecond-resolution 64-bit integers.
         try:
-            values = lib.maybe_convert_objects(
+            converted = lib.maybe_convert_objects(
                 values, convert_datetime=datetime, convert_timedelta=timedelta
             )
         except (OutOfBoundsDatetime, ValueError):
             return values
+        if converted is not values:
+            return converted
 
     if numeric and is_object_dtype(values.dtype):
         converted = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
@@ -1492,10 +1448,9 @@ def convert_dtypes(
     dtype
         new dtype
     """
-    is_extension = is_extension_array_dtype(input_array.dtype)
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
-    ) and not is_extension:
+    ) and isinstance(input_array, np.ndarray):
         inferred_dtype = lib.infer_dtype(input_array)
 
         if not convert_string and is_string_dtype(inferred_dtype):
@@ -2169,24 +2124,51 @@ def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
             raise ValueError(f"Cannot assign {type(value).__name__} to bool series")
 
 
-def can_hold_element(dtype: np.dtype, element: Any) -> bool:
+def can_hold_element(arr: ArrayLike, element: Any) -> bool:
     """
     Can we do an inplace setitem with this element in an array with this dtype?
 
     Parameters
     ----------
-    dtype : np.dtype
+    arr : np.ndarray or ExtensionArray
     element : Any
 
     Returns
     -------
     bool
     """
+    dtype = arr.dtype
+    if not isinstance(dtype, np.dtype) or dtype.kind in ["m", "M"]:
+        if isinstance(dtype, (PeriodDtype, IntervalDtype, DatetimeTZDtype, np.dtype)):
+            # np.dtype here catches datetime64ns and timedelta64ns; we assume
+            #  in this case that we have DatetimeArray/TimedeltaArray
+            arr = cast(
+                "PeriodArray | DatetimeArray | TimedeltaArray | IntervalArray", arr
+            )
+            try:
+                arr._validate_setitem_value(element)
+                return True
+            except (ValueError, TypeError):
+                return False
+
+        # This is technically incorrect, but maintains the behavior of
+        # ExtensionBlock._can_hold_element
+        return True
+
     tipo = maybe_infer_dtype_type(element)
 
     if dtype.kind in ["i", "u"]:
         if tipo is not None:
-            return tipo.kind in ["i", "u"] and dtype.itemsize >= tipo.itemsize
+            if tipo.kind not in ["i", "u"]:
+                # Anything other than integer we cannot hold
+                return False
+            elif dtype.itemsize < tipo.itemsize:
+                return False
+            elif not isinstance(tipo, np.dtype):
+                # i.e. nullable IntegerDtype; we can put this into an ndarray
+                #  losslessly iff it has no NAs
+                return not element._mask.any()
+            return True
 
         # We have not inferred an integer from the dtype
         # check if we have a builtin int or a float equal to an int
@@ -2194,7 +2176,16 @@ def can_hold_element(dtype: np.dtype, element: Any) -> bool:
 
     elif dtype.kind == "f":
         if tipo is not None:
-            return tipo.kind in ["f", "i", "u"]
+            # TODO: itemsize check?
+            if tipo.kind not in ["f", "i", "u"]:
+                # Anything other than float/integer we cannot hold
+                return False
+            elif not isinstance(tipo, np.dtype):
+                # i.e. nullable IntegerDtype or FloatingDtype;
+                #  we can put this into an ndarray losslessly iff it has no NAs
+                return not element._mask.any()
+            return True
+
         return lib.is_integer(element) or lib.is_float(element)
 
     elif dtype.kind == "c":
@@ -2211,5 +2202,12 @@ def can_hold_element(dtype: np.dtype, element: Any) -> bool:
 
     elif dtype == object:
         return True
+
+    elif dtype.kind == "S":
+        # TODO: test tests.frame.methods.test_replace tests get here,
+        #  need more targeted tests.  xref phofl has a PR about this
+        if tipo is not None:
+            return tipo.kind == "S" and tipo.itemsize <= dtype.itemsize
+        return isinstance(element, bytes) and len(element) <= dtype.itemsize
 
     raise NotImplementedError(dtype)

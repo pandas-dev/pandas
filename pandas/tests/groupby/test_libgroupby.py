@@ -4,8 +4,7 @@ from pandas._libs import groupby as libgroupby
 from pandas._libs.groupby import (
     group_cumprod_float64,
     group_cumsum,
-    group_var_float32,
-    group_var_float64,
+    group_var,
 )
 
 from pandas.core.dtypes.common import ensure_platform_int
@@ -102,7 +101,7 @@ class GroupVarTestMixin:
 class TestGroupVarFloat64(GroupVarTestMixin):
     __test__ = True
 
-    algo = staticmethod(group_var_float64)
+    algo = staticmethod(group_var)
     dtype = np.float64
     rtol = 1e-5
 
@@ -124,7 +123,7 @@ class TestGroupVarFloat64(GroupVarTestMixin):
 class TestGroupVarFloat32(GroupVarTestMixin):
     __test__ = True
 
-    algo = staticmethod(group_var_float32)
+    algo = staticmethod(group_var)
     dtype = np.float32
     rtol = 1e-2
 
