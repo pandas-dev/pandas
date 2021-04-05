@@ -4,6 +4,8 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame
 
+pytestmark = pytest.mark.slow
+
 
 @td.skip_if_no_mpl
 @pytest.mark.xfail(
