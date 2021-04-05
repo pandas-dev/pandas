@@ -888,7 +888,7 @@ def clean_reindex_fill_method(method):
     return clean_fill_method(method, allow_nearest=True)
 
 
-def _interp_limit(invalid, fw_limit, bw_limit):
+def _interp_limit(invalid: np.ndarray, fw_limit, bw_limit):
     """
     Get indexers of values that won't be filled
     because they exceed the limits.

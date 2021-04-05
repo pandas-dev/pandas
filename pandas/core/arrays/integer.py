@@ -371,14 +371,14 @@ class IntegerArray(NumericArray):
         if isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
 
+        na_value: float | np.datetime64 | lib.NoDefault
+
         # coerce
         if is_float_dtype(dtype):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             na_value = np.nan
         elif is_datetime64_dtype(dtype):
-            # error: Incompatible types in assignment (expression has type
-            # "datetime64", variable has type "float")
-            na_value = np.datetime64("NaT")  # type: ignore[assignment]
+            na_value = np.datetime64("NaT")
         else:
             na_value = lib.no_default
 

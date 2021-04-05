@@ -52,10 +52,10 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_sparse,
     is_string_dtype,
     is_timedelta64_ns_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
@@ -549,12 +549,10 @@ def sanitize_array(
 
     subarr = _sanitize_ndim(subarr, data, dtype, index)
 
-    if not (is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype)):
-        # error: Argument 1 to "_sanitize_str_dtypes" has incompatible type
-        # "ExtensionArray"; expected "ndarray"
-        subarr = _sanitize_str_dtypes(
-            subarr, data, dtype, copy  # type: ignore[arg-type]
-        )
+    if not (
+        isinstance(subarr.dtype, ExtensionDtype) or isinstance(dtype, ExtensionDtype)
+    ):
+        subarr = _sanitize_str_dtypes(subarr, data, dtype, copy)
 
         is_object_or_str_dtype = is_object_dtype(dtype) or is_string_dtype(dtype)
         if is_object_dtype(subarr.dtype) and not is_object_or_str_dtype:
@@ -599,7 +597,7 @@ def _sanitize_ndim(
 
 
 def _sanitize_str_dtypes(
-    result: np.ndarray, data, dtype: Optional[DtypeObj], copy: bool
+    result: np.ndarray, data, dtype: Optional[np.dtype], copy: bool
 ) -> np.ndarray:
     """
     Ensure we have a dtype that is supported by pandas.
@@ -613,11 +611,7 @@ def _sanitize_str_dtypes(
         # GH#19853: If data is a scalar, result has already the result
         if not lib.is_scalar(data):
             if not np.all(isna(data)):
-                # error: Argument "dtype" to "array" has incompatible type
-                # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[dtype[Any],
-                # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
-                # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-                data = np.array(data, dtype=dtype, copy=False)  # type: ignore[arg-type]
+                data = np.array(data, dtype=dtype, copy=False)
             result = np.array(data, dtype=object, copy=copy)
     return result
 
@@ -666,7 +660,7 @@ def _try_cast(
     ):
         return arr
 
-    if isinstance(dtype, ExtensionDtype) and (dtype.kind != "M" or is_sparse(dtype)):
+    if isinstance(dtype, ExtensionDtype) and not isinstance(dtype, DatetimeTZDtype):
         # create an extension array from its dtype
         # DatetimeTZ case needs to go through maybe_cast_to_datetime but
         # SparseDtype does not
