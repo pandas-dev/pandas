@@ -1,5 +1,3 @@
-from matplotlib.collections import LineCollection
-from matplotlib.lines import Line2D
 import pytest
 
 import pandas.util._test_decorators as td
@@ -16,6 +14,9 @@ from pandas import DataFrame
 )
 def test_mixed_yerr():
     # https://github.com/pandas-dev/pandas/issues/39522
+    from matplotlib.collections import LineCollection
+    from matplotlib.lines import Line2D
+
     df = DataFrame([{"x": 1, "a": 1, "b": 1}, {"x": 2, "a": 2, "b": 3}])
 
     ax = df.plot("x", "a", c="orange", yerr=0.1, label="orange")
