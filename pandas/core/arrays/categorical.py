@@ -11,6 +11,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -2642,12 +2643,10 @@ def recode_for_categories(
     return new_codes
 
 
-def factorize_from_iterable(values):
+def factorize_from_iterable(values) -> Tuple[np.ndarray, Index]:
     """
     Factorize an input `values` into `categories` and `codes`. Preserves
     categorical dtype in `categories`.
-
-    *This is an internal function*
 
     Parameters
     ----------
@@ -2660,6 +2659,8 @@ def factorize_from_iterable(values):
         If `values` has a categorical dtype, then `categories` is
         a CategoricalIndex keeping the categories and order of `values`.
     """
+    from pandas import CategoricalIndex
+
     if not is_list_like(values):
         raise TypeError("Input must be list-like")
 
@@ -2668,7 +2669,8 @@ def factorize_from_iterable(values):
         # The Categorical we want to build has the same categories
         # as values but its codes are by def [0, ..., len(n_categories) - 1]
         cat_codes = np.arange(len(values.categories), dtype=values.codes.dtype)
-        categories = Categorical.from_codes(cat_codes, dtype=values.dtype)
+        cat = Categorical.from_codes(cat_codes, dtype=values.dtype)
+        categories = CategoricalIndex(cat)
         codes = values.codes
     else:
         # The value of ordered is irrelevant since we don't use cat as such,
@@ -2680,11 +2682,9 @@ def factorize_from_iterable(values):
     return codes, categories
 
 
-def factorize_from_iterables(iterables):
+def factorize_from_iterables(iterables) -> Tuple[List[np.ndarray], List[Index]]:
     """
     A higher-level wrapper over `factorize_from_iterable`.
-
-    *This is an internal function*
 
     Parameters
     ----------
@@ -2692,14 +2692,16 @@ def factorize_from_iterables(iterables):
 
     Returns
     -------
-    codes_list : list of ndarrays
-    categories_list : list of Indexes
+    codes : list of ndarrays
+    categories : list of Indexes
 
     Notes
     -----
     See `factorize_from_iterable` for more info.
     """
     if len(iterables) == 0:
-        # For consistency, it should return a list of 2 lists.
-        return [[], []]
-    return map(list, zip(*(factorize_from_iterable(it) for it in iterables)))
+        # For consistency, it should return two empty lists.
+        return [], []
+
+    codes, categories = zip(*(factorize_from_iterable(it) for it in iterables))
+    return list(codes), list(categories)
