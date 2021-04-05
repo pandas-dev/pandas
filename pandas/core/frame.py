@@ -3836,12 +3836,13 @@ class DataFrame(NDFrame, OpsMixin):
         # no-op for DataFrame
         pass
 
-    def _maybe_cache_changed(self, item, value) -> None:
+    def _maybe_cache_changed(self, item, value: Series) -> None:
         """
         The object has called back to us saying maybe it has changed.
         """
         loc = self._info_axis.get_loc(item)
-        self._mgr.iset(loc, value)
+        arraylike = value._values
+        self._mgr.iset(loc, arraylike)
 
     # ----------------------------------------------------------------------
     # Unsorted
