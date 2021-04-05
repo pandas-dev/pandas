@@ -15,6 +15,7 @@ import numpy as np
 import pytz
 
 from pandas._libs.interval import Interval
+from pandas._libs.properties import cache_readonly
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -355,7 +356,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             else:
                 return -2
         # We *do* want to include the real self.ordered here
-        return int(self._hash_categories(self.categories, self.ordered))
+        return int(self._hash_categories)
 
     def __eq__(self, other: Any) -> bool:
         """
@@ -429,13 +430,16 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             data = data.rstrip(", ")
         return f"CategoricalDtype(categories={data}, ordered={self.ordered})"
 
-    @staticmethod
-    def _hash_categories(categories, ordered: Ordered = True) -> int:
+    @cache_readonly
+    def _hash_categories(self) -> int:
         from pandas.core.util.hashing import (
             combine_hash_arrays,
             hash_array,
             hash_tuples,
         )
+
+        categories = self.categories
+        ordered = self.ordered
 
         if len(categories) and isinstance(categories[0], tuple):
             # assumes if any individual category is a tuple, then all our. ATM
