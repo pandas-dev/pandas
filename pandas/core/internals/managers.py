@@ -1086,7 +1086,7 @@ class BlockManager(DataManager):
         axes = [new_columns, self.axes[1]]
         return type(self)._simple_new(tuple(nbs), axes)
 
-    def iset(self, loc: Union[int, slice, np.ndarray], value):
+    def iset(self, loc: Union[int, slice, np.ndarray], value: ArrayLike):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
@@ -1097,6 +1097,7 @@ class BlockManager(DataManager):
         if self._blklocs is None and self.ndim > 1:
             self._rebuild_blknos_and_blklocs()
 
+        # Note: we exclude DTA/TDA here
         vdtype = getattr(value, "dtype", None)
         value_is_extension_type = is_1d_only_ea_dtype(vdtype)
 
@@ -1454,7 +1455,7 @@ class BlockManager(DataManager):
 
         return blocks
 
-    def _make_na_block(self, placement, fill_value=None):
+    def _make_na_block(self, placement: BlockPlacement, fill_value=None) -> Block:
 
         if fill_value is None:
             fill_value = np.nan
