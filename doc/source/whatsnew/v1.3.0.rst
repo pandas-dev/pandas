@@ -351,6 +351,36 @@ However, floating point artifacts may now exist in the results when rolling over
    s.rolling(3).var()
 
 
+.. _whatsnew_130.notable_bug_fixes.quarterbegin_default_anchor:
+
+Changed default periods in :class:`~pandas.tseries.offsets.QuarterBegin` and :class:`~pandas.tseries.offsets.BQuarterBegin`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Quarter-based time offset classes :class:`~pandas.tseries.offsets.QuarterEnd`,
+:class:`~pandas.tseries.offsets.QuarterBegin`, :class:`~pandas.tseries.offsets.BQuarterEnd`,
+:class:`~pandas.tseries.offsets.BQuarterBegin` now use ``month`` instead of ``startingMonth``
+as a time anchor parameter (:issue:`5307`). Its default value for :class:`~pandas.tseries.offsets.QuarterBegin`
+and :class:`~pandas.tseries.offsets.BQuarterBegin` is now 1 (January) instead of 3 (March),
+as a result these offsets are aligned with standard calendar quarters (:issue:`8435`).
+
+*pandas 1.2.x*
+
+.. code-block:: ipython
+
+   In [1]: datetime.datetime(2014,10,10) + pd.tseries.offsets.QuarterBegin()
+   Out[2]: Timestamp('2014-12-01 00:00:00')
+   In [3]: datetime.datetime(2014,10,10) + pd.tseries.offsets.BQuarterBegin()
+   Out[4]: Timestamp('2014-12-01 00:00:00')
+
+*pandas 1.3.0*
+
+.. ipython:: python
+
+   In [1]: datetime.datetime(2014,10,10) + pd.tseries.offsets.QuarterBegin()
+   Out[2]: Timestamp('2015-01-01 00:00:00')
+   In [3]: datetime.datetime(2014,10,10) + pd.tseries.offsets.BQuarterBegin()
+   Out[4]: Timestamp('2015-01-01 00:00:00')
+
 .. _whatsnew_130.api_breaking.deps:
 
 Increased minimum versions for dependencies
