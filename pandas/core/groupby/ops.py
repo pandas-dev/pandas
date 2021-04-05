@@ -336,7 +336,7 @@ class BaseGrouper:
         """
         splitter = self._get_splitter(data, axis=axis)
         keys = self._get_group_keys()
-        for key, (i, group) in zip(keys, splitter):
+        for key, group in zip(keys, splitter):
             yield key, group.__finalize__(data, method="groupby")
 
     @final
@@ -411,21 +411,27 @@ class BaseGrouper:
                 if len(result_values) == len(group_keys):
                     return group_keys, result_values, mutated
 
-        for key, (i, group) in zip(group_keys, splitter):
-            object.__setattr__(group, "name", key)
-
+        if result_values is None:
             # result_values is None if fast apply path wasn't taken
             # or fast apply aborted with an unexpected exception.
             # In either case, initialize the result list and perform
             # the slow iteration.
-            if result_values is None:
-                result_values = []
-
+            result_values = []
+            skip_first = False
+        else:
             # If result_values is not None we're in the case that the
             # fast apply loop was broken prematurely but we have
             # already the result for the first group which we can reuse.
-            elif i == 0:
-                continue
+            skip_first = True
+
+        # This calls DataSplitter.__iter__
+        zipped = zip(group_keys, splitter)
+        if skip_first:
+            # pop the first item from the front of the iterator
+            next(zipped)
+
+        for key, group in zipped:
+            object.__setattr__(group, "name", key)
 
             # group might be modified
             group_axes = group.axes
@@ -779,7 +785,7 @@ class BaseGrouper:
 
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
-        for label, group in splitter:
+        for label, group in enumerate(splitter):
 
             # Each step of this loop corresponds to
             #  libreduction._BaseGrouper._apply_to_group
@@ -1012,8 +1018,8 @@ class DataSplitter(Generic[FrameOrSeries]):
 
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 
-        for i, (start, end) in enumerate(zip(starts, ends)):
-            yield i, self._chop(sdata, slice(start, end))
+        for start, end in zip(starts, ends):
+            yield self._chop(sdata, slice(start, end))
 
     @cache_readonly
     def sorted_data(self) -> FrameOrSeries:
