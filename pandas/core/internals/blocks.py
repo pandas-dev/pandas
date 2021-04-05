@@ -1334,7 +1334,28 @@ class Block(libinternals.Block, PandasObject):
         return new_block(result, placement=self._mgr_locs, ndim=2)
 
 
-class ExtensionBlock(Block):
+class EABackedBlock(Block):
+    """
+    Mixin for Block subclasses backed by ExtensionArray.
+    """
+
+    values: ExtensionArray
+
+    def delete(self, loc) -> None:
+        """
+        Delete given loc(-s) from block in-place.
+        """
+        # This will be unnecessary if/when __array_function__ is implemented
+        self.values = self.values.delete(loc)
+        self.mgr_locs = self._mgr_locs.delete(loc)
+        try:
+            self._cache.clear()
+        except AttributeError:
+            # _cache not yet initialized
+            pass
+
+
+class ExtensionBlock(EABackedBlock):
     """
     Block for holding extension types.
 
@@ -1648,7 +1669,7 @@ class NumericBlock(Block):
     is_numeric = True
 
 
-class NDArrayBackedExtensionBlock(Block):
+class NDArrayBackedExtensionBlock(EABackedBlock):
     """
     Block backed by an NDArrayBackedExtensionArray
     """
@@ -1751,19 +1772,6 @@ class NDArrayBackedExtensionBlock(Block):
         values = values if inplace else values.copy()
         new_values = values.fillna(value=value, limit=limit)
         return [self.make_block_same_class(values=new_values)]
-
-    def delete(self, loc) -> None:
-        """
-        Delete given loc(-s) from block in-place.
-        """
-        # This will be unnecessary if/when __array_function__ is implemented
-        self.values = self.values.delete(loc, axis=0)
-        self.mgr_locs = self._mgr_locs.delete(loc)
-        try:
-            self._cache.clear()
-        except AttributeError:
-            # _cache not yet initialized
-            pass
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
