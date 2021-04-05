@@ -2,9 +2,12 @@ from matplotlib.collections import LineCollection
 from matplotlib.lines import Line2D
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame
 
 
+@td.skip_if_no_mpl
 @pytest.mark.xfail(
     reason=(
         "Open bug in matplotlib "
