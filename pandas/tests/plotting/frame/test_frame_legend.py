@@ -28,6 +28,7 @@ def test_mixed_yerr():
     assert isinstance(result_handles[1], Line2D)
 
 
+@td.skip_if_no_mpl
 def test_legend_false():
     # https://github.com/pandas-dev/pandas/issues/40044
     df = DataFrame({"a": [1, 1], "b": [2, 3]})
