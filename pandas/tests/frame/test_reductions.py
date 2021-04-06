@@ -1025,24 +1025,43 @@ class TestDataFrameAnalytics:
         expected = Series([0, 2, 1, 2], index=[1, 2, 3, 4])
         tm.assert_series_equal(result, expected)
 
-        # with convert dtypes
+    @pytest.mark.parametrize(
+        "ID, value, expected_index, expected_value",
+        [([100, 100, 100, 200, 200, 200], [0, 0, 0, 1, 2, 0], [100, 200], [0, 4])],
+    )
+    def test_idxmax_convert_dtypes(self, ID, value, expected_index, expected_value):
         df2 = DataFrame(
             {
-                "teamId": [100, 100, 100, 200, 200, 200],
-                "value": [0, 0, 0, 1, 2, 0],
+                "ID": ID,
+                "value": value,
             }
         )
         df2 = df2.convert_dtypes()
 
-        result = df2.groupby("teamId").idxmax()
+        result = df2.groupby("ID").idxmax()
         expected = DataFrame(
-            {"value": [0, 4]}, index=Index([100, 200], dtype="object", name="teamId")
+            {"value": expected_value},
+            index=Index(expected_index, dtype="object", name="ID"),
         )
         tm.assert_frame_equal(result, expected)
 
-        result = df2.groupby("teamId").idxmin()
+    @pytest.mark.parametrize(
+        "ID, value, expected_index, expected_value",
+        [([100, 100, 100, 200, 200, 200], [0, 0, 0, 1, 2, 0], [100, 200], [0, 5])],
+    )
+    def test_idxmin_convert_dtypes(self, ID, value, expected_index, expected_value):
+        df2 = DataFrame(
+            {
+                "ID": ID,
+                "value": value,
+            }
+        )
+        df2 = df2.convert_dtypes()
+
+        result = df2.groupby("ID").idxmin()
         expected = DataFrame(
-            {"value": [0, 5]}, index=Index([100, 200], dtype="object", name="teamId")
+            {"value": expected_value},
+            index=Index(expected_index, dtype="object", name="ID"),
         )
         tm.assert_frame_equal(result, expected)
 
