@@ -471,7 +471,7 @@ class ArrayManager(DataManager):
             # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
             # attribute "tz"
             if hasattr(arr, "tz") and arr.tz is None:  # type: ignore[union-attr]
-                # DatetimeArray needs to be converted to ndarray for DatetimeBlock
+                # DatetimeArray needs to be converted to ndarray for DatetimeLikeBlock
 
                 # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
                 # attribute "_data"
@@ -493,9 +493,12 @@ class ArrayManager(DataManager):
             if isinstance(applied, list):
                 applied = applied[0]
             arr = applied.values
-            if self.ndim == 2:
-                if isinstance(arr, np.ndarray):
-                    arr = arr[0, :]
+            if self.ndim == 2 and arr.ndim == 2:
+                assert len(arr) == 1
+                # error: Invalid index type "Tuple[int, slice]" for
+                # "Union[ndarray, ExtensionArray]"; expected type
+                # "Union[int, slice, ndarray]"
+                arr = arr[0, :]  # type: ignore[index]
             result_arrays.append(arr)
 
         return type(self)(result_arrays, self._axes)
@@ -845,8 +848,9 @@ class ArrayManager(DataManager):
 
         self.arrays = [self.arrays[i] for i in np.nonzero(to_keep)[0]]
         self._axes = [self._axes[0], self._axes[1][to_keep]]
+        return self
 
-    def iset(self, loc: Union[int, slice, np.ndarray], value):
+    def iset(self, loc: Union[int, slice, np.ndarray], value: ArrayLike):
         """
         Set new column(s).
 
@@ -857,12 +861,10 @@ class ArrayManager(DataManager):
         ----------
         loc : integer, slice or boolean mask
             Positional location (already bounds checked)
-        value : array-like
+        value : np.ndarray or ExtensionArray
         """
         # single column -> single integer index
         if lib.is_integer(loc):
-            # TODO the extract array should in theory not be needed?
-            value = extract_array(value, extract_numpy=True)
 
             # TODO can we avoid needing to unpack this here? That means converting
             # DataFrame into 1D array when loc is an integer
@@ -900,7 +902,10 @@ class ArrayManager(DataManager):
         assert value.shape[0] == len(self._axes[0])
 
         for value_idx, mgr_idx in enumerate(indices):
-            value_arr = value[:, value_idx]
+            # error: Invalid index type "Tuple[slice, int]" for
+            # "Union[ExtensionArray, ndarray]"; expected type
+            # "Union[int, slice, ndarray]"
+            value_arr = value[:, value_idx]  # type: ignore[index]
             self.arrays[mgr_idx] = value_arr
         return
 
@@ -1244,7 +1249,7 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
     def setitem(self, indexer, value):
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
-    def idelete(self, indexer):
+    def idelete(self, indexer) -> SingleArrayManager:
         """
         Delete selected locations in-place (new array, same ArrayManager)
         """
@@ -1253,6 +1258,7 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
 
         self.arrays = [self.arrays[0][to_keep]]
         self._axes = [self._axes[0][to_keep]]
+        return self
 
     def _get_data_subset(self, predicate: Callable) -> ArrayManager:
         # used in get_numeric_data / get_bool_data

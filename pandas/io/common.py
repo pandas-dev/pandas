@@ -565,9 +565,9 @@ def get_handle(
            Passing compression options as keys in dict is now
            supported for compression modes 'gzip' and 'bz2' as well as 'zip'.
 
-    memory_map : boolean, default False
+    memory_map : bool, default False
         See parsers._parser_params for more information.
-    is_text : boolean, default True
+    is_text : bool, default True
         Whether the type of the content passed to the file/buffer is string or
         bytes. This is not the same as `"b" not in mode`. If a string content is
         passed to a binary file/buffer, a wrapper is inserted.

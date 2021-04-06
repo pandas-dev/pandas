@@ -557,7 +557,7 @@ class MultiIndex(Index):
             arrays = [[]] * len(names)
         elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
-                tuples = tuples._values
+                tuples = np.asarray(tuples._values)
 
             arrays = list(lib.tuples_to_object_array(tuples).T)
         elif isinstance(tuples, list):
@@ -1614,11 +1614,15 @@ class MultiIndex(Index):
         return [i.inferred_type for i in self.levels]
 
     @doc(Index.duplicated)
-    def duplicated(self, keep="first"):
+    def duplicated(self, keep="first") -> np.ndarray:
         shape = map(len, self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
         return duplicated_int64(ids, keep)
+
+    # error: Cannot override final attribute "_duplicated"
+    # (previously declared in base class "IndexOpsMixin")
+    _duplicated = duplicated  # type: ignore[misc]
 
     def fillna(self, value=None, downcast=None):
         """
@@ -2216,11 +2220,7 @@ class MultiIndex(Index):
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
-                # error: Argument "dtype" to "index_labels_to_array" has incompatible
-                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
-                codes = com.index_labels_to_array(
-                    codes, dtype=object  # type: ignore[arg-type]
-                )
+                codes = com.index_labels_to_array(codes, dtype=np.dtype("object"))
             except ValueError:
                 pass
 
@@ -2689,11 +2689,16 @@ class MultiIndex(Index):
                         target, method=method, limit=limit, tolerance=tolerance
                     )
 
+                # TODO: explicitly raise here?  we only have one test that
+                #  gets here, and it is checking that we raise with method="nearest"
+
         if method == "pad" or method == "backfill":
             if tolerance is not None:
                 raise NotImplementedError(
                     "tolerance not implemented yet for MultiIndex"
                 )
+            # TODO: get_indexer_with_fill docstring says values must be _sorted_
+            #  but that doesn't appear to be enforced
             indexer = self._engine.get_indexer_with_fill(
                 target=target._values, values=self._values, method=method, limit=limit
             )
@@ -2705,6 +2710,8 @@ class MultiIndex(Index):
         else:
             indexer = self._engine.get_indexer(target._values)
 
+        # Note: we only get here (in extant tests at least) with
+        #  target.nlevels == self.nlevels
         return ensure_platform_int(indexer)
 
     def get_slice_bound(
