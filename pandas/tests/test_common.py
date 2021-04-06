@@ -91,8 +91,8 @@ def test_random_state():
             com.random_state(rng1).uniform()
             == npr.RandomState(rng2.bit_generator).uniform()
         )
+        # Check base RNGs have advanced correctly
         assert rng1.uniform() == rng2.uniform()
-        assert com.random_state(rng1).uniform() != rng2.uniform()
 
     # Error for floats or strings
     msg = (
