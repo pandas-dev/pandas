@@ -30,10 +30,6 @@ from typing import (
     Union,
 )
 
-from pandas.core.arrays.masked import BaseMaskedArray
-from pandas.core.arrays.boolean import BooleanArray
-
-
 import numpy as np
 
 from pandas._config.config import option_context
@@ -84,6 +80,8 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
+from pandas.core.arrays.boolean import BooleanArray
+from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.base import (
     DataError,
     PandasObject,
@@ -1421,17 +1419,21 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
             elif isinstance(vals, BaseMaskedArray):
-                vals = vals._data.astype(bool)
+                vals = vals._data.astype(bool, copy=False)
             else:
                 vals = vals.astype(bool)
 
             return vals.view(np.uint8), bool
 
-        def result_to_bool(result: np.ndarray, inference: type, output_mask: np.ndarray | None = None) -> ArrayLike:
-            if output_mask is None:
-                return result.astype(inference, copy=False)
+        def result_to_bool(
+            result: np.ndarray,
+            inference: type,
+            result_is_nullable: bool = False,
+        ) -> ArrayLike:
+            if result_is_nullable:
+                return BooleanArray(result.astype(bool), result == 2)
             else:
-                return BooleanArray(result.astype(bool), output_mask.astype(bool))
+                return result.astype(inference, copy=False)
 
         return self._get_cythonized_result(
             "group_any_all",
@@ -2745,9 +2747,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 func = partial(func, mask)
 
             if how == "group_any_all" and isinstance(values, BaseMaskedArray):
-                output_mask = np.zeros(result_sz, dtype=np.uint8)
-                func = partial(func, output_mask=output_mask)
-                post_processing = partial(post_processing, output_mask=output_mask)
+                post_processing = partial(post_processing, result_is_nullable=True)
+                func = partial(func, use_kleene_logic=True)
 
             if needs_ngroups:
                 func = partial(func, ngroups)

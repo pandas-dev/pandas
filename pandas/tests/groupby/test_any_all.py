@@ -2,12 +2,12 @@ import builtins
 
 import numpy as np
 import pytest
+
 import pandas as pd
 from pandas import (
     DataFrame,
     Index,
     isna,
-    Series,
 )
 import pandas._testing as tm
 
@@ -80,19 +80,19 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
         ([False, False, False], [[False, False], [False, False]]),
         ([True, True, True], [[True, True], [True, True]]),
         ([pd.NA, pd.NA, pd.NA], [[pd.NA, pd.NA], [False, True]]),
-        ([False, pd.NA, False], [[pd.NA, pd.NA], [False, False]]),
+        ([False, pd.NA, False], [[pd.NA, False], [False, False]]),
         ([True, pd.NA, True], [[True, pd.NA], [True, True]]),
-        ([True, pd.NA, False], [[True, pd.NA], [True, False]]),
+        ([True, pd.NA, False], [[True, False], [True, False]]),
     ],
 )
 def test_masked_kleene_logic(bool_agg_func, data, expected, skipna):
-    # GH-37506
+    # GH#37506
     df = DataFrame(data, dtype="boolean")
     expected = DataFrame(
         [expected[skipna][bool_agg_func == "all"]], dtype="boolean", index=[1]
     )
 
-    result = df.groupby([1, 1, 1]).agg(bool_agg_func)
+    result = df.groupby([1, 1, 1]).agg(bool_agg_func, skipna=skipna)
 
     tm.assert_frame_equal(result, expected)
 
@@ -101,7 +101,7 @@ def test_masked_kleene_logic(bool_agg_func, data, expected, skipna):
 @pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
 @pytest.mark.parametrize("skipna", [True, False])
 def test_masked_bool_aggs_skipna(bool_agg_func, dtype, skipna, frame_or_series):
-    # GH-40585
+    # GH#40585
     obj = frame_or_series([pd.NA, 1], dtype=dtype)
     expected_res = True
     if not skipna and bool_agg_func == "all":
@@ -109,5 +109,7 @@ def test_masked_bool_aggs_skipna(bool_agg_func, dtype, skipna, frame_or_series):
     expected = frame_or_series([expected_res], index=[1], dtype="boolean")
 
     result = obj.groupby([1, 1]).agg(bool_agg_func, skipna=skipna)
+    print(result)
+    print(expected)
 
     tm.assert_equal(result, expected)

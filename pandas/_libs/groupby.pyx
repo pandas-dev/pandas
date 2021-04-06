@@ -394,9 +394,10 @@ def group_any_all(uint8_t[::1] out,
                   uint8_t[::1] mask,
                   str val_test,
                   bint skipna,
-                  uint8_t[::1] output_mask = None) -> None:
+                  bint use_kleene_logic = False) -> None:
     """
-    Aggregated boolean values to show truthfulness of group elements.
+    Aggregated boolean values to show truthfulness of group elements. If the
+    input is a nullable type, Kleene logic will be used.
 
     Parameters
     ----------
@@ -413,19 +414,19 @@ def group_any_all(uint8_t[::1] out,
         String object dictating whether to use any or all truth testing
     skipna : bool
         Flag to ignore nan values during truth testing
+    use_kleene_logic : bool, default False
+        Whether or not to compute the result using Kleene logic
 
     Notes
     -----
     This method modifies the `out` parameter rather than returning an object.
-    The returned values will either be 0 or 1 (False or True, respectively).
+    The returned values will either be 0, 1 (False or True, respectively), or
+    2 to signify a masked position in the case of a nullable input.
     """
     cdef:
         Py_ssize_t i, N = len(labels)
         intp_t lab
         uint8_t flag_val
-        bint use_kleene_logic
-
-    use_kleene_logic = output_mask is not None
 
     if val_test == 'all':
         # Because the 'all' value of an empty iterable in Python is True we can
@@ -441,15 +442,23 @@ def group_any_all(uint8_t[::1] out,
         raise ValueError("'bool_func' must be either 'any' or 'all'!")
 
     out[:] = 1 - flag_val
-    if use_kleene_logic:
-        output_mask[:] = 1 - skipna
 
     with nogil:
         for i in range(N):
             lab = labels[i]
-            if lab < 0 or (mask[i] and skipna):
+            if lab < 0 or (skipna and mask[i]):
                 continue
 
+            if use_kleene_logic and mask[i]:
+                # Set the condition as masked if `out[lab] != flag_val`, which
+                # would indicate True/False has not yet been seen for any/all,
+                # so by Kleene logic the result is currently unknown
+                if out[lab] != flag_val:
+                    out[lab] = 2
+                continue
+
+            # If True and 'any' or False and 'all', the result is
+            # already determined
             if values[i] == flag_val:
                 out[lab] = flag_val
 
