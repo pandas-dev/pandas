@@ -674,7 +674,6 @@ class PythonParser(ParserBase):
                   Because this row number is displayed, we 1-index,
                   even though we 0-index internally.
         """
-        print(self.on_bad_lines)
         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
         elif self.on_bad_lines == self.BadLineHandleMethod.WARN:
