@@ -728,7 +728,7 @@ Plotting
 
 - Bug in :func:`scatter_matrix` raising when 2d ``ax`` argument passed (:issue:`16253`)
 - Prevent warnings when matplotlib's ``constrained_layout`` is enabled (:issue:`25261`)
--
+- Bug in :meth:`MPLPlot._plot` ignoring ``style`` when using error bars (:issue:`7023`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^

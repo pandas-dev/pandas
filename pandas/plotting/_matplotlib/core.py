@@ -706,6 +706,8 @@ class MPLPlot:
                 kwds["xerr"] = np.array(kwds.get("xerr"))
             if "yerr" in kwds:
                 kwds["yerr"] = np.array(kwds.get("yerr"))
+            if style is not None:
+                kwds["fmt"] = style
             return ax.errorbar(x, y, **kwds)
         else:
             # prevent style kwarg from going to errorbar, where it is unsupported
