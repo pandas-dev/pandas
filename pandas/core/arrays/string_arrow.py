@@ -21,6 +21,7 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     NpDtype,
+    Positional,
 )
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -315,7 +316,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             )
         )
 
-    def __getitem__(self, item: Any) -> Any:
+    def __getitem__(self, item: Positional) -> Any:
         """Select a subset of self.
 
         Parameters

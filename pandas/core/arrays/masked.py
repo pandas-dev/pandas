@@ -21,6 +21,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     NpDtype,
+    Positional,
     Scalar,
 )
 from pandas.errors import AbstractMethodError
@@ -137,9 +138,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 
-    def __getitem__(
-        self, item: Union[int, slice, np.ndarray]
-    ) -> Union[BaseMaskedArray, Any]:
+    def __getitem__(self, item: Positional) -> Union[BaseMaskedArray, Any]:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value

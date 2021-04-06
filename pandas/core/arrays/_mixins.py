@@ -16,6 +16,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import (
     F,
+    Positional2D,
     Shape,
 )
 from pandas.compat.numpy import function as nv
@@ -277,7 +278,8 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         return value
 
     def __getitem__(
-        self: NDArrayBackedExtensionArrayT, key: Union[int, slice, np.ndarray]
+        self: NDArrayBackedExtensionArrayT,
+        key: Positional2D,
     ) -> Union[NDArrayBackedExtensionArrayT, Any]:
         if lib.is_integer(key):
             # fast-path

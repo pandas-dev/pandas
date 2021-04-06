@@ -50,6 +50,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     NpDtype,
+    Positional2D,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -341,7 +342,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._ndarray
 
     def __getitem__(
-        self, key: Union[int, slice, np.ndarray]
+        self, key: Positional2D
     ) -> Union[DatetimeLikeArrayMixin, DTScalarOrNaT]:
         """
         This getitem defers to the underlying array, which by-definition can

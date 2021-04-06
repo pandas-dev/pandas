@@ -29,6 +29,7 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    Positional,
     Shape,
 )
 from pandas.compat import set_function_name
@@ -293,9 +294,7 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
 
-    def __getitem__(
-        self, item: Union[int, slice, np.ndarray]
-    ) -> Union[ExtensionArray, Any]:
+    def __getitem__(self, item: Positional) -> Union[ExtensionArray, Any]:
         """
         Select a subset of self.
 
