@@ -28,8 +28,6 @@ from typing import (
     Optional,
 )
 
-import flake8.main.application
-
 try:
     from io import StringIO
 except ImportError:
