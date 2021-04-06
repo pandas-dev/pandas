@@ -1025,16 +1025,26 @@ class TestDataFrameAnalytics:
         expected = Series([0, 2, 1, 2], index=[1, 2, 3, 4])
         tm.assert_series_equal(result, expected)
 
-        # with a column of NaNs?
-        df[5] = [0] + [np.NaN] * 2
+        # with convert dtypes
+        df2 = DataFrame(
+            {
+                "teamId": [100, 100, 100, 200, 200, 200],
+                "value": [0, 0, 0, 1, 2, 0],
+            }
+        )
+        df2 = df2.convert_dtypes()
 
-        result = df.idxmax()
-        expected = Series([1, 0, 2, 0, 0], index=[1, 2, 3, 4, 5])
-        tm.assert_series_equal(result, expected)
+        result = df2.groupby("teamId").idxmax()
+        expected = DataFrame(
+            {"value": [0, 4]}, index=Index([100, 200], dtype="object", name="teamId")
+        )
+        tm.assert_frame_equal(result, expected)
 
-        result = df.idxmin()
-        expected = Series([0, 2, 1, 2, 0], index=[1, 2, 3, 4, 5])
-        tm.assert_series_equal(result, expected)
+        result = df2.groupby("teamId").idxmin()
+        expected = DataFrame(
+            {"value": [0, 5]}, index=Index([100, 200], dtype="object", name="teamId")
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_idxmax_dt64_multicolumn_axis1(self):
         dti = date_range("2016-01-01", periods=3)
