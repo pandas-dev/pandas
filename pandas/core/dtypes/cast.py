@@ -15,15 +15,8 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    List,
-    Optional,
     Sequence,
-    Set,
     Sized,
-    Tuple,
-    Type,
-    Union,
     cast,
     overload,
 )
@@ -125,7 +118,7 @@ _int64_max = np.iinfo(np.int64).max
 
 
 def maybe_convert_platform(
-    values: Union[list, tuple, range, np.ndarray, ExtensionArray]
+    values: list | tuple | range | np.ndarray | ExtensionArray,
 ) -> ArrayLike:
     """ try to do platform conversion, allow ndarray or list here """
     if isinstance(values, (list, tuple, range)):
@@ -159,7 +152,7 @@ def is_nested_object(obj) -> bool:
     )
 
 
-def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None) -> Scalar:
+def maybe_box_datetimelike(value: Scalar, dtype: Dtype | None = None) -> Scalar:
     """
     Cast scalar to Timestamp or Timedelta if scalar is datetime-like
     and dtype is not object.
@@ -245,9 +238,7 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj):
         raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
 
 
-def maybe_downcast_to_dtype(
-    result: ArrayLike, dtype: Union[str, np.dtype]
-) -> ArrayLike:
+def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLike:
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
@@ -460,7 +451,7 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
 
 
 def maybe_cast_to_extension_array(
-    cls: Type[ExtensionArray], obj: ArrayLike, dtype: Optional[ExtensionDtype] = None
+    cls: type[ExtensionArray], obj: ArrayLike, dtype: ExtensionDtype | None = None
 ) -> ArrayLike:
     """
     Call to `_from_sequence` that returns the object unchanged on Exception.
@@ -727,7 +718,7 @@ def _ensure_dtype_type(value, dtype: np.dtype):
     return dtype.type(value)
 
 
-def infer_dtype_from(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, Any]:
+def infer_dtype_from(val, pandas_dtype: bool = False) -> tuple[DtypeObj, Any]:
     """
     Interpret the dtype from a scalar or array.
 
@@ -744,7 +735,7 @@ def infer_dtype_from(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, Any]:
     return infer_dtype_from_array(val, pandas_dtype=pandas_dtype)
 
 
-def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, Any]:
+def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, Any]:
     """
     Interpret the dtype from a scalar.
 
@@ -834,7 +825,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
     return dtype, val
 
 
-def dict_compat(d: Dict[Scalar, Scalar]) -> Dict[Scalar, Scalar]:
+def dict_compat(d: dict[Scalar, Scalar]) -> dict[Scalar, Scalar]:
     """
     Convert datetimelike-keyed dicts to a Timestamp-keyed dict.
 
@@ -852,7 +843,7 @@ def dict_compat(d: Dict[Scalar, Scalar]) -> Dict[Scalar, Scalar]:
 
 def infer_dtype_from_array(
     arr, pandas_dtype: bool = False
-) -> Tuple[DtypeObj, ArrayLike]:
+) -> tuple[DtypeObj, ArrayLike]:
     """
     Infer the dtype from an array.
 
@@ -944,7 +935,7 @@ def maybe_upcast(
     values: np.ndarray,
     fill_value: Scalar = np.nan,
     copy: bool = False,
-) -> Tuple[np.ndarray, Scalar]:
+) -> tuple[np.ndarray, Scalar]:
     """
     Provide explicit type promotion and coercion.
 
@@ -970,7 +961,7 @@ def maybe_upcast(
     return values, fill_value
 
 
-def invalidate_string_dtypes(dtype_set: Set[DtypeObj]):
+def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
     """
     Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
@@ -1524,7 +1515,7 @@ def maybe_castable(dtype: np.dtype) -> bool:
     return dtype.name not in POSSIBLY_CAST_DTYPES
 
 
-def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
+def maybe_infer_to_datetimelike(value: np.ndarray | list):
     """
     we might have a array (or single object) that is datetime like,
     and no dtype is passed don't change the value unless we find a
@@ -1619,8 +1610,8 @@ def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
 
 
 def maybe_cast_to_datetime(
-    value: Union[ExtensionArray, np.ndarray, list], dtype: Optional[DtypeObj]
-) -> Union[ExtensionArray, np.ndarray, list]:
+    value: ExtensionArray | np.ndarray | list, dtype: DtypeObj | None
+) -> ExtensionArray | np.ndarray | list:
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
@@ -1784,7 +1775,7 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     return dtype
 
 
-def find_common_type(types: List[DtypeObj]) -> DtypeObj:
+def find_common_type(types: list[DtypeObj]) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
 
@@ -1873,7 +1864,7 @@ def construct_2d_arraylike_from_scalar(
 
 
 def construct_1d_arraylike_from_scalar(
-    value: Scalar, length: int, dtype: Optional[DtypeObj]
+    value: Scalar, length: int, dtype: DtypeObj | None
 ) -> ArrayLike:
     """
     create a np.ndarray / pandas type of specified shape and dtype
@@ -1947,7 +1938,7 @@ def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
 
 
 def construct_1d_ndarray_preserving_na(
-    values: Sequence, dtype: Optional[DtypeObj] = None, copy: bool = False
+    values: Sequence, dtype: DtypeObj | None = None, copy: bool = False
 ) -> np.ndarray:
     """
     Construct a new ndarray, coercing `values` to `dtype`, preserving NA.
@@ -1997,7 +1988,7 @@ def construct_1d_ndarray_preserving_na(
 
 
 def maybe_cast_to_integer_array(
-    arr: Union[list, np.ndarray], dtype: np.dtype, copy: bool = False
+    arr: list | np.ndarray, dtype: np.dtype, copy: bool = False
 ):
     """
     Takes any dtype and returns the casted version, raising for when data is
