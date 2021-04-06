@@ -391,9 +391,10 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
 def group_any_all(uint8_t[::1] out,
                   const uint8_t[::1] values,
                   const intp_t[:] labels,
-                  const uint8_t[::1] mask,
+                  uint8_t[::1] mask,
                   str val_test,
-                  bint skipna) -> None:
+                  bint skipna,
+                  uint8_t[::1] output_mask = None) -> None:
     """
     Aggregated boolean values to show truthfulness of group elements.
 
@@ -422,6 +423,9 @@ def group_any_all(uint8_t[::1] out,
         Py_ssize_t i, N = len(labels)
         intp_t lab
         uint8_t flag_val
+        bint use_kleene_logic
+
+    use_kleene_logic = output_mask is not None
 
     if val_test == 'all':
         # Because the 'all' value of an empty iterable in Python is True we can
@@ -437,15 +441,33 @@ def group_any_all(uint8_t[::1] out,
         raise ValueError("'bool_func' must be either 'any' or 'all'!")
 
     out[:] = 1 - flag_val
+    if use_kleene_logic:
+        output_mask[:] = 1 - skipna
 
     with nogil:
         for i in range(N):
             lab = labels[i]
-            if lab < 0 or (skipna and mask[i]):
+            if lab < 0 or (mask[i] and skipna):
                 continue
 
+            if use_kleene_logic:
+                if not mask[i]:
+
+
+            if use_kleene_logic and not mask[i]:
+                output_mask[lab] = 0
+
+            if use_kleene_logic and mask[i]:
+                output_mask[lab] = 1
+
+            # Either 'any' and True or 'all' and False
             if values[i] == flag_val:
                 out[lab] = flag_val
+
+                # In both of the above cases, the value
+                # is known regardless of any missing values
+                if use_kleene_logic:
+                    output_mask[lab] = 0
 
 
 # ----------------------------------------------------------------------

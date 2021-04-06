@@ -30,6 +30,10 @@ from typing import (
     Union,
 )
 
+from pandas.core.arrays.masked import BaseMaskedArray
+from pandas.core.arrays.boolean import BooleanArray
+
+
 import numpy as np
 
 from pandas._config.config import option_context
@@ -1413,16 +1417,21 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Shared func to call any / all Cython GroupBy implementations.
         """
 
-        def objs_to_bool(vals: np.ndarray) -> tuple[np.ndarray, type]:
+        def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
+            elif isinstance(vals, BaseMaskedArray):
+                vals = vals._data.astype(bool)
             else:
                 vals = vals.astype(bool)
 
             return vals.view(np.uint8), bool
 
-        def result_to_bool(result: np.ndarray, inference: type) -> np.ndarray:
-            return result.astype(inference, copy=False)
+        def result_to_bool(result: np.ndarray, inference: type, output_mask: np.ndarray | None = None) -> ArrayLike:
+            if output_mask is None:
+                return result.astype(inference, copy=False)
+            else:
+                return BooleanArray(result, output_mask)
 
         return self._get_cythonized_result(
             "group_any_all",
@@ -2734,6 +2743,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if needs_mask:
                 mask = isna(values).view(np.uint8)
                 func = partial(func, mask)
+
+            if how == "group_any_all" and isinstance(values, BaseMaskedArray):
+                output_mask = np.zeros(result_sz, dtype=np.uint8)
+                func = partial(func, output_mask=output_mask)
+                post_processing = partial(post_processing, output_mask=output_mask)
 
             if needs_ngroups:
                 func = partial(func, ngroups)
