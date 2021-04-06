@@ -8,6 +8,9 @@ import numpy as np
 
 from pandas._typing import ArrayLike
 
+from pandas import Index
+from pandas.core.internals.blocks import Block as B
+
 def slice_len(slc: slice, objlen: int = ...) -> int: ...
 
 
@@ -56,3 +59,13 @@ class Block:
     values: ArrayLike
 
     def __init__(self, values: ArrayLike, placement: BlockPlacement, ndim: int): ...
+
+class BlockManager:
+    blocks: tuple[B, ...]
+    axes: list[Index]
+    _known_consolidated: bool
+    _is_consolidated: bool
+    _blknos: np.ndarray
+    _blklocs: np.ndarray
+
+    def __init__(self, blocks: tuple[B, ...], axes: list[Index], verify_integrity=True): ...

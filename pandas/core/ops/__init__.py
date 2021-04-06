@@ -6,11 +6,7 @@ This is not a public API.
 from __future__ import annotations
 
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    Set,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -79,7 +75,7 @@ if TYPE_CHECKING:
 
 # -----------------------------------------------------------------------------
 # constants
-ARITHMETIC_BINOPS: Set[str] = {
+ARITHMETIC_BINOPS: set[str] = {
     "add",
     "sub",
     "mul",
@@ -99,7 +95,7 @@ ARITHMETIC_BINOPS: Set[str] = {
 }
 
 
-COMPARISON_BINOPS: Set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
+COMPARISON_BINOPS: set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
 
 
 # -----------------------------------------------------------------------------
@@ -207,7 +203,7 @@ def flex_method_SERIES(op):
 
 
 def align_method_FRAME(
-    left, right, axis, flex: Optional[bool] = False, level: Level = None
+    left, right, axis, flex: bool | None = False, level: Level = None
 ):
     """
     Convert rhs to meet lhs dims if input is list, tuple or np.ndarray.
