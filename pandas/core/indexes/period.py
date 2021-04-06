@@ -7,7 +7,6 @@ from datetime import (
 from typing import (
     Any,
     Hashable,
-    Optional,
 )
 import warnings
 
@@ -218,7 +217,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         data=None,
         ordinal=None,
         freq=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
         **fields,
@@ -596,7 +595,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods: Optional[int] = None, freq=None, name=None
+    start=None, end=None, periods: int | None = None, freq=None, name=None
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.
