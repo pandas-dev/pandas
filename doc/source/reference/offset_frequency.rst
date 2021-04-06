@@ -656,7 +656,6 @@ Properties
     BQuarterEnd.rule_code
     BQuarterEnd.n
     BQuarterEnd.month
-    BQuarterEnd.startingMonth
 
 Methods
 ~~~~~~~
@@ -692,7 +691,6 @@ Properties
     BQuarterBegin.rule_code
     BQuarterBegin.n
     BQuarterBegin.month
-    BQuarterBegin.startingMonth
 
 Methods
 ~~~~~~~
@@ -728,7 +726,6 @@ Properties
     QuarterEnd.rule_code
     QuarterEnd.n
     QuarterEnd.month
-    QuarterEnd.startingMonth
 
 Methods
 ~~~~~~~
@@ -764,7 +761,6 @@ Properties
     QuarterBegin.rule_code
     QuarterBegin.n
     QuarterBegin.month
-    QuarterBegin.startingMonth
 
 Methods
 ~~~~~~~
