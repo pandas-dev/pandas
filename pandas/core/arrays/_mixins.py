@@ -157,8 +157,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     @cache_readonly
     def size(self) -> int:
-        # error: Incompatible return value type (got "number", expected "int")
-        return np.prod(self.shape)  # type: ignore[return-value]
+        return self._ndarray.size
 
     @cache_readonly
     def nbytes(self) -> int:
@@ -190,7 +189,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             return False
         return bool(array_equivalent(self._ndarray, other._ndarray))
 
-    def _values_for_argsort(self):
+    def _values_for_argsort(self) -> np.ndarray:
         return self._ndarray
 
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
