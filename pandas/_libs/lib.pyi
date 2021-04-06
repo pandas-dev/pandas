@@ -4,7 +4,6 @@
 from typing import (
     Any,
     Callable,
-    Union,
 )
 
 import numpy as np
@@ -114,24 +113,15 @@ def dicts_to_array(dicts: list, columns: list) -> ndarray_obj_2d: ...
 
 def maybe_booleans_to_slice(
     mask: np.ndarray  # ndarray[uint8_t]
-) -> Union[
-    slice,
-    np.ndarray,  # np.ndarray[np.uint8]
-]: ...
+) -> slice | np.ndarray: ...  # np.ndarray[np.uint8]
 
 def maybe_indices_to_slice(
     indices: np.ndarray,  # np.ndarray[np.intp]
     max_len: int,
-) -> Union[
-    slice,
-    np.ndarray,  # np.ndarray[np.intp]
-]: ...
+) -> slice | np.ndarray: ...  # np.ndarray[np.uint8]
 
 def clean_index_list(obj: list) -> tuple[
-    Union[
-        list,
-        np.ndarray,  # np.ndarray[object] | np.ndarray[np.int64]
-    ],
+    list | np.ndarray,  # np.ndarray[object] | np.ndarray[np.int64]
     bool,
 ]: ...
 
