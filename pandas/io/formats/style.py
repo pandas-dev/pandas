@@ -2356,7 +2356,7 @@ def _non_reducing_slice(slice_):
 
 
 def _validate_apply_axis_arg(
-    arg: Union[FrameOrSeries, Sequence, np.ndarray],
+    arg: FrameOrSeries | Sequence | np.ndarray,
     arg_name: str,
     dtype: Any | None,
     data: FrameOrSeries,
@@ -2416,7 +2416,7 @@ def _background_gradient(
     text_color_threshold: float = 0.408,
     vmin: float | None = None,
     vmax: float | None = None,
-    gmap: Union[Sequence, np.ndarray, FrameOrSeries] | None = None,
+    gmap: Sequence | np.ndarray | FrameOrSeries | None = None,
 ):
     """
     Color background in a range according to the data or a gradient map
