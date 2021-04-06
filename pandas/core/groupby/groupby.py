@@ -1431,7 +1431,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if output_mask is None:
                 return result.astype(inference, copy=False)
             else:
-                return BooleanArray(result, output_mask)
+                return BooleanArray(result.astype(bool), output_mask.astype(bool))
 
         return self._get_cythonized_result(
             "group_any_all",
