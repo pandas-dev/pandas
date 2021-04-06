@@ -944,20 +944,17 @@ class TestDataFrameIndexing:
         exp = df[df[0] > 0]
         tm.assert_frame_equal(result, exp)
 
-    def test_getitem_setitem_ix_bool_keyerror(self):
+    @pytest.mark.parametrize("bool_value", [True, False])
+    def test_getitem_setitem_ix_bool_keyerror(self, bool_value):
         # #2199
         df = DataFrame({"a": [1, 2, 3]})
-
-        with pytest.raises(KeyError, match=r"^False$"):
-            df.loc[False]
-        with pytest.raises(KeyError, match=r"^True$"):
-            df.loc[True]
+        message = f"{bool_value}: boolean label can not be used without a boolean index"
+        with pytest.raises(KeyError, match=message):
+            df.loc[bool_value]
 
         msg = "cannot use a single bool to index into setitem"
         with pytest.raises(KeyError, match=msg):
-            df.loc[False] = 0
-        with pytest.raises(KeyError, match=msg):
-            df.loc[True] = 0
+            df.loc[bool_value] = 0
 
     # TODO: rename?  remove?
     def test_single_element_ix_dont_upcast(self, float_frame):

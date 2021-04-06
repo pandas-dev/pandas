@@ -2116,6 +2116,35 @@ class TestLabelSlicing:
         tm.assert_frame_equal(df.loc[:, 1:], expected)
 
 
+class TestLocBooleanLabelsAndSlices(Base):
+    @pytest.mark.parametrize("bool_value", [True, False])
+    def test_loc_bool_incompatible_index_raises(
+        self, index, frame_or_series, bool_value
+    ):
+        # GH20432
+        message = f"{bool_value}: boolean label can not be used without a boolean index"
+        if index.inferred_type != "boolean":
+            obj = frame_or_series(index=index, dtype="object")
+            with pytest.raises(KeyError, match=message):
+                obj.loc[bool_value]
+
+    @pytest.mark.parametrize("bool_value", [True, False])
+    def test_loc_bool_should_not_raise(self, frame_or_series, bool_value):
+        obj = frame_or_series(
+            index=Index([True, False], dtype="boolean"), dtype="object"
+        )
+        obj.loc[bool_value]
+
+    def test_loc_bool_slice_raises(self, index, frame_or_series):
+        # GH20432
+        message = (
+            r"slice\(True, False, None\): boolean values can not be used in a slice"
+        )
+        obj = frame_or_series(index=index, dtype="object")
+        with pytest.raises(TypeError, match=message):
+            obj.loc[True:False]
+
+
 class TestLocBooleanMask:
     def test_loc_setitem_bool_mask_timedeltaindex(self):
         # GH#14946

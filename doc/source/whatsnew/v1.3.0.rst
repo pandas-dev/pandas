@@ -674,6 +674,7 @@ Indexing
 - Bug in setting ``numpy.timedelta64`` values into an object-dtype :class:`Series` using a boolean indexer (:issue:`39488`)
 - Bug in setting numeric values into a into a boolean-dtypes :class:`Series` using ``at`` or ``iat`` failing to cast to object-dtype (:issue:`39582`)
 - Bug in :meth:`DataFrame.loc.__setitem__` when setting-with-expansion incorrectly raising when the index in the expanding axis contains duplicates (:issue:`40096`)
+- Bug in :meth:`DataFrame.loc` incorrectly matching non-boolean index elements (:issue:`20432`)
 - Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
 
 Missing
