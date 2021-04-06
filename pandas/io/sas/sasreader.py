@@ -10,8 +10,6 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Hashable,
-    Optional,
-    Union,
     overload,
 )
 
@@ -47,9 +45,9 @@ class ReaderBase(metaclass=ABCMeta):
 @overload
 def read_sas(
     filepath_or_buffer: FilePathOrBuffer,
-    format: Optional[str] = ...,
-    index: Optional[Hashable] = ...,
-    encoding: Optional[str] = ...,
+    format: str | None = ...,
+    index: Hashable | None = ...,
+    encoding: str | None = ...,
     chunksize: int = ...,
     iterator: bool = ...,
 ) -> ReaderBase:
@@ -59,23 +57,23 @@ def read_sas(
 @overload
 def read_sas(
     filepath_or_buffer: FilePathOrBuffer,
-    format: Optional[str] = ...,
-    index: Optional[Hashable] = ...,
-    encoding: Optional[str] = ...,
+    format: str | None = ...,
+    index: Hashable | None = ...,
+    encoding: str | None = ...,
     chunksize: None = ...,
     iterator: bool = ...,
-) -> Union[DataFrame, ReaderBase]:
+) -> DataFrame | ReaderBase:
     ...
 
 
 def read_sas(
     filepath_or_buffer: FilePathOrBuffer,
-    format: Optional[str] = None,
-    index: Optional[Hashable] = None,
-    encoding: Optional[str] = None,
-    chunksize: Optional[int] = None,
+    format: str | None = None,
+    index: Hashable | None = None,
+    encoding: str | None = None,
+    chunksize: int | None = None,
     iterator: bool = False,
-) -> Union[DataFrame, ReaderBase]:
+) -> DataFrame | ReaderBase:
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 

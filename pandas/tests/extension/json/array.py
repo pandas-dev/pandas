@@ -25,10 +25,11 @@ import sys
 from typing import (
     Any,
     Mapping,
-    Type,
 )
 
 import numpy as np
+
+from pandas._typing import type_t
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
@@ -48,7 +49,7 @@ class JSONDtype(ExtensionDtype):
     na_value: Mapping[str, Any] = UserDict()
 
     @classmethod
-    def construct_array_type(cls) -> Type[JSONArray]:
+    def construct_array_type(cls) -> type_t[JSONArray]:
         """
         Return the array type associated with this dtype.
 

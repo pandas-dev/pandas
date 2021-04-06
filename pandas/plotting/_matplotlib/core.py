@@ -3,9 +3,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Hashable,
-    List,
-    Optional,
-    Tuple,
 )
 import warnings
 
@@ -94,7 +91,7 @@ class MPLPlot:
 
     _layout_type = "vertical"
     _default_rot = 0
-    orientation: Optional[str] = None
+    orientation: str | None = None
 
     axes: np.ndarray  # of Axes objects
 
@@ -118,8 +115,8 @@ class MPLPlot:
         ylim=None,
         xticks=None,
         yticks=None,
-        xlabel: Optional[Hashable] = None,
-        ylabel: Optional[Hashable] = None,
+        xlabel: Hashable | None = None,
+        ylabel: Hashable | None = None,
         sort_columns=False,
         fontsize=None,
         secondary_y=False,
@@ -180,8 +177,8 @@ class MPLPlot:
 
         self.grid = grid
         self.legend = legend
-        self.legend_handles: List[Artist] = []
-        self.legend_labels: List[Hashable] = []
+        self.legend_handles: list[Artist] = []
+        self.legend_labels: list[Hashable] = []
 
         self.logx = kwds.pop("logx", False)
         self.logy = kwds.pop("logy", False)
@@ -569,7 +566,7 @@ class MPLPlot:
                     label.set_fontsize(fontsize)
 
     @property
-    def legend_title(self) -> Optional[str]:
+    def legend_title(self) -> str | None:
         if not isinstance(self.data.columns, ABCMultiIndex):
             name = self.data.columns.name
             if name is not None:
@@ -715,7 +712,7 @@ class MPLPlot:
             args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
-    def _get_index_name(self) -> Optional[str]:
+    def _get_index_name(self) -> str | None:
         if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
             if com.any_not_none(*name):
@@ -922,7 +919,7 @@ class MPLPlot:
             ax for ax in self.axes[0].get_figure().get_axes() if isinstance(ax, Subplot)
         ]
 
-    def _get_axes_layout(self) -> Tuple[int, int]:
+    def _get_axes_layout(self) -> tuple[int, int]:
         axes = self._get_subplots()
         x_set = set()
         y_set = set()
