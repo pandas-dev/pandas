@@ -686,6 +686,7 @@ when it is an anchor point (e.g., a quarter start date), and otherwise roll
 forward to the next anchor point.
 
 .. ipython:: python
+   :okwarning:
 
    d = pd.Timestamp('2014-02-01')
    d
@@ -696,6 +697,7 @@ For the ``QuarterBegin`` offset in previous versions, the date would be rolled
 *backwards* if date was in the same month as the quarter start date.
 
 .. code-block:: ipython
+   :okwarning:
 
    In [3]: d = pd.Timestamp('2014-02-15')
 
@@ -706,6 +708,7 @@ This behavior has been corrected in version 0.18.0, which is consistent with
 other anchored offsets like ``MonthBegin`` and ``YearBegin``.
 
 .. ipython:: python
+   :okwarning:
 
    d = pd.Timestamp('2014-02-15')
    d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
