@@ -5259,6 +5259,13 @@ class Index(IndexOpsMixin, PandasObject):
         # both returned ndarrays are np.intp
         ...
 
+    @overload
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: bool = True
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+        # any returned ndarrays are np.intp
+        ...
+
     @final
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: bool = True
