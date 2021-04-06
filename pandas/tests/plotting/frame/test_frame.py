@@ -697,7 +697,9 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
-    def test_plot_scatter_with_c(self):
+    def test_plot_scatter_with_c(self, request):
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_4_0
+
         df = DataFrame(
             np.random.randn(6, 4),
             index=list(string.ascii_letters[:6]),
@@ -709,9 +711,10 @@ class TestDataFramePlots(TestPlotBase):
             # default to Greys
             assert ax.collections[0].cmap.name == "Greys"
 
-            # n.b. there appears to be no public method
-            # to get the colorbar label
-            assert ax.collections[0].colorbar._label == "z"
+            if mpl_ge_3_4_0():
+                assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
+            else:
+                assert ax.collections[0].colorbar._label == "z"
 
         cm = "cubehelix"
         ax = df.plot.scatter(x="x", y="y", c="z", colormap=cm)
