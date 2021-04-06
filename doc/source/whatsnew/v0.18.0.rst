@@ -697,7 +697,6 @@ For the ``QuarterBegin`` offset in previous versions, the date would be rolled
 *backwards* if date was in the same month as the quarter start date.
 
 .. code-block:: ipython
-   :okwarning:
 
    In [3]: d = pd.Timestamp('2014-02-15')
 
