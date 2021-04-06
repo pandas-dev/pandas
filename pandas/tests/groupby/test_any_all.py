@@ -79,7 +79,7 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
     [
         ([False, False, False], [[False, False], [False, False]]),
         ([True, True, True], [[True, True], [True, True]]),
-        ([pd.NA, pd.NA, pd.NA], [[True, True], [True, True]]),
+        ([pd.NA, pd.NA, pd.NA], [[pd.NA, pd.NA], [False, True]]),
         ([False, pd.NA, False], [[pd.NA, pd.NA], [False, False]]),
         ([True, pd.NA, True], [[True, pd.NA], [True, True]]),
         ([True, pd.NA, False], [[True, pd.NA], [True, False]]),

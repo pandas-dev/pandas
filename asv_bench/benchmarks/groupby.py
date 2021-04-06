@@ -480,7 +480,7 @@ class GroupByCythonAgg:
     param_names = ["dtype", "method"]
     params = [
         ["float64"],
-        ["sum", "prod", "min", "max", "mean", "median", "var", "first", "last"],
+        ["sum", "prod", "min", "max", "mean", "median", "var", "first", "last", "any", "all"],
     ]
 
     def setup(self, dtype, method):

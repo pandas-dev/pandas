@@ -450,24 +450,8 @@ def group_any_all(uint8_t[::1] out,
             if lab < 0 or (mask[i] and skipna):
                 continue
 
-            if use_kleene_logic:
-                if not mask[i]:
-
-
-            if use_kleene_logic and not mask[i]:
-                output_mask[lab] = 0
-
-            if use_kleene_logic and mask[i]:
-                output_mask[lab] = 1
-
-            # Either 'any' and True or 'all' and False
             if values[i] == flag_val:
                 out[lab] = flag_val
-
-                # In both of the above cases, the value
-                # is known regardless of any missing values
-                if use_kleene_logic:
-                    output_mask[lab] = 0
 
 
 # ----------------------------------------------------------------------
