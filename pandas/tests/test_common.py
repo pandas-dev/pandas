@@ -82,6 +82,18 @@ def test_random_state():
             == npr.RandomState(npr.PCG64(11)).uniform()
         )
 
+    # Check Generators
+    # GH38100
+    if not np_version_under1p17:
+        rng1 = npr.default_rng(4)
+        rng2 = npr.default_rng(4)
+        assert (
+            com.random_state(rng1).uniform()
+            == npr.RandomState(rng2.bit_generator).uniform()
+        )
+        assert rng1.uniform() == rng2.uniform()
+        assert com.random_state(rng1).uniform() != rng2.uniform()
+
     # Error for floats or strings
     msg = (
         "random_state must be an integer, array-like, a BitGenerator, "
