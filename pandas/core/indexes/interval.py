@@ -11,10 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
-    List,
-    Optional,
-    Tuple,
-    Union,
     cast,
 )
 
@@ -283,7 +279,7 @@ class IntervalIndex(ExtensionIndex):
         cls,
         data,
         closed=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
         verify_integrity: bool = True,
@@ -324,7 +320,7 @@ class IntervalIndex(ExtensionIndex):
         closed: str = "right",
         name=None,
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
     ):
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_breaks(
@@ -355,7 +351,7 @@ class IntervalIndex(ExtensionIndex):
         closed: str = "right",
         name=None,
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
     ):
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_arrays(
@@ -385,7 +381,7 @@ class IntervalIndex(ExtensionIndex):
         closed: str = "right",
         name=None,
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
     ):
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)
@@ -652,8 +648,8 @@ class IntervalIndex(ExtensionIndex):
     # Indexing Methods
 
     def get_loc(
-        self, key, method: Optional[str] = None, tolerance=None
-    ) -> Union[int, slice, np.ndarray]:
+        self, key, method: str | None = None, tolerance=None
+    ) -> int | slice | np.ndarray:
         """
         Get integer location, slice or boolean mask for requested label.
 
@@ -721,9 +717,9 @@ class IntervalIndex(ExtensionIndex):
     def _get_indexer(
         self,
         target: Index,
-        method: Optional[str] = None,
-        limit: Optional[int] = None,
-        tolerance: Optional[Any] = None,
+        method: str | None = None,
+        limit: int | None = None,
+        tolerance: Any | None = None,
     ) -> np.ndarray:
 
         if isinstance(target, IntervalIndex):
@@ -756,7 +752,7 @@ class IntervalIndex(ExtensionIndex):
         return ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target: Index) -> Tuple[np.ndarray, np.ndarray]:
+    def get_indexer_non_unique(self, target: Index) -> tuple[np.ndarray, np.ndarray]:
         target = ensure_index(target)
 
         if isinstance(target, IntervalIndex) and not self._should_compare(target):
@@ -775,7 +771,7 @@ class IntervalIndex(ExtensionIndex):
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
-    def _get_indexer_pointwise(self, target: Index) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_indexer_pointwise(self, target: Index) -> tuple[np.ndarray, np.ndarray]:
         """
         pointwise implementation for get_indexer and get_indexer_non_unique.
         """
@@ -911,7 +907,7 @@ class IntervalIndex(ExtensionIndex):
     # Rendering Methods
     # __repr__ associated methods are based on MultiIndex
 
-    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
+    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
         return header + list(self._format_native_types(na_rep=na_rep))
 
     def _format_native_types(self, na_rep="NaN", quoting=None, **kwargs):
