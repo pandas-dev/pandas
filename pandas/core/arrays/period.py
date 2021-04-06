@@ -6,11 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    List,
-    Optional,
     Sequence,
-    Type,
-    Union,
 )
 
 import numpy as np
@@ -160,7 +156,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     _infer_matches = ("period",)
 
     # Names others delegate to us
-    _other_ops: List[str] = []
+    _other_ops: list[str] = []
     _bool_ops = ["is_leap_year"]
     _object_ops = ["start_time", "end_time", "freq"]
     _field_ops = [
@@ -191,7 +187,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     # Constructors
 
     def __init__(
-        self, values, dtype: Optional[Dtype] = None, freq=None, copy: bool = False
+        self, values, dtype: Dtype | None = None, freq=None, copy: bool = False
     ):
         freq = validate_dtype_freq(dtype, freq)
 
@@ -221,8 +217,8 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     def _simple_new(
         cls,
         values: np.ndarray,
-        freq: Optional[BaseOffset] = None,
-        dtype: Optional[Dtype] = None,
+        freq: BaseOffset | None = None,
+        dtype: Dtype | None = None,
     ) -> PeriodArray:
         # alias for PeriodArray.__init__
         assertion_msg = "Should be numpy array of type i8"
@@ -231,10 +227,10 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence(
-        cls: Type[PeriodArray],
-        scalars: Union[Sequence[Optional[Period]], AnyArrayLike],
+        cls: type[PeriodArray],
+        scalars: Sequence[Period | None] | AnyArrayLike,
         *,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
     ) -> PeriodArray:
         if dtype and isinstance(dtype, PeriodDtype):
@@ -256,7 +252,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
     ) -> PeriodArray:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -302,9 +298,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    def _unbox_scalar(
-        self, value: Union[Period, NaTType], setitem: bool = False
-    ) -> np.int64:
+    def _unbox_scalar(self, value: Period | NaTType, setitem: bool = False) -> np.int64:
         if value is NaT:
             return np.int64(value.value)
         elif isinstance(value, self._scalar_type):
@@ -336,7 +330,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         """
         return self.dtype.freq
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         if dtype == "i8":
             return self.asi8
         elif dtype == bool:
@@ -523,7 +517,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
 
-    def _box_func(self, x) -> Union[Period, NaTType]:
+    def _box_func(self, x) -> Period | NaTType:
         return Period._from_ordinal(ordinal=x, freq=self.freq)
 
     @doc(**_shared_doc_kwargs, other="PeriodIndex", other_name="PeriodIndex")
@@ -869,8 +863,8 @@ def raise_on_incompatible(left, right):
 
 
 def period_array(
-    data: Union[Sequence[Optional[Period]], AnyArrayLike],
-    freq: Optional[Union[str, Tick]] = None,
+    data: Sequence[Period | None] | AnyArrayLike,
+    freq: str | Tick | None = None,
     copy: bool = False,
 ) -> PeriodArray:
     """
@@ -939,7 +933,7 @@ def period_array(
 
     arrdata = np.asarray(data)
 
-    dtype: Optional[PeriodDtype]
+    dtype: PeriodDtype | None
     if freq:
         dtype = PeriodDtype(freq)
     else:

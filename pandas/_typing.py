@@ -25,7 +25,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Type,
+    Type as type_t,
     TypeVar,
     Union,
 )
@@ -119,7 +119,7 @@ Axes = Collection[Any]
 # dtypes
 NpDtype = Union[str, np.dtype]
 Dtype = Union[
-    "ExtensionDtype", NpDtype, Type[Union[str, float, int, complex, bool, object]]
+    "ExtensionDtype", NpDtype, type_t[Union[str, float, int, complex, bool, object]]
 ]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]

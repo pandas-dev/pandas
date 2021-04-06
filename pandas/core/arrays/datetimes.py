@@ -8,8 +8,6 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
-    Optional,
-    Union,
     cast,
     overload,
 )
@@ -246,7 +244,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # Constructors
 
-    _dtype: Union[np.dtype, DatetimeTZDtype]
+    _dtype: np.dtype | DatetimeTZDtype
     _freq = None
 
     def __init__(self, values, dtype=DT64NS_DTYPE, freq=None, copy: bool = False):
@@ -324,7 +322,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     @classmethod
     def _simple_new(
-        cls, values: np.ndarray, freq: Optional[BaseOffset] = None, dtype=DT64NS_DTYPE
+        cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=DT64NS_DTYPE
     ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
         assert values.dtype == DT64NS_DTYPE
@@ -497,7 +495,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         self._check_compatible_with(value, setitem=setitem)
         return value.asm8
 
-    def _scalar_from_string(self, value) -> Union[Timestamp, NaTType]:
+    def _scalar_from_string(self, value) -> Timestamp | NaTType:
         return Timestamp(value, tz=self.tz)
 
     def _check_compatible_with(self, other, setitem: bool = False):
@@ -512,14 +510,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # Descriptive Properties
 
-    def _box_func(self, x) -> Union[Timestamp, NaTType]:
+    def _box_func(self, x) -> Timestamp | NaTType:
         return Timestamp(x, freq=self.freq, tz=self.tz)
 
     @property
     # error: Return type "Union[dtype, DatetimeTZDtype]" of "dtype"
     # incompatible with return type "ExtensionDtype" in supertype
     # "ExtensionArray"
-    def dtype(self) -> Union[np.dtype, DatetimeTZDtype]:  # type: ignore[override]
+    def dtype(self) -> np.dtype | DatetimeTZDtype:  # type: ignore[override]
         """
         The dtype for the DatetimeArray.
 
@@ -541,7 +539,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return self._dtype
 
     @property
-    def tz(self) -> Optional[tzinfo]:
+    def tz(self) -> tzinfo | None:
         """
         Return timezone, if any.
 
@@ -562,7 +560,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         )
 
     @property
-    def tzinfo(self) -> Optional[tzinfo]:
+    def tzinfo(self) -> tzinfo | None:
         """
         Alias for tz attribute
         """
@@ -1931,13 +1929,13 @@ def sequence_to_datetimes(
 @overload
 def sequence_to_datetimes(
     data, allow_object: Literal[True] = ..., require_iso8601: bool = ...
-) -> Union[np.ndarray, DatetimeArray]:
+) -> np.ndarray | DatetimeArray:
     ...
 
 
 def sequence_to_datetimes(
     data, allow_object: bool = False, require_iso8601: bool = False
-) -> Union[np.ndarray, DatetimeArray]:
+) -> np.ndarray | DatetimeArray:
     """
     Parse/convert the passed data to either DatetimeArray or np.ndarray[object].
     """
@@ -2268,9 +2266,7 @@ def maybe_convert_dtype(data, copy: bool):
 # Validation and Inference
 
 
-def _maybe_infer_tz(
-    tz: Optional[tzinfo], inferred_tz: Optional[tzinfo]
-) -> Optional[tzinfo]:
+def _maybe_infer_tz(tz: tzinfo | None, inferred_tz: tzinfo | None) -> tzinfo | None:
     """
     If a timezone is inferred from data, check that it is compatible with
     the user-provided timezone, if any.
@@ -2342,7 +2338,7 @@ def _validate_dt64_dtype(dtype):
     return dtype
 
 
-def validate_tz_from_dtype(dtype, tz: Optional[tzinfo]) -> Optional[tzinfo]:
+def validate_tz_from_dtype(dtype, tz: tzinfo | None) -> tzinfo | None:
     """
     If the given dtype is a DatetimeTZDtype, extract the implied
     tzinfo object from it and check that it does not conflict with the given
@@ -2390,8 +2386,8 @@ def validate_tz_from_dtype(dtype, tz: Optional[tzinfo]) -> Optional[tzinfo]:
 
 
 def _infer_tz_from_endpoints(
-    start: Timestamp, end: Timestamp, tz: Optional[tzinfo]
-) -> Optional[tzinfo]:
+    start: Timestamp, end: Timestamp, tz: tzinfo | None
+) -> tzinfo | None:
     """
     If a timezone is not explicitly given via `tz`, see if one can
     be inferred from the `start` and `end` endpoints.  If more than one
@@ -2433,7 +2429,7 @@ def _infer_tz_from_endpoints(
 
 
 def _maybe_normalize_endpoints(
-    start: Optional[Timestamp], end: Optional[Timestamp], normalize: bool
+    start: Timestamp | None, end: Timestamp | None, normalize: bool
 ):
     _normalized = True
 

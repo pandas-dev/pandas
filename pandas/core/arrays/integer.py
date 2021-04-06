@@ -1,12 +1,5 @@
 from __future__ import annotations
 
-from typing import (
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Type,
-)
 import warnings
 
 import numpy as np
@@ -79,7 +72,7 @@ class _IntegerDtype(NumericDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type[IntegerArray]:
+    def construct_array_type(cls) -> type[IntegerArray]:
         """
         Return the array type associated with this dtype.
 
@@ -89,7 +82,7 @@ class _IntegerDtype(NumericDtype):
         """
         return IntegerArray
 
-    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # we only handle nullable EA dtypes and numeric numpy dtypes
         if not all(
             isinstance(t, BaseMaskedDtype)
@@ -144,7 +137,7 @@ def safe_cast(values, dtype, copy: bool):
 
 def coerce_to_array(
     values, dtype, mask=None, copy: bool = False
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask
 
@@ -327,19 +320,19 @@ class IntegerArray(NumericArray):
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> IntegerArray:
         values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
         return IntegerArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
     ) -> IntegerArray:
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
-    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
@@ -568,7 +561,7 @@ class UInt64Dtype(_IntegerDtype):
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-INT_STR_TO_DTYPE: Dict[str, _IntegerDtype] = {
+INT_STR_TO_DTYPE: dict[str, _IntegerDtype] = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),

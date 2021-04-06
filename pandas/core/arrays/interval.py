@@ -7,9 +7,7 @@ from operator import (
 )
 import textwrap
 from typing import (
-    Optional,
     Sequence,
-    Type,
     TypeVar,
     cast,
 )
@@ -198,10 +196,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # Constructors
 
     def __new__(
-        cls: Type[IntervalArrayT],
+        cls: type[IntervalArrayT],
         data,
         closed=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
         verify_integrity: bool = True,
     ):
@@ -240,12 +238,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _simple_new(
-        cls: Type[IntervalArrayT],
+        cls: type[IntervalArrayT],
         left,
         right,
         closed=None,
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         verify_integrity: bool = True,
     ) -> IntervalArrayT:
         result = IntervalMixin.__new__(cls)
@@ -327,17 +325,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _from_sequence(
-        cls: Type[IntervalArrayT],
+        cls: type[IntervalArrayT],
         scalars,
         *,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
     ) -> IntervalArrayT:
         return cls(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_factorized(
-        cls: Type[IntervalArrayT], values: np.ndarray, original: IntervalArrayT
+        cls: type[IntervalArrayT], values: np.ndarray, original: IntervalArrayT
     ) -> IntervalArrayT:
         if len(values) == 0:
             # An empty array returns object-dtype here. We can't create
@@ -394,11 +392,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_breaks(
-        cls: Type[IntervalArrayT],
+        cls: type[IntervalArrayT],
         breaks,
         closed="right",
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
     ) -> IntervalArrayT:
         breaks = _maybe_convert_platform_interval(breaks)
 
@@ -469,12 +467,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_arrays(
-        cls: Type[IntervalArrayT],
+        cls: type[IntervalArrayT],
         left,
         right,
         closed="right",
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
     ) -> IntervalArrayT:
         left = _maybe_convert_platform_interval(left)
         right = _maybe_convert_platform_interval(right)
@@ -533,11 +531,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_tuples(
-        cls: Type[IntervalArrayT],
+        cls: type[IntervalArrayT],
         data,
         closed="right",
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
     ) -> IntervalArrayT:
         if len(data):
             left, right = [], []
@@ -875,7 +873,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _concat_same_type(
-        cls: Type[IntervalArrayT], to_concat: Sequence[IntervalArrayT]
+        cls: type[IntervalArrayT], to_concat: Sequence[IntervalArrayT]
     ) -> IntervalArrayT:
         """
         Concatenate multiple IntervalArray
@@ -1378,7 +1376,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # Conversion
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')

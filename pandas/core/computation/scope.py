@@ -10,7 +10,6 @@ import itertools
 import pprint
 import struct
 import sys
-from typing import List
 
 import numpy as np
 
@@ -239,7 +238,7 @@ class Scope:
                 mapping[new_key] = new_value  # type: ignore[index]
                 return
 
-    def _get_vars(self, stack, scopes: List[str]):
+    def _get_vars(self, stack, scopes: list[str]):
         """
         Get specifically scoped variables from a list of stack frames.
 
