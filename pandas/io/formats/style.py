@@ -171,13 +171,13 @@ class Styler:
     def __init__(
         self,
         data: FrameOrSeriesUnion,
-        precision: Optional[int] = None,
-        table_styles: Optional[CSSStyles] = None,
-        uuid: Optional[str] = None,
-        caption: Optional[str] = None,
-        table_attributes: Optional[str] = None,
+        precision: int | None = None,
+        table_styles: CSSStyles | None = None,
+        uuid: str | None = None,
+        caption: str | None = None,
+        table_attributes: str | None = None,
         cell_ids: bool = True,
-        na_rep: Optional[str] = None,
+        na_rep: str | None = None,
         uuid_len: int = 5,
         escape: bool = False,
     ):
@@ -203,13 +203,13 @@ class Styler:
         # assign additional default vars
         self.hidden_index: bool = False
         self.hidden_columns: Sequence[int] = []
-        self.ctx: DefaultDict[Tuple[int, int], CSSList] = defaultdict(list)
-        self.cell_context: DefaultDict[Tuple[int, int], str] = defaultdict(str)
-        self._todo: List[Tuple[Callable, Tuple, Dict]] = []
-        self.tooltips: Optional[_Tooltips] = None
+        self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
+        self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
+        self._todo: list[tuple[Callable, tuple, dict]] = []
+        self.tooltips: _Tooltips | None = None
         def_precision = get_option("display.precision")
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
-            Tuple[int, int], Callable[[Any], str]
+            tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
@@ -224,8 +224,8 @@ class Styler:
     def set_tooltips(
         self,
         ttips: DataFrame,
-        props: Optional[CSSProperties] = None,
-        css_class: Optional[str] = None,
+        props: CSSProperties | None = None,
+        css_class: str | None = None,
     ) -> Styler:
         """
         Set the DataFrame of strings on ``Styler`` generating ``:hover`` tooltips.
@@ -322,19 +322,19 @@ class Styler:
         excel_writer,
         sheet_name: str = "Sheet1",
         na_rep: str = "",
-        float_format: Optional[str] = None,
-        columns: Optional[Sequence[Hashable]] = None,
-        header: Union[Sequence[Hashable], bool] = True,
+        float_format: str | None = None,
+        columns: Sequence[Hashable] | None = None,
+        header: Sequence[Hashable] | bool = True,
         index: bool = True,
-        index_label: Optional[IndexLabel] = None,
+        index_label: IndexLabel | None = None,
         startrow: int = 0,
         startcol: int = 0,
-        engine: Optional[str] = None,
+        engine: str | None = None,
         merge_cells: bool = True,
-        encoding: Optional[str] = None,
+        encoding: str | None = None,
         inf_rep: str = "inf",
         verbose: bool = True,
-        freeze_panes: Optional[Tuple[int, int]] = None,
+        freeze_panes: tuple[int, int] | None = None,
     ) -> None:
 
         from pandas.io.formats.excel import ExcelFormatter
@@ -375,7 +375,7 @@ class Styler:
         # mapping variables
         ctx = self.ctx  # td css styles from apply() and applymap()
         cell_context = self.cell_context  # td css classes from set_td_classes()
-        cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
+        cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(list)
 
         # copied attributes
         hidden_index = self.hidden_index
@@ -527,7 +527,7 @@ class Styler:
             body.append(row_es)
         d.update({"body": body})
 
-        cellstyle: List[Dict[str, Union[CSSList, List[str]]]] = [
+        cellstyle: list[dict[str, CSSList | list[str]]] = [
             {"props": list(props), "selectors": selectors}
             for props, selectors in cellstyle_map.items()
         ]
@@ -550,10 +550,10 @@ class Styler:
 
     def format(
         self,
-        formatter: Optional[ExtFormatter] = None,
-        subset: Optional[Union[slice, Sequence[Any]]] = None,
-        na_rep: Optional[str] = None,
-        precision: Optional[int] = None,
+        formatter: ExtFormatter | None = None,
+        subset: slice | Sequence[Any] | None = None,
+        na_rep: str | None = None,
+        precision: int | None = None,
         escape: bool = False,
     ) -> Styler:
         """
@@ -909,7 +909,7 @@ class Styler:
     def _apply(
         self,
         func: Callable[..., Styler],
-        axis: Optional[Axis] = 0,
+        axis: Axis | None = 0,
         subset=None,
         **kwargs,
     ) -> Styler:
@@ -954,7 +954,7 @@ class Styler:
     def apply(
         self,
         func: Callable[..., Styler],
-        axis: Optional[Axis] = 0,
+        axis: Axis | None = 0,
         subset=None,
         **kwargs,
     ) -> Styler:
@@ -1073,7 +1073,7 @@ class Styler:
         self,
         cond: Callable,
         value: str,
-        other: Optional[str] = None,
+        other: str | None = None,
         subset=None,
         **kwargs,
     ) -> Styler:
@@ -1176,7 +1176,7 @@ class Styler:
         self.table_attributes = attributes
         return self
 
-    def export(self) -> List[Tuple[Callable, Tuple, Dict]]:
+    def export(self) -> list[tuple[Callable, tuple, dict]]:
         """
         Export the styles applied to the current ``Styler``.
 
@@ -1192,7 +1192,7 @@ class Styler:
         """
         return self._todo
 
-    def use(self, styles: List[Tuple[Callable, Tuple, Dict]]) -> Styler:
+    def use(self, styles: list[tuple[Callable, tuple, dict]]) -> Styler:
         """
         Set the styles on the current ``Styler``.
 
@@ -1252,7 +1252,7 @@ class Styler:
 
     def set_table_styles(
         self,
-        table_styles: Union[Dict[Any, CSSStyles], CSSStyles],
+        table_styles: dict[Any, CSSStyles] | CSSStyles,
         axis: int = 0,
         overwrite: bool = True,
     ) -> Styler:
@@ -1436,12 +1436,12 @@ class Styler:
         cmap="PuBu",
         low: float = 0,
         high: float = 0,
-        axis: Optional[Axis] = 0,
+        axis: Axis | None = 0,
         subset=None,
         text_color_threshold: float = 0.408,
-        vmin: Optional[float] = None,
-        vmax: Optional[float] = None,
-        gmap: Optional[Sequence] = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
+        gmap: Sequence | None = None,
     ) -> Styler:
         """
         Color the background in a gradient style.
@@ -1617,10 +1617,10 @@ class Styler:
     def _bar(
         s,
         align: str,
-        colors: List[str],
+        colors: list[str],
         width: float = 100,
-        vmin: Optional[float] = None,
-        vmax: Optional[float] = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
     ):
         """
         Draw bar chart in dataframe cells.
@@ -1676,12 +1676,12 @@ class Styler:
     def bar(
         self,
         subset=None,
-        axis: Optional[Axis] = 0,
+        axis: Axis | None = 0,
         color="#d65f5f",
         width: float = 100,
         align: str = "left",
-        vmin: Optional[float] = None,
-        vmax: Optional[float] = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
     ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
@@ -1761,8 +1761,8 @@ class Styler:
     def highlight_null(
         self,
         null_color: str = "red",
-        subset: Optional[IndexLabel] = None,
-        props: Optional[str] = None,
+        subset: IndexLabel | None = None,
+        props: str | None = None,
     ) -> Styler:
         """
         Highlight missing values with a style.
@@ -1804,10 +1804,10 @@ class Styler:
 
     def highlight_max(
         self,
-        subset: Optional[IndexLabel] = None,
+        subset: IndexLabel | None = None,
         color: str = "yellow",
-        axis: Optional[Axis] = 0,
-        props: Optional[str] = None,
+        axis: Axis | None = 0,
+        props: str | None = None,
     ) -> Styler:
         """
         Highlight the maximum with a style.
@@ -1851,10 +1851,10 @@ class Styler:
 
     def highlight_min(
         self,
-        subset: Optional[IndexLabel] = None,
+        subset: IndexLabel | None = None,
         color: str = "yellow",
-        axis: Optional[Axis] = 0,
-        props: Optional[str] = None,
+        axis: Axis | None = 0,
+        props: str | None = None,
     ) -> Styler:
         """
         Highlight the minimum with a style.
@@ -2107,7 +2107,7 @@ class _Tooltips:
             },
         ]
 
-    def _translate(self, styler_data: FrameOrSeriesUnion, uuid: str, d: Dict):
+    def _translate(self, styler_data: FrameOrSeriesUnion, uuid: str, d: dict):
         """
         Mutate the render dictionary to allow for tooltips:
 
@@ -2237,9 +2237,9 @@ def _default_formatter(x: Any, precision: int) -> Any:
 
 
 def _maybe_wrap_formatter(
-    formatter: Optional[BaseFormatter] = None,
-    na_rep: Optional[str] = None,
-    precision: Optional[int] = None,
+    formatter: BaseFormatter | None = None,
+    na_rep: str | None = None,
+    precision: int | None = None,
     escape: bool = False,
 ) -> Callable:
     """
@@ -2358,7 +2358,7 @@ def _non_reducing_slice(slice_):
 def _validate_apply_axis_arg(
     arg: Union[FrameOrSeries, Sequence, np.ndarray],
     arg_name: str,
-    dtype: Optional[Any],
+    dtype: Any | None,
     data: FrameOrSeries,
 ) -> np.ndarray:
     """
@@ -2414,9 +2414,9 @@ def _background_gradient(
     low: float = 0,
     high: float = 0,
     text_color_threshold: float = 0.408,
-    vmin: Optional[float] = None,
-    vmax: Optional[float] = None,
-    gmap: Optional[Union[Sequence, np.ndarray, FrameOrSeries]] = None,
+    vmin: float | None = None,
+    vmax: float | None = None,
+    gmap: Union[Sequence, np.ndarray, FrameOrSeries] | None = None,
 ):
     """
     Color background in a range according to the data or a gradient map

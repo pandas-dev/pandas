@@ -23,7 +23,6 @@ from pandas._typing import (
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     find_common_type,
-    maybe_upcast_putmask,
 )
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -129,7 +128,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
         if mask.any():
             result[mask] = op(xrav[mask], y)
 
-    result = maybe_upcast_putmask(result, ~mask)
+    np.putmask(result, ~mask, np.nan)
     result = result.reshape(x.shape)  # 2D compat
     return result
 

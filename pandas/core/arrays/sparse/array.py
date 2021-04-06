@@ -9,11 +9,8 @@ import operator
 from typing import (
     Any,
     Callable,
-    Optional,
     Sequence,
-    Type,
     TypeVar,
-    Union,
 )
 import warnings
 
@@ -202,7 +199,7 @@ def _sparse_array_op(
     return _wrap_result(name, result, index, fill, dtype=result_dtype)
 
 
-def _wrap_result(name, data, sparse_index, fill_value, dtype: Optional[Dtype] = None):
+def _wrap_result(name, data, sparse_index, fill_value, dtype: Dtype | None = None):
     """
     wrap op result to have correct dtype
     """
@@ -309,7 +306,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         index=None,
         fill_value=None,
         kind="integer",
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy=False,
     ):
 
@@ -450,7 +447,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     @classmethod
     def _simple_new(
-        cls: Type[SparseArrayT],
+        cls: type[SparseArrayT],
         sparse_array: np.ndarray,
         sparse_index: SparseIndex,
         dtype: SparseDtype,
@@ -507,7 +504,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls._simple_new(arr, index, dtype)
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         fill_value = self.fill_value
 
         if self.sp_index.ngaps == 0:
@@ -542,7 +539,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         raise TypeError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         return cls(scalars, dtype=dtype)
 
     @classmethod
@@ -961,7 +958,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return taken
 
-    def _take_without_fill(self, indices) -> Union[np.ndarray, SparseArray]:
+    def _take_without_fill(self, indices) -> np.ndarray | SparseArray:
         to_shift = indices < 0
         indices = indices.copy()
 
@@ -1013,7 +1010,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     @classmethod
     def _concat_same_type(
-        cls: Type[SparseArrayT], to_concat: Sequence[SparseArrayT]
+        cls: type[SparseArrayT], to_concat: Sequence[SparseArrayT]
     ) -> SparseArrayT:
         fill_value = to_concat[0].fill_value
 
@@ -1065,7 +1062,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
-    def astype(self, dtype: Optional[Dtype] = None, copy=True):
+    def astype(self, dtype: Dtype | None = None, copy=True):
         """
         Change the dtype of a SparseArray.
 
@@ -1555,7 +1552,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
 
 def make_sparse(
-    arr: np.ndarray, kind="block", fill_value=None, dtype: Optional[NpDtype] = None
+    arr: np.ndarray, kind="block", fill_value=None, dtype: NpDtype | None = None
 ):
     """
     Convert ndarray to sparse format
