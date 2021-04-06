@@ -19,12 +19,7 @@ from typing import (
     IO,
     Any,
     AnyStr,
-    Dict,
-    List,
     Mapping,
-    Optional,
-    Tuple,
-    Union,
     cast,
 )
 from urllib.parse import (
@@ -95,7 +90,7 @@ class IOHandles:
 
     handle: Buffer
     compression: CompressionDict
-    created_handles: List[Buffer] = dataclasses.field(default_factory=list)
+    created_handles: list[Buffer] = dataclasses.field(default_factory=list)
     is_wrapped: bool = False
     is_mmap: bool = False
 
@@ -342,7 +337,7 @@ def _get_filepath_or_buffer(
 
         # If botocore is installed we fallback to reading with anon=True
         # to allow reads from public buckets
-        err_types_to_retry_with_anon: List[Any] = []
+        err_types_to_retry_with_anon: list[Any] = []
         try:
             import_optional_dependency("botocore")
             from botocore.exceptions import (
@@ -431,7 +426,7 @@ _compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": 
 
 def get_compression_method(
     compression: CompressionOptions,
-) -> Tuple[Optional[str], CompressionDict]:
+) -> tuple[str | None, CompressionDict]:
     """
     Simplifies a compression argument to a compression method string and
     a mapping containing additional arguments.
@@ -451,7 +446,7 @@ def get_compression_method(
     ------
     ValueError on mapping missing 'method' key
     """
-    compression_method: Optional[str]
+    compression_method: str | None
     if isinstance(compression, Mapping):
         compression_args = dict(compression)
         try:
@@ -465,8 +460,8 @@ def get_compression_method(
 
 
 def infer_compression(
-    filepath_or_buffer: FilePathOrBuffer, compression: Optional[str]
-) -> Optional[str]:
+    filepath_or_buffer: FilePathOrBuffer, compression: str | None
+) -> str | None:
     """
     Get the compression method for filepath_or_buffer. If compression='infer',
     the inferred compression method is returned. Otherwise, the input
@@ -526,11 +521,11 @@ def infer_compression(
 def get_handle(
     path_or_buf: FilePathOrBuffer,
     mode: str,
-    encoding: Optional[str] = None,
+    encoding: str | None = None,
     compression: CompressionOptions = None,
     memory_map: bool = False,
     is_text: bool = True,
-    errors: Optional[str] = None,
+    errors: str | None = None,
     storage_options: StorageOptions = None,
 ) -> IOHandles:
     """
@@ -619,7 +614,7 @@ def get_handle(
     )
 
     handle = ioargs.filepath_or_buffer
-    handles: List[Buffer]
+    handles: list[Buffer]
 
     # memory mapping needs to be the first step
     handle, memory_map, handles = _maybe_memory_map(
@@ -769,14 +764,14 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         self,
         file: FilePathOrBuffer,
         mode: str,
-        archive_name: Optional[str] = None,
+        archive_name: str | None = None,
         **kwargs,
     ):
         mode = mode.replace("b", "")
         self.archive_name = archive_name
-        self.multiple_write_buffer: Optional[Union[StringIO, BytesIO]] = None
+        self.multiple_write_buffer: StringIO | BytesIO | None = None
 
-        kwargs_zip: Dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
+        kwargs_zip: dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
         kwargs_zip.update(kwargs)
 
         # error: Argument 1 to "__init__" of "ZipFile" has incompatible type
@@ -861,10 +856,10 @@ def _maybe_memory_map(
     memory_map: bool,
     encoding: str,
     mode: str,
-    errors: Optional[str],
-) -> Tuple[FileOrBuffer, bool, List[Buffer]]:
+    errors: str | None,
+) -> tuple[FileOrBuffer, bool, list[Buffer]]:
     """Try to memory map file/buffer."""
-    handles: List[Buffer] = []
+    handles: list[Buffer] = []
     memory_map &= hasattr(handle, "fileno") or isinstance(handle, str)
     if not memory_map:
         return handle, memory_map, handles

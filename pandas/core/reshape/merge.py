@@ -11,9 +11,6 @@ import string
 from typing import (
     TYPE_CHECKING,
     Hashable,
-    List,
-    Optional,
-    Tuple,
     cast,
 )
 import warnings
@@ -94,16 +91,16 @@ def merge(
     left: FrameOrSeriesUnion,
     right: FrameOrSeriesUnion,
     how: str = "inner",
-    on: Optional[IndexLabel] = None,
-    left_on: Optional[IndexLabel] = None,
-    right_on: Optional[IndexLabel] = None,
+    on: IndexLabel | None = None,
+    left_on: IndexLabel | None = None,
+    right_on: IndexLabel | None = None,
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
     copy: bool = True,
     indicator: bool = False,
-    validate: Optional[str] = None,
+    validate: str | None = None,
 ) -> DataFrame:
     op = _MergeOperation(
         left,
@@ -143,7 +140,7 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
         by = [by]
 
     lby = left.groupby(by, sort=False)
-    rby: Optional[groupby.DataFrameGroupBy] = None
+    rby: groupby.DataFrameGroupBy | None = None
 
     # if we can groupby the rhs
     # then we can get vastly better perf
@@ -186,12 +183,12 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
 def merge_ordered(
     left: DataFrame,
     right: DataFrame,
-    on: Optional[IndexLabel] = None,
-    left_on: Optional[IndexLabel] = None,
-    right_on: Optional[IndexLabel] = None,
+    on: IndexLabel | None = None,
+    left_on: IndexLabel | None = None,
+    right_on: IndexLabel | None = None,
     left_by=None,
     right_by=None,
-    fill_method: Optional[str] = None,
+    fill_method: str | None = None,
     suffixes: Suffixes = ("_x", "_y"),
     how: str = "outer",
 ) -> DataFrame:
@@ -327,9 +324,9 @@ def merge_ordered(
 def merge_asof(
     left: DataFrame,
     right: DataFrame,
-    on: Optional[IndexLabel] = None,
-    left_on: Optional[IndexLabel] = None,
-    right_on: Optional[IndexLabel] = None,
+    on: IndexLabel | None = None,
+    left_on: IndexLabel | None = None,
+    right_on: IndexLabel | None = None,
     left_index: bool = False,
     right_index: bool = False,
     by=None,
@@ -614,9 +611,9 @@ class _MergeOperation:
         left: FrameOrSeriesUnion,
         right: FrameOrSeriesUnion,
         how: str = "inner",
-        on: Optional[IndexLabel] = None,
-        left_on: Optional[IndexLabel] = None,
-        right_on: Optional[IndexLabel] = None,
+        on: IndexLabel | None = None,
+        left_on: IndexLabel | None = None,
+        right_on: IndexLabel | None = None,
         axis: int = 1,
         left_index: bool = False,
         right_index: bool = False,
@@ -624,7 +621,7 @@ class _MergeOperation:
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         indicator: bool = False,
-        validate: Optional[str] = None,
+        validate: str | None = None,
     ):
         _left = _validate_operand(left)
         _right = _validate_operand(right)
@@ -650,7 +647,7 @@ class _MergeOperation:
 
         self.indicator = indicator
 
-        self.indicator_name: Optional[str]
+        self.indicator_name: str | None
         if isinstance(self.indicator, str):
             self.indicator_name = self.indicator
         elif isinstance(self.indicator, bool):
@@ -743,14 +740,14 @@ class _MergeOperation:
         return result.__finalize__(self, method="merge")
 
     def _maybe_drop_cross_column(
-        self, result: DataFrame, cross_col: Optional[str]
+        self, result: DataFrame, cross_col: str | None
     ) -> None:
         if cross_col is not None:
             result.drop(columns=cross_col, inplace=True)
 
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
-    ) -> Tuple[DataFrame, DataFrame]:
+    ) -> tuple[DataFrame, DataFrame]:
 
         columns = left.columns.union(right.columns)
 
@@ -830,8 +827,8 @@ class _MergeOperation:
     def _maybe_add_join_keys(
         self,
         result: DataFrame,
-        left_indexer: Optional[np.ndarray],
-        right_indexer: Optional[np.ndarray],
+        left_indexer: np.ndarray | None,
+        right_indexer: np.ndarray | None,
     ) -> None:
 
         left_has_missing = None
@@ -1274,7 +1271,7 @@ class _MergeOperation:
 
     def _create_cross_configuration(
         self, left: DataFrame, right: DataFrame
-    ) -> Tuple[DataFrame, DataFrame, str, str]:
+    ) -> tuple[DataFrame, DataFrame, str, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
         e.g. adding a join column and resetting parameters. Join column is added
@@ -1498,7 +1495,7 @@ def restore_dropped_levels_multijoin(
     join_index: Index,
     lindexer: np.ndarray,
     rindexer: np.ndarray,
-) -> Tuple[List[Index], np.ndarray, List[Hashable]]:
+) -> tuple[list[Index], np.ndarray, list[Hashable]]:
     """
     *this is an internal non-public method*
 
@@ -1592,15 +1589,15 @@ class _OrderedMerge(_MergeOperation):
         self,
         left: DataFrame,
         right: DataFrame,
-        on: Optional[IndexLabel] = None,
-        left_on: Optional[IndexLabel] = None,
-        right_on: Optional[IndexLabel] = None,
+        on: IndexLabel | None = None,
+        left_on: IndexLabel | None = None,
+        right_on: IndexLabel | None = None,
         left_index: bool = False,
         right_index: bool = False,
         axis: int = 1,
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
-        fill_method: Optional[str] = None,
+        fill_method: str | None = None,
         how: str = "outer",
     ):
 
@@ -1686,9 +1683,9 @@ class _AsOfMerge(_OrderedMerge):
         self,
         left: DataFrame,
         right: DataFrame,
-        on: Optional[IndexLabel] = None,
-        left_on: Optional[IndexLabel] = None,
-        right_on: Optional[IndexLabel] = None,
+        on: IndexLabel | None = None,
+        left_on: IndexLabel | None = None,
+        right_on: IndexLabel | None = None,
         left_index: bool = False,
         right_index: bool = False,
         by=None,
@@ -1697,7 +1694,7 @@ class _AsOfMerge(_OrderedMerge):
         axis: int = 1,
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
-        fill_method: Optional[str] = None,
+        fill_method: str | None = None,
         how: str = "asof",
         tolerance=None,
         allow_exact_matches: bool = True,
@@ -2031,7 +2028,7 @@ def _left_join_on_index(
 
 def _factorize_keys(
     lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
-) -> Tuple[np.ndarray, np.ndarray, int]:
+) -> tuple[np.ndarray, np.ndarray, int]:
     """
     Encode left and right keys as enumerated types.
 
