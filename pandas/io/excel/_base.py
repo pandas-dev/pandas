@@ -9,10 +9,7 @@ import os
 from textwrap import fill
 from typing import (
     Any,
-    Dict,
     Mapping,
-    Optional,
-    Union,
     cast,
 )
 import warnings
@@ -342,7 +339,7 @@ def read_excel(
     index_col=None,
     usecols=None,
     squeeze=False,
-    dtype: Optional[DtypeArg] = None,
+    dtype: DtypeArg | None = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -480,7 +477,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         index_col=None,
         usecols=None,
         squeeze=False,
-        dtype: Optional[DtypeArg] = None,
+        dtype: DtypeArg | None = None,
         true_values=None,
         false_values=None,
         skiprows=None,
@@ -757,13 +754,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     # ExcelWriter.
     def __new__(
         cls,
-        path: Union[FilePathOrBuffer, ExcelWriter],
+        path: FilePathOrBuffer | ExcelWriter,
         engine=None,
         date_format=None,
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        engine_kwargs: Optional[Dict] = None,
+        engine_kwargs: dict | None = None,
         **kwargs,
     ):
         if kwargs:
@@ -858,13 +855,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: Union[FilePathOrBuffer, ExcelWriter],
+        path: FilePathOrBuffer | ExcelWriter,
         engine=None,
         date_format=None,
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        engine_kwargs: Optional[Dict] = None,
+        engine_kwargs: dict | None = None,
         **kwargs,
     ):
         # validate that this engine can handle the extension
@@ -885,7 +882,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             self.handles = get_handle(
                 path, mode, storage_options=storage_options, is_text=False
             )
-        self.sheets: Dict[str, Any] = {}
+        self.sheets: dict[str, Any] = {}
         self.cur_sheet = None
 
         if date_format is None:
