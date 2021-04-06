@@ -1431,7 +1431,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             result_is_nullable: bool = False,
         ) -> ArrayLike:
             if result_is_nullable:
-                return BooleanArray(result.astype(bool), result == 2)
+                return BooleanArray(result.astype(bool, copy=False), result == 2)
             else:
                 return result.astype(inference, copy=False)
 
