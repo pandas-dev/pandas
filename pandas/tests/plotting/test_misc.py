@@ -71,10 +71,12 @@ class TestSeriesPlots(TestPlotBase):
     def test_autocorrelation_plot(self):
         from pandas.plotting import autocorrelation_plot
 
-        _check_plot_works(autocorrelation_plot, series=self.ts)
-        _check_plot_works(autocorrelation_plot, series=self.ts.values)
+        # Ensure no UserWarning when making plot
+        with tm.assert_produces_warning(None):
+            _check_plot_works(autocorrelation_plot, series=self.ts)
+            _check_plot_works(autocorrelation_plot, series=self.ts.values)
 
-        ax = autocorrelation_plot(self.ts, label="Test")
+            ax = autocorrelation_plot(self.ts, label="Test")
         self._check_legend_labels(ax, labels=["Test"])
 
     def test_lag_plot(self):
@@ -132,8 +134,9 @@ class TestDataFramePlots(TestPlotBase):
         from pandas.plotting import andrews_curves
 
         df = iris
-
-        _check_plot_works(andrews_curves, frame=df, class_column="Name")
+        # Ensure no UserWarning when making plot
+        with tm.assert_produces_warning(None):
+            _check_plot_works(andrews_curves, frame=df, class_column="Name")
 
         rgba = ("#556270", "#4ECDC4", "#C7F464")
         ax = _check_plot_works(
@@ -280,7 +283,9 @@ class TestDataFramePlots(TestPlotBase):
         from pandas.plotting import radviz
 
         df = iris
-        _check_plot_works(radviz, frame=df, class_column="Name")
+        # Ensure no UserWarning when making plot
+        with tm.assert_produces_warning(None):
+            _check_plot_works(radviz, frame=df, class_column="Name")
 
         rgba = ("#556270", "#4ECDC4", "#C7F464")
         ax = _check_plot_works(radviz, frame=df, class_column="Name", color=rgba)
