@@ -4,8 +4,6 @@ from collections import namedtuple
 from typing import (
     TYPE_CHECKING,
     Iterator,
-    List,
-    Tuple,
 )
 
 from pandas._typing import ArrayLike
@@ -54,7 +52,7 @@ def operate_blockwise(
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
 
-    res_blks: List[Block] = []
+    res_blks: list[Block] = []
     for lvals, rvals, locs, left_ea, right_ea, rblk in _iter_block_pairs(left, right):
         res_values = array_op(lvals, rvals)
         if left_ea and not right_ea and hasattr(res_values, "reshape"):
@@ -82,7 +80,7 @@ def operate_blockwise(
     return new_mgr
 
 
-def _reset_block_mgr_locs(nbs: List[Block], locs):
+def _reset_block_mgr_locs(nbs: list[Block], locs):
     """
     Reset mgr_locs to correspond to our original DataFrame.
     """
@@ -96,7 +94,7 @@ def _reset_block_mgr_locs(nbs: List[Block], locs):
 
 def _get_same_shape_values(
     lblk: Block, rblk: Block, left_ea: bool, right_ea: bool
-) -> Tuple[ArrayLike, ArrayLike]:
+) -> tuple[ArrayLike, ArrayLike]:
     """
     Slice lblk.values to align with rblk.  Squeeze if we have EAs.
     """
