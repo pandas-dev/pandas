@@ -14,7 +14,6 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
-    isna,
 )
 import pandas._testing as tm
 import pandas.core.nanops as nanops

@@ -1,24 +1,15 @@
 import builtins
-from io import StringIO
 
 import numpy as np
 import pytest
 
-from pandas.errors import UnsupportedFunctionCall
-
-import pandas as pd
 from pandas import (
     DataFrame,
     Index,
-    MultiIndex,
     Series,
-    Timestamp,
-    date_range,
     isna,
 )
 import pandas._testing as tm
-import pandas.core.nanops as nanops
-from pandas.util import _test_decorators as td
 
 
 @pytest.mark.parametrize("agg_func", ["any", "all"])
@@ -56,12 +47,16 @@ def test_groupby_bool_aggs(agg_func, skipna, vals):
     tm.assert_frame_equal(result, exp_df)
 
 
-def test_any(gb):
+def test_any():
+    df = DataFrame(
+        [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, "baz"]],
+        columns=["A", "B", "C"],
+    )
     expected = DataFrame(
         [[True, True], [False, True]], columns=["B", "C"], index=[1, 3]
     )
     expected.index.name = "A"
-    result = gb.any()
+    result = df.groupby("A").any()
     tm.assert_frame_equal(result, expected)
 
 
