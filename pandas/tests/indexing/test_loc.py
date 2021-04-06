@@ -2117,23 +2117,29 @@ class TestLabelSlicing:
 
 
 class TestLocBooleanLabelsAndSlices(Base):
-    def test_loc_bool_incompatible_index_raises(self, index, frame_or_series):
+    @pytest.mark.parametrize("bool_value", [True, False])
+    def test_loc_bool_incompatible_index_raises(
+        self, index, frame_or_series, bool_value
+    ):
         # GH20432
-        message = "Boolean label can not be used without a boolean index"
+        message = f"{bool_value}: boolean label can not be used without a boolean index"
         if index.inferred_type != "boolean":
             obj = frame_or_series(index=index, dtype="object")
             with pytest.raises(KeyError, match=message):
-                obj.loc[True]
+                obj.loc[bool_value]
 
-    def test_loc_bool_should_not_raise(self, frame_or_series):
+    @pytest.mark.parametrize("bool_value", [True, False])
+    def test_loc_bool_should_not_raise(self, frame_or_series, bool_value):
         obj = frame_or_series(
             index=Index([True, False], dtype="boolean"), dtype="object"
         )
-        obj.loc[True]
+        obj.loc[bool_value]
 
     def test_loc_bool_slice_raises(self, index, frame_or_series):
         # GH20432
-        message = "Boolean values can not be used in a slice"
+        message = (
+            r"slice\(True, False, None\): boolean values can not be used in a slice"
+        )
         obj = frame_or_series(index=index, dtype="object")
         with pytest.raises(TypeError, match=message):
             obj.loc[True:False]

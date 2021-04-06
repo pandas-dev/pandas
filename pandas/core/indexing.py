@@ -966,12 +966,14 @@ class _LocIndexer(_LocationIndexer):
         # slice of integers (only if in the labels)
         # boolean not in slice and with boolean index
         if isinstance(key, bool) and not is_bool_dtype(self.obj.index):
-            raise KeyError("Boolean label can not be used without a boolean index")
+            raise KeyError(
+                f"{key}: boolean label can not be used without a boolean index"
+            )
 
         if isinstance(key, slice) and (
             isinstance(key.start, bool) or isinstance(key.stop, bool)
         ):
-            raise TypeError("Boolean values can not be used in a slice")
+            raise TypeError(f"{key}: boolean values can not be used in a slice")
 
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         return True
