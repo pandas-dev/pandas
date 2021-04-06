@@ -425,6 +425,8 @@ def random_state(state=None):
         or (not np_version_under1p18 and isinstance(state, np.random.BitGenerator))
     ):
         return np.random.RandomState(state)
+    elif not np_version_under1p18 and isinstance(state, np.random.Generator):
+        return np.random.RandomState(state.bit_generator)
     elif isinstance(state, np.random.RandomState):
         return state
     elif state is None:
