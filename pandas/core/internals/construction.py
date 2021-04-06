@@ -8,13 +8,8 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
     Hashable,
-    List,
-    Optional,
     Sequence,
-    Tuple,
-    Union,
 )
 
 import numpy as np
@@ -102,9 +97,9 @@ def arrays_to_mgr(
     index,
     columns,
     *,
-    dtype: Optional[DtypeObj] = None,
+    dtype: DtypeObj | None = None,
     verify_integrity: bool = True,
-    typ: Optional[str] = None,
+    typ: str | None = None,
     consolidate: bool = True,
 ) -> Manager:
     """
@@ -146,10 +141,10 @@ def arrays_to_mgr(
 
 
 def rec_array_to_mgr(
-    data: Union[MaskedRecords, np.recarray, np.ndarray],
+    data: MaskedRecords | np.recarray | np.ndarray,
     index,
     columns,
-    dtype: Optional[DtypeObj],
+    dtype: DtypeObj | None,
     copy: bool,
     typ: str,
 ):
@@ -192,7 +187,7 @@ def rec_array_to_mgr(
     return mgr
 
 
-def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> List[np.ndarray]:
+def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> list[np.ndarray]:
     """
     Convert numpy MaskedRecords to ensure mask is softened.
     """
@@ -246,7 +241,7 @@ def mgr_to_mgr(mgr, typ: str):
 
 
 def ndarray_to_mgr(
-    values, index, columns, dtype: Optional[DtypeObj], copy: bool, typ: str
+    values, index, columns, dtype: DtypeObj | None, copy: bool, typ: str
 ) -> Manager:
     # used in DataFrame.__init__
     # input must be a ndarray, list, Series, Index, ExtensionArray
@@ -380,11 +375,11 @@ def maybe_squeeze_dt64tz(dta: ArrayLike) -> ArrayLike:
 
 
 def dict_to_mgr(
-    data: Dict,
+    data: dict,
     index,
     columns,
     *,
-    dtype: Optional[DtypeObj] = None,
+    dtype: DtypeObj | None = None,
     typ: str = "block",
     copy: bool = True,
 ) -> Manager:
@@ -394,7 +389,7 @@ def dict_to_mgr(
 
     Used in DataFrame.__init__
     """
-    arrays: Union[Sequence[Any], Series]
+    arrays: Sequence[Any] | Series
 
     if columns is not None:
         from pandas.core.series import Series
@@ -455,9 +450,9 @@ def dict_to_mgr(
 
 def nested_data_to_arrays(
     data: Sequence,
-    columns: Optional[Index],
-    index: Optional[Index],
-    dtype: Optional[DtypeObj],
+    columns: Index | None,
+    index: Index | None,
+    dtype: DtypeObj | None,
 ):
     """
     Convert a single sequence of arrays to multiple arrays.
@@ -540,7 +535,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index: Index, dtype: Optional[DtypeObj]):
+def _homogenize(data, index: Index, dtype: DtypeObj | None):
     oindex = None
     homogenized = []
 
@@ -585,7 +580,7 @@ def extract_index(data) -> Index:
         index = Index([])
     elif len(data) > 0:
         raw_lengths = []
-        indexes: List[Union[List[Hashable], Index]] = []
+        indexes: list[list[Hashable] | Index] = []
 
         have_raw_arrays = False
         have_series = False
@@ -638,8 +633,8 @@ def extract_index(data) -> Index:
 
 
 def reorder_arrays(
-    arrays: List[ArrayLike], arr_columns: Index, columns: Optional[Index]
-) -> Tuple[List[ArrayLike], Index]:
+    arrays: list[ArrayLike], arr_columns: Index, columns: Index | None
+) -> tuple[list[ArrayLike], Index]:
     # reorder according to the columns
     if columns is not None and len(columns) and len(arr_columns):
         indexer = ensure_index(arr_columns).get_indexer(columns)
@@ -653,7 +648,7 @@ def _get_names_from_index(data) -> Index:
     if not has_some_name:
         return ibase.default_index(len(data))
 
-    index: List[Hashable] = list(range(len(data)))
+    index: list[Hashable] = list(range(len(data)))
     count = 0
     for i, s in enumerate(data):
         n = getattr(s, "name", None)
@@ -667,8 +662,8 @@ def _get_names_from_index(data) -> Index:
 
 
 def _get_axes(
-    N: int, K: int, index: Optional[Index], columns: Optional[Index]
-) -> Tuple[Index, Index]:
+    N: int, K: int, index: Index | None, columns: Index | None
+) -> tuple[Index, Index]:
     # helper to create the axes as indexes
     # return axes or defaults
 
@@ -717,8 +712,8 @@ def dataclasses_to_dicts(data):
 
 
 def to_arrays(
-    data, columns: Optional[Index], dtype: Optional[DtypeObj] = None
-) -> Tuple[List[ArrayLike], Index]:
+    data, columns: Index | None, dtype: DtypeObj | None = None
+) -> tuple[list[ArrayLike], Index]:
     """
     Return list of arrays, columns.
     """
@@ -770,7 +765,7 @@ def to_arrays(
     return content, columns
 
 
-def _list_to_arrays(data: List[Union[Tuple, List]]) -> np.ndarray:
+def _list_to_arrays(data: list[tuple | list]) -> np.ndarray:
     # Returned np.ndarray has ndim = 2
     # Note: we already check len(data) > 0 before getting hre
     if isinstance(data[0], tuple):
@@ -782,9 +777,9 @@ def _list_to_arrays(data: List[Union[Tuple, List]]) -> np.ndarray:
 
 
 def _list_of_series_to_arrays(
-    data: List,
-    columns: Optional[Index],
-) -> Tuple[np.ndarray, Index]:
+    data: list,
+    columns: Index | None,
+) -> tuple[np.ndarray, Index]:
     # returned np.ndarray has ndim == 2
 
     if columns is None:
@@ -792,7 +787,7 @@ def _list_of_series_to_arrays(
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
         columns = get_objs_combined_axis(pass_data, sort=False)
 
-    indexer_cache: Dict[int, np.ndarray] = {}
+    indexer_cache: dict[int, np.ndarray] = {}
 
     aligned_values = []
     for s in data:
@@ -818,9 +813,9 @@ def _list_of_series_to_arrays(
 
 
 def _list_of_dict_to_arrays(
-    data: List[Dict],
-    columns: Optional[Index],
-) -> Tuple[np.ndarray, Index]:
+    data: list[dict],
+    columns: Index | None,
+) -> tuple[np.ndarray, Index]:
     """
     Convert list of dicts to numpy arrays
 
@@ -856,9 +851,9 @@ def _list_of_dict_to_arrays(
 
 def _finalize_columns_and_data(
     content: np.ndarray,  # ndim == 2
-    columns: Optional[Index],
-    dtype: Optional[DtypeObj],
-) -> Tuple[List[ArrayLike], Index]:
+    columns: Index | None,
+    dtype: DtypeObj | None,
+) -> tuple[list[ArrayLike], Index]:
     """
     Ensure we have valid columns, cast object dtypes if possible.
     """
@@ -877,7 +872,7 @@ def _finalize_columns_and_data(
 
 
 def _validate_or_indexify_columns(
-    content: List[np.ndarray], columns: Optional[Index]
+    content: list[np.ndarray], columns: Index | None
 ) -> Index:
     """
     If columns is None, make numbers as column names; Otherwise, validate that
@@ -935,8 +930,8 @@ def _validate_or_indexify_columns(
 
 
 def _convert_object_array(
-    content: List[np.ndarray], dtype: Optional[DtypeObj]
-) -> List[ArrayLike]:
+    content: list[np.ndarray], dtype: DtypeObj | None
+) -> list[ArrayLike]:
     """
     Internal function to convert object array.
 

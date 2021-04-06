@@ -8,10 +8,6 @@ from typing import (
     Any,
     Callable,
     Hashable,
-    List,
-    Optional,
-    Tuple,
-    Type,
 )
 import warnings
 
@@ -109,7 +105,7 @@ class RangeIndex(NumericIndex):
         start=None,
         stop=None,
         step=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy=False,
         name=None,
     ):
@@ -148,7 +144,7 @@ class RangeIndex(NumericIndex):
 
     @classmethod
     def from_range(
-        cls, data: range, name=None, dtype: Optional[Dtype] = None
+        cls, data: range, name=None, dtype: Dtype | None = None
     ) -> RangeIndex:
         """
         Create RangeIndex from a range object.
@@ -186,7 +182,7 @@ class RangeIndex(NumericIndex):
     # --------------------------------------------------------------------
 
     @cache_readonly
-    def _constructor(self) -> Type[Int64Index]:
+    def _constructor(self) -> type[Int64Index]:
         """ return the class to use for construction """
         return Int64Index
 
@@ -236,7 +232,7 @@ class RangeIndex(NumericIndex):
         # we are formatting thru the attributes
         return None
 
-    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
+    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
         if not len(self._range):
             return header
         first_val_str = str(self._range[0])
@@ -405,8 +401,8 @@ class RangeIndex(NumericIndex):
     def _get_indexer(
         self,
         target: Index,
-        method: Optional[str] = None,
-        limit: Optional[int] = None,
+        method: str | None = None,
+        limit: int | None = None,
         tolerance=None,
     ) -> np.ndarray:
         if com.any_not_none(method, tolerance, limit):
@@ -482,7 +478,7 @@ class RangeIndex(NumericIndex):
         self,
         name: Hashable = None,
         deep: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         names=None,
     ):
         name = self._validate_names(name=name, names=names, deep=deep)[0]
@@ -540,8 +536,8 @@ class RangeIndex(NumericIndex):
             return np.arange(len(self) - 1, -1, -1)
 
     def factorize(
-        self, sort: bool = False, na_sentinel: Optional[int] = -1
-    ) -> Tuple[np.ndarray, RangeIndex]:
+        self, sort: bool = False, na_sentinel: int | None = -1
+    ) -> tuple[np.ndarray, RangeIndex]:
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:
@@ -920,7 +916,7 @@ class RangeIndex(NumericIndex):
         ]:
             return op(self._int64index, other)
 
-        step: Optional[Callable] = None
+        step: Callable | None = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
