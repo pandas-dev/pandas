@@ -10,10 +10,6 @@ from functools import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
-    Optional,
-    Set,
-    Union,
     cast,
 )
 
@@ -168,7 +164,7 @@ def clean_interp_method(method: str, index: Index, **kwargs) -> str:
     return method
 
 
-def find_valid_index(values, *, how: str) -> Optional[int]:
+def find_valid_index(values, *, how: str) -> int | None:
     """
     Retrieves the index of the first valid value.
 
@@ -209,13 +205,13 @@ def interpolate_array_2d(
     data: np.ndarray,
     method: str = "pad",
     axis: int = 0,
-    index: Optional[Index] = None,
-    limit: Optional[int] = None,
+    index: Index | None = None,
+    limit: int | None = None,
     limit_direction: str = "forward",
-    limit_area: Optional[str] = None,
-    fill_value: Optional[Any] = None,
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
     coerce: bool = False,
-    downcast: Optional[str] = None,
+    downcast: str | None = None,
     **kwargs,
 ):
     """
@@ -260,10 +256,10 @@ def interpolate_2d_with_fill(
     index: Index,
     axis: int,
     method: str = "linear",
-    limit: Optional[int] = None,
+    limit: int | None = None,
     limit_direction: str = "forward",
-    limit_area: Optional[str] = None,
-    fill_value: Optional[Any] = None,
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
     **kwargs,
 ) -> np.ndarray:
     """
@@ -304,13 +300,13 @@ def interpolate_2d_with_fill(
 def interpolate_1d(
     xvalues: Index,
     yvalues: np.ndarray,
-    method: Optional[str] = "linear",
-    limit: Optional[int] = None,
+    method: str | None = "linear",
+    limit: int | None = None,
     limit_direction: str = "forward",
-    limit_area: Optional[str] = None,
-    fill_value: Optional[Any] = None,
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
     bounds_error: bool = False,
-    order: Optional[int] = None,
+    order: int | None = None,
     **kwargs,
 ):
     """
@@ -384,7 +380,7 @@ def interpolate_1d(
     # are more than'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
-    preserve_nans: Union[List, Set]
+    preserve_nans: list | set
     if limit_direction == "forward":
         preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
@@ -685,7 +681,7 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
 
 def _interpolate_with_limit_area(
-    values: ArrayLike, method: str, limit: Optional[int], limit_area: Optional[str]
+    values: ArrayLike, method: str, limit: int | None, limit_area: str | None
 ) -> ArrayLike:
     """
     Apply interpolation and limit_area logic to values along a to-be-specified axis.
@@ -737,8 +733,8 @@ def interpolate_2d(
     values,
     method: str = "pad",
     axis: Axis = 0,
-    limit: Optional[int] = None,
-    limit_area: Optional[str] = None,
+    limit: int | None = None,
+    limit_area: str | None = None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
@@ -798,7 +794,7 @@ def interpolate_2d(
     return result
 
 
-def _fillna_prep(values, mask: Optional[np.ndarray] = None) -> np.ndarray:
+def _fillna_prep(values, mask: np.ndarray | None = None) -> np.ndarray:
     # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
 
     if mask is None:
