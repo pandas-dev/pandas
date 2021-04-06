@@ -48,6 +48,7 @@ from pandas.core.generic import NDFrame
 from pandas.core.indexes.api import Index
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
+from markupsafe import escape as escape_func  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
@@ -113,6 +114,12 @@ class Styler:
 
         .. versionadded:: 1.2.0
 
+    escape : bool, default False
+        Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
+        strings with HTML-safe sequences.
+
+        ... versionadded:: 1.3.0
+
     Attributes
     ----------
     env : Jinja2 jinja2.Environment
@@ -169,6 +176,7 @@ class Styler:
         cell_ids: bool = True,
         na_rep: Optional[str] = None,
         uuid_len: int = 5,
+        escape: bool = False,
     ):
         # validate ordered args
         if isinstance(data, pd.Series):
@@ -178,8 +186,8 @@ class Styler:
         if not data.index.is_unique or not data.columns.is_unique:
             raise ValueError("style is not supported for non-unique indices.")
         self.data: DataFrame = data
-        self.index: pd.Index = data.index
-        self.columns: pd.Index = data.columns
+        self.index: Index = data.index
+        self.columns: Index = data.columns
         self.table_styles = table_styles
         if not isinstance(uuid_len, int) or not uuid_len >= 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
@@ -202,7 +210,7 @@ class Styler:
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
-        self.format(formatter=None, precision=precision, na_rep=na_rep)
+        self.format(formatter=None, precision=precision, na_rep=na_rep, escape=escape)
 
     def _repr_html_(self) -> str:
         """
@@ -367,11 +375,15 @@ class Styler:
         cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
 
         # copied attributes
-        table_styles = self.table_styles or []
-        caption = self.caption
         hidden_index = self.hidden_index
         hidden_columns = self.hidden_columns
-        uuid = self.uuid
+
+        # construct render dict
+        d = {
+            "uuid": self.uuid,
+            "table_styles": _format_table_styles(self.table_styles or []),
+            "caption": self.caption,
+        }
 
         # for sparsifying a MultiIndex
         idx_lengths = _get_level_lengths(self.index)
@@ -460,6 +472,7 @@ class Styler:
             )
 
             head.append(index_header_row)
+        d.update({"head": head})
 
         body = []
         for r, row_tup in enumerate(self.data.itertuples()):
@@ -509,11 +522,13 @@ class Styler:
                 if props:  # (), [] won't be in cellstyle_map, cellstyle respectively
                     cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
             body.append(row_es)
+        d.update({"body": body})
 
         cellstyle: List[Dict[str, Union[CSSList, List[str]]]] = [
             {"props": list(props), "selectors": selectors}
             for props, selectors in cellstyle_map.items()
         ]
+        d.update({"cellstyle": cellstyle})
 
         table_attr = self.table_attributes
         use_mathjax = get_option("display.html.use_mathjax")
@@ -523,16 +538,8 @@ class Styler:
                 table_attr = table_attr.replace('class="', 'class="tex2jax_ignore ')
             else:
                 table_attr += ' class="tex2jax_ignore"'
+        d.update({"table_attributes": table_attr})
 
-        d = {
-            "head": head,
-            "cellstyle": cellstyle,
-            "body": body,
-            "uuid": uuid,
-            "table_styles": _format_table_styles(table_styles),
-            "caption": caption,
-            "table_attributes": table_attr,
-        }
         if self.tooltips:
             d = self.tooltips._translate(self.data, self.uuid, d)
 
@@ -544,6 +551,7 @@ class Styler:
         subset: Optional[Union[slice, Sequence[Any]]] = None,
         na_rep: Optional[str] = None,
         precision: Optional[int] = None,
+        escape: bool = False,
     ) -> Styler:
         """
         Format the text display value of cells.
@@ -564,6 +572,12 @@ class Styler:
         precision : int, optional
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
+
+            .. versionadded:: 1.3.0
+
+        escape : bool, default False
+            Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
+            string with HTML-safe sequences. Escaping is done before ``formatter``.
 
             .. versionadded:: 1.3.0
 
@@ -606,7 +620,7 @@ class Styler:
         0    MISS   1.000       A
         1   2.000    MISS   3.000
 
-        Using a format specification on consistent column dtypes
+        Using a ``formatter`` specification on consistent column dtypes
 
         >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])
                 0      1          2
@@ -629,15 +643,34 @@ class Styler:
         0    MISS   1.00      A
         1     2.0   PASS   3.00
 
-        Using a callable formatting function
+        Using a callable ``formatter`` function.
 
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
         >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS')
                 0        1        2
         0    MISS   1.0000   STRING
         1     2.0     MISS    FLOAT
+
+        Using a ``formatter`` with HTML ``escape`` and ``na_rep``.
+
+        >>> df = pd.DataFrame([['<div></div>', '"A&B"', None]])
+        >>> s = df.style.format('<a href="a.com/{0}">{0}</a>', escape=True, na_rep="NA")
+        >>> s.render()
+        ...
+        <td .. ><a href="a.com/&lt;div&gt;&lt;/div&gt;">&lt;div&gt;&lt;/div&gt;</a></td>
+        <td .. ><a href="a.com/&#34;A&amp;B&#34;">&#34;A&amp;B&#34;</a></td>
+        <td .. >NA</td>
+        ...
         """
-        if all((formatter is None, subset is None, precision is None, na_rep is None)):
+        if all(
+            (
+                formatter is None,
+                subset is None,
+                precision is None,
+                na_rep is None,
+                escape is False,
+            )
+        ):
             self._display_funcs.clear()
             return self  # clear the formatter / revert to default and avoid looping
 
@@ -655,7 +688,7 @@ class Styler:
             except KeyError:
                 format_func = None
             format_func = _maybe_wrap_formatter(
-                format_func, na_rep=na_rep, precision=precision
+                format_func, na_rep=na_rep, precision=precision, escape=escape
             )
 
             for row, value in data[[col]].itertuples():
@@ -848,7 +881,12 @@ class Styler:
         self.ctx.clear()
         self.tooltips = None
         self.cell_context.clear()
-        self._todo = []
+        self._todo.clear()
+
+        self.hidden_index = False
+        self.hidden_columns = []
+        # self.format and self.table_styles may be dependent on user
+        # input in self.__init__()
 
     def _compute(self):
         """
@@ -880,7 +918,7 @@ class Styler:
             result.columns = data.columns
         else:
             result = func(data, **kwargs)
-            if not isinstance(result, pd.DataFrame):
+            if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):
                     raise TypeError(
                         f"Function {repr(func)} must return a DataFrame or ndarray "
@@ -1246,7 +1284,7 @@ class Styler:
 
             .. versionadded:: 1.2.0
 
-        overwrite : boolean, default True
+        overwrite : bool, default True
             Styles are replaced if `True`, or extended if `False`. CSS
             rules are preserved so most recent styles set will dominate
             if selectors intersect.
@@ -1380,7 +1418,10 @@ class Styler:
         """
         subset = _non_reducing_slice(subset)
         hidden_df = self.data.loc[subset]
-        self.hidden_columns = self.columns.get_indexer_for(hidden_df.columns)
+        hcols = self.columns.get_indexer_for(hidden_df.columns)
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "Sequence[int]")
+        self.hidden_columns = hcols  # type: ignore[assignment]
         return self
 
     # -----------------------------------------------------------------------
@@ -1529,7 +1570,7 @@ class Styler:
             if s.ndim == 1:
                 return [css(rgba) for rgba in rgbas]
             else:
-                return pd.DataFrame(
+                return DataFrame(
                     [[css(rgba) for rgba in row] for row in rgbas],
                     index=s.index,
                     columns=s.columns,
@@ -1619,7 +1660,7 @@ class Styler:
         if s.ndim == 1:
             return [css(x) for x in normed]
         else:
-            return pd.DataFrame(
+            return DataFrame(
                 [[css(x) for x in row] for row in normed],
                 index=s.index,
                 columns=s.columns,
@@ -2192,6 +2233,7 @@ def _maybe_wrap_formatter(
     formatter: Optional[BaseFormatter] = None,
     na_rep: Optional[str] = None,
     precision: Optional[int] = None,
+    escape: bool = False,
 ) -> Callable:
     """
     Allows formatters to be expressed as str, callable or None, where None returns
@@ -2208,10 +2250,19 @@ def _maybe_wrap_formatter(
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
+    def _str_escape(x, escape: bool):
+        """if escaping: only use on str, else return input"""
+        if escape and isinstance(x, str):
+            return escape_func(x)
+        else:
+            return x
+
+    display_func = lambda x: formatter_func(partial(_str_escape, escape=escape)(x))
+
     if na_rep is None:
-        return formatter_func
+        return display_func
     else:
-        return lambda x: na_rep if pd.isna(x) else formatter_func(x)
+        return lambda x: na_rep if pd.isna(x) else display_func(x)
 
 
 def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:

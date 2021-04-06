@@ -296,7 +296,7 @@ def parse_table_schema(json, precise_float):
     ----------
     json :
         A JSON table schema
-    precise_float : boolean
+    precise_float : bool
         Flag controlling precision when decoding string to double values, as
         dictated by ``read_json``
 

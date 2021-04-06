@@ -6,12 +6,8 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
-    Dict,
     Hashable,
-    List,
-    Optional,
     Sequence,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -358,7 +354,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         values,
         categories=None,
         ordered=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         fastpath=False,
         copy: bool = True,
     ):
@@ -472,11 +468,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self._dtype
 
     @property
-    def _constructor(self) -> Type[Categorical]:
+    def _constructor(self) -> type[Categorical]:
         return Categorical
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         return Categorical(scalars, dtype=dtype, copy=copy)
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
@@ -546,7 +542,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         return self.categories.itemsize
 
-    def tolist(self) -> List[Scalar]:
+    def tolist(self) -> list[Scalar]:
         """
         Return a list of the values.
 
@@ -606,7 +602,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 if true_values is None:
                     true_values = ["True", "TRUE", "true"]
 
-                cats = cats.isin(true_values)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Index")
+                cats = cats.isin(true_values)  # type: ignore[assignment]
 
         if known_categories:
             # Recode from observation order to dtype.categories order.
@@ -627,7 +625,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @classmethod
     def from_codes(
-        cls, codes, categories=None, ordered=None, dtype: Optional[Dtype] = None
+        cls, codes, categories=None, ordered=None, dtype: Dtype | None = None
     ):
         """
         Make a Categorical type from codes and categories or dtype.
@@ -1366,7 +1364,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # -------------------------------------------------------------
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """
         The numpy array interface.
 
@@ -1444,7 +1442,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         return self._codes.nbytes + self.dtype.categories.memory_usage(deep=deep)
 
-    def isna(self):
+    def isna(self) -> np.ndarray:
         """
         Detect missing values
 
@@ -1452,7 +1450,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        a boolean array of whether my values are null
+        np.ndarray[bool] of whether my values are null
 
         See Also
         --------
@@ -1465,7 +1463,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     isnull = isna
 
-    def notna(self):
+    def notna(self) -> np.ndarray:
         """
         Inverse of isna
 
@@ -1474,7 +1472,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        a boolean array of whether my values are not null
+        np.ndarray[bool] of whether my values are not null
 
         See Also
         --------
@@ -1731,7 +1729,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise NotImplementedError(dtype)
         return self._from_backing_data(self._ndarray)
 
-    def to_dense(self):
+    def to_dense(self) -> np.ndarray:
         """
         Return my 'dense' representation
 
@@ -1755,6 +1753,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     @property
     def _codes(self) -> np.ndarray:
         return self._ndarray
+
+    @_codes.setter
+    def _codes(self, value: np.ndarray):
+        self._ndarray = value
 
     def _from_backing_data(self, arr: np.ndarray) -> Categorical:
         assert isinstance(arr, np.ndarray)
@@ -1800,14 +1802,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         # if key is a NaN, check if any NaN is in self.
         if is_valid_na_for_dtype(key, self.categories.dtype):
-            return self.isna().any()
+            return bool(self.isna().any())
 
         return contains(self, key, container=self._codes)
 
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed=False):
+    def _formatter(self, boxed: bool = False):
         # Defer to CategoricalFormatter's formatter.
         return None
 
@@ -1885,7 +1887,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         info = self._repr_categories_info()
         return f"Length: {len(self)}\n{info}"
 
-    def _get_repr(self, length=True, na_rep="NaN", footer=True) -> str:
+    def _get_repr(self, length: bool = True, na_rep="NaN", footer: bool = True) -> str:
         from pandas.io.formats import format as fmt
 
         formatter = fmt.CategoricalFormatter(
@@ -1953,7 +1955,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         codes = self.categories.get_indexer(rvalue)
         return codes.astype(self._ndarray.dtype, copy=False)
 
-    def _reverse_indexer(self) -> Dict[Hashable, np.ndarray]:
+    def _reverse_indexer(self) -> dict[Hashable, np.ndarray]:
         """
         Compute the inverse of a categorical, returning
         a dict of categories -> indexers.
@@ -1981,9 +1983,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         categories = self.categories
         r, counts = libalgos.groupsort_indexer(
-            self.codes.astype("int64", copy=False), categories.size
+            ensure_platform_int(self.codes), categories.size
         )
-        counts = counts.cumsum()
+        counts = ensure_int64(counts).cumsum()
         _result = (r[start:end] for start, end in zip(counts, counts[1:]))
         return dict(zip(categories, _result))
 
@@ -2180,7 +2182,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @classmethod
     def _concat_same_type(
-        cls: Type[CategoricalT], to_concat: Sequence[CategoricalT], axis: int = 0
+        cls: type[CategoricalT], to_concat: Sequence[CategoricalT], axis: int = 0
     ) -> CategoricalT:
         from pandas.core.dtypes.concat import union_categoricals
 
@@ -2636,12 +2638,10 @@ def recode_for_categories(
     return new_codes
 
 
-def factorize_from_iterable(values):
+def factorize_from_iterable(values) -> tuple[np.ndarray, Index]:
     """
     Factorize an input `values` into `categories` and `codes`. Preserves
     categorical dtype in `categories`.
-
-    *This is an internal function*
 
     Parameters
     ----------
@@ -2654,6 +2654,8 @@ def factorize_from_iterable(values):
         If `values` has a categorical dtype, then `categories` is
         a CategoricalIndex keeping the categories and order of `values`.
     """
+    from pandas import CategoricalIndex
+
     if not is_list_like(values):
         raise TypeError("Input must be list-like")
 
@@ -2662,7 +2664,8 @@ def factorize_from_iterable(values):
         # The Categorical we want to build has the same categories
         # as values but its codes are by def [0, ..., len(n_categories) - 1]
         cat_codes = np.arange(len(values.categories), dtype=values.codes.dtype)
-        categories = Categorical.from_codes(cat_codes, dtype=values.dtype)
+        cat = Categorical.from_codes(cat_codes, dtype=values.dtype)
+        categories = CategoricalIndex(cat)
         codes = values.codes
     else:
         # The value of ordered is irrelevant since we don't use cat as such,
@@ -2674,11 +2677,9 @@ def factorize_from_iterable(values):
     return codes, categories
 
 
-def factorize_from_iterables(iterables):
+def factorize_from_iterables(iterables) -> tuple[list[np.ndarray], list[Index]]:
     """
     A higher-level wrapper over `factorize_from_iterable`.
-
-    *This is an internal function*
 
     Parameters
     ----------
@@ -2686,14 +2687,16 @@ def factorize_from_iterables(iterables):
 
     Returns
     -------
-    codes_list : list of ndarrays
-    categories_list : list of Indexes
+    codes : list of ndarrays
+    categories : list of Indexes
 
     Notes
     -----
     See `factorize_from_iterable` for more info.
     """
     if len(iterables) == 0:
-        # For consistency, it should return a list of 2 lists.
-        return [[], []]
-    return map(list, zip(*(factorize_from_iterable(it) for it in iterables)))
+        # For consistency, it should return two empty lists.
+        return [], []
+
+    codes, categories = zip(*(factorize_from_iterable(it) for it in iterables))
+    return list(codes), list(categories)

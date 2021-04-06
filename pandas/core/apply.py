@@ -9,10 +9,6 @@ from typing import (
     Hashable,
     Iterator,
     List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
     cast,
 )
 import warnings
@@ -77,13 +73,13 @@ def frame_apply(
     func: AggFuncType,
     axis: Axis = 0,
     raw: bool = False,
-    result_type: Optional[str] = None,
+    result_type: str | None = None,
     args=None,
     kwargs=None,
 ) -> FrameApply:
     """ construct and return a row or column based frame apply object """
     axis = obj._get_axis_number(axis)
-    klass: Type[FrameApply]
+    klass: type[FrameApply]
     if axis == 0:
         klass = FrameRowApply
     elif axis == 1:
@@ -107,7 +103,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj: AggObjType,
         func,
         raw: bool,
-        result_type: Optional[str],
+        result_type: str | None,
         args,
         kwargs,
     ):
@@ -152,7 +148,7 @@ class Apply(metaclass=abc.ABCMeta):
     def apply(self) -> FrameOrSeriesUnion:
         pass
 
-    def agg(self) -> Optional[FrameOrSeriesUnion]:
+    def agg(self) -> FrameOrSeriesUnion | None:
         """
         Provide an implementation for the aggregators.
 
@@ -227,8 +223,10 @@ class Apply(metaclass=abc.ABCMeta):
         func = cast(AggFuncTypeBase, func)
         try:
             result = self.transform_str_or_callable(func)
-        except Exception:
-            raise ValueError("Transform function failed")
+        except TypeError:
+            raise
+        except Exception as err:
+            raise ValueError("Transform function failed") from err
 
         # Functions that transform may return empty Series/DataFrame
         # when the dtype is not appropriate
@@ -263,8 +261,9 @@ class Apply(metaclass=abc.ABCMeta):
 
         func = self.normalize_dictlike_arg("transform", obj, func)
 
-        results: Dict[Hashable, FrameOrSeriesUnion] = {}
+        results: dict[Hashable, FrameOrSeriesUnion] = {}
         failed_names = []
+        all_type_errors = True
         for name, how in func.items():
             colg = obj._gotitem(name, ndim=1)
             try:
@@ -275,16 +274,18 @@ class Apply(metaclass=abc.ABCMeta):
                     "No transform functions were provided",
                 }:
                     raise err
-                else:
+                elif not isinstance(err, TypeError):
+                    all_type_errors = False
                     failed_names.append(name)
         # combine results
         if not results:
-            raise ValueError("Transform function failed")
+            klass = TypeError if all_type_errors else ValueError
+            raise klass("Transform function failed")
         if len(failed_names) > 0:
             warnings.warn(
-                f"{failed_names} did not transform successfully. "
-                f"Allowing for partial failure is deprecated, this will raise "
-                f"a ValueError in a future version of pandas."
+                f"{failed_names} did not transform successfully and did not raise "
+                f"a TypeError. If any error is raised except for TypeError, "
+                f"this will raise in a future version of pandas. "
                 f"Drop these columns/ops to avoid this warning.",
                 FutureWarning,
                 stacklevel=4,
@@ -454,7 +455,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         return result
 
-    def maybe_apply_str(self) -> Optional[FrameOrSeriesUnion]:
+    def maybe_apply_str(self) -> FrameOrSeriesUnion | None:
         """
         Compute apply in case of a string.
 
@@ -487,7 +488,7 @@ class Apply(metaclass=abc.ABCMeta):
                 raise ValueError(f"Operation {f} does not support axis=1")
         return obj._try_aggregate_string_function(f, *self.args, **self.kwargs)
 
-    def maybe_apply_multiple(self) -> Optional[FrameOrSeriesUnion]:
+    def maybe_apply_multiple(self) -> FrameOrSeriesUnion | None:
         """
         Compute apply in case of a list-like or dict-like.
 
@@ -633,25 +634,18 @@ class FrameApply(Apply):
         obj = self.obj
         axis = self.axis
 
-        try:
-            if axis == 1:
-                result = FrameRowApply(
-                    obj.T,
-                    self.orig_f,
-                    self.raw,
-                    self.result_type,
-                    self.args,
-                    self.kwargs,
-                ).agg()
-                result = result.T if result is not None else result
-            else:
-                result = super().agg()
-        except TypeError as err:
-            exc = TypeError(
-                "DataFrame constructor called with "
-                f"incompatible data and dtype: {err}"
-            )
-            raise exc from err
+        if axis == 1:
+            result = FrameRowApply(
+                obj.T,
+                self.orig_f,
+                self.raw,
+                self.result_type,
+                self.args,
+                self.kwargs,
+            ).agg()
+            result = result.T if result is not None else result
+        else:
+            result = super().agg()
 
         if result is None:
             result = obj.apply(self.orig_f, axis, args=self.args, **self.kwargs)
@@ -756,7 +750,7 @@ class FrameApply(Apply):
         # wrap results
         return self.wrap_results(results, res_index)
 
-    def apply_series_generator(self) -> Tuple[ResType, Index]:
+    def apply_series_generator(self) -> tuple[ResType, Index]:
         assert callable(self.f)
 
         series_gen = self.series_generator
@@ -1041,11 +1035,11 @@ class SeriesApply(Apply):
 
 
 class GroupByApply(Apply):
-    obj: Union[SeriesGroupBy, DataFrameGroupBy]
+    obj: SeriesGroupBy | DataFrameGroupBy
 
     def __init__(
         self,
-        obj: Union[SeriesGroupBy, DataFrameGroupBy],
+        obj: SeriesGroupBy | DataFrameGroupBy,
         func: AggFuncType,
         args,
         kwargs,
@@ -1070,11 +1064,11 @@ class GroupByApply(Apply):
 
 class ResamplerWindowApply(Apply):
     axis = 0
-    obj: Union[Resampler, BaseWindow]
+    obj: Resampler | BaseWindow
 
     def __init__(
         self,
-        obj: Union[Resampler, BaseWindow],
+        obj: Resampler | BaseWindow,
         func: AggFuncType,
         args,
         kwargs,

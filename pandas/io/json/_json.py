@@ -572,7 +572,7 @@ def read_json(
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
         # has type "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object], Dict[Optional[Hashable],
+        # Type[int], Type[complex], Type[bool], Type[object], Dict[Hashable,
         # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
         # Type[int], Type[complex], Type[bool], Type[object]]], None]")
         dtype = True  # type: ignore[assignment]
@@ -921,7 +921,7 @@ class Parser:
 
             # error: Non-overlapping identity check (left operand type:
             # "Union[ExtensionDtype, str, dtype[Any], Type[object],
-            # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+            # Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]],
             # Type[str], Type[float], Type[int], Type[complex], Type[bool],
             # Type[object]]]]", right operand type: "Literal[True]")
             elif self.dtype is True:  # type: ignore[comparison-overlap]
