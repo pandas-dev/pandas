@@ -391,7 +391,7 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
 def group_any_all(uint8_t[::1] out,
                   const uint8_t[::1] values,
                   const intp_t[:] labels,
-                  uint8_t[::1] mask,
+                  const uint8_t[::1] mask,
                   str val_test,
                   bint skipna,
                   bint use_kleene_logic = False) -> None:
@@ -450,7 +450,7 @@ def group_any_all(uint8_t[::1] out,
                 continue
 
             if use_kleene_logic and mask[i]:
-                # Set the condition as masked if `out[lab] != flag_val`, which
+                # Set the position as masked if `out[lab] != flag_val`, which
                 # would indicate True/False has not yet been seen for any/all,
                 # so by Kleene logic the result is currently unknown
                 if out[lab] != flag_val:
