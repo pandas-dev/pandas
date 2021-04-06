@@ -1,0 +1,92 @@
+import builtins
+from io import StringIO
+
+import numpy as np
+import pytest
+
+from pandas.errors import UnsupportedFunctionCall
+
+import pandas as pd
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
+import pandas._testing as tm
+import pandas.core.nanops as nanops
+from pandas.util import _test_decorators as td
+
+
+@pytest.mark.parametrize("agg_func", ["any", "all"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize(
+    "vals",
+    [
+        ["foo", "bar", "baz"],
+        ["foo", "", ""],
+        ["", "", ""],
+        [1, 2, 3],
+        [1, 0, 0],
+        [0, 0, 0],
+        [1.0, 2.0, 3.0],
+        [1.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0],
+        [True, True, True],
+        [True, False, False],
+        [False, False, False],
+        [np.nan, np.nan, np.nan],
+    ],
+)
+def test_groupby_bool_aggs(agg_func, skipna, vals):
+    df = DataFrame({"key": ["a"] * 3 + ["b"] * 3, "val": vals * 2})
+
+    # Figure out expectation using Python builtin
+    exp = getattr(builtins, agg_func)(vals)
+
+    # edge case for missing data with skipna and 'any'
+    if skipna and all(isna(vals)) and agg_func == "any":
+        exp = False
+
+    exp_df = DataFrame([exp] * 2, columns=["val"], index=Index(["a", "b"], name="key"))
+    result = getattr(df.groupby("key"), agg_func)(skipna=skipna)
+    tm.assert_frame_equal(result, exp_df)
+
+
+def test_any(gb):
+    expected = DataFrame(
+        [[True, True], [False, True]], columns=["B", "C"], index=[1, 3]
+    )
+    expected.index.name = "A"
+    result = gb.any()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_coercing_bools():
+    # issue 14873
+    dat = DataFrame({"a": [1, 1, 2, 2], "b": [0, 1, 2, 3], "c": [None, None, 1, 1]})
+    gp = dat.groupby("a")
+
+    index = Index([1, 2], name="a")
+
+    result = gp["b"].aggregate(lambda x: (x != 0).all())
+    expected = Series([False, True], index=index, name="b")
+    tm.assert_series_equal(result, expected)
+
+    result = gp["c"].aggregate(lambda x: x.isnull().all())
+    expected = Series([True, False], index=index, name="c")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+def test_bool_aggs_dup_column_labels(bool_agg_func):
+    # 21668
+    df = DataFrame([[True, True]], columns=["a", "a"])
+    grp_by = df.groupby([0])
+    result = getattr(grp_by, bool_agg_func)()
+
+    expected = df
+    tm.assert_frame_equal(result, expected)
