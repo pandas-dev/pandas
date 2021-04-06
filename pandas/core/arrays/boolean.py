@@ -13,6 +13,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    type_t,
 )
 from pandas.compat.numpy import function as nv
 
@@ -84,7 +85,7 @@ class BooleanDtype(BaseMaskedDtype):
         return np.dtype("bool")
 
     @classmethod
-    def construct_array_type(cls) -> type[BooleanArray]:
+    def construct_array_type(cls) -> type_t[BooleanArray]:
         """
         Return the array type associated with this dtype.
 
