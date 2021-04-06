@@ -32,7 +32,7 @@ def calculate_variable_window_bounds(
     min_periods : object
         ignored, exists for compatibility
 
-    center : object
+    center : bint
         center the rolling window on the current observation
 
     closed : str
