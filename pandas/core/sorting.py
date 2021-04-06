@@ -6,13 +6,8 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     DefaultDict,
-    Dict,
     Iterable,
-    List,
-    Optional,
     Sequence,
-    Tuple,
-    Union,
 )
 
 import numpy as np

@@ -5,10 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
-    List,
     Sequence,
-    Tuple,
-    Union,
 )
 import warnings
 

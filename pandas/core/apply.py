@@ -9,10 +9,6 @@ from typing import (
     Hashable,
     Iterator,
     List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
     cast,
 )
 import warnings

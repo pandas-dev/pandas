@@ -13,11 +13,7 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
-    List,
-    Optional,
     Sequence,
-    Tuple,
-    Type,
     Union,
     cast,
     overload,
@@ -4359,9 +4355,7 @@ Keep all original rows and also all original values
         ...
 
     @overload
-    def set_axis(
-        self, labels, axis: Axis = ..., inplace: bool = ...
-    ) -> Series | None:
+    def set_axis(self, labels, axis: Axis = ..., inplace: bool = ...) -> Series | None:
         ...
 
     @Appender(

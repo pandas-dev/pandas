@@ -12,14 +12,9 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
     Hashable,
     Iterable,
-    List,
-    Optional,
     Sequence,
-    Tuple,
-    Union,
 )
 
 from pandas._typing import (

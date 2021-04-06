@@ -24,18 +24,10 @@ from typing import (
     Any,
     AnyStr,
     Callable,
-    Dict,
-    FrozenSet,
     Hashable,
     Iterable,
     Iterator,
-    List,
-    Optional,
     Sequence,
-    Set,
-    Tuple,
-    Type,
-    Union,
     cast,
     overload,
 )
@@ -7918,9 +7910,7 @@ NaN 12.3   33.0
 
         return result.__finalize__(self, method="stack")
 
-    def explode(
-        self, column: str | tuple, ignore_index: bool = False
-    ) -> DataFrame:
+    def explode(self, column: str | tuple, ignore_index: bool = False) -> DataFrame:
         """
         Transform each element of a list-like to a row, replicating index values.
 
@@ -9150,9 +9140,7 @@ NaN 12.3   33.0
 
         return self._constructor(correl, index=idx, columns=cols)
 
-    def cov(
-        self, min_periods: int | None = None, ddof: int | None = 1
-    ) -> DataFrame:
+    def cov(self, min_periods: int | None = None, ddof: int | None = 1) -> DataFrame:
         """
         Compute pairwise covariance of columns, excluding NA/null values.
 

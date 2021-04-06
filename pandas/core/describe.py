@@ -12,10 +12,7 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Callable,
-    List,
-    Optional,
     Sequence,
-    Union,
     cast,
 )
 import warnings

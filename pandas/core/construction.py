@@ -10,9 +10,7 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
     Sequence,
-    Union,
     cast,
 )
 

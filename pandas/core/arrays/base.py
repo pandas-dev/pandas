@@ -13,13 +13,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Optional,
     Sequence,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -293,9 +288,7 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
 
-    def __getitem__(
-        self, item: int | slice | np.ndarray
-    ) -> ExtensionArray | Any:
+    def __getitem__(self, item: int | slice | np.ndarray) -> ExtensionArray | Any:
         """
         Select a subset of self.
 

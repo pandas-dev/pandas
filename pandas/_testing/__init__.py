@@ -14,8 +14,6 @@ from typing import (
     ContextManager,
     Counter,
     Iterable,
-    List,
-    Type,
 )
 import warnings
 

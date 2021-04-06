@@ -7,10 +7,7 @@ import contextlib
 import copy
 import io
 import pickle as pkl
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 from pandas._libs.tslibs import BaseOffset

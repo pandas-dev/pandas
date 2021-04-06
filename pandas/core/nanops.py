@@ -5,9 +5,6 @@ import itertools
 import operator
 from typing import (
     Any,
-    Optional,
-    Tuple,
-    Union,
     cast,
 )
 import warnings
@@ -423,9 +420,7 @@ def _datetimelike_compat(func: F) -> F:
     return cast(F, new_func)
 
 
-def _na_for_min_count(
-    values: np.ndarray, axis: int | None
-) -> Scalar | np.ndarray:
+def _na_for_min_count(values: np.ndarray, axis: int | None) -> Scalar | np.ndarray:
     """
     Return the missing value for `values`.
 
