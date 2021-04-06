@@ -14,6 +14,7 @@ from pandas._libs import lib
 from pandas._typing import (
     F,
     Shape,
+    type_t,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -470,7 +471,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     @classmethod
     def empty(
-        cls: Type[NDArrayBackedExtensionArrayT], shape: Shape, dtype: ExtensionDtype
+        cls: type_t[NDArrayBackedExtensionArrayT], shape: Shape, dtype: ExtensionDtype
     ) -> NDArrayBackedExtensionArrayT:
         """
         Analogous to np.empty(shape, dtype=dtype)

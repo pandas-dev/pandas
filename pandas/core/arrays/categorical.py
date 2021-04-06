@@ -31,6 +31,7 @@ from pandas._typing import (
     Ordered,
     Scalar,
     Shape,
+    type_t,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -1531,7 +1532,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # "ExtensionDtype"
     @classmethod
     def empty(  # type: ignore[override]
-        cls: Type[Categorical], shape: Shape, dtype: CategoricalDtype
+        cls: type_t[Categorical], shape: Shape, dtype: CategoricalDtype
     ) -> Categorical:
         """
         Analogous to np.empty(shape, dtype=dtype)
