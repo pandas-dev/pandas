@@ -197,12 +197,13 @@ class PandasDocstring(Docstring):
             messages = stdout.split("\n")[1:-1]
             error_messages.extend(messages)
 
+        # Parse error message
         for error_message in error_messages:
-            # Parse error message
-            error_items = re.split(r"\s+", error_message)
+            # Preserve whitespaces with a group
+            error_items = re.split(r"(\s+)", error_message)
             error_count = int(error_items[0])
-            error_code = error_items[1]
-            message = " ".join(error_items[2:])
+            error_code = error_items[2]
+            message = "".join(error_items[4:])
             yield error_code, message, error_count
 
 
@@ -249,14 +250,13 @@ def pandas_validate(func_name: str):
             )
 
         for error_code, error_message, error_count in doc.validate_pep8():
+            times_happening = f" ({error_count} times)" if error_count > 1 else ""
             result["errors"].append(
                 pandas_error(
                     "EX03",
                     error_code=error_code,
                     error_message=error_message,
-                    times_happening=f" ({error_count} times)"
-                    if error_count > 1
-                    else "",
+                    times_happening=times_happening,
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
