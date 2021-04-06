@@ -1,6 +1,7 @@
 from collections import defaultdict
 import csv
 import datetime
+from enum import Enum
 import itertools
 from typing import (
     Any,
@@ -114,6 +115,11 @@ parser_defaults = {
 
 
 class ParserBase:
+    class BadLineHandleMethod(Enum):
+        ERROR = 0
+        WARN = 1
+        SKIP = 2
+
     def __init__(self, kwds):
 
         self.names = kwds.get("names")
@@ -201,6 +207,25 @@ class ParserBase:
         self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
 
         self.handles: Optional[IOHandles] = None
+
+        # Bad line handling
+        on_bad_lines = kwds.get("on_bad_lines")
+        if on_bad_lines is not None:
+            if on_bad_lines == "error":
+                self.on_bad_lines = self.BadLineHandleMethod.ERROR
+            elif on_bad_lines == "warn":
+                self.on_bad_lines = self.BadLineHandleMethod.WARN
+            elif on_bad_lines == "skip":
+                self.on_bad_lines = self.BadLineHandleMethod.SKIP
+            else:
+                raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
+        else:
+            if kwds.get("error_bad_lines"):
+                self.on_bad_lines = self.BadLineHandleMethod.ERROR
+            elif kwds.get("warn_bad_lines"):
+                self.on_bad_lines = self.BadLineHandleMethod.WARN
+            else:
+                self.on_bad_lines = self.BadLineHandleMethod.SKIP
 
     def _open_handles(self, src: FilePathOrBuffer, kwds: Dict[str, Any]) -> None:
         """

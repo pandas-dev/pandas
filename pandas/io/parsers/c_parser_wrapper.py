@@ -25,7 +25,18 @@ class CParserWrapper(ParserBase):
         # open handles
         self._open_handles(src, kwds)
         assert self.handles is not None
-        for key in ("storage_options", "encoding", "memory_map", "compression"):
+
+        # Have to pass int, would break tests using TextReader directly otherwise :(
+        kwds["on_bad_lines"] = self.on_bad_lines.value
+
+        for key in (
+            "storage_options",
+            "encoding",
+            "memory_map",
+            "compression",
+            "error_bad_lines",
+            "warn_bad_lines",
+        ):
             kwds.pop(key, None)
         if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
             # error: Item "IO[Any]" of "Union[IO[Any], RawIOBase, BufferedIOBase,

@@ -355,9 +355,7 @@ cdef class TextReader:
                   thousands=None,
                   dtype=None,
                   usecols=None,
-                  bint error_bad_lines=True,
-                  bint warn_bad_lines=True,
-                  on_bad_lines = None,
+                  on_bad_lines = ERROR,
                   bint na_filter=True,
                   na_values=None,
                   na_fvalues=None,
@@ -441,24 +439,7 @@ cdef class TextReader:
                 raise ValueError('Only length-1 comment characters supported')
             self.parser.commentchar = ord(comment)
 
-        # error handling of bad lines
-        if on_bad_lines is not None:
-            if on_bad_lines == "error":
-                self.parser.on_bad_lines = ERROR
-            elif on_bad_lines == "warn":
-                self.parser.on_bad_lines = WARN
-            elif on_bad_lines == "skip":
-                self.parser.on_bad_lines = SKIP
-            else:
-                raise ValueError(f"Argument {on_bad_lines} is invalid for "
-                                 "on_bad_lines")
-        else:
-            if error_bad_lines:
-                self.parser.on_bad_lines = ERROR
-            elif warn_bad_lines:
-                self.parser.on_bad_lines = WARN
-            else:
-                self.parser.on_bad_lines = SKIP
+        self.parser.on_bad_lines = on_bad_lines
 
         self.skiprows = skiprows
         if skiprows is not None:

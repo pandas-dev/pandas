@@ -364,9 +364,18 @@ warn_bad_lines : boolean, default ``True``
      encountering a bad line instead.
 on_bad_lines : {{None, 'error', 'warn', 'skip'}}, default ``None``
     Specifies what to do upon encountering a bad line (a line with too many fields).
-    The default value of None will defer to ``error_bad_lines`` and ``warn_bad_lines``.
-    Specifying 'error' will cause an exception to be raised. Otherwise, the "bad lines"
-    will be dropped from the DataFrame, with a warning raised if 'warn' is specified.
+    Allowed values are :
+
+        - ``None``, default option, defers to ``error_bad_lines`` and ``warn_bad_lines``.
+
+          Note: This option is only present for backwards-compatibility reasons and will
+          be removed after the removal of ``error_bad_lines`` and ``warn_bad_lines``.
+          Please do not specify it explicitly.
+
+        - 'error', raise an Exception when a bad line is encountered.
+        - 'warn', raise a warning when a bad line is encountered and skip that line.
+        - 'skip', skip bad lines without raising or warning when they are encountered.
+
     This parameter takes precedence over parameters ``error_bad_lines`` and ``warn_bad_lines``
     if specified.
 
