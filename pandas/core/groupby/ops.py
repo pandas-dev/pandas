@@ -694,7 +694,17 @@ class BaseGrouper:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            func(result, counts, values, comp_ids, min_count)
+            if how in ["min", "max"]:
+                func(
+                    result,
+                    counts,
+                    values,
+                    comp_ids,
+                    min_count,
+                    is_datetimelike=is_datetimelike,
+                )
+            else:
+                func(result, counts, values, comp_ids, min_count)
         elif kind == "transform":
             # TODO: min_count
             func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
@@ -702,11 +712,11 @@ class BaseGrouper:
         if kind == "aggregate":
             # i.e. counts is defined
             if is_integer_dtype(result.dtype) and not is_datetimelike:
-                # TODO: we don't have any tests that get here with min_count > 1
                 cutoff = max(1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
-                    result = result.astype("float64")  # TODO: could be lossy
+                    # Note: this conversion could be lossy, see GH#40767
+                    result = result.astype("float64")
                     result[empty_groups] = np.nan
 
             if self._filter_empty_groups and not counts.all():
