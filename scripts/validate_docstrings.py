@@ -256,7 +256,9 @@ def pandas_validate(func_name: str):
                     "EX03",
                     error_code=error_code,
                     error_message=error_message,
-                    times_happening=f" ({error_count} times)" if error_count > 1 else "",
+                    times_happening=f" ({error_count} times)"
+                    if error_count > 1
+                    else "",
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
