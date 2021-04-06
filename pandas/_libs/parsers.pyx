@@ -215,7 +215,7 @@ cdef extern from "parser/tokenizer.h":
         int64_t header_start        # header row start
         uint64_t header_end         # header row end
 
-        int allow_leading_cols      # Boolean: 1: can infer index col, 0: no index col
+        bint allow_leading_cols      # Boolean: 1: can infer index col, 0: no index col
 
         void *skipset
         PyObject *skipfunc
