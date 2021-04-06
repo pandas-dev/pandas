@@ -19,6 +19,8 @@ import glob
 import importlib
 import json
 import os
+import re
+import subprocess
 import sys
 import tempfile
 from typing import (
@@ -183,20 +185,27 @@ class PandasDocstring(Docstring):
             )
         )
 
-        application = flake8.main.application.Application()
-        application.initialize(["--quiet"])
-
+        error_messages = []
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as file:
             file.write(content)
             file.flush()
-            application.run_checks([file.name])
+            # GH40784
+            cmd = ["flake8", "--quiet", "--statistics", file.name]
+            response = subprocess.run(cmd, capture_output=True, text=True)
+            stdout = response.stdout
+            # Remove file name from the start
+            stdout = stdout.replace(file.name, "")
+            # Remove the first and last elements since they are always empty str
+            messages = stdout.split("\n")[1:-1]
+            error_messages.extend(messages)
 
-        # We need this to avoid flake8 printing the names of the files to
-        # the standard output
-        application.formatter.write = lambda line, source: None
-        application.report()
-
-        yield from application.guide.stats.statistics_for("")
+        for error_message in error_messages:
+            # Parse error message
+            error_items = re.split(r"\s+", error_message)
+            error_count = int(error_items[0])
+            error_code = error_items[1]
+            message = " ".join(error_items[2:])
+            yield error_code, message, error_count
 
 
 def pandas_validate(func_name: str):
@@ -240,13 +249,14 @@ def pandas_validate(func_name: str):
             result["errors"].append(
                 pandas_error("EX02", doctest_log=result["examples_errs"])
             )
-        for err in doc.validate_pep8():
+
+        for error_code, error_message, error_count in doc.validate_pep8():
             result["errors"].append(
                 pandas_error(
                     "EX03",
-                    error_code=err.error_code,
-                    error_message=err.message,
-                    times_happening=f" ({err.count} times)" if err.count > 1 else "",
+                    error_code=error_code,
+                    error_message=error_message,
+                    times_happening=f" ({error_count} times)" if error_count > 1 else "",
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
