@@ -843,8 +843,8 @@ def _list_of_dict_to_arrays(
     if columns is None:
         gen = (list(x.keys()) for x in data)
         sort = not any(isinstance(d, dict) for d in data)
-        columns = lib.fast_unique_multiple_list_gen(gen, sort=sort)
-        columns = ensure_index(columns)
+        pre_cols = lib.fast_unique_multiple_list_gen(gen, sort=sort)
+        columns = ensure_index(pre_cols)
 
     # assure that they are of the base dict class and not of derived
     # classes

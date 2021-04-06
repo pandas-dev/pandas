@@ -3300,14 +3300,10 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         else:
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray", variable has type "List[Any]")
-            new_values = self.values.T  # type: ignore[assignment]
+            new_arr = self.values.T
             if copy:
-                new_values = new_values.copy()
-            result = self._constructor(
-                new_values, index=self.columns, columns=self.index
-            )
+                new_arr = new_arr.copy()
+            result = self._constructor(new_arr, index=self.columns, columns=self.index)
 
         return result.__finalize__(self, method="transpose")
 
@@ -3682,17 +3678,15 @@ class DataFrame(NDFrame, OpsMixin):
                     value = value.reindex(cols, axis=1)
 
         # now align rows
+        arraylike = _reindex_for_setitem(value, self.index)
+        self._set_item_mgr(key, arraylike)
 
-        # error: Incompatible types in assignment (expression has type "ExtensionArray",
-        # variable has type "DataFrame")
-        value = _reindex_for_setitem(value, self.index)  # type: ignore[assignment]
-        self._set_item_mgr(key, value)
-
-    def _iset_item_mgr(self, loc: int, value) -> None:
+    def _iset_item_mgr(self, loc: int | slice | np.ndarray, value) -> None:
+        # when called from _set_item_mgr loc can be anything returned from get_loc
         self._mgr.iset(loc, value)
         self._clear_item_cache()
 
-    def _set_item_mgr(self, key, value):
+    def _set_item_mgr(self, key, value: ArrayLike) -> None:
         try:
             loc = self._info_axis.get_loc(key)
         except KeyError:
@@ -3707,9 +3701,9 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value):
-        value = self._sanitize_column(value)
-        self._iset_item_mgr(loc, value)
+    def _iset_item(self, loc: int, value) -> None:
+        arraylike = self._sanitize_column(value)
+        self._iset_item_mgr(loc, arraylike)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
