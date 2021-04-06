@@ -400,6 +400,38 @@ However, floating point artifacts may now exist in the results when rolling over
    s = pd.Series([7, 5, 5, 5])
    s.rolling(3).var()
 
+.. _whatsnew_130.notable_bug_fixes.rolling_groupby_multiindex:
+
+GroupBy.rolling with MultiIndex no longer drops levels in the result
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`core.window.rolling.RollingGroupby` will no longer drop levels of a :class:`DataFrame`
+with a :class:`MultiIndex` in the result. This can lead to a perceived duplication of levels in the resulting
+:class:`MultiIndex`, but this change restores the behavior that was present in version 1.1.3 (:issue:`38787`, :issue:`38523`).
+
+
+.. ipython:: python
+
+   index = pd.MultiIndex.from_tuples([('idx1', 'idx2')], names=['label1', 'label2'])
+   df = pd.DataFrame({'a': [1], 'b': [2]}, index=index)
+   df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [1]: df.groupby('label1').rolling(1).sum()
+    Out[1]:
+              a    b
+    label1
+    idx1    1.0  2.0
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.groupby('label1').rolling(1).sum()
+
 
 .. _whatsnew_130.api_breaking.deps:
 
@@ -642,6 +674,7 @@ Indexing
 - Bug in setting ``numpy.timedelta64`` values into an object-dtype :class:`Series` using a boolean indexer (:issue:`39488`)
 - Bug in setting numeric values into a into a boolean-dtypes :class:`Series` using ``at`` or ``iat`` failing to cast to object-dtype (:issue:`39582`)
 - Bug in :meth:`DataFrame.loc.__setitem__` when setting-with-expansion incorrectly raising when the index in the expanding axis contains duplicates (:issue:`40096`)
+- Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
 
 Missing
 ^^^^^^^
