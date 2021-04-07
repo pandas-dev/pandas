@@ -186,19 +186,15 @@ class PandasDocstring(Docstring):
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as file:
             file.write(content)
             file.flush()
-            # GH40784
-            cmd = ["flake8", "--quiet", "--statistics", file.name]
+            cmd = ["python", "-m", "flake8", "--quiet", "--statistics", file.name]
             response = subprocess.run(cmd, capture_output=True, text=True)
             stdout = response.stdout
-            # Remove file name from the start
             stdout = stdout.replace(file.name, "")
-            # Remove the first and last elements since they are always empty str
-            messages = stdout.split("\n")[1:-1]
-            error_messages.extend(messages)
+            messages = stdout.strip("\n")
+            if messages:
+                error_messages.append(messages)
 
-        # Parse error message
         for error_message in error_messages:
-            # Preserve whitespaces with a group
             error_count, error_code, message = error_message.split(maxsplit=2)
             yield error_code, message, int(error_count)
 
