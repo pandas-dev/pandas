@@ -140,45 +140,59 @@ def test_closed_fixed(closed, arithmetic_win_operators):
     tm.assert_frame_equal(result, expected)
 
 
-def test_datetimelike_centered_selections(closed, arithmetic_win_operators):
+@pytest.mark.parametrize(
+    "closed, window_selections",
+    [
+        (
+            "both",
+            [
+                [True, True, False, False, False],
+                [True, True, True, False, False],
+                [False, True, True, True, False],
+                [False, False, True, True, True],
+                [False, False, False, True, True],
+            ],
+        ),
+        (
+            "left",
+            [
+                [True, False, False, False, False],
+                [True, True, False, False, False],
+                [False, True, True, False, False],
+                [False, False, True, True, False],
+                [False, False, False, True, True],
+            ],
+        ),
+        (
+            "right",
+            [
+                [True, True, False, False, False],
+                [False, True, True, False, False],
+                [False, False, True, True, False],
+                [False, False, False, True, True],
+                [False, False, False, False, True],
+            ],
+        ),
+        (
+            "neither",
+            [
+                [True, False, False, False, False],
+                [False, True, False, False, False],
+                [False, False, True, False, False],
+                [False, False, False, True, False],
+                [False, False, False, False, True],
+            ],
+        ),
+    ],
+)
+def test_datetimelike_centered_selections(
+    closed, window_selections, arithmetic_win_operators
+):
     # GH 34315
     func_name = arithmetic_win_operators
     df_time = DataFrame(
         {"A": [0.0, 1.0, 2.0, 3.0, 4.0]}, index=date_range("2020", periods=5)
     )
-
-    if closed == "both":
-        window_selections = [
-            [True, True, False, False, False],
-            [True, True, True, False, False],
-            [False, True, True, True, False],
-            [False, False, True, True, True],
-            [False, False, False, True, True],
-        ]
-    elif closed == "left":
-        window_selections = [
-            [True, False, False, False, False],
-            [True, True, False, False, False],
-            [False, True, True, False, False],
-            [False, False, True, True, False],
-            [False, False, False, True, True],
-        ]
-    elif closed == "right":
-        window_selections = [
-            [True, True, False, False, False],
-            [False, True, True, False, False],
-            [False, False, True, True, False],
-            [False, False, False, True, True],
-            [False, False, False, False, True],
-        ]
-    else:  # closed=="neither"
-        window_selections = [
-            [True, False, False, False, False],
-            [False, True, False, False, False],
-            [False, False, True, False, False],
-            [False, False, False, True, False],
-            [False, False, False, False, True],
-        ]
 
     expected = DataFrame(
         {"A": [getattr(df_time["A"].iloc[s], func_name)() for s in window_selections]},
