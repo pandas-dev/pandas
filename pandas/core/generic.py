@@ -3426,7 +3426,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         line_terminator : str, optional
             The newline character or character sequence to use in the output
             file. Defaults to `os.linesep`, which depends on the OS in which
-            this method is called ('\n' for linux, '\r\n' for Windows, i.e.).
+            this method is called ('\\n' for linux, '\\r\\n' for Windows, i.e.).
 
             .. versionchanged:: 0.24.0
         chunksize : int or None
