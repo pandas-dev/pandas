@@ -19,7 +19,6 @@ import glob
 import importlib
 import json
 import os
-import re
 import subprocess
 import sys
 import tempfile
@@ -200,11 +199,8 @@ class PandasDocstring(Docstring):
         # Parse error message
         for error_message in error_messages:
             # Preserve whitespaces with a group
-            error_items = re.split(r"(\s+)", error_message)
-            error_count = int(error_items[0])
-            error_code = error_items[2]
-            message = "".join(error_items[4:])
-            yield error_code, message, error_count
+            error_count, error_code, message = error_message.split(maxsplit=2)
+            yield error_code, message, int(error_count)
 
 
 def pandas_validate(func_name: str):
