@@ -9,13 +9,9 @@ import os
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
     Hashable,
     Iterator,
-    List,
-    Optional,
     Sequence,
-    Union,
 )
 
 import numpy as np
@@ -51,19 +47,19 @@ class CSVFormatter:
         formatter: DataFrameFormatter,
         path_or_buf: FilePathOrBuffer[str] = "",
         sep: str = ",",
-        cols: Optional[Sequence[Hashable]] = None,
-        index_label: Optional[IndexLabel] = None,
+        cols: Sequence[Hashable] | None = None,
+        index_label: IndexLabel | None = None,
         mode: str = "w",
-        encoding: Optional[str] = None,
+        encoding: str | None = None,
         errors: str = "strict",
         compression: CompressionOptions = "infer",
-        quoting: Optional[int] = None,
+        quoting: int | None = None,
         line_terminator="\n",
-        chunksize: Optional[int] = None,
-        quotechar: Optional[str] = '"',
-        date_format: Optional[str] = None,
+        chunksize: int | None = None,
+        quotechar: str | None = '"',
+        date_format: str | None = None,
         doublequote: bool = True,
-        escapechar: Optional[str] = None,
+        escapechar: str | None = None,
         storage_options: StorageOptions = None,
     ):
         self.fmt = formatter
@@ -93,7 +89,7 @@ class CSVFormatter:
         return self.fmt.na_rep
 
     @property
-    def float_format(self) -> Optional[FloatFormatType]:
+    def float_format(self) -> FloatFormatType | None:
         return self.fmt.float_format
 
     @property
@@ -101,14 +97,14 @@ class CSVFormatter:
         return self.fmt.decimal
 
     @property
-    def header(self) -> Union[bool, Sequence[str]]:
+    def header(self) -> bool | Sequence[str]:
         return self.fmt.header
 
     @property
     def index(self) -> bool:
         return self.fmt.index
 
-    def _initialize_index_label(self, index_label: Optional[IndexLabel]) -> IndexLabel:
+    def _initialize_index_label(self, index_label: IndexLabel | None) -> IndexLabel:
         if index_label is not False:
             if index_label is None:
                 return self._get_index_label_from_obj()
@@ -117,20 +113,20 @@ class CSVFormatter:
                 return [index_label]
         return index_label
 
-    def _get_index_label_from_obj(self) -> List[str]:
+    def _get_index_label_from_obj(self) -> list[str]:
         if isinstance(self.obj.index, ABCMultiIndex):
             return self._get_index_label_multiindex()
         else:
             return self._get_index_label_flat()
 
-    def _get_index_label_multiindex(self) -> List[str]:
+    def _get_index_label_multiindex(self) -> list[str]:
         return [name or "" for name in self.obj.index.names]
 
-    def _get_index_label_flat(self) -> List[str]:
+    def _get_index_label_flat(self) -> list[str]:
         index_label = self.obj.index.name
         return [""] if index_label is None else [index_label]
 
-    def _initialize_quotechar(self, quotechar: Optional[str]) -> Optional[str]:
+    def _initialize_quotechar(self, quotechar: str | None) -> str | None:
         if self.quoting != csvlib.QUOTE_NONE:
             # prevents crash in _csv
             return quotechar
@@ -141,7 +137,7 @@ class CSVFormatter:
         return bool(isinstance(self.obj.columns, ABCMultiIndex))
 
     def _initialize_columns(
-        self, cols: Optional[Sequence[Hashable]]
+        self, cols: Sequence[Hashable] | None
     ) -> Sequence[Hashable]:
         # validate mi options
         if self.has_mi_columns:
@@ -164,13 +160,13 @@ class CSVFormatter:
         else:
             return list(new_cols)
 
-    def _initialize_chunksize(self, chunksize: Optional[int]) -> int:
+    def _initialize_chunksize(self, chunksize: int | None) -> int:
         if chunksize is None:
             return (100000 // (len(self.cols) or 1)) or 1
         return int(chunksize)
 
     @property
-    def _number_format(self) -> Dict[str, Any]:
+    def _number_format(self) -> dict[str, Any]:
         """Dictionary used for storing number formatting settings."""
         return {
             "na_rep": self.na_rep,
@@ -221,8 +217,8 @@ class CSVFormatter:
             return self.cols
 
     @property
-    def encoded_labels(self) -> List[Hashable]:
-        encoded_labels: List[Hashable] = []
+    def encoded_labels(self) -> list[Hashable]:
+        encoded_labels: list[Hashable] = []
 
         if self.index and self.index_label:
             assert isinstance(self.index_label, Sequence)
@@ -272,7 +268,7 @@ class CSVFormatter:
             for row in self._generate_multiindex_header_rows():
                 self.writer.writerow(row)
 
-    def _generate_multiindex_header_rows(self) -> Iterator[List[Hashable]]:
+    def _generate_multiindex_header_rows(self) -> Iterator[list[Hashable]]:
         columns = self.obj.columns
         for i in range(columns.nlevels):
             # we need at least 1 index column to write our col names
