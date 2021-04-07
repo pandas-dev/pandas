@@ -134,6 +134,30 @@ a copy will no longer be made (:issue:`32960`)
 The default behavior when not passing ``copy`` will remain unchanged, i.e.
 a copy will be made.
 
+Centered Datetime-Like Rolling Windows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When performing rolling calculations on :class:`DataFrame` and :class:`Series`
+objects with a datetime-like index, a centered datetime-like window can now be
+used (:issue:`38780`).
+For example:
+
+.. code-block:: ipython
+
+   In [1]: df = DataFrame(
+              {"A": [0, 1, 2, 3, 4]},
+              index=date_range("2020", periods=5, freq="1D")
+           )
+
+   In [2]: df.rolling("2D", center=True).mean()
+   Out [2]:
+                    A
+      2020-01-01	0.5
+      2020-01-02	1.5
+      2020-01-03	2.5
+      2020-01-04	3.5
+      2020-01-05	4.0
+
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements
