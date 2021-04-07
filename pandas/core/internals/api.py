@@ -8,8 +8,6 @@ authors
 """
 from __future__ import annotations
 
-from typing import Optional
-
 import numpy as np
 
 from pandas._libs.internals import BlockPlacement
@@ -33,7 +31,7 @@ from pandas.core.internals.blocks import (
 
 
 def make_block(
-    values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None
+    values, placement, klass=None, ndim=None, dtype: Dtype | None = None
 ) -> Block:
     """
     This is a pseudo-public analogue to blocks.new_block.
@@ -73,7 +71,7 @@ def make_block(
     return klass(values, ndim=ndim, placement=placement)
 
 
-def maybe_infer_ndim(values, placement: BlockPlacement, ndim: Optional[int]) -> int:
+def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
     """
     If `ndim` is not provided, infer it from placment and values.
     """
