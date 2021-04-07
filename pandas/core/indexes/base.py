@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import copy as copy_func
 from datetime import datetime
+import functools
 from itertools import zip_longest
 import operator
 from typing import (
@@ -39,6 +40,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     DtypeObj,
+    F,
     Shape,
     T,
     final,
@@ -184,6 +186,33 @@ str_t = str
 
 
 _o_dtype = np.dtype("object")
+
+
+def _maybe_return_indexers(meth: F) -> F:
+    """
+    Decorator to simplify 'return_indexers' checks in Index.join.
+    """
+
+    @functools.wraps(meth)
+    def join(
+        self,
+        other,
+        how: str_t = "left",
+        level=None,
+        return_indexers: bool = False,
+        sort: bool = False,
+    ):
+        join_index, lidx, ridx = meth(self, other, how=how, level=level, sort=sort)
+        if not return_indexers:
+            return join_index
+
+        if lidx is not None:
+            lidx = ensure_platform_int(lidx)
+        if ridx is not None:
+            ridx = ensure_platform_int(ridx)
+        return join_index, lidx, ridx
+
+    return cast(F, join)
 
 
 def disallow_kwargs(kwargs: dict[str, Any]):
@@ -2968,7 +2997,7 @@ class Index(IndexOpsMixin, PandasObject):
             missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
         if len(missing) > 0:
-            other_diff = rvals.take(missing)
+            other_diff = algos.take_nd(rvals, missing, allow_fill=False)
             result = concat_compat((lvals, other_diff))
         else:
             # error: Incompatible types in assignment (expression has type
@@ -3761,9 +3790,7 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None:
             if method is not None:
                 raise TypeError("Fill method not supported if level passed")
-            _, indexer, _ = self._join_level(
-                target, level, how="right", return_indexers=True
-            )
+            _, indexer, _ = self._join_level(target, level, how="right")
         else:
             if self.equals(target):
                 indexer = None
@@ -3859,6 +3886,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Join Methods
 
+    @_maybe_return_indexers
     def join(
         self,
         other,
@@ -3900,60 +3928,44 @@ class Index(IndexOpsMixin, PandasObject):
             if self.names == other.names:
                 pass
             else:
-                return self._join_multi(other, how=how, return_indexers=return_indexers)
+                return self._join_multi(other, how=how)
 
         # join on the level
         if level is not None and (self_is_mi or other_is_mi):
-            return self._join_level(
-                other, level, how=how, return_indexers=return_indexers
-            )
+            return self._join_level(other, level, how=how)
 
         if len(other) == 0 and how in ("left", "outer"):
             join_index = self._view()
-            if return_indexers:
-                rindexer = np.repeat(np.intp(-1), len(join_index))
-                return join_index, None, rindexer
-            else:
-                return join_index
+            rindexer = np.repeat(np.intp(-1), len(join_index))
+            return join_index, None, rindexer
 
         if len(self) == 0 and how in ("right", "outer"):
             join_index = other._view()
-            if return_indexers:
-                lindexer = np.repeat(np.intp(-1), len(join_index))
-                return join_index, lindexer, None
-            else:
-                return join_index
+            lindexer = np.repeat(np.intp(-1), len(join_index))
+            return join_index, lindexer, None
 
         if self._join_precedence < other._join_precedence:
             how = {"right": "left", "left": "right"}.get(how, how)
-            result = other.join(
-                self, how=how, level=level, return_indexers=return_indexers
+            join_index, lidx, ridx = other.join(
+                self, how=how, level=level, return_indexers=True
             )
-            if return_indexers:
-                x, y, z = result
-                result = x, z, y
-            return result
+            lidx, ridx = ridx, lidx
+            return join_index, lidx, ridx
 
         if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype("O")
             other = other.astype("O")
-            return this.join(other, how=how, return_indexers=return_indexers)
+            return this.join(other, how=how, return_indexers=True)
 
         _validate_join_method(how)
 
         if not self.is_unique and not other.is_unique:
-            return self._join_non_unique(
-                other, how=how, return_indexers=return_indexers
-            )
+            return self._join_non_unique(other, how=how)
         elif not self.is_unique or not other.is_unique:
             if self.is_monotonic and other.is_monotonic:
-                return self._join_monotonic(
-                    other, how=how, return_indexers=return_indexers
-                )
+                return self._join_monotonic(other, how=how)
             else:
-                return self._join_non_unique(
-                    other, how=how, return_indexers=return_indexers
-                )
+                return self._join_non_unique(other, how=how)
         elif (
             self.is_monotonic
             and other.is_monotonic
@@ -3965,9 +3977,7 @@ class Index(IndexOpsMixin, PandasObject):
             # Categorical is monotonic if data are ordered as categories, but join can
             #  not handle this in case of not lexicographically monotonic GH#38502
             try:
-                return self._join_monotonic(
-                    other, how=how, return_indexers=return_indexers
-                )
+                return self._join_monotonic(other, how=how)
             except TypeError:
                 pass
 
@@ -3987,21 +3997,18 @@ class Index(IndexOpsMixin, PandasObject):
         if sort:
             join_index = join_index.sort_values()
 
-        if return_indexers:
-            if join_index is self:
-                lindexer = None
-            else:
-                lindexer = self.get_indexer(join_index)
-            if join_index is other:
-                rindexer = None
-            else:
-                rindexer = other.get_indexer(join_index)
-            return join_index, lindexer, rindexer
+        if join_index is self:
+            lindexer = None
         else:
-            return join_index
+            lindexer = self.get_indexer(join_index)
+        if join_index is other:
+            rindexer = None
+        else:
+            rindexer = other.get_indexer(join_index)
+        return join_index, lindexer, rindexer
 
     @final
-    def _join_multi(self, other, how, return_indexers=True):
+    def _join_multi(self, other, how):
         from pandas.core.indexes.multi import MultiIndex
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
@@ -4054,10 +4061,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             multi_join_idx = multi_join_idx.remove_unused_levels()
 
-            if return_indexers:
-                return multi_join_idx, lidx, ridx
-            else:
-                return multi_join_idx
+            return multi_join_idx, lidx, ridx
 
         jl = list(overlap)[0]
 
@@ -4071,16 +4075,14 @@ class Index(IndexOpsMixin, PandasObject):
             how = {"right": "left", "left": "right"}.get(how, how)
 
         level = other.names.index(jl)
-        result = self._join_level(
-            other, level, how=how, return_indexers=return_indexers
-        )
+        result = self._join_level(other, level, how=how)
 
-        if flip_order and isinstance(result, tuple):
+        if flip_order:
             return result[0], result[2], result[1]
         return result
 
     @final
-    def _join_non_unique(self, other, how="left", return_indexers=False):
+    def _join_non_unique(self, other, how="left"):
         from pandas.core.reshape.merge import get_join_indexers
 
         # We only get here if dtypes match
@@ -4102,15 +4104,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         join_index = self._wrap_joined_index(join_array, other)
 
-        if return_indexers:
-            return join_index, left_idx, right_idx
-        else:
-            return join_index
+        return join_index, left_idx, right_idx
 
     @final
-    def _join_level(
-        self, other, level, how="left", return_indexers=False, keep_order=True
-    ):
+    def _join_level(self, other, level, how="left", keep_order=True):
         """
         The join method *only* affects the level of the resulting
         MultiIndex. Otherwise it just exactly aligns the Index data to the
@@ -4240,35 +4237,31 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if right_lev_indexer is not None:
-            right_indexer = right_lev_indexer.take(join_index.codes[level])
+            right_indexer = algos.take_nd(
+                right_lev_indexer, join_index.codes[level], allow_fill=False
+            )
         else:
             right_indexer = join_index.codes[level]
 
         if flip_order:
             left_indexer, right_indexer = right_indexer, left_indexer
 
-        if return_indexers:
-            left_indexer = (
-                None if left_indexer is None else ensure_platform_int(left_indexer)
-            )
-            right_indexer = (
-                None if right_indexer is None else ensure_platform_int(right_indexer)
-            )
-            return join_index, left_indexer, right_indexer
-        else:
-            return join_index
+        left_indexer = (
+            None if left_indexer is None else ensure_platform_int(left_indexer)
+        )
+        right_indexer = (
+            None if right_indexer is None else ensure_platform_int(right_indexer)
+        )
+        return join_index, left_indexer, right_indexer
 
     @final
-    def _join_monotonic(self, other, how="left", return_indexers=False):
+    def _join_monotonic(self, other: Index, how="left"):
         # We only get here with matching dtypes
         assert other.dtype == self.dtype
 
         if self.equals(other):
             ret_index = other if how == "right" else self
-            if return_indexers:
-                return ret_index, None, None
-            else:
-                return ret_index
+            return ret_index, None, None
 
         sv = self._get_engine_target()
         ov = other._get_engine_target()
@@ -4304,12 +4297,9 @@ class Index(IndexOpsMixin, PandasObject):
 
             join_index = self._wrap_joined_index(join_array, other)
 
-        if return_indexers:
-            lidx = None if lidx is None else ensure_platform_int(lidx)
-            ridx = None if ridx is None else ensure_platform_int(ridx)
-            return join_index, lidx, ridx
-        else:
-            return join_index
+        lidx = None if lidx is None else ensure_platform_int(lidx)
+        ridx = None if ridx is None else ensure_platform_int(ridx)
+        return join_index, lidx, ridx
 
     def _wrap_joined_index(
         self: _IndexT, joined: np.ndarray, other: _IndexT
