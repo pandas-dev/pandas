@@ -60,27 +60,6 @@ def dtype(request):
     return PandasDtype(np.dtype(request.param))
 
 
-def __init__(self, values, placement, ndim):
-    # libinternals.Block.__cinit__ gets called automatically before __init__,
-    #  after which this __init__ is called
-    if not isinstance(placement, blocks.libinternals.BlockPlacement):
-        placement = blocks.libinternals.BlockPlacement(placement)
-
-    # Maybe infer ndim from placement
-    if ndim is None:
-        if len(placement) != 1:
-            ndim = 1
-        else:
-            ndim = 2
-
-    if isinstance(values, PandasArray) and values.ndim > ndim:
-        assert values.shape[0] == 1
-        values = values[0]
-
-    self.values = values
-    self.placement = placement
-
-
 @pytest.fixture
 def allow_in_pandas(monkeypatch):
     """
@@ -100,7 +79,6 @@ def allow_in_pandas(monkeypatch):
     """
     with monkeypatch.context() as m:
         m.setattr(PandasArray, "_typ", "extension")
-        m.setattr(blocks.ExtensionBlock, "__init__", __init__)
         m.setattr(managers, "_extract_array", _extract_array_patched)
         m.setattr(blocks, "can_hold_element", _can_hold_element_patched)
         yield
