@@ -14,7 +14,6 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
-    isna,
 )
 import pandas._testing as tm
 import pandas.core.nanops as nanops
@@ -39,41 +38,6 @@ def numpy_dtypes_for_minmax(request):
     )
 
     return (dtype, min_val, max_val)
-
-
-@pytest.mark.parametrize("agg_func", ["any", "all"])
-@pytest.mark.parametrize("skipna", [True, False])
-@pytest.mark.parametrize(
-    "vals",
-    [
-        ["foo", "bar", "baz"],
-        ["foo", "", ""],
-        ["", "", ""],
-        [1, 2, 3],
-        [1, 0, 0],
-        [0, 0, 0],
-        [1.0, 2.0, 3.0],
-        [1.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0],
-        [True, True, True],
-        [True, False, False],
-        [False, False, False],
-        [np.nan, np.nan, np.nan],
-    ],
-)
-def test_groupby_bool_aggs(agg_func, skipna, vals):
-    df = DataFrame({"key": ["a"] * 3 + ["b"] * 3, "val": vals * 2})
-
-    # Figure out expectation using Python builtin
-    exp = getattr(builtins, agg_func)(vals)
-
-    # edge case for missing data with skipna and 'any'
-    if skipna and all(isna(vals)) and agg_func == "any":
-        exp = False
-
-    exp_df = DataFrame([exp] * 2, columns=["val"], index=Index(["a", "b"], name="key"))
-    result = getattr(df.groupby("key"), agg_func)(skipna=skipna)
-    tm.assert_frame_equal(result, exp_df)
 
 
 def test_max_min_non_numeric():
@@ -342,14 +306,6 @@ class TestGroupByNonCythonPaths:
         expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
         result = gb.idxmin()
-        tm.assert_frame_equal(result, expected)
-
-    def test_any(self, gb):
-        expected = DataFrame(
-            [[True, True], [False, True]], columns=["B", "C"], index=[1, 3]
-        )
-        expected.index.name = "A"
-        result = gb.any()
         tm.assert_frame_equal(result, expected)
 
     def test_mad(self, gb, gni):
