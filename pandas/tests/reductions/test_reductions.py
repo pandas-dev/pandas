@@ -949,14 +949,13 @@ class TestSeriesReductions:
         assert s3.all(skipna=False)
         assert not s4.any(skipna=False)
 
-        # Check level TODO(GH-33449) result should also be boolean
         s = Series(
             [False, False, True, True, False, True],
             index=[0, 0, 1, 1, 2, 2],
             dtype="boolean",
         )
-        tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
-        tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
+        tm.assert_series_equal(s.all(level=0), Series([False, True, False], dtype="boolean"))
+        tm.assert_series_equal(s.any(level=0), Series([False, True, True], dtype="boolean"))
 
     def test_any_axis1_bool_only(self):
         # GH#32432
