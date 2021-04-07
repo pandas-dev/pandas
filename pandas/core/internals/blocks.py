@@ -1345,6 +1345,31 @@ class EABackedBlock(Block):
             # _cache not yet initialized
             pass
 
+    @cache_readonly
+    def array_values(self) -> ExtensionArray:
+        return self.values
+
+    def get_values(self, dtype: DtypeObj | None = None) -> np.ndarray:
+        """
+        return object dtype as boxed values, such as Timestamps/Timedelta
+        """
+        values = self.values
+        if dtype == _dtype_obj:
+            values = values.astype(object)
+        # TODO(EA2D): reshape not needed with 2D EAs
+        return np.asarray(values).reshape(self.shape)
+
+    def interpolate(
+        self, method="pad", axis=0, inplace=False, limit=None, fill_value=None, **kwargs
+    ):
+        values = self.values
+        if values.ndim == 2 and axis == 0:
+            # NDArrayBackedExtensionArray.fillna assumes axis=1
+            new_values = values.T.fillna(value=fill_value, method=method, limit=limit).T
+        else:
+            new_values = values.fillna(value=fill_value, method=method, limit=limit)
+        return self.make_block_same_class(new_values)
+
 
 class ExtensionBlock(EABackedBlock):
     """
@@ -1469,15 +1494,6 @@ class ExtensionBlock(EABackedBlock):
         self.values[indexer] = value
         return self
 
-    def get_values(self, dtype: DtypeObj | None = None) -> np.ndarray:
-        # ExtensionArrays must be iterable, so this works.
-        # TODO(EA2D): reshape not needed with 2D EAs
-        return np.asarray(self.values).reshape(self.shape)
-
-    @cache_readonly
-    def array_values(self) -> ExtensionArray:
-        return self.values
-
     def take_nd(
         self,
         indexer,
@@ -1548,12 +1564,6 @@ class ExtensionBlock(EABackedBlock):
     ) -> list[Block]:
         values = self.values.fillna(value=value, limit=limit)
         return [self.make_block_same_class(values=values)]
-
-    def interpolate(
-        self, method="pad", axis=0, inplace=False, limit=None, fill_value=None, **kwargs
-    ):
-        new_values = self.values.fillna(value=fill_value, method=method, limit=limit)
-        return self.make_block_same_class(new_values)
 
     def diff(self, n: int, axis: int = 1) -> list[Block]:
         if axis == 0 and n != 0:
@@ -1663,25 +1673,10 @@ class NDArrayBackedExtensionBlock(EABackedBlock):
     values: NDArrayBackedExtensionArray
 
     @property
-    def array_values(self) -> NDArrayBackedExtensionArray:
-        return self.values
-
-    @property
     def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
-
-    def get_values(self, dtype: DtypeObj | None = None) -> np.ndarray:
-        """
-        return object dtype as boxed values, such as Timestamps/Timedelta
-        """
-        values = self.values
-        if dtype == _dtype_obj:
-            # DTA/TDA constructor and astype can handle 2D
-            values = values.astype(object)
-        # TODO(EA2D): reshape not needed with 2D EAs
-        return np.asarray(values).reshape(self.shape)
 
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
@@ -1798,8 +1793,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeLikeBlock):
     where = NDArrayBackedExtensionBlock.where
     putmask = NDArrayBackedExtensionBlock.putmask
     fillna = NDArrayBackedExtensionBlock.fillna
-
-    get_values = NDArrayBackedExtensionBlock.get_values
 
     # error: Incompatible types in assignment (expression has type
     # "Callable[[NDArrayBackedExtensionBlock], bool]", base class "ExtensionBlock"
