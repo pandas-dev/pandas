@@ -8,10 +8,6 @@ from typing import (
     Any,
     Callable,
     Hashable,
-    List,
-    Optional,
-    Tuple,
-    Type,
 )
 import warnings
 
@@ -46,6 +42,7 @@ from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.numeric import (
     Float64Index,
     Int64Index,
+    NumericIndex,
 )
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -55,7 +52,7 @@ if TYPE_CHECKING:
 _empty_range = range(0)
 
 
-class RangeIndex(Int64Index):
+class RangeIndex(NumericIndex):
     """
     Immutable Index implementing a monotonic integer range.
 
@@ -97,6 +94,7 @@ class RangeIndex(Int64Index):
 
     _typ = "rangeindex"
     _engine_type = libindex.Int64Engine
+    _can_hold_na = False
     _range: range
 
     # --------------------------------------------------------------------
@@ -107,7 +105,7 @@ class RangeIndex(Int64Index):
         start=None,
         stop=None,
         step=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy=False,
         name=None,
     ):
@@ -146,7 +144,7 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def from_range(
-        cls, data: range, name=None, dtype: Optional[Dtype] = None
+        cls, data: range, name=None, dtype: Dtype | None = None
     ) -> RangeIndex:
         """
         Create RangeIndex from a range object.
@@ -184,7 +182,7 @@ class RangeIndex(Int64Index):
     # --------------------------------------------------------------------
 
     @cache_readonly
-    def _constructor(self) -> Type[Int64Index]:
+    def _constructor(self) -> type[Int64Index]:
         """ return the class to use for construction """
         return Int64Index
 
@@ -234,7 +232,7 @@ class RangeIndex(Int64Index):
         # we are formatting thru the attributes
         return None
 
-    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
+    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
         if not len(self._range):
             return header
         first_val_str = str(self._range[0])
@@ -381,6 +379,10 @@ class RangeIndex(Int64Index):
             return False
         return key in self._range
 
+    @property
+    def inferred_type(self) -> str:
+        return "integer"
+
     # --------------------------------------------------------------------
     # Indexing Methods
 
@@ -399,10 +401,10 @@ class RangeIndex(Int64Index):
     def _get_indexer(
         self,
         target: Index,
-        method: Optional[str] = None,
-        limit: Optional[int] = None,
+        method: str | None = None,
+        limit: int | None = None,
         tolerance=None,
-    ):
+    ) -> np.ndarray:
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -436,10 +438,11 @@ class RangeIndex(Int64Index):
         return self._int64index.repeat(repeats, axis=axis)
 
     def delete(self, loc) -> Int64Index:
-        return self._int64index.delete(loc)
+        # error: Incompatible return value type (got "Index", expected "Int64Index")
+        return self._int64index.delete(loc)  # type: ignore[return-value]
 
     def take(
-        self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs
+        self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
     ) -> Int64Index:
         with rewrite_exception("Int64Index", type(self).__name__):
             return self._int64index.take(
@@ -471,7 +474,13 @@ class RangeIndex(Int64Index):
         return result
 
     @doc(Int64Index.copy)
-    def copy(self, name=None, deep=False, dtype: Optional[Dtype] = None, names=None):
+    def copy(
+        self,
+        name: Hashable = None,
+        deep: bool = False,
+        dtype: Dtype | None = None,
+        names=None,
+    ):
         name = self._validate_names(name=name, names=names, deep=deep)[0]
         new_index = self._rename(name=name)
 
@@ -527,8 +536,8 @@ class RangeIndex(Int64Index):
             return np.arange(len(self) - 1, -1, -1)
 
     def factorize(
-        self, sort: bool = False, na_sentinel: Optional[int] = -1
-    ) -> Tuple[np.ndarray, RangeIndex]:
+        self, sort: bool = False, na_sentinel: int | None = -1
+    ) -> tuple[np.ndarray, RangeIndex]:
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:
@@ -907,7 +916,7 @@ class RangeIndex(Int64Index):
         ]:
             return op(self._int64index, other)
 
-        step: Optional[Callable] = None
+        step: Callable | None = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
