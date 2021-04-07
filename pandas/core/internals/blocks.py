@@ -925,15 +925,6 @@ class Block(libinternals.Block, PandasObject):
             # current dtype cannot store value, coerce to common dtype
             return self.coerce_to_target_dtype(value).setitem(indexer, value)
 
-        if self.dtype.kind in ["m", "M"]:
-            arr = self.values
-            if self.ndim > 1:
-                # Dont transpose with ndim=1 bc we would fail to invalidate
-                #  arr.freq
-                arr = arr.T
-            arr[indexer] = value
-            return self
-
         # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
@@ -1696,6 +1687,19 @@ class NDArrayBackedExtensionBlock(EABackedBlock):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
         # TODO(EA2D): this can be removed if we ever have 2D EA
         return self.values.reshape(self.shape)[key]
+
+    def setitem(self, indexer, value):
+        if not self._can_hold_element(value):
+            # TODO: general case needs casting logic.
+            return self.astype(object).setitem(indexer, value)
+
+        values = self.values
+        if self.ndim > 1:
+            # Dont transpose with ndim=1 bc we would fail to invalidate
+            #  arr.freq
+            values = values.T
+        values[indexer] = value
+        return self
 
     def putmask(self, mask, new) -> list[Block]:
         mask = extract_bool_array(mask)
