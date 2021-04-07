@@ -93,7 +93,6 @@ def test_masked_kleene_logic(bool_agg_func, data, expected, skipna):
     )
 
     result = df.groupby([1, 1, 1]).agg(bool_agg_func, skipna=skipna)
-
     tm.assert_frame_equal(result, expected)
 
 
@@ -109,7 +108,4 @@ def test_masked_bool_aggs_skipna(bool_agg_func, dtype, skipna, frame_or_series):
     expected = frame_or_series([expected_res], index=[1], dtype="boolean")
 
     result = obj.groupby([1, 1]).agg(bool_agg_func, skipna=skipna)
-    print(result)
-    print(expected)
-
     tm.assert_equal(result, expected)
