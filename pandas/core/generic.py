@@ -232,7 +232,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __init__(
         self,
         data: Manager,
-        copy: bool = False,
+        copy: bool_t = False,
         attrs: Mapping[Hashable, Any] | None = None,
     ):
         # copy kwarg is retained for mypy compat, is not used
@@ -249,7 +249,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @classmethod
     def _init_mgr(
-        cls, mgr, axes, dtype: Dtype | None = None, copy: bool = False
+        cls, mgr, axes, dtype: Dtype | None = None, copy: bool_t = False
     ) -> Manager:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
@@ -377,8 +377,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def set_flags(
         self: FrameOrSeries,
         *,
-        copy: bool = False,
-        allows_duplicate_labels: bool | None = None,
+        copy: bool_t = False,
+        allows_duplicate_labels: bool_t | None = None,
     ) -> FrameOrSeries:
         """
         Return a new object with updated flags.
@@ -467,7 +467,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _stat_axis_name = "index"
     _AXIS_ORDERS: list[str]
     _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {0: 0, "index": 0, "rows": 0}
-    _AXIS_REVERSED: bool
+    _AXIS_REVERSED: bool_t
     _info_axis_number: int
     _info_axis_name: str
     _AXIS_LEN: int
@@ -714,7 +714,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @overload
     def set_axis(
-        self: FrameOrSeries, labels, axis: Axis = ..., inplace: bool = ...
+        self: FrameOrSeries, labels, axis: Axis = ..., inplace: bool_t = ...
     ) -> FrameOrSeries | None:
         ...
 
@@ -995,8 +995,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index: Renamer | None = None,
         columns: Renamer | None = None,
         axis: Axis | None = None,
-        copy: bool = True,
-        inplace: bool = False,
+        copy: bool_t = True,
+        inplace: bool_t = False,
         level: Level | None = None,
         errors: str = "ignore",
     ) -> FrameOrSeries | None:
