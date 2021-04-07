@@ -1683,6 +1683,19 @@ class NDArrayBackedExtensionBlock(EABackedBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
 
+    def setitem(self, indexer, value):
+        if not self._can_hold_element(value):
+            # TODO: general case needs casting logic.
+            return self.astype(object).setitem(indexer, value)
+
+        values = self.values
+        if self.ndim > 1:
+            # Dont transpose with ndim=1 bc we would fail to invalidate
+            #  arr.freq
+            values = values.T
+        values[indexer] = value
+        return self
+
     def putmask(self, mask, new) -> list[Block]:
         mask = extract_bool_array(mask)
 
@@ -1706,19 +1719,6 @@ class NDArrayBackedExtensionBlock(EABackedBlock):
 
         nb = self.make_block_same_class(res_values)
         return [nb]
-
-    def setitem(self, indexer, value):
-        if not self._can_hold_element(value):
-            # TODO: general case needs casting logic.
-            return self.astype(object).setitem(indexer, value)
-
-        transpose = self.ndim == 2
-
-        values = self.values
-        if transpose:
-            values = values.T
-        values[indexer] = value
-        return self
 
     def diff(self, n: int, axis: int = 0) -> list[Block]:
         """
