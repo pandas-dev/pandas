@@ -142,7 +142,7 @@ objects with a datetime-like index, a centered datetime-like window can now be
 used (:issue:`38780`).
 For example:
 
-.. code-block:: ipython
+.. ipython:: python
 
    In [1]: df = DataFrame(
               {"A": [0, 1, 2, 3, 4]},
