@@ -344,6 +344,10 @@ class TestConcatenate:
         expected = concat([df, df], keys=["foo", "bar"])
         tm.assert_frame_equal(result, expected[:10])
 
+    def test_concat_no_items_raises(self):
+        with pytest.raises(ValueError, match="No objects to concatenate"):
+            concat([])
+
     def test_concat_exclude_none(self):
         df = DataFrame(np.random.randn(10, 4))
 
@@ -599,8 +603,3 @@ def test_concat_repeated_keys(keys, integrity):
     tuples = list(zip(keys, ["a", "b", "c"]))
     expected = Series([1, 2, 3], index=MultiIndex.from_tuples(tuples))
     tm.assert_series_equal(result, expected)
-
-
-def test_concat_no_items_raises():
-    with pytest.raises(ValueError, match="No objects to concatenate"):
-        concat([])
