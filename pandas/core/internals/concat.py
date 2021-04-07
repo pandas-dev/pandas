@@ -4,8 +4,6 @@ import copy
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    List,
     Sequence,
 )
 
@@ -62,7 +60,7 @@ if TYPE_CHECKING:
 
 
 def _concatenate_array_managers(
-    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
     Concatenate array managers into one.
@@ -165,7 +163,7 @@ def concat_arrays(to_concat: List) -> ArrayLike:
 
 
 def concatenate_managers(
-    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
     Concatenate block managers into one.
@@ -230,7 +228,7 @@ def concatenate_managers(
     return BlockManager(blocks, axes)
 
 
-def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarray]):
+def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarray]):
     """
     Construct concatenation plan for given block manager and indexers.
 
@@ -465,7 +463,7 @@ class JoinUnit:
 
 
 def _concatenate_join_units(
-    join_units: List[JoinUnit], concat_axis: int, copy: bool
+    join_units: list[JoinUnit], concat_axis: int, copy: bool
 ) -> ArrayLike:
     """
     Concatenate values from several join units along selected axis.
@@ -570,7 +568,7 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
     return dtype
 
 
-def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
+def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic

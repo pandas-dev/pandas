@@ -7,11 +7,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    List,
-    Optional,
-    Tuple,
     TypeVar,
-    Union,
 )
 
 import numpy as np
@@ -122,13 +118,13 @@ class ArrayManager(DataManager):
         "arrays",
     ]
 
-    arrays: List[Union[np.ndarray, ExtensionArray]]
-    _axes: List[Index]
+    arrays: list[np.ndarray | ExtensionArray]
+    _axes: list[Index]
 
     def __init__(
         self,
-        arrays: List[Union[np.ndarray, ExtensionArray]],
-        axes: List[Index],
+        arrays: list[np.ndarray | ExtensionArray],
+        axes: list[Index],
         verify_integrity: bool = True,
     ):
         # Note: we are storing the axes in "_axes" in the (row, columns) order
@@ -146,7 +142,7 @@ class ArrayManager(DataManager):
         if axes is None:
             axes = [self.axes[1:], Index([])]
 
-        arrays: List[Union[np.ndarray, ExtensionArray]] = []
+        arrays: list[np.ndarray | ExtensionArray] = []
         return type(self)(arrays, axes)
 
     @property
@@ -155,14 +151,14 @@ class ArrayManager(DataManager):
 
     @property
     # error: Signature of "axes" incompatible with supertype "DataManager"
-    def axes(self) -> List[Index]:  # type: ignore[override]
+    def axes(self) -> list[Index]:  # type: ignore[override]
         # mypy doesn't work to override attribute with property
         # see https://github.com/python/mypy/issues/4125
         """Axes is BlockManager-compatible order (columns, rows)"""
         return [self._axes[1], self._axes[0]]
 
     @property
-    def shape_proper(self) -> Tuple[int, ...]:
+    def shape_proper(self) -> tuple[int, ...]:
         # this returns (n_rows, n_columns)
         return tuple(len(ax) for ax in self._axes)
 
@@ -239,7 +235,7 @@ class ArrayManager(DataManager):
 
     def reduce(
         self: T, func: Callable, ignore_failures: bool = False
-    ) -> Tuple[T, np.ndarray]:
+    ) -> tuple[T, np.ndarray]:
         """
         Apply reduction function column-wise, returning a single-row ArrayManager.
 
@@ -255,8 +251,8 @@ class ArrayManager(DataManager):
         np.ndarray
             Indexer of column indices that are retained.
         """
-        result_arrays: List[np.ndarray] = []
-        result_indices: List[int] = []
+        result_arrays: list[np.ndarray] = []
+        result_indices: list[int] = []
         for i, arr in enumerate(self.arrays):
             try:
                 res = func(arr, axis=0)
@@ -304,8 +300,8 @@ class ArrayManager(DataManager):
         -------
         ArrayManager
         """
-        result_arrays: List[np.ndarray] = []
-        result_indices: List[int] = []
+        result_arrays: list[np.ndarray] = []
+        result_indices: list[int] = []
 
         for i, arr in enumerate(self.arrays):
             try:
@@ -346,7 +342,7 @@ class ArrayManager(DataManager):
     def apply(
         self: T,
         f,
-        align_keys: Optional[List[str]] = None,
+        align_keys: list[str] | None = None,
         ignore_failures: bool = False,
         **kwargs,
     ) -> T:
@@ -369,8 +365,8 @@ class ArrayManager(DataManager):
         assert "filter" not in kwargs
 
         align_keys = align_keys or []
-        result_arrays: List[np.ndarray] = []
-        result_indices: List[int] = []
+        result_arrays: list[np.ndarray] = []
+        result_indices: list[int] = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
 
         aligned_args = {k: kwargs[k] for k in align_keys}
@@ -409,7 +405,7 @@ class ArrayManager(DataManager):
             result_arrays.append(applied)
             result_indices.append(i)
 
-        new_axes: List[Index]
+        new_axes: list[Index]
         if ignore_failures:
             # TODO copy?
             new_axes = [self._axes[0], self._axes[1][result_indices]]
@@ -624,8 +620,8 @@ class ArrayManager(DataManager):
 
     def replace_list(
         self: T,
-        src_list: List[Any],
-        dest_list: List[Any],
+        src_list: list[Any],
+        dest_list: list[Any],
         inplace: bool = False,
         regex: bool = False,
     ) -> T:
@@ -853,7 +849,7 @@ class ArrayManager(DataManager):
         self._axes = [self._axes[0], self._axes[1][to_keep]]
         return self
 
-    def iset(self, loc: Union[int, slice, np.ndarray], value):
+    def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
         """
         Set new column(s).
 
@@ -864,12 +860,10 @@ class ArrayManager(DataManager):
         ----------
         loc : integer, slice or boolean mask
             Positional location (already bounds checked)
-        value : array-like
+        value : np.ndarray or ExtensionArray
         """
         # single column -> single integer index
         if lib.is_integer(loc):
-            # TODO the extract array should in theory not be needed?
-            value = extract_array(value, extract_numpy=True)
 
             # TODO can we avoid needing to unpack this here? That means converting
             # DataFrame into 1D array when loc is an integer
@@ -907,7 +901,10 @@ class ArrayManager(DataManager):
         assert value.shape[0] == len(self._axes[0])
 
         for value_idx, mgr_idx in enumerate(indices):
-            value_arr = value[:, value_idx]
+            # error: Invalid index type "Tuple[slice, int]" for
+            # "Union[ExtensionArray, ndarray]"; expected type
+            # "Union[int, slice, ndarray]"
+            value_arr = value[:, value_idx]  # type: ignore[index]
             self.arrays[mgr_idx] = value_arr
         return
 
@@ -1150,15 +1147,15 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
         "arrays",
     ]
 
-    arrays: List[Union[np.ndarray, ExtensionArray]]
-    _axes: List[Index]
+    arrays: list[np.ndarray | ExtensionArray]
+    _axes: list[Index]
 
     ndim = 1
 
     def __init__(
         self,
-        arrays: List[Union[np.ndarray, ExtensionArray]],
-        axes: List[Index],
+        arrays: list[np.ndarray | ExtensionArray],
+        axes: list[Index],
         verify_integrity: bool = True,
     ):
         self._axes = axes
