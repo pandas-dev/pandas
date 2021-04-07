@@ -444,9 +444,10 @@ static int end_line(parser_t *self) {
         self->line_fields[self->lines] = 0;
         return 0;
     }
-
+    // Ignore any trailing delimters see gh-2442
     if (!(self->lines <= self->header_end + self->allow_leading_cols) &&
-        (self->expected_fields < 0 && fields > ex_fields) && !(self->usecols)) {
+        (self->expected_fields < 0 && fields > ex_fields) && !(self->usecols)
+        && !((fields - 1) == ex_fields) && strlen(self->pword_start) == 0) {
         // increment file line count
         self->file_lines++;
 

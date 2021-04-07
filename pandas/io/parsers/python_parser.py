@@ -894,6 +894,10 @@ class PythonParser(ParserBase):
 
             for (i, l) in iter_content:
                 actual_len = len(l)
+                # Check and remove trailing delimiters see gh-2442
+                if actual_len == (col_len + 1) and l[-1] == "":
+                    l.pop()
+                    actual_len -= 1
 
                 if actual_len > col_len:
                     if self.error_bad_lines or self.warn_bad_lines:
