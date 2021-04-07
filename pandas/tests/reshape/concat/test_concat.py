@@ -599,3 +599,8 @@ def test_concat_repeated_keys(keys, integrity):
     tuples = list(zip(keys, ["a", "b", "c"]))
     expected = Series([1, 2, 3], index=MultiIndex.from_tuples(tuples))
     tm.assert_series_equal(result, expected)
+
+
+def test_concat_no_items_raises():
+    with pytest.raises(ValueError, match="No objects to concatenate"):
+        concat([])
