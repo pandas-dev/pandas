@@ -17,7 +17,7 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     NpDtype,
-    Positional,
+    PositionalIndexer,
     type_t,
 )
 from pandas.util._decorators import doc
@@ -311,7 +311,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             )
         )
 
-    def __getitem__(self, item: Positional) -> Any:
+    def __getitem__(self, item: PositionalIndexer) -> Any:
         """Select a subset of self.
 
         Parameters

@@ -17,7 +17,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     NpDtype,
-    Positional,
+    PositionalIndexer,
     Scalar,
     type_t,
 )
@@ -135,7 +135,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 
-    def __getitem__(self, item: Positional) -> BaseMaskedArray | Any:
+    def __getitem__(self, item: PositionalIndexer) -> BaseMaskedArray | Any:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value

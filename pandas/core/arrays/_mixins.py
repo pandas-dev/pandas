@@ -13,7 +13,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import (
     F,
-    Positional2D,
+    PositionalIndexer2D,
     Shape,
 )
 from pandas.compat.numpy import function as nv
@@ -276,7 +276,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     def __getitem__(
         self: NDArrayBackedExtensionArrayT,
-        key: Positional2D,
+        key: PositionalIndexer2D,
     ) -> NDArrayBackedExtensionArrayT | Any:
         if lib.is_integer(key):
             # fast-path
