@@ -5,10 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
-    List,
     Sequence,
-    Tuple,
-    Union,
 )
 import warnings
 
@@ -749,7 +746,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         raise AbstractMethodError(self)
 
-    def _has_valid_tuple(self, key: Tuple):
+    def _has_valid_tuple(self, key: tuple):
         """
         Check the key for valid keys across my indexer.
         """
@@ -763,7 +760,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                     f"[{self._valid_types}] types"
                 ) from err
 
-    def _is_nested_tuple_indexer(self, tup: Tuple) -> bool:
+    def _is_nested_tuple_indexer(self, tup: tuple) -> bool:
         """
         Returns
         -------
@@ -796,7 +793,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if len(key) > self.ndim:
             raise IndexingError("Too many indexers")
 
-    def _getitem_tuple_same_dim(self, tup: Tuple):
+    def _getitem_tuple_same_dim(self, tup: tuple):
         """
         Index with indexers that should return an object of the same dimension
         as self.obj.
@@ -815,7 +812,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         return retval
 
-    def _getitem_lowerdim(self, tup: Tuple):
+    def _getitem_lowerdim(self, tup: tuple):
 
         # we can directly get the axis result since the axis is specified
         if self.axis is not None:
@@ -868,7 +865,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         raise IndexingError("not applicable")
 
-    def _getitem_nested_tuple(self, tup: Tuple):
+    def _getitem_nested_tuple(self, tup: tuple):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
 
@@ -939,10 +936,10 @@ class _LocationIndexer(NDFrameIndexerBase):
             maybe_callable = com.apply_if_callable(key, self.obj)
             return self._getitem_axis(maybe_callable, axis=axis)
 
-    def _is_scalar_access(self, key: Tuple):
+    def _is_scalar_access(self, key: tuple):
         raise NotImplementedError()
 
-    def _getitem_tuple(self, tup: Tuple):
+    def _getitem_tuple(self, tup: tuple):
         raise AbstractMethodError(self)
 
     def _getitem_axis(self, key, axis: int):
@@ -973,17 +970,24 @@ class _LocIndexer(_LocationIndexer):
 
     @doc(_LocationIndexer._validate_key)
     def _validate_key(self, key, axis: int):
-
         # valid for a collection of labels (we check their presence later)
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
-        # boolean
-        pass
+        # boolean not in slice and with boolean index
+        if isinstance(key, bool) and not is_bool_dtype(self.obj.index):
+            raise KeyError(
+                f"{key}: boolean label can not be used without a boolean index"
+            )
+
+        if isinstance(key, slice) and (
+            isinstance(key.start, bool) or isinstance(key.stop, bool)
+        ):
+            raise TypeError(f"{key}: boolean values can not be used in a slice")
 
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         return True
 
-    def _is_scalar_access(self, key: Tuple) -> bool:
+    def _is_scalar_access(self, key: tuple) -> bool:
         """
         Returns
         -------
@@ -1017,7 +1021,7 @@ class _LocIndexer(_LocationIndexer):
     # -------------------------------------------------------------------
     # MultiIndex Handling
 
-    def _multi_take_opportunity(self, tup: Tuple) -> bool:
+    def _multi_take_opportunity(self, tup: tuple) -> bool:
         """
         Check whether there is the possibility to use ``_multi_take``.
 
@@ -1041,7 +1045,7 @@ class _LocIndexer(_LocationIndexer):
         # just too complicated
         return not any(com.is_bool_indexer(x) for x in tup)
 
-    def _multi_take(self, tup: Tuple):
+    def _multi_take(self, tup: tuple):
         """
         Create the indexers for the passed tuple of keys, and
         executes the take operation. This allows the take operation to be
@@ -1097,7 +1101,7 @@ class _LocIndexer(_LocationIndexer):
             {axis: [keyarr, indexer]}, copy=True, allow_dups=True
         )
 
-    def _getitem_tuple(self, tup: Tuple):
+    def _getitem_tuple(self, tup: tuple):
         with suppress(IndexingError):
             return self._getitem_lowerdim(tup)
 
@@ -1114,7 +1118,7 @@ class _LocIndexer(_LocationIndexer):
         # GH#5667 this will fail if the label is not present in the axis.
         return self.obj.xs(label, axis=axis)
 
-    def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
+    def _handle_lowerdim_multi_index_axis0(self, tup: tuple):
         # we have an axis0 multi-index, handle or raise
         axis = self.axis or 0
         try:
@@ -1460,7 +1464,7 @@ class _iLocIndexer(_LocationIndexer):
 
         return True
 
-    def _is_scalar_access(self, key: Tuple) -> bool:
+    def _is_scalar_access(self, key: tuple) -> bool:
         """
         Returns
         -------
@@ -1497,7 +1501,7 @@ class _iLocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _getitem_tuple(self, tup: Tuple):
+    def _getitem_tuple(self, tup: tuple):
 
         self._has_valid_tuple(tup)
         with suppress(IndexingError):
@@ -2311,7 +2315,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
         return key
 
 
-def _tuplify(ndim: int, loc: Hashable) -> Tuple[Union[Hashable, slice], ...]:
+def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:
     """
     Given an indexer for the first dimension, create an equivalent tuple
     for indexing over all dimensions.
@@ -2325,7 +2329,7 @@ def _tuplify(ndim: int, loc: Hashable) -> Tuple[Union[Hashable, slice], ...]:
     -------
     tuple
     """
-    _tup: List[Union[Hashable, slice]]
+    _tup: list[Hashable | slice]
     _tup = [slice(None, None) for _ in range(ndim)]
     _tup[0] = loc
     return tuple(_tup)
