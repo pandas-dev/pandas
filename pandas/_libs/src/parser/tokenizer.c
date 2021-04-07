@@ -444,10 +444,13 @@ static int end_line(parser_t *self) {
         self->line_fields[self->lines] = 0;
         return 0;
     }
-    // Ignore any trailing delimters see gh-2442
+    // Ignore any trailing delimters see gh-2442 by checking if
+    // the last field is empty. We determine this if the next
+    // to last character is null (last character must be null).
     if (!(self->lines <= self->header_end + self->allow_leading_cols) &&
         (self->expected_fields < 0 && fields > ex_fields) && !(self->usecols)
-        && !((fields - 1) == ex_fields) && strlen(self->pword_start) == 0) {
+        && !(((fields - 1) == ex_fields) &&
+        !self->stream[self->stream_len - 2])) {
         // increment file line count
         self->file_lines++;
 
