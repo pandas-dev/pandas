@@ -28,6 +28,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -656,10 +657,10 @@ def _reorder_by_uniques(uniques, labels):
     mask = labels < 0
 
     # move labels to right locations (ie, unsort ascending labels)
-    labels = reverse_indexer.take(labels)
+    labels = algorithms.take_nd(reverse_indexer, labels, allow_fill=False)
     np.putmask(labels, mask, -1)
 
     # sort observed ids
-    uniques = uniques.take(sorter)
+    uniques = algorithms.take_nd(uniques, sorter, allow_fill=False)
 
     return uniques, labels

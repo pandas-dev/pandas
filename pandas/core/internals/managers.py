@@ -303,7 +303,7 @@ class BlockManager(DataManager):
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
-        return dtypes.take(self.blknos)
+        return algos.take_nd(dtypes, self.blknos, allow_fill=False)
 
     @property
     def arrays(self) -> list[ArrayLike]:
