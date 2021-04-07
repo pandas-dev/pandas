@@ -954,8 +954,12 @@ class TestSeriesReductions:
             index=[0, 0, 1, 1, 2, 2],
             dtype="boolean",
         )
-        tm.assert_series_equal(s.all(level=0), Series([False, True, False], dtype="boolean"))
-        tm.assert_series_equal(s.any(level=0), Series([False, True, True], dtype="boolean"))
+        tm.assert_series_equal(
+            s.all(level=0), Series([False, True, False], dtype="boolean")
+        )
+        tm.assert_series_equal(
+            s.any(level=0), Series([False, True, True], dtype="boolean")
+        )
 
     def test_any_axis1_bool_only(self):
         # GH#32432
