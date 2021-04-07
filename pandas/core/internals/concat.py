@@ -100,7 +100,7 @@ def _concatenate_array_managers(
         return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
 
 
-def concat_arrays(to_concat: List) -> ArrayLike:
+def concat_arrays(to_concat: list) -> ArrayLike:
     """
     Alternative for concat_compat but specialized for use in the ArrayManager.
 
