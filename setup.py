@@ -327,8 +327,6 @@ else:
 
 extra_compile_args = []
 extra_link_args = []
-
-
 if is_platform_windows():
     if debugging_symbols_requested:
         extra_compile_args.append("/Z7")
