@@ -15,8 +15,8 @@ def get_date_name_field(
 def get_start_end_field(
     dtindex: np.ndarray,  # const int64_t[:]
     field: str,
-    freqstr: str | None,
-    month_kw: int,
+    freqstr: str | None = ...,
+    month_kw: int = ...
 ) -> np.ndarray: ...  # np.ndarray[bool]
 
 
