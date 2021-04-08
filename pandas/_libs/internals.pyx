@@ -458,14 +458,13 @@ def get_blkno_placements(blknos, group: bool = True):
 
 
 @cython.freelist(64)
-cdef class Block:
+cdef class SharedBlock:
     """
     Defining __init__ in a cython class significantly improves performance.
     """
     cdef:
         public BlockPlacement _mgr_locs
         readonly int ndim
-        public object values
 
     def __cinit__(self, values, placement: BlockPlacement, ndim: int):
         """
@@ -479,7 +478,6 @@ cdef class Block:
         """
         self._mgr_locs = placement
         self.ndim = ndim
-        self.values = values
 
     cpdef __reduce__(self):
         # We have to do some gymnastics b/c "ndim" is keyword-only
@@ -505,3 +503,33 @@ cdef class Block:
 
             ndim = maybe_infer_ndim(self.values, self.mgr_locs)
             self.ndim = ndim
+
+
+cdef class NumpyBlock(SharedBlock):
+    cdef:
+        public ndarray values
+
+    def __cinit__(self, ndarray values, BlockPlacement placement, int ndim):
+        # set values here the (implicit) call to SharedBlock.__cinit__ will
+        #  set placement and ndim
+        self.values = values
+
+    # @final  # not useful in cython, but we _would_ annotate with @final
+    def getitem_block_index(self, slicer: slice) -> NumpyBlock:
+        """
+        Perform __getitem__-like specialized to slicing along index.
+
+        Assumes self.ndim == 2
+        """
+        new_values = self.values[..., slicer]
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
+
+
+cdef class Block(SharedBlock):
+    cdef:
+        public object values
+
+    def __cinit__(self, object values, BlockPlacement placement, int ndim):
+        # set values here the (implicit) call to SharedBlock.__cinit__ will
+        #  set placement and ndim
+        self.values = values
