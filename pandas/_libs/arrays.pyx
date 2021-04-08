@@ -22,7 +22,7 @@ cdef class NDArrayBacked:
     dta = dti._data
     arr = dta._ndarray
 
-    obj = cls._simpler_new(arr, arr.dtype)
+    obj = cls._simple_new(arr, arr.dtype)
 
     # for foo in [arr, dta, obj]: ...
 
@@ -52,7 +52,7 @@ cdef class NDArrayBacked:
         self._dtype = dtype
 
     @classmethod
-    def _simpler_new(cls, ndarray values, object dtype):
+    def _simple_new(cls, ndarray values, object dtype):
         # Note: not _simple_new; for unclear reasons, calling this _simple_new
         #  and trying to call it from the subclass method using super()... fails
         cdef:
@@ -69,7 +69,7 @@ cdef class NDArrayBacked:
         This should round-trip:
             self == self._from_backing_data(self._ndarray)
         """
-        # TODO: re-reuse simpler_new if/when it can be cpdef
+        # TODO: re-reuse simple_new if/when it can be cpdef
         cdef:
             NDArrayBacked obj
         obj = NDArrayBacked.__new__(type(self))

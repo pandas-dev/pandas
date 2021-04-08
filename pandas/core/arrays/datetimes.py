@@ -327,7 +327,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         assert isinstance(values, np.ndarray)
         assert values.dtype == DT64NS_DTYPE
 
-        result = cls._simpler_new(values, dtype)
+        result = super()._simple_new(values, dtype)
         result._freq = freq
         return result
 

@@ -242,7 +242,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         assert isinstance(values, np.ndarray), type(values)
         assert values.dtype == TD64NS_DTYPE
 
-        result = cls._simpler_new(values=values, dtype=TD64NS_DTYPE)
+        result = super()._simple_new(values=values, dtype=TD64NS_DTYPE)
         result._freq = freq
         return result
 

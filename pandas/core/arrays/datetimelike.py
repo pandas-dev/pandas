@@ -163,15 +163,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
     def __init__(self, data, dtype: Dtype | None = None, freq=None, copy=False):
         raise AbstractMethodError(self)
 
-    @classmethod
-    def _simple_new(
-        cls: type[DatetimeLikeArrayT],
-        values: np.ndarray,
-        freq: BaseOffset | None = None,
-        dtype: Dtype | None = None,
-    ) -> DatetimeLikeArrayT:
-        raise AbstractMethodError(cls)
-
     @property
     def _scalar_type(self) -> type[DatetimeLikeScalar]:
         """
