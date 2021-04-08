@@ -4211,8 +4211,7 @@ class Index(IndexOpsMixin, PandasObject):
                     )
 
                     # missing values are placed first; drop them!
-                    # error: Value of type "Optional[ndarray]" is not indexable
-                    left_indexer = left_indexer[counts[0] :]  # type: ignore[index]
+                    left_indexer = left_indexer[counts[0] :]
                     new_codes = [lab[left_indexer] for lab in new_codes]
 
                 else:  # sort the leaves
