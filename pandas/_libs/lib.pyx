@@ -1110,6 +1110,7 @@ _TYPE_MAP = {
     "complex64": "complex",
     "complex128": "complex",
     "c": "complex",
+    "string": "string",
     str: "string",
     "S": "bytes",
     "U": "string",
