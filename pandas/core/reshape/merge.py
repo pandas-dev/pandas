@@ -1485,7 +1485,8 @@ def get_join_indexers(
         "outer": libjoin.full_outer_join,
     }[how]
 
-    return join_func(lkey, rkey, count, **kwargs)
+    # error: Cannot call function of unknown type
+    return join_func(lkey, rkey, count, **kwargs)  # type: ignore[operator]
 
 
 def restore_dropped_levels_multijoin(
@@ -1624,9 +1625,20 @@ class _OrderedMerge(_MergeOperation):
             self.left._info_axis, self.right._info_axis, self.suffixes
         )
 
+        left_join_indexer: np.ndarray | None
+        right_join_indexer: np.ndarray | None
+
         if self.fill_method == "ffill":
-            left_join_indexer = libjoin.ffill_indexer(left_indexer)
-            right_join_indexer = libjoin.ffill_indexer(right_indexer)
+            # error: Argument 1 to "ffill_indexer" has incompatible type
+            # "Optional[ndarray]"; expected "ndarray"
+            left_join_indexer = libjoin.ffill_indexer(
+                left_indexer  # type: ignore[arg-type]
+            )
+            # error: Argument 1 to "ffill_indexer" has incompatible type
+            # "Optional[ndarray]"; expected "ndarray"
+            right_join_indexer = libjoin.ffill_indexer(
+                right_indexer  # type: ignore[arg-type]
+            )
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
