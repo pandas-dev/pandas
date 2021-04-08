@@ -57,15 +57,6 @@ class TestStylerMatplotlibDep:
         for k in expected.keys():
             assert result[k] == expected[k]
 
-    @pytest.mark.parametrize("text_color_threshold", [1.1, "1", -1, [2, 2]])
-    def test_text_color_threshold_raises(self, text_color_threshold):
-        df = DataFrame([[1, 2], [2, 4]], columns=["A", "B"])
-        msg = "`text_color_threshold` must be a value from 0 to 1."
-        with pytest.raises(ValueError, match=msg):
-            df.style.background_gradient(
-                text_color_threshold=text_color_threshold
-            )._compute()
-
     def test_background_gradient_axis(self):
         df = DataFrame([[1, 2], [2, 4]], columns=["A", "B"])
 
@@ -106,3 +97,131 @@ class TestStylerMatplotlibDep:
         assert ctx2[(0, 0)] == ctx1[(0, 0)]
         assert ctx2[(1, 0)] == ctx1[(1, 0)]
         assert ctx2[(2, 0)] == ctx1[(2, 0)]
+
+    @pytest.mark.parametrize(
+        "axis, gmap, expected",
+        [
+            (
+                0,
+                [1, 2],
+                {
+                    (0, 0): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (1, 0): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                    (0, 1): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (1, 1): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                },
+            ),
+            (
+                1,
+                [1, 2],
+                {
+                    (0, 0): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (1, 0): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (0, 1): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                    (1, 1): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                },
+            ),
+            (
+                None,
+                np.array([[2, 1], [1, 2]]),
+                {
+                    (0, 0): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                    (1, 0): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (0, 1): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (1, 1): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                },
+            ),
+        ],
+    )
+    def test_background_gradient_gmap_array(self, axis, gmap, expected):
+        # tests when gmap is given as a sequence and converted to ndarray
+        df = DataFrame([[0, 0], [0, 0]])
+        result = df.style.background_gradient(axis=axis, gmap=gmap)._compute().ctx
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "gmap, axis", [([1, 2, 3], 0), ([1, 2], 1), (np.array([[1, 2], [1, 2]]), None)]
+    )
+    def test_background_gradient_gmap_array_raises(self, gmap, axis):
+        # test when gmap as converted ndarray is bad shape
+        df = DataFrame([[0, 0, 0], [0, 0, 0]])
+        msg = "supplied 'gmap' is not correct shape"
+        with pytest.raises(ValueError, match=msg):
+            df.style.background_gradient(gmap=gmap, axis=axis)._compute()
+
+    @pytest.mark.parametrize(
+        "gmap",
+        [
+            DataFrame(  # reverse the columns
+                [[2, 1], [1, 2]], columns=["B", "A"], index=["X", "Y"]
+            ),
+            DataFrame(  # reverse the index
+                [[2, 1], [1, 2]], columns=["A", "B"], index=["Y", "X"]
+            ),
+            DataFrame(  # reverse the index and columns
+                [[1, 2], [2, 1]], columns=["B", "A"], index=["Y", "X"]
+            ),
+            DataFrame(  # add unnecessary columns
+                [[1, 2, 3], [2, 1, 3]], columns=["A", "B", "C"], index=["X", "Y"]
+            ),
+            DataFrame(  # add unnecessary index
+                [[1, 2], [2, 1], [3, 3]], columns=["A", "B"], index=["X", "Y", "Z"]
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "subset, exp_gmap",  # exp_gmap is underlying map DataFrame should conform to
+        [
+            (None, [[1, 2], [2, 1]]),
+            (["A"], [[1], [2]]),  # slice only column "A" in data and gmap
+            (["B", "A"], [[2, 1], [1, 2]]),  # reverse the columns in data
+            (IndexSlice["X", :], [[1, 2]]),  # slice only index "X" in data and gmap
+            (IndexSlice[["Y", "X"], :], [[2, 1], [1, 2]]),  # reverse the index in data
+        ],
+    )
+    def test_background_gradient_gmap_dataframe_align(self, gmap, subset, exp_gmap):
+        # test gmap given as DataFrame that it aligns to the the data including subset
+        df = DataFrame([[0, 0], [0, 0]], columns=["A", "B"], index=["X", "Y"])
+
+        expected = df.style.background_gradient(axis=None, gmap=exp_gmap, subset=subset)
+        result = df.style.background_gradient(axis=None, gmap=gmap, subset=subset)
+        assert expected._compute().ctx == result._compute().ctx
+
+    @pytest.mark.parametrize(
+        "gmap, axis, exp_gmap",
+        [
+            (Series([2, 1], index=["Y", "X"]), 0, [[1, 1], [2, 2]]),  # revrse the index
+            (Series([2, 1], index=["B", "A"]), 1, [[1, 2], [1, 2]]),  # revrse the cols
+            (Series([1, 2, 3], index=["X", "Y", "Z"]), 0, [[1, 1], [2, 2]]),  # add idx
+            (Series([1, 2, 3], index=["A", "B", "C"]), 1, [[1, 2], [1, 2]]),  # add col
+        ],
+    )
+    def test_background_gradient_gmap_series_align(self, gmap, axis, exp_gmap):
+        # test gmap given as Series that it aligns to the the data including subset
+        df = DataFrame([[0, 0], [0, 0]], columns=["A", "B"], index=["X", "Y"])
+
+        expected = df.style.background_gradient(axis=None, gmap=exp_gmap)._compute()
+        result = df.style.background_gradient(axis=axis, gmap=gmap)._compute()
+        assert expected.ctx == result.ctx
+
+    @pytest.mark.parametrize(
+        "gmap, axis",
+        [
+            (DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"]), 1),
+            (DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"]), 0),
+        ],
+    )
+    def test_background_gradient_gmap_wrong_dataframe(self, gmap, axis):
+        # test giving a gmap in DataFrame but with wrong axis
+        df = DataFrame([[0, 0], [0, 0]], columns=["A", "B"], index=["X", "Y"])
+        msg = "'gmap' is a DataFrame but underlying data for operations is a Series"
+        with pytest.raises(ValueError, match=msg):
+            df.style.background_gradient(gmap=gmap, axis=axis)._compute()
+
+    def test_background_gradient_gmap_wrong_series(self):
+        # test giving a gmap in Series form but with wrong axis
+        df = DataFrame([[0, 0], [0, 0]], columns=["A", "B"], index=["X", "Y"])
+        msg = "'gmap' is a Series but underlying data for operations is a DataFrame"
+        gmap = Series([1, 2], index=["X", "Y"])
+        with pytest.raises(ValueError, match=msg):
+            df.style.background_gradient(gmap=gmap, axis=None)._compute()
