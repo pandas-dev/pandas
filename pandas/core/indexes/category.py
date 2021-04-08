@@ -3,8 +3,6 @@ from __future__ import annotations
 from typing import (
     Any,
     Hashable,
-    List,
-    Optional,
 )
 import warnings
 
@@ -218,7 +216,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         data=None,
         categories=None,
         ordered=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
     ) -> CategoricalIndex:
@@ -351,7 +349,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             attrs.append(("length", len(self)))
         return attrs
 
-    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
+    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
         from pandas.io.formats.printing import pprint_thing
 
         result = [
@@ -424,10 +422,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         target = ibase.ensure_index(target)
 
-        missing: List[int]
         if self.equals(target):
             indexer = None
-            missing = []
+            missing = np.array([], dtype=np.intp)
         else:
             indexer, missing = self.get_indexer_non_unique(np.array(target))
 
@@ -496,8 +493,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def _get_indexer(
         self,
         target: Index,
-        method: Optional[str] = None,
-        limit: Optional[int] = None,
+        method: str | None = None,
+        limit: int | None = None,
         tolerance=None,
     ) -> np.ndarray:
 
@@ -628,7 +625,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
 
-    def _concat(self, to_concat: List[Index], name: Hashable) -> Index:
+    def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
         # if calling index is category, don't check dtype of others
         try:
             codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
