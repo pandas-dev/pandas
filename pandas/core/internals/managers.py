@@ -81,10 +81,10 @@ from pandas.core.internals.ops import (
 
 # TODO: flexible with index=None and/or items=None
 
-T = TypeVar("T", bound="_BlockManager")
+T = TypeVar("T", bound="BaseBlockManager")
 
 
-class _BlockManager(DataManager):
+class BaseBlockManager(DataManager):
     """
     Core internal data structure to implement DataFrame, Series, etc.
 
@@ -1395,9 +1395,9 @@ class _BlockManager(DataManager):
         )
 
 
-class BlockManager(_BlockManager):
+class BlockManager(BaseBlockManager):
     """
-    _BlockManager that holds 2D blocks.
+    BaseBlockManager that holds 2D blocks.
     """
 
     ndim = 2
@@ -1549,7 +1549,7 @@ class BlockManager(_BlockManager):
         return bm
 
 
-class SingleBlockManager(_BlockManager, SingleDataManager):
+class SingleBlockManager(BaseBlockManager, SingleDataManager):
     """ manage a single block with """
 
     ndim = 1
