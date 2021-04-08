@@ -1164,7 +1164,7 @@ class IndexOpsMixin(OpsMixin):
 
         return Index(self).is_monotonic_decreasing
 
-    def memory_usage(self, deep=False):
+    def _memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of the values.
 
@@ -1194,7 +1194,8 @@ class IndexOpsMixin(OpsMixin):
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
-            v += lib.memory_usage_of_objects(self._values)
+            values = cast(np.ndarray, self._values)
+            v += lib.memory_usage_of_objects(values)
         return v
 
     @doc(

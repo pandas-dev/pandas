@@ -550,7 +550,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                     freq = self.freq
             else:
                 if is_list_like(loc):
-                    loc = lib.maybe_indices_to_slice(
+                    # error: Incompatible types in assignment (expression has
+                    # type "Union[slice, ndarray]", variable has type
+                    # "Union[int, slice, Sequence[int]]")
+                    loc = lib.maybe_indices_to_slice(  # type: ignore[assignment]
                         np.asarray(loc, dtype=np.intp), len(self)
                     )
                 if isinstance(loc, slice) and loc.step in (1, None):
