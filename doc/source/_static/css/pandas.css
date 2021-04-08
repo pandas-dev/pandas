@@ -37,11 +37,6 @@
   background-color:white;
 }
 
-.intro-card .card-footer {
-  border: none;
-  background-color:white;
-}
-
 .intro-card .card-footer p.card-text{
   max-width: 220px;
   margin-left: auto;
