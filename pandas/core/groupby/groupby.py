@@ -2702,7 +2702,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         output: dict[base.OutputKey, np.ndarray] = {}
         base_func = getattr(libgroupby, how)
 
-        post_processing_accepts_masked = (
+        post_processing_accepts_masked = post_processing is not None and (
             "masked" in inspect.signature(post_processing).parameters
         )
         kwargs_accepts_masked = "masked" in kwargs
