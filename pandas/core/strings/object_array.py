@@ -92,6 +92,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                     return na_value
 
             return self._str_map(g, na_value=na_value, dtype=dtype)
+        if not isinstance(result, np.ndarray):
+            return result
         if na_value is not np.nan:
             np.putmask(result, mask, na_value)
             if result.dtype == object:

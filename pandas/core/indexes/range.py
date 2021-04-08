@@ -528,12 +528,17 @@ class RangeIndex(NumericIndex):
         --------
         numpy.ndarray.argsort
         """
+        ascending = kwargs.pop("ascending", True)  # EA compat
         nv.validate_argsort(args, kwargs)
 
         if self._range.step > 0:
-            return np.arange(len(self))
+            result = np.arange(len(self))
         else:
-            return np.arange(len(self) - 1, -1, -1)
+            result = np.arange(len(self) - 1, -1, -1)
+
+        if not ascending:
+            result = result[::-1]
+        return result
 
     def factorize(
         self, sort: bool = False, na_sentinel: int | None = -1
@@ -920,7 +925,8 @@ class RangeIndex(NumericIndex):
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
-        other = extract_array(other, extract_numpy=True)
+        # TODO: if other is a RangeIndex we may have more efficient options
+        other = extract_array(other, extract_numpy=True, extract_range=True)
         attrs = self._get_attributes_dict()
 
         left, right = self, other
