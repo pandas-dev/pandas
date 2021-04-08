@@ -54,6 +54,10 @@ from pandas.tseries.offsets import (
 lzma = import_lzma()
 
 
+# TODO(ArrayManager) pickling
+pytestmark = td.skip_array_manager_not_yet_implemented
+
+
 @pytest.fixture(scope="module")
 def current_pickle_data():
     # our current version pickle data

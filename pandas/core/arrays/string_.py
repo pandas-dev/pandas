@@ -1,11 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -16,6 +11,7 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     Scalar,
+    type_t,
 )
 from pandas.compat.numpy import function as nv
 
@@ -85,11 +81,11 @@ class StringDtype(ExtensionDtype):
     na_value = libmissing.NA
 
     @property
-    def type(self) -> Type[str]:
+    def type(self) -> type[str]:
         return str
 
     @classmethod
-    def construct_array_type(cls) -> Type[StringArray]:
+    def construct_array_type(cls) -> type_t[StringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -103,7 +99,7 @@ class StringDtype(ExtensionDtype):
         return "StringDtype"
 
     def __from_arrow__(
-        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> StringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
@@ -225,7 +221,7 @@ class StringArray(PandasArray):
             )
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         if dtype:
             assert dtype == "string"
 
@@ -254,7 +250,7 @@ class StringArray(PandasArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+        cls, strings, *, dtype: Dtype | None = None, copy=False
     ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -320,11 +316,16 @@ class StringArray(PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
         elif isinstance(dtype, FloatingDtype):
-            arr = self.copy()
+            # error: Incompatible types in assignment (expression has type
+            # "StringArray", variable has type "ndarray")
+            arr = self.copy()  # type: ignore[assignment]
             mask = self.isna()
             arr[mask] = "0"
             values = arr.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
+        elif isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(self, dtype=dtype, copy=copy)
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
             mask = self.isna()
@@ -402,13 +403,8 @@ class StringArray(PandasArray):
     # String methods interface
     _str_na_value = StringDtype.na_value
 
-    def _str_map(self, f, na_value=None, dtype: Optional[Dtype] = None):
-        from pandas.arrays import (
-            BooleanArray,
-            IntegerArray,
-            StringArray,
-        )
-        from pandas.core.arrays.string_ import StringDtype
+    def _str_map(self, f, na_value=None, dtype: Dtype | None = None):
+        from pandas.arrays import BooleanArray
 
         if dtype is None:
             dtype = StringDtype()
@@ -419,7 +415,7 @@ class StringArray(PandasArray):
         arr = np.asarray(self)
 
         if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: Union[Type[IntegerArray], Type[BooleanArray]]
+            constructor: type[IntegerArray] | type[BooleanArray]
             if is_integer_dtype(dtype):
                 constructor = IntegerArray
             else:
@@ -434,13 +430,20 @@ class StringArray(PandasArray):
                 mask.view("uint8"),
                 convert=False,
                 na_value=na_value,
-                dtype=np.dtype(dtype),
+                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
+                # "object"
+                # error: Argument 1 to "dtype" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
+                # "Type[object]"
+                dtype=np.dtype(dtype),  # type: ignore[type-var,arg-type]
             )
 
             if not na_value_is_na:
                 mask[:] = False
 
-            return constructor(result, mask)
+            # error: Argument 1 to "maybe_convert_objects" has incompatible
+            # type "Union[ExtensionArray, ndarray]"; expected "ndarray"
+            return constructor(result, mask)  # type: ignore[arg-type]
 
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype

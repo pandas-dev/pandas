@@ -9,7 +9,6 @@ from typing import (
     Callable,
     Hashable,
     List,
-    Optional,
     Tuple,
     TypeVar,
     Union,
@@ -98,7 +97,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
 
 
 def should_cache(
-    arg: ArrayConvertible, unique_share: float = 0.7, check_count: Optional[int] = None
+    arg: ArrayConvertible, unique_share: float = 0.7, check_count: int | None = None
 ) -> bool:
     """
     Decides whether to do caching.
@@ -147,7 +146,11 @@ def should_cache(
 
     assert 0 < unique_share < 1, "unique_share must be in next bounds: (0; 1)"
 
-    unique_elements = set(islice(arg, check_count))
+    try:
+        # We can't cache if the items are not hashable.
+        unique_elements = set(islice(arg, check_count))
+    except TypeError:
+        return False
     if len(unique_elements) > check_count * unique_share:
         do_caching = False
     return do_caching
@@ -155,7 +158,7 @@ def should_cache(
 
 def _maybe_cache(
     arg: ArrayConvertible,
-    format: Optional[str],
+    format: str | None,
     cache: bool,
     convert_listlike: Callable,
 ) -> Series:
@@ -167,7 +170,7 @@ def _maybe_cache(
     arg : listlike, tuple, 1-d array, Series
     format : string
         Strftime format to parse time
-    cache : boolean
+    cache : bool
         True attempts to create a cache of converted values
     convert_listlike : function
         Conversion function to apply on dates
@@ -194,7 +197,7 @@ def _maybe_cache(
 
 
 def _box_as_indexlike(
-    dt_array: ArrayLike, utc: Optional[bool] = None, name: Hashable = None
+    dt_array: ArrayLike, utc: bool | None = None, name: Hashable = None
 ) -> Index:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
@@ -225,7 +228,7 @@ def _box_as_indexlike(
 def _convert_and_box_cache(
     arg: DatetimeScalarOrArrayConvertible,
     cache_array: Series,
-    name: Optional[str] = None,
+    name: str | None = None,
 ) -> Index:
     """
     Convert array of dates with a cache and wrap the result in an Index.
@@ -245,7 +248,9 @@ def _convert_and_box_cache(
     from pandas import Series
 
     result = Series(arg).map(cache_array)
-    return _box_as_indexlike(result, utc=None, name=name)
+    # error: Argument 1 to "_box_as_indexlike" has incompatible type "Series"; expected
+    # "Union[ExtensionArray, ndarray]"
+    return _box_as_indexlike(result, utc=None, name=name)  # type: ignore[arg-type]
 
 
 def _return_parsed_timezone_results(result: np.ndarray, timezones, tz, name) -> Index:
@@ -279,14 +284,14 @@ def _return_parsed_timezone_results(result: np.ndarray, timezones, tz, name) -> 
 
 def _convert_listlike_datetimes(
     arg,
-    format: Optional[str],
+    format: str | None,
     name: Hashable = None,
-    tz: Optional[Timezone] = None,
-    unit: Optional[str] = None,
-    errors: Optional[str] = None,
+    tz: Timezone | None = None,
+    unit: str | None = None,
+    errors: str = "raise",
     infer_datetime_format: bool = False,
-    dayfirst: Optional[bool] = None,
-    yearfirst: Optional[bool] = None,
+    dayfirst: bool | None = None,
+    yearfirst: bool | None = None,
     exact: bool = True,
 ):
     """
@@ -301,15 +306,15 @@ def _convert_listlike_datetimes(
         None or string for the Index name
     tz : object
         None or 'utc'
-    unit : string
+    unit : str
         None or string of the frequency of the passed data
-    errors : string
+    errors : str
         error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'
     infer_datetime_format : bool, default False
         inferring format behavior from to_datetime
-    dayfirst : boolean
+    dayfirst : bool
         dayfirst parsing behavior from to_datetime
-    yearfirst : boolean
+    yearfirst : bool
         yearfirst parsing behavior from to_datetime
     exact : bool, default True
         exact format matching behavior from to_datetime
@@ -362,7 +367,9 @@ def _convert_listlike_datetimes(
             result = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
             return DatetimeIndex(result, name=name)
         elif errors == "ignore":
-            result = Index(arg, name=name)
+            # error: Incompatible types in assignment (expression has type
+            # "Index", variable has type "ExtensionArray")
+            result = Index(arg, name=name)  # type: ignore[assignment]
             return result
         raise
 
@@ -382,10 +389,14 @@ def _convert_listlike_datetimes(
             require_iso8601 = not infer_datetime_format
             format = None
 
-    result = None
+    # error: Incompatible types in assignment (expression has type "None", variable has
+    # type "ExtensionArray")
+    result = None  # type: ignore[assignment]
 
     if format is not None:
-        result = _to_datetime_with_format(
+        # error: Incompatible types in assignment (expression has type
+        # "Optional[Index]", variable has type "ndarray")
+        result = _to_datetime_with_format(  # type: ignore[assignment]
             arg, orig_arg, name, tz, format, exact, errors, infer_datetime_format
         )
         if result is not None:
@@ -420,9 +431,9 @@ def _array_strptime_with_fallback(
     tz,
     fmt: str,
     exact: bool,
-    errors: Optional[str],
+    errors: str,
     infer_datetime_format: bool,
-) -> Optional[Index]:
+) -> Index | None:
     """
     Call array_strptime, with fallback behavior depending on 'errors'.
     """
@@ -468,9 +479,9 @@ def _to_datetime_with_format(
     tz,
     fmt: str,
     exact: bool,
-    errors: Optional[str],
+    errors: str,
     infer_datetime_format: bool,
-) -> Optional[Index]:
+) -> Index | None:
     """
     Try parsing with the given format, returning None on failure.
     """
@@ -494,7 +505,9 @@ def _to_datetime_with_format(
 
         # fallback
         if result is None:
-            result = _array_strptime_with_fallback(
+            # error: Incompatible types in assignment (expression has type
+            # "Optional[Index]", variable has type "Optional[ndarray]")
+            result = _array_strptime_with_fallback(  # type: ignore[assignment]
                 arg, name, tz, fmt, exact, errors, infer_datetime_format
             )
             if result is not None:
@@ -510,10 +523,12 @@ def _to_datetime_with_format(
         except (ValueError, TypeError):
             raise e
 
-    return result
+    # error: Incompatible return value type (got "Optional[ndarray]", expected
+    # "Optional[Index]")
+    return result  # type: ignore[return-value]
 
 
-def _to_datetime_with_unit(arg, unit, name, tz, errors: Optional[str]) -> Index:
+def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
     """
     to_datetime specalized to the case where a 'unit' is passed.
     """
@@ -522,16 +537,16 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: Optional[str]) -> Index:
     # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
     # because it expects an ndarray argument
     if isinstance(arg, IntegerArray):
-        result = arg.astype(f"datetime64[{unit}]")
+        arr = arg.astype(f"datetime64[{unit}]")
         tz_parsed = None
     else:
-        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+        arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
 
     if errors == "ignore":
         # Index constructor _may_ infer to DatetimeIndex
-        result = Index(result, name=name)
+        result = Index(arr, name=name)
     else:
-        result = DatetimeIndex(result, name=name)
+        result = DatetimeIndex(arr, name=name)
 
     if not isinstance(result, DatetimeIndex):
         return result
@@ -560,7 +575,7 @@ def _adjust_to_origin(arg, origin, unit):
         date to be adjusted
     origin : 'julian' or Timestamp
         origin offset for the arg
-    unit : string
+    unit : str
         passed unit from to_datetime, must be 'D'
 
     Returns
@@ -628,14 +643,14 @@ def to_datetime(
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
-    utc: Optional[bool] = ...,
-    format: Optional[str] = ...,
+    utc: bool | None = ...,
+    format: str | None = ...,
     exact: bool = ...,
-    unit: Optional[str] = ...,
+    unit: str | None = ...,
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> Union[DatetimeScalar, NaTType]:
+) -> DatetimeScalar | NaTType:
     ...
 
 
@@ -645,10 +660,10 @@ def to_datetime(
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
-    utc: Optional[bool] = ...,
-    format: Optional[str] = ...,
+    utc: bool | None = ...,
+    format: str | None = ...,
     exact: bool = ...,
-    unit: Optional[str] = ...,
+    unit: str | None = ...,
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
@@ -658,14 +673,14 @@ def to_datetime(
 
 @overload
 def to_datetime(
-    arg: Union[List, Tuple],
+    arg: list | tuple | np.ndarray,
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
-    utc: Optional[bool] = ...,
-    format: Optional[str] = ...,
+    utc: bool | None = ...,
+    format: str | None = ...,
     exact: bool = ...,
-    unit: Optional[str] = ...,
+    unit: str | None = ...,
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
@@ -678,14 +693,14 @@ def to_datetime(
     errors: str = "raise",
     dayfirst: bool = False,
     yearfirst: bool = False,
-    utc: Optional[bool] = None,
-    format: Optional[str] = None,
+    utc: bool | None = None,
+    format: str | None = None,
     exact: bool = True,
-    unit: Optional[str] = None,
+    unit: str | None = None,
     infer_datetime_format: bool = False,
     origin="unix",
     cache: bool = True,
-) -> Union[DatetimeIndex, Series, DatetimeScalar, NaTType]:
+) -> DatetimeIndex | Series | DatetimeScalar | NaTType | None:
     """
     Convert argument to datetime.
 
@@ -1019,7 +1034,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     return values
 
 
-def _attempt_YYYYMMDD(arg: np.ndarray, errors: Optional[str]) -> Optional[np.ndarray]:
+def _attempt_YYYYMMDD(arg: np.ndarray, errors: str) -> np.ndarray | None:
     """
     try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
     arg is a passed in as an object dtype, but could really be ints/strings
@@ -1063,7 +1078,9 @@ def _attempt_YYYYMMDD(arg: np.ndarray, errors: Optional[str]) -> Optional[np.nda
 
     # string with NaN-like
     try:
-        mask = ~algorithms.isin(arg, list(nat_strings))
+        # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
+        # "Union[Union[ExtensionArray, ndarray], Index, Series]"
+        mask = ~algorithms.isin(arg, list(nat_strings))  # type: ignore[arg-type]
         return calc_with_mask(arg, mask)
     except (ValueError, OverflowError, TypeError):
         pass

@@ -7,10 +7,7 @@ import contextlib
 import copy
 import io
 import pickle as pkl
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 from pandas._libs.tslibs import BaseOffset
@@ -49,7 +46,7 @@ def load_reduce(self):
                 return
             except TypeError:
                 pass
-        elif args and issubclass(args[0], BaseOffset):
+        elif args and isinstance(args[0], type) and issubclass(args[0], BaseOffset):
             # TypeError: object.__new__(Day) is not safe, use Day.__new__()
             cls = args[0]
             stack[-1] = cls.__new__(*args)
@@ -235,7 +232,7 @@ except (AttributeError, KeyError):
     pass
 
 
-def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
+def load(fh, encoding: str | None = None, is_verbose: bool = False):
     """
     Load a pickle, with a provided encoding,
 

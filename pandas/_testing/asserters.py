@@ -6,7 +6,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    NoDefault,
+    no_default,
+)
 from pandas._libs.missing import is_matching_na
 import pandas._libs.testing as _testing
 
@@ -54,7 +57,7 @@ def assert_almost_equal(
     left,
     right,
     check_dtype: Union[bool, str] = "equiv",
-    check_less_precise: Union[bool, int] = no_default,
+    check_less_precise: Union[bool, int, NoDefault] = no_default,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
     **kwargs,
@@ -104,7 +107,11 @@ def assert_almost_equal(
             FutureWarning,
             stacklevel=2,
         )
-        rtol = atol = _get_tol_from_less_precise(check_less_precise)
+        # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
+        # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
+        rtol = atol = _get_tol_from_less_precise(
+            check_less_precise  # type: ignore[arg-type]
+        )
 
     if isinstance(left, Index):
         assert_index_equal(
@@ -154,6 +161,9 @@ def assert_almost_equal(
                 else:
                     obj = "Input"
                 assert_class_equal(left, right, obj=obj)
+
+        # if we have "equiv", this becomes True
+        check_dtype = bool(check_dtype)
         _testing.assert_almost_equal(
             left, right, check_dtype=check_dtype, rtol=rtol, atol=atol, **kwargs
         )
@@ -239,7 +249,7 @@ def assert_index_equal(
     right: Index,
     exact: Union[bool, str] = "equiv",
     check_names: bool = True,
-    check_less_precise: Union[bool, int] = no_default,
+    check_less_precise: Union[bool, int, NoDefault] = no_default,
     check_exact: bool = True,
     check_categorical: bool = True,
     check_order: bool = True,
@@ -328,7 +338,11 @@ def assert_index_equal(
             FutureWarning,
             stacklevel=2,
         )
-        rtol = atol = _get_tol_from_less_precise(check_less_precise)
+        # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
+        # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
+        rtol = atol = _get_tol_from_less_precise(
+            check_less_precise  # type: ignore[arg-type]
+        )
 
     # instance validation
     _check_isinstance(left, right, Index)
@@ -388,12 +402,15 @@ def assert_index_equal(
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:
+
+        # if we have "equiv", this becomes True
+        exact_bool = bool(exact)
         _testing.assert_almost_equal(
             left.values,
             right.values,
             rtol=rtol,
             atol=atol,
-            check_dtype=exact,
+            check_dtype=exact_bool,
             obj=obj,
             lobj=left,
             robj=right,
@@ -976,8 +993,8 @@ def assert_series_equal(
         left_values = left._values
         right_values = right._values
         # Only check exact if dtype is numeric
-        if is_extension_array_dtype(left_values) and is_extension_array_dtype(
-            right_values
+        if isinstance(left_values, ExtensionArray) and isinstance(
+            right_values, ExtensionArray
         ):
             assert_extension_array_equal(
                 left_values,

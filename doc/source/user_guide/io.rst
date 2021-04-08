@@ -2189,7 +2189,7 @@ into a flat table.
 
    data = [
        {"id": 1, "name": {"first": "Coleen", "last": "Volk"}},
-       {"name": {"given": "Mose", "family": "Regner"}},
+       {"name": {"given": "Mark", "family": "Regner"}},
        {"id": 2, "name": "Faye Raker"},
    ]
    pd.json_normalize(data)
@@ -2995,7 +2995,7 @@ For example, below XML contains a namespace with prefix, ``doc``, and URI at
 
 Similarly, an XML document can have a default namespace without prefix. Failing
 to assign a temporary prefix will return no nodes and raise a ``ValueError``.
-But assiging *any* temporary name to correct URI allows parsing by nodes.
+But assigning *any* temporary name to correct URI allows parsing by nodes.
 
 .. ipython:: python
 
@@ -5240,6 +5240,7 @@ Write to a feather file.
 Read from a feather file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_feather("example.feather")
    result
@@ -5323,6 +5324,7 @@ Write to a parquet file.
 Read from a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_parquet("example_fp.parquet", engine="fastparquet")
    result = pd.read_parquet("example_pa.parquet", engine="pyarrow")

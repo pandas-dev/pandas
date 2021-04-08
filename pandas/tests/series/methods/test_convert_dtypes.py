@@ -12,7 +12,7 @@ import pandas._testing as tm
 # test Series, the default dtype for the expected result (which is valid
 # for most cases), and the specific cases where the result deviates from
 # this default. Those overrides are defined as a dict with (keyword, val) as
-# dictionary key. In case of multiple items, the last override takes precendence.
+# dictionary key. In case of multiple items, the last override takes precedence.
 test_cases = [
     (
         # data

@@ -95,7 +95,7 @@ class TestSparseArray:
             SparseArray([0, 1, np.nan], dtype=dtype)
 
     def test_constructor_warns_when_losing_timezone(self):
-        # GH#32501 warn when losing timezone inforamtion
+        # GH#32501 warn when losing timezone information
         dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
 
         expected = SparseArray(np.asarray(dti, dtype="datetime64[ns]"))
@@ -522,7 +522,7 @@ class TestSparseArray:
         tm.assert_numpy_array_equal(np.asarray(res.to_dense()), vals.astype(typ))
 
     @pytest.mark.parametrize(
-        "array, dtype, expected",
+        "arr, dtype, expected",
         [
             (
                 SparseArray([0, 1]),
@@ -557,8 +557,8 @@ class TestSparseArray:
             ),
         ],
     )
-    def test_astype_more(self, array, dtype, expected):
-        result = array.astype(dtype)
+    def test_astype_more(self, arr, dtype, expected):
+        result = arr.astype(dtype)
         tm.assert_sp_array_equal(result, expected)
 
     def test_astype_nan_raises(self):

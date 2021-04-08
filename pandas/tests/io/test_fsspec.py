@@ -166,6 +166,7 @@ def test_arrowparquet_options(fsspectest):
     assert fsspectest.test[0] == "parquet_read"
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("fastparquet")
 def test_fastparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
@@ -210,6 +211,7 @@ def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
     )
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("s3fs")
 @td.skip_if_no("fastparquet")
 def test_s3_parquet(s3_resource, s3so):

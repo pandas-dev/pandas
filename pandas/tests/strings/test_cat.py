@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -29,7 +28,7 @@ def test_str_cat_name(index_or_series, other):
 def test_str_cat(index_or_series):
     box = index_or_series
     # test_cat above tests "str_cat" from ndarray;
-    # here testing "str.cat" from Series/Indext to ndarray/list
+    # here testing "str.cat" from Series/Index to ndarray/list
     s = box(["a", "a", "b", "b", "c", np.nan])
 
     # single array
@@ -366,7 +365,7 @@ def test_cat_on_filtered_index():
     assert str_multiple.loc[1] == "2011 2 2"
 
 
-@pytest.mark.parametrize("klass", [tuple, list, np.array, pd.Series, pd.Index])
+@pytest.mark.parametrize("klass", [tuple, list, np.array, Series, Index])
 def test_cat_different_classes(klass):
     # https://github.com/pandas-dev/pandas/issues/33425
     s = Series(["a", "b", "c"])

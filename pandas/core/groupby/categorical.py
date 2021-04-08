@@ -34,14 +34,14 @@ def recode_for_groupby(
     Parameters
     ----------
     c : Categorical
-    sort : boolean
+    sort : bool
         The value of the sort parameter groupby was called with.
-    observed : boolean
+    observed : bool
         Account only for the observed values
 
     Returns
     -------
-    New Categorical
+    Categorical
         If sort=False, the new categories are set to the order of
         appearance in codes (unless ordered=True, in which case the
         original order is preserved), followed by any unrepresented
@@ -93,7 +93,7 @@ def recode_from_groupby(
     Parameters
     ----------
     c : Categorical
-    sort : boolean
+    sort : bool
         The value of the sort parameter groupby was called with.
     ci : CategoricalIndex
         The codes / categories to recode

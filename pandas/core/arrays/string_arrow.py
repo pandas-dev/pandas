@@ -4,11 +4,8 @@ from distutils.version import LooseVersion
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
     Sequence,
-    Tuple,
-    Type,
-    Union,
+    cast,
 )
 
 import numpy as np
@@ -20,6 +17,8 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     NpDtype,
+    PositionalIndexer,
+    type_t,
 )
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -101,11 +100,11 @@ class ArrowStringDtype(ExtensionDtype):
     na_value = libmissing.NA
 
     @property
-    def type(self) -> Type[str]:
+    def type(self) -> type[str]:
         return str
 
     @classmethod
-    def construct_array_type(cls) -> Type[ArrowStringArray]:
+    def construct_array_type(cls) -> type_t[ArrowStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -121,9 +120,7 @@ class ArrowStringDtype(ExtensionDtype):
     def __repr__(self) -> str:
         return "ArrowStringDtype"
 
-    def __from_arrow__(
-        self, array: Union[pa.Array, pa.ChunkedArray]
-    ) -> ArrowStringArray:
+    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray) -> ArrowStringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
@@ -221,7 +218,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             raise ImportError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
         cls._chk_pyarrow_available()
         # convert non-na-likes to str, and nan-likes to ArrowStringDtype.na_value
         scalars = lib.ensure_string_array(scalars, copy=False)
@@ -229,7 +226,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype: Optional[Dtype] = None, copy=False
+        cls, strings, dtype: Dtype | None = None, copy: bool = False
     ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -240,7 +237,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return self._dtype
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.to_numpy(dtype=dtype)
 
@@ -248,9 +245,12 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self._data
 
-    def to_numpy(
+    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
+    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
+    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
+    def to_numpy(  # type: ignore[override]
         self,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -276,7 +276,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         return len(self._data)
 
     @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         encoded = self._data.dictionary_encode()
         indices = pa.chunked_array(
             [c.indices for c in encoded.chunks], type=encoded.type.index_type
@@ -311,7 +311,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             )
         )
 
-    def __getitem__(self, item: Any) -> Any:
+    def __getitem__(self, item: PositionalIndexer) -> Any:
         """Select a subset of self.
 
         Parameters
@@ -341,7 +341,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item.dtype):
-                return self.take(item)
+                # error: Argument 1 to "take" of "ArrowStringArray" has incompatible
+                # type "ndarray"; expected "Sequence[int]"
+                return self.take(item)  # type: ignore[arg-type]
             elif is_bool_dtype(item.dtype):
                 return type(self)(self._data.filter(item))
             else:
@@ -349,6 +351,15 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
                     "Only integers, slices and integer or "
                     "boolean arrays are valid indices."
                 )
+        elif isinstance(item, tuple):
+            # possibly unpack arr[..., n] to arr[n]
+            if len(item) == 1:
+                item = item[0]
+            elif len(item) == 2:
+                if item[0] is Ellipsis:
+                    item = item[1]
+                elif item[1] is Ellipsis:
+                    item = item[0]
 
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
@@ -400,7 +411,13 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                new_values, _ = func(self.to_numpy(object), limit=limit, mask=mask)
+                # error: Argument 1 to "to_numpy" of "ArrowStringArray" has incompatible
+                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
+                new_values, _ = func(
+                    self.to_numpy(object),  # type: ignore[arg-type]
+                    limit=limit,
+                    mask=mask,
+                )
                 new_values = self._from_sequence(new_values)
             else:
                 # fill with value
@@ -410,7 +427,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             new_values = self.copy()
         return new_values
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         if name in ["min", "max"]:
             return getattr(self, name)(skipna=skipna)
 
@@ -465,7 +482,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
         return BooleanArray._from_sequence(result.to_pandas().values)
 
-    def __setitem__(self, key: Union[int, np.ndarray], value: Any) -> None:
+    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
         """Set one or more values inplace.
 
         Parameters
@@ -489,6 +506,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         key = check_array_indexer(self, key)
 
         if is_integer(key):
+            key = cast(int, key)
+
             if not is_scalar(value):
                 raise ValueError("Must pass scalars with scalar indexer")
             elif isna(value):
@@ -509,11 +528,11 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             #       This is probably extremely slow.
 
             # Convert all possible input key types to an array of integers
-            if is_bool_dtype(key):
+            if isinstance(key, slice):
+                key_array = np.array(range(len(self))[key])
+            elif is_bool_dtype(key):
                 # TODO(ARROW-9430): Directly support setitem(booleans)
                 key_array = np.argwhere(key).flatten()
-            elif isinstance(key, slice):
-                key_array = np.array(range(len(self))[key])
             else:
                 # TODO(ARROW-9431): Directly support setitem(integers)
                 key_array = np.asanyarray(key)
@@ -589,7 +608,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if not is_array_like(indices):
             indices_array = np.asanyarray(indices)
         else:
-            indices_array = indices
+            # error: Incompatible types in assignment (expression has type
+            # "Sequence[int]", variable has type "ndarray")
+            indices_array = indices  # type: ignore[assignment]
 
         if len(self._data) == 0 and (indices_array >= 0).any():
             raise IndexError("cannot do a non-empty take")

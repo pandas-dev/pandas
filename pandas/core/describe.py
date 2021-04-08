@@ -12,10 +12,7 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Callable,
-    List,
-    Optional,
     Sequence,
-    Union,
     cast,
 )
 import warnings
@@ -51,10 +48,10 @@ if TYPE_CHECKING:
 def describe_ndframe(
     *,
     obj: FrameOrSeries,
-    include: Optional[Union[str, Sequence[str]]],
-    exclude: Optional[Union[str, Sequence[str]]],
+    include: str | Sequence[str] | None,
+    exclude: str | Sequence[str] | None,
     datetime_is_numeric: bool,
-    percentiles: Optional[Sequence[float]],
+    percentiles: Sequence[float] | None,
 ) -> FrameOrSeries:
     """Describe series or dataframe.
 
@@ -157,8 +154,8 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         self,
         obj: DataFrame,
         *,
-        include: Optional[Union[str, Sequence[str]]],
-        exclude: Optional[Union[str, Sequence[str]]],
+        include: str | Sequence[str] | None,
+        exclude: str | Sequence[str] | None,
         datetime_is_numeric: bool,
     ):
         self.include = include
@@ -172,7 +169,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
     def describe(self, percentiles: Sequence[float]) -> DataFrame:
         data = self._select_data()
 
-        ldesc: List[Series] = []
+        ldesc: list[Series] = []
         for _, series in data.items():
             describe_func = select_describe_func(series, self.datetime_is_numeric)
             ldesc.append(describe_func(series, percentiles))
@@ -192,7 +189,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             # when some numerics are found, keep only numerics
             default_include = [np.number]
             if self.datetime_is_numeric:
-                default_include.append("datetime")
+                # error: Argument 1 to "append" of "list" has incompatible type "str";
+                # expected "Type[number[Any]]"
+                default_include.append("datetime")  # type: ignore[arg-type]
             data = self.obj.select_dtypes(include=default_include)
             if len(data.columns) == 0:
                 data = self.obj
@@ -209,9 +208,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         return data
 
 
-def reorder_columns(ldesc: Sequence[Series]) -> List[Hashable]:
+def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:
     """Set a convenient order for rows for display."""
-    names: List[Hashable] = []
+    names: list[Hashable] = []
     ldesc_indexes = sorted((x.index for x in ldesc), key=len)
     for idxnames in ldesc_indexes:
         for name in idxnames:
@@ -232,7 +231,10 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     """
     from pandas import Series
 
-    formatted_percentiles = format_percentiles(percentiles)
+    # error: Argument 1 to "format_percentiles" has incompatible type "Sequence[float]";
+    # expected "Union[ndarray, List[Union[int, float]], List[float], List[Union[str,
+    # float]]]"
+    formatted_percentiles = format_percentiles(percentiles)  # type: ignore[arg-type]
 
     stat_index = ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
     d = (
@@ -336,7 +338,10 @@ def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
     # GH-30164
     from pandas import Series
 
-    formatted_percentiles = format_percentiles(percentiles)
+    # error: Argument 1 to "format_percentiles" has incompatible type "Sequence[float]";
+    # expected "Union[ndarray, List[Union[int, float]], List[float], List[Union[str,
+    # float]]]"
+    formatted_percentiles = format_percentiles(percentiles)  # type: ignore[arg-type]
 
     stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
     d = (
@@ -383,7 +388,7 @@ def select_describe_func(
         return describe_categorical_1d
 
 
-def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float]:
+def refine_percentiles(percentiles: Sequence[float] | None) -> Sequence[float]:
     """Ensure that percentiles are unique and sorted.
 
     Parameters
@@ -392,7 +397,9 @@ def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float
         The percentiles to include in the output.
     """
     if percentiles is None:
-        return np.array([0.25, 0.5, 0.75])
+        # error: Incompatible return value type (got "ndarray", expected
+        # "Sequence[float]")
+        return np.array([0.25, 0.5, 0.75])  # type: ignore[return-value]
 
     # explicit conversion of `percentiles` to list
     percentiles = list(percentiles)
@@ -404,7 +411,9 @@ def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float
     if 0.5 not in percentiles:
         percentiles.append(0.5)
 
-    percentiles = np.asarray(percentiles)
+    # error: Incompatible types in assignment (expression has type "ndarray", variable
+    # has type "Optional[Sequence[float]]")
+    percentiles = np.asarray(percentiles)  # type: ignore[assignment]
 
     # sort and check for duplicates
     unique_pcts = np.unique(percentiles)

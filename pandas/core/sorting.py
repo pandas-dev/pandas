@@ -6,13 +6,8 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     DefaultDict,
-    Dict,
     Iterable,
-    List,
-    Optional,
     Sequence,
-    Tuple,
-    Union,
 )
 
 import numpy as np
@@ -30,10 +25,13 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_extension_array_dtype,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import (
+    ABCMultiIndex,
+    ABCRangeIndex,
+)
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.algorithms as algorithms
+from pandas.core import algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -45,13 +43,13 @@ _INT64_MAX = np.iinfo(np.int64).max
 
 def get_indexer_indexer(
     target: Index,
-    level: Union[str, int, List[str], List[int]],
-    ascending: Union[Sequence[Union[bool, int]], Union[bool, int]],
+    level: str | int | list[str] | list[int],
+    ascending: Sequence[bool | int] | bool | int,
     kind: str,
     na_position: str,
     sort_remaining: bool,
     key: IndexKeyFunc,
-) -> Optional[np.array]:
+) -> np.ndarray | None:
     """
     Helper method that return the indexer according to input parameters for
     the sort_index method of DataFrame and Series.
@@ -238,6 +236,7 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
 
     Parameters
     ----------
+    comp_ids : np.ndarray[np.intp]
     xnull : bool
         If nulls are excluded; i.e. -1 labels are passed through.
     """
@@ -250,7 +249,8 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
         out = decons_group_index(obs_ids, shape)
         return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
-    i = unique_label_indices(comp_ids)
+    # TODO: unique_label_indices only used here, should take ndarray[np.intp]
+    i = unique_label_indices(ensure_int64(comp_ids))
     i8copy = lambda a: a.astype("i8", subok=False, copy=True)
     return [i8copy(lab[i]) for lab in labels]
 
@@ -268,7 +268,7 @@ def indexer_from_factorized(labels, shape, compress: bool = True):
 
 
 def lexsort_indexer(
-    keys, orders=None, na_position: str = "last", key: Optional[Callable] = None
+    keys, orders=None, na_position: str = "last", key: Callable | None = None
 ):
     """
     Performs lexical sorting on a set of keys
@@ -277,7 +277,7 @@ def lexsort_indexer(
     ----------
     keys : sequence of arrays
         Sequence of ndarrays to be sorted by the indexer
-    orders : boolean or list of booleans, optional
+    orders : bool or list of booleans, optional
         Determines the sorting order for each element in keys. If a list,
         it must be the same length as keys. This determines whether the
         corresponding element in keys should be sorted in ascending
@@ -335,8 +335,8 @@ def nargsort(
     kind: str = "quicksort",
     ascending: bool = True,
     na_position: str = "last",
-    key: Optional[Callable] = None,
-    mask: Optional[np.ndarray] = None,
+    key: Callable | None = None,
+    mask: np.ndarray | None = None,
 ):
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
@@ -366,9 +366,12 @@ def nargsort(
             mask=mask,
         )
 
-    items = extract_array(items)
+    if isinstance(items, ABCRangeIndex):
+        return items.argsort(ascending=ascending)  # TODO: test coverage with key?
+    elif not isinstance(items, ABCMultiIndex):
+        items = extract_array(items)
     if mask is None:
-        mask = np.asarray(isna(items))
+        mask = np.asarray(isna(items))  # TODO: does this exclude MultiIndex too?
 
     if is_extension_array_dtype(items):
         return items.argsort(ascending=ascending, kind=kind, na_position=na_position)
@@ -397,7 +400,7 @@ def nargsort(
     return indexer
 
 
-def nargminmax(values, method: str):
+def nargminmax(values, method: str, axis: int = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -406,6 +409,7 @@ def nargminmax(values, method: str):
     ----------
     values : ExtensionArray
     method : {"argmax", "argmin"}
+    axis: int, default 0
 
     Returns
     -------
@@ -417,7 +421,23 @@ def nargminmax(values, method: str):
     mask = np.asarray(isna(values))
     values = values._values_for_argsort()
 
-    idx = np.arange(len(values))
+    if values.ndim > 1:
+        if mask.any():
+            if axis == 1:
+                zipped = zip(values, mask)
+            else:
+                zipped = zip(values.T, mask.T)
+            return np.array([_nanargminmax(v, m, func) for v, m in zipped])
+        return func(values, axis=axis)
+
+    return _nanargminmax(values, mask, func)
+
+
+def _nanargminmax(values, mask, func) -> int:
+    """
+    See nanargminmax.__doc__.
+    """
+    idx = np.arange(values.shape[0])
     non_nans = values[~mask]
     non_nan_idx = idx[~mask]
 
@@ -473,7 +493,7 @@ def _ensure_key_mapped_multiindex(
     return type(index).from_arrays(mapped)
 
 
-def ensure_key_mapped(values, key: Optional[Callable], levels=None):
+def ensure_key_mapped(values, key: Callable | None, levels=None):
     """
     Applies a callable key function to the values function and checks
     that the resulting value has the same shape. Can be called on Index
@@ -518,14 +538,14 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
 
 
 def get_flattened_list(
-    comp_ids: np.ndarray,
+    comp_ids: np.ndarray,  # np.ndarray[np.intp]
     ngroups: int,
     levels: Iterable[Index],
     labels: Iterable[np.ndarray],
-) -> List[Tuple]:
+) -> list[tuple]:
     """Map compressed group id -> key tuple."""
     comp_ids = comp_ids.astype(np.int64, copy=False)
-    arrays: DefaultDict[int, List[int]] = defaultdict(list)
+    arrays: DefaultDict[int, list[int]] = defaultdict(list)
     for labs, level in zip(labels, levels):
         table = hashtable.Int64HashTable(ngroups)
         table.map(comp_ids, labs.astype(np.int64, copy=False))
@@ -535,8 +555,8 @@ def get_flattened_list(
 
 
 def get_indexer_dict(
-    label_list: List[np.ndarray], keys: List[Index]
-) -> Dict[Union[str, Tuple], np.ndarray]:
+    label_list: list[np.ndarray], keys: list[Index]
+) -> dict[str | tuple, np.ndarray]:
     """
     Returns
     -------
@@ -582,18 +602,39 @@ def get_group_index_sorter(
     Both algorithms are `stable` sort and that is necessary for correctness of
     groupby operations. e.g. consider:
         df.groupby(key)[col].transform('first')
+
+    Parameters
+    ----------
+    group_index : np.ndarray[np.intp]
+        signed integer dtype
+    ngroups : int or None, default None
+
+    Returns
+    -------
+    np.ndarray[np.intp]
     """
     if ngroups is None:
-        ngroups = 1 + group_index.max()
+        # error: Incompatible types in assignment (expression has type "number[Any]",
+        # variable has type "Optional[int]")
+        ngroups = 1 + group_index.max()  # type: ignore[assignment]
     count = len(group_index)
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
-    do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))
+    # error: Unsupported operand types for * ("float" and "None")
+    do_groupsort = count > 0 and (
+        (alpha + beta * ngroups) < (count * np.log(count))  # type: ignore[operator]
+    )
     if do_groupsort:
-        sorter, _ = algos.groupsort_indexer(ensure_int64(group_index), ngroups)
-        return ensure_platform_int(sorter)
+        # Argument 2 to "groupsort_indexer" has incompatible type
+        # "Optional[int]"; expected "int"
+        sorter, _ = algos.groupsort_indexer(
+            ensure_platform_int(group_index),
+            ngroups,  # type: ignore[arg-type]
+        )
+        # sorter _should_ already be intp, but mypy is not yet able to verify
     else:
-        return group_index.argsort(kind="mergesort")
+        sorter = group_index.argsort(kind="mergesort")
+    return ensure_platform_int(sorter)
 
 
 def compress_group_index(group_index, sort: bool = True):

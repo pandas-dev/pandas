@@ -125,7 +125,7 @@ class NumericIndex(Index):
     @doc(Index._shallow_copy)
     def _shallow_copy(self, values, name: Hashable = lib.no_default):
         if not self._can_hold_na and values.dtype.kind == "f":
-            name = self.name if name is lib.no_default else name
+            name = self._name if name is lib.no_default else name
             # Ensure we are not returning an Int64Index with float data:
             return Float64Index._simple_new(values, name=name)
         return super()._shallow_copy(values=values, name=name)
@@ -232,6 +232,7 @@ class IntegerIndex(NumericIndex):
         hash(key)
         try:
             if is_float(key) and int(key) != key:
+                # otherwise the `key in self._engine` check casts e.g. 1.1 -> 1
                 return False
             return key in self._engine
         except (OverflowError, TypeError, ValueError):
@@ -252,7 +253,9 @@ class IntegerIndex(NumericIndex):
             FutureWarning,
             stacklevel=2,
         )
-        return self._values.view(self._default_dtype)
+        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
+        # expected "ndarray")
+        return self._values.view(self._default_dtype)  # type: ignore[return-value]
 
 
 class Int64Index(IntegerIndex):
@@ -289,7 +292,7 @@ class UInt64Index(IntegerIndex):
         if is_integer_dtype(keyarr) or (
             lib.infer_dtype(keyarr, skipna=False) == "integer"
         ):
-            dtype = np.uint64
+            dtype = np.dtype(np.uint64)
 
         return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
@@ -327,7 +330,10 @@ class Float64Index(NumericIndex):
         elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
-            arr = astype_nansafe(self._values, dtype=dtype)
+
+            # error: Argument 1 to "astype_nansafe" has incompatible type
+            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+            arr = astype_nansafe(self._values, dtype=dtype)  # type: ignore[arg-type]
             return Int64Index(arr, name=self.name)
         return super().astype(dtype, copy=copy)
 
