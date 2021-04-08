@@ -47,8 +47,8 @@ Installation
     Installing a specific version? Installing from source? Check the advanced
     installation page.
 
-    .. link-button:: install
-        :type: ref
+    .. link-button:: ./install.html
+        :type: url
         :text: Learn more
         :classes: btn-secondary stretched-link
 
