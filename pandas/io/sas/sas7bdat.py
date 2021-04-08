@@ -24,7 +24,6 @@ import struct
 from typing import (
     IO,
     Any,
-    Union,
     cast,
 )
 
@@ -102,18 +101,18 @@ class _SubheaderPointer:
 
 class _Column:
     col_id: int
-    name: Union[str, bytes]
-    label: Union[str, bytes]
-    format: Union[str, bytes]  # TODO: i think allowing bytes is from py2 days
+    name: str | bytes
+    label: str | bytes
+    format: str | bytes  # TODO: i think allowing bytes is from py2 days
     ctype: bytes
     length: int
 
     def __init__(
         self,
         col_id: int,
-        name: Union[str, bytes],
-        label: Union[str, bytes],
-        format: Union[str, bytes],
+        name: str | bytes,
+        label: str | bytes,
+        format: str | bytes,
         ctype: bytes,
         length: int,
     ):
