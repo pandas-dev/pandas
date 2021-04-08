@@ -732,7 +732,25 @@ class TestRolling:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_as_index_false(self):
+    @pytest.mark.parametrize(
+        "by, expected_data",
+        [
+            [["id"], {"num": [100.0, 150.0, 150.0, 200.0]}],
+            [
+                ["id", "index"],
+                {
+                    "date": [
+                        Timestamp("2018-01-01"),
+                        Timestamp("2018-01-02"),
+                        Timestamp("2018-01-01"),
+                        Timestamp("2018-01-02"),
+                    ],
+                    "num": [100.0, 200.0, 150.0, 250.0],
+                },
+            ],
+        ],
+    )
+    def test_as_index_false(self, by, expected_data):
         # GH 39433
         data = [
             ["A", "2018-01-01", 100.0],
@@ -744,26 +762,15 @@ class TestRolling:
         df["date"] = to_datetime(df["date"])
         df = df.set_index(["date"])
 
+        gp_by = [getattr(df, attr) for attr in by]
         result = (
-            df.groupby([df.id], as_index=False).rolling(window=2, min_periods=1).mean()
+            df.groupby(gp_by, as_index=False).rolling(window=2, min_periods=1).mean()
         )
-        expected = DataFrame(
-            {"id": ["A", "A", "B", "B"], "num": [100.0, 150.0, 150.0, 200.0]},
-            index=df.index,
-        )
-        tm.assert_frame_equal(result, expected)
 
-        result = (
-            df.groupby([df.id, df.index.weekday], as_index=False)
-            .rolling(window=2, min_periods=1)
-            .mean()
-        )
+        expected = {"id": ["A", "A", "B", "B"]}
+        expected.update(expected_data)
         expected = DataFrame(
-            {
-                "id": ["A", "A", "B", "B"],
-                "date": [0, 1, 0, 1],
-                "num": [100.0, 200.0, 150.0, 250.0],
-            },
+            expected,
             index=df.index,
         )
         tm.assert_frame_equal(result, expected)
