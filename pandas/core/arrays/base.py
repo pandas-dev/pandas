@@ -24,6 +24,7 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    PositionalIndexer,
     Shape,
 )
 from pandas.compat import set_function_name
@@ -288,7 +289,7 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
 
-    def __getitem__(self, item: int | slice | np.ndarray) -> ExtensionArray | Any:
+    def __getitem__(self, item: PositionalIndexer) -> ExtensionArray | Any:
         """
         Select a subset of self.
 
