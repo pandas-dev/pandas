@@ -5,7 +5,7 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Union,
+    Callable,
     cast,
 )
 import warnings
@@ -140,7 +140,7 @@ def maybe_split(meth: F) -> F:
     return cast(F, newfunc)
 
 
-class Block(libinternals.Block, PandasObject):
+class Block(PandasObject):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
     data structure
@@ -149,6 +149,8 @@ class Block(libinternals.Block, PandasObject):
     """
 
     values: np.ndarray | ExtensionArray
+    ndim: int
+    __init__: Callable
 
     __slots__ = ()
     is_numeric = False
@@ -314,7 +316,6 @@ class Block(libinternals.Block, PandasObject):
 
         return type(self)(new_values, new_mgr_locs, self.ndim)
 
-    @final
     def getitem_block_index(self, slicer: slice) -> Block:
         """
         Perform __getitem__-like specialized to slicing along index.
@@ -1376,7 +1377,7 @@ class EABackedBlock(Block):
         return self.make_block_same_class(new_values)
 
 
-class ExtensionBlock(EABackedBlock):
+class ExtensionBlock(libinternals.Block, EABackedBlock):
     """
     Block for holding extension types.
 
@@ -1411,9 +1412,7 @@ class ExtensionBlock(EABackedBlock):
             elif isinstance(col, slice):
                 if col != slice(None):
                     raise NotImplementedError(col)
-                # error: Invalid index type "List[Any]" for "ExtensionArray"; expected
-                # type "Union[int, slice, ndarray]"
-                return self.values[[loc]]  # type: ignore[index]
+                return self.values[[loc]]
             return self.values[loc]
         else:
             if col != 0:
@@ -1665,12 +1664,18 @@ class ExtensionBlock(EABackedBlock):
         return blocks, mask
 
 
-class NumericBlock(Block):
+class NumpyBlock(libinternals.NumpyBlock, Block):
+    values: np.ndarray
+
+    getitem_block_index = libinternals.NumpyBlock.getitem_block_index
+
+
+class NumericBlock(NumpyBlock):
     __slots__ = ()
     is_numeric = True
 
 
-class NDArrayBackedExtensionBlock(EABackedBlock):
+class NDArrayBackedExtensionBlock(libinternals.Block, EABackedBlock):
     """
     Block backed by an NDArrayBackedExtensionArray
     """
@@ -1767,7 +1772,7 @@ class NDArrayBackedExtensionBlock(EABackedBlock):
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
-    """Mixin class for DatetimeLikeBlock, DatetimeTZBlock."""
+    """Block for datetime64[ns], timedelta64[ns]."""
 
     __slots__ = ()
     is_numeric = False
@@ -1789,11 +1794,9 @@ class DatetimeTZBlock(DatetimeLikeBlock):
     _can_consolidate = False
 
 
-class ObjectBlock(Block):
+class ObjectBlock(NumpyBlock):
     __slots__ = ()
     is_object = True
-
-    values: np.ndarray
 
     @maybe_split
     def reduce(self, func, ignore_failures: bool = False) -> list[Block]:
@@ -2020,7 +2023,7 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
-            values = cast(Union[np.ndarray, DatetimeArray, TimedeltaArray], values)
+            values = cast("np.ndarray | DatetimeArray | TimedeltaArray", values)
             values = values.reshape(1, -1)
 
     return values

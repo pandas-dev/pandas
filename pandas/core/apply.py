@@ -1022,7 +1022,16 @@ class SeriesApply(Apply):
                 mapped = obj._values.map(f)
             else:
                 values = obj.astype(object)._values
-                mapped = lib.map_infer(values, f, convert=self.convert_dtype)
+                # error: Argument 2 to "map_infer" has incompatible type
+                # "Union[Callable[..., Any], str, List[Union[Callable[..., Any], str]],
+                # Dict[Hashable, Union[Union[Callable[..., Any], str],
+                # List[Union[Callable[..., Any], str]]]]]"; expected
+                # "Callable[[Any], Any]"
+                mapped = lib.map_infer(
+                    values,
+                    f,  # type: ignore[arg-type]
+                    convert=self.convert_dtype,
+                )
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             # GH 25959 use pd.array instead of tolist

@@ -187,3 +187,14 @@ ColspaceArgType = Union[
 # internals
 Manager = Union["ArrayManager", "BlockManager"]
 SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
+
+# indexing
+# PositionalIndexer -> valid 1D positional indexer, e.g. can pass
+# to ndarray.__getitem__
+# TODO: add Ellipsis, see
+# https://github.com/python/typing/issues/684#issuecomment-548203158
+# https://bugs.python.org/issue41810
+PositionalIndexer = Union[int, np.integer, slice, Sequence[int], np.ndarray]
+PositionalIndexer2D = Union[
+    PositionalIndexer, Tuple[PositionalIndexer, PositionalIndexer]
+]
