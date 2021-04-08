@@ -6,13 +6,8 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     DefaultDict,
-    Dict,
     Iterable,
-    List,
-    Optional,
     Sequence,
-    Tuple,
-    Union,
 )
 
 import numpy as np
@@ -30,9 +25,13 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_extension_array_dtype,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import (
+    ABCMultiIndex,
+    ABCRangeIndex,
+)
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -44,13 +43,13 @@ _INT64_MAX = np.iinfo(np.int64).max
 
 def get_indexer_indexer(
     target: Index,
-    level: Union[str, int, List[str], List[int]],
-    ascending: Union[Sequence[Union[bool, int]], Union[bool, int]],
+    level: str | int | list[str] | list[int],
+    ascending: Sequence[bool | int] | bool | int,
     kind: str,
     na_position: str,
     sort_remaining: bool,
     key: IndexKeyFunc,
-) -> Optional[np.ndarray]:
+) -> np.ndarray | None:
     """
     Helper method that return the indexer according to input parameters for
     the sort_index method of DataFrame and Series.
@@ -269,7 +268,7 @@ def indexer_from_factorized(labels, shape, compress: bool = True):
 
 
 def lexsort_indexer(
-    keys, orders=None, na_position: str = "last", key: Optional[Callable] = None
+    keys, orders=None, na_position: str = "last", key: Callable | None = None
 ):
     """
     Performs lexical sorting on a set of keys
@@ -278,7 +277,7 @@ def lexsort_indexer(
     ----------
     keys : sequence of arrays
         Sequence of ndarrays to be sorted by the indexer
-    orders : boolean or list of booleans, optional
+    orders : bool or list of booleans, optional
         Determines the sorting order for each element in keys. If a list,
         it must be the same length as keys. This determines whether the
         corresponding element in keys should be sorted in ascending
@@ -336,8 +335,8 @@ def nargsort(
     kind: str = "quicksort",
     ascending: bool = True,
     na_position: str = "last",
-    key: Optional[Callable] = None,
-    mask: Optional[np.ndarray] = None,
+    key: Callable | None = None,
+    mask: np.ndarray | None = None,
 ):
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
@@ -367,9 +366,12 @@ def nargsort(
             mask=mask,
         )
 
-    items = extract_array(items)
+    if isinstance(items, ABCRangeIndex):
+        return items.argsort(ascending=ascending)  # TODO: test coverage with key?
+    elif not isinstance(items, ABCMultiIndex):
+        items = extract_array(items)
     if mask is None:
-        mask = np.asarray(isna(items))
+        mask = np.asarray(isna(items))  # TODO: does this exclude MultiIndex too?
 
     if is_extension_array_dtype(items):
         return items.argsort(ascending=ascending, kind=kind, na_position=na_position)
@@ -398,7 +400,7 @@ def nargsort(
     return indexer
 
 
-def nargminmax(values, method: str):
+def nargminmax(values, method: str, axis: int = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -407,6 +409,7 @@ def nargminmax(values, method: str):
     ----------
     values : ExtensionArray
     method : {"argmax", "argmin"}
+    axis: int, default 0
 
     Returns
     -------
@@ -418,7 +421,23 @@ def nargminmax(values, method: str):
     mask = np.asarray(isna(values))
     values = values._values_for_argsort()
 
-    idx = np.arange(len(values))
+    if values.ndim > 1:
+        if mask.any():
+            if axis == 1:
+                zipped = zip(values, mask)
+            else:
+                zipped = zip(values.T, mask.T)
+            return np.array([_nanargminmax(v, m, func) for v, m in zipped])
+        return func(values, axis=axis)
+
+    return _nanargminmax(values, mask, func)
+
+
+def _nanargminmax(values, mask, func) -> int:
+    """
+    See nanargminmax.__doc__.
+    """
+    idx = np.arange(values.shape[0])
     non_nans = values[~mask]
     non_nan_idx = idx[~mask]
 
@@ -474,7 +493,7 @@ def _ensure_key_mapped_multiindex(
     return type(index).from_arrays(mapped)
 
 
-def ensure_key_mapped(values, key: Optional[Callable], levels=None):
+def ensure_key_mapped(values, key: Callable | None, levels=None):
     """
     Applies a callable key function to the values function and checks
     that the resulting value has the same shape. Can be called on Index
@@ -523,10 +542,10 @@ def get_flattened_list(
     ngroups: int,
     levels: Iterable[Index],
     labels: Iterable[np.ndarray],
-) -> List[Tuple]:
+) -> list[tuple]:
     """Map compressed group id -> key tuple."""
     comp_ids = comp_ids.astype(np.int64, copy=False)
-    arrays: DefaultDict[int, List[int]] = defaultdict(list)
+    arrays: DefaultDict[int, list[int]] = defaultdict(list)
     for labs, level in zip(labels, levels):
         table = hashtable.Int64HashTable(ngroups)
         table.map(comp_ids, labs.astype(np.int64, copy=False))
@@ -536,8 +555,8 @@ def get_flattened_list(
 
 
 def get_indexer_dict(
-    label_list: List[np.ndarray], keys: List[Index]
-) -> Dict[Union[str, Tuple], np.ndarray]:
+    label_list: list[np.ndarray], keys: list[Index]
+) -> dict[str | tuple, np.ndarray]:
     """
     Returns
     -------
@@ -644,10 +663,10 @@ def _reorder_by_uniques(uniques, labels):
     mask = labels < 0
 
     # move labels to right locations (ie, unsort ascending labels)
-    labels = reverse_indexer.take(labels)
+    labels = algorithms.take_nd(reverse_indexer, labels, allow_fill=False)
     np.putmask(labels, mask, -1)
 
     # sort observed ids
-    uniques = uniques.take(sorter)
+    uniques = algorithms.take_nd(uniques, sorter, allow_fill=False)
 
     return uniques, labels
