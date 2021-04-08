@@ -36,7 +36,7 @@ Installation
 
     .. code-block:: bash
 
-        conda install pandas
+        pip install pandas
 
     ---
     :column: col-12 p-3
