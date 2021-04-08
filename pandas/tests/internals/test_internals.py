@@ -37,7 +37,10 @@ from pandas.core.internals import (
     SingleBlockManager,
     make_block,
 )
-from pandas.core.internals.blocks import new_block
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    new_block,
+)
 
 # this file contains BlockManager specific tests
 # TODO(ArrayManager) factor out interleave_dtype tests
@@ -138,6 +141,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
         tz = m.groups()[0]
         assert num_items == 1, "must have only 1 num items for a tz-aware"
         values = DatetimeIndex(np.arange(N) * 1e9, tz=tz)._data
+        values = ensure_block_shape(values, ndim=len(shape))
     elif typestr in ("timedelta", "td", "m8[ns]"):
         values = (mat * 1).astype("m8[ns]")
     elif typestr in ("category",):

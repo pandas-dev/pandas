@@ -6,7 +6,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    T,
+)
 
 from pandas import Index
 from pandas.core.internals.blocks import Block as B
@@ -53,12 +56,19 @@ class BlockPlacement:
     def append(self, others: list[BlockPlacement]) -> BlockPlacement: ...
 
 
-class Block:
+class SharedBlock:
     _mgr_locs: BlockPlacement
     ndim: int
     values: ArrayLike
 
     def __init__(self, values: ArrayLike, placement: BlockPlacement, ndim: int): ...
+
+class NumpyBlock(SharedBlock):
+    values: np.ndarray
+    def getitem_block_index(self: T, slicer: slice) -> T: ...
+
+class Block(SharedBlock):
+    ...
 
 class BlockManager:
     blocks: tuple[B, ...]

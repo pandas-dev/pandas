@@ -458,14 +458,13 @@ def get_blkno_placements(blknos, group: bool = True):
 
 
 @cython.freelist(64)
-cdef class Block:
+cdef class SharedBlock:
     """
     Defining __init__ in a cython class significantly improves performance.
     """
     cdef:
         public BlockPlacement _mgr_locs
         readonly int ndim
-        public object values
 
     def __cinit__(self, values, placement: BlockPlacement, ndim: int):
         """
@@ -479,7 +478,6 @@ cdef class Block:
         """
         self._mgr_locs = placement
         self.ndim = ndim
-        self.values = values
 
     cpdef __reduce__(self):
         # We have to do some gymnastics b/c "ndim" is keyword-only
@@ -505,6 +503,36 @@ cdef class Block:
 
             ndim = maybe_infer_ndim(self.values, self.mgr_locs)
             self.ndim = ndim
+
+
+cdef class NumpyBlock(SharedBlock):
+    cdef:
+        public ndarray values
+
+    def __cinit__(self, ndarray values, BlockPlacement placement, int ndim):
+        # set values here the (implicit) call to SharedBlock.__cinit__ will
+        #  set placement and ndim
+        self.values = values
+
+    # @final  # not useful in cython, but we _would_ annotate with @final
+    def getitem_block_index(self, slicer: slice) -> NumpyBlock:
+        """
+        Perform __getitem__-like specialized to slicing along index.
+
+        Assumes self.ndim == 2
+        """
+        new_values = self.values[..., slicer]
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
+
+
+cdef class Block(SharedBlock):
+    cdef:
+        public object values
+
+    def __cinit__(self, object values, BlockPlacement placement, int ndim):
+        # set values here the (implicit) call to SharedBlock.__cinit__ will
+        #  set placement and ndim
+        self.values = values
 
 
 @cython.freelist(64)
@@ -546,26 +574,30 @@ cdef class BlockManager:
 
     cpdef __setstate__(self, state):
         from pandas.core.construction import extract_array
-        from pandas.core.internals.blocks import new_block
+        from pandas.core.internals.blocks import (
+            ensure_block_shape,
+            new_block,
+        )
         from pandas.core.internals.managers import ensure_index
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
             state = state[3]["0.14.1"]
             axes = [ensure_index(ax) for ax in state["axes"]]
             ndim = len(axes)
-            # extract_array bc older pickles may store e.g. DatetimeIndex
-            #  instead of DatetimeArray
+
+            for blk in state["blocks"]:
+                vals = blk["values"]
+                # older versions may hold e.g. DatetimeIndex instead of DTA
+                vals = extract_array(vals, extract_numpy=True)
+                blk["values"] = ensure_block_shape(vals, ndim=ndim)
+
             nbs = [
-                new_block(
-                    extract_array(blk["values"], extract_numpy=True),
-                    blk["mgr_locs"],
-                    ndim=ndim
-                )
+                new_block(blk["values"], blk["mgr_locs"], ndim=ndim)
                 for blk in state["blocks"]
             ]
             blocks = tuple(nbs)
-            self.axes = axes
             self.blocks = blocks
+            self.axes = axes
 
         else:
             raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
