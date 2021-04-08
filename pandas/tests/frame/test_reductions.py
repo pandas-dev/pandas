@@ -1546,3 +1546,18 @@ def test_minmax_extensionarray(method, numeric_only):
         [getattr(int64_info, method)], index=Index(["Int64"], dtype="object")
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("meth", ["max", "min", "sum", "mean", "median"])
+def test_groupy_regular_arithmetic_equivalent(meth):
+    # GH#40660
+    df = DataFrame(
+        {"a": [pd.Timedelta(hours=6), pd.Timedelta(hours=7)], "b": [12.1, 13.3]}
+    )
+    expected = df.copy()
+
+    result = getattr(df, meth)(level=0)
+    tm.assert_frame_equal(result, expected)
+
+    result = getattr(df.groupby(level=0), meth)(numeric_only=False)
+    tm.assert_frame_equal(result, expected)
