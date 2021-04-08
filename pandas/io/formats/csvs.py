@@ -308,4 +308,12 @@ class CSVFormatter:
         data = [res.iget_values(i) for i in range(len(res.items))]
 
         ix = self.data_index[slicer]._format_native_types(**self._number_format)
-        libwriters.write_csv_rows(data, ix, self.nlevels, self.cols, self.writer)
+        # error: Argument 4 to "write_csv_rows" has incompatible type
+        # "Sequence[Hashable]"; expected "ndarray"
+        libwriters.write_csv_rows(
+            data,
+            ix,
+            self.nlevels,
+            self.cols,  # type: ignore[arg-type]
+            self.writer,
+        )

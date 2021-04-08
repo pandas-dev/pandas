@@ -5066,7 +5066,7 @@ def _unconvert_string_array(
     if nan_rep is None:
         nan_rep = "nan"
 
-    data = libwriters.string_array_replace_from_nan_rep(data, nan_rep)
+    libwriters.string_array_replace_from_nan_rep(data, nan_rep)
     return data.reshape(shape)
 
 

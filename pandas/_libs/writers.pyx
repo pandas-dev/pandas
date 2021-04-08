@@ -23,7 +23,7 @@ def write_csv_rows(
     Py_ssize_t nlevels,
     ndarray cols,
     object writer
-):
+) -> None:
     """
     Write the given data to the writer object, pre-allocating where possible
     for performance improvements.
@@ -162,7 +162,7 @@ def string_array_replace_from_nan_rep(
     ndarray[object, ndim=1] arr,
     object nan_rep,
     object replace=np.nan
-):
+) -> None:
     """
     Replace the values in the array with 'replacement' if
     they are 'nan_rep'. Return the same array.
@@ -173,5 +173,3 @@ def string_array_replace_from_nan_rep(
     for i in range(length):
         if arr[i] == nan_rep:
             arr[i] = replace
-
-    return arr
