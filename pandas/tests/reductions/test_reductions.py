@@ -954,6 +954,7 @@ class TestSeriesReductions:
         [("all", [False, True, False]), ("any", [False, True, True])],
     )
     def test_any_all_boolean_level(self, bool_agg_func, expected):
+        # GH#33449
         ser = Series(
             [False, False, True, True, False, True],
             index=[0, 0, 1, 1, 2, 2],
