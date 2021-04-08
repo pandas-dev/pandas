@@ -77,11 +77,11 @@ from pandas.core.dtypes.missing import (
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
+    BaseMaskedArray,
+    BooleanArray,
     Categorical,
     ExtensionArray,
 )
-from pandas.core.arrays.boolean import BooleanArray
-from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.base import (
     DataError,
     PandasObject,
@@ -1444,9 +1444,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             needs_mask=True,
             pre_processing=objs_to_bool,
             post_processing=result_to_bool,
+            use_nullable_input_arg=True,
             val_test=val_test,
             skipna=skipna,
-            masked=False,
         )
 
     @final
@@ -2630,6 +2630,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         result_is_index: bool = False,
         pre_processing=None,
         post_processing=None,
+        use_nullable_input_arg: bool = False,
         **kwargs,
     ):
         """
@@ -2677,6 +2678,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             second argument, i.e. the signature should be
             (ndarray, Type). Optionally, a third argument can be "masked", to
             allow for processing specific to nullable values
+        use_nullable_input_arg : bool, default False
+            If True, pass an argument "masked" to the cython function specifying
+            whether or not the input should be treated as masked
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -2705,7 +2709,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         post_processing_accepts_masked = post_processing is not None and (
             "masked" in inspect.signature(post_processing).parameters
         )
-        kwargs_accepts_masked = "masked" in kwargs
 
         error_msg = ""
         for idx, obj in enumerate(self._iterate_slices()):
@@ -2757,8 +2760,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if needs_ngroups:
                 func = partial(func, ngroups)
 
-            if kwargs_accepts_masked:
-                kwargs["masked"] = is_nullable
+            if use_nullable_input_arg:
+                func = partial(func, masked=is_nullable)
 
             func(**kwargs)  # Call func to modify indexer values in place
 

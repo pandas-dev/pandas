@@ -74,8 +74,9 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize(
-    # expected indexed as [skipna][bool_agg_func == "all"]
-    "data,expected",
+    # expected_data indexed as [[skipna=False/any, skipna=False/all],
+    #                           [skipna=True/any, skipna=True/all]]
+    "data,expected_data",
     [
         ([False, False, False], [[False, False], [False, False]]),
         ([True, True, True], [[True, True], [True, True]]),
@@ -85,15 +86,21 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
         ([True, pd.NA, False], [[True, False], [True, False]]),
     ],
 )
-def test_masked_kleene_logic(bool_agg_func, data, expected, skipna):
+def test_masked_kleene_logic(bool_agg_func, data, expected_data, skipna):
     # GH#37506
     df = DataFrame(data, dtype="boolean")
     expected = DataFrame(
-        [expected[skipna][bool_agg_func == "all"]], dtype="boolean", index=[1]
+        [expected_data[skipna][bool_agg_func == "all"]], dtype="boolean", index=[1]
     )
 
     result = df.groupby([1, 1, 1]).agg(bool_agg_func, skipna=skipna)
     tm.assert_frame_equal(result, expected)
+
+    # The expected result we compared to should match aggregating on the whole
+    # series
+    result = getattr(df[0], bool_agg_func)(skipna=skipna)
+    expected = expected_data[skipna][bool_agg_func == "all"]
+    assert (result is pd.NA and expected is pd.NA) or result == expected
 
 
 @pytest.mark.parametrize(
