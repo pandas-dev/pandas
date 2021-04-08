@@ -47,9 +47,11 @@ Installation
     Installing a specific version? Installing from source? Check the advanced
     installation page.
 
-    .. container:: custom-button
+    .. link-button:: install
+        :type: ref
+        :text: Learn more
+        :classes: btn-secondary stretched-link
 
-        :ref:`Learn more <install>`
 
 .. _gentle_intro:
 
