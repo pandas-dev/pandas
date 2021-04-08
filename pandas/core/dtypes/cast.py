@@ -1226,9 +1226,7 @@ def astype_nansafe(
             from pandas import to_datetime
 
             return astype_nansafe(
-                # error: No overload variant of "to_datetime" matches argument type
-                # "ndarray"
-                to_datetime(arr).values,  # type: ignore[call-overload]
+                to_datetime(arr).values,
                 dtype,
                 copy=copy,
             )
