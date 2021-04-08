@@ -868,8 +868,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def pop(self, item: Hashable) -> Series | Any:
         result = self[item]
         del self[item]
-        if self.ndim == 2:
-            result._reset_cacher()
 
         return result
 
@@ -3511,46 +3509,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Lookup Caching
 
-    @final
-    def _set_as_cached(self, item, cacher) -> None:
-        """
-        Set the _cacher attribute on the calling object with a weakref to
-        cacher.
-        """
-        self._cacher = (item, weakref.ref(cacher))
-
-    @final
     def _reset_cacher(self) -> None:
         """
         Reset the cacher.
         """
-        if hasattr(self, "_cacher"):
-            del self._cacher
+        raise AbstractMethodError(self)
 
-    @final
-    def _maybe_cache_changed(self, item, value) -> None:
-        """
-        The object has called back to us saying maybe it has changed.
-        """
-        loc = self._info_axis.get_loc(item)
-        arraylike = value._values
-        self._mgr.iset(loc, arraylike)
-
-    @final
-    @property
-    def _is_cached(self) -> bool_t:
-        """Return boolean indicating if self is cached or not."""
-        return getattr(self, "_cacher", None) is not None
-
-    @final
-    def _get_cacher(self):
-        """return my cacher or None"""
-        cacher = getattr(self, "_cacher", None)
-        if cacher is not None:
-            cacher = cacher[1]()
-        return cacher
-
-    @final
     def _maybe_update_cacher(
         self, clear: bool_t = False, verify_is_copy: bool_t = True
     ) -> None:
@@ -3565,22 +3529,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         verify_is_copy : bool, default True
             Provide is_copy checks.
         """
-        cacher = getattr(self, "_cacher", None)
-        if cacher is not None:
-            ref = cacher[1]()
-
-            # we are trying to reference a dead referent, hence
-            # a copy
-            if ref is None:
-                del self._cacher
-            else:
-                if len(self) == len(ref):
-                    # otherwise, either self or ref has swapped in new arrays
-                    ref._maybe_cache_changed(cacher[0], self)
-                else:
-                    # GH#33675 we have swapped in a new array, so parent
-                    #  reference to self is now invalid
-                    ref._item_cache.pop(cacher[0], None)
 
         if verify_is_copy:
             self._check_setitem_copy(stacklevel=5, t="referent")
@@ -3588,9 +3536,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if clear:
             self._clear_item_cache()
 
-    @final
     def _clear_item_cache(self) -> None:
-        self._item_cache.clear()
+        raise AbstractMethodError(self)
 
     # ----------------------------------------------------------------------
     # Indexing Methods
@@ -3886,26 +3833,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __getitem__(self, item):
         raise AbstractMethodError(self)
 
-    @final
-    def _get_item_cache(self, item):
-        """Return the cached item, item represents a label indexer."""
-        cache = self._item_cache
-        res = cache.get(item)
-        if res is None:
-            # All places that call _get_item_cache have unique columns,
-            #  pending resolution of GH#33047
-
-            loc = self.columns.get_loc(item)
-            values = self._mgr.iget(loc)
-            res = self._box_col_values(values, loc).__finalize__(self)
-
-            cache[item] = res
-            res._set_as_cached(item, self)
-
-            # for a chain
-            res._is_copy = self._is_copy
-        return res
-
     def _slice(self: FrameOrSeries, slobj: slice, axis=0) -> FrameOrSeries:
         """
         Construct a slice of this container.
@@ -3931,7 +3858,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             assert ref is not None
             self._is_copy = weakref.ref(ref)
 
-    @final
     def _check_is_chained_assignment_possible(self) -> bool_t:
         """
         Check if we are a view, have a cacher, and are of mixed type.
@@ -3943,12 +3869,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         single-dtype meaning that the cacher should be updated following
         setting.
         """
-        if self._is_view and self._is_cached:
-            ref = self._get_cacher()
-            if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(stacklevel=4, t="referent", force=True)
-            return True
-        elif self._is_copy:
+        if self._is_copy:
             self._check_setitem_copy(stacklevel=4, t="referent")
         return False
 
