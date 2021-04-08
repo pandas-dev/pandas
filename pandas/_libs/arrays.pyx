@@ -1,6 +1,7 @@
 """
 Cython implementations for internal ExtensionArrays.
 """
+cimport cython
 
 import numpy as np
 
@@ -10,6 +11,7 @@ from numpy cimport ndarray
 cnp.import_array()
 
 
+@cython.freelist(16)
 cdef class NDArrayBacked:
     """
     Implementing these methods in cython improves performance quite a bit.
