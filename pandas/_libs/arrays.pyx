@@ -31,13 +31,13 @@ cdef class NDArrayBacked:
     530 ns ± 9.24 ns per loop   # <-- dta with cython NDArrayBacked
     1.66 µs ± 46.3 ns per loop  # <-- dta without cython NDArrayBacked
     328 ns ± 5.29 ns per loop   # <-- obj with NDArrayBacked.__cinit__
-    371 ns ± 6.97 ns per loop   # <-- obj with NDArrayBacked._simpler_new
+    371 ns ± 6.97 ns per loop   # <-- obj with NDArrayBacked._simple_new
 
     %timeit foo.T
     125 ns ± 6.27 ns per loop   # <-- arr underlying ndarray (for reference)
     226 ns ± 7.66 ns per loop   # <-- dta with cython NDArrayBacked
     911 ns ± 16.6 ns per loop   # <-- dta without cython NDArrayBacked
-    215 ns ± 4.54 ns per loop   # <-- obj with NDArrayBacked._simpler_new
+    215 ns ± 4.54 ns per loop   # <-- obj with NDArrayBacked._simple_new
 
     """
     # TODO: implement take in terms of cnp.PyArray_TakeFrom
@@ -53,8 +53,6 @@ cdef class NDArrayBacked:
 
     @classmethod
     def _simple_new(cls, ndarray values, object dtype):
-        # Note: not _simple_new; for unclear reasons, calling this _simple_new
-        #  and trying to call it from the subclass method using super()... fails
         cdef:
             NDArrayBacked obj
         obj = NDArrayBacked.__new__(cls)
