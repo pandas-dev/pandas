@@ -2080,8 +2080,9 @@ def _factorize_keys(
     (array([0, 1, 2]), array([0, 1]), 3)
     """
     # Some pre-processing for non-ndarray lk / rk
-    lk = extract_array(lk, extract_numpy=True)
-    rk = extract_array(rk, extract_numpy=True)
+    lk = extract_array(lk, extract_numpy=True, extract_range=True)
+    rk = extract_array(rk, extract_numpy=True, extract_range=True)
+    # TODO: if either is a RangeIndex, we can likely factorize more efficiently?
 
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values

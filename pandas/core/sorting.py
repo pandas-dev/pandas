@@ -25,7 +25,10 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_extension_array_dtype,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import (
+    ABCMultiIndex,
+    ABCRangeIndex,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
@@ -363,9 +366,12 @@ def nargsort(
             mask=mask,
         )
 
-    items = extract_array(items)
+    if isinstance(items, ABCRangeIndex):
+        return items.argsort(ascending=ascending)  # TODO: test coverage with key?
+    elif not isinstance(items, ABCMultiIndex):
+        items = extract_array(items)
     if mask is None:
-        mask = np.asarray(isna(items))
+        mask = np.asarray(isna(items))  # TODO: does this exclude MultiIndex too?
 
     if is_extension_array_dtype(items):
         return items.argsort(ascending=ascending, kind=kind, na_position=na_position)

@@ -5078,7 +5078,7 @@ Keep all original rows and also all original values
             raise ValueError("Can only compare identically-labeled Series objects")
 
         lvalues = self._values
-        rvalues = extract_array(other, extract_numpy=True)
+        rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
         with np.errstate(all="ignore"):
             res_values = ops.comparison_op(lvalues, rvalues, op)
@@ -5090,7 +5090,7 @@ Keep all original rows and also all original values
         self, other = ops.align_method_SERIES(self, other, align_asobject=True)
 
         lvalues = self._values
-        rvalues = extract_array(other, extract_numpy=True)
+        rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
         res_values = ops.logical_op(lvalues, rvalues, op)
         return self._construct_result(res_values, name=res_name)
@@ -5100,7 +5100,8 @@ Keep all original rows and also all original values
         self, other = ops.align_method_SERIES(self, other)
 
         lvalues = self._values
-        rvalues = extract_array(other, extract_numpy=True)
+        rvalues = extract_array(other, extract_numpy=True, extract_range=True)
+
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)
 

@@ -311,6 +311,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
                 "Concatenation operation is not implemented for NumPy arrays",
                 # pd.array vs np.datetime64 case
                 r"operand type\(s\) all returned NotImplemented from __array_ufunc__",
+                "can only perform ops with numeric values",
             ]
         )
         with pytest.raises(TypeError, match=msg):
