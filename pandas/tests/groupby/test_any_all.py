@@ -96,6 +96,46 @@ def test_masked_kleene_logic(bool_agg_func, data, expected, skipna):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype1,dtype2,exp_col1,exp_col2",
+    [
+        (
+            "float",
+            "Float64",
+            pd.array([True], dtype=bool),
+            pd.array([pd.NA], dtype="boolean"),
+        ),
+        (
+            "Int64",
+            "float",
+            pd.array([pd.NA], dtype="boolean"),
+            pd.array([True], dtype=bool),
+        ),
+        (
+            "Int64",
+            "Int64",
+            pd.array([pd.NA], dtype="boolean"),
+            pd.array([pd.NA], dtype="boolean"),
+        ),
+        (
+            "Float64",
+            "boolean",
+            pd.array([pd.NA], dtype="boolean"),
+            pd.array([pd.NA], dtype="boolean"),
+        ),
+    ],
+)
+def test_masked_mixed_types(dtype1, dtype2, exp_col1, exp_col2):
+    data = [1.0, np.nan]
+    df = DataFrame(
+        {"col1": pd.array(data, dtype=dtype1), "col2": pd.array(data, dtype=dtype2)}
+    )
+    result = df.groupby([1, 1]).agg("all", skipna=False)
+
+    expected = DataFrame({"col1": exp_col1, "col2": exp_col2}, index=[1])
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 @pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
 @pytest.mark.parametrize("skipna", [True, False])

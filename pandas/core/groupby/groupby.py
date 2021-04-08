@@ -1428,9 +1428,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         def result_to_bool(
             result: np.ndarray,
             inference: type,
-            result_is_nullable: bool = False,
+            masked: bool = False,
         ) -> ArrayLike:
-            if result_is_nullable:
+            if masked:
                 return BooleanArray(result.astype(bool, copy=False), result == 2)
             else:
                 return result.astype(inference, copy=False)
@@ -1446,6 +1446,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             post_processing=result_to_bool,
             val_test=val_test,
             skipna=skipna,
+            masked=False,
         )
 
     @final
@@ -2674,7 +2675,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Function to be applied to result of Cython function. Should accept
             an array of values as the first argument and type inferences as its
             second argument, i.e. the signature should be
-            (ndarray, Type).
+            (ndarray, Type). Optionally, a third argument can be "masked", to
+            allow for processing specific to nullable values
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -2700,10 +2702,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         output: dict[base.OutputKey, np.ndarray] = {}
         base_func = getattr(libgroupby, how)
 
+        post_processing_accepts_masked = (
+            "masked" in inspect.signature(post_processing).parameters
+        )
+        kwargs_accepts_masked = "masked" in kwargs
+
         error_msg = ""
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
             values = obj._values
+            is_nullable = isinstance(values, BaseMaskedArray)
 
             if numeric_only and not is_numeric_dtype(values):
                 continue
@@ -2746,12 +2754,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 mask = isna(values).view(np.uint8)
                 func = partial(func, mask)
 
-            if how == "group_any_all" and isinstance(values, BaseMaskedArray):
-                post_processing = partial(post_processing, result_is_nullable=True)
-                func = partial(func, use_kleene_logic=True)
-
             if needs_ngroups:
                 func = partial(func, ngroups)
+
+            if kwargs_accepts_masked:
+                kwargs["masked"] = is_nullable
 
             func(**kwargs)  # Call func to modify indexer values in place
 
@@ -2762,6 +2769,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 result = algorithms.take_nd(values, result)
 
             if post_processing:
+                if post_processing_accepts_masked:
+                    post_processing = partial(post_processing, masked=is_nullable)
                 result = post_processing(result, inferences)
 
             key = base.OutputKey(label=name, position=idx)
