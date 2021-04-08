@@ -2017,15 +2017,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -----
         Series implements __array_ufunc_ so this not called for ufunc on Series.
         """
-        result = lib.item_from_zerodim(result)
-        if is_scalar(result):
+        res = lib.item_from_zerodim(result)
+        if is_scalar(res):
             # e.g. we get here with np.ptp(series)
             # ptp also requires the item_from_zerodim
-            return result
+            return res
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
         # error: Argument 1 to "NDFrame" has incompatible type "ndarray";
         # expected "BlockManager"
-        return self._constructor(result, **d).__finalize__(  # type: ignore[arg-type]
+        return self._constructor(res, **d).__finalize__(  # type: ignore[arg-type]
             self, method="__array_wrap__"
         )
 

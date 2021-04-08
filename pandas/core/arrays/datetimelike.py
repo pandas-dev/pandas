@@ -291,7 +291,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         apply box func to passed values
         """
-        return lib.map_infer(values, self._box_func)
+        # error: Incompatible return value type (got
+        # "Union[ExtensionArray, ndarray]", expected "ndarray")
+        return lib.map_infer(values, self._box_func)  # type: ignore[return-value]
 
     def __iter__(self):
         if self.ndim > 1:
