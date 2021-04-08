@@ -232,7 +232,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __init__(
         self,
         data: Manager,
-        copy: bool = False,
+        copy: bool_t = False,
         attrs: Mapping[Hashable, Any] | None = None,
     ):
         # copy kwarg is retained for mypy compat, is not used
@@ -249,7 +249,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @classmethod
     def _init_mgr(
-        cls, mgr, axes, dtype: Dtype | None = None, copy: bool = False
+        cls, mgr, axes, dtype: Dtype | None = None, copy: bool_t = False
     ) -> Manager:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
@@ -377,8 +377,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def set_flags(
         self: FrameOrSeries,
         *,
-        copy: bool = False,
-        allows_duplicate_labels: bool | None = None,
+        copy: bool_t = False,
+        allows_duplicate_labels: bool_t | None = None,
     ) -> FrameOrSeries:
         """
         Return a new object with updated flags.
@@ -467,7 +467,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _stat_axis_name = "index"
     _AXIS_ORDERS: list[str]
     _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {0: 0, "index": 0, "rows": 0}
-    _AXIS_REVERSED: bool
+    _AXIS_REVERSED: bool_t
     _info_axis_number: int
     _info_axis_name: str
     _AXIS_LEN: int
@@ -494,7 +494,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @final
     @classmethod
     def _construct_axes_from_arguments(
-        cls, args, kwargs, require_all: bool = False, sentinel=None
+        cls, args, kwargs, require_all: bool_t = False, sentinel=None
     ):
         """
         Construct and returns axes if supplied in args/kwargs.
@@ -714,11 +714,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @overload
     def set_axis(
-        self: FrameOrSeries, labels, axis: Axis = ..., inplace: bool = ...
+        self: FrameOrSeries, labels, axis: Axis = ..., inplace: bool_t = ...
     ) -> FrameOrSeries | None:
         ...
 
-    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool_t = False):
         """
         Assign desired index to given axis.
 
@@ -749,7 +749,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._set_axis_nocheck(labels, axis, inplace)
 
     @final
-    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool):
+    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool_t):
         # NDFrame.rename with inplace=False calls set_axis(inplace=True) on a copy.
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
@@ -993,8 +993,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index: Renamer | None = None,
         columns: Renamer | None = None,
         axis: Axis | None = None,
-        copy: bool = True,
-        inplace: bool = False,
+        copy: bool_t = True,
+        inplace: bool_t = False,
         level: Level | None = None,
         errors: str = "ignore",
     ) -> FrameOrSeries | None:
@@ -1400,13 +1400,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Comparison Methods
 
     @final
-    def _indexed_same(self, other) -> bool:
+    def _indexed_same(self, other) -> bool_t:
         return all(
             self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS
         )
 
     @final
-    def equals(self, other: object) -> bool:
+    def equals(self, other: object) -> bool_t:
         """
         Test whether two objects contain the same elements.
 
@@ -4992,7 +4992,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self.reindex(**{name: [r for r in items if r in labels]})
         elif like:
 
-            def f(x) -> bool:
+            def f(x) -> bool_t:
                 assert like is not None  # needed for mypy
                 return like in ensure_str(x)
 
@@ -5000,7 +5000,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self.loc(axis=axis)[values]
         elif regex:
 
-            def f(x) -> bool:
+            def f(x) -> bool_t:
                 return matcher.search(ensure_str(x)) is not None
 
             matcher = re.compile(regex)
