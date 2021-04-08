@@ -16,7 +16,7 @@ cdef class NDArrayBacked:
 
     import pandas as pd
 
-    from pandas._libs.lib import NDArrayBacked as cls
+    from pandas._libs.arrays import NDArrayBacked as cls
 
     dti = pd.date_range("2016-01-01", periods=3)
     dta = dti._data
