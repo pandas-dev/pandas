@@ -309,11 +309,7 @@ class BaseWindow(SelectionMixin):
                 raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
-
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "Optional[ndarray]"; expected "Union[bool, int, float, complex,
-        # _SupportsArray, Sequence[Any]]"
-        inf = np.isinf(values)  # type: ignore[arg-type]
+        inf = np.isinf(values)
         if inf.any():
             values = np.where(inf, np.nan, values)
 

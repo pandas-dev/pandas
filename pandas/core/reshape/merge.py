@@ -1940,8 +1940,10 @@ class _AsOfMerge(_OrderedMerge):
             # upcast 'by' parameter because HashTable is limited
             by_type = _get_cython_type_upcast(left_by_values.dtype)
             by_type_caster = _type_casters[by_type]
-            left_by_values = by_type_caster(left_by_values)
-            right_by_values = by_type_caster(right_by_values)
+            # error: Cannot call function of unknown type
+            left_by_values = by_type_caster(left_by_values)  # type: ignore[operator]
+            # error: Cannot call function of unknown type
+            right_by_values = by_type_caster(right_by_values)  # type: ignore[operator]
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)

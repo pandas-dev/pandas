@@ -673,7 +673,7 @@ def to_datetime(
 
 @overload
 def to_datetime(
-    arg: list | tuple,
+    arg: list | tuple | np.ndarray,
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
