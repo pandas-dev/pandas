@@ -6,7 +6,6 @@ SeriesGroupBy and the DataFrameGroupBy objects.
 from __future__ import annotations
 
 import collections
-from typing import List
 
 from pandas._typing import final
 
@@ -21,7 +20,7 @@ OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
 
 
 class ShallowMixin(PandasObject):
-    _attributes: List[str] = []
+    _attributes: list[str] = []
 
     @final
     def _shallow_copy(self, obj, **kwargs):
@@ -41,7 +40,7 @@ class GotItemMixin(PandasObject):
     Provide the groupby facilities to the mixed object.
     """
 
-    _attributes: List[str]
+    _attributes: list[str]
 
     @final
     def _gotitem(self, key, ndim, subset=None):
