@@ -19,7 +19,7 @@ def test_fields_readonly():
     expected = np.array([1970, 1970, 1970, 1970, 1970], dtype=np.int32)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = fields.get_start_end_field(dtindex, "is_month_start", None)
+    result = fields.get_start_end_field(dtindex, "is_month_start", None, 12)
     expected = np.array([True, False, False, False, False], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
 

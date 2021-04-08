@@ -25,7 +25,16 @@ from pandas.compat import (
     is_numpy_dev as _is_numpy_dev,
 )
 
-from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
+try:
+    from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
+except ImportError as e:  # pragma: no cover
+    # hack but overkill to use re
+    module = str(e).replace("cannot import name ", "")
+    raise ImportError(
+        f"C extension: {module} not built. If you want to import "
+        "pandas from the source directory, you may need to run "
+        "'python setup.py build_ext --force' to build the C extensions first."
+    ) from e
 
 from pandas._config import (
     get_option,
