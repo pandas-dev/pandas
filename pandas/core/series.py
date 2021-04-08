@@ -19,6 +19,7 @@ from typing import (
     overload,
 )
 import warnings
+import weakref
 
 import numpy as np
 
@@ -1140,6 +1141,77 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             loc = label
 
         self._set_values(loc, value)
+
+    # ----------------------------------------------------------------------
+    # Lookup Caching
+
+    @property
+    def _is_cached(self) -> bool:
+        """Return boolean indicating if self is cached or not."""
+        return getattr(self, "_cacher", None) is not None
+
+    def _get_cacher(self):
+        """return my cacher or None"""
+        cacher = getattr(self, "_cacher", None)
+        if cacher is not None:
+            cacher = cacher[1]()
+        return cacher
+
+    def _reset_cacher(self) -> None:
+        """
+        Reset the cacher.
+        """
+        if hasattr(self, "_cacher"):
+            # should only get here with self.ndim == 1
+            del self._cacher
+
+    def _set_as_cached(self, item, cacher) -> None:
+        """
+        Set the _cacher attribute on the calling object with a weakref to
+        cacher.
+        """
+        self._cacher = (item, weakref.ref(cacher))
+
+    def _clear_item_cache(self) -> None:
+        # no-op for Series
+        pass
+
+    def _check_is_chained_assignment_possible(self) -> bool:
+        """
+        See NDFrame._check_is_chained_assignment_possible.__doc__
+        """
+        if self._is_view and self._is_cached:
+            ref = self._get_cacher()
+            if ref is not None and ref._is_mixed_type:
+                self._check_setitem_copy(stacklevel=4, t="referent", force=True)
+            return True
+        return super()._check_is_chained_assignment_possible()
+
+    def _maybe_update_cacher(
+        self, clear: bool = False, verify_is_copy: bool = True
+    ) -> None:
+        """
+        See NDFrame._maybe_update_cacher.__doc__
+        """
+        cacher = getattr(self, "_cacher", None)
+        if cacher is not None:
+            assert self.ndim == 1
+            ref: DataFrame = cacher[1]()
+
+            # we are trying to reference a dead referent, hence
+            # a copy
+            if ref is None:
+                del self._cacher
+            else:
+                if len(self) == len(ref):
+                    # otherwise, either self or ref has swapped in new arrays
+                    ref._maybe_cache_changed(cacher[0], self)
+                else:
+                    # GH#33675 we have swapped in a new array, so parent
+                    #  reference to self is now invalid
+                    ref._item_cache.pop(cacher[0], None)
+
+        super()._maybe_update_cacher(clear=clear, verify_is_copy=verify_is_copy)
 
     # ----------------------------------------------------------------------
     # Unsorted
