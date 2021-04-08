@@ -1386,7 +1386,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         # we don't have a boolean Index class
         # so its object, we need to infer to
         # guess this
-        return arr_or_dtype.is_object and arr_or_dtype.inferred_type == "boolean"
+        return arr_or_dtype.is_object() and arr_or_dtype.inferred_type == "boolean"
     elif is_extension_array_dtype(arr_or_dtype):
         return getattr(dtype, "_is_boolean", False)
 
@@ -1576,7 +1576,7 @@ def _is_dtype(arr_or_dtype, condition) -> bool:
         return False
     try:
         dtype = get_dtype(arr_or_dtype)
-    except (TypeError, ValueError, UnicodeEncodeError):
+    except (TypeError, ValueError):
         return False
     return condition(dtype)
 
@@ -1651,7 +1651,7 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
 
     try:
         tipo = pandas_dtype(arr_or_dtype).type
-    except (TypeError, ValueError, UnicodeEncodeError):
+    except (TypeError, ValueError):
         if is_scalar(arr_or_dtype):
             return condition(type(None))
 

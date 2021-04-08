@@ -8,9 +8,6 @@ import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    Optional,
-    Tuple,
     Union,
     cast,
 )
@@ -103,13 +100,13 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
 
-_shared_docs: Dict[str, str] = {}
+_shared_docs: dict[str, str] = {}
 
 
 # --------------- #
 # dtype access    #
 # --------------- #
-def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
+def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
     """
     routine to ensure that our data is of the correct
     input dtype for lower-level routines
@@ -542,10 +539,10 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 def factorize_array(
     values: np.ndarray,
     na_sentinel: int = -1,
-    size_hint: Optional[int] = None,
+    size_hint: int | None = None,
     na_value=None,
-    mask: Optional[np.ndarray] = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+    mask: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
 
@@ -608,9 +605,9 @@ def factorize_array(
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: Optional[int] = -1,
-    size_hint: Optional[int] = None,
-) -> Tuple[np.ndarray, Union[np.ndarray, Index]]:
+    na_sentinel: int | None = -1,
+    size_hint: int | None = None,
+) -> tuple[np.ndarray, np.ndarray | Index]:
     """
     Encode the object as an enumerated type or categorical variable.
 
@@ -926,7 +923,7 @@ def value_counts_arraylike(values, dropna: bool):
     return keys, counts
 
 
-def duplicated(values: ArrayLike, keep: Union[str, bool] = "first") -> np.ndarray:
+def duplicated(values: ArrayLike, keep: str | bool = "first") -> np.ndarray:
     """
     Return boolean ndarray denoting duplicate values.
 
@@ -943,7 +940,7 @@ def duplicated(values: ArrayLike, keep: Union[str, bool] = "first") -> np.ndarra
 
     Returns
     -------
-    duplicated : ndarray
+    duplicated : ndarray[bool]
     """
     values, _ = _ensure_data(values)
     ndtype = values.dtype.name
@@ -1062,8 +1059,8 @@ def rank(
 def checked_add_with_arr(
     arr: np.ndarray,
     b,
-    arr_mask: Optional[np.ndarray] = None,
-    b_mask: Optional[np.ndarray] = None,
+    arr_mask: np.ndarray | None = None,
+    b_mask: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Perform array addition that checks for underflow and overflow.
@@ -1619,7 +1616,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0, stacklevel=3):
+def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1631,7 +1628,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
         number of periods
     axis : {0, 1}
         axis to shift on
-    stacklevel : int
+    stacklevel : int, default 3
         The stacklevel for the lost dtype warning.
 
     Returns
@@ -1741,7 +1738,7 @@ def safe_sort(
     na_sentinel: int = -1,
     assume_unique: bool = False,
     verify: bool = True,
-) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """
     Sort ``values`` and reorder corresponding ``codes``.
 
@@ -1865,7 +1862,7 @@ def safe_sort(
     return ordered, ensure_platform_int(new_codes)
 
 
-def _sort_mixed(values):
+def _sort_mixed(values) -> np.ndarray:
     """ order ints before strings in 1d arrays, safe in py3 """
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
     nums = np.sort(values[~str_pos])
