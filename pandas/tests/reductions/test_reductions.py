@@ -949,17 +949,19 @@ class TestSeriesReductions:
         assert s3.all(skipna=False)
         assert not s4.any(skipna=False)
 
-        s = Series(
+    @pytest.mark.parametrize(
+        "bool_agg_func,expected",
+        [("all", [False, True, False]), ("any", [False, True, True])],
+    )
+    def test_any_all_boolean_level(self, bool_agg_func, expected):
+        ser = Series(
             [False, False, True, True, False, True],
             index=[0, 0, 1, 1, 2, 2],
             dtype="boolean",
         )
-        tm.assert_series_equal(
-            s.all(level=0), Series([False, True, False], dtype="boolean")
-        )
-        tm.assert_series_equal(
-            s.any(level=0), Series([False, True, True], dtype="boolean")
-        )
+        result = getattr(ser, bool_agg_func)(level=0)
+        expected = Series(expected, dtype="boolean")
+        tm.assert_series_equal(result, expected)
 
     def test_any_axis1_bool_only(self):
         # GH#32432
