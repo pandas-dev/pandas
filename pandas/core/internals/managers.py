@@ -31,7 +31,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
-    ensure_int64,
+    ensure_platform_int,
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
@@ -263,7 +263,7 @@ class _BlockManager(DataManager):
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
-        return dtypes.take(self.blknos)
+        return algos.take_nd(dtypes, self.blknos, allow_fill=False)
 
     @property
     def arrays(self) -> list[ArrayLike]:
@@ -306,6 +306,13 @@ class _BlockManager(DataManager):
             state = state[3]["0.14.1"]
             self.axes = [ensure_index(ax) for ax in state["axes"]]
             ndim = len(self.axes)
+
+            for blk in state["blocks"]:
+                vals = blk["values"]
+                # older versions may hold e.g. DatetimeIndex instead of DTA
+                vals = extract_array(vals, extract_numpy=True)
+                blk["values"] = ensure_block_shape(vals, ndim=ndim)
+
             self.blocks = tuple(
                 unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)
                 for b in state["blocks"]
@@ -2002,8 +2009,7 @@ def _preprocess_slice_or_indexer(
             dtype = getattr(slice_or_indexer, "dtype", None)
             raise TypeError(type(slice_or_indexer), dtype)
 
-        # TODO: np.intp?
-        indexer = ensure_int64(slice_or_indexer)
+        indexer = ensure_platform_int(slice_or_indexer)
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return "fancy", indexer, len(indexer)
