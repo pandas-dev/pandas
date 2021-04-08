@@ -216,6 +216,20 @@ def test_datetimelike_centered_selections(
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
+def test_even_number_window_alignment():
+    # see discussion in GH 38780
+    s = Series(range(3), index=date_range(start="2020-01-01", freq="D", periods=3))
+
+    # behavior of index- and datetime-based windows differs here!
+    # s.rolling(window=2, min_periods=1, center=True).mean()
+
+    result = s.rolling(window="2D", min_periods=1, center=True).mean()
+
+    expected = Series([0.5, 1.5, 2], index=s.index)
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_closed_fixed_binary_col(center):
     # GH 34315
     data = [0, 1, 1, 0, 0, 1, 0, 1]
