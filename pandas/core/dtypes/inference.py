@@ -440,6 +440,9 @@ def is_inferred_bool_dtype(arr: ArrayLike) -> bool:
     This does not include the special treatment is_bool_dtype uses for
     Categorical.
     """
+    if not isinstance(arr, np.ndarray):
+        return False
+
     dtype = arr.dtype
     if dtype == np.dtype(bool):
         return True

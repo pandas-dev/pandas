@@ -1173,6 +1173,7 @@ class Index(IndexOpsMixin, PandasObject):
         values = self._values
 
         if is_object_dtype(values.dtype):
+            values = cast(np.ndarray, values)
             values = lib.maybe_convert_objects(values, safe=True)
 
             result = [pprint_thing(x, escape_chars=("\t", "\r", "\n")) for x in values]

@@ -258,6 +258,7 @@ class HTMLFormatter:
         if isinstance(self.columns, MultiIndex):
             template = 'colspan="{span:d}" halign="left"'
 
+            sentinel: lib.NoDefault | bool
             if self.fmt.sparsify:
                 # GH3547
                 sentinel = lib.no_default
