@@ -4,8 +4,6 @@ import copy
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    List,
     Sequence,
 )
 
@@ -56,7 +54,7 @@ if TYPE_CHECKING:
 
 
 def _concatenate_array_managers(
-    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
     Concatenate array managers into one.
@@ -95,7 +93,7 @@ def _concatenate_array_managers(
 
 
 def concatenate_managers(
-    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
     Concatenate block managers into one.
@@ -160,7 +158,7 @@ def concatenate_managers(
     return BlockManager(blocks, axes)
 
 
-def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarray]):
+def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarray]):
     """
     Construct concatenation plan for given block manager and indexers.
 
@@ -395,7 +393,7 @@ class JoinUnit:
 
 
 def _concatenate_join_units(
-    join_units: List[JoinUnit], concat_axis: int, copy: bool
+    join_units: list[JoinUnit], concat_axis: int, copy: bool
 ) -> ArrayLike:
     """
     Concatenate values from several join units along selected axis.
@@ -500,18 +498,22 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
     return dtype
 
 
-def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
+def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic
     _concatenate_join_units (which uses `concat_compat`).
 
     """
-    # TODO: require dtype match in addition to same type?  e.g. DatetimeTZBlock
-    #  cannot necessarily join
     return (
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units)  # noqa
+        and
+        # e.g. DatetimeLikeBlock can be dt64 or td64, but these are not uniform
+        all(
+            is_dtype_equal(ju.block.dtype, join_units[0].block.dtype)
+            for ju in join_units
+        )
         and
         # no blocks that would get missing values (can lead to type upcasts)
         # unless we're an extension dtype.
