@@ -2021,7 +2021,13 @@ class DataFrame(NDFrame, OpsMixin):
             if coerce_float:
                 for i, arr in enumerate(arrays):
                     if arr.dtype == object:
-                        arrays[i] = lib.maybe_convert_objects(arr, try_float=True)
+                        # error: Argument 1 to "maybe_convert_objects" has
+                        # incompatible type "Union[ExtensionArray, ndarray]";
+                        # expected "ndarray"
+                        arrays[i] = lib.maybe_convert_objects(
+                            arr,  # type: ignore[arg-type]
+                            try_float=True,
+                        )
 
             arr_columns = ensure_index(arr_columns)
             if columns is None:
@@ -7425,7 +7431,7 @@ NaN 12.3   33.0
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        squeeze: bool = no_default,
+        squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
@@ -7447,6 +7453,8 @@ NaN 12.3   33.0
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
+        # error: Argument "squeeze" to "DataFrameGroupBy" has incompatible type
+        # "Union[bool, NoDefault]"; expected "bool"
         return DataFrameGroupBy(
             obj=self,
             keys=by,
@@ -7455,7 +7463,7 @@ NaN 12.3   33.0
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,
+            squeeze=squeeze,  # type: ignore[arg-type]
             observed=observed,
             dropna=dropna,
         )
