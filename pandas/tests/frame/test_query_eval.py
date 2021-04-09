@@ -719,7 +719,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_check_tz_aware_index_query(self, tz_aware_fixture):
         # https://github.com/pandas-dev/pandas/issues/29463
         tz = tz_aware_fixture
-        df_index = pd.date_range(
+        df_index = date_range(
             start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
         )
         expected = DataFrame(index=df_index)

@@ -3,9 +3,7 @@ from __future__ import annotations
 import mmap
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    List,
-    Optional,
+    Any,
 )
 
 import numpy as np
@@ -35,15 +33,20 @@ class OpenpyxlWriter(ExcelWriter):
         self,
         path,
         engine=None,
+        date_format=None,
+        datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        **engine_kwargs,
+        engine_kwargs: dict[str, Any] | None = None,
     ):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
         super().__init__(
-            path, mode=mode, storage_options=storage_options, **engine_kwargs
+            path,
+            mode=mode,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
         )
 
         # ExcelWriter replaced "a" by "r+" to allow us to first read the excel file from
@@ -70,7 +73,7 @@ class OpenpyxlWriter(ExcelWriter):
             self.handles.handle.truncate()
 
     @classmethod
-    def _convert_to_style_kwargs(cls, style_dict: dict) -> Dict[str, Serialisable]:
+    def _convert_to_style_kwargs(cls, style_dict: dict) -> dict[str, Serialisable]:
         """
         Convert a style_dict to a set of kwargs suitable for initializing
         or updating-on-copy an openpyxl v2 style object.
@@ -95,7 +98,7 @@ class OpenpyxlWriter(ExcelWriter):
         """
         _style_key_map = {"borders": "border"}
 
-        style_kwargs: Dict[str, Serialisable] = {}
+        style_kwargs: dict[str, Serialisable] = {}
         for k, v in style_dict.items():
             if k in _style_key_map:
                 k = _style_key_map[k]
@@ -409,7 +412,7 @@ class OpenpyxlWriter(ExcelWriter):
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
 
-        _style_cache: Dict[str, Dict[str, Serialisable]] = {}
+        _style_cache: dict[str, dict[str, Serialisable]] = {}
 
         if sheet_name in self.sheets:
             wks = self.sheets[sheet_name]
@@ -431,7 +434,7 @@ class OpenpyxlWriter(ExcelWriter):
             if fmt:
                 xcell.number_format = fmt
 
-            style_kwargs: Optional[Dict[str, Serialisable]] = {}
+            style_kwargs: dict[str, Serialisable] | None = {}
             if cell.style:
                 key = str(cell.style)
                 style_kwargs = _style_cache.get(key)
@@ -482,7 +485,7 @@ class OpenpyxlReader(BaseExcelReader):
 
         Parameters
         ----------
-        filepath_or_buffer : string, path object or Workbook
+        filepath_or_buffer : str, path object or Workbook
             Object to be parsed.
         storage_options : dict, optional
             passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
@@ -510,7 +513,7 @@ class OpenpyxlReader(BaseExcelReader):
         super().close()
 
     @property
-    def sheet_names(self) -> List[str]:
+    def sheet_names(self) -> list[str]:
         return self.book.sheetnames
 
     def get_sheet_by_name(self, name: str):
@@ -537,12 +540,12 @@ class OpenpyxlReader(BaseExcelReader):
 
         return cell.value
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+    def get_sheet_data(self, sheet, convert_float: bool) -> list[list[Scalar]]:
 
         if self.book.read_only:
             sheet.reset_dimensions()
 
-        data: List[List[Scalar]] = []
+        data: list[list[Scalar]] = []
         last_row_with_data = -1
         for row_number, row in enumerate(sheet.rows):
             converted_row = [self._convert_cell(cell, convert_float) for cell in row]
@@ -557,7 +560,7 @@ class OpenpyxlReader(BaseExcelReader):
             # With dimension reset, openpyxl no longer pads rows
             max_width = max(len(data_row) for data_row in data)
             if min(len(data_row) for data_row in data) < max_width:
-                empty_cell: List[Scalar] = [""]
+                empty_cell: list[Scalar] = [""]
                 data = [
                     data_row + (max_width - len(data_row)) * empty_cell
                     for data_row in data

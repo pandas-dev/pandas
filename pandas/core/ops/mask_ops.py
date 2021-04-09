@@ -109,7 +109,9 @@ def kleene_xor(
     if right is libmissing.NA:
         result = np.zeros_like(left)
     else:
-        result = left ^ right
+        # error: Incompatible types in assignment (expression has type
+        # "Union[bool, Any]", variable has type "ndarray")
+        result = left ^ right  # type: ignore[assignment]
 
     if right_mask is None:
         if right is libmissing.NA:
@@ -179,6 +181,6 @@ def kleene_and(
     return result, mask
 
 
-def raise_for_nan(value, method):
+def raise_for_nan(value, method: str):
     if lib.is_float(value) and np.isnan(value):
         raise ValueError(f"Cannot perform logical '{method}' with floating NaN")

@@ -35,6 +35,8 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas._config import get_option
+
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -210,7 +212,9 @@ def skip_if_np_lt(ver_str: str, *args, reason: Optional[str] = None):
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
-        np.__version__ < LooseVersion(ver_str), *args, reason=reason
+        np.__version__ < LooseVersion(ver_str),
+        *args,
+        reason=reason,
     )
 
 
@@ -285,16 +289,11 @@ def async_mark():
     return async_mark
 
 
-# Note: we are using a string as condition (and not for example
-# `get_option("mode.data_manager") == "array"`) because this needs to be
-# evaluated at test time (otherwise this boolean condition gets evaluated
-# at import time, when the pd.options.mode.data_manager has not yet been set)
-
 skip_array_manager_not_yet_implemented = pytest.mark.skipif(
-    "config.getvalue('--array-manager')", reason="JSON C code relies on Blocks"
+    get_option("mode.data_manager") == "array", reason="JSON C code relies on Blocks"
 )
 
 skip_array_manager_invalid_test = pytest.mark.skipif(
-    "config.getvalue('--array-manager')",
+    get_option("mode.data_manager") == "array",
     reason="Test that relies on BlockManager internals or specific behaviour",
 )

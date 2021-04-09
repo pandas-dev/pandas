@@ -3579,7 +3579,7 @@ cpdef to_offset(freq):
         stride_sign = None
 
         try:
-            split = re.split(opattern, freq)
+            split = opattern.split(freq)
             if split[-1] != "" and not split[-1].isspace():
                 # the last element must be blank
                 raise ValueError("last element must be blank")

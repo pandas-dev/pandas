@@ -204,12 +204,17 @@ $1$,$2$
         assert df.set_index("a").to_csv(na_rep="_") == expected
         assert df.set_index(["a", "b"]).to_csv(na_rep="_") == expected
 
-        # GH 29975
-        # Make sure full na_rep shows up when a dtype is provided
         csv = pd.Series(["a", pd.NA, "c"]).to_csv(na_rep="ZZZZZ")
         expected = tm.convert_rows_list_to_csv_str([",0", "0,a", "1,ZZZZZ", "2,c"])
         assert expected == csv
-        csv = pd.Series(["a", pd.NA, "c"], dtype="string").to_csv(na_rep="ZZZZZ")
+
+    def test_to_csv_na_rep_nullable_string(self, nullable_string_dtype):
+        # GH 29975
+        # Make sure full na_rep shows up when a dtype is provided
+        expected = tm.convert_rows_list_to_csv_str([",0", "0,a", "1,ZZZZZ", "2,c"])
+        csv = pd.Series(["a", pd.NA, "c"], dtype=nullable_string_dtype).to_csv(
+            na_rep="ZZZZZ"
+        )
         assert expected == csv
 
     def test_to_csv_date_format(self):
@@ -326,7 +331,7 @@ $1$,$2$
             ),
         ],
     )
-    @pytest.mark.parametrize("klass", [pd.DataFrame, pd.Series])
+    @pytest.mark.parametrize("klass", [DataFrame, pd.Series])
     def test_to_csv_single_level_multi_index(self, ind, expected, klass):
         # see gh-19589
         result = klass(pd.Series([1], ind, name="data")).to_csv(

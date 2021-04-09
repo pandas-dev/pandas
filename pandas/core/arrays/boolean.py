@@ -1,14 +1,7 @@
 from __future__ import annotations
 
 import numbers
-from typing import (
-    TYPE_CHECKING,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -20,6 +13,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    type_t,
 )
 from pandas.compat.numpy import function as nv
 
@@ -76,9 +70,10 @@ class BooleanDtype(BaseMaskedDtype):
 
     name = "boolean"
 
-    # mypy: https://github.com/python/mypy/issues/4125
+    # https://github.com/python/mypy/issues/4125
+    # error: Signature of "type" incompatible with supertype "BaseMaskedDtype"
     @property
-    def type(self) -> Type:  # type: ignore[override]
+    def type(self) -> type:  # type: ignore[override]
         return np.bool_
 
     @property
@@ -90,7 +85,7 @@ class BooleanDtype(BaseMaskedDtype):
         return np.dtype("bool")
 
     @classmethod
-    def construct_array_type(cls) -> Type[BooleanArray]:
+    def construct_array_type(cls) -> type_t[BooleanArray]:
         """
         Return the array type associated with this dtype.
 
@@ -112,7 +107,7 @@ class BooleanDtype(BaseMaskedDtype):
         return True
 
     def __from_arrow__(
-        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> BooleanArray:
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.
@@ -136,7 +131,7 @@ class BooleanDtype(BaseMaskedDtype):
 
 def coerce_to_array(
     values, mask=None, copy: bool = False
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask.
 
@@ -295,7 +290,7 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> BooleanArray:
         if dtype:
             assert dtype == "boolean"
@@ -305,12 +300,12 @@ class BooleanArray(BaseMaskedArray):
     @classmethod
     def _from_sequence_of_strings(
         cls,
-        strings: List[str],
+        strings: list[str],
         *,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
-        true_values: Optional[List[str]] = None,
-        false_values: Optional[List[str]] = None,
+        true_values: list[str] | None = None,
+        false_values: list[str] | None = None,
     ) -> BooleanArray:
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
@@ -330,7 +325,7 @@ class BooleanArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For BooleanArray inputs, we apply the ufunc to ._data
         # and mask the result.
         if method == "reduce":
@@ -375,7 +370,7 @@ class BooleanArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
@@ -612,7 +607,9 @@ class BooleanArray(BaseMaskedArray):
         elif op.__name__ in {"xor", "rxor"}:
             result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
-        return BooleanArray(result, mask)
+        # error: Argument 2 to "BooleanArray" has incompatible type "Optional[Any]";
+        # expected "ndarray"
+        return BooleanArray(result, mask)  # type: ignore[arg-type]
 
     def _cmp_method(self, other, op):
         from pandas.arrays import (

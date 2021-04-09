@@ -56,17 +56,17 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         dtype : Dtype, optional
             The dtype of the result array.
         """
-        arr = self
         if dtype is None:
             dtype = np.dtype("object")
         if na_value is None:
             na_value = self._str_na_value
 
-        if not len(arr):
-            return np.ndarray(0, dtype=dtype)
+        if not len(self):
+            # error: Argument 1 to "ndarray" has incompatible type "int";
+            # expected "Sequence[int]"
+            return np.ndarray(0, dtype=dtype)  # type: ignore[arg-type]
 
-        if not isinstance(arr, np.ndarray):
-            arr = np.asarray(arr, dtype=object)
+        arr = np.asarray(self, dtype=object)
         mask = isna(arr)
         convert = not np.all(mask)
         try:
@@ -92,6 +92,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                     return na_value
 
             return self._str_map(g, na_value=na_value, dtype=dtype)
+        if not isinstance(result, np.ndarray):
+            return result
         if na_value is not np.nan:
             np.putmask(result, mask, na_value)
             if result.dtype == object:

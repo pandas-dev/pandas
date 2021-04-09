@@ -4,14 +4,7 @@ split-apply-combine paradigm.
 """
 from __future__ import annotations
 
-from typing import (
-    Dict,
-    Hashable,
-    List,
-    Optional,
-    Set,
-    Tuple,
-)
+from typing import Hashable
 import warnings
 
 import numpy as np
@@ -256,7 +249,7 @@ class Grouper:
     Freq: 17T, dtype: int64
     """
 
-    _attributes: Tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
+    _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
@@ -293,7 +286,7 @@ class Grouper:
         Parameters
         ----------
         obj : the subject object
-        validate : boolean, default True
+        validate : bool, default True
             if True, validate the grouper
 
         Returns
@@ -434,7 +427,7 @@ class Grouping:
         self,
         index: Index,
         grouper=None,
-        obj: Optional[FrameOrSeries] = None,
+        obj: FrameOrSeries | None = None,
         name=None,
         level=None,
         sort: bool = True,
@@ -563,8 +556,8 @@ class Grouping:
     def __iter__(self):
         return iter(self.indices)
 
-    _codes: Optional[np.ndarray] = None
-    _group_index: Optional[Index] = None
+    _codes: np.ndarray | None = None
+    _group_index: Index | None = None
 
     @property
     def ngroups(self) -> int:
@@ -583,7 +576,9 @@ class Grouping:
     def codes(self) -> np.ndarray:
         if self._codes is None:
             self._make_codes()
-        return self._codes
+        # error: Incompatible return value type (got "Optional[ndarray]",
+        # expected "ndarray")
+        return self._codes  # type: ignore[return-value]
 
     @cache_readonly
     def result_index(self) -> Index:
@@ -622,7 +617,7 @@ class Grouping:
         self._group_index = uniques
 
     @cache_readonly
-    def groups(self) -> Dict[Hashable, np.ndarray]:
+    def groups(self) -> dict[Hashable, np.ndarray]:
         return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
@@ -636,7 +631,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> Tuple[ops.BaseGrouper, Set[Hashable], FrameOrSeries]:
+) -> tuple[ops.BaseGrouper, set[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -760,8 +755,8 @@ def get_grouper(
     else:
         levels = [level] * len(keys)
 
-    groupings: List[Grouping] = []
-    exclusions: Set[Hashable] = set()
+    groupings: list[Grouping] = []
+    exclusions: set[Hashable] = set()
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
@@ -787,7 +782,7 @@ def get_grouper(
             #  lambda here
             return False
 
-    for i, (gpr, level) in enumerate(zip(keys, levels)):
+    for gpr, level in zip(keys, levels):
 
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis, name = True, gpr.name

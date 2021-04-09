@@ -198,7 +198,7 @@ class TestIntervalIndex:
         result = indexer_sl(ser)[[Interval(1, 3)]]
         tm.assert_series_equal(expected, result)
 
-    def test_missing_key_error_message(
+    def test_loc_getitem_missing_key_error_message(
         self, frame_or_series, series_with_interval_index
     ):
         # GH#27365

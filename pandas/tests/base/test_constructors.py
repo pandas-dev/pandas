@@ -124,9 +124,7 @@ class TestConstruction:
         [
             Series,
             lambda x, **kwargs: DataFrame({"a": x}, **kwargs)["a"],
-            pytest.param(
-                lambda x, **kwargs: DataFrame(x, **kwargs)[0], marks=pytest.mark.xfail
-            ),
+            lambda x, **kwargs: DataFrame(x, **kwargs)[0],
             Index,
         ],
     )

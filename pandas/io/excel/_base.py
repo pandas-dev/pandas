@@ -9,10 +9,7 @@ import os
 from textwrap import fill
 from typing import (
     Any,
-    Dict,
     Mapping,
-    Optional,
-    Union,
     cast,
 )
 import warnings
@@ -342,7 +339,7 @@ def read_excel(
     index_col=None,
     usecols=None,
     squeeze=False,
-    dtype: Optional[DtypeArg] = None,
+    dtype: DtypeArg | None = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -480,7 +477,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         index_col=None,
         usecols=None,
         squeeze=False,
-        dtype: Optional[DtypeArg] = None,
+        dtype: DtypeArg | None = None,
         true_values=None,
         false_values=None,
         skiprows=None,
@@ -598,6 +595,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     skiprows=skiprows,
                     nrows=nrows,
                     na_values=na_values,
+                    skip_blank_lines=False,  # GH 39808
                     parse_dates=parse_dates,
                     date_parser=date_parser,
                     thousands=thousands,
@@ -666,6 +664,16 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
         .. versionadded:: 1.2.0
+    engine_kwargs : dict, optional
+        Keyword arguments to be passed into the engine.
+
+        .. versionadded:: 1.3.0
+    **kwargs : dict, optional
+        Keyword arguments to be passed into the engine.
+
+        .. deprecated:: 1.3.0
+
+            Use engine_kwargs instead.
 
     Attributes
     ----------
@@ -744,7 +752,26 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     # You also need to register the class with ``register_writer()``.
     # Technically, ExcelWriter implementations don't need to subclass
     # ExcelWriter.
-    def __new__(cls, path, engine=None, **kwargs):
+    def __new__(
+        cls,
+        path: FilePathOrBuffer | ExcelWriter,
+        engine=None,
+        date_format=None,
+        datetime_format=None,
+        mode: str = "w",
+        storage_options: StorageOptions = None,
+        engine_kwargs: dict | None = None,
+        **kwargs,
+    ):
+        if kwargs:
+            if engine_kwargs is not None:
+                raise ValueError("Cannot use both engine_kwargs and **kwargs")
+            warnings.warn(
+                "Use of **kwargs is deprecated, use engine_kwargs instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         # only switch class if generic(ExcelWriter)
 
         if cls is ExcelWriter:
@@ -828,13 +855,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: Union[FilePathOrBuffer, ExcelWriter],
+        path: FilePathOrBuffer | ExcelWriter,
         engine=None,
         date_format=None,
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        **engine_kwargs,
+        engine_kwargs: dict | None = None,
+        **kwargs,
     ):
         # validate that this engine can handle the extension
         if isinstance(path, str):
@@ -854,7 +882,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             self.handles = get_handle(
                 path, mode, storage_options=storage_options, is_text=False
             )
-        self.sheets: Dict[str, Any] = {}
+        self.sheets: dict[str, Any] = {}
         self.cur_sheet = None
 
         if date_format is None:

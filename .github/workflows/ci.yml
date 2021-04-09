@@ -141,6 +141,9 @@ jobs:
   data_manager:
     name: Test experimental data manager
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pattern: ["not slow and not network and not clipboard", "slow"]
     steps:
 
     - name: Checkout
@@ -150,15 +153,13 @@ jobs:
       uses: ./.github/actions/setup
 
     - name: Run tests
+      env:
+        PANDAS_DATA_MANAGER: array
+        PATTERN: ${{ matrix.pattern }}
+        PYTEST_WORKERS: "auto"
       run: |
         source activate pandas-dev
-        pytest pandas/tests/frame/methods --array-manager
-        pytest pandas/tests/arithmetic/ --array-manager
+        ci/run_tests.sh
 
-        # indexing subset (temporary since other tests don't pass yet)
-        pytest pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing::test_setitem_boolean --array-manager
-        pytest pandas/tests/frame/indexing/test_where.py --array-manager
-        pytest pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing::test_setitem_multi_index --array-manager
-        pytest pandas/tests/frame/indexing/test_setitem.py::TestDataFrameSetItem::test_setitem_listlike_indexer_duplicate_columns --array-manager
-        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_astype_assignment_with_dups --array-manager
-        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_frame_setitem_multi_column --array-manager
+    - name: Print skipped tests
+      run: python ci/print_skipped.py

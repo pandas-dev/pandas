@@ -1,9 +1,12 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import (
     DataFrame,
+    NaT,
     Series,
     concat,
 )
@@ -517,3 +520,50 @@ def test_rank_zero_div(input_key, input_value, output_value):
     result = df.groupby("A").rank(method="dense", pct=True)
     expected = DataFrame({"B": output_value})
     tm.assert_frame_equal(result, expected)
+
+
+def test_rank_min_int():
+    # GH-32859
+    df = DataFrame(
+        {
+            "grp": [1, 1, 2],
+            "int_col": [
+                np.iinfo(np.int64).min,
+                np.iinfo(np.int64).max,
+                np.iinfo(np.int64).min,
+            ],
+            "datetimelike": [NaT, datetime(2001, 1, 1), NaT],
+        }
+    )
+
+    result = df.groupby("grp").rank()
+    expected = DataFrame(
+        {"int_col": [1.0, 2.0, 1.0], "datetimelike": [np.NaN, 1.0, np.NaN]}
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("use_nan", [True, False])
+def test_rank_pct_equal_values_on_group_transition(use_nan):
+    # GH#40518
+    fill_value = np.nan if use_nan else 3
+    df = DataFrame(
+        [
+            [-1, 1],
+            [-1, 2],
+            [1, fill_value],
+            [-1, fill_value],
+        ],
+        columns=["group", "val"],
+    )
+    result = df.groupby(["group"])["val"].rank(
+        method="dense",
+        pct=True,
+    )
+    if use_nan:
+        expected = Series([0.5, 1, np.nan, np.nan], name="val")
+    else:
+        expected = Series([1 / 3, 2 / 3, 1, 1], name="val")
+
+    tm.assert_series_equal(result, expected)

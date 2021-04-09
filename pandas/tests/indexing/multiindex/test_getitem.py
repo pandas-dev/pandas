@@ -62,26 +62,22 @@ def test_series_getitem_duplicates_multiindex(level0_value):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("indexer", [lambda s: s[2000, 3], lambda s: s.loc[2000, 3]])
-def test_series_getitem(multiindex_year_month_day_dataframe_random_data, indexer):
+def test_series_getitem(multiindex_year_month_day_dataframe_random_data, indexer_sl):
     s = multiindex_year_month_day_dataframe_random_data["A"]
     expected = s.reindex(s.index[42:65])
     expected.index = expected.index.droplevel(0).droplevel(0)
 
-    result = indexer(s)
+    result = indexer_sl(s)[2000, 3]
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "indexer", [lambda s: s[2000, 3, 10], lambda s: s.loc[2000, 3, 10]]
-)
 def test_series_getitem_returns_scalar(
-    multiindex_year_month_day_dataframe_random_data, indexer
+    multiindex_year_month_day_dataframe_random_data, indexer_sl
 ):
     s = multiindex_year_month_day_dataframe_random_data["A"]
     expected = s.iloc[49]
 
-    result = indexer(s)
+    result = indexer_sl(s)[2000, 3, 10]
     assert result == expected
 
 

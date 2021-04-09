@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -29,6 +31,61 @@ def frame_random_data_integer_multi_index():
 
 
 class TestMultiIndexLoc:
+    def test_loc_setitem_frame_with_multiindex(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+        frame.loc[("bar", "two"), "B"] = 5
+        assert frame.loc[("bar", "two"), "B"] == 5
+
+        # with integer labels
+        df = frame.copy()
+        df.columns = list(range(3))
+        df.loc[("bar", "two"), 1] = 7
+        assert df.loc[("bar", "two"), 1] == 7
+
+    def test_loc_getitem_general(self):
+
+        # GH#2817
+        data = {
+            "amount": {0: 700, 1: 600, 2: 222, 3: 333, 4: 444},
+            "col": {0: 3.5, 1: 3.5, 2: 4.0, 3: 4.0, 4: 4.0},
+            "year": {0: 2012, 1: 2011, 2: 2012, 3: 2012, 4: 2012},
+        }
+        df = DataFrame(data).set_index(keys=["col", "year"])
+        key = 4.0, 2012
+
+        # emits a PerformanceWarning, ok
+        with tm.assert_produces_warning(PerformanceWarning):
+            tm.assert_frame_equal(df.loc[key], df.iloc[2:])
+
+        # this is ok
+        return_value = df.sort_index(inplace=True)
+        assert return_value is None
+        res = df.loc[key]
+
+        # col has float dtype, result should be Float64Index
+        index = MultiIndex.from_arrays([[4.0] * 3, [2012] * 3], names=["col", "year"])
+        expected = DataFrame({"amount": [222, 333, 444]}, index=index)
+        tm.assert_frame_equal(res, expected)
+
+    def test_loc_getitem_multiindex_missing_label_raises(self):
+        # GH#21593
+        df = DataFrame(
+            np.random.randn(3, 3),
+            columns=[[2, 2, 4], [6, 8, 10]],
+            index=[[4, 4, 8], [8, 10, 12]],
+        )
+
+        with pytest.raises(KeyError, match=r"^2$"):
+            df.loc[2]
+
+    def test_loc_getitem_list_of_tuples_with_multiindex(
+        self, multiindex_year_month_day_dataframe_random_data
+    ):
+        ser = multiindex_year_month_day_dataframe_random_data["A"]
+        expected = ser.reindex(ser.index[49:51])
+        result = ser.loc[[(2000, 3, 10), (2000, 3, 13)]]
+        tm.assert_series_equal(result, expected)
+
     def test_loc_getitem_series(self):
         # GH14730
         # passing a series as a key with a MultiIndex
@@ -199,18 +256,15 @@ class TestMultiIndexLoc:
 
         result = s.loc[0:4, "a":"c"]
         tm.assert_series_equal(result, expected)
-        tm.assert_series_equal(result, expected)
 
         result = s.loc[:4, "a":"c"]
-        tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result, expected)
 
         result = s.loc[0:, "a":"c"]
         tm.assert_series_equal(result, expected)
-        tm.assert_series_equal(result, expected)
 
         # GH 7400
-        # multiindexer gettitem with list of indexers skips wrong element
+        # multiindexer getitem with list of indexers skips wrong element
         s = Series(
             np.arange(15, dtype="int64"),
             MultiIndex.from_product([range(5), ["a", "b", "c"]]),
@@ -331,7 +385,7 @@ class TestMultiIndexLoc:
     [
         ([], []),  # empty ok
         (["A"], slice(3)),
-        (["A", "D"], []),  # "D" isnt present -> raise
+        (["A", "D"], []),  # "D" isn't present -> raise
         (["D", "E"], []),  # no values found -> raise
         (["D"], []),  # same, with single item list: GH 27148
         (pd.IndexSlice[:, ["foo"]], slice(2, None, 3)),
@@ -353,13 +407,6 @@ def test_loc_getitem_duplicates_multiindex_missing_indexers(indexer, pos):
     else:
         result = s.loc[indexer]
         tm.assert_series_equal(result, expected)
-
-
-def test_series_loc_getitem_fancy(multiindex_year_month_day_dataframe_random_data):
-    s = multiindex_year_month_day_dataframe_random_data["A"]
-    expected = s.reindex(s.index[49:51])
-    result = s.loc[[(2000, 3, 10), (2000, 3, 13)]]
-    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("columns_indexer", [([], slice(None)), (["foo"], [])])
@@ -484,7 +531,7 @@ def test_loc_period_string_indexing():
     # GH 9892
     a = pd.period_range("2013Q1", "2013Q4", freq="Q")
     i = (1111, 2222, 3333)
-    idx = MultiIndex.from_product((a, i), names=("Periode", "CVR"))
+    idx = MultiIndex.from_product((a, i), names=("Period", "CVR"))
     df = DataFrame(
         index=idx,
         columns=(
@@ -505,7 +552,7 @@ def test_loc_period_string_indexing():
         dtype=object,
         name="OMS",
         index=MultiIndex.from_tuples(
-            [(pd.Period("2013Q1"), 1111)], names=["Periode", "CVR"]
+            [(pd.Period("2013Q1"), 1111)], names=["Period", "CVR"]
         ),
     )
     tm.assert_series_equal(result, expected)

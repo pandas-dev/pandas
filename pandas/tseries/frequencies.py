@@ -145,6 +145,12 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         If the index is not datetime-like.
     ValueError
         If there are fewer than three values.
+
+    Examples
+    --------
+    >>> idx = pd.date_range(start='2020/12/01', end='2020/12/30', periods=30)
+    >>> pd.infer_freq(idx)
+    'D'
     """
     import pandas as pd
 
@@ -246,16 +252,17 @@ class _FrequencyInferer:
             return None
 
         delta = self.deltas[0]
-        if _is_multiple(delta, _ONE_DAY):
+        if delta and _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
 
         # Business hourly, maybe. 17: one day / 65: one weekend
         if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
             return "BH"
+
         # Possibly intraday frequency.  Here we use the
         # original .asi8 values as the modified values
         # will not work around DST transitions.  See #8772
-        elif not self.is_unique_asi8:
+        if not self.is_unique_asi8:
             return None
 
         delta = self.deltas_asi8[0]
@@ -384,7 +391,8 @@ class _FrequencyInferer:
         shifts = np.diff(self.index.asi8)
         shifts = np.floor_divide(shifts, _ONE_DAY)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
-        return np.all(
+        # error: Incompatible return value type (got "bool_", expected "bool")
+        return np.all(  # type: ignore[return-value]
             ((weekdays == 0) & (shifts == 3))
             | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
         )
@@ -556,7 +564,7 @@ def _maybe_coerce_freq(code) -> str:
 
     Parameters
     ----------
-    source : string or DateOffset
+    source : str or DateOffset
         Frequency converting from
 
     Returns

@@ -1,3 +1,4 @@
+from decimal import Decimal
 import numbers
 
 import cython
@@ -35,6 +36,8 @@ cdef:
     int64_t NPY_NAT = util.get_nat()
 
     bint is_32bit = not IS64
+
+    type cDecimal = Decimal  # for faster isinstance checks
 
 
 cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False):
@@ -86,6 +89,8 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
             and util.is_timedelta64_object(right)
             and get_timedelta64_value(right) == NPY_NAT
         )
+    elif is_decimal_na(left):
+        return is_decimal_na(right)
     return False
 
 
@@ -99,6 +104,7 @@ cpdef bint checknull(object val):
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
      - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -113,7 +119,18 @@ cpdef bint checknull(object val):
     The difference between `checknull` and `checknull_old` is that `checknull`
     does *not* consider INF or NEGINF to be NA.
     """
-    return val is C_NA or is_null_datetimelike(val, inat_is_null=False)
+    return (
+        val is C_NA
+        or is_null_datetimelike(val, inat_is_null=False)
+        or is_decimal_na(val)
+    )
+
+
+cdef inline bint is_decimal_na(object val):
+    """
+    Is this a decimal.Decimal object Decimal("NAN").
+    """
+    return isinstance(val, cDecimal) and val != val
 
 
 cpdef bint checknull_old(object val):
@@ -127,6 +144,8 @@ cpdef bint checknull_old(object val):
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -159,6 +178,8 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr):
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -195,6 +216,7 @@ def isnaobj_old(arr: ndarray) -> ndarray:
      - NEGINF
      - NaT
      - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -233,6 +255,8 @@ def isnaobj2d(arr: ndarray) -> ndarray:
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -277,6 +301,8 @@ def isnaobj2d_old(arr: ndarray) -> ndarray:
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -374,7 +400,7 @@ def _create_binary_propagating_op(name, is_divmod=False):
     return method
 
 
-def _create_unary_propagating_op(name):
+def _create_unary_propagating_op(name: str):
     def method(self):
         return NA
 

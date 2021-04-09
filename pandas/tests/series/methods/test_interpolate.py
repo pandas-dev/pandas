@@ -642,7 +642,7 @@ class TestSeriesInterpolateData:
 
     def test_interp_pad_datetime64tz_values(self):
         # GH#27628 missing.interpolate_2d should handle datetimetz values
-        dti = pd.date_range("2015-04-05", periods=3, tz="US/Central")
+        dti = date_range("2015-04-05", periods=3, tz="US/Central")
         ser = Series(dti)
         ser[1] = pd.NaT
         result = ser.interpolate(method="pad")
@@ -735,13 +735,13 @@ class TestSeriesInterpolateData:
 
     def test_series_interpolate_intraday(self):
         # #1698
-        index = pd.date_range("1/1/2012", periods=4, freq="12D")
+        index = date_range("1/1/2012", periods=4, freq="12D")
         ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(days=1)).sort_values()
 
         exp = ts.reindex(new_index).interpolate(method="time")
 
-        index = pd.date_range("1/1/2012", periods=4, freq="12H")
+        index = date_range("1/1/2012", periods=4, freq="12H")
         ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(hours=1)).sort_values()
         result = ts.reindex(new_index).interpolate(method="time")

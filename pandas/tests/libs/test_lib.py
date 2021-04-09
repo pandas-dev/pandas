@@ -197,12 +197,18 @@ class TestIndexing:
         assert result == slice(0, 0)
 
     def test_get_reverse_indexer(self):
-        indexer = np.array([-1, -1, 1, 2, 0, -1, 3, 4], dtype=np.int64)
+        indexer = np.array([-1, -1, 1, 2, 0, -1, 3, 4], dtype=np.intp)
         result = lib.get_reverse_indexer(indexer, 5)
-        expected = np.array([4, 2, 3, 6, 7], dtype=np.int64)
+        expected = np.array([4, 2, 3, 6, 7], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
 
 def test_cache_readonly_preserve_docstrings():
     # GH18197
     assert Index.hasnans.__doc__ is not None
+
+
+def test_no_default_pickle():
+    # GH#40397
+    obj = tm.round_trip_pickle(lib.no_default)
+    assert obj is lib.no_default
