@@ -2576,10 +2576,14 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
         if not isinstance(values, cls):
             # exception raised in _from_sequence
             values = ensure_object(values)
-            categories = ensure_object(categories)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Index")
+            categories = ensure_object(categories)  # type: ignore[assignment]
     elif not dtype_equal:
         values = ensure_object(values)
-        categories = ensure_object(categories)
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "Index")
+        categories = ensure_object(categories)  # type: ignore[assignment]
 
     if isinstance(categories, ABCIndex):
         return coerce_indexer_dtype(categories.get_indexer_for(values), categories)

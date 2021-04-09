@@ -1173,6 +1173,7 @@ class Index(IndexOpsMixin, PandasObject):
         values = self._values
 
         if is_object_dtype(values.dtype):
+            values = cast(np.ndarray, values)
             values = lib.maybe_convert_objects(values, safe=True)
 
             result = [pprint_thing(x, escape_chars=("\t", "\r", "\n")) for x in values]
@@ -3845,9 +3846,9 @@ class Index(IndexOpsMixin, PandasObject):
 
             missing = ensure_platform_int(missing)
             missing_labels = target.take(missing)
-            missing_indexer = ensure_int64(length[~check])
+            missing_indexer = ensure_platform_int(length[~check])
             cur_labels = self.take(indexer[check]).values
-            cur_indexer = ensure_int64(length[check])
+            cur_indexer = ensure_platform_int(length[check])
 
             new_labels = np.empty((len(indexer),), dtype=object)
             new_labels[cur_indexer] = cur_labels
@@ -4211,8 +4212,7 @@ class Index(IndexOpsMixin, PandasObject):
                     )
 
                     # missing values are placed first; drop them!
-                    # error: Value of type "Optional[ndarray]" is not indexable
-                    left_indexer = left_indexer[counts[0] :]  # type: ignore[index]
+                    left_indexer = left_indexer[counts[0] :]
                     new_codes = [lab[left_indexer] for lab in new_codes]
 
                 else:  # sort the leaves

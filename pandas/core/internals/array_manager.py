@@ -28,7 +28,7 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
-    ensure_int64,
+    ensure_platform_int,
     is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -1007,7 +1007,7 @@ class ArrayManager(DataManager):
 
         else:
             validate_indices(indexer, len(self._axes[0]))
-            indexer = ensure_int64(indexer)
+            indexer = ensure_platform_int(indexer)
             if (indexer == -1).any():
                 allow_fill = True
             else:
@@ -1098,7 +1098,7 @@ class ArrayManager(DataManager):
             new_indexer[unstacker.mask] = indexer
             allow_fill = True
         new_indexer2D = new_indexer.reshape(*unstacker.full_shape)
-        new_indexer2D = ensure_int64(new_indexer2D)
+        new_indexer2D = ensure_platform_int(new_indexer2D)
 
         new_arrays = []
         for arr in self.arrays:
