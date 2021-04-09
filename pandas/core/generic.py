@@ -71,8 +71,8 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.common import (
-    ensure_int64,
     ensure_object,
+    ensure_platform_int,
     ensure_str,
     is_bool,
     is_bool_dtype,
@@ -4887,7 +4887,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             index = ensure_index(index)
             if indexer is not None:
-                indexer = ensure_int64(indexer)
+                indexer = ensure_platform_int(indexer)
 
             # TODO: speed up on homogeneous DataFrame objects
             new_data = new_data.reindex_indexer(
@@ -10414,7 +10414,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
-            return self._agg_by_level(name, axis=axis, level=level, skipna=skipna)
+            return self._agg_by_level(
+                name, axis=axis, level=level, skipna=skipna, numeric_only=numeric_only
+            )
         return self._reduce(
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
         )
@@ -10475,7 +10477,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level(
-                name, axis=axis, level=level, skipna=skipna, min_count=min_count
+                name,
+                axis=axis,
+                level=level,
+                skipna=skipna,
+                min_count=min_count,
+                numeric_only=numeric_only,
             )
         return self._reduce(
             func,
