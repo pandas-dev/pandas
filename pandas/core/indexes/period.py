@@ -4,10 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import (
-    Any,
-    Optional,
-)
+from typing import Any
 import warnings
 
 import numpy as np
@@ -217,7 +214,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         data=None,
         ordinal=None,
         freq=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy=False,
         name=None,
         **fields,
@@ -490,12 +487,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 pass
 
             try:
-                asdt, reso = parse_time_string(key, self.freq)
+                asdt, reso_str = parse_time_string(key, self.freq)
             except (ValueError, DateParseError) as err:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
-            reso = Resolution.from_attrname(reso)
+            reso = Resolution.from_attrname(reso_str)
             grp = reso.freq_group.value
             freqn = self.dtype.freq_group_code
 
@@ -556,8 +553,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             return Period(label, freq=self.freq)
         elif isinstance(label, str):
             try:
-                parsed, reso = parse_time_string(label, self.freq)
-                reso = Resolution.from_attrname(reso)
+                parsed, reso_str = parse_time_string(label, self.freq)
+                reso = Resolution.from_attrname(reso_str)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
             except ValueError as err:
@@ -585,8 +582,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             raise ValueError
 
     def _get_string_slice(self, key: str):
-        parsed, reso = parse_time_string(key, self.freq)
-        reso = Resolution.from_attrname(reso)
+        parsed, reso_str = parse_time_string(key, self.freq)
+        reso = Resolution.from_attrname(reso_str)
         try:
             return self._partial_date_slice(reso, parsed)
         except KeyError as err:
@@ -594,7 +591,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods: Optional[int] = None, freq=None, name=None
+    start=None, end=None, periods: int | None = None, freq=None, name=None
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.

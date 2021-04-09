@@ -3,11 +3,8 @@ from __future__ import annotations
 from functools import wraps
 from typing import (
     Any,
-    Optional,
     Sequence,
-    Type,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -16,6 +13,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import (
     F,
+    PositionalIndexer2D,
     Shape,
 )
 from pandas.compat.numpy import function as nv
@@ -24,7 +22,10 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._validators import validate_fillna_kwargs
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_fillna_kwargs,
+)
 
 from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.missing import array_equivalent
@@ -39,6 +40,7 @@ from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
+from pandas.core.sorting import nargminmax
 
 NDArrayBackedExtensionArrayT = TypeVar(
     "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
@@ -153,8 +155,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     @cache_readonly
     def size(self) -> int:
-        # error: Incompatible return value type (got "number", expected "int")
-        return np.prod(self.shape)  # type: ignore[return-value]
+        return self._ndarray.size
 
     @cache_readonly
     def nbytes(self) -> int:
@@ -186,8 +187,24 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             return False
         return bool(array_equivalent(self._ndarray, other._ndarray))
 
-    def _values_for_argsort(self):
+    def _values_for_argsort(self) -> np.ndarray:
         return self._ndarray
+
+    # Signature of "argmin" incompatible with supertype "ExtensionArray"
+    def argmin(self, axis: int = 0, skipna: bool = True):  # type:ignore[override]
+        # override base class by adding axis keyword
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self.isna().any():
+            raise NotImplementedError
+        return nargminmax(self, "argmin", axis=axis)
+
+    # Signature of "argmax" incompatible with supertype "ExtensionArray"
+    def argmax(self, axis: int = 0, skipna: bool = True):  # type:ignore[override]
+        # override base class by adding axis keyword
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self.isna().any():
+            raise NotImplementedError
+        return nargminmax(self, "argmax", axis=axis)
 
     def copy(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
         new_data = self._ndarray.copy()
@@ -214,7 +231,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     @classmethod
     @doc(ExtensionArray._concat_same_type)
     def _concat_same_type(
-        cls: Type[NDArrayBackedExtensionArrayT],
+        cls: type[NDArrayBackedExtensionArrayT],
         to_concat: Sequence[NDArrayBackedExtensionArrayT],
         axis: int = 0,
     ) -> NDArrayBackedExtensionArrayT:
@@ -258,8 +275,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         return value
 
     def __getitem__(
-        self: NDArrayBackedExtensionArrayT, key: Union[int, slice, np.ndarray]
-    ) -> Union[NDArrayBackedExtensionArrayT, Any]:
+        self: NDArrayBackedExtensionArrayT,
+        key: PositionalIndexer2D,
+    ) -> NDArrayBackedExtensionArrayT | Any:
         if lib.is_integer(key):
             # fast-path
             result = self._ndarray[key]
@@ -330,7 +348,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
             raise TypeError(msg)
 
-    def _wrap_reduction_result(self, axis: Optional[int], result):
+    def _wrap_reduction_result(self, axis: int | None, result):
         if axis is None or self.ndim == 1:
             return self._box_func(result)
         return self._from_backing_data(result)

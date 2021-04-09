@@ -2,9 +2,12 @@
 
 {{ header }}
 
-*************
-Visualization
-*************
+*******************
+Chart Visualization
+*******************
+
+This section demonstrates visualization through charting. For information on
+visualization of tabular data please see the section on `Table Visualization <style.ipynb>`_.
 
 We use the standard convention for referencing the matplotlib API:
 
