@@ -47,6 +47,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     NpDtype,
+    PositionalIndexer2D,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -290,7 +291,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         apply box func to passed values
         """
-        return lib.map_infer(values, self._box_func)
+        # error: Incompatible return value type (got
+        # "Union[ExtensionArray, ndarray]", expected "ndarray")
+        return lib.map_infer(values, self._box_func)  # type: ignore[return-value]
 
     def __iter__(self):
         if self.ndim > 1:
@@ -338,7 +341,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._ndarray
 
     def __getitem__(
-        self, key: int | slice | np.ndarray
+        self, key: PositionalIndexer2D
     ) -> DatetimeLikeArrayMixin | DTScalarOrNaT:
         """
         This getitem defers to the underlying array, which by-definition can

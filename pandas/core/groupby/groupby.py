@@ -1140,7 +1140,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             )
         labels, _, n_groups = self.grouper.group_info
         sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = labels.take(sorted_index)
+        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
 
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
 
@@ -1920,6 +1920,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             self._selected_obj,
             *args,
             _grouper=self.grouper,
+            _as_index=self.as_index,
             **kwargs,
         )
 
