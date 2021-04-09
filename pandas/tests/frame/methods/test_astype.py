@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -564,30 +566,25 @@ class TestAstype:
         assert result is not df
 
     @pytest.mark.parametrize(
-        "df",
+        "data, dtype",
         [
-            DataFrame(Series(["x", "y", "z"], dtype="category")),
-            DataFrame(Series(3 * [Timestamp("2020-01-01", tz="UTC")])),
-            DataFrame(Series(3 * [Interval(0, 1)])),
+            (["x", "y", "z"], "string"),
+            pytest.param(
+                ["x", "y", "z"],
+                "arrow_string",
+                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+            ),
+            (["x", "y", "z"], "category"),
+            (3 * [Timestamp("2020-01-01", tz="UTC")], None),
+            (3 * [Interval(0, 1)], None),
         ],
     )
     @pytest.mark.parametrize("errors", ["raise", "ignore"])
-    def test_astype_ignores_errors_for_extension_dtypes(self, df, errors):
+    def test_astype_ignores_errors_for_extension_dtypes(self, data, dtype, errors):
         # https://github.com/pandas-dev/pandas/issues/35471
-        if errors == "ignore":
-            expected = df
-            result = df.astype(float, errors=errors)
-            tm.assert_frame_equal(result, expected)
-        else:
-            msg = "(Cannot cast)|(could not convert)"
-            with pytest.raises((ValueError, TypeError), match=msg):
-                df.astype(float, errors=errors)
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
 
-    @pytest.mark.parametrize("errors", ["raise", "ignore"])
-    def test_astype_ignores_errors_for_nullable_string_dtypes(
-        self, nullable_string_dtype, errors
-    ):
-        df = DataFrame(Series(["x", "y", "z"], dtype=nullable_string_dtype))
+        df = DataFrame(Series(data, dtype=dtype))
         if errors == "ignore":
             expected = df
             result = df.astype(float, errors=errors)
