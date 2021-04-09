@@ -153,8 +153,14 @@ class TestSample:
         "func_str,arg",
         [
             ("np.array", [2, 3, 1, 0]),
-            ("np.random.MT19937", 3),
-            ("np.random.PCG64", 11),
+            pytest.param(
+                "np.random.MT19937",
+                3,
+            ),
+            pytest.param(
+                "np.random.PCG64",
+                11,
+            ),
         ],
     )
     def test_sample_random_state(self, func_str, arg, frame_or_series):
