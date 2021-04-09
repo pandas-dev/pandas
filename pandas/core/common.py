@@ -32,7 +32,6 @@ from pandas._typing import (
     Scalar,
     T,
 )
-from pandas.compat import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
