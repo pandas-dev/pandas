@@ -597,7 +597,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         ser = Series([2, 3, 1], index=[3, 5, 4], dtype=float)
         if using_array_manager:
             # TODO(ArrayManager) with "split" path, we still overwrite the column
-            # and therefore don't take the order of the indexer into account
+            # and therefore don't take the dtype of the underlying object into account
             ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
         expected = DataFrame({"A": ser})
         tm.assert_frame_equal(df, expected)
