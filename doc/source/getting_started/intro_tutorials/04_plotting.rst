@@ -151,7 +151,7 @@ I want each of the columns in a separate subplot.
 
 Separate subplots for each of the data columns are supported by the ``subplots`` argument
 of the ``plot`` functions. The builtin options available in each of the pandas plot
-functions that are worthwhile to have a look.
+functions are worth reviewing.
 
 .. raw:: html
 

@@ -6,7 +6,14 @@ import pytest
 from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, UInt64Index
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+    Series,
+    UInt64Index,
+)
 import pandas._testing as tm
 from pandas.tests.indexes.common import Base
 
@@ -97,12 +104,14 @@ class Numeric(Base):
     def test_insert_na(self, nulls_fixture):
         # GH 18295 (test missing)
         index = self.create_index()
+        na_val = nulls_fixture
 
-        if nulls_fixture is pd.NaT:
+        if na_val is pd.NaT:
             expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
         else:
             expected = Float64Index([index[0], np.nan] + list(index[1:]))
-        result = index.insert(1, nulls_fixture)
+
+        result = index.insert(1, na_val)
         tm.assert_index_equal(result, expected)
 
 
@@ -204,12 +213,17 @@ class TestFloat64Index(Numeric):
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(0.0)
-        msg = (
-            "String dtype not supported, "
-            "you may need to explicitly cast to a numeric type"
+
+        # 2021-02-1 we get ValueError in numpy 1.20, but not on all builds
+        msg = "|".join(
+            [
+                "String dtype not supported, you may need to explicitly cast ",
+                "could not convert string to float: 'a'",
+            ]
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises((TypeError, ValueError), match=msg):
             Float64Index(["a", "b", 0.0])
+
         msg = r"float\(\) argument must be a string or a number, not 'Timestamp'"
         with pytest.raises(TypeError, match=msg):
             Float64Index([Timestamp("20130101")])

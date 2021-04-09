@@ -18,7 +18,11 @@ The SQL tests are broken down in different classes:
 """
 
 import csv
-from datetime import date, datetime, time
+from datetime import (
+    date,
+    datetime,
+    time,
+)
 from io import StringIO
 import sqlite3
 import warnings
@@ -26,7 +30,10 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -44,10 +51,15 @@ from pandas import (
 import pandas._testing as tm
 
 import pandas.io.sql as sql
-from pandas.io.sql import read_sql_query, read_sql_table
+from pandas.io.sql import (
+    _gt14,
+    read_sql_query,
+    read_sql_table,
+)
 
 try:
     import sqlalchemy
+    from sqlalchemy import inspect
     from sqlalchemy.ext import declarative
     from sqlalchemy.orm import session as sa_session
     import sqlalchemy.schema
@@ -290,7 +302,7 @@ class PandasSQLTest:
         self.drop_table("iris")
         self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
 
-        with open(iris_csv_file, mode="r", newline=None) as iris_csv:
+        with open(iris_csv_file, newline=None) as iris_csv:
             r = csv.reader(iris_csv)
             next(r)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]
@@ -660,6 +672,12 @@ class _TestSQLApi(PandasSQLTest):
     def test_read_sql_view(self):
         iris_frame = sql.read_sql_query("SELECT * FROM iris_view", self.conn)
         self._check_iris_loaded_frame(iris_frame)
+
+    def test_read_sql_with_chunksize_no_result(self):
+        query = "SELECT * FROM iris_view WHERE SepalLength < 0.0"
+        with_batch = sql.read_sql_query(query, self.conn, chunksize=5)
+        without_batch = sql.read_sql_query(query, self.conn)
+        tm.assert_frame_equal(concat(with_batch), without_batch)
 
     def test_to_sql(self):
         sql.to_sql(self.test_frame1, "test_frame1", self.conn)
@@ -1471,7 +1489,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pandasSQL = sql.SQLDatabase(temp_conn)
         pandasSQL.to_sql(temp_frame, "temp_frame")
 
-        assert temp_conn.has_table("temp_frame")
+        if _gt14():
+            insp = inspect(temp_conn)
+            assert insp.has_table("temp_frame")
+        else:
+            assert temp_conn.has_table("temp_frame")
 
     def test_drop_table(self):
         temp_conn = self.connect()
@@ -1483,11 +1505,18 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pandasSQL = sql.SQLDatabase(temp_conn)
         pandasSQL.to_sql(temp_frame, "temp_frame")
 
-        assert temp_conn.has_table("temp_frame")
+        if _gt14():
+            insp = inspect(temp_conn)
+            assert insp.has_table("temp_frame")
+        else:
+            assert temp_conn.has_table("temp_frame")
 
         pandasSQL.drop_table("temp_frame")
 
-        assert not temp_conn.has_table("temp_frame")
+        if _gt14():
+            assert not insp.has_table("temp_frame")
+        else:
+            assert not temp_conn.has_table("temp_frame")
 
     def test_roundtrip(self):
         self._roundtrip()
@@ -1576,7 +1605,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 )
 
         # GH11216
-        df = pd.read_sql_query("select * from types_test_data", self.conn)
+        df = read_sql_query("select * from types_test_data", self.conn)
         if not hasattr(df, "DateColWithTz"):
             pytest.skip("no column with datetime with time zone")
 
@@ -1586,7 +1615,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         col = df.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
 
-        df = pd.read_sql_query(
+        df = read_sql_query(
             "select * from types_test_data", self.conn, parse_dates=["DateColWithTz"]
         )
         if not hasattr(df, "DateColWithTz"):
@@ -1596,11 +1625,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert str(col.dt.tz) == "UTC"
         check(df.DateColWithTz)
 
-        df = pd.concat(
+        df = concat(
             list(
-                pd.read_sql_query(
-                    "select * from types_test_data", self.conn, chunksize=1
-                )
+                read_sql_query("select * from types_test_data", self.conn, chunksize=1)
             ),
             ignore_index=True,
         )
@@ -1829,9 +1856,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         tm.assert_frame_equal(result, df)
 
     def _get_index_columns(self, tbl_name):
-        from sqlalchemy.engine import reflection
+        from sqlalchemy import inspect
 
-        insp = reflection.Inspector.from_engine(self.conn)
+        insp = inspect(self.conn)
+
         ixs = insp.get_indexes(tbl_name)
         ixs = [i["column_names"] for i in ixs]
         return ixs
@@ -1963,8 +1991,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         def main(connectable):
             with connectable.connect() as conn:
                 with conn.begin():
-                    foo_data = conn.run_callable(foo)
-                    conn.run_callable(bar, foo_data)
+                    if _gt14():
+                        # https://github.com/sqlalchemy/sqlalchemy/commit/
+                        #  00b5c10846e800304caa86549ab9da373b42fa5d#r48323973
+                        foo_data = foo(conn)
+                        bar(conn, foo_data)
+                    else:
+                        foo_data = conn.run_callable(foo)
+                        conn.run_callable(bar, foo_data)
 
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
@@ -1973,12 +2007,22 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         "input",
         [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
     )
-    def test_to_sql_with_negative_npinf(self, input):
+    def test_to_sql_with_negative_npinf(self, input, request):
         # GH 34431
 
         df = DataFrame(input)
 
         if self.flavor == "mysql":
+            # GH 36465
+            # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
+            # for pymysql version >= 0.10
+            # TODO: remove this version check after GH 36465 is fixed
+            import pymysql
+
+            if pymysql.VERSION[0:3] >= (0, 10, 0) and "infe0" in df.columns:
+                mark = pytest.mark.xfail(reason="GH 36465")
+                request.node.add_marker(mark)
+
             msg = "inf cannot be used with MySQL"
             with pytest.raises(ValueError, match=msg):
                 df.to_sql("foobar", self.conn, index=False)
@@ -2835,7 +2879,7 @@ class TestXMySQL(MySQLMixIn):
         sql.to_sql(frame, name="test", con=self.conn)
         query = "select * from test"
         chunksize = 5
-        chunk_gen = pd.read_sql_query(
+        chunk_gen = read_sql_query(
             sql=query, con=self.conn, chunksize=chunksize, index_col="index"
         )
         chunk_df = next(chunk_gen)

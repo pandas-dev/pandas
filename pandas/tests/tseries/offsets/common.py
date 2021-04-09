@@ -2,12 +2,18 @@
 Assertion helpers and base class for offsets tests
 """
 from datetime import datetime
-from typing import Optional, Type
+from typing import (
+    Optional,
+    Type,
+)
 
 from dateutil.tz.tz import tzlocal
 import pytest
 
-from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    Timestamp,
+)
 from pandas._libs.tslibs.offsets import (
     FY5253,
     BusinessHour,
@@ -98,12 +104,10 @@ class Base:
             klass = klass(value, normalize=normalize)
         return klass
 
-    def test_apply_out_of_range(self, tz_naive_fixture):
+    def test_apply_out_of_range(self, request, tz_naive_fixture):
         tz = tz_naive_fixture
         if self._offset is None:
             return
-        if isinstance(tz, tzlocal) and not IS64:
-            pytest.xfail(reason="OverflowError inside tzlocal past 2038")
 
         # try to create an out-of-bounds result timestamp; if we can't create
         # the offset skip
@@ -123,6 +127,13 @@ class Base:
             t = Timestamp("20080101", tz=tz)
             result = t + offset
             assert isinstance(result, datetime)
+
+            if isinstance(tz, tzlocal) and not IS64:
+                # If we hit OutOfBoundsDatetime on non-64 bit machines
+                # we'll drop out of the try clause before the next test
+                request.node.add_marker(
+                    pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
+                )
             assert t.tzinfo == result.tzinfo
 
         except OutOfBoundsDatetime:

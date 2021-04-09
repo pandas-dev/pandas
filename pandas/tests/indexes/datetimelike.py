@@ -5,8 +5,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-
-from .common import Base
+from pandas.tests.indexes.common import Base
 
 
 class DatetimeLike(Base):
@@ -118,9 +117,9 @@ class DatetimeLike(Base):
         result = index.where(mask, [str(index[0])])
         tm.assert_index_equal(result, expected)
 
-        msg = "value should be a '.*', 'NaT', or array of those"
-        with pytest.raises(TypeError, match=msg):
-            index.where(mask, "foo")
+        expected = index.astype(object).where(mask, "foo")
+        result = index.where(mask, "foo")
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            index.where(mask, ["foo"])
+        result = index.where(mask, ["foo"])
+        tm.assert_index_equal(result, expected)

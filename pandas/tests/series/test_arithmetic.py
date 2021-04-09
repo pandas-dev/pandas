@@ -7,7 +7,10 @@ import pytz
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -21,7 +24,10 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core import nanops, ops
+from pandas.core import (
+    nanops,
+    ops,
+)
 
 
 def _permute(obj):
@@ -152,7 +158,7 @@ class TestSeriesArithmetic:
         result = ts + _permute(ts[::2])
         tm.assert_series_equal(result, expected)
 
-        msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
+        msg = "Input has different freq=D from Period\\(freq=A-DEC\\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             ts + ts.asfreq("D", how="end")
 

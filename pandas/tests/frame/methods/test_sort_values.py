@@ -6,7 +6,13 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Categorical, DataFrame, NaT, Timestamp, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    NaT,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -72,6 +78,13 @@ class TestDataFrameSortValues:
         msg = r"Length of ascending \(5\) != length of by \(2\)"
         with pytest.raises(ValueError, match=msg):
             frame.sort_values(by=["A", "B"], axis=0, ascending=[True] * 5)
+
+    def test_sort_values_by_empty_list(self):
+        # https://github.com/pandas-dev/pandas/issues/40258
+        expected = DataFrame({"a": [1, 4, 2, 5, 3, 6]})
+        result = expected.sort_values(by=[])
+        tm.assert_frame_equal(result, expected)
+        assert result is not expected
 
     def test_sort_values_inplace(self):
         frame = DataFrame(
@@ -323,7 +336,7 @@ class TestDataFrameSortValues:
         # cause was that the int64 value NaT was considered as "na". Which is
         # only correct for datetime64 columns.
 
-        int_values = (2, int(NaT))
+        int_values = (2, int(NaT.value))
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
@@ -566,17 +579,26 @@ class TestDataFrameSortValues:
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_item_cache(self):
+    def test_sort_values_item_cache(self, using_array_manager):
         # previous behavior incorrect retained an invalid _item_cache entry
         df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
         df["D"] = df["A"] * 2
         ser = df["A"]
-        assert len(df._mgr.blocks) == 2
+        if not using_array_manager:
+            assert len(df._mgr.blocks) == 2
 
         df.sort_values(by="A")
         ser.values[0] = 99
 
         assert df.iloc[0, 0] == df["A"][0]
+
+    def test_sort_values_reshaping(self):
+        # GH 39426
+        values = list(range(21))
+        expected = DataFrame([values], columns=values)
+        df = expected.sort_values(expected.index[0], axis=1, ignore_index=True)
+
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
@@ -830,7 +852,7 @@ class TestSortValuesLevelAsStr:
         if len(levels) > 1:
             # Accessing multi-level columns that are not lexsorted raises a
             # performance warning
-            with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(PerformanceWarning):
                 tm.assert_frame_equal(result, expected)
         else:
             tm.assert_frame_equal(result, expected)

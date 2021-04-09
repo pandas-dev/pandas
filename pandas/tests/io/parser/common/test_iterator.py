@@ -6,7 +6,11 @@ from io import StringIO
 
 import pytest
 
-from pandas import DataFrame, Series, concat
+from pandas import (
+    DataFrame,
+    Series,
+    concat,
+)
 import pandas._testing as tm
 
 

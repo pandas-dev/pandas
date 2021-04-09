@@ -1,6 +1,14 @@
 from collections import defaultdict
 import datetime
-from typing import Any, DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    DefaultDict,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import pandas._libs.json as json
 from pandas._typing import StorageOptions
@@ -18,19 +26,22 @@ class ODSWriter(ExcelWriter):
         self,
         path: str,
         engine: Optional[str] = None,
+        date_format=None,
+        datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        **engine_kwargs,
+        engine_kwargs: Optional[Dict[str, Any]] = None,
     ):
         from odf.opendocument import OpenDocumentSpreadsheet
-
-        engine_kwargs["engine"] = engine
 
         if mode == "a":
             raise ValueError("Append mode is not supported with odf!")
 
         super().__init__(
-            path, mode=mode, storage_options=storage_options, **engine_kwargs
+            path,
+            mode=mode,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
         )
 
         self.book = OpenDocumentSpreadsheet()
@@ -55,7 +66,11 @@ class ODSWriter(ExcelWriter):
         """
         Write the frame cells using odf
         """
-        from odf.table import Table, TableCell, TableRow
+        from odf.table import (
+            Table,
+            TableCell,
+            TableRow,
+        )
         from odf.text import P
 
         sheet_name = self._get_sheet_name(sheet_name)

@@ -8,6 +8,8 @@ import threading
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -177,51 +179,86 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
 
 
 @pytest.mark.parametrize(
-    "responder, read_method, port, parquet_engine",
+    "responder, read_method, parquet_engine",
     [
-        (CSVUserAgentResponder, pd.read_csv, 34259, None),
-        (JSONUserAgentResponder, pd.read_json, 34260, None),
-        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34268, "pyarrow"),
-        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34273, "fastparquet"),
-        (PickleUserAgentResponder, pd.read_pickle, 34271, None),
-        (StataUserAgentResponder, pd.read_stata, 34272, None),
-        (GzippedCSVUserAgentResponder, pd.read_csv, 34261, None),
-        (GzippedJSONUserAgentResponder, pd.read_json, 34262, None),
+        (CSVUserAgentResponder, pd.read_csv, None),
+        pytest.param(
+            JSONUserAgentResponder,
+            pd.read_json,
+            None,
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
+        (ParquetPyArrowUserAgentResponder, pd.read_parquet, "pyarrow"),
+        pytest.param(
+            ParquetFastParquetUserAgentResponder,
+            pd.read_parquet,
+            "fastparquet",
+            # TODO(ArrayManager) fastparquet
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
+        (PickleUserAgentResponder, pd.read_pickle, None),
+        (StataUserAgentResponder, pd.read_stata, None),
+        (GzippedCSVUserAgentResponder, pd.read_csv, None),
+        pytest.param(
+            GzippedJSONUserAgentResponder,
+            pd.read_json,
+            None,
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
     ],
 )
-def test_server_and_default_headers(responder, read_method, port, parquet_engine):
+def test_server_and_default_headers(responder, read_method, parquet_engine):
     if parquet_engine is not None:
         pytest.importorskip(parquet_engine)
         if parquet_engine == "fastparquet":
             pytest.importorskip("fsspec")
 
-    server = http.server.HTTPServer(("localhost", port), responder)
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.start()
-    if parquet_engine is None:
-        df_http = read_method(f"http://localhost:{port}")
-    else:
-        df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
-    server.shutdown()
-    server.server_close()
-    server_thread.join()
+    # passing 0 for the port will let the system find an unused port
+    with http.server.HTTPServer(("localhost", 0), responder) as server:
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.start()
+
+        port = server.server_port
+        if parquet_engine is None:
+            df_http = read_method(f"http://localhost:{port}")
+        else:
+            df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
+        server.shutdown()
+        server.server_close()
+        server_thread.join()
     assert not df_http.empty
 
 
 @pytest.mark.parametrize(
-    "responder, read_method, port, parquet_engine",
+    "responder, read_method, parquet_engine",
     [
-        (CSVUserAgentResponder, pd.read_csv, 34263, None),
-        (JSONUserAgentResponder, pd.read_json, 34264, None),
-        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34270, "pyarrow"),
-        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34275, "fastparquet"),
-        (PickleUserAgentResponder, pd.read_pickle, 34273, None),
-        (StataUserAgentResponder, pd.read_stata, 34274, None),
-        (GzippedCSVUserAgentResponder, pd.read_csv, 34265, None),
-        (GzippedJSONUserAgentResponder, pd.read_json, 34266, None),
+        (CSVUserAgentResponder, pd.read_csv, None),
+        pytest.param(
+            JSONUserAgentResponder,
+            pd.read_json,
+            None,
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
+        (ParquetPyArrowUserAgentResponder, pd.read_parquet, "pyarrow"),
+        pytest.param(
+            ParquetFastParquetUserAgentResponder,
+            pd.read_parquet,
+            "fastparquet",
+            # TODO(ArrayManager) fastparquet
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
+        (PickleUserAgentResponder, pd.read_pickle, None),
+        (StataUserAgentResponder, pd.read_stata, None),
+        (GzippedCSVUserAgentResponder, pd.read_csv, None),
+        pytest.param(
+            GzippedJSONUserAgentResponder,
+            pd.read_json,
+            None,
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
     ],
 )
-def test_server_and_custom_headers(responder, read_method, port, parquet_engine):
+def test_server_and_custom_headers(responder, read_method, parquet_engine):
     if parquet_engine is not None:
         pytest.importorskip(parquet_engine)
         if parquet_engine == "fastparquet":
@@ -229,53 +266,59 @@ def test_server_and_custom_headers(responder, read_method, port, parquet_engine)
 
     custom_user_agent = "Super Cool One"
     df_true = pd.DataFrame({"header": [custom_user_agent]})
-    server = http.server.HTTPServer(("localhost", port), responder)
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.start()
 
-    if parquet_engine is None:
-        df_http = read_method(
-            f"http://localhost:{port}",
-            storage_options={"User-Agent": custom_user_agent},
-        )
-    else:
-        df_http = read_method(
-            f"http://localhost:{port}",
-            storage_options={"User-Agent": custom_user_agent},
-            engine=parquet_engine,
-        )
-    server.shutdown()
+    # passing 0 for the port will let the system find an unused port
+    with http.server.HTTPServer(("localhost", 0), responder) as server:
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.start()
 
-    server.server_close()
-    server_thread.join()
+        port = server.server_port
+        if parquet_engine is None:
+            df_http = read_method(
+                f"http://localhost:{port}",
+                storage_options={"User-Agent": custom_user_agent},
+            )
+        else:
+            df_http = read_method(
+                f"http://localhost:{port}",
+                storage_options={"User-Agent": custom_user_agent},
+                engine=parquet_engine,
+            )
+        server.shutdown()
+
+        server.server_close()
+        server_thread.join()
 
     tm.assert_frame_equal(df_true, df_http)
 
 
 @pytest.mark.parametrize(
-    "responder, read_method, port",
+    "responder, read_method",
     [
-        (AllHeaderCSVResponder, pd.read_csv, 34267),
+        (AllHeaderCSVResponder, pd.read_csv),
     ],
 )
-def test_server_and_all_custom_headers(responder, read_method, port):
+def test_server_and_all_custom_headers(responder, read_method):
     custom_user_agent = "Super Cool One"
     custom_auth_token = "Super Secret One"
     storage_options = {
         "User-Agent": custom_user_agent,
         "Auth": custom_auth_token,
     }
-    server = http.server.HTTPServer(("localhost", port), responder)
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.start()
 
-    df_http = read_method(
-        f"http://localhost:{port}",
-        storage_options=storage_options,
-    )
-    server.shutdown()
-    server.server_close()
-    server_thread.join()
+    # passing 0 for the port will let the system find an unused port
+    with http.server.HTTPServer(("localhost", 0), responder) as server:
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.start()
+
+        port = server.server_port
+        df_http = read_method(
+            f"http://localhost:{port}",
+            storage_options=storage_options,
+        )
+        server.shutdown()
+        server.server_close()
+        server_thread.join()
 
     df_http = df_http[df_http["0"].isin(storage_options.keys())]
     df_http = df_http.sort_values(["0"]).reset_index()

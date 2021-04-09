@@ -1,7 +1,8 @@
 """ orc compat """
+from __future__ import annotations
 
 import distutils
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from pandas._typing import FilePathOrBuffer
 
@@ -12,8 +13,8 @@ if TYPE_CHECKING:
 
 
 def read_orc(
-    path: FilePathOrBuffer, columns: Optional[List[str]] = None, **kwargs
-) -> "DataFrame":
+    path: FilePathOrBuffer, columns: list[str] | None = None, **kwargs
+) -> DataFrame:
     """
     Load an ORC object from the file path, returning a DataFrame.
 

@@ -149,13 +149,15 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
-    pytest.param(
-        (
-            pd.DataFrame,
-            {"A": [1], "B": [1]},
-            operator.methodcaller("pivot_table", columns="A"),
-        ),
-        marks=not_implemented_mark,
+    (
+        pd.DataFrame,
+        ({"A": [1], "B": [1]},),
+        operator.methodcaller("pivot_table", columns="A"),
+    ),
+    (
+        pd.DataFrame,
+        ({"A": [1], "B": [1]},),
+        operator.methodcaller("pivot_table", columns="A", aggfunc=["mean", "sum"]),
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("stack")),
     pytest.param(
@@ -740,6 +742,8 @@ def test_categorical_accessor(method):
     [
         operator.methodcaller("sum"),
         lambda x: x.agg("sum"),
+        lambda x: x.agg("mean"),
+        lambda x: x.agg("median"),
     ],
 )
 def test_groupby_finalize(obj, method):
@@ -757,6 +761,12 @@ def test_groupby_finalize(obj, method):
         lambda x: x.agg(["sum", "count"]),
         lambda x: x.transform(lambda y: y),
         lambda x: x.apply(lambda y: y),
+        lambda x: x.agg("std"),
+        lambda x: x.agg("var"),
+        lambda x: x.agg("sem"),
+        lambda x: x.agg("size"),
+        lambda x: x.agg("ohlc"),
+        lambda x: x.agg("describe"),
     ],
 )
 @not_implemented_mark

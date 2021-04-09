@@ -1,13 +1,21 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
-from pandas._libs.algos import Infinity, NegInfinity
+from pandas._libs.algos import (
+    Infinity,
+    NegInfinity,
+)
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -238,6 +246,7 @@ class TestRank:
                     expected = DataFrame(sprank, columns=cols).astype("float64")
                     tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
     def test_rank_descending(self, method, dtype):
 
@@ -372,7 +381,7 @@ class TestRank:
                 "float32",
             ),
             ([np.iinfo(np.uint8).min, 1, 2, 100, np.iinfo(np.uint8).max], "uint8"),
-            pytest.param(
+            (
                 [
                     np.iinfo(np.int64).min,
                     -100,
@@ -384,20 +393,20 @@ class TestRank:
                     np.iinfo(np.int64).max,
                 ],
                 "int64",
-                marks=pytest.mark.xfail(
-                    reason="iNaT is equivalent to minimum value of dtype"
-                    "int64 pending issue GH#16674"
-                ),
             ),
             ([NegInfinity(), "1", "A", "BA", "Ba", "C", Infinity()], "object"),
+            (
+                [datetime(2001, 1, 1), datetime(2001, 1, 2), datetime(2001, 1, 5)],
+                "datetime64",
+            ),
         ],
     )
     def test_rank_inf_and_nan(self, contents, dtype, frame_or_series):
         dtype_na_map = {
             "float64": np.nan,
             "float32": np.nan,
-            "int64": iNaT,
             "object": None,
+            "datetime64": np.datetime64("nat"),
         }
         # Insert nans at random positions if underlying dtype has missing
         # value. Then adjust the expected order by adding nans accordingly
@@ -443,5 +452,17 @@ class TestRank:
         # GH#32593
         df = DataFrame({"a": [-np.inf, 0, np.inf]})
         expected = DataFrame({"a": [1.0, 2.0, 3.0]})
+        result = df.rank()
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data,expected",
+        [
+            ({"a": [1, 2, "a"], "b": [4, 5, 6]}, DataFrame({"b": [1.0, 2.0, 3.0]})),
+            ({"a": [1, 2, "a"]}, DataFrame(index=range(3))),
+        ],
+    )
+    def test_rank_mixed_axis_zero(self, data, expected):
+        df = DataFrame(data)
         result = df.rank()
         tm.assert_frame_equal(result, expected)

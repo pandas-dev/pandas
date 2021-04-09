@@ -4,12 +4,13 @@ Unopinionated display configuration.
 
 import locale
 import sys
+from typing import Optional
 
 from pandas._config import config as cf
 
 # -----------------------------------------------------------------------------
 # Global formatting options
-_initial_defencoding = None
+_initial_defencoding: Optional[str] = None
 
 
 def detect_console_encoding() -> str:

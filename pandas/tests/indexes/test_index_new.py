@@ -1,6 +1,8 @@
 """
 Tests for the Index constructor conducting inference.
 """
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -78,6 +80,13 @@ class TestIndexConstructorInference:
         tm.assert_index_equal(rs, xp)
         assert isinstance(rs, PeriodIndex)
 
+    def test_from_list_of_periods(self):
+        rng = period_range("1/1/2000", periods=20, freq="D")
+        periods = list(rng)
+
+        result = Index(periods)
+        assert isinstance(result, PeriodIndex)
+
     @pytest.mark.parametrize("pos", [0, 1])
     @pytest.mark.parametrize(
         "klass,dtype,ctor",
@@ -89,6 +98,10 @@ class TestIndexConstructorInference:
     def test_constructor_infer_nat_dt_like(
         self, pos, klass, dtype, ctor, nulls_fixture, request
     ):
+        if isinstance(nulls_fixture, Decimal):
+            # We dont cast these to datetime64/timedelta64
+            return
+
         expected = klass([NaT, NaT])
         assert expected.dtype == dtype
         data = [ctor]

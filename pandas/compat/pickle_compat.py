@@ -1,12 +1,13 @@
 """
 Support pre-0.12 series pickle compatibility.
 """
+from __future__ import annotations
 
 import contextlib
 import copy
 import io
 import pickle as pkl
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 import warnings
 
 from pandas._libs.tslibs import BaseOffset
@@ -14,7 +15,10 @@ from pandas._libs.tslibs import BaseOffset
 from pandas import Index
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 def load_reduce(self):
@@ -42,7 +46,7 @@ def load_reduce(self):
                 return
             except TypeError:
                 pass
-        elif args and issubclass(args[0], BaseOffset):
+        elif args and isinstance(args[0], type) and issubclass(args[0], BaseOffset):
             # TypeError: object.__new__(Day) is not safe, use Day.__new__()
             cls = args[0]
             stack[-1] = cls.__new__(*args)
@@ -64,7 +68,7 @@ class _LoadSparseSeries:
     # https://github.com/python/mypy/issues/1020
     # error: Incompatible return type for "__new__" (returns "Series", but must return
     # a subtype of "_LoadSparseSeries")
-    def __new__(cls) -> "Series":  # type: ignore[misc]
+    def __new__(cls) -> Series:  # type: ignore[misc]
         from pandas import Series
 
         warnings.warn(
@@ -82,7 +86,7 @@ class _LoadSparseFrame:
     # https://github.com/python/mypy/issues/1020
     # error: Incompatible return type for "__new__" (returns "DataFrame", but must
     # return a subtype of "_LoadSparseFrame")
-    def __new__(cls) -> "DataFrame":  # type: ignore[misc]
+    def __new__(cls) -> DataFrame:  # type: ignore[misc]
         from pandas import DataFrame
 
         warnings.warn(
@@ -228,7 +232,7 @@ except (AttributeError, KeyError):
     pass
 
 
-def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
+def load(fh, encoding: str | None = None, is_verbose: bool = False):
     """
     Load a pickle, with a provided encoding,
 

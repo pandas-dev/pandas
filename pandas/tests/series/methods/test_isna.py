@@ -3,7 +3,10 @@ We also test Series.notna in this file.
 """
 import numpy as np
 
-from pandas import Period, Series
+from pandas import (
+    Period,
+    Series,
+)
 import pandas._testing as tm
 
 

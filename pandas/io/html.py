@@ -8,11 +8,22 @@ from collections import abc
 import numbers
 import os
 import re
-from typing import Dict, List, Optional, Pattern, Sequence, Tuple, Union
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Pattern,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError, EmptyDataError
+from pandas.errors import (
+    AbstractMethodError,
+    EmptyDataError,
+)
 from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_list_like
@@ -20,7 +31,12 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import is_url, stringify_path, urlopen, validate_header_arg
+from pandas.io.common import (
+    is_url,
+    stringify_path,
+    urlopen,
+    validate_header_arg,
+)
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -39,17 +55,13 @@ def _importers():
         return
 
     global _HAS_BS4, _HAS_LXML, _HAS_HTML5LIB
-    bs4 = import_optional_dependency("bs4", raise_on_missing=False, on_version="ignore")
+    bs4 = import_optional_dependency("bs4", errors="ignore")
     _HAS_BS4 = bs4 is not None
 
-    lxml = import_optional_dependency(
-        "lxml.etree", raise_on_missing=False, on_version="ignore"
-    )
+    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     _HAS_LXML = lxml is not None
 
-    html5lib = import_optional_dependency(
-        "html5lib", raise_on_missing=False, on_version="ignore"
-    )
+    html5lib = import_optional_dependency("html5lib", errors="ignore")
     _HAS_HTML5LIB = html5lib is not None
 
     _IMPORTS = True
@@ -704,7 +716,11 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pandas.io.html._HtmlFrameParser._build_doc
         """
         from lxml.etree import XMLSyntaxError
-        from lxml.html import HTMLParser, fromstring, parse
+        from lxml.html import (
+            HTMLParser,
+            fromstring,
+            parse,
+        )
 
         parser = HTMLParser(recover=True, encoding=self.encoding)
 

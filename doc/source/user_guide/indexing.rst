@@ -429,7 +429,7 @@ For the rationale behind this behavior, see
    s = pd.Series(list('abcdef'), index=[0, 3, 2, 5, 4, 2])
    s.loc[3:5]
 
-Also, if the index has duplicate labels *and* either the start or the stop label is dupulicated,
+Also, if the index has duplicate labels *and* either the start or the stop label is duplicated,
 an error will be raised. For instance, in the above example, ``s.loc[2:5]`` would raise a ``KeyError``.
 
 For more information about duplicate labels, see
@@ -1138,10 +1138,10 @@ Setting with enlargement conditionally using :func:`numpy`
 ----------------------------------------------------------
 
 An alternative to :meth:`~pandas.DataFrame.where` is to use :func:`numpy.where`.
-Combined with setting a new column, you can use it to enlarge a dataframe where the
+Combined with setting a new column, you can use it to enlarge a DataFrame where the
 values are determined conditionally.
 
-Consider you have two choices to choose from in the following dataframe. And you want to
+Consider you have two choices to choose from in the following DataFrame. And you want to
 set a new column color to 'green' when the second column has 'Z'.  You can do the
 following:
 
@@ -1293,8 +1293,8 @@ Full numpy-like syntax:
    df.query('(a < b) & (b < c)')
    df[(df['a'] < df['b']) & (df['b'] < df['c'])]
 
-Slightly nicer by removing the parentheses (by binding making comparison
-operators bind tighter than ``&`` and ``|``).
+Slightly nicer by removing the parentheses (comparison operators bind tighter
+than ``&`` and ``|``):
 
 .. ipython:: python
 

@@ -3,16 +3,32 @@ Module for formatting output data in HTML.
 """
 
 from textwrap import dedent
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 from pandas._config import get_option
 
 from pandas._libs import lib
 
-from pandas import MultiIndex, option_context
+from pandas import (
+    MultiIndex,
+    option_context,
+)
 
 from pandas.io.common import is_url
-from pandas.io.formats.format import DataFrameFormatter, get_level_lengths
+from pandas.io.formats.format import (
+    DataFrameFormatter,
+    get_level_lengths,
+)
 from pandas.io.formats.printing import pprint_thing
 
 
@@ -242,6 +258,7 @@ class HTMLFormatter:
         if isinstance(self.columns, MultiIndex):
             template = 'colspan="{span:d}" halign="left"'
 
+            sentinel: lib.NoDefault | bool
             if self.fmt.sparsify:
                 # GH3547
                 sentinel = lib.no_default
