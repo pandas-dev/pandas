@@ -2035,7 +2035,7 @@ c  10  11  12  13  14\
     def test_repr_float_format_in_object_col(self, float_format, expected):
         # GH#40024
         df = Series([1000.0, "test"])
-        with pd.option_context("display.float_format", float_format):
+        with option_context("display.float_format", float_format):
             result = repr(df)
 
         assert result == expected

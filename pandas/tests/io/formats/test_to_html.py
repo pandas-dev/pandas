@@ -888,7 +888,7 @@ def test_to_html_na_rep_and_float_format(na_rep):
 def test_to_html_float_format_object_col():
     # GH#40024
     df = DataFrame(data={"x": [1000.0, "test"]})
-    result = df.to_html(float_format=lambda x: "{:,.0f}".format(x))
+    result = df.to_html(float_format=lambda x: f"{x:,.0f}")
     expected = """<table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
