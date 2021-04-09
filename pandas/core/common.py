@@ -418,7 +418,7 @@ def random_state(state=None):
     if (
         is_integer(state)
         or is_array_like(state)
-        or (not np_version_under1p18 and isinstance(state, np.random.BitGenerator))
+        or isinstance(state, np.random.BitGenerator)
     ):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
