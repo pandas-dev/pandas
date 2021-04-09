@@ -3846,9 +3846,9 @@ class Index(IndexOpsMixin, PandasObject):
 
             missing = ensure_platform_int(missing)
             missing_labels = target.take(missing)
-            missing_indexer = ensure_int64(length[~check])
+            missing_indexer = ensure_platform_int(length[~check])
             cur_labels = self.take(indexer[check]).values
-            cur_indexer = ensure_int64(length[check])
+            cur_indexer = ensure_platform_int(length[check])
 
             new_labels = np.empty((len(indexer),), dtype=object)
             new_labels[cur_indexer] = cur_labels

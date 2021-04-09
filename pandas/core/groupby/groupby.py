@@ -1920,6 +1920,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             self._selected_obj,
             *args,
             _grouper=self.grouper,
+            _as_index=self.as_index,
             **kwargs,
         )
 
