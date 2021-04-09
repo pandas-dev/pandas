@@ -916,7 +916,7 @@ def indices_fast(ndarray[intp_t] index, const int64_t[:] labels, list keys,
     """
     Parameters
     ----------
-    index : ndarray
+    index : ndarray[intp]
     labels : ndarray[int64]
     keys : list
     sorted_labels : list[ndarray[int64]]
@@ -1111,7 +1111,7 @@ _TYPE_MAP = {
     "complex128": "complex",
     "c": "complex",
     "string": "string",
-    "arrow_string": "string",
+    str: "string",
     "S": "bytes",
     "U": "string",
     "bool": "boolean",
@@ -2440,6 +2440,9 @@ class NoDefault(Enum):
     # 1) because it round-trips through pickle correctly (see GH#40397)
     # 2) because mypy does not understand singletons
     no_default = "NO_DEFAULT"
+
+    def __repr__(self) -> str:
+        return "<no_default>"
 
 
 # Note: no_default is exported to the public API in pandas.api.extensions
