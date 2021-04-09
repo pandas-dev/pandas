@@ -579,6 +579,29 @@ def test_union_nan_in_both(dup):
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "cls",
+    [
+        Int64Index,
+        Float64Index,
+        DatetimeIndex,
+        TimedeltaIndex,
+        lambda x: Index(x, dtype=object),
+    ],
+)
+def test_union_with_duplicate_index_not_subset_and_non_monotonic(cls):
+    # GH#36289
+    a = cls([1, 0, 0, 2])
+    b = cls([0, 1])
+    expected = cls([0, 0, 1, 2])
+
+    result = a.union(b)
+    tm.assert_index_equal(result, expected)
+
+    result = a.union(b)
+    tm.assert_index_equal(result, expected)
+
+
 class TestSetOpsUnsorted:
     # These may eventually belong in a dtype-specific test_setops, or
     #  parametrized over a more general fixture
