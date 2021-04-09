@@ -29,7 +29,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
--
+- Bug in groupby aggregation when using an object-typed index (issue:`40014`)
 -
 
 .. ---------------------------------------------------------------------------
