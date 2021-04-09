@@ -158,6 +158,7 @@ By default the labels are set to the right edge of the window, but a
 
 
 This can also be applied to datetime-like indices.
+
 .. versionadded:: 1.3
 .. ipython:: python
 
