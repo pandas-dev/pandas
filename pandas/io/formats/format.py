@@ -1311,9 +1311,14 @@ class GenericArrayFormatter:
                 return str(formatter(x))
 
         vals = extract_array(self.values, extract_numpy=True)
-
+        if not isinstance(vals, np.ndarray):
+            raise TypeError(
+                "ExtensionArray formatting should use ExtensionArrayFormatter"
+            )
+        inferred = lib.map_infer(vals, is_float)
+        inferred = cast(np.ndarray, inferred)
         is_float_type = (
-            lib.map_infer(vals, is_float)
+            inferred
             # vals may have 2 or more dimensions
             & np.all(notna(vals), axis=tuple(range(1, len(vals.shape))))
         )

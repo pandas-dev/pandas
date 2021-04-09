@@ -309,11 +309,7 @@ class BaseWindow(SelectionMixin):
                 raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
-
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "Optional[ndarray]"; expected "Union[bool, int, float, complex,
-        # _SupportsArray, Sequence[Any]]"
-        inf = np.isinf(values)  # type: ignore[arg-type]
+        inf = np.isinf(values)
         if inf.any():
             values = np.where(inf, np.nan, values)
 
@@ -371,7 +367,9 @@ class BaseWindow(SelectionMixin):
             return self.window
         if self._win_freq_i8 is not None:
             return VariableWindowIndexer(
-                index_array=self._index_array, window_size=self._win_freq_i8
+                index_array=self._index_array,
+                window_size=self._win_freq_i8,
+                center=self.center,
             )
         return FixedWindowIndexer(window_size=self.window)
 
@@ -1463,13 +1461,6 @@ class Rolling(RollingAndExpandingMixin):
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
             self._validate_monotonic()
-
-            # we don't allow center
-            if self.center:
-                raise NotImplementedError(
-                    "center is not implemented for "
-                    "datetimelike and offset based windows"
-                )
 
             # this will raise ValueError on non-fixed freqs
             try:
