@@ -739,7 +739,11 @@ class BaseGrouper:
             return self._aggregate_series_pure_python(obj, func)
 
         elif obj.index._has_complex_internals or obj.index.dtype == "object":
-            # Preempt TypeError in _aggregate_series_fast
+            # (complex internals): Preempt TypeError in _aggregate_series_fast
+            # (object index dtype): _aggregate_series_fast raises TypeError
+            # when applying func because the group indiced become malformatted:
+            # correct indices are in group.index._index_data, but not in
+            # group.index._data.
             return self._aggregate_series_pure_python(obj, func)
 
         try:
