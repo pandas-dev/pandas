@@ -126,7 +126,7 @@ class TestToLatex:
 
     def test_to_latex_float_format_object_col(self):
         # GH#40024
-        ser = pd.Series([1000.0, "test"])
+        ser = Series([1000.0, "test"])
         result = ser.to_latex(float_format="{:,.0f}".format)
         expected = _dedent(
             r"""
