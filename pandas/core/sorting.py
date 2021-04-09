@@ -25,9 +25,13 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_extension_array_dtype,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import (
+    ABCMultiIndex,
+    ABCRangeIndex,
+)
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -362,9 +366,12 @@ def nargsort(
             mask=mask,
         )
 
-    items = extract_array(items)
+    if isinstance(items, ABCRangeIndex):
+        return items.argsort(ascending=ascending)  # TODO: test coverage with key?
+    elif not isinstance(items, ABCMultiIndex):
+        items = extract_array(items)
     if mask is None:
-        mask = np.asarray(isna(items))
+        mask = np.asarray(isna(items))  # TODO: does this exclude MultiIndex too?
 
     if is_extension_array_dtype(items):
         return items.argsort(ascending=ascending, kind=kind, na_position=na_position)
@@ -618,7 +625,12 @@ def get_group_index_sorter(
         (alpha + beta * ngroups) < (count * np.log(count))  # type: ignore[operator]
     )
     if do_groupsort:
-        sorter, _ = algos.groupsort_indexer(ensure_platform_int(group_index), ngroups)
+        # Argument 2 to "groupsort_indexer" has incompatible type
+        # "Optional[int]"; expected "int"
+        sorter, _ = algos.groupsort_indexer(
+            ensure_platform_int(group_index),
+            ngroups,  # type: ignore[arg-type]
+        )
         # sorter _should_ already be intp, but mypy is not yet able to verify
     else:
         sorter = group_index.argsort(kind="mergesort")
@@ -656,10 +668,10 @@ def _reorder_by_uniques(uniques, labels):
     mask = labels < 0
 
     # move labels to right locations (ie, unsort ascending labels)
-    labels = reverse_indexer.take(labels)
+    labels = algorithms.take_nd(reverse_indexer, labels, allow_fill=False)
     np.putmask(labels, mask, -1)
 
     # sort observed ids
-    uniques = uniques.take(sorter)
+    uniques = algorithms.take_nd(uniques, sorter, allow_fill=False)
 
     return uniques, labels

@@ -54,7 +54,7 @@ repos:
     rev: v2.11.0
     hooks:
     -   id: pyupgrade
-        args: [--py37-plus, --keep-runtime-typing]
+        args: [--py37-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.8.0
     hooks:
@@ -206,3 +206,8 @@ repos:
         files: ^pandas/core/
         exclude: ^pandas/core/api\.py$
         types: [python]
+    -   id: no-bool-in-core-generic
+        name: Use bool_t instead of bool in pandas/core/generic.py
+        entry: python scripts/no_bool_in_generic.py
+        language: python
+        files: ^pandas/core/generic\.py$
