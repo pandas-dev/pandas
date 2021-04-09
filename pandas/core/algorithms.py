@@ -155,10 +155,7 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
             with catch_warnings():
                 simplefilter("ignore", np.ComplexWarning)
                 values = ensure_float64(values)
-            # error: Incompatible return value type (got "Tuple[ExtensionArray,
-            # dtype[floating[_64Bit]]]", expected "Tuple[ndarray, Union[dtype[Any],
-            # ExtensionDtype]]")
-            return values, np.dtype("float64")  # type: ignore[return-value]
+            return values, np.dtype("float64")
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
@@ -202,11 +199,7 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
         # we are actually coercing to int64
         # until our algos support int* directly (not all do)
         values = ensure_int64(values)
-
-        # error: Incompatible return value type (got "Tuple[ExtensionArray,
-        # Union[dtype[Any], ExtensionDtype]]", expected "Tuple[ndarray,
-        # Union[dtype[Any], ExtensionDtype]]")
-        return values, dtype  # type: ignore[return-value]
+        return values, dtype
 
     # we have failed, return object
     values = np.asarray(values, dtype=object)
@@ -300,7 +293,7 @@ def _get_hashtable_algo(values: np.ndarray):
     return htable, values
 
 
-def _get_values_for_rank(values: ArrayLike):
+def _get_values_for_rank(values: ArrayLike) -> np.ndarray:
     if is_categorical_dtype(values):
         values = cast("Categorical", values)._values_for_rank()
 
@@ -311,9 +304,7 @@ def _get_values_for_rank(values: ArrayLike):
 def get_data_algo(values: ArrayLike):
     values = _get_values_for_rank(values)
 
-    # error: Argument 1 to "_check_object_for_strings" has incompatible type
-    # "ExtensionArray"; expected "ndarray"
-    ndtype = _check_object_for_strings(values)  # type: ignore[arg-type]
+    ndtype = _check_object_for_strings(values)
     htable = _hashtables.get(ndtype, _hashtables["object"])
 
     return htable, values
