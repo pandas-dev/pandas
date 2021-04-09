@@ -21,7 +21,6 @@ from pandas._typing import (
 )
 
 from pandas.core.dtypes.cast import (
-    astype_array_safe,
     infer_dtype_from_scalar,
     soft_convert_objects,
 )
@@ -549,9 +548,6 @@ class ArrayManager(DataManager):
         return self.apply_with_block(
             "shift", periods=periods, axis=axis, fill_value=fill_value
         )
-
-    def astype(self, dtype, copy: bool = False, errors: str = "raise") -> ArrayManager:
-        return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
     def convert(
         self,

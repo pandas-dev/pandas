@@ -19,7 +19,10 @@ from pandas._typing import (
 from pandas.errors import AbstractMethodError
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import (
+    astype_array_safe,
+    find_common_type,
+)
 
 from pandas.core.base import PandasObject
 from pandas.core.construction import extract_array
@@ -203,6 +206,10 @@ class DataManager(PandasObject):
             inplace=inplace,
             regex=regex,
         )
+
+    @final
+    def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
+        return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
 
 class SingleDataManager(DataManager):

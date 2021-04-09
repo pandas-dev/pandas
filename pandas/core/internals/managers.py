@@ -550,9 +550,6 @@ class BaseBlockManager(DataManager):
 
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
-    def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
-        return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
-
     def convert(
         self: T,
         copy: bool = True,
