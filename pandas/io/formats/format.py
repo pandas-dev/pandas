@@ -1333,7 +1333,6 @@ class GenericArrayFormatter:
             if not is_float_type[i] and leading_space:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
-
                 fmt_values.append(float_format(v))
             else:
                 if leading_space is False:
