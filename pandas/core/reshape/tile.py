@@ -11,7 +11,7 @@ from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
-    ensure_int64,
+    ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -413,7 +413,7 @@ def _bins_to_cuts(
             bins = unique_bins
 
     side = "left" if right else "right"
-    ids = ensure_int64(bins.searchsorted(x, side=side))
+    ids = ensure_platform_int(bins.searchsorted(x, side=side))
 
     if include_lowest:
         ids[x == bins[0]] = 1
