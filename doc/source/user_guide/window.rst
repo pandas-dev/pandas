@@ -156,8 +156,9 @@ By default the labels are set to the right edge of the window, but a
    s.rolling(window=5).mean()
    s.rolling(window=5, center=True).mean()
 
-This can also be applied to datetime-like indices.
 
+This can also be applied to datetime-like indices.
+.. versionadded:: 1.3
 .. ipython:: python
 
     df = pd.DataFrame(
