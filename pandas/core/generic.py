@@ -33,6 +33,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
+    ArrayLike,
     Axis,
     CompressionOptions,
     Dtype,
@@ -7367,16 +7368,52 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
-    @final
+    @overload
     def clip(
         self: FrameOrSeries,
-        lower=None,
-        upper=None,
-        axis=None,
-        inplace: bool_t = False,
+        inplace: Literal[False] = ...,
+        lower: int | ArrayLike | None = None,
+        upper: int | ArrayLike | None = None,
+        axis: Axis | None = None,
         *args,
         **kwargs,
     ) -> FrameOrSeries:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        inplace: Literal[True],
+        lower: int | ArrayLike | None = None,
+        upper: int | ArrayLike | None = None,
+        axis: Axis | None = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        inplace: bool_t = ...,
+        lower=None,
+        upper=None,
+        axis: Axis | None = None,
+        *args,
+        **kwargs,
+    ) -> FrameOrSeries | None:
+        ...
+
+    @final
+    def clip(
+        self: FrameOrSeries,
+        inplace: bool_t = False,
+        lower=None,
+        upper=None,
+        axis: Axis | None = None,
+        *args,
+        **kwargs,
+    ) -> FrameOrSeries | None:
         """
         Trim values at input threshold(s).
 
