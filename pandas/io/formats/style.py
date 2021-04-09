@@ -1908,7 +1908,7 @@ class Styler:
         axis: Axis | None = 0,
         left: Scalar | Sequence | None = None,
         right: Scalar | Sequence | None = None,
-        inclusive: bool | str = "both",
+        inclusive: str = "both",
         props: str | None = None,
     ) -> Styler:
         """
