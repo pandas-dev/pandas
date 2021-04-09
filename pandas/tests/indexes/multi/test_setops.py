@@ -510,11 +510,10 @@ def test_union_nan_got_duplicated():
 
 def test_union_duplicates(index):
     # GH#38977
-    # Index has to be sorted as of now.
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
         # No duplicates in empty indexes
         return
-    values = index.unique().sort_values().values.tolist()
+    values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
     mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
     result = mi1.union(mi2)
