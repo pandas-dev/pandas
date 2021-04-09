@@ -320,6 +320,8 @@ class GroupbyIndexer(BaseIndexer):
         end_arrays = []
         window_indicies_start = 0
         for key, indices in self.groupby_indicies.items():
+            index_array: np.ndarray | None
+
             if self.index_array is not None:
                 index_array = self.index_array.take(ensure_platform_int(indices))
             else:
