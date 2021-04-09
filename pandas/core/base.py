@@ -184,6 +184,7 @@ class SelectionMixin:
         """
         return self._selection
 
+    @final
     @property
     def _selection_list(self):
         if not isinstance(
@@ -208,6 +209,7 @@ class SelectionMixin:
     def ndim(self) -> int:
         return self._selected_obj.ndim
 
+    @final
     @cache_readonly
     def _obj_with_exclusions(self):
         # error: "SelectionMixin" has no attribute "obj"
