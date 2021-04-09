@@ -596,7 +596,7 @@ class MPLPlot:
         self.legend_labels.append(label)
 
     def _make_legend(self):
-        ax, leg, handle = self._get_ax_legend_handle(self.axes[0])
+        ax, leg = self._get_ax_legend(self.axes[0])
 
         handles = []
         labels = []
@@ -606,7 +606,7 @@ class MPLPlot:
             if leg is not None:
                 title = leg.get_title().get_text()
                 # Replace leg.LegendHandles because it misses marker info
-                handles.extend(handle)
+                handles = leg.legendHandles
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:
@@ -637,14 +637,12 @@ class MPLPlot:
                 if ax.get_visible():
                     ax.legend(loc="best")
 
-    def _get_ax_legend_handle(self, ax: Axes):
+    def _get_ax_legend(self, ax: Axes):
         """
-        Take in axes and return ax, legend and handle under different scenarios
+        Take in axes and return ax and legend under different scenarios
         """
         leg = ax.get_legend()
 
-        # Get handle from axes
-        handle, _ = ax.get_legend_handles_labels()
         other_ax = getattr(ax, "left_ax", None) or getattr(ax, "right_ax", None)
         other_leg = None
         if other_ax is not None:
@@ -652,7 +650,7 @@ class MPLPlot:
         if leg is None and other_leg is not None:
             leg = other_leg
             ax = other_ax
-        return ax, leg, handle
+        return ax, leg
 
     @cache_readonly
     def plt(self):
