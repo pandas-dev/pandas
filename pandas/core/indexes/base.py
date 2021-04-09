@@ -4880,9 +4880,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = np.arange(len(self), dtype=np.intp)[mask].take(locs)
 
         # TODO: overload return type of ExtensionArray.__getitem__
-        # error: Invalid index type "signedinteger[Any]" for
-        # "Union[ExtensionArray, ndarray]"; expected type "Union[int, slice, ndarray]"
-        first_value = cast(Any, self._values[mask.argmax()])  # type: ignore[index]
+        first_value = cast(Any, self._values[mask.argmax()])
         result[(locs == 0) & (where._values < first_value)] = -1
 
         return result
