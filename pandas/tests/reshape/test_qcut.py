@@ -202,7 +202,7 @@ def test_single_quantile(data, start, end, length, labels):
         intervals = IntervalIndex([Interval(start, end)] * length, closed="right")
         expected = Series(intervals).astype(CDT(ordered=True))
     else:
-        expected = Series([0] * length)
+        expected = Series([0] * length, dtype=np.intp)
 
     tm.assert_series_equal(result, expected)
 
