@@ -27,7 +27,6 @@ from pandas._typing import (
     type_t,
 )
 from pandas.errors import PerformanceWarning
-from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
@@ -492,6 +491,8 @@ class BaseBlockManager(DataManager):
 
         return type(self).from_blocks(result_blocks, self.axes)
 
+    apply_with_block = apply  # for code-sharing with ArrayManager
+
     def quantile(
         self: T,
         *,
@@ -532,38 +533,8 @@ class BaseBlockManager(DataManager):
 
         return type(self)(blocks, new_axes)
 
-    def where(self: T, other, cond, align: bool, errors: str) -> T:
-        if align:
-            align_keys = ["other", "cond"]
-        else:
-            align_keys = ["cond"]
-            other = extract_array(other, extract_numpy=True)
-
-        return self.apply(
-            "where",
-            align_keys=align_keys,
-            other=other,
-            cond=cond,
-            errors=errors,
-        )
-
     def setitem(self: T, indexer, value) -> T:
         return self.apply("setitem", indexer=indexer, value=value)
-
-    def putmask(self, mask, new, align: bool = True):
-
-        if align:
-            align_keys = ["new", "mask"]
-        else:
-            align_keys = ["mask"]
-            new = extract_array(new, extract_numpy=True)
-
-        return self.apply(
-            "putmask",
-            align_keys=align_keys,
-            mask=mask,
-            new=new,
-        )
 
     def diff(self: T, n: int, axis: int) -> T:
         axis = self._normalize_axis(axis)
@@ -578,14 +549,6 @@ class BaseBlockManager(DataManager):
             fill_value = None
 
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
-
-    def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
-        return self.apply(
-            "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
-        )
-
-    def downcast(self: T) -> T:
-        return self.apply("downcast")
 
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
@@ -605,12 +568,6 @@ class BaseBlockManager(DataManager):
             timedelta=timedelta,
         )
 
-    def replace(self: T, to_replace, value, inplace: bool, regex: bool) -> T:
-        assert np.ndim(value) == 0, value
-        return self.apply(
-            "replace", to_replace=to_replace, value=value, inplace=inplace, regex=regex
-        )
-
     def replace_list(
         self: T,
         src_list: list[Any],
@@ -619,17 +576,9 @@ class BaseBlockManager(DataManager):
         regex: bool = False,
     ) -> T:
         """ do a list replace """
-        inplace = validate_bool_kwarg(inplace, "inplace")
-
-        bm = self.apply(
-            "_replace_list",
-            src_list=src_list,
-            dest_list=dest_list,
-            inplace=inplace,
-            regex=regex,
-        )
-        bm._consolidate_inplace()
-        return bm
+        result = super().replace_list(src_list, dest_list, inplace, regex)
+        result._consolidate_inplace()
+        return result
 
     def to_native_types(self: T, **kwargs) -> T:
         """

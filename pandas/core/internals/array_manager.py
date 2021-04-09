@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
     TypeVar,
 )
@@ -20,7 +19,6 @@ from pandas._typing import (
     ArrayLike,
     Hashable,
 )
-from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     astype_array_safe,
@@ -435,8 +433,12 @@ class ArrayManager(DataManager):
 
         return type(self)(result_arrays, new_axes)
 
-    def apply_with_block(self: T, f, align_keys=None, swap_axis=True, **kwargs) -> T:
+    def apply_with_block(
+        self: T, f, align_keys=None, ignore_failures: bool = False, **kwargs
+    ) -> T:
+        assert not ignore_failures  # just never passed?  included for signature compat
         # switch axis to follow BlockManager logic
+        swap_axis = kwargs.pop("swap_axis", True)
         if swap_axis and "axis" in kwargs and self.ndim == 2:
             kwargs["axis"] = 1 if kwargs["axis"] == 0 else 0
 
@@ -521,38 +523,9 @@ class ArrayManager(DataManager):
         axes = [qs, self._axes[1]]
         return type(self)(new_arrs, axes)
 
-    def where(self, other, cond, align: bool, errors: str) -> ArrayManager:
-        if align:
-            align_keys = ["other", "cond"]
-        else:
-            align_keys = ["cond"]
-            other = extract_array(other, extract_numpy=True)
-
-        return self.apply_with_block(
-            "where",
-            align_keys=align_keys,
-            other=other,
-            cond=cond,
-            errors=errors,
-        )
-
     # TODO what is this used for?
     # def setitem(self, indexer, value) -> ArrayManager:
     #     return self.apply_with_block("setitem", indexer=indexer, value=value)
-
-    def putmask(self, mask, new, align: bool = True):
-        if align:
-            align_keys = ["new", "mask"]
-        else:
-            align_keys = ["mask"]
-            new = extract_array(new, extract_numpy=True)
-
-        return self.apply_with_block(
-            "putmask",
-            align_keys=align_keys,
-            mask=mask,
-            new=new,
-        )
 
     def diff(self, n: int, axis: int) -> ArrayManager:
         if axis == 1:
@@ -577,14 +550,6 @@ class ArrayManager(DataManager):
             "shift", periods=periods, axis=axis, fill_value=fill_value
         )
 
-    def fillna(self, value, limit, inplace: bool, downcast) -> ArrayManager:
-        return self.apply_with_block(
-            "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
-        )
-
-    def downcast(self) -> ArrayManager:
-        return self.apply_with_block("downcast")
-
     def astype(self, dtype, copy: bool = False, errors: str = "raise") -> ArrayManager:
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
@@ -608,30 +573,6 @@ class ArrayManager(DataManager):
                 return arr.copy() if copy else arr
 
         return self.apply(_convert)
-
-    def replace(self, value, **kwargs) -> ArrayManager:
-        assert np.ndim(value) == 0, value
-        # TODO "replace" is right now implemented on the blocks, we should move
-        # it to general array algos so it can be reused here
-        return self.apply_with_block("replace", value=value, **kwargs)
-
-    def replace_list(
-        self: T,
-        src_list: list[Any],
-        dest_list: list[Any],
-        inplace: bool = False,
-        regex: bool = False,
-    ) -> T:
-        """ do a list replace """
-        inplace = validate_bool_kwarg(inplace, "inplace")
-
-        return self.apply_with_block(
-            "_replace_list",
-            src_list=src_list,
-            dest_list=dest_list,
-            inplace=inplace,
-            regex=regex,
-        )
 
     def to_native_types(self, **kwargs):
         return self.apply(to_native_types, **kwargs)
