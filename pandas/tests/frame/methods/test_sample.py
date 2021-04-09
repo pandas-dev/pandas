@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p17
-
 from pandas import (
     DataFrame,
     Series,
@@ -155,16 +153,8 @@ class TestSample:
         "func_str,arg",
         [
             ("np.array", [2, 3, 1, 0]),
-            pytest.param(
-                "np.random.MT19937",
-                3,
-                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
-            ),
-            pytest.param(
-                "np.random.PCG64",
-                11,
-                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
-            ),
+            ("np.random.MT19937", 3),
+            ("np.random.PCG64", 11),
         ],
     )
     def test_sample_random_state(self, func_str, arg, frame_or_series):
