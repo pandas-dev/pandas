@@ -33,7 +33,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
-    ArrayLike,
     Axis,
     CompressionOptions,
     Dtype,
@@ -7371,10 +7370,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @overload
     def clip(
         self: FrameOrSeries,
+        lower=...,
+        upper=...,
+        axis: Axis | None = ...,
         inplace: Literal[False] = ...,
-        lower: int | ArrayLike | None = None,
-        upper: int | ArrayLike | None = None,
-        axis: Axis | None = None,
         *args,
         **kwargs,
     ) -> FrameOrSeries:
@@ -7383,10 +7382,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @overload
     def clip(
         self: FrameOrSeries,
+        lower,
+        upper,
+        axis: Axis | None,
         inplace: Literal[True],
-        lower: int | ArrayLike | None = None,
-        upper: int | ArrayLike | None = None,
-        axis: Axis | None = None,
         *args,
         **kwargs,
     ) -> None:
@@ -7395,10 +7394,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @overload
     def clip(
         self: FrameOrSeries,
+        lower,
+        upper,
+        *,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower=...,
+        upper=...,
+        axis: Axis | None = ...,
         inplace: bool_t = ...,
-        lower=None,
-        upper=None,
-        axis: Axis | None = None,
         *args,
         **kwargs,
     ) -> FrameOrSeries | None:
@@ -7407,10 +7417,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @final
     def clip(
         self: FrameOrSeries,
-        inplace: bool_t = False,
         lower=None,
         upper=None,
         axis: Axis | None = None,
+        inplace: bool_t = False,
         *args,
         **kwargs,
     ) -> FrameOrSeries | None:
