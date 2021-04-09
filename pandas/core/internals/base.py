@@ -30,6 +30,7 @@ from pandas.core.indexes.api import (
     Index,
     ensure_index,
 )
+from pandas.core.internals.blocks import to_native_types
 
 T = TypeVar("T", bound="DataManager")
 
@@ -210,6 +211,10 @@ class DataManager(PandasObject):
     @final
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
+
+    @final
+    def to_native_types(self: T, **kwargs) -> T:
+        return self.apply(to_native_types, **kwargs)
 
 
 class SingleDataManager(DataManager):

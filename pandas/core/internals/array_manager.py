@@ -80,7 +80,6 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     external_values,
     new_block,
-    to_native_types,
 )
 
 if TYPE_CHECKING:
@@ -569,9 +568,6 @@ class ArrayManager(DataManager):
                 return arr.copy() if copy else arr
 
         return self.apply(_convert)
-
-    def to_native_types(self, **kwargs):
-        return self.apply(to_native_types, **kwargs)
 
     @property
     def is_mixed_type(self) -> bool:
