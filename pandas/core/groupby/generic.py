@@ -178,7 +178,7 @@ class SeriesGroupBy(GroupBy[Series]):
     _apply_allowlist = base.series_apply_allowlist
 
     # Defined as a cache_readonly in SelectionMixin
-    _obj_with_exclusions: DataFrame
+    _obj_with_exclusions: Series
 
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
