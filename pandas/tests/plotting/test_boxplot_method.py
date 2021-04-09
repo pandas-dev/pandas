@@ -204,7 +204,7 @@ class TestDataFramePlots(TestPlotBase):
                     "boxes": "#8dd3c7",
                     "whiskers": "#8dd3c7",
                     "medians": "#bfbbd9",
-                    "caps": "#8dd3c7",
+                    "caps": "k",
                 },
             ),
             (
@@ -213,7 +213,7 @@ class TestDataFramePlots(TestPlotBase):
                     "boxes": "#1f77b4",
                     "whiskers": "#1f77b4",
                     "medians": "#2ca02c",
-                    "caps": "#1f77b4",
+                    "caps": "k",
                 },
             ),
         ],
