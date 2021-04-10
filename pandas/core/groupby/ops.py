@@ -67,8 +67,8 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
+from pandas.core import algorithms
 from pandas.core.arrays import ExtensionArray
-from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -557,14 +557,6 @@ class BaseGrouper:
     # Aggregation functions
 
     @final
-    def _is_builtin_func(self, arg):
-        """
-        if we define a builtin function for this argument, return it,
-        otherwise return the arg
-        """
-        return SelectionMixin._builtin_table.get(arg, arg)
-
-    @final
     def _ea_wrap_cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
     ) -> ArrayLike:
@@ -758,14 +750,14 @@ class BaseGrouper:
         #  - obj is backed by an ndarray, not ExtensionArray
         #  - len(obj) > 0
         #  - ngroups != 0
-        func = self._is_builtin_func(func)
+        func = com.is_builtin_func(func)
 
         group_index, _, ngroups = self.group_info
 
         # avoids object / Series creation overhead
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
-        group_index = group_index.take(indexer)
+        group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
         grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups)
         result, counts = grouper.get_result()
         return result, counts
@@ -996,7 +988,7 @@ class DataSplitter(Generic[FrameOrSeries]):
     @cache_readonly
     def slabels(self) -> np.ndarray:  # np.ndarray[np.intp]
         # Sorted labels
-        return self.labels.take(self._sort_idx)
+        return algorithms.take_nd(self.labels, self._sort_idx, allow_fill=False)
 
     @cache_readonly
     def _sort_idx(self) -> np.ndarray:  # np.ndarray[np.intp]

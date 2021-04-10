@@ -909,7 +909,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     )
     def apply(self, func, *args, **kwargs):
 
-        func = self._is_builtin_func(func)
+        func = com.is_builtin_func(func)
 
         # this is needed so we don't try and wrap strings. If we could
         # resolve functions to their callable functions prior, this
@@ -1140,7 +1140,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             )
         labels, _, n_groups = self.grouper.group_info
         sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = labels.take(sorted_index)
+        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
 
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
 
@@ -1205,7 +1205,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     @final
     def _python_agg_general(self, func, *args, **kwargs):
-        func = self._is_builtin_func(func)
+        func = com.is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
@@ -1920,6 +1920,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             self._selected_obj,
             *args,
             _grouper=self.grouper,
+            _as_index=self.as_index,
             **kwargs,
         )
 

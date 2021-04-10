@@ -159,6 +159,23 @@ a copy will no longer be made (:issue:`32960`)
 The default behavior when not passing ``copy`` will remain unchanged, i.e.
 a copy will be made.
 
+Centered Datetime-Like Rolling Windows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When performing rolling calculations on :class:`DataFrame` and :class:`Series`
+objects with a datetime-like index, a centered datetime-like window can now be
+used (:issue:`38780`).
+For example:
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {"A": [0, 1, 2, 3, 4]}, index=pd.date_range("2020", periods=5, freq="1D")
+    )
+    df
+    df.rolling("2D", center=True).mean()
+
+
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements
@@ -186,6 +203,7 @@ Other enhancements
 - :meth:`.Styler.apply` now more consistently accepts ndarray function returns, i.e. in all cases for ``axis`` is ``0, 1 or None`` (:issue:`39359`)
 - :meth:`.Styler.apply` and :meth:`.Styler.applymap` now raise errors if wrong format CSS is passed on render (:issue:`39660`)
 - :meth:`.Styler.format` adds keyword argument ``escape`` for optional HTML escaping (:issue:`40437`)
+- :meth:`.Styler.background_gradient` now allows the ability to supply a specific gradient map (:issue:`22727`)
 - :meth:`.Styler.clear` now clears :attr:`Styler.hidden_index` and :attr:`Styler.hidden_columns` as well (:issue:`40484`)
 - Builtin highlighting methods in :class:`Styler` have a more consistent signature and css customisability (:issue:`40242`)
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
@@ -485,7 +503,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | pyarrow         | 0.15.0          |         |
 +-----------------+-----------------+---------+
-| pymysql         | 0.7.11          |         |
+| pymysql         | 0.8.1           |    X    |
 +-----------------+-----------------+---------+
 | pytables        | 3.5.1           |         |
 +-----------------+-----------------+---------+
@@ -517,6 +535,11 @@ Other API changes
 - Partially initialized :class:`CategoricalDtype` (i.e. those with ``categories=None`` objects will no longer compare as equal to fully initialized dtype objects.
 - Accessing ``_constructor_expanddim`` on a :class:`DataFrame` and ``_constructor_sliced`` on a :class:`Series` now raise an ``AttributeError``. Previously a ``NotImplementedError`` was raised (:issue:`38782`)
 -
+
+Build
+=====
+
+- Documentation in ``.pptx`` and ``.pdf`` formats are no longer included in wheels or source distributions. (:issue:`30741`)
 
 .. ---------------------------------------------------------------------------
 
@@ -728,7 +751,9 @@ Plotting
 
 - Bug in :func:`scatter_matrix` raising when 2d ``ax`` argument passed (:issue:`16253`)
 - Prevent warnings when matplotlib's ``constrained_layout`` is enabled (:issue:`25261`)
--
+- Bug in :func:`DataFrame.plot` was showing the wrong colors in the legend if the function was called repeatedly and some calls used ``yerr`` while others didn't (partial fix of :issue:`39522`)
+- Bug in :func:`DataFrame.plot` was showing the wrong colors in the legend if the function was called repeatedly and some calls used ``secondary_y`` and others use ``legend=False`` (:issue:`40044`)
+
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -754,6 +779,8 @@ Groupby/resample/rolling
 - Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would not retain ``com``, ``span``, ``alpha`` or ``halflife`` attributes  (:issue:`40164`)
 - :class:`core.window.ewm.ExponentialMovingWindow` now raises a ``NotImplementedError`` when specifying ``times`` with ``adjust=False`` due to an incorrect calculation (:issue:`40098`)
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
+- Bug in aggregation functions for :class:`DataFrame` not respecting ``numeric_only`` argument when ``level`` keyword was given (:issue:`40660`)
+- Bug in :class:`core.window.RollingGroupby` where ``as_index=False`` argument in ``groupby`` was ignored (:issue:`39433`)
 
 Reshaping
 ^^^^^^^^^
@@ -805,10 +832,10 @@ Other
 - Bug in :meth:`Styler.background_gradient` where text-color was not determined correctly (:issue:`39888`)
 - Bug in :class:`Styler` where multiple elements in CSS-selectors were not correctly added to ``table_styles`` (:issue:`39942`)
 - Bug in :class:`.Styler` where copying from Jupyter dropped top left cell and misaligned headers (:issue:`12147`)
+- Bug in :class:`.Styler.where` where ``kwargs`` were not passed to the applicable callable (:issue:`40845`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)
-
 
 .. ---------------------------------------------------------------------------
 
