@@ -204,7 +204,7 @@ class TestDataFramePlots(TestPlotBase):
                     "boxes": "#8dd3c7",
                     "whiskers": "#8dd3c7",
                     "medians": "#bfbbd9",
-                    "caps": "k",
+                    "caps": "#8dd3c7",
                 },
             ),
             (
@@ -213,7 +213,7 @@ class TestDataFramePlots(TestPlotBase):
                     "boxes": "#1f77b4",
                     "whiskers": "#1f77b4",
                     "medians": "#2ca02c",
-                    "caps": "k",
+                    "caps": "#1f77b4",
                 },
             ),
         ],
@@ -224,7 +224,7 @@ class TestDataFramePlots(TestPlotBase):
         import matplotlib.pyplot as plt
 
         plt.style.use(scheme)
-        result = df.boxplot(return_type="dict")
+        result = df.plot.box(return_type="dict")
         for k, v in expected.items():
             assert result[k][0].get_color() == v
 
