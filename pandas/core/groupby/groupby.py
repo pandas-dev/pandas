@@ -2711,7 +2711,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
             values = obj._values
-            
+
             if numeric_only and not is_numeric_dtype(values):
                 continue
 
