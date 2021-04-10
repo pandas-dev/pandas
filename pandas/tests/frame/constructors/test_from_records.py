@@ -8,11 +8,9 @@ import pytz
 from pandas.compat import is_platform_little_endian
 
 from pandas import (
-    CategoricalIndex,
     DataFrame,
     Index,
     Int64Index,
-    Interval,
     RangeIndex,
     Series,
 )
@@ -223,25 +221,6 @@ class TestFromRecords:
         assert len(result) == 0
         assert result.index.name == "foo"
         tm.assert_index_equal(result.columns, expected)
-
-    def test_from_records_series_list_dict(self):
-        # GH#27358
-        expected = DataFrame([[{"a": 1, "b": 2}, {"a": 3, "b": 4}]]).T
-        data = Series([[{"a": 1, "b": 2}], [{"a": 3, "b": 4}]])
-        result = DataFrame.from_records(data)
-        tm.assert_frame_equal(result, expected)
-
-    def test_from_records_series_categorical_index(self):
-        # GH#32805
-        index = CategoricalIndex(
-            [Interval(-20, -10), Interval(-10, 0), Interval(0, 10)]
-        )
-        series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
-        frame = DataFrame.from_records(series_of_dicts, index=index)
-        expected = DataFrame(
-            {"a": [1, 2, np.NaN], "b": [np.NaN, np.NaN, 3]}, index=index
-        )
-        tm.assert_frame_equal(frame, expected)
 
     def test_frame_from_records_utc(self):
         rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
@@ -457,3 +436,13 @@ class TestFromRecords:
         b = a[:0]
         df2 = DataFrame.from_records(b, index="id")
         tm.assert_frame_equal(df2, df.iloc[:0])
+
+    def test_from_records_series(self):
+        # GH#40429
+        series = Series(np.random.randn(5))
+
+        msg = (
+            "data must be structured ndarray, sequence of tuples or dicts, or DataFrame"
+        )
+        with pytest.raises(TypeError, match=msg):
+            DataFrame.from_records(series)
