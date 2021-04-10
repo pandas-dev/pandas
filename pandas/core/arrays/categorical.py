@@ -1167,8 +1167,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if inplace is not no_default:
             warn(
                 "The `inplace` parameter in pandas.Categorical."
-                "remove_categories is deprecated and "
-                "will be removed in a future version.",
+                "remove_categories is deprecated and will be removed in "
+                "a future version. Removing unused categories will always "
+                "return a new Categorical object.",
                 FutureWarning,
                 stacklevel=2,
             )
