@@ -870,12 +870,13 @@ class Block(PandasObject):
         """
         if mask.any():
             if not regex:
-                if not isinstance(self.values, Categorical) and self._can_hold_element(
-                    value
-                ):
+                if isinstance(
+                    self.values, (IntegerArray, FloatingArray)
+                ) and self._can_hold_element(value):
                     nb = self
                 else:
                     nb = self.coerce_to_target_dtype(value)
+
                 if nb is self and not inplace:
                     nb = nb.copy()
                 putmask_inplace(nb.values, mask, value)
