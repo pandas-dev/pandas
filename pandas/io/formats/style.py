@@ -1078,10 +1078,10 @@ class Styler:
         """
         Apply CSS-styles based on a conditional function elementwise.
 
+        .. deprecated:: 1.3.0
+
         Updates the HTML representation with a style which is
         selected in accordance with the return value of a function.
-
-        .. deprecated:: 1.3.0
 
         Parameters
         ----------
