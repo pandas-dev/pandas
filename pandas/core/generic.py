@@ -10260,6 +10260,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ):
         nv.validate_logical_func((), kwargs, fname=name)
         if level is not None:
+            warnings.warn(
+                "Using the level keyword in DataFrame and Series aggregations is "
+                "deprecated and will be removed in a future version. Use groupby "
+                "instead.",
+                FutureWarning,
+                stacklevel=4,
+            )
             if bool_only is not None:
                 raise NotImplementedError(
                     "Option bool_only is not implemented with option level."
@@ -10351,6 +10358,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
+            warnings.warn(
+                "Using the level keyword in DataFrame and Series aggregations is "
+                "deprecated and will be removed in a future version. Use groupby "
+                "instead.",
+                FutureWarning,
+                stacklevel=4,
+            )
             return self._agg_by_level(
                 name, axis=axis, level=level, skipna=skipna, ddof=ddof
             )
@@ -10399,6 +10413,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
+            warnings.warn(
+                "Using the level keyword in DataFrame and Series aggregations is "
+                "deprecated and will be removed in a future version. Use groupby "
+                "instead.",
+                FutureWarning,
+                stacklevel=4,
+            )
             return self._agg_by_level(
                 name, axis=axis, level=level, skipna=skipna, numeric_only=numeric_only
             )
@@ -10461,6 +10482,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
+            warnings.warn(
+                "Using the level keyword in DataFrame and Series aggregations is "
+                "deprecated and will be removed in a future version. Use groupby "
+                "instead.",
+                FutureWarning,
+                stacklevel=4,
+            )
             return self._agg_by_level(
                 name,
                 axis=axis,
@@ -10538,6 +10566,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
+            warnings.warn(
+                "Using the level keyword in DataFrame and Series aggregations is "
+                "deprecated and will be removed in a future version. Use groupby "
+                "instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
             return self._agg_by_level("mad", axis=axis, level=level, skipna=skipna)
 
         data = self._get_numeric_data()
