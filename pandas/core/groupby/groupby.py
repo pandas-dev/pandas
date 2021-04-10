@@ -2663,7 +2663,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         needs_ngroups : bool, default False
             Whether number of groups is part of the Cython call signature
         needs_nullable : bool, default False
-            Whether a bool representing if the input is nullable is part
+            Whether a bool specifying if the input is nullable is part
             of the Cython call signature
         result_is_index : bool, default False
             Whether the result of the Cython operation is an index of
@@ -2680,8 +2680,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Function to be applied to result of Cython function. Should accept
             an array of values as the first argument and type inferences as its
             second argument, i.e. the signature should be
-            (ndarray, Type). A third argument should be "nullable", to
-            allow for processing specific to nullable values if needs_nullable=True
+            (ndarray, Type). If `needs_nullable=True`, a third argument should be
+            `nullable`, to allow for processing specific to nullable values.
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
