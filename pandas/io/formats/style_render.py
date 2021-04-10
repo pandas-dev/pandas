@@ -17,7 +17,6 @@ from typing import (
 from uuid import uuid4
 
 import numpy as np
-import pandas as pd
 
 from pandas._config import get_option
 
@@ -142,10 +141,27 @@ class StylerRenderer:
         * table_attributes
         """
         self._compute()
-        # TODO: namespace all the pandas keys
+
         d = self._translate()
         d.update(kwargs)
         return self.template.render(**d)
+
+    def _render_latex(self, **kwargs) -> str:
+        """
+        Render a Styler in latex format
+        """
+        self._compute()
+
+        d = self._translate(blank="")
+        d = self._translate_latex(d)
+
+        self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
+        self.template_latex.globals["parse_table"] = _parse_latex_table_styles
+        self.template_latex.globals["parse_cell"] = _parse_latex_cell_styles
+        self.template_latex.globals["parse_header"] = _parse_latex_header_span
+
+        d.update(kwargs)
+        return self.template_latex.render(**d)
 
     def _compute(self):
         """
@@ -162,7 +178,7 @@ class StylerRenderer:
             r = func(self)(*args, **kwargs)
         return r
 
-    def _translate(self, blank=None):
+    def _translate(self, blank="&nbsp;"):
         """
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`
         into a dictionary of {head, body, uuid, cellstyle}.
@@ -173,7 +189,7 @@ class StylerRenderer:
 
         DATA_CLASS = "data"
         BLANK_CLASS = "blank"
-        BLANK_VALUE = "&nbsp;" if blank is None else blank
+        BLANK_VALUE = blank
 
         # mapping variables
         ctx = self.ctx  # td css styles from apply() and applymap()
@@ -349,6 +365,41 @@ class StylerRenderer:
         if self.tooltips:
             d = self.tooltips._translate(self.data, self.uuid, d)
 
+        return d
+
+    def _translate_latex(self, d: dict) -> dict:
+        """
+        Post process the default render dict for the LaTeX template format.
+          - Remove hidden columns from the non-headers part of the body.
+          - Place cellstyles directly in td cells rather than use cellstyle_map
+          - Remove hidden indexes or reinsert missing th elements if part of multiindex
+            or multirow sparsification.
+        """
+        d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
+        body = []
+        for r, row in enumerate(d["body"]):
+            if self.hidden_index:
+                row_body_headers = []
+            else:
+                row_body_headers = [
+                    {
+                        **col,
+                        "display_value": col["display_value"]
+                        if col["is_visible"]
+                        else "",
+                    }
+                    for col in row
+                    if col["type"] == "th"
+                ]
+
+            row_body_cells = [
+                {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
+                for c, col in enumerate(row)
+                if (col["is_visible"] and col["type"] == "td")
+            ]
+
+            body.append(row_body_headers + row_body_cells)
+        d["body"] = body
         return d
 
     def format(
@@ -872,8 +923,8 @@ def _parse_latex_table_wrapping(table_styles: CSSStyles, caption: str | None) ->
     IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
     # ignored selectors are included with {tabular} so do not need wrapping
     if (
-            table_styles is not None
-            and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
+        table_styles is not None
+        and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
     ) or caption:
         return True
     return False
@@ -942,7 +993,7 @@ def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
 
 
 def _parse_latex_header_span(
-        cell: dict, multirow_align: str, multicol_align: str, wrap: bool = False
+    cell: dict, multirow_align: str, multicol_align: str, wrap: bool = False
 ) -> str:
     r"""
     examines a header cell dict and if it detects a 'colspan' attribute or a 'rowspan'
