@@ -1086,7 +1086,6 @@ class Styler:
         Parameters
         ----------
         cond : callable
-            ``cond`` should take a scalar, and optional args, and return a boolean.
             ``cond`` should take a scalar, and optional keyword arguments, and return
             a boolean.
         value : str
