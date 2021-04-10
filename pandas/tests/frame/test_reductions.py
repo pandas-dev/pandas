@@ -43,7 +43,7 @@ def assert_stat_op_calc(
 
     Parameters
     ----------
-    opname : string
+    opname : str
         Name of the operator to test on frame
     alternative : function
         Function that opname is tested against; i.e. "frame.opname()" should
@@ -146,7 +146,7 @@ def assert_stat_op_api(opname, float_frame, float_string_frame, has_numeric_only
 
     Parameters
     ----------
-    opname : string
+    opname : str
         Name of the operator to test on frame
     float_frame : DataFrame
         DataFrame with columns of type float
@@ -172,7 +172,7 @@ def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
 
     Parameters
     ----------
-    opname : string
+    opname : str
         Name of the operator to test on frame
     alternative : function
         Function that opname is tested against; i.e. "frame.opname()" should
@@ -237,7 +237,7 @@ def assert_bool_op_api(
 
     Parameters
     ----------
-    opname : string
+    opname : str
         Name of the operator to test on frame
     float_frame : DataFrame
         DataFrame with columns of type float
@@ -1546,3 +1546,18 @@ def test_minmax_extensionarray(method, numeric_only):
         [getattr(int64_info, method)], index=Index(["Int64"], dtype="object")
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("meth", ["max", "min", "sum", "mean", "median"])
+def test_groupy_regular_arithmetic_equivalent(meth):
+    # GH#40660
+    df = DataFrame(
+        {"a": [pd.Timedelta(hours=6), pd.Timedelta(hours=7)], "b": [12.1, 13.3]}
+    )
+    expected = df.copy()
+
+    result = getattr(df, meth)(level=0)
+    tm.assert_frame_equal(result, expected)
+
+    result = getattr(df.groupby(level=0), meth)(numeric_only=False)
+    tm.assert_frame_equal(result, expected)
