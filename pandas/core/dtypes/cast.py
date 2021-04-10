@@ -304,7 +304,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
 
 
 def maybe_downcast_numeric(
-    result: ArrayLike, dtype: DtypeObj, do_round: bool = False, same_kind: bool = False
+    result: ArrayLike, dtype: DtypeObj, do_round: bool = False
 ) -> ArrayLike:
     """
     Subset of maybe_downcast_to_dtype restricted to numeric dtypes.
@@ -314,9 +314,6 @@ def maybe_downcast_numeric(
     result : ndarray or ExtensionArray
     dtype : np.dtype or ExtensionDtype
     do_round : bool
-    same_kind: bool
-        Whether to only possibly downcast when result.dtype is the same kind
-        as dtype.
 
     Returns
     -------
@@ -335,8 +332,6 @@ def maybe_downcast_numeric(
         # don't allow upcasts here (except if empty)
         if result.dtype.itemsize <= dtype.itemsize and result.size:
             return result
-    elif same_kind:
-        return result
 
     if is_bool_dtype(dtype) or is_integer_dtype(dtype):
 

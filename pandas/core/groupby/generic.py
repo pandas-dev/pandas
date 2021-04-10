@@ -55,7 +55,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
-    is_numeric_dtype,
     is_scalar,
     needs_i8_conversion,
 )
@@ -582,10 +581,6 @@ class SeriesGroupBy(GroupBy[Series]):
         # we will only try to coerce the result type if
         # we have a numeric dtype, as these are *always* user-defined funcs
         # the cython take a different path (and casting)
-        if is_numeric_dtype(result.dtype):
-            result = maybe_downcast_numeric(
-                result, self._selected_obj.dtype, same_kind=True
-            )
 
         result.name = self._selected_obj.name
         return result

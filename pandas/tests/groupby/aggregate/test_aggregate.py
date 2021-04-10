@@ -449,16 +449,25 @@ def test_bool_agg_dtype(op):
         (["a", "b"], MultiIndex([[1], [2]], [[0], [0]], names=["a", "b"])),
     ],
 )
-@pytest.mark.parametrize("input", [True, 1, 1.0])
-@pytest.mark.parametrize("dtype", [bool, int, float])
+@pytest.mark.parametrize(
+    "input_dtype", ["bool", "int32", "int64", "float32", "float64"]
+)
+@pytest.mark.parametrize(
+    "result_dtype", ["bool", "int32", "int64", "float32", "float64"]
+)
 @pytest.mark.parametrize("method", ["apply", "aggregate", "transform"])
-def test_callable_result_dtype_frame(keys, agg_index, input, dtype, method):
+def test_callable_result_dtype_frame(
+    keys, agg_index, input_dtype, result_dtype, method
+):
     # GH 21240
-    df = DataFrame({"a": [1], "b": [2], "c": [input]})
+    df = DataFrame({"a": [1], "b": [2], "c": [True]})
+    df["c"] = df["c"].astype(input_dtype)
     op = getattr(df.groupby(keys)[["c"]], method)
-    result = op(lambda x: x.astype(dtype).iloc[0])
+    result = op(lambda x: x.astype(result_dtype).iloc[0])
     expected_index = pd.RangeIndex(0, 1) if method == "transform" else agg_index
-    expected = DataFrame({"c": [df["c"].iloc[0]]}, index=expected_index).astype(dtype)
+    expected = DataFrame({"c": [df["c"].iloc[0]]}, index=expected_index).astype(
+        result_dtype
+    )
     if method == "apply":
         expected.columns.names = [0]
     tm.assert_frame_equal(result, expected)
