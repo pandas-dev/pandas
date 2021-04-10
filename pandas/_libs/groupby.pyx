@@ -394,10 +394,11 @@ def group_any_all(uint8_t[::1] out,
                   const uint8_t[::1] mask,
                   str val_test,
                   bint skipna,
-                  bint masked) -> None:
+                  bint nullable) -> None:
     """
     Aggregated boolean values to show truthfulness of group elements. If the
-    input is a nullable type, Kleene logic will be used.
+    input is a nullable type (nullable=True), the result will be computed
+    using Kleene logic.
 
     Parameters
     ----------
@@ -414,8 +415,9 @@ def group_any_all(uint8_t[::1] out,
         String object dictating whether to use any or all truth testing
     skipna : bool
         Flag to ignore nan values during truth testing
-    masked : bool
-        If True, compute the result using Kleene logic
+    nullable : bool
+        Whether or not the input is a nullable type. If True, the
+        result will be computed using Kleene logic
 
     Notes
     -----
@@ -427,7 +429,6 @@ def group_any_all(uint8_t[::1] out,
         Py_ssize_t i, N = len(labels)
         intp_t lab
         uint8_t flag_val
-        bint use_kleene_logic = masked
 
     if val_test == 'all':
         # Because the 'all' value of an empty iterable in Python is True we can
@@ -450,7 +451,7 @@ def group_any_all(uint8_t[::1] out,
             if lab < 0 or (skipna and mask[i]):
                 continue
 
-            if use_kleene_logic and mask[i]:
+            if nullable and mask[i]:
                 # Set the position as masked if `out[lab] != flag_val`, which
                 # would indicate True/False has not yet been seen for any/all,
                 # so by Kleene logic the result is currently unknown

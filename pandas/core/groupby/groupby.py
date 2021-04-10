@@ -1442,9 +1442,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             cython_dtype=np.dtype(np.uint8),
             needs_values=True,
             needs_mask=True,
+            needs_nullable=True,
             pre_processing=objs_to_bool,
             post_processing=result_to_bool,
-            use_nullable_input_arg=True,
             val_test=val_test,
             skipna=skipna,
         )
@@ -2625,13 +2625,13 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         needs_counts: bool = False,
         needs_values: bool = False,
         needs_2d: bool = False,
+        needs_nullable: bool = False,
         min_count: int | None = None,
         needs_mask: bool = False,
         needs_ngroups: bool = False,
         result_is_index: bool = False,
         pre_processing=None,
         post_processing=None,
-        use_nullable_input_arg: bool = False,
         **kwargs,
     ):
         """
@@ -2662,6 +2662,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             signature
         needs_ngroups : bool, default False
             Whether number of groups is part of the Cython call signature
+        needs_nullable : bool, default False
+            Whether a bool representing if the input is nullable is part
+            of the Cython call signature
         result_is_index : bool, default False
             Whether the result of the Cython operation is an index of
             values to be retrieved, instead of the actual values themselves
@@ -2679,9 +2682,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             second argument, i.e. the signature should be
             (ndarray, Type). Optionally, a third argument can be "masked", to
             allow for processing specific to nullable values
-        use_nullable_input_arg : bool, default False
-            If True, pass an argument "masked" to the cython function specifying
-            whether or not the input should be treated as masked
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -2761,8 +2761,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if needs_ngroups:
                 func = partial(func, ngroups)
 
-            if use_nullable_input_arg:
-                func = partial(func, masked=is_nullable)
+            if needs_nullable:
+                func = partial(func, nullable=is_nullable)
 
             func(**kwargs)  # Call func to modify indexer values in place
 

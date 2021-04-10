@@ -133,6 +133,7 @@ def test_masked_kleene_logic(bool_agg_func, data, expected_data, skipna):
     ],
 )
 def test_masked_mixed_types(dtype1, dtype2, exp_col1, exp_col2):
+    # GH#37506
     data = [1.0, np.nan]
     df = DataFrame(
         {"col1": pd.array(data, dtype=dtype1), "col2": pd.array(data, dtype=dtype2)}
