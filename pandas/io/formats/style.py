@@ -647,7 +647,8 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         cond : callable
-            ``cond`` should take a scalar and return a boolean.
+            ``cond`` should take a scalar, and optional keyword arguments, and return
+            a boolean.
         value : str
             Applied when ``cond`` returns true.
         other : str
@@ -678,7 +679,8 @@ class Styler(StylerRenderer):
             other = ""
 
         return self.applymap(
-            lambda val: value if cond(val) else other, subset=subset, **kwargs
+            lambda val: value if cond(val, **kwargs) else other,
+            subset=subset,
         )
 
     def set_precision(self, precision: int) -> StylerRenderer:
