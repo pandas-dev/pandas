@@ -870,7 +870,9 @@ class Block(PandasObject):
         """
         if mask.any():
             if not regex:
-                if not isinstance(self.values, Categorical) and self._can_hold_element(value):
+                if not isinstance(self.values, Categorical) and self._can_hold_element(
+                    value
+                ):
                     nb = self
                 else:
                     nb = self.coerce_to_target_dtype(value)
