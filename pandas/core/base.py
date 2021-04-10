@@ -2,12 +2,10 @@
 Base and utility classes for pandas objects.
 """
 
-import builtins
 import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Dict,
     FrozenSet,
     Optional,
@@ -176,36 +174,6 @@ class SelectionMixin:
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 
-    _builtin_table = {builtins.sum: np.sum, builtins.max: np.max, builtins.min: np.min}
-
-    _cython_table = {
-        builtins.sum: "sum",
-        builtins.max: "max",
-        builtins.min: "min",
-        np.all: "all",
-        np.any: "any",
-        np.sum: "sum",
-        np.nansum: "sum",
-        np.mean: "mean",
-        np.nanmean: "mean",
-        np.prod: "prod",
-        np.nanprod: "prod",
-        np.std: "std",
-        np.nanstd: "std",
-        np.var: "var",
-        np.nanvar: "var",
-        np.median: "median",
-        np.nanmedian: "median",
-        np.max: "max",
-        np.nanmax: "max",
-        np.min: "min",
-        np.nanmin: "min",
-        np.cumprod: "cumprod",
-        np.nancumprod: "cumprod",
-        np.cumsum: "cumsum",
-        np.nancumsum: "cumsum",
-    }
-
     @property
     def _selection_name(self):
         """
@@ -216,6 +184,7 @@ class SelectionMixin:
         """
         return self._selection
 
+    @final
     @property
     def _selection_list(self):
         if not isinstance(
@@ -240,6 +209,7 @@ class SelectionMixin:
     def ndim(self) -> int:
         return self._selected_obj.ndim
 
+    @final
     @cache_readonly
     def _obj_with_exclusions(self):
         # error: "SelectionMixin" has no attribute "obj"
@@ -307,48 +277,6 @@ class SelectionMixin:
         raise AbstractMethodError(self)
 
     agg = aggregate
-
-    def _try_aggregate_string_function(self, arg: str, *args, **kwargs):
-        """
-        if arg is a string, then try to operate on it:
-        - try to find a function (or attribute) on ourselves
-        - try to find a numpy function
-        - raise
-        """
-        assert isinstance(arg, str)
-
-        f = getattr(self, arg, None)
-        if f is not None:
-            if callable(f):
-                return f(*args, **kwargs)
-
-            # people may try to aggregate on a non-callable attribute
-            # but don't let them think they can pass args to it
-            assert len(args) == 0
-            assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
-            return f
-
-        f = getattr(np, arg, None)
-        if f is not None and hasattr(self, "__array__"):
-            # in particular exclude Window
-            return f(self, *args, **kwargs)
-
-        raise AttributeError(
-            f"'{arg}' is not a valid function for '{type(self).__name__}' object"
-        )
-
-    def _get_cython_func(self, arg: Callable) -> Optional[str]:
-        """
-        if we define an internal function for this argument, return it
-        """
-        return self._cython_table.get(arg)
-
-    def _is_builtin_func(self, arg):
-        """
-        if we define an builtin function for this argument, return it,
-        otherwise return the arg
-        """
-        return self._builtin_table.get(arg, arg)
 
 
 class IndexOpsMixin(OpsMixin):

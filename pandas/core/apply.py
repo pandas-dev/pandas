@@ -44,6 +44,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.algorithms import safe_sort
 from pandas.core.base import (
     DataError,
+    SelectionMixin,
     SpecificationError,
 )
 import pandas.core.common as com
@@ -173,7 +174,7 @@ class Apply(metaclass=abc.ABCMeta):
             return self.agg_list_like()
 
         if callable(arg):
-            f = obj._get_cython_func(arg)
+            f = com.get_cython_func(arg)
             if f and not args and not kwargs:
                 return getattr(obj, f)()
 
@@ -301,10 +302,10 @@ class Apply(metaclass=abc.ABCMeta):
         kwargs = self.kwargs
 
         if isinstance(func, str):
-            return obj._try_aggregate_string_function(func, *args, **kwargs)
+            return self._try_aggregate_string_function(obj, func, *args, **kwargs)
 
         if not args and not kwargs:
-            f = obj._get_cython_func(func)
+            f = com.get_cython_func(func)
             if f:
                 return getattr(obj, f)()
 
@@ -327,7 +328,10 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
         arg = cast(List[AggFuncTypeBase], self.f)
 
-        if obj._selected_obj.ndim == 1:
+        if not isinstance(obj, SelectionMixin):
+            # i.e. obj is Series or DataFrame
+            selected_obj = obj
+        elif obj._selected_obj.ndim == 1:
             selected_obj = obj._selected_obj
         else:
             selected_obj = obj._obj_with_exclusions
@@ -406,13 +410,19 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
         arg = cast(AggFuncTypeDict, self.f)
 
-        selected_obj = obj._selected_obj
+        if not isinstance(obj, SelectionMixin):
+            # i.e. obj is Series or DataFrame
+            selected_obj = obj
+            selection = None
+        else:
+            selected_obj = obj._selected_obj
+            selection = obj._selection
 
         arg = self.normalize_dictlike_arg("agg", selected_obj, arg)
 
         if selected_obj.ndim == 1:
             # key only used for output
-            colg = obj._gotitem(obj._selection, ndim=1)
+            colg = obj._gotitem(selection, ndim=1)
             results = {key: colg.agg(how) for key, how in arg.items()}
         else:
             # key used for column selection and output
@@ -486,7 +496,7 @@ class Apply(metaclass=abc.ABCMeta):
                 self.kwargs["axis"] = self.axis
             elif self.axis != 0:
                 raise ValueError(f"Operation {f} does not support axis=1")
-        return obj._try_aggregate_string_function(f, *self.args, **self.kwargs)
+        return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
     def maybe_apply_multiple(self) -> FrameOrSeriesUnion | None:
         """
@@ -546,6 +556,35 @@ class Apply(metaclass=abc.ABCMeta):
                     new_func[k] = v
             func = new_func
         return func
+
+    def _try_aggregate_string_function(self, obj, arg: str, *args, **kwargs):
+        """
+        if arg is a string, then try to operate on it:
+        - try to find a function (or attribute) on ourselves
+        - try to find a numpy function
+        - raise
+        """
+        assert isinstance(arg, str)
+
+        f = getattr(obj, arg, None)
+        if f is not None:
+            if callable(f):
+                return f(*args, **kwargs)
+
+            # people may try to aggregate on a non-callable attribute
+            # but don't let them think they can pass args to it
+            assert len(args) == 0
+            assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
+            return f
+
+        f = getattr(np, arg, None)
+        if f is not None and hasattr(obj, "__array__"):
+            # in particular exclude Window
+            return f(obj, *args, **kwargs)
+
+        raise AttributeError(
+            f"'{arg}' is not a valid function for '{type(obj).__name__}' object"
+        )
 
 
 class FrameApply(Apply):

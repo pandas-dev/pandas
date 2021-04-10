@@ -5,6 +5,7 @@ Note: pandas.core.common is *not* part of the public API.
 """
 from __future__ import annotations
 
+import builtins
 from collections import (
     abc,
     defaultdict,
@@ -532,3 +533,49 @@ def require_length_match(data, index: Index):
             "does not match length of index "
             f"({len(index)})"
         )
+
+
+_builtin_table = {builtins.sum: np.sum, builtins.max: np.max, builtins.min: np.min}
+
+_cython_table = {
+    builtins.sum: "sum",
+    builtins.max: "max",
+    builtins.min: "min",
+    np.all: "all",
+    np.any: "any",
+    np.sum: "sum",
+    np.nansum: "sum",
+    np.mean: "mean",
+    np.nanmean: "mean",
+    np.prod: "prod",
+    np.nanprod: "prod",
+    np.std: "std",
+    np.nanstd: "std",
+    np.var: "var",
+    np.nanvar: "var",
+    np.median: "median",
+    np.nanmedian: "median",
+    np.max: "max",
+    np.nanmax: "max",
+    np.min: "min",
+    np.nanmin: "min",
+    np.cumprod: "cumprod",
+    np.nancumprod: "cumprod",
+    np.cumsum: "cumsum",
+    np.nancumsum: "cumsum",
+}
+
+
+def get_cython_func(arg: Callable) -> str | None:
+    """
+    if we define an internal function for this argument, return it
+    """
+    return _cython_table.get(arg)
+
+
+def is_builtin_func(arg):
+    """
+    if we define an builtin function for this argument, return it,
+    otherwise return the arg
+    """
+    return _builtin_table.get(arg, arg)
