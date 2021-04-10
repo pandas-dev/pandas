@@ -1423,7 +1423,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             else:
                 vals = vals.astype(bool)
 
-            return vals.view(np.uint8), bool
+            return vals.view(np.int8), bool
 
         def result_to_bool(
             result: np.ndarray,
@@ -1431,7 +1431,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             masked: bool = False,
         ) -> ArrayLike:
             if masked:
-                return BooleanArray(result.astype(bool, copy=False), result == 2)
+                return BooleanArray(result.astype(bool, copy=False), result == -1)
             else:
                 return result.astype(inference, copy=False)
 
@@ -1439,7 +1439,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             "group_any_all",
             aggregate=True,
             numeric_only=False,
-            cython_dtype=np.dtype(np.uint8),
+            cython_dtype=np.dtype(np.int8),
             needs_values=True,
             needs_mask=True,
             needs_nullable=True,

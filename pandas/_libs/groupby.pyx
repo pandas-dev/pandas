@@ -388,8 +388,8 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_any_all(uint8_t[::1] out,
-                  const uint8_t[::1] values,
+def group_any_all(int8_t[::1] out,
+                  const int8_t[::1] values,
                   const intp_t[:] labels,
                   const uint8_t[::1] mask,
                   str val_test,
@@ -402,12 +402,12 @@ def group_any_all(uint8_t[::1] out,
 
     Parameters
     ----------
-    out : np.ndarray[np.uint8]
+    out : np.ndarray[np.int8]
         Values into which this method will write its results.
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its
         ordering matching up to the corresponding record in `values`
-    values : np.ndarray[np.uint8]
+    values : np.ndarray[np.int8]
         Containing the truth value of each element.
     mask : np.ndarray[np.uint8]
         Indicating whether a value is na or not.
@@ -423,7 +423,7 @@ def group_any_all(uint8_t[::1] out,
     -----
     This method modifies the `out` parameter rather than returning an object.
     The returned values will either be 0, 1 (False or True, respectively), or
-    2 to signify a masked position in the case of a nullable input.
+    -1 to signify a masked position in the case of a nullable input.
     """
     cdef:
         Py_ssize_t i, N = len(labels)
@@ -456,7 +456,7 @@ def group_any_all(uint8_t[::1] out,
                 # would indicate True/False has not yet been seen for any/all,
                 # so by Kleene logic the result is currently unknown
                 if out[lab] != flag_val:
-                    out[lab] = 2
+                    out[lab] = -1
                 continue
 
             # If True and 'any' or False and 'all', the result is
