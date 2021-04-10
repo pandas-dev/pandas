@@ -10,6 +10,8 @@ from pandas import (
 pytest.importorskip("jinja2")
 from pandas.io.formats.style import (
     Styler,
+)
+from pandas.io.formats.style_render import (
     _parse_latex_cell_styles,
     _parse_latex_header_span,
     _parse_latex_table_styles,
