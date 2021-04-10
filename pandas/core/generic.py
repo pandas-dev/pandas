@@ -7384,7 +7384,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self: FrameOrSeries,
         lower,
         *,
-        axis,
+        axis: Axis | None,
         inplace: Literal[True],
         **kwargs,
     ) -> None:
@@ -7405,7 +7405,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self: FrameOrSeries,
         *,
         upper,
-        axis,
+        axis: Axis | None,
         inplace: Literal[True],
         **kwargs,
     ) -> None:
@@ -7425,7 +7425,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def clip(
         self: FrameOrSeries,
         *,
-        axis,
+        axis: Axis | None,
         inplace: Literal[True],
         **kwargs,
     ) -> None:
