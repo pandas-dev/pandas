@@ -428,7 +428,7 @@ def group_any_all(int8_t[::1] out,
     cdef:
         Py_ssize_t i, N = len(labels)
         intp_t lab
-        uint8_t flag_val
+        int8_t flag_val
 
     if val_test == 'all':
         # Because the 'all' value of an empty iterable in Python is True we can
