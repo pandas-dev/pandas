@@ -215,9 +215,9 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
         tm.assert_frame_equal(result, expected)
     else:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
+        result = getattr(grouped, op)()
         with tm.assert_produces_warning(FutureWarning):
-            result = getattr(grouped, op)()
-        expected = getattr(frame, op)(level=level, axis=axis)
+            expected = getattr(frame, op)(level=level, axis=axis)
         if sort:
             expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)
