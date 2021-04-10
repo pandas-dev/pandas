@@ -69,6 +69,7 @@ repos:
     rev: v1.2.2
     hooks:
     -   id: yesqa
+        additional_dependencies: [flake8==3.9.0]
 -   repo: local
     hooks:
     -   id: flake8-rst
@@ -162,6 +163,13 @@ repos:
         language: python
         entry: python scripts/generate_pip_deps_from_conda.py
         files: ^(environment.yml|requirements-dev.txt)$
+        pass_filenames: false
+        additional_dependencies: [pyyaml]
+    -   id: sync-flake8-versions
+        name: Check flake8 version is synced across flake8, yesqa, and environment.yml
+        language: python
+        entry: python scripts/sync_flake8_versions.py
+        files: ^(\.pre-commit-config\.yaml|environment\.yml)$
         pass_filenames: false
         additional_dependencies: [pyyaml]
     -   id: title-capitalization
