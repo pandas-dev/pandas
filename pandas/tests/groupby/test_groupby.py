@@ -302,7 +302,11 @@ def test_with_na_groups(dtype):
         return float(len(x))
 
     agged = grouped.agg(f)
-    expected = Series([4.0, 2.0], index=["bar", "foo"])
+
+    # precision will only be preserved when the input dtype is the same kind as output
+    expected = Series(
+        [4.0, 2.0], index=["bar", "foo"], dtype=dtype if dtype == "float32" else None
+    )
     tm.assert_series_equal(agged, expected)
 
 
