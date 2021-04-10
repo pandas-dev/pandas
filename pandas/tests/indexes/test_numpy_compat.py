@@ -82,6 +82,7 @@ def test_numpy_ufuncs_other(index, func, request):
             isinstance(index, DatetimeIndex)
             and index.tz is not None
             and func in [np.isfinite, np.isnan, np.isinf]
+            and not np_version_under1p18
         ):
             mark = pytest.mark.xfail(reason="__array_ufunc__ is not defined")
             request.node.add_marker(mark)
