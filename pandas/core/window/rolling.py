@@ -367,7 +367,9 @@ class BaseWindow(SelectionMixin):
             return self.window
         if self._win_freq_i8 is not None:
             return VariableWindowIndexer(
-                index_array=self._index_array, window_size=self._win_freq_i8
+                index_array=self._index_array,
+                window_size=self._win_freq_i8,
+                center=self.center,
             )
         return FixedWindowIndexer(window_size=self.window)
 
@@ -542,11 +544,13 @@ class BaseWindowGroupby(BaseWindow):
         obj: FrameOrSeries,
         *args,
         _grouper=None,
+        _as_index=True,
         **kwargs,
     ):
         if _grouper is None:
             raise ValueError("Must pass a Grouper object.")
         self._grouper = _grouper
+        self._as_index = _as_index
         # GH 32262: It's convention to keep the grouping column in
         # groupby.<agg_func>, but unexpected to users in
         # groupby.rolling.<agg_func>
@@ -608,6 +612,8 @@ class BaseWindowGroupby(BaseWindow):
         )
 
         result.index = result_index
+        if not self._as_index:
+            result = result.reset_index(level=list(range(len(groupby_keys))))
         return result
 
     def _apply_pairwise(
@@ -1455,13 +1461,6 @@ class Rolling(RollingAndExpandingMixin):
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
             self._validate_monotonic()
-
-            # we don't allow center
-            if self.center:
-                raise NotImplementedError(
-                    "center is not implemented for "
-                    "datetimelike and offset based windows"
-                )
 
             # this will raise ValueError on non-fixed freqs
             try:
