@@ -71,8 +71,8 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.common import (
-    ensure_int64,
     ensure_object,
+    ensure_platform_int,
     ensure_str,
     is_bool,
     is_bool_dtype,
@@ -109,10 +109,7 @@ from pandas.core import (
 )
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
-from pandas.core.base import (
-    PandasObject,
-    SelectionMixin,
-)
+from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
@@ -187,7 +184,7 @@ _shared_doc_kwargs = {
 bool_t = bool  # Need alias because NDFrame has def bool:
 
 
-class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
+class NDFrame(PandasObject, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -683,18 +680,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         # error: Incompatible return value type (got "number", expected "int")
         return np.prod(self.shape)  # type: ignore[return-value]
-
-    @final
-    @property
-    def _selected_obj(self: FrameOrSeries) -> FrameOrSeries:
-        """ internal compat with SelectionMixin """
-        return self
-
-    @final
-    @property
-    def _obj_with_exclusions(self: FrameOrSeries) -> FrameOrSeries:
-        """ internal compat with SelectionMixin """
-        return self
 
     @overload
     def set_axis(
@@ -4887,7 +4872,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             index = ensure_index(index)
             if indexer is not None:
-                indexer = ensure_int64(indexer)
+                indexer = ensure_platform_int(indexer)
 
             # TODO: speed up on homogeneous DataFrame objects
             new_data = new_data.reindex_indexer(
