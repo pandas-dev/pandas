@@ -1970,6 +1970,15 @@ class DataFrame(NDFrame, OpsMixin):
         2      1     c
         3      0     d
         """
+        if not (
+            (isinstance(data, np.ndarray) and data.dtype.names is not None)
+            or isinstance(data, DataFrame)
+            or (is_list_like(data) and not isinstance(data, Series))
+        ):
+            raise TypeError(
+                "data must be structured ndarray, sequence of tuples or dicts, "
+                "or DataFrame"
+            )
         # Make a copy of the input columns so we can modify it
         if columns is not None:
             columns = ensure_index(columns)
