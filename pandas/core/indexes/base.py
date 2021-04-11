@@ -3795,6 +3795,27 @@ class Index(IndexOpsMixin, PandasObject):
             Resulting index.
         indexer : np.ndarray or None
             Indices of output values in original index.
+
+
+        Examples
+        --------
+        >>> index = ['a', 'b', 'c', 'd']
+        >>> df = pd.DataFrame({"A": [1,2,3,4],
+        ...                   "B": [5,6,7,8],
+        ...                   "C": [9,10,11,12]},
+        ...                   index=index)
+        >>> df
+            A   B   C
+        a   1   5   9
+        b   2   6   10
+        c   3   7   11
+        d   4   8   12
+        >>> target, indexer = df.index.reindex(target=['I', 'II', 'III', 'IV'])
+        >>> target, indexer
+        (Index(['I', 'II', 'III', 'IV'], dtype='object'), array([-1, -1, -1, -1]))
+        >>> target, indexer = df.index.reindex(target=['I', 'd', 'a', 'IV'])
+        >>> target, indexer
+        (Index(['I', 'd', 'III', 'IV'], dtype='object'), array([-1,  3, 0, -1]))
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).
