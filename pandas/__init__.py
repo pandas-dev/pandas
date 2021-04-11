@@ -172,6 +172,7 @@ from pandas.io.api import (
     read_stata,
     read_sas,
     read_spss,
+    read_rdata,
 )
 
 from pandas.io.json import _json_normalize as json_normalize

@@ -110,6 +110,109 @@ both XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
 
 For more, see :ref:`io.xml` in the user guide on IO tools.
 
+.. _whatsnew_130.read_to_rdata:
+
+Read and write R data files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We added I/O support to read and write R data files (.rda, .Rdata, .rds) using
+:func:`pandas.read_rdata` and :meth:`DataFrame.to_rdata`. Equipped with two engines,
+`pyreadr`_ and command line caller, `rscript`_, these methods will maintain fast and
+durable support for open source data migration between R and Python. (:issue:`40287`)
+
+.. _pyreadr: https://github.com/ofajardo/pyreadr
+.. _rscript: https://www.rdocumentation.org/packages/utils/versions/3.6.2/topics/Rscript
+
+In R, the below generated data frame and matrix:
+
+.. code-block:: r
+
+    In [1]: carbon_ppm_df <- data.frame(
+       ...:     year = c(2020, 2020, 2020, 2021, 2021),
+       ...:     month = c(10, 11, 12, 1, 2),
+       ...:     monthly_average = c(411.51, 413.11, 414.25, 415.52, 416.75),
+       ...:     num_days = c(30, 27, 30, 29, 28),
+       ...:     st_dev_of_days = c(0.22, 0.8, 0.48, 0.44, 1.01),
+       ...:     unc_mon_mean = c(0.08, 0.29, 0.17, 0.16, 0.36)
+       ...: )
+
+    In [2]: iucn_species_mtx <- matrix(
+       ...:     c(102, 79, 159, 63, 30, 13, 267, 35, 85,
+       ...:       30, 10, 5, 1, 2, 7, 14, 2, 2,
+       ...:       409, 121, 22, 75, 40, 78, 134, 146, 28,
+       ...:       29, 6, 0, 0, 0, 12, 2, 1, 0,
+       ...:       3770, 627, 223, 365, 332, 699, 604, 663, 225,
+       ...:       6972, 989, 460, 730, 588, 1302, 518, 1060, 542,
+       ...:       7089, 1219, 798, 831, 538, 1051, 975, 719, 556,
+       ...:       2990, 4251, 52, 2819, 1220, 914, 1648, 1184, 845,
+       ...:       43885, 20685, 11158, 10865, 8492, 8192, 7326, 7212, 5940
+       ...:      ),
+       ...:     ncol=9, nrow=9,
+       ...:     dimnames = list(
+       ...:         c("MAGNOLIOPSIDA", "ACTINOPTERYGII", "AVES",
+       ...:           "INSECTA", "REPTILIA", "LILIOPSIDA",
+       ...:           "GASTROPODA", "AMPHIBIA", "MAMMALIA"),
+       ...:         c("EX", "EW", "CR(PE)", "CR(PEW)", "CR",
+       ...:           "EN", "VU", "DD", "Total")
+       ...:     )
+       ...: )
+
+    In [3]: saveRDS(ppm_df, "ppm_df_r.rds")
+    In [4]: save(ppm_df, iucn_species_mtx, "env_objs_r.rda")
+
+Can then be read in pandas with either engine:
+
+.. code-block:: ipython
+
+    In [1]: ppm_df = pd.read_rdata("ppm_df_r.rds", engine="pyreadr")
+    In [2]: ppm_df
+    Out[3]:
+       year  month  monthly_average  num_days  st_dev_of_days  unc_mon_mean
+    0  2020     10           411.51        30            0.22          0.08
+    1  2020     11           413.11        27            0.80          0.29
+    2  2020     12           414.25        30            0.48          0.17
+    3  2021      1           415.52        29            0.44          0.16
+    4  2021      2           416.75        28            1.01          0.36
+
+    In [4]: env_objs = pd.read_rdata("env_objs_r.rda", engine="rscript")
+    Out[5]:
+    {'carbon_ppm_df':
+        year  month  monthly_average  num_days  st_dev_of_days  unc_mon_mean
+     0  2020     10           411.51        30            0.22          0.08
+     1  2020     11           413.11        27            0.80          0.29
+     2  2020     12           414.25        30            0.48          0.17
+     3  2021      1           415.52        29            0.44          0.16
+     4  2021      2           416.75        28            1.01          0.36
+
+     [5 rows x 6 columns],
+     'species_matrix':
+                      EX  EW  CR(PE)  CR(PEW)    CR     EN     VU     DD   Total
+     rownames
+     MAGNOLIOPSIDA   102  30     409       29  3770   6972   7089   2990   43885
+     ACTINOPTERYGII   79  10     121        6   627    989   1219   4251   20685
+     AVES            159   5      22        0   223    460    798     52   11158
+     INSECTA          63   1      75        0   365    730    831   2819   10865
+     REPTILIA         30   2      40        0   332    588    538   1220    8492
+     LILIOPSIDA       13   7      78       12   699   1302   1051    914    8192
+     GASTROPODA      267  14     134        2   604    518    975   1648    7326
+     AMPHIBIA         35   2     146        1   663   1060    719   1184    7212
+
+     [8 rows x 9 columns]}
+
+Even exported back out to R data files:
+
+.. code-block:: ipython
+
+    In [5]: ppm_df.to_rdata("ppm_df_py.rds")
+    In [6]: ppm_df.to_rdata(
+       ...:     "env_objs_py.rda",
+       ...:     engine="rscript",
+       ...:     other_frames=env_objs["species_matrix"],
+       ...:     rda_names=["ppm_df", "species_mtx"]
+       ...: )
+
+For more, see :ref:`io.read_rdata` in the user guide on IO tools.
+
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements

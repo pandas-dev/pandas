@@ -29,6 +29,7 @@ from pandas.io.pytables import (
     HDFStore,
     read_hdf,
 )
+from pandas.io.rdata import read_rdata
 from pandas.io.sas import read_sas
 from pandas.io.spss import read_spss
 from pandas.io.sql import (

@@ -31,6 +31,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
     binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
     binary;`Msgpack <https://msgpack.org/>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
+    binary;`R <https://www.r-project.org/>`__;:ref:`read_rdata<io.rdata_reader>`;:ref:`to_rdata<io.rdata_writer>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
@@ -5903,6 +5904,304 @@ respective functions from ``pandas-gbq``.
 
 Full documentation can be found `here <https://pandas-gbq.readthedocs.io/>`__.
 
+
+.. _io.rdata:
+
+R data format
+-------------
+
+.. _io.rdata_reader:
+
+Reading R data
+''''''''''''''
+
+.. versionadded:: 1.3.0
+
+The top-level function ``read_rdata`` will read the native serialization types
+in the R language and environment. For .RData and its synonymous shorthand, .rda,
+that can hold multiple R objects, method will return a ``dict`` of ``DataFrames``.
+For .rds types that only contains a single R object, method will return a single
+``DataFrame``.
+
+.. note::
+
+   Since *any* R object can be saved in these types, this method will only return
+   data.frame objects or objects coercible to data.frames including matrices,
+   tibbles, and data.tables even 3D arrays. Depending on engine used, either
+   an error raises for non-data.frame objects or such objects are ignored.
+
+For example, consider the following generated data.frames in R using samples from
+US EPA, UK BGCI, and NOAA pubilc data:
+
+.. code-block:: r
+
+   ghg_df <- data.frame(
+     gas = c("Carbon dioxide", "Methane", "Nitrous oxide",
+             "Fluorinated gases", "Total"),
+     year = c(2018, 2018, 2018, 2018, 2018),
+     emissions = c(5424.88150213288, 634.457127078267, 434.528555376666,
+                   182.782432461777, 6676.64961704959),
+     row.names = c(141:145),
+     stringsAsFactors = FALSE
+   )
+
+   saveRDS(ghg_df, file="ghg_df.rds")
+
+   plants_df <- data.frame(
+     plant_group = c("Pteridophytes", "Pteridophytes", "Pteridophytes",
+                     "Pteridophytes", "Pteridophytes"),
+     status = c("Data Deficient", "Extinct", "Not Threatened",
+                "Possibly Threatened", "Threatened"),
+     count = c(398, 65, 1294, 408, 1275),
+     row.names = c(16:20),
+     stringsAsFactors = FALSE
+   )
+
+   saveRDS(plants_df, file="plants_df.rds")
+
+   sea_ice_df_new <- data.frame(
+     year = c(2016, 2017, 2018, 2019, 2020),
+     mo = c(12, 12, 12, 12, 12),
+     data.type = c("Goddard", "Goddard", "Goddard", "Goddard", "NRTSI-G"),
+     region = c("S", "S", "S", "S", "S"),
+     extent = c(8.28, 9.48, 9.19, 9.41, 10.44),
+     area = c(5.51, 6.23, 5.59, 6.59, 6.5),
+     row.names = c(1012:1016),
+     stringsAsFactors = FALSE
+   )
+
+   saveRDS(sea_ice_df, file="sea_ice_df.rds")
+
+   save(ghg_df, plants_df, sea_ice_df, file="env_data_dfs.rda")
+
+Then in pandas you can read the .rds or .rda files:
+
+.. ipython:: python
+   :suppress:
+
+   rel_path = os.path.join("..", "pandas", "tests", "io", "data", "rdata")
+   file_path = os.path.abspath(rel_path)
+
+.. ipython:: python
+
+   rds_file = os.path.join(file_path, "ghg_df.rds")
+   ghg_df = pd.read_rdata(rds_file).tail()
+   ghg_df
+
+   rda_file = os.path.join(file_path, "env_data_dfs.rda")
+   env_dfs = pd.read_rdata(rda_file)
+   env_dfs
+
+To ignore the rownames of data.frame, use option ``rownames=False``:
+
+.. ipython:: python
+
+   rds_file = os.path.join(file_path, "plants_df.rds")
+   plants_df = pd.read_rdata(rds_file, rownames=False).tail()
+   plants_df
+
+
+To select specific objects in .rda, pass a list of names into ``select_frames``:
+
+.. ipython:: python
+
+   rda_file = os.path.join(file_path, "env_data_dfs.rda")
+   env_dfs = pd.read_rdata(rda_file, select_frames=["sea_ice_df"])
+   env_dfs
+
+To read from URL, pass link directly into method:
+
+.. ipython:: python
+
+   url = ("https://github.com/hadley/nycflights13/"
+          "blob/master/data/airlines.rda?raw=true")
+
+   airlines = pd.read_rdata(url, file_format="rda")
+   airlines
+
+To read from a file-like object, read object in argument, ``path_or_buffer``:
+
+.. ipython:: python
+
+   rds_file = os.path.join(file_path, "sea_ice_df.rds")
+   with open(rds_file, "rb") as f:
+       sea_ice_df = pd.read_rdata(f.read(), file_format="rds")
+
+   sea_ice_df
+
+With ``rscript`` as ``engine``, a direct command line call to Rscript is run
+to read data natively in R and transfer content with several options of ``mode``.
+
+.. note::
+
+   If you do not have R installed and attempt to use the ``rscript`` ``engine``,
+   then an ``ImportError`` will raise. Do note: Rscript must be recognized as a
+   top-level command on machine. Hence, R's bin folder must be in Path environment
+   variable for the OS. If Rscript is not recognized even if you have R installed,
+   you will receive same ``ImportError``.
+
+- For the ``csv`` mode (default), no other package in R is required.
+  Data types are adhered in this data exchange following a text approach.
+
+- For the ``feather`` mode, the ``arrow`` package in R must be installed.
+  Additionally, the counterpart ``pyarrow`` package in Python must be
+  installed. This binary approach allows faster data exchange than text approach.
+
+- For the ``parquet`` mode, again the ``arrow`` package in R must be installed.
+  and again ``pyarrow`` package in Python must be installed. Similarly, this
+  binary approach allows faster data exchange than text approach.
+
+- For the ``sqlite`` mode, the ``RSQLite`` package in R (part of DBI family of
+  database APIs) must be installed with no additional package needed for Python.
+  This database approach ensures data type integrity.
+
+.. ipython:: python
+
+   rds_file = os.path.join(file_path, "plants_df.rds")
+   plants_df = pd.read_rdata(rds_file, engine="rscript", mode="sqlite").tail()
+   plants_df
+
+.. note::
+
+   The above selected options for ``mode`` will not generate such formats but
+   uses them under the hood in disk transfer of data between R and Python.
+
+
+.. _io.rdata_writer:
+
+Writing R data
+''''''''''''''
+
+.. versionadded:: 1.3.0
+
+The method :func:`~pandas.core.frame.DataFrame.to_rdata` will write a DataFrame
+or multiple DataFrames into R data files (.Rdata, .rda, and .rds).
+
+For single object in rds type:
+
+.. ipython:: python
+
+   plants_df.to_rdata("plants_df.rds")
+
+For multiple objects in RData or rda types using the ``rscript`` engine,
+use the ``other_frames`` argument and be sure to provide ``rda_names`` for all
+DataFrames:
+
+.. ipython:: python
+
+   plants_df.to_rdata(
+       "env_dfs.rda",
+       engine="rscript",
+       other_frames=[ghg_df, sea_ice_df],
+       rda_names=["plants_df", "ghg_df", "sea_ice_df"]
+   )
+
+With either engine, pandas index will not map into R rownames. Using the default
+``index=True`` will output an index column or multiple columns for MultiIndex.
+
+.. ipython:: python
+
+    (ghg_df.rename_axis(None)
+        .to_rdata("ghg_df.rds", engine="rscript")
+     )
+    pd.read_rdata("ghg_df.rds").tail()
+
+Otherwise, use ``index=False``:
+
+.. ipython:: python
+
+    (ghg_df.rename_axis(None)
+        .to_rdata("ghg_df.rds", engine="rscript", index=False)
+     )
+    pd.read_rdata("ghg_df.rds").tail()
+
+With both engines, the default compression of R data files will be ``gzip``.
+Notice the different sizes of compressed and uncompressed files:
+
+.. ipython:: python
+
+   plants_df.to_rdata("plants_df_uncomp.rds", compress=False)
+
+   os.stat("plants_df.rds").st_size
+   os.stat("plants_df_uncomp.rds").st_size
+
+The ``rscript`` engine supports all listed compression types including:
+``gzip``, ``bzip2``, and ``xz``.
+
+Additionally, with ``rscript`` engine, data files can be written in ascii (text)
+rather than default binary with ``ascii`` argument:
+
+.. ipython:: python
+
+   sea_ice_df.to_rdata("sea_ice_df_ascii.rda", engine="rscript",
+                       ascii=True, compress=False)
+
+   with open("sea_ice_df_ascii.rda", "r") as f:
+       for i in range(10):
+           line = next(f).strip()
+           print(line)
+
+.. ipython:: python
+   :suppress:
+
+   os.remove("ghg_df.rds")
+   os.remove("plants_df.rds")
+   os.remove("env_dfs.rda")
+   os.remove("plants_df_uncomp.rds")
+   os.remove("sea_ice_df_ascii.rda")
+
+Once exported, the single DataFrame can be read back in R or multiple DataFrames
+loaded in R:
+
+.. code-block:: r
+
+   plants_df <- readRDS("plants_df.rds")
+   tail(plants_df, 5)
+        plant_group              status count
+   16 Pteridophytes      Data Deficient   398
+   17 Pteridophytes             Extinct    65
+   18 Pteridophytes      Not Threatened  1294
+   19 Pteridophytes Possibly Threatened   408
+   20 Pteridophytes          Threatened  1275
+
+
+   load("env_dfs.rda")
+   eapply(.GlobalEnv, tail, 5)
+   $plants_df
+        plant_group              status count
+   16 Pteridophytes      Data Deficient   398
+   17 Pteridophytes             Extinct    65
+   18 Pteridophytes      Not Threatened  1294
+   19 Pteridophytes Possibly Threatened   408
+   20 Pteridophytes          Threatened  1275
+
+   $sea_ice_df
+   year mo data.type region extent area
+   1012 2016 12   Goddard      S   8.28 5.51
+   1013 2017 12   Goddard      S   9.48 6.23
+   1014 2018 12   Goddard      S   9.19 5.59
+   1015 2019 12   Goddard      S   9.41 6.59
+   1016 2020 12   NRTSI-G      S  10.44 6.50
+
+   $ghg_df
+                     gas year emissions
+   141    Carbon dioxide 2018 5424.8815
+   142           Methane 2018  634.4571
+   143     Nitrous oxide 2018  434.5286
+   144 Fluorinated gases 2018  182.7824
+   145             Total 2018 6676.6496
+
+For more information of ``pyreadr`` engine, see main page of `pyreadr`_ package for
+further notes on support and limitations. For more information of R serialization
+data types, see docs on `rds`_ and `rda`_ data files.
+
+.. _pyreadr: https://github.com/ofajardo/pyreadr
+
+.. _rds: https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/readRDS
+
+.. _rda: https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/save
+
+
 .. _io.stata:
 
 Stata format
@@ -5957,6 +6256,7 @@ outside of this range, the variable is cast to ``int16``.
   strings containing up to 244 characters, a limitation imposed by the version
   115 dta file format. Attempting to write *Stata* dta files with strings
   longer than 244 characters raises a ``ValueError``.
+
 
 .. _io.stata_reader:
 

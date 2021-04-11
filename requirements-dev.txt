@@ -74,6 +74,7 @@ sqlalchemy
 xarray
 cftime
 pyreadstat
+pyreadr
 tabulate>=0.8.3
 natsort
 git+https://github.com/pydata/pydata-sphinx-theme.git@master

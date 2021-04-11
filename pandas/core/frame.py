@@ -2271,6 +2271,231 @@ class DataFrame(NDFrame, OpsMixin):
         return cls(mgr)
 
     @doc(storage_options=generic._shared_docs["storage_options"])
+    def to_rdata(
+        self,
+        path_or_buffer: FilePathOrBuffer,
+        file_format: str = "infer",
+        engine: str = "pyreadr",
+        mode: str = "csv",
+        other_frames: Optional[List[DataFrame]] = None,
+        rda_names: List[str] = ["pandas_dataframe"],
+        index: bool = True,
+        ascii: bool = False,
+        compress: Union[bool, str] = "gzip",
+        encoding: str = "utf-8",
+        storage_options: StorageOptions = None,
+    ) -> None:
+        """
+        Render one or more DataFrames to R data (.rda, .Rdata, .rds).
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        path_or_buffer : a valid str, path object or file-like object
+            Any valid string path is acceptable.
+
+        file_format : {{'infer', 'rda', 'rdata', 'rds'}}, default 'infer'
+            R serialization type generated from native commands: base::save
+            (that saves multiple objects) or base::saveRDS (that saves a
+            single object to disk). Default 'infer' will use extension in file
+            name to determine the format type.
+
+        engine : {{'pyreadr', 'rscript'}}, default 'pyreadr'
+            Engine used to write to R data files. Currently, two types are
+            supported: ``pyreadr`` which requires the pyreadr package to be
+            installed and ``rscript`` which requires R to be installed on machine.
+            For ``rscript``, be sure the R bin installation folder is included in
+            the system Path environment variable. The ``pyreadr`` is the faster
+            parser to handle most needs but ``rscript`` engine provides fuller
+            support of rda and rds formats since it calls native R commands.
+
+        mode : {{'csv', 'parquet', 'feather'}}, default 'csv'
+            Python and R I/O transfer mode that only applies to ``rscript``
+            engine (ignored for ``pyreadr``). Using ``csv`` (text approach), no
+            additional packages are required. Using ``parquet`` or ``feather``
+            (binary approach) requires pyarrow installed in Python and arrow
+            package installed in R. Using ``sqlite`` (database approach) requires
+            RSQLite package installed in R. Binary will usually be faster to process
+            than text data. Database usually ensures data type integrity.
+
+        other_frames : list, optional
+            Other DataFrames to be included in rda (not rds) files that can
+            contain multiple objects. Ignored ``pyreadr`` engine that currently
+            supports only a single DataFrame written to rda files.
+
+        rda_names : list, default ["pandas_dataframe"]
+            Names for current and other DataFrames in rda file. The number of names
+            should equal the number of current DataFrame and ``other_frames``.
+            For ``pyreadr`` engine that can only write one DataFrame to rda file,
+            only the first name in list will be used.
+
+        index : bool, default True
+            Include index or MulitIndex in output as separate columns. Since
+            DataFrame indexes can include multiple columns and R rownames can only
+            include one column, neither ``pyreadr`` nor ``rscript`` engines will
+            map DataFrame index to R data.frame rownames.
+
+        ascii : bool, default False
+            Write data into ASCII (text) representation. Only supported with
+            ``rscript`` engine.
+
+        compress : bool or {{'gzip', 'bzip2', 'xz'}}, default 'gzip'
+            Compression types for R data files. Use False for uncompressed
+            files. For ``pyreadr`` engine, False and 'gzip' is supported.
+
+        encoding : str, optional, default 'utf-8'
+            Encoding of R data.
+
+        {storage_options}
+
+        Returns
+        -------
+        None
+            Either None or ValueError is raised.
+
+        See Also
+        --------
+        to_stata : Convert DataFrame to a Stata dataset.
+        to_parquet : Convert DataFrame to parquet format.
+        to_feather: Convert DataFrame to feather formatt.
+
+        Examples
+        --------
+        To save an .rds file which only contains a single DataFrame:
+
+        >>> ghg_df = pd.DataFrame(
+        ...     {{'gas': ['Carbon dioxide', 'Methane',
+        ...              'Nitrous oxide',
+        ...              'Fluorinated gases',
+        ...              'Total'],
+        ...      'year': [2018, 2018, 2018, 2018, 2018],
+        ...      'emissions': [5424.88, 634.46, 434.53,
+        ...                    182.78, 6676.65]
+        ...      }})
+        >>> ghg_df.to_rdata("ghg_df.rds")
+
+        >>> R_code = '''
+        ... ghg_df <- readRDS("ghg_df.rds")
+        ... ghg_df
+        ...   index               gas year emissions
+        ... 1     0    Carbon dioxide 2018   5424.88
+        ... 2     1           Methane 2018    634.46
+        ... 3     2     Nitrous oxide 2018    434.53
+        ... 4     3 Fluorinated gases 2018    182.78
+        ... 5     4             Total 2018   6676.65
+        ... '''
+
+        To save an .rda or .RData file which can contains one or more
+        DataFrames:
+
+        >>> plants_df = pd.DataFrame(
+        ...     {{'plant_group': ['Pteridophytes',
+        ...                      'Pteridophytes',
+        ...                      'Pteridophytes',
+        ...                      'Pteridophytes',
+        ...                      'Pteridophytes'],
+        ...      'status': ['Data Deficient',
+        ...                 'Extinct',
+        ...                 'Not Threatened',
+        ...                 'Possibly Threatened',
+        ...                 'Threatened'],
+        ...      'count': [398, 65, 1294, 408, 1275]
+        ...      }})
+        >>> sea_ice_df = pd.DataFrame(
+        ...     {{'year': [2016, 2017, 2018, 2019, 2020],
+        ...      'mo': [12, 12, 12, 12, 12],
+        ...      'data.type': ['Goddard',
+        ...                    'Goddard',
+        ...                    'Goddard',
+        ...                    'Goddard',
+        ...                    'NRTSI-G'],
+        ...      'region': ['S', 'S', 'S', 'S', 'S'],
+        ...      'extent': [8.28, 9.48, 9.19, 9.41, 10.44],
+        ...      'area': [5.51, 6.23, 5.59, 6.59, 6.5]
+        ...      }})
+        >>> ghg_df.to_rdata(
+        ...     "env_data_df.rda",
+        ...     engine="rscript",
+        ...     other_frames=[plants_df, sea_ice_df],
+        ...     rda_names=["ghg_df", "plants_df", "sea_ice_df"]
+        ... )  # doctest: +SKIP
+
+        >>> R_code = '''
+        ... load("env_data_df.rds")
+        ...
+        ... mget(ls())
+        ... $ghg_df
+        ...   index               gas year emissions
+        ... 1     0    Carbon dioxide 2018   5424.88
+        ... 2     1           Methane 2018    634.46
+        ... 3     2     Nitrous oxide 2018    434.53
+        ... 4     3 Fluorinated gases 2018    182.78
+        ... 5     4             Total 2018   6676.65
+        ...
+        ... $plants_df
+        ...   index   plant_group              status count
+        ... 1     0 Pteridophytes      Data Deficient   398
+        ... 2     1 Pteridophytes             Extinct    65
+        ... 3     2 Pteridophytes      Not Threatened  1294
+        ... 4     3 Pteridophytes Possibly Threatened   408
+        ... 5     4 Pteridophytes          Threatened  1275
+        ...
+        ... $sea_ice_df
+        ...   index year mo data.type region extent area
+        ... 1     0 2016 12   Goddard      S   8.28 5.51
+        ... 2     1 2017 12   Goddard      S   9.48 6.23
+        ... 3     2 2018 12   Goddard      S   9.19 5.59
+        ... 4     3 2019 12   Goddard      S   9.41 6.59
+        ... 5     4 2020 12   NRTSI-G      S  10.44 6.50
+        ... '''
+        """
+        from pandas.io.rdata import (
+            RSCRIPT_EXISTS,
+            PyReadrWriter,
+            RscriptWriter,
+        )
+
+        pyreadr = import_optional_dependency("pyreadr", errors="ignore")
+        pyarrow = import_optional_dependency("pyarrow", errors="ignore")
+
+        RDataWriter: Union[Type[PyReadrWriter], Type[RscriptWriter]]
+
+        if engine == "pyreadr":
+            if pyreadr is None:
+                raise ImportError("pyreadr not found, please install for this engine.")
+            RDataWriter = PyReadrWriter
+
+        elif engine == "rscript":
+            if RSCRIPT_EXISTS is None:
+                raise FileNotFoundError(
+                    "R is either not installed on this system or its "
+                    "bin folder is not in Path environment variable."
+                )
+            if pyarrow is None and mode in ["parquet", "feather"]:
+                raise ImportError("pyarrow not found, please install for this mode.")
+            RDataWriter = RscriptWriter
+        else:
+            raise ValueError(f"{engine} is not a supported engine.")
+
+        rdata_writer = RDataWriter(
+            self,
+            path_or_buffer=path_or_buffer,
+            file_format=file_format,
+            engine=engine,
+            mode=mode,
+            other_frames=other_frames,
+            rda_names=rda_names,
+            index=index,
+            ascii=ascii,
+            compress=compress,
+            encoding=encoding,
+            storage_options=storage_options,
+        )
+
+        return rdata_writer.write_data()
+
+    @doc(storage_options=generic._shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_stata(
         self,
