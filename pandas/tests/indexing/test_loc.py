@@ -1063,6 +1063,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             [
                 "cannot copy sequence with size 2 to array axis with dimension 0",
                 r"could not broadcast input array from shape \(2,\) into shape \(0,\)",
+                "Must have equal len keys and value when setting with an iterable",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -1162,6 +1163,37 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame({"A": pd.array([0, 0], dtype=SparseDtype("int64"))})
         result = df.loc[[0, 1]]
         tm.assert_frame_equal(result, df)
+
+    @td.skip_if_no_scipy
+    def test_loc_getitem_sparse_frame(self):
+        # GH34687
+        from scipy.sparse import eye
+
+        df = DataFrame.sparse.from_spmatrix(eye(5))
+        result = df.loc[range(2)]
+        expected = DataFrame(
+            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
+            dtype=SparseDtype("float64", 0.0),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[range(2)].loc[range(1)]
+        expected = DataFrame(
+            [[1.0, 0.0, 0.0, 0.0, 0.0]], dtype=SparseDtype("float64", 0.0)
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_getitem_sparse_series(self):
+        # GH34687
+        s = Series([1.0, 0.0, 0.0, 0.0, 0.0], dtype=SparseDtype("float64", 0.0))
+
+        result = s.loc[range(2)]
+        expected = Series([1.0, 0.0], dtype=SparseDtype("float64", 0.0))
+        tm.assert_series_equal(result, expected)
+
+        result = s.loc[range(3)].loc[range(2)]
+        expected = Series([1.0, 0.0], dtype=SparseDtype("float64", 0.0))
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("key_type", [iter, np.array, Series, Index])
     def test_loc_getitem_iterable(self, float_frame, key_type):
@@ -2082,6 +2114,35 @@ class TestLabelSlicing:
             data=[[2, 3]], index=[0], columns=Index([1, 2], dtype=object)
         )
         tm.assert_frame_equal(df.loc[:, 1:], expected)
+
+
+class TestLocBooleanLabelsAndSlices(Base):
+    @pytest.mark.parametrize("bool_value", [True, False])
+    def test_loc_bool_incompatible_index_raises(
+        self, index, frame_or_series, bool_value
+    ):
+        # GH20432
+        message = f"{bool_value}: boolean label can not be used without a boolean index"
+        if index.inferred_type != "boolean":
+            obj = frame_or_series(index=index, dtype="object")
+            with pytest.raises(KeyError, match=message):
+                obj.loc[bool_value]
+
+    @pytest.mark.parametrize("bool_value", [True, False])
+    def test_loc_bool_should_not_raise(self, frame_or_series, bool_value):
+        obj = frame_or_series(
+            index=Index([True, False], dtype="boolean"), dtype="object"
+        )
+        obj.loc[bool_value]
+
+    def test_loc_bool_slice_raises(self, index, frame_or_series):
+        # GH20432
+        message = (
+            r"slice\(True, False, None\): boolean values can not be used in a slice"
+        )
+        obj = frame_or_series(index=index, dtype="object")
+        with pytest.raises(TypeError, match=message):
+            obj.loc[True:False]
 
 
 class TestLocBooleanMask:

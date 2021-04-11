@@ -5,10 +5,6 @@ from datetime import timedelta
 from textwrap import dedent
 from typing import (
     Callable,
-    Dict,
-    Optional,
-    Tuple,
-    Union,
     no_type_check,
 )
 
@@ -44,6 +40,7 @@ from pandas.core.dtypes.generic import (
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import DataError
+import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
     _shared_docs,
@@ -86,7 +83,7 @@ from pandas.tseries.offsets import (
     Tick,
 )
 
-_shared_docs_kwargs: Dict[str, str] = {}
+_shared_docs_kwargs: dict[str, str] = {}
 
 
 class Resampler(BaseGroupBy, ShallowMixin):
@@ -274,7 +271,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
     @Appender(_pipe_template)
     def pipe(
         self,
-        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        func: Callable[..., T] | tuple[Callable[..., T], str],
         *args,
         **kwargs,
     ) -> T:
@@ -1090,7 +1087,7 @@ class DatetimeIndexResampler(Resampler):
         **kwargs : kw args passed to how function
         """
         self._set_binner()
-        how = self._get_cython_func(how) or how
+        how = com.get_cython_func(how) or how
         ax = self.ax
         obj = self._selected_obj
 
@@ -1245,7 +1242,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self.kind == "timestamp":
             return super()._downsample(how, **kwargs)
 
-        how = self._get_cython_func(how) or how
+        how = com.get_cython_func(how) or how
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
@@ -1272,7 +1269,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         """
         Parameters
         ----------
-        method : string {'backfill', 'bfill', 'pad', 'ffill'}
+        method : {'backfill', 'bfill', 'pad', 'ffill'}
             Method for upsampling.
         limit : int, default None
             Maximum size gap to fill when reindexing.
@@ -1393,18 +1390,18 @@ class TimeGrouper(Grouper):
     def __init__(
         self,
         freq="Min",
-        closed: Optional[str] = None,
-        label: Optional[str] = None,
+        closed: str | None = None,
+        label: str | None = None,
         how="mean",
         axis=0,
         fill_method=None,
         limit=None,
         loffset=None,
-        kind: Optional[str] = None,
-        convention: Optional[str] = None,
-        base: Optional[int] = None,
-        origin: Union[str, TimestampConvertibleTypes] = "start_day",
-        offset: Optional[TimedeltaConvertibleTypes] = None,
+        kind: str | None = None,
+        convention: str | None = None,
+        base: int | None = None,
+        origin: str | TimestampConvertibleTypes = "start_day",
+        offset: TimedeltaConvertibleTypes | None = None,
         **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
@@ -1883,7 +1880,7 @@ def _get_period_range_edges(
 
 def _insert_nat_bin(
     binner: PeriodIndex, bins: np.ndarray, labels: PeriodIndex, nat_count: int
-) -> Tuple[PeriodIndex, np.ndarray, PeriodIndex]:
+) -> tuple[PeriodIndex, np.ndarray, PeriodIndex]:
     # NaT handling as in pandas._lib.lib.generate_bins_dt64()
     # shift bins by the number of NaT
     assert nat_count > 0
@@ -1986,7 +1983,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
 
         new_obj.index = _asfreq_compat(obj.index, freq)
     else:
-        dti = date_range(obj.index[0], obj.index[-1], freq=freq)
+        dti = date_range(obj.index.min(), obj.index.max(), freq=freq)
         dti.name = obj.index.name
         new_obj = obj.reindex(dti, method=method, fill_value=fill_value)
         if normalize:
