@@ -399,31 +399,34 @@ class Styler(StylerRenderer):
         -----
         **Latex Packages**
 
-        To ``sparsify`` MultiIndexes it is necessary to include package {multirow}.
-        Multiple columns is handled by the default {tabular} environment.
+        For the following features we recommend the following LaTeX inclusions:
 
-        For the default ``hrules`` it is necessary to include package {booktabs}.
+        ===================== ==========================================================
+        Feature               Inclusion
+        ===================== ==========================================================
+        sparse columns        none: included within default {tabular} environment
+        sparse rows           \\usepackage{multirow}
+        hrules                \\usepackage{booktabs}
+        colors                \\usepackage[table]{xcolor}
+        siunitx §             \\usepackage{siunitx}
+        bold (with siunitx)   | \\usepackage{etoolbox}
+                              | \\robustify\\bfseries
+                              | \\sisetup{detect-all = true}  *(within {document})*
+        italic (with siunitx) | \\usepackage{etoolbox}
+                              | \\robustify\\itshape
+                              | \\sisetup{detect-all = true}  *(within {document})*
+        ===================== ==========================================================
 
-        We recommend package [table]{xcolor} for coloring text and backgrounds.
-
-        If using the ``siunitx`` argument then the necessary {siunitx} package should
-        be included, and numeric columns will be set to format "S" instead of "r".
-        Additionally, if combining with \\itshape and \\bfseries we recommend the
-        {etoolbox} package in combination with the preamble commands:
-
-          - \\robustify\\itshape
-          - \\robustify\\bfseries
-
-        Also within the document, but before the {table} environment adding:
-
-          - \\sisetup{detect-all = true}
+        §: if using the ``siunitx`` argument then numeric columns will be set to a
+        ``column_format`` of "S" instead of "r".
 
         **Cell Styles**
 
         LaTeX styling can only be rendered if the accompanying styling functions have
         been constructed with appropriate LaTeX commands. All styling
         functionality is built around the concept of a CSS ``(<attribute>, <value>)``
-        pair (see HERE XXX), and this should be replaced by a LaTeX
+        pair (see `Table Visualization <../../user_guide/style.ipynb>`_), and this
+        should be replaced by a LaTeX
         ``(<command>, <options>)`` approach and each cell will be styled individually
         using nested LaTeX commands with their accompanied options.
 
@@ -445,24 +448,27 @@ class Styler(StylerRenderer):
         ``display_value`` with the default structure:
         ``\<command><options> <display_value>``.
         Where there are multiple commands the latter is nested recursively, so that
-        the above example highlighed cell is rendered as:
-
-        \\color{red} \\itshape 4
+        the above example highlighed cell is rendered as ``\color{red} \itshape 4``.
 
         Occasionally this format does not suit the applied command, or
         combination of LaTeX packages that is in use, so additional flags can be
-        added to the ``<options>`` to result in different positions of required
-        braces (the default being the same as `--nowrap`):
+        added to the ``<options>``, within the tuple, to result in different
+        positions of required braces (the **default** being the same as ``--nowrap``):
 
-          - (<command>,<options>--nowrap): \\<command><options> <display_value>
-          - (<command>,<options>--rwrap): \\<command><options>{<display_value>}
-          - (<command>,<options>--wrap): {\\<command><options> <display_value>}
-          - (<command>,<options>--lwrap): {\\<command><options>} <display_value>
-          - (<command>,<options>--dwrap): {\\<command><options>}{<display_value>}
+        =================================== ============================================
+        Tuple Format                           Output Structure
+        =================================== ============================================
+        (<command>,<options>)               \\<command><options> <display_value>
+        (<command>,<options> ``--nowrap``)  \\<command><options> <display_value>
+        (<command>,<options> ``--rwrap``)   \\<command><options>{<display_value>}
+        (<command>,<options> ``--wrap``)    {\\<command><options> <display_value>}
+        (<command>,<options> ``--lwrap``)   {\\<command><options>} <display_value>
+        (<command>,<options> ``--dwrap``)   {\\<command><options>}{<display_value>}
+        =================================== ============================================
 
         For example the `textbf` command for font-weight
         should always be used with `--rwrap` so ``('textbf', '--rwrap')`` will render a
-        working cell, wrapped with braces, as '\\textbf{<display_value>}'.
+        working cell, wrapped with braces, as ``\textbf{<display_value>}``.
 
         A more comprehensive example is as follows:
 
@@ -479,7 +485,7 @@ class Styler(StylerRenderer):
 
         **Table Styles**
 
-        Internally Styler uses Styler's ``table_styles`` object to parse the following
+        Internally Styler uses its ``table_styles`` object to parse the following
         input arguments:
 
           - *column_format*
