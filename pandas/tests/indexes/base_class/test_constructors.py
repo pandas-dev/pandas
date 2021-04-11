@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import Index, MultiIndex
+from pandas import (
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -33,7 +36,6 @@ class TestIndexConstructor:
             with tm.assert_produces_warning(FutureWarning):
                 Index([], foo="bar")
 
-    @pytest.mark.xfail(reason="see GH#21311: Index doesn't enforce dtype argument")
     def test_constructor_cast(self):
         msg = "could not convert string to float"
         with pytest.raises(ValueError, match=msg):

@@ -10,9 +10,16 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+    _check_plot_works,
+)
 
 import pandas.plotting as plotting
 
@@ -374,7 +381,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(ax=ax)
         s.plot(legend=True, secondary_y=True, ax=ax)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left and right axis must be visible
         self._check_legend_labels(ax, labels=["a", "b", "c", "x (right)"])
         assert ax.get_yaxis().get_visible()
@@ -385,7 +392,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(ax=ax)
         s.plot(ax=ax, legend=True, secondary_y=True)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left and right axis must be visible
         self._check_legend_labels(ax, labels=["a", "b", "c", "x (right)"])
         assert ax.get_yaxis().get_visible()
@@ -396,7 +403,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
         s.plot(legend=True, secondary_y=True, ax=ax)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left axis must be invisible and right axis must be visible
         expected = ["a (right)", "b (right)", "c (right)", "x (right)"]
         self._check_legend_labels(ax.left_ax, labels=expected)
@@ -408,7 +415,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
         s.plot(ax=ax, legend=True, secondary_y=True)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left axis must be invisible and right axis must be visible
         expected = ["a (right)", "b (right)", "c (right)", "x (right)"]
         self._check_legend_labels(ax.left_ax, expected)
@@ -420,7 +427,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, mark_right=False, ax=ax)
         s.plot(ax=ax, legend=True, secondary_y=True)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left axis must be invisible and right axis must be visible
         expected = ["a", "b", "c", "x (right)"]
         self._check_legend_labels(ax.left_ax, expected)
@@ -791,7 +798,7 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.get_ylabel() == ""
         assert ax.get_xlabel() == old_label
 
-        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        # old xlabel will be overridden and assigned ylabel will be used as ylabel
         ax = ser.plot(kind=kind, ylabel=new_label, xlabel=new_label)
         assert ax.get_ylabel() == new_label
         assert ax.get_xlabel() == new_label

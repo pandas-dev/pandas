@@ -553,13 +553,15 @@ int parser_set_skipfirstnrows(parser_t *self, int64_t nrows) {
     return 0;
 }
 
-static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
+static int parser_buffer_bytes(parser_t *self, size_t nbytes,
+                               const char *encoding_errors) {
     int status;
     size_t bytes_read;
 
     status = 0;
     self->datapos = 0;
-    self->data = self->cb_io(self->source, nbytes, &bytes_read, &status);
+    self->data = self->cb_io(self->source, nbytes, &bytes_read, &status,
+                             encoding_errors);
     TRACE((
         "parser_buffer_bytes self->cb_io: nbytes=%zu, datalen: %d, status=%d\n",
         nbytes, bytes_read, status));
@@ -1334,7 +1336,8 @@ int parser_trim_buffers(parser_t *self) {
   all : tokenize all the data vs. certain number of rows
  */
 
-int _tokenize_helper(parser_t *self, size_t nrows, int all) {
+int _tokenize_helper(parser_t *self, size_t nrows, int all,
+                     const char *encoding_errors) {
     int status = 0;
     uint64_t start_lines = self->lines;
 
@@ -1350,7 +1353,8 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         if (!all && self->lines - start_lines >= nrows) break;
 
         if (self->datapos == self->datalen) {
-            status = parser_buffer_bytes(self, self->chunksize);
+            status = parser_buffer_bytes(self, self->chunksize,
+                                         encoding_errors);
 
             if (status == REACHED_EOF) {
                 // close out last line
@@ -1383,13 +1387,13 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
     return status;
 }
 
-int tokenize_nrows(parser_t *self, size_t nrows) {
-    int status = _tokenize_helper(self, nrows, 0);
+int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors) {
+    int status = _tokenize_helper(self, nrows, 0, encoding_errors);
     return status;
 }
 
-int tokenize_all_rows(parser_t *self) {
-    int status = _tokenize_helper(self, -1, 1);
+int tokenize_all_rows(parser_t *self, const char *encoding_errors) {
+    int status = _tokenize_helper(self, -1, 1, encoding_errors);
     return status;
 }
 

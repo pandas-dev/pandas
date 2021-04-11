@@ -1,12 +1,24 @@
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import random
 import string
 
 import numpy as np
 
-from pandas import Categorical, DataFrame, date_range, read_csv, to_datetime
+from pandas import (
+    Categorical,
+    DataFrame,
+    date_range,
+    read_csv,
+    to_datetime,
+)
 
-from ..pandas_vb_common import BaseIO, tm
+from ..pandas_vb_common import (
+    BaseIO,
+    tm,
+)
 
 
 class ToCSV(BaseIO):

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.core.dtypes.base import registry
+from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical,
@@ -35,7 +35,10 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import (
+    SparseArray,
+    SparseDtype,
+)
 
 
 class Base:
@@ -818,7 +821,7 @@ class TestCategoricalDtypeParametrized:
             np.arange(1000),
             ["a", "b", 10, 2, 1.3, True],
             [True, False],
-            pd.date_range("2017", periods=4),
+            date_range("2017", periods=4),
         ],
     )
     def test_basic(self, categories, ordered):

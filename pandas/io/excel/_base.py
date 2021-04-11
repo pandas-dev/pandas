@@ -7,24 +7,50 @@ import inspect
 from io import BytesIO
 import os
 from textwrap import fill
-from typing import Any, Dict, Mapping, Optional, Union, cast
+from typing import (
+    Any,
+    Mapping,
+    cast,
+)
 import warnings
 import zipfile
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import Buffer, DtypeArg, FilePathOrBuffer, StorageOptions
-from pandas.compat._optional import get_version, import_optional_dependency
+from pandas._typing import (
+    Buffer,
+    DtypeArg,
+    FilePathOrBuffer,
+    StorageOptions,
+)
+from pandas.compat._optional import (
+    get_version,
+    import_optional_dependency,
+)
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments, doc
+from pandas.util._decorators import (
+    Appender,
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
-from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_like
+from pandas.core.dtypes.common import (
+    is_bool,
+    is_float,
+    is_integer,
+    is_list_like,
+)
 
 from pandas.core.frame import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io.common import IOHandles, get_handle, stringify_path, validate_header_arg
+from pandas.io.common import (
+    IOHandles,
+    get_handle,
+    stringify_path,
+    validate_header_arg,
+)
 from pandas.io.excel._util import (
     fill_mi_header,
     get_default_engine,
@@ -129,11 +155,9 @@ engine : str, default None
          ``pyxlsb`` will be used.
 
          .. versionadded:: 1.3.0
-       - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
-         then ``openpyxl`` will be used.
-       - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
-       - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised. This
-         case will raise a ``ValueError`` in a future version of pandas.
+       - Otherwise ``openpyxl`` will be used.
+
+         .. versionchanged:: 1.3.0
 
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
@@ -315,7 +339,7 @@ def read_excel(
     index_col=None,
     usecols=None,
     squeeze=False,
-    dtype: Optional[DtypeArg] = None,
+    dtype: DtypeArg | None = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -453,7 +477,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         index_col=None,
         usecols=None,
         squeeze=False,
-        dtype: Optional[DtypeArg] = None,
+        dtype: DtypeArg | None = None,
         true_values=None,
         false_values=None,
         skiprows=None,
@@ -571,6 +595,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     skiprows=skiprows,
                     nrows=nrows,
                     na_values=na_values,
+                    skip_blank_lines=False,  # GH 39808
                     parse_dates=parse_dates,
                     date_parser=date_parser,
                     thousands=thousands,
@@ -639,6 +664,16 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
         .. versionadded:: 1.2.0
+    engine_kwargs : dict, optional
+        Keyword arguments to be passed into the engine.
+
+        .. versionadded:: 1.3.0
+    **kwargs : dict, optional
+        Keyword arguments to be passed into the engine.
+
+        .. deprecated:: 1.3.0
+
+            Use engine_kwargs instead.
 
     Attributes
     ----------
@@ -717,7 +752,26 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     # You also need to register the class with ``register_writer()``.
     # Technically, ExcelWriter implementations don't need to subclass
     # ExcelWriter.
-    def __new__(cls, path, engine=None, **kwargs):
+    def __new__(
+        cls,
+        path: FilePathOrBuffer | ExcelWriter,
+        engine=None,
+        date_format=None,
+        datetime_format=None,
+        mode: str = "w",
+        storage_options: StorageOptions = None,
+        engine_kwargs: dict | None = None,
+        **kwargs,
+    ):
+        if kwargs:
+            if engine_kwargs is not None:
+                raise ValueError("Cannot use both engine_kwargs and **kwargs")
+            warnings.warn(
+                "Use of **kwargs is deprecated, use engine_kwargs instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         # only switch class if generic(ExcelWriter)
 
         if cls is ExcelWriter:
@@ -801,13 +855,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: Union[FilePathOrBuffer, ExcelWriter],
+        path: FilePathOrBuffer | ExcelWriter,
         engine=None,
         date_format=None,
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        **engine_kwargs,
+        engine_kwargs: dict | None = None,
+        **kwargs,
     ):
         # validate that this engine can handle the extension
         if isinstance(path, str):
@@ -827,7 +882,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             self.handles = get_handle(
                 path, mode, storage_options=storage_options, is_text=False
             )
-        self.sheets: Dict[str, Any] = {}
+        self.sheets: dict[str, Any] = {}
         self.cur_sheet = None
 
         if date_format is None:
@@ -893,8 +948,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         if ext.startswith("."):
             ext = ext[1:]
-        # error: "Callable[[ExcelWriter], Any]" has no attribute "__iter__"
-        #  (not iterable)  [attr-defined]
+        # error: "Callable[[ExcelWriter], Any]" has no attribute "__iter__" (not
+        #  iterable)
         if not any(
             ext in extension
             for extension in cls.supported_extensions  # type: ignore[attr-defined]
@@ -997,7 +1052,7 @@ class ExcelFile:
     Parameters
     ----------
     path_or_buffer : str, path object (pathlib.Path or py._path.local.LocalPath),
-        a file-like object, xlrd workbook or openpypl workbook.
+        a file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
@@ -1111,9 +1166,7 @@ class ExcelFile:
                     stacklevel = 2
                 warnings.warn(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
-                    f"only the xls format is supported. As a result, the "
-                    f"openpyxl engine will be used if it is installed and the "
-                    f"engine argument is not specified. Install "
+                    f"only the xls format is supported. Install "
                     f"openpyxl instead.",
                     FutureWarning,
                     stacklevel=stacklevel,

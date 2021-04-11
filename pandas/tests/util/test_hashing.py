@@ -2,10 +2,18 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.util.hashing import hash_tuples
-from pandas.util import hash_array, hash_pandas_object
+from pandas.util import (
+    hash_array,
+    hash_pandas_object,
+)
 
 
 @pytest.fixture(
@@ -105,8 +113,10 @@ def test_hash_tuples():
     expected = hash_pandas_object(MultiIndex.from_tuples(tuples)).values
     tm.assert_numpy_array_equal(result, expected)
 
-    result = hash_tuples(tuples[0])
-    assert result == expected[0]
+    # We only need to support MultiIndex and list-of-tuples
+    msg = "|".join(["object is not iterable", "zip argument #1 must support iteration"])
+    with pytest.raises(TypeError, match=msg):
+        hash_tuples(tuples[0])
 
 
 @pytest.mark.parametrize("val", [5, "foo", pd.Timestamp("20130101")])

@@ -10,7 +10,10 @@ import pytest
 from pandas.errors import ParserWarning
 
 import pandas as pd
-from pandas import DataFrame, Timestamp
+from pandas import (
+    DataFrame,
+    Timestamp,
+)
 import pandas._testing as tm
 
 

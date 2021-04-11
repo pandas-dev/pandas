@@ -1,15 +1,32 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any, Optional
+from datetime import (
+    datetime,
+    timedelta,
+)
+from typing import Any
 import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex, lib
-from pandas._libs.tslibs import BaseOffset, Period, Resolution, Tick
-from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
-from pandas._typing import Dtype, DtypeObj
+from pandas._libs import (
+    index as libindex,
+    lib,
+)
+from pandas._libs.tslibs import (
+    BaseOffset,
+    Period,
+    Resolution,
+    Tick,
+)
+from pandas._libs.tslibs.parsing import (
+    DateParseError,
+    parse_time_string,
+)
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
+)
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import doc
 
@@ -33,7 +50,10 @@ import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas.core.indexes.datetimes import DatetimeIndex, Index
+from pandas.core.indexes.datetimes import (
+    DatetimeIndex,
+    Index,
+)
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.indexes.numeric import Int64Index
 
@@ -166,21 +186,21 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return DatetimeIndex._simple_new(arr, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported  [misc]
+    # error: Decorated property not supported
     @property  # type:ignore[misc]
     @doc(PeriodArray.hour.fget)
     def hour(self) -> Int64Index:
         return Int64Index(self._data.hour, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported  [misc]
+    # error: Decorated property not supported
     @property  # type:ignore[misc]
     @doc(PeriodArray.minute.fget)
     def minute(self) -> Int64Index:
         return Int64Index(self._data.minute, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported  [misc]
+    # error: Decorated property not supported
     @property  # type:ignore[misc]
     @doc(PeriodArray.second.fget)
     def second(self) -> Int64Index:
@@ -194,7 +214,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         data=None,
         ordinal=None,
         freq=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy=False,
         name=None,
         **fields,
@@ -467,12 +487,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 pass
 
             try:
-                asdt, reso = parse_time_string(key, self.freq)
+                asdt, reso_str = parse_time_string(key, self.freq)
             except (ValueError, DateParseError) as err:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
-            reso = Resolution.from_attrname(reso)
+            reso = Resolution.from_attrname(reso_str)
             grp = reso.freq_group.value
             freqn = self.dtype.freq_group_code
 
@@ -533,8 +553,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             return Period(label, freq=self.freq)
         elif isinstance(label, str):
             try:
-                parsed, reso = parse_time_string(label, self.freq)
-                reso = Resolution.from_attrname(reso)
+                parsed, reso_str = parse_time_string(label, self.freq)
+                reso = Resolution.from_attrname(reso_str)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
             except ValueError as err:
@@ -562,8 +582,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             raise ValueError
 
     def _get_string_slice(self, key: str):
-        parsed, reso = parse_time_string(key, self.freq)
-        reso = Resolution.from_attrname(reso)
+        parsed, reso_str = parse_time_string(key, self.freq)
+        reso = Resolution.from_attrname(reso_str)
         try:
             return self._partial_date_slice(reso, parsed)
         except KeyError as err:
@@ -571,7 +591,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods: Optional[int] = None, freq=None, name=None
+    start=None, end=None, periods: int | None = None, freq=None, name=None
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.

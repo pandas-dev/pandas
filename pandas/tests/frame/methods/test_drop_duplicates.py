@@ -4,7 +4,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame, NaT
+from pandas import (
+    DataFrame,
+    NaT,
+)
 import pandas._testing as tm
 
 

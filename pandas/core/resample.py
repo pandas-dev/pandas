@@ -3,7 +3,10 @@ from __future__ import annotations
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import Callable, Dict, Optional, Tuple, Union, no_type_check
+from typing import (
+    Callable,
+    no_type_check,
+)
 
 import numpy as np
 
@@ -16,18 +19,36 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import T, TimedeltaConvertibleTypes, TimestampConvertibleTypes
+from pandas._typing import (
+    T,
+    TimedeltaConvertibleTypes,
+    TimestampConvertibleTypes,
+)
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, doc
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    doc,
+)
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import DataError
-from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.groupby.base import GotItemMixin, ShallowMixin
+import pandas.core.common as com
+from pandas.core.generic import (
+    NDFrame,
+    _shared_docs,
+)
+from pandas.core.groupby.base import (
+    GotItemMixin,
+    ShallowMixin,
+)
 from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
@@ -38,14 +59,31 @@ from pandas.core.groupby.groupby import (
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.api import Index
-from pandas.core.indexes.datetimes import DatetimeIndex, date_range
-from pandas.core.indexes.period import PeriodIndex, period_range
-from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
+from pandas.core.indexes.datetimes import (
+    DatetimeIndex,
+    date_range,
+)
+from pandas.core.indexes.period import (
+    PeriodIndex,
+    period_range,
+)
+from pandas.core.indexes.timedeltas import (
+    TimedeltaIndex,
+    timedelta_range,
+)
 
-from pandas.tseries.frequencies import is_subperiod, is_superperiod
-from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
+from pandas.tseries.frequencies import (
+    is_subperiod,
+    is_superperiod,
+)
+from pandas.tseries.offsets import (
+    DateOffset,
+    Day,
+    Nano,
+    Tick,
+)
 
-_shared_docs_kwargs: Dict[str, str] = {}
+_shared_docs_kwargs: dict[str, str] = {}
 
 
 class Resampler(BaseGroupBy, ShallowMixin):
@@ -96,9 +134,8 @@ class Resampler(BaseGroupBy, ShallowMixin):
         self.as_index = True
         self.exclusions = set()
         self.binner = None
-        # pandas\core\resample.py:96: error: Incompatible types in assignment
-        # (expression has type "None", variable has type "BaseGrouper")
-        # [assignment]
+        # error: Incompatible types in assignment (expression has type "None", variable
+        # has type "BaseGrouper")
         self.grouper = None  # type: ignore[assignment]
 
         if self.groupby is not None:
@@ -234,7 +271,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
     @Appender(_pipe_template)
     def pipe(
         self,
-        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        func: Callable[..., T] | tuple[Callable[..., T], str],
         *args,
         **kwargs,
     ) -> T:
@@ -301,7 +338,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
-        result, how = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             how = func
             grouper = None
@@ -419,8 +456,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
         result : Series or DataFrame
             the result of resample
         """
-        # pandas\core\resample.py:409: error: Cannot determine type of
-        # 'loffset'  [has-type]
+        # error: Cannot determine type of 'loffset'
         needs_offset = (
             isinstance(
                 self.loffset,  # type: ignore[has-type]
@@ -431,8 +467,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
         )
 
         if needs_offset:
-            # pandas\core\resample.py:415: error: Cannot determine type of
-            # 'loffset'  [has-type]
+            # error: Cannot determine type of 'loffset'
             result.index = result.index + self.loffset  # type: ignore[has-type]
 
         self.loffset = None
@@ -869,8 +904,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
             Standard deviation of values within each group.
         """
         nv.validate_resampler_func("std", args, kwargs)
-        # pandas\core\resample.py:850: error: Unexpected keyword argument
-        # "ddof" for "_downsample"  [call-arg]
+        # error: Unexpected keyword argument "ddof" for "_downsample"
         return self._downsample("std", ddof=ddof)  # type: ignore[call-arg]
 
     def var(self, ddof=1, *args, **kwargs):
@@ -888,8 +922,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
             Variance of values within each group.
         """
         nv.validate_resampler_func("var", args, kwargs)
-        # pandas\core\resample.py:867: error: Unexpected keyword argument
-        # "ddof" for "_downsample"  [call-arg]
+        # error: Unexpected keyword argument "ddof" for "_downsample"
         return self._downsample("var", ddof=ddof)  # type: ignore[call-arg]
 
     @doc(GroupBy.size)
@@ -948,11 +981,8 @@ class Resampler(BaseGroupBy, ShallowMixin):
             Return a DataFrame, where the coulmns are groupby columns,
             and the values are its quantiles.
         """
-        # pandas\core\resample.py:920: error: Unexpected keyword argument "q"
-        # for "_downsample"  [call-arg]
-
-        # pandas\core\resample.py:920: error: Too many arguments for
-        # "_downsample"  [call-arg]
+        # error: Unexpected keyword argument "q" for "_downsample"
+        # error: Too many arguments for "_downsample"
         return self._downsample("quantile", q=q, **kwargs)  # type: ignore[call-arg]
 
 
@@ -1005,8 +1035,7 @@ class _GroupByMixin(GotItemMixin):
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
 
-        # pandas\core\resample.py:972: error: Too many arguments for "__init__"
-        # of "object"  [call-arg]
+        # error: Too many arguments for "__init__" of "object"
         super().__init__(None)  # type: ignore[call-arg]
         self._groupby = groupby
         self._groupby.mutated = True
@@ -1058,7 +1087,7 @@ class DatetimeIndexResampler(Resampler):
         **kwargs : kw args passed to how function
         """
         self._set_binner()
-        how = self._get_cython_func(how) or how
+        how = com.get_cython_func(how) or how
         ax = self.ax
         obj = self._selected_obj
 
@@ -1070,8 +1099,8 @@ class DatetimeIndexResampler(Resampler):
             return obj
 
         # do we have a regular frequency
-        # pandas\core\resample.py:1037: error: "BaseGrouper" has no
-        # attribute "binlabels"  [attr-defined]
+
+        # error: "BaseGrouper" has no attribute "binlabels"
         if (
             (ax.freq is not None or ax.inferred_freq is not None)
             and len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]
@@ -1213,7 +1242,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self.kind == "timestamp":
             return super()._downsample(how, **kwargs)
 
-        how = self._get_cython_func(how) or how
+        how = com.get_cython_func(how) or how
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
@@ -1240,7 +1269,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         """
         Parameters
         ----------
-        method : string {'backfill', 'bfill', 'pad', 'ffill'}
+        method : {'backfill', 'bfill', 'pad', 'ffill'}
             Method for upsampling.
         limit : int, default None
             Maximum size gap to fill when reindexing.
@@ -1361,18 +1390,18 @@ class TimeGrouper(Grouper):
     def __init__(
         self,
         freq="Min",
-        closed: Optional[str] = None,
-        label: Optional[str] = None,
+        closed: str | None = None,
+        label: str | None = None,
         how="mean",
         axis=0,
         fill_method=None,
         limit=None,
         loffset=None,
-        kind: Optional[str] = None,
-        convention: Optional[str] = None,
-        base: Optional[int] = None,
-        origin: Union[str, TimestampConvertibleTypes] = "start_day",
-        offset: Optional[TimedeltaConvertibleTypes] = None,
+        kind: str | None = None,
+        convention: str | None = None,
+        base: int | None = None,
+        origin: str | TimestampConvertibleTypes = "start_day",
+        offset: TimedeltaConvertibleTypes | None = None,
         **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
@@ -1851,7 +1880,7 @@ def _get_period_range_edges(
 
 def _insert_nat_bin(
     binner: PeriodIndex, bins: np.ndarray, labels: PeriodIndex, nat_count: int
-) -> Tuple[PeriodIndex, np.ndarray, PeriodIndex]:
+) -> tuple[PeriodIndex, np.ndarray, PeriodIndex]:
     # NaT handling as in pandas._lib.lib.generate_bins_dt64()
     # shift bins by the number of NaT
     assert nat_count > 0
@@ -1954,7 +1983,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
 
         new_obj.index = _asfreq_compat(obj.index, freq)
     else:
-        dti = date_range(obj.index[0], obj.index[-1], freq=freq)
+        dti = date_range(obj.index.min(), obj.index.max(), freq=freq)
         dti.name = obj.index.name
         new_obj = obj.reindex(dti, method=method, fill_value=fill_value)
         if normalize:

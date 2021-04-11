@@ -1,13 +1,23 @@
 from datetime import datetime
 from io import StringIO
 import re
-from typing import Dict, List, Union
+from typing import (
+    Dict,
+    List,
+    Union,
+)
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -644,6 +654,28 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(res, expec)
         assert res.a.dtype == np.object_
 
+    @pytest.mark.parametrize(
+        "to_replace", [{"": np.nan, ",": ""}, {",": "", "": np.nan}]
+    )
+    def test_joint_simple_replace_and_regex_replace(self, to_replace):
+        # GH-39338
+        df = DataFrame(
+            {
+                "col1": ["1,000", "a", "3"],
+                "col2": ["a", "", "b"],
+                "col3": ["a", "b", "c"],
+            }
+        )
+        result = df.replace(regex=to_replace)
+        expected = DataFrame(
+            {
+                "col1": ["1000", "a", "3"],
+                "col2": ["a", np.nan, "b"],
+                "col3": ["a", "b", "c"],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("metachar", ["[]", "()", r"\d", r"\w", r"\s"])
     def test_replace_regex_metachar(self, metachar):
         df = DataFrame({"a": [metachar, "else"]})
@@ -773,6 +805,8 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result.replace(-1e8, np.nan), float_string_frame)
 
+    def test_replace_mixed_int_block_upcasting(self):
+
         # int block upcasting
         df = DataFrame(
             {
@@ -793,6 +827,8 @@ class TestDataFrameReplace:
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
+    def test_replace_mixed_int_block_splitting(self):
+
         # int block splitting
         df = DataFrame(
             {
@@ -810,6 +846,8 @@ class TestDataFrameReplace:
         )
         result = df.replace(0, 0.5)
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_mixed2(self):
 
         # to object block upcasting
         df = DataFrame(
@@ -836,6 +874,7 @@ class TestDataFrameReplace:
         result = df.replace([1, 2], ["foo", "bar"])
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_mixed3(self):
         # test case from
         df = DataFrame(
             {"A": Series([3, 0], dtype="int64"), "B": Series([0, 3], dtype="int64")}
@@ -1422,8 +1461,8 @@ class TestDataFrameReplace:
 
         a = pd.Categorical(final_data[:, 0], categories=[3, 2])
 
-        excat = [3, 2] if replace_dict["b"] == 1 else [1, 3]
-        b = pd.Categorical(final_data[:, 1], categories=excat)
+        ex_cat = [3, 2] if replace_dict["b"] == 1 else [1, 3]
+        b = pd.Categorical(final_data[:, 1], categories=ex_cat)
 
         expected = DataFrame({"a": a, "b": b})
         result = df.replace(replace_dict, 3)

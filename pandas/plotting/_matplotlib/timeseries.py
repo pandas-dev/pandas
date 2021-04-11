@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 import functools
-from typing import TYPE_CHECKING, Optional, cast
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
-from pandas._libs.tslibs import BaseOffset, Period, to_offset
+from pandas._libs.tslibs import (
+    BaseOffset,
+    Period,
+    to_offset,
+)
 from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._typing import FrameOrSeriesUnion
 
@@ -23,12 +30,20 @@ from pandas.plotting._matplotlib.converter import (
     TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter,
 )
-from pandas.tseries.frequencies import get_period_alias, is_subperiod, is_superperiod
+from pandas.tseries.frequencies import (
+    get_period_alias,
+    is_subperiod,
+    is_superperiod,
+)
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
-    from pandas import DatetimeIndex, Index, Series
+    from pandas import (
+        DatetimeIndex,
+        Index,
+        Series,
+    )
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
@@ -170,7 +185,7 @@ def _get_ax_freq(ax: Axes):
     return ax_freq
 
 
-def _get_period_alias(freq) -> Optional[str]:
+def _get_period_alias(freq) -> str | None:
     freqstr = to_offset(freq).rule_code
 
     freq = get_period_alias(freqstr)
@@ -223,7 +238,7 @@ def use_dynamic_x(ax: Axes, data: FrameOrSeriesUnion) -> bool:
     return True
 
 
-def _get_index_freq(index: Index) -> Optional[BaseOffset]:
+def _get_index_freq(index: Index) -> BaseOffset | None:
     freq = getattr(index, "freq", None)
     if freq is None:
         freq = getattr(index, "inferred_freq", None)

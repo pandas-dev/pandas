@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import inspect
 from itertools import permutations
 
@@ -21,9 +24,68 @@ from pandas.api.types import CategoricalDtype as CDT
 import pandas.core.common as com
 
 
+class TestReindexSetIndex:
+    # Tests that check both reindex and set_index
+
+    def test_dti_set_index_reindex_datetimeindex(self):
+        # GH#6631
+        df = DataFrame(np.random.random(6))
+        idx1 = date_range("2011/01/01", periods=6, freq="M", tz="US/Eastern")
+        idx2 = date_range("2013", periods=6, freq="A", tz="Asia/Tokyo")
+
+        df = df.set_index(idx1)
+        tm.assert_index_equal(df.index, idx1)
+        df = df.reindex(idx2)
+        tm.assert_index_equal(df.index, idx2)
+
+    def test_dti_set_index_reindex_freq_with_tz(self):
+        # GH#11314 with tz
+        index = date_range(
+            datetime(2015, 10, 1), datetime(2015, 10, 1, 23), freq="H", tz="US/Eastern"
+        )
+        df = DataFrame(np.random.randn(24, 1), columns=["a"], index=index)
+        new_index = date_range(
+            datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="H", tz="US/Eastern"
+        )
+
+        result = df.set_index(new_index)
+        assert result.index.freq == index.freq
+
+    def test_set_reset_index_intervalindex(self):
+
+        df = DataFrame({"A": range(10)})
+        ser = pd.cut(df.A, 5)
+        df["B"] = ser
+        df = df.set_index("B")
+
+        df = df.reset_index()
+
+
 class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
+
+    def test_reindex_date_fill_value(self):
+        # passing date to dt64 is deprecated
+        arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
+        df = DataFrame(arr, columns=["A", "B"], index=range(3))
+
+        ts = df.iloc[0, 0]
+        fv = ts.date()
+
+        with tm.assert_produces_warning(FutureWarning):
+            res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
+
+        expected = DataFrame(
+            {"A": df["A"].tolist() + [ts], "B": df["B"].tolist() + [ts], "C": [ts] * 4}
+        )
+        tm.assert_frame_equal(res, expected)
+
+        # same with a datetime-castable str
+        res = df.reindex(
+            index=range(4), columns=["A", "B", "C"], fill_value="2016-01-01"
+        )
+        tm.assert_frame_equal(res, expected)
 
     def test_reindex_with_multi_index(self):
         # https://github.com/pandas-dev/pandas/issues/29896
@@ -581,6 +643,18 @@ class TestDataFrameSelectReindex:
         msg = "cannot reindex from a duplicate axis"
         with pytest.raises(ValueError, match=msg):
             df.reindex(index=list(range(len(df))))
+
+    def test_reindex_with_duplicate_columns(self):
+
+        # reindex is invalid!
+        df = DataFrame(
+            [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
+        )
+        msg = "cannot reindex from a duplicate axis"
+        with pytest.raises(ValueError, match=msg):
+            df.reindex(columns=["bar"])
+        with pytest.raises(ValueError, match=msg):
+            df.reindex(columns=["bar", "foo"])
 
     def test_reindex_axis_style(self):
         # https://github.com/pandas-dev/pandas/issues/12392

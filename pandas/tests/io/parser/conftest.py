@@ -1,9 +1,15 @@
 import os
-from typing import List, Optional
+from typing import (
+    List,
+    Optional,
+)
 
 import pytest
 
-from pandas import read_csv, read_table
+from pandas import (
+    read_csv,
+    read_table,
+)
 
 
 class BaseParser:

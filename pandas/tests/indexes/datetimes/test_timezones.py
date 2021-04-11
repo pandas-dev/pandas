@@ -1,15 +1,27 @@
 """
 Tests for DatetimeIndex timezone-related methods
 """
-from datetime import date, datetime, time, timedelta, tzinfo
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+    tzinfo,
+)
 
 import dateutil
-from dateutil.tz import gettz, tzlocal
+from dateutil.tz import (
+    gettz,
+    tzlocal,
+)
 import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import conversion, timezones
+from pandas._libs.tslibs import (
+    conversion,
+    timezones,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -453,7 +465,7 @@ class TestDatetimeIndexTimezones:
         idx = date_range(start="2014-06-01", end="2014-08-30", freq="15T")
         tz = tz_aware_fixture
         localized = idx.tz_localize(tz)
-        # cant localize a tz-aware object
+        # can't localize a tz-aware object
         with pytest.raises(
             TypeError, match="Already tz-aware, use tz_convert to convert"
         ):

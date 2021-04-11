@@ -1,8 +1,14 @@
 import cython
 import numpy as np
 
-from cpython cimport PyBytes_GET_SIZE, PyUnicode_GET_LENGTH
-from numpy cimport ndarray, uint8_t
+from cpython cimport (
+    PyBytes_GET_SIZE,
+    PyUnicode_GET_LENGTH,
+)
+from numpy cimport (
+    ndarray,
+    uint8_t,
+)
 
 ctypedef fused pandas_string:
     str
@@ -17,7 +23,7 @@ def write_csv_rows(
     Py_ssize_t nlevels,
     ndarray cols,
     object writer
-):
+) -> None:
     """
     Write the given data to the writer object, pre-allocating where possible
     for performance improvements.
@@ -28,7 +34,7 @@ def write_csv_rows(
     data_index : ndarray
     nlevels : int
     cols : ndarray
-    writer : object
+    writer : _csv.writer
     """
     # In crude testing, N>100 yields little marginal improvement
     cdef:
@@ -71,7 +77,7 @@ def write_csv_rows(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def convert_json_to_lines(arr: object) -> str:
+def convert_json_to_lines(arr: str) -> str:
     """
     replace comma separated json with line feeds, paying special attention
     to quotes & brackets
@@ -156,7 +162,7 @@ def string_array_replace_from_nan_rep(
     ndarray[object, ndim=1] arr,
     object nan_rep,
     object replace=np.nan
-):
+) -> None:
     """
     Replace the values in the array with 'replacement' if
     they are 'nan_rep'. Return the same array.
@@ -167,5 +173,3 @@ def string_array_replace_from_nan_rep(
     for i in range(length):
         if arr[i] == nan_rep:
             arr[i] = replace
-
-    return arr

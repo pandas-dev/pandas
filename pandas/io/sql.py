@@ -4,10 +4,25 @@ retrieval and to reduce dependency on DB-specific API.
 """
 
 from contextlib import contextmanager
-from datetime import date, datetime, time
+from datetime import (
+    date,
+    datetime,
+    time,
+)
+from distutils.version import LooseVersion
 from functools import partial
 import re
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Union, cast, overload
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+    overload,
+)
 import warnings
 
 import numpy as np
@@ -15,11 +30,18 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._typing import DtypeArg
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype, is_dict_like, is_list_like
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    is_dict_like,
+    is_list_like,
+)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.api import DataFrame, Series
+from pandas.core.api import (
+    DataFrame,
+    Series,
+)
 from pandas.core.base import PandasObject
 from pandas.core.tools.datetimes import to_datetime
 
@@ -54,6 +76,16 @@ def _is_sqlalchemy_connectable(con):
         return isinstance(con, sqlalchemy.engine.Connectable)
     else:
         return False
+
+
+def _gt14() -> bool:
+    """
+    Check if sqlalchemy.__version__ is at least 1.4.0, when several
+    deprecations were made.
+    """
+    import sqlalchemy
+
+    return LooseVersion(sqlalchemy.__version__) >= LooseVersion("1.4.0")
 
 
 def _convert_params(sql, params):
@@ -634,7 +666,7 @@ def to_sql(
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
         - append: If table exists, insert data. Create if does not exist.
-    index : boolean, default True
+    index : bool, default True
         Write DataFrame index as a column.
     index_label : str or sequence, optional
         Column label for index column(s). If None is given (default) and
@@ -802,7 +834,10 @@ class SQLTable(PandasObject):
 
     def _execute_create(self):
         # Inserting table into database, add to MetaData object
-        self.table = self.table.tometadata(self.pd_sql.meta)
+        if _gt14():
+            self.table = self.table.to_metadata(self.pd_sql.meta)
+        else:
+            self.table = self.table.tometadata(self.pd_sql.meta)
         self.table.create()
 
     def create(self):
@@ -877,7 +912,9 @@ class SQLTable(PandasObject):
                 mask = isna(d)
                 d[mask] = None
 
-            data_list[i] = d
+            # error: No overload variant of "__setitem__" of "list" matches
+            # argument types "int", "ndarray"
+            data_list[i] = d  # type: ignore[call-overload]
 
         return column_names, data_list
 
@@ -1036,7 +1073,11 @@ class SQLTable(PandasObject):
         return column_names_and_types
 
     def _create_table_setup(self):
-        from sqlalchemy import Column, PrimaryKeyConstraint, Table
+        from sqlalchemy import (
+            Column,
+            PrimaryKeyConstraint,
+            Table,
+        )
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
 
@@ -1186,7 +1227,14 @@ class SQLTable(PandasObject):
         return Text
 
     def _get_dtype(self, sqltype):
-        from sqlalchemy.types import TIMESTAMP, Boolean, Date, DateTime, Float, Integer
+        from sqlalchemy.types import (
+            TIMESTAMP,
+            Boolean,
+            Date,
+            DateTime,
+            Float,
+            Integer,
+        )
 
         if isinstance(sqltype, Float):
             return float
@@ -1293,11 +1341,11 @@ class SQLDatabase(PandasSQL):
 
         Parameters
         ----------
-        table_name : string
+        table_name : str
             Name of SQL table in database.
         index_col : string, optional, default: None
             Column to set as index.
-        coerce_float : boolean, default True
+        coerce_float : bool, default True
             Attempts to convert values of non-string, non-numeric objects
             (like decimal.Decimal) to floating point. This can result in
             loss of precision.
@@ -1388,11 +1436,11 @@ class SQLDatabase(PandasSQL):
 
         Parameters
         ----------
-        sql : string
+        sql : str
             SQL query to be executed.
         index_col : string, optional, default: None
             Column name to use as index for the returned DataFrame object.
-        coerce_float : boolean, default True
+        coerce_float : bool, default True
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets.
         params : list, tuple or dict, optional, default: None
@@ -1482,7 +1530,7 @@ class SQLDatabase(PandasSQL):
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
-        index : boolean, default True
+        index : bool, default True
             Write DataFrame index as a column.
         index_label : string or sequence, default None
             Column label for index column(s). If None is given (default) and
@@ -1513,11 +1561,20 @@ class SQLDatabase(PandasSQL):
         """
         if dtype:
             if not is_dict_like(dtype):
-                dtype = {col_name: dtype for col_name in frame}
+                # error: Value expression in dictionary comprehension has incompatible
+                # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
+                # Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]],
+                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+                # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
+                # dtype[Any], Type[object]]"
+                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
             else:
                 dtype = cast(dict, dtype)
 
-            from sqlalchemy.types import TypeEngine, to_instance
+            from sqlalchemy.types import (
+                TypeEngine,
+                to_instance,
+            )
 
             for col, my_type in dtype.items():
                 if not isinstance(to_instance(my_type), TypeEngine):
@@ -1535,27 +1592,30 @@ class SQLDatabase(PandasSQL):
         )
         table.create()
 
-        from sqlalchemy import exc
+        from sqlalchemy.exc import SQLAlchemyError
 
         try:
             table.insert(chunksize, method=method)
-        except exc.SQLAlchemyError as err:
-            # GH34431
-            msg = "(1054, \"Unknown column 'inf' in 'field list'\")"
-            err_text = str(err.orig)
-            if re.search(msg, err_text):
-                raise ValueError("inf cannot be used with MySQL") from err
-            else:
-                raise err
+        except SQLAlchemyError as err:
+            # GH 34431 36465
+            raise ValueError("inf cannot be used with MySQL") from err
 
         if not name.isdigit() and not name.islower():
             # check for potentially case sensitivity issues (GH7815)
             # Only check when name is not a number and name is not lower case
             engine = self.connectable.engine
             with self.connectable.connect() as conn:
-                table_names = engine.table_names(
-                    schema=schema or self.meta.schema, connection=conn
-                )
+                if _gt14():
+                    from sqlalchemy import inspect
+
+                    insp = inspect(conn)
+                    table_names = insp.get_table_names(
+                        schema=schema or self.meta.schema
+                    )
+                else:
+                    table_names = engine.table_names(
+                        schema=schema or self.meta.schema, connection=conn
+                    )
             if name not in table_names:
                 msg = (
                     f"The provided table name '{name}' is not found exactly as "
@@ -1570,9 +1630,15 @@ class SQLDatabase(PandasSQL):
         return self.meta.tables
 
     def has_table(self, name: str, schema: Optional[str] = None):
-        return self.connectable.run_callable(
-            self.connectable.dialect.has_table, name, schema or self.meta.schema
-        )
+        if _gt14():
+            import sqlalchemy as sa
+
+            insp = sa.inspect(self.connectable)
+            return insp.has_table(name, schema or self.meta.schema)
+        else:
+            return self.connectable.run_callable(
+                self.connectable.dialect.has_table, name, schema or self.meta.schema
+            )
 
     def get_table(self, table_name: str, schema: Optional[str] = None):
         schema = schema or self.meta.schema
@@ -1957,7 +2023,7 @@ class SQLiteDatabase(PandasSQL):
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if it does not exist.
-        index : boolean, default True
+        index : bool, default True
             Write DataFrame index as a column
         index_label : string or sequence, default None
             Column label for index column(s). If None is given (default) and
@@ -1987,7 +2053,13 @@ class SQLiteDatabase(PandasSQL):
         """
         if dtype:
             if not is_dict_like(dtype):
-                dtype = {col_name: dtype for col_name in frame}
+                # error: Value expression in dictionary comprehension has incompatible
+                # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
+                # Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]],
+                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+                # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
+                # dtype[Any], Type[object]]"
+                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
             else:
                 dtype = cast(dict, dtype)
 
@@ -2058,7 +2130,7 @@ def get_schema(
     Parameters
     ----------
     frame : DataFrame
-    name : string
+    name : str
         name of SQL table
     keys : string or sequence, default: None
         columns to use a primary key

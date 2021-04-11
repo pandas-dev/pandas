@@ -3,11 +3,21 @@ Table Schema builders
 
 https://specs.frictionlessdata.io/json-table-schema/
 """
-from typing import TYPE_CHECKING, Any, Dict, Optional, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Optional,
+    cast,
+)
 import warnings
 
 import pandas._libs.json as json
-from pandas._typing import DtypeObj, FrameOrSeries, JSONSerializable
+from pandas._typing import (
+    DtypeObj,
+    FrameOrSeries,
+    JSONSerializable,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -286,7 +296,7 @@ def parse_table_schema(json, precise_float):
     ----------
     json :
         A JSON table schema
-    precise_float : boolean
+    precise_float : bool
         Flag controlling precision when decoding string to double values, as
         dictated by ``read_json``
 

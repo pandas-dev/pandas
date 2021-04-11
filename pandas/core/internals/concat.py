@@ -2,37 +2,98 @@ from __future__ import annotations
 
 import copy
 import itertools
-from typing import TYPE_CHECKING, Dict, List, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Sequence,
+)
 
 import numpy as np
 
 from pandas._libs import internals as libinternals
-from pandas._typing import ArrayLike, DtypeObj, Manager, Shape
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+    Manager,
+    Shape,
+)
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import ensure_dtype_can_hold_na, find_common_type
+from pandas.core.dtypes.cast import (
+    ensure_dtype_can_hold_na,
+    find_common_type,
+)
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_sparse,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna_all
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna_all,
+)
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, ExtensionArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    ExtensionArray,
+)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.array_manager import ArrayManager
-from pandas.core.internals.blocks import make_block
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    new_block,
+)
 from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
     from pandas import Index
 
 
-def concatenate_block_managers(
-    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+def _concatenate_array_managers(
+    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
+) -> Manager:
+    """
+    Concatenate array managers into one.
+
+    Parameters
+    ----------
+    mgrs_indexers : list of (ArrayManager, {axis: indexer,...}) tuples
+    axes : list of Index
+    concat_axis : int
+    copy : bool
+
+    Returns
+    -------
+    ArrayManager
+    """
+    # reindex all arrays
+    mgrs = []
+    for mgr, indexers in mgrs_indexers:
+        for ax, indexer in indexers.items():
+            mgr = mgr.reindex_indexer(axes[ax], indexer, axis=ax, allow_dups=True)
+        mgrs.append(mgr)
+
+    if concat_axis == 1:
+        # concatting along the rows -> concat the reindexed arrays
+        # TODO(ArrayManager) doesn't yet preserve the correct dtype
+        arrays = [
+            concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))])
+            for j in range(len(mgrs[0].arrays))
+        ]
+        return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
+    else:
+        # concatting along the columns -> combine reindexed arrays in a single manager
+        assert concat_axis == 0
+        arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
+        return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
+
+
+def concatenate_managers(
+    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
     Concatenate block managers into one.
@@ -48,20 +109,9 @@ def concatenate_block_managers(
     -------
     BlockManager
     """
+    # TODO(ArrayManager) this assumes that all managers are of the same type
     if isinstance(mgrs_indexers[0][0], ArrayManager):
-
-        if concat_axis == 1:
-            # TODO for now only fastpath without indexers
-            mgrs = [t[0] for t in mgrs_indexers]
-            arrays = [
-                concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))], axis=0)
-                for j in range(len(mgrs[0].arrays))
-            ]
-            return ArrayManager(arrays, [axes[1], axes[0]])
-        elif concat_axis == 0:
-            mgrs = [t[0] for t in mgrs_indexers]
-            arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
-            return ArrayManager(arrays, [axes[1], axes[0]])
+        return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
@@ -91,26 +141,24 @@ def concatenate_block_managers(
             else:
                 # TODO(EA2D): special-casing not needed with 2D EAs
                 values = concat_compat(vals)
-                if not isinstance(values, ExtensionArray):
-                    values = values.reshape(1, len(values))
+                values = ensure_block_shape(values, ndim=2)
+
+            values = ensure_wrapped_if_datetimelike(values)
 
             if blk.values.dtype == values.dtype:
                 # Fast-path
                 b = blk.make_block_same_class(values, placement=placement)
             else:
-                b = make_block(values, placement=placement, ndim=blk.ndim)
+                b = new_block(values, placement=placement, ndim=blk.ndim)
         else:
-            b = make_block(
-                _concatenate_join_units(join_units, concat_axis, copy=copy),
-                placement=placement,
-                ndim=len(axes),
-            )
+            new_values = _concatenate_join_units(join_units, concat_axis, copy=copy)
+            b = new_block(new_values, placement=placement, ndim=len(axes))
         blocks.append(b)
 
     return BlockManager(blocks, axes)
 
 
-def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarray]):
+def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarray]):
     """
     Construct concatenation plan for given block manager and indexers.
 
@@ -141,7 +189,9 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarra
             blk = mgr.blocks[0]
             return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
 
-        ax0_indexer = None
+        # error: Incompatible types in assignment (expression has type "None", variable
+        # has type "ndarray")
+        ax0_indexer = None  # type: ignore[assignment]
         blknos = mgr.blknos
         blklocs = mgr.blklocs
 
@@ -283,7 +333,7 @@ class JoinUnit:
             if self.is_valid_na_for(empty_dtype):
                 blk_dtype = getattr(self.block, "dtype", None)
 
-                if blk_dtype == np.dtype(object):
+                if blk_dtype == np.dtype("object"):
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
@@ -291,20 +341,15 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if is_datetime64tz_dtype(blk_dtype) or is_datetime64tz_dtype(
-                    empty_dtype
-                ):
+                if is_datetime64tz_dtype(empty_dtype):
                     # TODO(EA2D): special case unneeded with 2D EAs
                     i8values = np.full(self.shape[1], fill_value.value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
-                elif is_categorical_dtype(blk_dtype):
-                    pass
                 elif is_extension_array_dtype(blk_dtype):
                     pass
-                elif is_extension_array_dtype(empty_dtype):
-                    missing_arr = empty_dtype.construct_array_type()._from_sequence(
-                        [], dtype=empty_dtype
-                    )
+                elif isinstance(empty_dtype, ExtensionDtype):
+                    cls = empty_dtype.construct_array_type()
+                    missing_arr = cls._from_sequence([], dtype=empty_dtype)
                     ncols, nrows = self.shape
                     assert ncols == 1, ncols
                     empty_arr = -1 * np.ones((nrows,), dtype=np.intp)
@@ -314,6 +359,7 @@ class JoinUnit:
                 else:
                     # NB: we should never get here with empty_dtype integer or bool;
                     #  if we did, the missing_arr.fill would cast to gibberish
+
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
                     return missing_arr
@@ -322,7 +368,7 @@ class JoinUnit:
                 # preserve these for validation in concat_compat
                 return self.block.values
 
-            if self.block.is_bool and not self.block.is_categorical:
+            if self.block.is_bool and not isinstance(self.block.values, Categorical):
                 # External code requested filling/upcasting, bool values must
                 # be upcasted to object to avoid being upcasted to numeric.
                 values = self.block.astype(np.object_).values
@@ -347,7 +393,7 @@ class JoinUnit:
 
 
 def _concatenate_join_units(
-    join_units: List[JoinUnit], concat_axis: int, copy: bool
+    join_units: list[JoinUnit], concat_axis: int, copy: bool
 ) -> ArrayLike:
     """
     Concatenate values from several join units along selected axis.
@@ -377,17 +423,20 @@ def _concatenate_join_units(
                     concat_values = concat_values.copy()
             else:
                 concat_values = concat_values.copy()
-    elif any(isinstance(t, ExtensionArray) for t in to_concat):
+    elif any(isinstance(t, ExtensionArray) and t.ndim == 1 for t in to_concat):
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
-        to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
+        # error: Invalid index type "Tuple[int, slice]" for
+        # "Union[ExtensionArray, ndarray]"; expected type "Union[int, slice, ndarray]"
+        to_concat = [
+            t
+            if (isinstance(t, ExtensionArray) and t.ndim == 1)
+            else t[0, :]  # type: ignore[index]
+            for t in to_concat
+        ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
-        if not is_extension_array_dtype(concat_values.dtype):
-            # if the result of concat is not an EA but an ndarray, reshape to
-            # 2D to put it a non-EA Block
-            # special case DatetimeArray/TimedeltaArray, which *is* an EA, but
-            # is put in a consolidated 2D block
-            concat_values = np.atleast_2d(concat_values)
+        concat_values = ensure_block_shape(concat_values, 2)
+
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
 
@@ -398,7 +447,7 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     """
     Find the NA value to go with this dtype.
     """
-    if is_extension_array_dtype(dtype):
+    if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
     elif dtype.kind in ["m", "M"]:
         return dtype.type("NaT")
@@ -449,18 +498,22 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
     return dtype
 
 
-def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
+def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic
     _concatenate_join_units (which uses `concat_compat`).
 
     """
-    # TODO: require dtype match in addition to same type?  e.g. DatetimeTZBlock
-    #  cannot necessarily join
     return (
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units)  # noqa
+        and
+        # e.g. DatetimeLikeBlock can be dt64 or td64, but these are not uniform
+        all(
+            is_dtype_equal(ju.block.dtype, join_units[0].block.dtype)
+            for ju in join_units
+        )
         and
         # no blocks that would get missing values (can lead to type upcasts)
         # unless we're an extension dtype.

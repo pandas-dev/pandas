@@ -5,7 +5,10 @@ import pytest
 
 from pandas._libs import hashtable
 
-from pandas import DatetimeIndex, MultiIndex
+from pandas import (
+    DatetimeIndex,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 

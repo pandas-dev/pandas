@@ -141,6 +141,9 @@ jobs:
   data_manager:
     name: Test experimental data manager
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pattern: ["not slow and not network and not clipboard", "slow"]
     steps:
 
     - name: Checkout
@@ -150,6 +153,13 @@ jobs:
       uses: ./.github/actions/setup
 
     - name: Run tests
+      env:
+        PANDAS_DATA_MANAGER: array
+        PATTERN: ${{ matrix.pattern }}
+        PYTEST_WORKERS: "auto"
       run: |
         source activate pandas-dev
-        pytest pandas/tests/frame/methods --array-manager
+        ci/run_tests.sh
+
+    - name: Print skipped tests
+      run: python ci/print_skipped.py

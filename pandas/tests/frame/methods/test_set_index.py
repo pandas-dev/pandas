@@ -1,4 +1,11 @@
-from datetime import datetime, timedelta
+"""
+See also: test_reindex.py:TestReindexSetIndex
+"""
+
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest

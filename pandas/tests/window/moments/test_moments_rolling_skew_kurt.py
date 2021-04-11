@@ -5,7 +5,13 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, concat, isna, notna
+from pandas import (
+    DataFrame,
+    Series,
+    concat,
+    isna,
+    notna,
+)
 import pandas._testing as tm
 
 import pandas.tseries.offsets as offsets

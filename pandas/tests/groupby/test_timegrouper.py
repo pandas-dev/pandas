@@ -228,7 +228,7 @@ class TestGroupBy:
 
             # multi names
             df = df.copy()
-            df["Date"] = df.index + pd.offsets.MonthEnd(2)
+            df["Date"] = df.index + offsets.MonthEnd(2)
             result = df.groupby([Grouper(freq="1M", key="Date"), "Buyer"]).sum()
             expected = DataFrame(
                 {
@@ -434,7 +434,7 @@ class TestGroupBy:
     def test_groupby_groups_datetimeindex(self):
         # GH#1430
         periods = 1000
-        ind = pd.date_range(start="2012/1/1", freq="5min", periods=periods)
+        ind = date_range(start="2012/1/1", freq="5min", periods=periods)
         df = DataFrame(
             {"high": np.arange(periods), "low": np.arange(periods)}, index=ind
         )
@@ -445,7 +445,7 @@ class TestGroupBy:
         assert isinstance(list(groups.keys())[0], datetime)
 
         # GH#11442
-        index = pd.date_range("2015/01/01", periods=5, name="date")
+        index = date_range("2015/01/01", periods=5, name="date")
         df = DataFrame({"A": [5, 6, 7, 8, 9], "B": [1, 2, 3, 4, 5]}, index=index)
         result = df.groupby(level="date").groups
         dates = ["2015-01-05", "2015-01-04", "2015-01-03", "2015-01-02", "2015-01-01"]
@@ -672,9 +672,7 @@ class TestGroupBy:
         df = DataFrame(
             {
                 "factor": np.random.randint(0, 3, size=60),
-                "time": pd.date_range(
-                    "01/01/2000 00:00", periods=60, freq="s", tz="UTC"
-                ),
+                "time": date_range("01/01/2000 00:00", periods=60, freq="s", tz="UTC"),
             }
         )
         df1 = df.groupby("factor").max()["time"]
@@ -693,7 +691,7 @@ class TestGroupBy:
 
     def test_datetime_count(self):
         df = DataFrame(
-            {"a": [1, 2, 3] * 2, "dates": pd.date_range("now", periods=6, freq="T")}
+            {"a": [1, 2, 3] * 2, "dates": date_range("now", periods=6, freq="T")}
         )
         result = df.groupby("a").dates.count()
         expected = Series([2, 2, 2], index=Index([1, 2, 3], name="a"), name="dates")

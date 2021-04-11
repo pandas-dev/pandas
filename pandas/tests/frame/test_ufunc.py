@@ -218,7 +218,10 @@ def test_alignment_deprecation_many_inputs():
     # https://github.com/pandas-dev/pandas/issues/39184
     # test that the deprecation also works with > 2 inputs -> using a numba
     # written ufunc for this because numpy itself doesn't have such ufuncs
-    from numba import float64, vectorize
+    from numba import (
+        float64,
+        vectorize,
+    )
 
     @vectorize([float64(float64, float64, float64)])
     def my_ufunc(x, y, z):
