@@ -865,21 +865,11 @@ class TestiLocBaseIndependent:
         result = s.iloc[np.array(0)]
         assert result == 1
 
-    def test_iloc_setitem_categorical_updates_inplace(
-        self, using_array_manager, request
-    ):
-        # GH#35417
+    @pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/33457")
+    def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
-        if using_array_manager:
-            mark = pytest.mark.xfail(
-                reason="https://github.com/pandas-dev/pandas/issues/33457"
-            )
-            request.node.add_marker(mark)
-
         cat = Categorical(["A", "B", "C"])
-        df = DataFrame({1: cat, 2: [1, 2, 3]}, copy=False)
-        blk = df._mgr.blocks[1]
-        assert blk.values is cat
+        df = DataFrame({1: cat, 2: [1, 2, 3]})
 
         # This should modify our original values in-place
         df.iloc[:, 0] = cat[::-1]
