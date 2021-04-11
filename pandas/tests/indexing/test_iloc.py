@@ -1093,7 +1093,7 @@ class TestiLocBaseIndependent:
         expected = df.take([0], axis=1)
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_getitem_interval(self):
+    def test_iloc_interval(self):
         # GH#17130
         df = DataFrame({Interval(1, 2): [1, 2]})
 
