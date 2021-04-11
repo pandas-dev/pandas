@@ -121,6 +121,24 @@ class TestToLatex:
         )
         assert result == expected
 
+    def test_to_latex_float_format_object_col(self):
+        # GH#40024
+        ser = Series([1000.0, "test"])
+        result = ser.to_latex(float_format="{:,.0f}".format)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{ll}
+            \toprule
+            {} &     0 \\
+            \midrule
+            0 & 1,000 \\
+            1 &  test \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
     def test_to_latex_empty_tabular(self):
         df = DataFrame()
         result = df.to_latex()

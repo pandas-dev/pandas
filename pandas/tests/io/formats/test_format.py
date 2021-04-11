@@ -2021,6 +2021,21 @@ c  10  11  12  13  14\
         result = repr(series)
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "float_format,expected",
+        [
+            ("{:,.0f}".format, "0   1,000\n1    test\ndtype: object"),
+            ("{:.4f}".format, "0   1000.0000\n1        test\ndtype: object"),
+        ],
+    )
+    def test_repr_float_format_in_object_col(self, float_format, expected):
+        # GH#40024
+        df = Series([1000.0, "test"])
+        with option_context("display.float_format", float_format):
+            result = repr(df)
+
+        assert result == expected
+
     def test_dict_entries(self):
         df = DataFrame({"A": [{"a": 1, "b": 2}]})
 

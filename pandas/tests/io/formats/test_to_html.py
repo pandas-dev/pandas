@@ -878,3 +878,29 @@ def test_to_html_na_rep_and_float_format(na_rep):
   </tbody>
 </table>"""
     assert result == expected
+
+
+def test_to_html_float_format_object_col():
+    # GH#40024
+    df = DataFrame(data={"x": [1000.0, "test"]})
+    result = df.to_html(float_format=lambda x: f"{x:,.0f}")
+    expected = """<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>x</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1,000</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>test</td>
+    </tr>
+  </tbody>
+</table>"""
+
+    assert result == expected
