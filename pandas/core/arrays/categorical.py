@@ -1527,11 +1527,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return Series(count, index=CategoricalIndex(ix), dtype="int64")
 
-    # error: Argument 2 of "empty" is incompatible with supertype
+    # error: Argument 2 of "_empty" is incompatible with supertype
     # "NDArrayBackedExtensionArray"; supertype defines the argument type as
     # "ExtensionDtype"
     @classmethod
-    def empty(  # type: ignore[override]
+    def _empty(  # type: ignore[override]
         cls: type_t[Categorical], shape: Shape, dtype: CategoricalDtype
     ) -> Categorical:
         """

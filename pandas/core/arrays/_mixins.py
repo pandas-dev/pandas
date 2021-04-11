@@ -472,7 +472,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # numpy-like methods
 
     @classmethod
-    def empty(
+    def _empty(
         cls: type_t[NDArrayBackedExtensionArrayT], shape: Shape, dtype: ExtensionDtype
     ) -> NDArrayBackedExtensionArrayT:
         """

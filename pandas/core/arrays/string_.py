@@ -255,7 +255,7 @@ class StringArray(PandasArray):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
-    def empty(cls, shape, dtype) -> StringArray:
+    def _empty(cls, shape, dtype) -> StringArray:
         values = np.empty(shape, dtype=object)
         values[:] = libmissing.NA
         return cls(values).astype(dtype, copy=False)

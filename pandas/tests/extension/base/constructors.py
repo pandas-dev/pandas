@@ -125,7 +125,7 @@ class BaseConstructorsTests(BaseExtensionTests):
 
     def test_empty(self, dtype):
         cls = dtype.construct_array_type()
-        result = cls.empty((4,), dtype=dtype)
+        result = cls._empty((4,), dtype=dtype)
 
         assert isinstance(result, cls)
         assert result.dtype == dtype

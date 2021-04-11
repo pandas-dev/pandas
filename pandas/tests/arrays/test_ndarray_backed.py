@@ -22,13 +22,13 @@ class TestEmpty:
 
         # case with int8 codes
         shape = (4,)
-        result = Categorical.empty(shape, dtype=dtype)
+        result = Categorical._empty(shape, dtype=dtype)
         assert isinstance(result, Categorical)
         assert result.shape == shape
         assert result._ndarray.dtype == np.int8
 
         # case where repr would segfault if we didn't override base implementation
-        result = Categorical.empty((4096,), dtype=dtype)
+        result = Categorical._empty((4096,), dtype=dtype)
         assert isinstance(result, Categorical)
         assert result.shape == (4096,)
         assert result._ndarray.dtype == np.int8
@@ -37,7 +37,7 @@ class TestEmpty:
         # case with int16 codes
         ci = CategoricalIndex(list(range(512)) * 4, ordered=False)
         dtype = ci.dtype
-        result = Categorical.empty(shape, dtype=dtype)
+        result = Categorical._empty(shape, dtype=dtype)
         assert isinstance(result, Categorical)
         assert result.shape == shape
         assert result._ndarray.dtype == np.int16
@@ -47,20 +47,20 @@ class TestEmpty:
         dtype = dti.dtype
 
         shape = (0,)
-        result = DatetimeArray.empty(shape, dtype=dtype)
+        result = DatetimeArray._empty(shape, dtype=dtype)
         assert result.dtype == dtype
         assert isinstance(result, DatetimeArray)
         assert result.shape == shape
 
     def test_empty_dt64(self):
         shape = (3, 9)
-        result = DatetimeArray.empty(shape, dtype="datetime64[ns]")
+        result = DatetimeArray._empty(shape, dtype="datetime64[ns]")
         assert isinstance(result, DatetimeArray)
         assert result.shape == shape
 
     def test_empty_td64(self):
         shape = (3, 9)
-        result = TimedeltaArray.empty(shape, dtype="m8[ns]")
+        result = TimedeltaArray._empty(shape, dtype="m8[ns]")
         assert isinstance(result, TimedeltaArray)
         assert result.shape == shape
 
@@ -69,7 +69,7 @@ class TestEmpty:
         dtype = arr.dtype
 
         shape = (3, 9)
-        result = PandasArray.empty(shape, dtype=dtype)
+        result = PandasArray._empty(shape, dtype=dtype)
         assert isinstance(result, PandasArray)
         assert result.dtype == dtype
         assert result.shape == shape
