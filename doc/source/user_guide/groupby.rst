@@ -325,6 +325,7 @@ directly. Additionally, the resulting index will be named according to the
 chosen level:
 
 .. ipython:: python
+   :okwarning:
 
    s.sum(level="second")
 

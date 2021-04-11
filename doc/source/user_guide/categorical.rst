@@ -638,6 +638,7 @@ even if some categories are not present in the data:
 Groupby will also show "unused" categories:
 
 .. ipython:: python
+    :okwarning:
 
     cats = pd.Categorical(
         ["a", "b", "b", "b", "c", "c", "c"], categories=["a", "b", "c", "d"]

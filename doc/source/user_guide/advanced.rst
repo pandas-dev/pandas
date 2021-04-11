@@ -492,6 +492,7 @@ Using the parameter ``level`` in the :meth:`~DataFrame.reindex` and
 values across a level. For instance:
 
 .. ipython:: python
+   :okwarning:
 
    midx = pd.MultiIndex(
        levels=[["zero", "one"], ["x", "y"]], codes=[[1, 1, 0, 0], [1, 0, 1, 0]]
