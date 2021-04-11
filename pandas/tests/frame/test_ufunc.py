@@ -68,6 +68,7 @@ def test_binary_input_dispatch_binop(dtype):
         (np.add, [2, 3, 4, 5]),
         (partial(np.add, where=[[False, True], [True, False]]), [0, 3, 4, 0]),
         (np.power, [1, 2, 3, 4]),
+        (np.subtract, [0, 1, 2, 3]),
     ],
 )
 def test_ufunc_passes_args(func, expected):
