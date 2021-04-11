@@ -64,10 +64,16 @@ def test_ufunc_passes_args():
     # GH#40662
     arr = np.array([[1, 2], [3, 4]])
     df = pd.DataFrame(arr)
-    arr_to_modify = np.zeros_like(df)
-    np.add(df, 1, out=arr_to_modify)
+    result = np.zeros_like(df)
+    np.add(df, 1, out=result)
 
-    tm.assert_numpy_array_equal(arr + 1, arr_to_modify)
+    expected = arr + 1
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = np.zeros_like(df)
+    np.add(df, 1, out=result, where=[[False, True], [True, False]])
+    expected = np.array([[0, 3], [4, 0]])
+    tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("dtype_a", dtypes)
