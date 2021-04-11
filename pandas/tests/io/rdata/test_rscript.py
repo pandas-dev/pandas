@@ -12,12 +12,16 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.rdata import (
+    R_ARROW,
+    R_RSQLITE,
     RSCRIPT_EXISTS,
     RScriptError,
     read_rdata,
 )
 
 pytestmark = pytest.mark.skipif(not RSCRIPT_EXISTS, reason="R is not installed.")
+
+PYARROW = import_optional_dependency("pyarrow")
 
 ghg_df = DataFrame(
     {
@@ -83,24 +87,6 @@ sea_ice_df = DataFrame(
 ).rename_axis("rownames")
 
 
-def r_package_installed(name):
-    """
-    Check if R package is installed.
-
-    Method runs a quick command line call to Rscript to
-    check if library call succeeds on named package.
-    """
-
-    p = subprocess.Popen(
-        ["Rscript", "-e", f"suppressPackageStartupMessages(library({name}))"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    out, err = p.communicate()
-
-    return len(err) == 0
-
-
 def run_rscript(cmds) -> str:
     """
     Run R script at command line.
@@ -154,11 +140,6 @@ def handle_index_rownames(df):
     return df
 
 
-R_ARROW = r_package_installed("arrow")
-R_RSQLITE = r_package_installed("RSQLite")
-PYARROW = import_optional_dependency("pyarrow")
-
-
 @pytest.fixture(params=["rda", "rds"])
 def rtype(request):
     return request.param
@@ -170,22 +151,20 @@ def rtype(request):
         pytest.param(
             "parquet",
             marks=pytest.mark.skipif(
-                R_ARROW is None or PYARROW is None,
+                not R_ARROW or not PYARROW,
                 reason="R arrow or pyarrow not installed",
             ),
         ),
         pytest.param(
             "feather",
             marks=pytest.mark.skipif(
-                R_ARROW is None or PYARROW is None,
+                not R_ARROW or not PYARROW,
                 reason="R arrow or pyarrow not installed",
             ),
         ),
         pytest.param(
             "sqlite",
-            marks=pytest.mark.skipif(
-                R_RSQLITE is None, reason="R RSQLite not installed"
-            ),
+            marks=pytest.mark.skipif(not R_RSQLITE, reason="R RSQLite not installed"),
         ),
     ]
 )

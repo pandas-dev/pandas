@@ -162,6 +162,7 @@ class TestPDApi(Base):
         "read_xml",
         "read_json",
         "read_pickle",
+        "read_rdata",
         "read_sas",
         "read_sql",
         "read_sql_query",

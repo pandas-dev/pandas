@@ -72,6 +72,28 @@ def _executable_exists(name) -> bool:
 RSCRIPT_EXISTS = _executable_exists("Rscript")
 
 
+def r_package_installed(name):
+    """
+    Check if R package is installed.
+
+    Method runs a quick command line call to Rscript to
+    check if library call succeeds on named package.
+    """
+
+    p = subprocess.Popen(
+        ["Rscript", "-e", f"suppressPackageStartupMessages(library({name}))"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    out, err = p.communicate()
+
+    return len(err) == 0
+
+
+R_ARROW = r_package_installed("arrow") if RSCRIPT_EXISTS else None
+R_RSQLITE = r_package_installed("RSQLite") if RSCRIPT_EXISTS else None
+
+
 @doc(storage_options=_shared_docs["storage_options"])
 def read_rdata(
     path_or_buffer: FilePathOrBuffer,
