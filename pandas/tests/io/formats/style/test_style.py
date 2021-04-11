@@ -174,10 +174,13 @@ class TestStyler:
         tt = DataFrame({"A": [None, "tt"]})
         css = DataFrame({"A": [None, "cls-a"]})
         s = self.df.style.highlight_max().set_tooltips(tt).set_td_classes(css)
+        s = s.hide_index().hide_columns("A")
         # _todo, tooltips and cell_context items added to..
         assert len(s._todo) > 0
         assert s.tooltips
         assert len(s.cell_context) > 0
+        assert s.hidden_index is True
+        assert len(s.hidden_columns) > 0
 
         s = s._compute()
         # ctx item affected when a render takes place. _todo is maintained
@@ -190,6 +193,8 @@ class TestStyler:
         assert len(s._todo) == 0
         assert not s.tooltips
         assert len(s.cell_context) == 0
+        assert s.hidden_index is False
+        assert len(s.hidden_columns) == 0
 
     def test_render(self):
         df = DataFrame({"A": [0, 1]})
@@ -551,6 +556,21 @@ class TestStyler:
             )
             expected = self.df.style.applymap(g, subset=slice_)._compute().ctx
             assert result == expected
+
+    def test_where_kwargs(self):
+        df = DataFrame([[1, 2], [3, 4]])
+
+        def f(x, val):
+            return x > val
+
+        result = df.style.where(f, "color:green;", "color:red;", val=2)._compute().ctx
+        expected = {
+            (0, 0): [("color", "red")],
+            (0, 1): [("color", "red")],
+            (1, 0): [("color", "green")],
+            (1, 1): [("color", "green")],
+        }
+        assert result == expected
 
     def test_empty(self):
         df = DataFrame({"A": [1, 0]})
