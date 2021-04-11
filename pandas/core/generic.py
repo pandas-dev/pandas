@@ -7352,16 +7352,124 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower=...,
+        upper=...,
+        axis: Axis | None = ...,
+        inplace: Literal[False] = ...,
+        *args,
+        **kwargs,
+    ) -> FrameOrSeries:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower,
+        *,
+        axis: Axis | None,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower,
+        *,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        *,
+        upper,
+        axis: Axis | None,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        *,
+        upper,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        *,
+        axis: Axis | None,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower,
+        upper,
+        axis: Axis | None,
+        inplace: Literal[True],
+        *args,
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower,
+        upper,
+        *,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        *,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower=...,
+        upper=...,
+        axis: Axis | None = ...,
+        inplace: bool_t = ...,
+        *args,
+        **kwargs,
+    ) -> FrameOrSeries | None:
+        ...
+
     @final
     def clip(
         self: FrameOrSeries,
         lower=None,
         upper=None,
-        axis=None,
+        axis: Axis | None = None,
         inplace: bool_t = False,
         *args,
         **kwargs,
-    ) -> FrameOrSeries:
+    ) -> FrameOrSeries | None:
         """
         Trim values at input threshold(s).
 
