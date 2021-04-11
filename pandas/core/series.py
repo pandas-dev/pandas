@@ -4918,7 +4918,7 @@ Keep all original rows and also all original values
         inplace: bool = ...,
         limit: int | None = ...,
         downcast: dict | str | None = ...,
-    ) -> DataFrame | None:
+    ) -> Series | None:
         ...
 
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
