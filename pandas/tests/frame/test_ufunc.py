@@ -62,7 +62,7 @@ def test_binary_input_dispatch_binop(dtype):
 
 def test_ufunc_passes_args():
     # GH#40662
-    arr = np.array([[1, 2], [3, 4]])
+    arr = np.array([[1, 2, 3, 4]])
     df = pd.DataFrame(arr)
     result = np.zeros_like(df)
     np.add(df, 1, out=result)
@@ -71,8 +71,8 @@ def test_ufunc_passes_args():
     tm.assert_numpy_array_equal(result, expected)
 
     result = np.zeros_like(df)
-    np.add(df, 1, out=result, where=[[False, True], [True, False]])
-    expected = np.array([[0, 3], [4, 0]])
+    np.add(df, 1, out=result, where=[[False, True, True, False]])
+    expected = np.array([[0, 3, 4, 0]])
     tm.assert_numpy_array_equal(result, expected)
 
 
