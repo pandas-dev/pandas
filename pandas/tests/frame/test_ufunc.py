@@ -63,20 +63,37 @@ def test_binary_input_dispatch_binop(dtype):
 
 
 @pytest.mark.parametrize(
-    "func,expected",
+    "func,arg,expected",
     [
-        (np.add, [2, 3, 4, 5]),
-        (partial(np.add, where=[[False, True], [True, False]]), [0, 3, 4, 0]),
-        (np.power, [1, 2, 3, 4]),
-        (np.subtract, [0, 1, 2, 3]),
+        (np.add, 1, [2, 3, 4, 5]),
+        (
+            partial(np.add, where=[[False, True], [True, False]]),
+            np.array([[1, 1], [1, 1]]),
+            [0, 3, 4, 0],
+        ),
+        (np.power, np.array([[1, 1], [2, 2]]), [1, 2, 9, 16]),
+        (np.subtract, 2, [-1, 0, 1, 2]),
+        (
+            partial(np.negative, where=np.array([[False, True], [True, False]])),
+            None,
+            [0, -2, -3, 0],
+        ),
     ],
 )
-def test_ufunc_passes_args(func, expected):
+def test_ufunc_passes_args(func, arg, expected, request):
     # GH#40662
     arr = np.array([[1, 2], [3, 4]])
     df = pd.DataFrame(arr)
-    result_inplace = np.zeros_like(df)
-    result = func(df, 1, out=result_inplace)
+    result_inplace = np.zeros_like(arr)
+    # 1-argument ufunc
+    if arg is None:
+        mark = pytest.mark.xfail(
+            reason="Result becomes transposed with block-wise apply of ufunc, #40878"
+        )
+        request.node.add_marker(mark)
+        result = func(df, out=result_inplace)
+    else:
+        result = func(df, arg, out=result_inplace)
 
     expected = np.array(expected).reshape(2, 2)
     tm.assert_numpy_array_equal(result_inplace, expected)

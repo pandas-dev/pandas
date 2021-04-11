@@ -367,7 +367,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         if method == "__call__":
             # for np.<ufunc>(..) calls
             mgr = inputs[0]._mgr
-            result = mgr.apply(getattr(ufunc, method))
+            result = mgr.apply(getattr(ufunc, method), **kwargs)
         else:
             # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
             # Those can have an axis keyword and thus can't be called block-by-block
