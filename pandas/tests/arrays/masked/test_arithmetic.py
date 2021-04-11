@@ -54,10 +54,7 @@ def test_array_scalar_like_equivalence(data, all_arithmetic_operators):
 def test_array_NA(data, all_arithmetic_operators):
     if "truediv" in all_arithmetic_operators:
         pytest.skip("division with pd.NA raises")
-    if (
-        "floordiv" in all_arithmetic_operators
-        or "rfloordiv" in all_arithmetic_operators
-    ) and is_numpy_dev:
+    if "floordiv" in all_arithmetic_operators and is_numpy_dev:
         pytest.skip("NumpyDev behavior GH#40874")
     data, _ = data
     op = tm.get_op_from_name(all_arithmetic_operators)

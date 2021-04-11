@@ -143,26 +143,17 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 op(obj, other)
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        if (
-            "floordiv" in all_arithmetic_operators
-            or "rfloordiv" in all_arithmetic_operators
-        ) and is_numpy_dev:
+        if "floordiv" in all_arithmetic_operators and is_numpy_dev:
             pytest.skip("NumpyDev behavior GH#40874")
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
-        if (
-            "floordiv" in all_arithmetic_operators
-            or "rfloordiv" in all_arithmetic_operators
-        ) and is_numpy_dev:
+        if "floordiv" in all_arithmetic_operators and is_numpy_dev:
             pytest.skip("NumpyDev behavior GH#40874")
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        if (
-            "floordiv" in all_arithmetic_operators
-            or "rfloordiv" in all_arithmetic_operators
-        ) and is_numpy_dev:
+        if "floordiv" in all_arithmetic_operators and is_numpy_dev:
             pytest.skip("NumpyDev behavior GH#40874")
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
