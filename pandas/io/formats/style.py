@@ -35,6 +35,7 @@ from pandas.core.frame import (
     Series,
 )
 from pandas.core.generic import NDFrame
+
 from pandas.io.formats.format import save_to_buffer
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
@@ -322,19 +323,19 @@ class Styler(StylerRenderer):
         )
 
     def to_latex(
-            self,
-            buf: FilePathOrBuffer[str] | None = None,
-            column_format: str | None = None,
-            position: str | None = None,
-            position_float: str | None = None,
-            hrules: bool = False,
-            label: str | None = None,
-            caption: str | None = None,
-            sparsify: bool | None = None,
-            multirow_align: str = "c",
-            multicol_align: str = "r",
-            siunitx: bool = False,
-            encoding: str | None = None,
+        self,
+        buf: FilePathOrBuffer[str] | None = None,
+        column_format: str | None = None,
+        position: str | None = None,
+        position_float: str | None = None,
+        hrules: bool = False,
+        label: str | None = None,
+        caption: str | None = None,
+        sparsify: bool | None = None,
+        multirow_align: str = "c",
+        multicol_align: str = "r",
+        siunitx: bool = False,
+        encoding: str | None = None,
     ):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
@@ -390,6 +391,10 @@ class Styler(StylerRenderer):
         str or None
             If `buf` is None, returns the result as a string. Otherwise returns `None`.
 
+        See Also
+        --------
+        Styler.format: Format the text display value of cells.
+
         Notes
         -----
         **Latex Packages**
@@ -418,8 +423,8 @@ class Styler(StylerRenderer):
         LaTeX styling can only be rendered if the accompanying styling functions have
         been constructed with appropriate LaTeX commands. All styling
         functionality is built around the concept of a CSS ``(<attribute>, <value>)``
-        pair, and this should be replaced by a LaTeX ``(<command>, <options>)``
-        approach and each cell will be styled individually
+        pair (see HERE XXX), and this should be replaced by a LaTeX
+        ``(<command>, <options>)`` approach and each cell will be styled individually
         using nested LaTeX commands with their accompanied options.
 
         For example the following code will highlight and bold a cell in HTML-CSS:
@@ -429,7 +434,7 @@ class Styler(StylerRenderer):
         ...                            props='background-color:red; font-weight:bold;')
         >>> s.render()
 
-        The equivalent using LaTeX commands is the following:
+        The equivalent using LaTeX only commands is the following:
 
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='color:{red}; itshape: ;')
@@ -459,11 +464,31 @@ class Styler(StylerRenderer):
         should always be used with `--rwrap` so ``('textbf', '--rwrap')`` will render a
         working cell, wrapped with braces, as '\\textbf{<display_value>}'.
 
+        A more comprehensive example is as follows:
+
+        >>> df = pd.DataFrame([[1, 2.2, "dogs"], [3, 4.4, "cats"], [2, 6.6, "cows"]],
+        ...                   index=["ix1", "ix2", "ix3"],
+        ...                   columns=["Integers", "Floats", "Strings"])
+        >>> s = df.style.highlight_max(
+        ...     props='cellcolor:[HTML]{FFFF00}; color:{red};'
+        ...           'textit:--rwrap; textbf:--rwrap;'
+        ... )
+        >>> s.to_latex()
+
+        .. figure:: ../../_static/style/latex_1.png
+
         **Table Styles**
 
-        Internally Styler uses the ``table_styles`` object to parse some of the
-        input arguments.
-        All commands arguments except for ``caption`` are added in the following way:
+        Internally Styler uses Styler's ``table_styles`` object to parse the following
+        input arguments:
+
+          - *column_format*
+          - *position*
+          - *position_float*
+          - *hrules* (including the *toprule*, *midrule* and *bottomrule* sub commands)
+          - *label*
+
+        These command arguments (except for ``caption``) are added in the following way:
 
         >>> s.set_table_styles([{'selector': '<command>', 'props': ':<options>;'}],
         ...                    overwrite=False)
@@ -480,12 +505,55 @@ class Styler(StylerRenderer):
         >>> s.set_table_styles([{'selector': 'label', 'props': ':{fig§item1};'}],
         ...                    overwrite=False])
 
-        Any custom commands you add here are included and positioned immediately
-        above the '\\begin{tabular}' command. For example to add odd and
+        Any custom commands you add to ``table_styles`` are included and positioned
+        immediately above the '\\begin{tabular}' command. For example to add odd and
         even row coloring, from the {colortbl} package, use:
 
         >>> s.set_table_styles([{'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}],
         ...                    overwrite=False])
+
+        A more comprehensive example using these arguments is as follows:
+
+        >>> df.columns = pd.MultiIndex.from_tuples([
+        ...     ("Numeric", "Integers"),
+        ...     ("Numeric", "Floats"),
+        ...     ("Non-Numeric", "Strings")
+        ... ])
+        >>> df.index = pd.MultiIndex.from_tuples([
+        ...     ("L0", "ix1"), ("L0", "ix2"), ("L1", "ix3")
+        ... ])
+        >>> s = df.style.highlight_max(
+        ...     props='cellcolor:[HTML]{FFFF00}; color:{red}; itshape:; bfseries:;'
+        ... )
+        >>> s.to_latex(
+        ...     column_format="rrrrr", position="h", position_float="centering",
+        ...     hrules=True, label="table:5", caption="Styled LaTeX Table",
+        ...     multirow_align="t", multicol_align="r"
+        ... )
+
+        .. figure:: ../../_static/style/latex_2.png
+
+        **Formatting**
+
+        To format values :meth:`Styler.format` should be used prior to calling
+        `Styler.to_latex`, for example:
+
+        >>> s.clear()
+        >>> s.table_styles = []
+        >>> s.caption = None
+        >>> s.format({
+        ...    ("Numeric", "Integers"): '\${}',
+        ...    ("Numeric", "Floats"): '{:.3f}',
+        ...    ("Non-Numeric", "Strings"): str.upper
+        ... })
+        >>> s.to_latex()
+        \\begin{tabular}{llrrl}
+        {} & {} & \\multicolumn{2}{r}{Numeric} & {Non-Numeric} \\\\
+        {} & {} & {Integers} & {Floats} & {Strings} \\\\
+        \\multirow[c]{2}{*}{L0} & ix1 & \\$1 & 2.200 & DOGS \\
+         & ix2 & \\$3 & 4.400 & CATS \\\\
+        L1 & ix3 & \\$2 & 6.600 & COWS \\\\
+        \\end{tabular}
         """
         table_selectors = (
             [style["selector"] for style in self.table_styles]
@@ -504,7 +572,7 @@ class Styler(StylerRenderer):
         else:
             # create a default: set float, complex, int cols to 'r' ('S'), index to 'l'
             numeric_cols = list(self.data.select_dtypes(include=[np.number]).columns)
-            numeric_cols = self.columns.get_indexer_for(numeric_cols)
+            numeric_cols = list(self.columns.get_indexer_for(numeric_cols))
             column_format = "" if self.hidden_index else "l" * self.data.index.nlevels
             for ci, _ in enumerate(self.data.columns):
                 if ci not in self.hidden_columns:
