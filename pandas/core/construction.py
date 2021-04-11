@@ -58,6 +58,7 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCPandasArray,
+    ABCRangeIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna
@@ -367,7 +368,9 @@ def array(
     return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
 
 
-def extract_array(obj: object, extract_numpy: bool = False) -> Any | ArrayLike:
+def extract_array(
+    obj: object, extract_numpy: bool = False, extract_range: bool = False
+) -> Any | ArrayLike:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -381,6 +384,10 @@ def extract_array(obj: object, extract_numpy: bool = False) -> Any | ArrayLike:
 
     extract_numpy : bool, default False
         Whether to extract the ndarray from a PandasArray
+
+    extract_range : bool, default False
+        If we have a RangeIndex, return range._values if True
+        (which is a materialized integer ndarray), otherwise return unchanged.
 
     Returns
     -------
@@ -410,6 +417,11 @@ def extract_array(obj: object, extract_numpy: bool = False) -> Any | ArrayLike:
     array([1, 2, 3])
     """
     if isinstance(obj, (ABCIndex, ABCSeries)):
+        if isinstance(obj, ABCRangeIndex):
+            if extract_range:
+                return obj._values
+            return obj
+
         obj = obj.array
 
     if extract_numpy and isinstance(obj, ABCPandasArray):
