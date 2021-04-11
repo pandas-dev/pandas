@@ -357,7 +357,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         # * len(inputs) > 1 is doable when we know that we have
         #   aligned blocks / dtypes.
         inputs = tuple(np.asarray(x) for x in inputs)
-        result = getattr(ufunc, method)(*inputs)
+        result = getattr(ufunc, method)(*inputs, **kwargs)
     elif self.ndim == 1:
         # ufunc(series, ...)
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)

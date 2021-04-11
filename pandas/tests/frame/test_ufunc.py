@@ -60,6 +60,16 @@ def test_binary_input_dispatch_binop(dtype):
     tm.assert_frame_equal(result, expected)
 
 
+def test_ufunc_passes_args():
+    # GH#40662
+    arr = np.array([[1, 2], [3, 4]])
+    df = pd.DataFrame(arr)
+    arr_to_modify = np.zeros_like(df)
+    np.add(df, 1, out=arr_to_modify)
+
+    tm.assert_numpy_array_equal(arr + 1, arr_to_modify)
+
+
 @pytest.mark.parametrize("dtype_a", dtypes)
 @pytest.mark.parametrize("dtype_b", dtypes)
 def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
