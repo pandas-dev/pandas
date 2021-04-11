@@ -3783,7 +3783,7 @@ class Index(IndexOpsMixin, PandasObject):
         tolerance : optional
             Maximum distance between original and new labels for inexact matches. 
             The values of the index at the matching locations most satisfy the 
-            equation `abs(index[indexer] - target) <= tolerance.
+            equation `abs(index[indexer] - target) <= tolerance`.
             Tolerance may be a scalar value, which applies the same tolerance to all values,
             or list-like, which applies variable tolerance per element. 
             List-like includes list, tuple, array, Series, and must be the same size 
