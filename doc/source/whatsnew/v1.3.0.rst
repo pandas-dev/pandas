@@ -159,6 +159,23 @@ a copy will no longer be made (:issue:`32960`)
 The default behavior when not passing ``copy`` will remain unchanged, i.e.
 a copy will be made.
 
+Centered Datetime-Like Rolling Windows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When performing rolling calculations on :class:`DataFrame` and :class:`Series`
+objects with a datetime-like index, a centered datetime-like window can now be
+used (:issue:`38780`).
+For example:
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {"A": [0, 1, 2, 3, 4]}, index=pd.date_range("2020", periods=5, freq="1D")
+    )
+    df
+    df.rolling("2D", center=True).mean()
+
+
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements
@@ -563,7 +580,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | pyarrow         | 0.15.0          |         |
 +-----------------+-----------------+---------+
-| pymysql         | 0.7.11          |         |
+| pymysql         | 0.8.1           |    X    |
 +-----------------+-----------------+---------+
 | pytables        | 3.5.1           |         |
 +-----------------+-----------------+---------+
@@ -842,6 +859,7 @@ Groupby/resample/rolling
 - :class:`core.window.ewm.ExponentialMovingWindow` now raises a ``NotImplementedError`` when specifying ``times`` with ``adjust=False`` due to an incorrect calculation (:issue:`40098`)
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
 - Bug in aggregation functions for :class:`DataFrame` not respecting ``numeric_only`` argument when ``level`` keyword was given (:issue:`40660`)
+- Bug in :class:`core.window.RollingGroupby` where ``as_index=False`` argument in ``groupby`` was ignored (:issue:`39433`)
 
 Reshaping
 ^^^^^^^^^
@@ -893,6 +911,7 @@ Other
 - Bug in :meth:`Styler.background_gradient` where text-color was not determined correctly (:issue:`39888`)
 - Bug in :class:`Styler` where multiple elements in CSS-selectors were not correctly added to ``table_styles`` (:issue:`39942`)
 - Bug in :class:`.Styler` where copying from Jupyter dropped top left cell and misaligned headers (:issue:`12147`)
+- Bug in :class:`.Styler.where` where ``kwargs`` were not passed to the applicable callable (:issue:`40845`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)

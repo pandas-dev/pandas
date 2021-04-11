@@ -557,6 +557,21 @@ class TestStyler:
             expected = self.df.style.applymap(g, subset=slice_)._compute().ctx
             assert result == expected
 
+    def test_where_kwargs(self):
+        df = DataFrame([[1, 2], [3, 4]])
+
+        def f(x, val):
+            return x > val
+
+        result = df.style.where(f, "color:green;", "color:red;", val=2)._compute().ctx
+        expected = {
+            (0, 0): [("color", "red")],
+            (0, 1): [("color", "red")],
+            (1, 0): [("color", "green")],
+            (1, 1): [("color", "green")],
+        }
+        assert result == expected
+
     def test_empty(self):
         df = DataFrame({"A": [1, 0]})
         s = df.style
