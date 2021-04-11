@@ -166,6 +166,11 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             pytest.skip("NumpyDev behavior GH#40874")
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
+    def test_divmod_series_array(self, data, data_for_twos):
+        if is_numpy_dev:
+            pytest.skip("NumpyDev behavior GH#40874")
+        super().test_divmod_series_array(data, data_for_twos)
+
     def _check_divmod_op(self, s, op, other, exc=None):
         # override to not raise an error
         super()._check_divmod_op(s, op, other, None)
