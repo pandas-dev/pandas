@@ -12,14 +12,9 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
     Hashable,
     Iterable,
-    List,
-    Optional,
     Sequence,
-    Tuple,
-    Union,
 )
 
 from pandas._typing import (
@@ -42,8 +37,8 @@ if TYPE_CHECKING:
 
 
 def reconstruct_func(
-    func: Optional[AggFuncType], **kwargs
-) -> Tuple[bool, Optional[AggFuncType], Optional[List[str]], Optional[List[int]]]:
+    func: AggFuncType | None, **kwargs
+) -> tuple[bool, AggFuncType | None, list[str] | None, list[int] | None]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
@@ -81,8 +76,8 @@ def reconstruct_func(
     (False, 'min', None, None)
     """
     relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
-    columns: Optional[List[str]] = None
-    order: Optional[List[int]] = None
+    columns: list[str] | None = None
+    order: list[int] | None = None
 
     if not relabeling:
         if isinstance(func, list) and len(func) > len(set(func)):
@@ -129,7 +124,7 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
     )
 
 
-def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[int]]:
+def normalize_keyword_aggregation(kwargs: dict) -> tuple[dict, list[str], list[int]]:
     """
     Normalize user-provided "named aggregation" kwargs.
     Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
@@ -187,8 +182,8 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
 
 
 def _make_unique_kwarg_list(
-    seq: Sequence[Tuple[Any, Any]]
-) -> Sequence[Tuple[Any, Any]]:
+    seq: Sequence[tuple[Any, Any]]
+) -> Sequence[tuple[Any, Any]]:
     """
     Uniquify aggfunc name of the pairs in the order list
 
@@ -292,10 +287,10 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
 def relabel_result(
     result: FrameOrSeries,
-    func: Dict[str, List[Union[Callable, str]]],
+    func: dict[str, list[Callable | str]],
     columns: Iterable[Hashable],
     order: Iterable[int],
-) -> Dict[Hashable, Series]:
+) -> dict[Hashable, Series]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -322,7 +317,7 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Hashable, Series] = {}
+    reordered_result_in_dict: dict[Hashable, Series] = {}
     idx = 0
 
     reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
@@ -366,7 +361,7 @@ def relabel_result(
 
 def validate_func_kwargs(
     kwargs: dict,
-) -> Tuple[List[str], List[Union[str, Callable[..., Any]]]]:
+) -> tuple[list[str], list[str | Callable[..., Any]]]:
     """
     Validates types of user-provided "named aggregation" kwargs.
     `TypeError` is raised if aggfunc is not `str` or callable.
