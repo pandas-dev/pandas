@@ -440,7 +440,7 @@ class Styler(StylerRenderer):
         The equivalent using LaTeX only commands is the following:
 
         >>> s = df.style.highlight_max(axis=None,
-        ...                            props='color:{red}; itshape: ;')
+        ...                            props='color:{red}; bfseries: ;')
         >>> s.to_latex()
 
         Internally these structured LaTeX ``(<command>, <options>)`` pairs
@@ -448,7 +448,7 @@ class Styler(StylerRenderer):
         ``display_value`` with the default structure:
         ``\<command><options> <display_value>``.
         Where there are multiple commands the latter is nested recursively, so that
-        the above example highlighed cell is rendered as ``\color{red} \itshape 4``.
+        the above example highlighed cell is rendered as ``\color{red} \bfseries 4``.
 
         Occasionally this format does not suit the applied command, or
         combination of LaTeX packages that is in use, so additional flags can be
