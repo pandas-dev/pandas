@@ -17,14 +17,9 @@ from textwrap import dedent
 from typing import (
     Any,
     Callable,
-    Dict,
-    FrozenSet,
     Hashable,
     Iterable,
-    List,
     Mapping,
-    Optional,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -56,7 +51,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
-    ensure_platform_int,
     is_bool,
     is_categorical_dtype,
     is_dict_like,
@@ -120,7 +114,7 @@ AggScalar = Union[str, Callable[..., Any]]
 ScalarResult = TypeVar("ScalarResult")
 
 
-def generate_property(name: str, klass: Type[FrameOrSeries]):
+def generate_property(name: str, klass: type[FrameOrSeries]):
     """
     Create a property for a GroupBy subclass to dispatch to DataFrame/Series.
 
@@ -143,7 +137,7 @@ def generate_property(name: str, klass: Type[FrameOrSeries]):
     return property(prop)
 
 
-def pin_allowlisted_properties(klass: Type[FrameOrSeries], allowlist: FrozenSet[str]):
+def pin_allowlisted_properties(klass: type[FrameOrSeries], allowlist: frozenset[str]):
     """
     Create GroupBy member defs for DataFrame/Series names in a allowlist.
 
@@ -274,7 +268,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if relabeling:
                 ret.columns = columns
         else:
-            cyfunc = self._get_cython_func(func)
+            cyfunc = com.get_cython_func(func)
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
@@ -328,7 +322,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             arg = zip(columns, arg)
 
-        results: Dict[base.OutputKey, FrameOrSeriesUnion] = {}
+        results: dict[base.OutputKey, FrameOrSeriesUnion] = {}
         for idx, (name, func) in enumerate(arg):
             obj = self
 
@@ -356,15 +350,15 @@ class SeriesGroupBy(GroupBy[Series]):
     # TODO: index should not be Optional - see GH 35490
     def _wrap_series_output(
         self,
-        output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
-        index: Optional[Index],
+        output: Mapping[base.OutputKey, Series | ArrayLike],
+        index: Index | None,
     ) -> FrameOrSeriesUnion:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
 
         Parameters
         ----------
-        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
             Data to wrap.
         index : pd.Index or None
             Index to apply to the output.
@@ -397,8 +391,8 @@ class SeriesGroupBy(GroupBy[Series]):
     # TODO: Remove index argument, use self.grouper.result_index, see GH 35490
     def _wrap_aggregated_output(
         self,
-        output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
-        index: Optional[Index],
+        output: Mapping[base.OutputKey, Series | np.ndarray],
+        index: Index | None,
     ) -> FrameOrSeriesUnion:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
@@ -421,14 +415,14 @@ class SeriesGroupBy(GroupBy[Series]):
         return self._reindex_output(result)
 
     def _wrap_transformed_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        self, output: Mapping[base.OutputKey, Series | ArrayLike]
     ) -> Series:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
 
         Parameters
         ----------
-        output : dict[base.OutputKey, Union[Series, np.ndarray]]
+        output : dict[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
             Dict with a sole key of 0 and a value of the result values.
 
         Returns
@@ -451,7 +445,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         data: Series,
         keys: Index,
-        values: Optional[List[Any]],
+        values: list[Any] | None,
         not_indexed_same: bool = False,
     ) -> FrameOrSeriesUnion:
         """
@@ -542,7 +536,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 result.ravel(), index=data.index, name=data.name
             )
 
-        func = self._get_cython_func(func) or func
+        func = com.get_cython_func(func) or func
 
         if not isinstance(func, str):
             return self._transform_general(func, *args, **kwargs)
@@ -896,7 +890,6 @@ class SeriesGroupBy(GroupBy[Series]):
         val = self.obj._values
 
         mask = (ids != -1) & ~isna(val)
-        ids = ensure_platform_int(ids)
         minlength = ngroups or 0
         out = np.bincount(ids[mask], minlength=minlength)
 
@@ -1121,6 +1114,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             if isinstance(values, Categorical) and isinstance(result, np.ndarray):
                 # If the Categorical op didn't raise, it is dtype-preserving
+                # We get here with how="first", "last", "min", "max"
                 result = type(values)._from_sequence(result.ravel(), dtype=values.dtype)
                 # Note this will have result.dtype == dtype from above
 
@@ -1197,9 +1191,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
-                # error: Incompatible types in assignment (expression has type
-                # "ExtensionArray", variable has type "ndarray")
-                result = py_fallback(values)  # type: ignore[assignment]
+                result = py_fallback(values)
 
             return cast_agg_result(result, values, how)
 
@@ -1220,7 +1212,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result: Dict[Hashable, Union[NDFrame, np.ndarray]] = {}
+        result: dict[Hashable, NDFrame | np.ndarray] = {}
         if axis != obj._info_axis_number:
             for name, data in self:
                 fres = func(data, *args, **kwargs)
@@ -1237,7 +1229,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # only for axis==0
 
         obj = self._obj_with_exclusions
-        result: Dict[Union[int, str], NDFrame] = {}
+        result: dict[int | str, NDFrame] = {}
         cannot_agg = []
         for item in obj:
             data = obj[item]
@@ -1308,7 +1300,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_applied_output_series(
         self,
         keys,
-        values: List[Series],
+        values: list[Series],
         not_indexed_same: bool,
         first_not_none,
         key_index,
@@ -1448,7 +1440,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self.obj._constructor(result, index=data.index, columns=data.columns)
 
         # optimized transforms
-        func = self._get_cython_func(func) or func
+        func = com.get_cython_func(func) or func
 
         if not isinstance(func, str):
             return self._transform_general(func, *args, **kwargs)
@@ -1721,8 +1713,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _wrap_aggregated_output(
         self,
-        output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
-        index: Optional[Index],
+        output: Mapping[base.OutputKey, Series | np.ndarray],
+        index: Index | None,
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy aggregations into the expected result.
@@ -1755,14 +1747,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._reindex_output(result)
 
     def _wrap_transformed_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        self, output: Mapping[base.OutputKey, Series | ArrayLike]
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy transformations into the expected result.
 
         Parameters
         ----------
-        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
             Data to wrap.
 
         Returns

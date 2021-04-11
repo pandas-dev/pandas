@@ -7,6 +7,7 @@ from typing import (
     Any,
     List,
     Optional,
+    Sequence,
     Tuple,
     TypeVar,
     Union,
@@ -24,6 +25,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    NaTType,
     Resolution,
     Tick,
 )
@@ -218,7 +220,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_na = True
 
-    _na_value = NaT
+    _na_value: NaTType = NaT
     """The expected NA value to use with this index."""
 
     def _convert_tolerance(self, tolerance, target):
@@ -535,7 +537,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # List-like Methods
 
-    def _get_delete_freq(self, loc: int):
+    def _get_delete_freq(self, loc: Union[int, slice, Sequence[int]]):
         """
         Find the `freq` for self.delete(loc).
         """
@@ -548,7 +550,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                     freq = self.freq
             else:
                 if is_list_like(loc):
-                    loc = lib.maybe_indices_to_slice(
+                    # error: Incompatible types in assignment (expression has
+                    # type "Union[slice, ndarray]", variable has type
+                    # "Union[int, slice, Sequence[int]]")
+                    loc = lib.maybe_indices_to_slice(  # type: ignore[assignment]
                         np.asarray(loc, dtype=np.intp), len(self)
                     )
                 if isinstance(loc, slice) and loc.step in (1, None):

@@ -42,23 +42,16 @@ def cls(request):
     return request.param
 
 
-def test_repr(dtype, request):
-    if dtype == "arrow_string":
-        reason = (
-            "AssertionError: assert '      A\n0     a\n1  None\n2     b' "
-            "== '      A\n0     a\n1  <NA>\n2     b'"
-        )
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
-
+def test_repr(dtype):
     df = pd.DataFrame({"A": pd.array(["a", pd.NA, "b"], dtype=dtype)})
     expected = "      A\n0     a\n1  <NA>\n2     b"
     assert repr(df) == expected
 
-    expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string"
+    expected = f"0       a\n1    <NA>\n2       b\nName: A, dtype: {dtype}"
     assert repr(df.A) == expected
 
-    expected = "<StringArray>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
+    arr_name = "ArrowStringArray" if dtype == "arrow_string" else "StringArray"
+    expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: {dtype}"
     assert repr(df.A.array) == expected
 
 
@@ -371,9 +364,20 @@ def test_astype_int(dtype, request):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_astype_float(any_float_allowed_nullable_dtype):
+def test_astype_float(dtype, any_float_allowed_nullable_dtype, request):
     # Don't compare arrays (37974)
-    ser = pd.Series(["1.1", pd.NA, "3.3"], dtype="string")
+
+    if dtype == "arrow_string":
+        if any_float_allowed_nullable_dtype in {"Float32", "Float64"}:
+            reason = "TypeError: Cannot interpret 'Float32Dtype()' as a data type"
+        else:
+            reason = (
+                "TypeError: float() argument must be a string or a number, not 'NAType'"
+            )
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
+    ser = pd.Series(["1.1", pd.NA, "3.3"], dtype=dtype)
 
     result = ser.astype(any_float_allowed_nullable_dtype)
     expected = pd.Series([1.1, np.nan, 3.3], dtype=any_float_allowed_nullable_dtype)
@@ -436,17 +440,25 @@ def test_reduce_missing(skipna, dtype):
         assert pd.isna(result)
 
 
-def test_fillna_args():
+def test_fillna_args(dtype, request):
     # GH 37987
 
-    arr = pd.array(["a", pd.NA], dtype="string")
+    if dtype == "arrow_string":
+        reason = (
+            "AssertionError: Regex pattern \"Cannot set non-string value '1' into "
+            "a StringArray.\" does not match 'Scalar must be NA or str'"
+        )
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
+    arr = pd.array(["a", pd.NA], dtype=dtype)
 
     res = arr.fillna(value="b")
-    expected = pd.array(["a", "b"], dtype="string")
+    expected = pd.array(["a", "b"], dtype=dtype)
     tm.assert_extension_array_equal(res, expected)
 
     res = arr.fillna(value=np.str_("b"))
-    expected = pd.array(["a", "b"], dtype="string")
+    expected = pd.array(["a", "b"], dtype=dtype)
     tm.assert_extension_array_equal(res, expected)
 
     msg = "Cannot set non-string value '1' into a StringArray."

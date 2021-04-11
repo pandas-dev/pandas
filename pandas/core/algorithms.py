@@ -8,9 +8,6 @@ import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    Optional,
-    Tuple,
     Union,
     cast,
 )
@@ -33,6 +30,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     FrameOrSeriesUnion,
+    Scalar,
 )
 from pandas.util._decorators import doc
 
@@ -102,13 +100,13 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
 
-_shared_docs: Dict[str, str] = {}
+_shared_docs: dict[str, str] = {}
 
 
 # --------------- #
 # dtype access    #
 # --------------- #
-def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
+def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
     """
     routine to ensure that our data is of the correct
     input dtype for lower-level routines
@@ -157,10 +155,7 @@ def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
             with catch_warnings():
                 simplefilter("ignore", np.ComplexWarning)
                 values = ensure_float64(values)
-            # error: Incompatible return value type (got "Tuple[ExtensionArray,
-            # dtype[floating[_64Bit]]]", expected "Tuple[ndarray, Union[dtype[Any],
-            # ExtensionDtype]]")
-            return values, np.dtype("float64")  # type: ignore[return-value]
+            return values, np.dtype("float64")
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
@@ -204,11 +199,7 @@ def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
         # we are actually coercing to int64
         # until our algos support int* directly (not all do)
         values = ensure_int64(values)
-
-        # error: Incompatible return value type (got "Tuple[ExtensionArray,
-        # Union[dtype[Any], ExtensionDtype]]", expected "Tuple[ndarray,
-        # Union[dtype[Any], ExtensionDtype]]")
-        return values, dtype  # type: ignore[return-value]
+        return values, dtype
 
     # we have failed, return object
     values = np.asarray(values, dtype=object)
@@ -302,7 +293,7 @@ def _get_hashtable_algo(values: np.ndarray):
     return htable, values
 
 
-def _get_values_for_rank(values: ArrayLike):
+def _get_values_for_rank(values: ArrayLike) -> np.ndarray:
     if is_categorical_dtype(values):
         values = cast("Categorical", values)._values_for_rank()
 
@@ -313,9 +304,7 @@ def _get_values_for_rank(values: ArrayLike):
 def get_data_algo(values: ArrayLike):
     values = _get_values_for_rank(values)
 
-    # error: Argument 1 to "_check_object_for_strings" has incompatible type
-    # "ExtensionArray"; expected "ndarray"
-    ndtype = _check_object_for_strings(values)  # type: ignore[arg-type]
+    ndtype = _check_object_for_strings(values)
     htable = _hashtables.get(ndtype, _hashtables["object"])
 
     return htable, values
@@ -541,10 +530,10 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 def factorize_array(
     values: np.ndarray,
     na_sentinel: int = -1,
-    size_hint: Optional[int] = None,
+    size_hint: int | None = None,
     na_value=None,
-    mask: Optional[np.ndarray] = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+    mask: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
 
@@ -607,9 +596,9 @@ def factorize_array(
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: Optional[int] = -1,
-    size_hint: Optional[int] = None,
-) -> Tuple[np.ndarray, Union[np.ndarray, Index]]:
+    na_sentinel: int | None = -1,
+    size_hint: int | None = None,
+) -> tuple[np.ndarray, np.ndarray | Index]:
     """
     Encode the object as an enumerated type or categorical variable.
 
@@ -763,6 +752,7 @@ def factorize(
         dtype = original.dtype
     else:
         values, dtype = _ensure_data(values)
+        na_value: Scalar
 
         if original.dtype.kind in ["m", "M"]:
             # Note: factorize_array will cast NaT bc it has a __int__
@@ -924,7 +914,7 @@ def value_counts_arraylike(values, dropna: bool):
     return keys, counts
 
 
-def duplicated(values: ArrayLike, keep: Union[str, bool] = "first") -> np.ndarray:
+def duplicated(values: ArrayLike, keep: str | bool = "first") -> np.ndarray:
     """
     Return boolean ndarray denoting duplicate values.
 
@@ -941,7 +931,7 @@ def duplicated(values: ArrayLike, keep: Union[str, bool] = "first") -> np.ndarra
 
     Returns
     -------
-    duplicated : ndarray
+    duplicated : ndarray[bool]
     """
     values, _ = _ensure_data(values)
     ndtype = values.dtype.name
@@ -957,7 +947,7 @@ def mode(values, dropna: bool = True) -> Series:
     ----------
     values : array-like
         Array over which to check for duplicate values.
-    dropna : boolean, default True
+    dropna : bool, default True
         Don't consider counts of NaN/NaT.
 
         .. versionadded:: 0.24.0
@@ -1023,27 +1013,29 @@ def rank(
         - ``keep``: rank each NaN value with a NaN ranking
         - ``top``: replace each NaN with either +/- inf so that they
                    there are ranked at the top
-    ascending : boolean, default True
+    ascending : bool, default True
         Whether or not the elements should be ranked in ascending order.
-    pct : boolean, default False
+    pct : bool, default False
         Whether or not to the display the returned rankings in integer form
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
+    is_datetimelike = needs_i8_conversion(values.dtype)
+    values = _get_values_for_rank(values)
     if values.ndim == 1:
-        values = _get_values_for_rank(values)
         ranks = algos.rank_1d(
             values,
-            labels=np.zeros(len(values), dtype=np.int64),
+            labels=np.zeros(len(values), dtype=np.intp),
+            is_datetimelike=is_datetimelike,
             ties_method=method,
             ascending=ascending,
             na_option=na_option,
             pct=pct,
         )
     elif values.ndim == 2:
-        values = _get_values_for_rank(values)
         ranks = algos.rank_2d(
             values,
             axis=axis,
+            is_datetimelike=is_datetimelike,
             ties_method=method,
             ascending=ascending,
             na_option=na_option,
@@ -1058,8 +1050,8 @@ def rank(
 def checked_add_with_arr(
     arr: np.ndarray,
     b,
-    arr_mask: Optional[np.ndarray] = None,
-    b_mask: Optional[np.ndarray] = None,
+    arr_mask: np.ndarray | None = None,
+    b_mask: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Perform array addition that checks for underflow and overflow.
@@ -1305,7 +1297,9 @@ class SelectNSeries(SelectN):
         narr = len(arr)
         n = min(n, narr)
 
-        kth_val = algos.kth_smallest(arr.copy(), n - 1)
+        # arr passed into kth_smallest must be contiguous. We copy
+        # here because kth_smallest will modify its input
+        kth_val = algos.kth_smallest(arr.copy(order="C"), n - 1)
         (ns,) = np.nonzero(arr <= kth_val)
         inds = ns[arr[ns].argsort(kind="mergesort")]
 
@@ -1613,7 +1607,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0, stacklevel=3):
+def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1625,7 +1619,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
         number of periods
     axis : {0, 1}
         axis to shift on
-    stacklevel : int
+    stacklevel : int, default 3
         The stacklevel for the lost dtype warning.
 
     Returns
@@ -1735,7 +1729,7 @@ def safe_sort(
     na_sentinel: int = -1,
     assume_unique: bool = False,
     verify: bool = True,
-) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """
     Sort ``values`` and reorder corresponding ``codes``.
 
@@ -1859,7 +1853,7 @@ def safe_sort(
     return ordered, ensure_platform_int(new_codes)
 
 
-def _sort_mixed(values):
+def _sort_mixed(values) -> np.ndarray:
     """ order ints before strings in 1d arrays, safe in py3 """
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
     nums = np.sort(values[~str_pos])

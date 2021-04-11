@@ -385,7 +385,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
 
     Returns
     -------
-    iter : iterator of (int, slice or array)
+    list[tuple[int, slice | np.ndarray]]
     """
     # There's blkno in this function's name because it's used in block &
     # blockno handling.
@@ -455,3 +455,81 @@ def get_blkno_placements(blknos, group: bool = True):
 
     for blkno, indexer in get_blkno_indexers(blknos, group):
         yield blkno, BlockPlacement(indexer)
+
+
+@cython.freelist(64)
+cdef class SharedBlock:
+    """
+    Defining __init__ in a cython class significantly improves performance.
+    """
+    cdef:
+        public BlockPlacement _mgr_locs
+        readonly int ndim
+
+    def __cinit__(self, values, placement: BlockPlacement, ndim: int):
+        """
+        Parameters
+        ----------
+        values : np.ndarray or ExtensionArray
+            We assume maybe_coerce_values has already been called.
+        placement : BlockPlacement
+        ndim : int
+            1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
+        """
+        self._mgr_locs = placement
+        self.ndim = ndim
+
+    cpdef __reduce__(self):
+        # We have to do some gymnastics b/c "ndim" is keyword-only
+        from functools import partial
+
+        from pandas.core.internals.blocks import new_block
+
+        args = (self.values, self.mgr_locs.indexer)
+        func = partial(new_block, ndim=self.ndim)
+        return func, args
+
+    cpdef __setstate__(self, state):
+        from pandas.core.construction import extract_array
+
+        self.mgr_locs = BlockPlacement(state[0])
+        self.values = extract_array(state[1], extract_numpy=True)
+        if len(state) > 2:
+            # we stored ndim
+            self.ndim = state[2]
+        else:
+            # older pickle
+            from pandas.core.internals.api import maybe_infer_ndim
+
+            ndim = maybe_infer_ndim(self.values, self.mgr_locs)
+            self.ndim = ndim
+
+
+cdef class NumpyBlock(SharedBlock):
+    cdef:
+        public ndarray values
+
+    def __cinit__(self, ndarray values, BlockPlacement placement, int ndim):
+        # set values here the (implicit) call to SharedBlock.__cinit__ will
+        #  set placement and ndim
+        self.values = values
+
+    # @final  # not useful in cython, but we _would_ annotate with @final
+    def getitem_block_index(self, slicer: slice) -> NumpyBlock:
+        """
+        Perform __getitem__-like specialized to slicing along index.
+
+        Assumes self.ndim == 2
+        """
+        new_values = self.values[..., slicer]
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
+
+
+cdef class Block(SharedBlock):
+    cdef:
+        public object values
+
+    def __cinit__(self, object values, BlockPlacement placement, int ndim):
+        # set values here the (implicit) call to SharedBlock.__cinit__ will
+        #  set placement and ndim
+        self.values = values
