@@ -1,7 +1,7 @@
 .. _whatsnew_124:
 
 What's new in 1.2.4 (April 12, 2021)
----------------------------------------
+------------------------------------
 
 These are the changes in pandas 1.2.4. See :ref:`release` for a full changelog
 including other versions of pandas.
