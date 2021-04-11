@@ -70,7 +70,7 @@ def test_binary_input_dispatch_binop(dtype):
         (np.power, [1, 2, 3, 4]),
     ],
 )
-def test_ufunc_passes_args(frame_or_series, func, expected):
+def test_ufunc_passes_args(func, expected):
     # GH#40662
     arr = np.array([[1, 2], [3, 4]])
     df = pd.DataFrame(arr)
