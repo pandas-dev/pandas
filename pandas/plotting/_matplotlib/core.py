@@ -505,6 +505,7 @@ class MPLPlot:
             )
 
         for ax in self.axes:
+
             if self.yticks is not None:
                 ax.set_yticks(self.yticks)
 
@@ -512,10 +513,22 @@ class MPLPlot:
                 ax.set_xticks(self.xticks)
 
             if self.ylim is not None:
-                ax.set_ylim(self.ylim)
+                    for elem in self.ylim: #Addressing issue #40781 raising ValueError if provided data type is not float or int.
+                        if not is_float(elem) and not is_integer(elem):
+                            raise ValueError(
+                                "`ylim` should contain y-Axis plot range in either float or integer datatype.\n"
+                               f"`ylim` had unsupported datatype of {type(elem)} with value {elem}. \n"
+                            )
+                    ax.set_ylim(self.ylim)
 
             if self.xlim is not None:
-                ax.set_xlim(self.xlim)
+                    for elem in self.xlim: #Addressing issue #40781 raising ValueError if provided data type is not float or int.
+                        if not is_float(elem) and not is_integer(elem):
+                            raise ValueError(
+                                "`xlim` should contain y-Axis plot range in either float or integer datatype.\n"
+                               f"`xlim` had unsupported datatype of {type(elem)} with value {elem}.\n"
+                            )
+                    ax.set_xlim(self.xlim)
 
             # GH9093, currently Pandas does not show ylabel, so if users provide
             # ylabel will set it as ylabel in the plot.
