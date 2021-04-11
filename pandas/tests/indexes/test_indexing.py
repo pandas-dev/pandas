@@ -19,6 +19,7 @@ import pytest
 from pandas.errors import InvalidIndexError
 
 from pandas import (
+    DataFrame,
     DatetimeIndex,
     Float64Index,
     Index,
@@ -246,6 +247,20 @@ class TestPutmask:
 
         with pytest.raises(ValueError, match=msg):
             index.putmask("foo", fill)
+
+
+class TestCasting:
+    def test_maybe_cast_with_dtype(self):
+        # https://github.com/pandas-dev/pandas/issues/32413
+        frame = DataFrame(index=Index([1, np.nan]))
+
+        cond = frame.index.notna()
+        other = "a" + frame.reset_index().index.astype(str)
+
+        fixed_index = frame.index.where(cond, other)
+
+        assert (other == Index(["a0", "a1"])).all()
+        assert (fixed_index == Index([1.0, "a1"])).all()
 
 
 @pytest.mark.parametrize(
