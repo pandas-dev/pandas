@@ -3783,7 +3783,7 @@ class Index(IndexOpsMixin, PandasObject):
             Maximum number of consecutive elements to forward or backward fill.
         tolerance : optional
             Maximum distance between original and new labels for inexact matches.
-            The values of the index at the matching locations most satisfy the 
+            The values of the index at the matching locations most satisfy the
             equation `abs(index[indexer] - target) <= tolerance`.
             Tolerance may be a scalar value, which applies the same tolerance
             to all values, or list-like, which applies variable tolerance per element.
