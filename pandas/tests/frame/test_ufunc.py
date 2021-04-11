@@ -74,11 +74,14 @@ def test_ufunc_passes_args(func, expected):
     # GH#40662
     arr = np.array([[1, 2], [3, 4]])
     df = pd.DataFrame(arr)
-    result = np.zeros_like(df)
-    func(df, 1, out=result)
+    result_inplace = np.zeros_like(df)
+    result = func(df, 1, out=result_inplace)
 
     expected = np.array(expected).reshape(2, 2)
-    tm.assert_numpy_array_equal(result, expected)
+    tm.assert_numpy_array_equal(result_inplace, expected)
+
+    expected = pd.DataFrame(expected)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("dtype_a", dtypes)
