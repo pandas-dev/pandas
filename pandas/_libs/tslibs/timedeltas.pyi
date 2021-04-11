@@ -1,21 +1,14 @@
 from datetime import timedelta
-from time import struct_time
 from typing import (
-    AnyStr,
     ClassVar,
-    Optional,
-    SupportsAbs,
-    Tuple,
     Type,
     TypeVar,
-    Union,
     overload,
 )
 
 import numpy as np
 
 from pandas._libs.tslibs import (
-    NaT,
     NaTType,
     Tick,
 )
@@ -48,7 +41,8 @@ class Timedelta(timedelta):
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
 
-    def __new__(
+    # error: "__new__" must return a class instance (got "Union[Timedelta, NaTType]")
+    def __new__(  # type: ignore[misc]
         cls: Type[_S],
         value=...,
         unit=...,
@@ -97,7 +91,7 @@ class Timedelta(timedelta):
     @overload
     def __truediv__(self, other: float) -> timedelta: ...
     def __mod__(self, other: timedelta) -> timedelta: ...
-    def __divmod__(self, other: timedelta) -> Tuple[int, timedelta]: ...
+    def __divmod__(self, other: timedelta) -> tuple[int, timedelta]: ...
 
     def __le__(self, other: timedelta) -> bool: ...
     def __lt__(self, other: timedelta) -> bool: ...
