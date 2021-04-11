@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 import pytest
 
@@ -60,19 +62,22 @@ def test_binary_input_dispatch_binop(dtype):
     tm.assert_frame_equal(result, expected)
 
 
-def test_ufunc_passes_args():
+@pytest.mark.parametrize(
+    "func,expected",
+    [
+        (np.add, [2, 3, 4, 5]),
+        (partial(np.add, where=[[False, True], [True, False]]), [0, 3, 4, 0]),
+        (np.power, [1, 2, 3, 4]),
+    ],
+)
+def test_ufunc_passes_args(frame_or_series, func, expected):
     # GH#40662
-    arr = np.array([[1, 2, 3, 4]])
+    arr = np.array([[1, 2], [3, 4]])
     df = pd.DataFrame(arr)
     result = np.zeros_like(df)
-    np.add(df, 1, out=result)
+    func(df, 1, out=result)
 
-    expected = arr + 1
-    tm.assert_numpy_array_equal(result, expected)
-
-    result = np.zeros_like(df)
-    np.add(df, 1, out=result, where=[[False, True, True, False]])
-    expected = np.array([[0, 3, 4, 0]])
+    expected = np.array(expected).reshape(2, 2)
     tm.assert_numpy_array_equal(result, expected)
 
 
