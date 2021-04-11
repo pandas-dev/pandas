@@ -3763,11 +3763,31 @@ class Index(IndexOpsMixin, PandasObject):
 
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
         """
-        Create index with target's values.
+        Create an index with target's values.
 
         Parameters
         ----------
         target : an iterable
+        method : {None, ‘backfill’/’bfill’, ‘pad’/’ffill’, ‘nearest’}
+            Method to use for filling holes in reindexed DataFrame. 
+            Please note: this is only applicable to DataFrames/Series 
+            with a monotonically increasing/decreasing index.
+            - None (default): don’t fill gaps
+            - pad / ffill: Propagate last valid observation forward to next valid.
+            - backfill / bfill: Use next valid observation to fill gap.
+            - nearest: Use nearest valid observations to fill gap.
+        level : int or name
+            Broadcast across a level, matching Index values on the passed MultiIndex level.
+        limit : int, default None
+            Maximum number of consecutive elements to forward or backward fill.
+        tolerance : optional
+            Maximum distance between original and new labels for inexact matches. 
+            The values of the index at the matching locations most satisfy the 
+            equation `abs(index[indexer] - target) <= tolerance.
+            Tolerance may be a scalar value, which applies the same tolerance to all values,
+            or list-like, which applies variable tolerance per element. 
+            List-like includes list, tuple, array, Series, and must be the same size 
+            as the index and its dtype must exactly match the index’s type.
 
         Returns
         -------
