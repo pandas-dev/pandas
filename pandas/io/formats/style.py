@@ -542,7 +542,8 @@ class Styler(StylerRenderer):
         **Formatting**
 
         To format values :meth:`Styler.format` should be used prior to calling
-        `Styler.to_latex`, for example:
+        `Styler.to_latex`, as well as other method such as :meth:`Styler.hide_index`
+         or :meth:`Styler.hide_columns`, for example:
 
         >>> s.clear()
         >>> s.table_styles = []
