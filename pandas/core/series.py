@@ -4608,8 +4608,8 @@ Keep all original rows and also all original values
         method: str | None,
         axis: Axis | None,
         inplace: Literal[True],
-        limit: int | None,
-        downcast: dict | str | None,
+        limit: int | None = ...,
+        downcast: dict | str | None = ...,
     ) -> None:
         ...
 
@@ -4618,8 +4618,8 @@ Keep all original rows and also all original values
         self,
         *,
         inplace: Literal[True],
-        limit: int | None,
-        downcast: dict | str | None,
+        limit: int | None = ...,
+        downcast: dict | str | None = ...,
     ) -> None:
         ...
 
@@ -4629,8 +4629,8 @@ Keep all original rows and also all original values
         value: Scalar | dict | Series | DataFrame | None,
         *,
         inplace: Literal[True],
-        limit: int | None,
-        downcast: dict | str | None,
+        limit: int | None = ...,
+        downcast: dict | str | None = ...,
     ) -> None:
         ...
 
@@ -4640,8 +4640,8 @@ Keep all original rows and also all original values
         *,
         method: str | None,
         inplace: Literal[True],
-        limit: int | None,
-        downcast: dict | str | None,
+        limit: int | None = ...,
+        downcast: dict | str | None = ...,
     ) -> None:
         ...
 
@@ -4651,8 +4651,8 @@ Keep all original rows and also all original values
         *,
         axis: Axis | None,
         inplace: Literal[True],
-        limit: int | None,
-        downcast: dict | str | None,
+        limit: int | None = ...,
+        downcast: dict | str | None = ...,
     ) -> None:
         ...
 
@@ -4663,8 +4663,8 @@ Keep all original rows and also all original values
         method: str | None,
         axis: Axis | None,
         inplace: Literal[True],
-        limit: int | None,
-        downcast: dict | str | None,
+        limit: int | None = ...,
+        downcast: dict | str | None = ...,
     ) -> None:
         ...
 
@@ -4675,8 +4675,8 @@ Keep all original rows and also all original values
         *,
         axis: Axis | None,
         inplace: Literal[True],
-        limit: int | None,
-        downcast: dict | str | None,
+        limit: int | None = ...,
+        downcast: dict | str | None = ...,
     ) -> None:
         ...
 
@@ -4687,8 +4687,8 @@ Keep all original rows and also all original values
         method: str | None,
         *,
         inplace: Literal[True],
-        limit: int | None,
-        downcast: dict | str | None,
+        limit: int | None = ...,
+        downcast: dict | str | None = ...,
     ) -> None:
         ...
 
