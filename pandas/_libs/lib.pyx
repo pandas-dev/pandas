@@ -68,6 +68,9 @@ cdef extern from "numpy/arrayobject.h":
             object fields
             tuple names
 
+cdef extern from "numpy/ndarrayobject.h":
+    bint PyArray_CheckScalar(obj) nogil
+
 
 cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
@@ -77,7 +80,6 @@ from pandas._libs.util cimport (
     INT64_MAX,
     INT64_MIN,
     UINT64_MAX,
-    get_itemsize,
     is_nan,
 )
 
@@ -208,6 +210,24 @@ def is_scalar(val: object) -> bool:
             or is_period_object(val)
             or is_interval(val)
             or is_offset_object(val))
+
+
+cdef inline int64_t get_itemsize(object val):
+    """
+    Get the itemsize of a NumPy scalar, -1 if not a NumPy scalar.
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_ndarray : bool
+    """
+    if PyArray_CheckScalar(val):
+        return cnp.PyArray_DescrFromScalar(val).itemsize
+    else:
+        return -1
 
 
 def is_iterator(obj: object) -> bool:
@@ -2362,7 +2382,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                         if convert_to_nullable_integer:
                             from pandas.core.arrays import IntegerArray
                             result = IntegerArray(ints, mask)
-                            itemsize_max = -1
                         else:
                             result = floats
                     elif seen.nan_:
@@ -2438,11 +2457,11 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                                 result = ints
                 elif seen.is_bool and not seen.nan_:
                     result = bools.view(np.bool_)
-        if result is not None:
-            if itemsize_max > 0:
-                curr_itemsize = cnp.PyArray_ITEMSIZE(result)
-                if itemsize_max != curr_itemsize:
-                    result = result.astype(result.dtype.kind + str(itemsize_max))
+        if result is uints or result is ints or result is floats or result is complexes:
+            if itemsize_max > 0 and itemsize_max != result.dtype.itemsize:
+                result = result.astype(result.dtype.kind + str(itemsize_max))
+            return result
+        elif result is not None:
             return result
 
     return objects

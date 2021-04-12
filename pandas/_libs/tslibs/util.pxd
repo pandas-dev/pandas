@@ -1,9 +1,5 @@
 
-cimport numpy as cnp
 from cpython.object cimport PyTypeObject
-from numpy cimport PyArray_DescrFromScalar
-
-cnp.import_array()
 
 
 cdef extern from *:
@@ -48,7 +44,6 @@ cdef extern from "numpy/ndarrayobject.h":
 
     bint PyArray_IsIntegerScalar(obj) nogil
     bint PyArray_Check(obj) nogil
-    bint PyArray_CheckScalar(obj) nogil
 
 cdef extern from "numpy/npy_common.h":
     int64_t NPY_MIN_INT64
@@ -198,24 +193,6 @@ cdef inline bint is_nan(object val):
         fval = val
         return fval != fval
     return is_complex_object(val) and val != val
-
-
-cdef inline int64_t get_itemsize(object val):
-    """
-    Get the itemsize of a NumPy scalar, -1 if not a NumPy scalar.
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    is_ndarray : bool
-    """
-    if PyArray_CheckScalar(val):
-        return PyArray_DescrFromScalar(val).itemsize
-    else:
-        return -1
 
 
 cdef inline const char* get_c_string_buf_and_size(str py_string,
