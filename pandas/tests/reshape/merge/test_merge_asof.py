@@ -6,6 +6,7 @@ import pytz
 
 import pandas as pd
 from pandas import (
+    Index,
     Timedelta,
     merge_asof,
     read_csv,
@@ -1338,7 +1339,9 @@ class TestAsOfMerge:
                 "from_date": index[1:],
                 "abc": [2.46] * 3 + [2.19],
             },
-            index=pd.Index([1, 2, 3, 4]),
+            index=pd.date_range(
+                "2019-10-01 00:30:00", freq="30min", periods=4, tz="UTC"
+            ),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1351,7 +1354,7 @@ class TestAsOfMerge:
                 "abc": [2.46] * 4 + [2.19],
                 "xyz": [np.nan, 0.9, 0.8, 0.7, 0.6],
             },
-            index=pd.Index([0, 1, 2, 3, 4]),
+            index=Index([0, 1, 2, 3, 4]),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1412,3 +1415,25 @@ def test_merge_asof_non_numerical_dtype_object():
             left_by="a",
             right_by="left_val",
         )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"right_index": True, "left_index": True},
+        {"left_on": "left_time", "right_index": True},
+        {"left_index": True, "right_on": "right"},
+    ],
+)
+def test_merge_asof_index_behavior(kwargs):
+    # GH 33463
+    index = Index([1, 5, 10], name="test")
+    left = pd.DataFrame({"left": ["a", "b", "c"], "left_time": [1, 4, 10]}, index=index)
+    right = pd.DataFrame({"right": [1, 2, 3, 6, 7]}, index=[1, 2, 3, 6, 7])
+    result = merge_asof(left, right, **kwargs)
+
+    expected = pd.DataFrame(
+        {"left": ["a", "b", "c"], "left_time": [1, 4, 10], "right": [1, 3, 7]},
+        index=index,
+    )
+    tm.assert_frame_equal(result, expected)
