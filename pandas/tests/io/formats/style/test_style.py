@@ -12,9 +12,11 @@ import pandas._testing as tm
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import (  # isort:skip
     Styler,
+)
+from pandas.io.formats.style_render import (
     _get_level_lengths,
-    _maybe_convert_css_to_tuples,
-    _non_reducing_slice,
+    maybe_convert_css_to_tuples,
+    non_reducing_slice,
 )
 
 
@@ -557,6 +559,21 @@ class TestStyler:
             expected = self.df.style.applymap(g, subset=slice_)._compute().ctx
             assert result == expected
 
+    def test_where_kwargs(self):
+        df = DataFrame([[1, 2], [3, 4]])
+
+        def f(x, val):
+            return x > val
+
+        result = df.style.where(f, "color:green;", "color:red;", val=2)._compute().ctx
+        expected = {
+            (0, 0): [("color", "red")],
+            (0, 1): [("color", "red")],
+            (1, 0): [("color", "green")],
+            (1, 1): [("color", "green")],
+        }
+        assert result == expected
+
     def test_empty(self):
         df = DataFrame({"A": [1, 0]})
         s = df.style
@@ -675,15 +692,15 @@ class TestStyler:
 
     def test_maybe_convert_css_to_tuples(self):
         expected = [("a", "b"), ("c", "d e")]
-        assert _maybe_convert_css_to_tuples("a:b;c:d e;") == expected
-        assert _maybe_convert_css_to_tuples("a: b ;c:  d e  ") == expected
+        assert maybe_convert_css_to_tuples("a:b;c:d e;") == expected
+        assert maybe_convert_css_to_tuples("a: b ;c:  d e  ") == expected
         expected = []
-        assert _maybe_convert_css_to_tuples("") == expected
+        assert maybe_convert_css_to_tuples("") == expected
 
     def test_maybe_convert_css_to_tuples_err(self):
         msg = "Styles supplied as string must follow CSS rule formats"
         with pytest.raises(ValueError, match=msg):
-            _maybe_convert_css_to_tuples("err")
+            maybe_convert_css_to_tuples("err")
 
     def test_table_attributes(self):
         attributes = 'class="foo" data-bar'
@@ -1261,7 +1278,7 @@ class TestStyler:
     def test_non_reducing_slice(self, slc):
         df = DataFrame([[0, 1], [2, 3]])
 
-        tslice_ = _non_reducing_slice(slc)
+        tslice_ = non_reducing_slice(slc)
         assert isinstance(df.loc[tslice_], DataFrame)
 
     @pytest.mark.parametrize("box", [list, pd.Series, np.array])
@@ -1272,7 +1289,7 @@ class TestStyler:
         df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
         expected = pd.IndexSlice[:, ["A"]]
 
-        result = _non_reducing_slice(subset)
+        result = non_reducing_slice(subset)
         tm.assert_frame_equal(df.loc[result], df.loc[expected])
 
     def test_non_reducing_slice_on_multiindex(self):
@@ -1286,7 +1303,7 @@ class TestStyler:
         df = DataFrame(dic, index=[0, 1])
         idx = pd.IndexSlice
         slice_ = idx[:, idx["b", "d"]]
-        tslice_ = _non_reducing_slice(slice_)
+        tslice_ = non_reducing_slice(slice_)
 
         result = df.loc[tslice_]
         expected = DataFrame({("b", "d"): [4, 1]})
@@ -1325,7 +1342,7 @@ class TestStyler:
         df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
 
         expected = df.loc[slice_]
-        result = df.loc[_non_reducing_slice(slice_)]
+        result = df.loc[non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
 
 

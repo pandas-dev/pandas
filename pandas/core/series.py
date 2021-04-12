@@ -2003,6 +2003,22 @@ Name: Max Speed, dtype: float64
         """
         return super().unique()
 
+    @overload
+    def drop_duplicates(self, keep=..., inplace: Literal[False] = ...) -> Series:
+        ...
+
+    @overload
+    def drop_duplicates(self, keep, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def drop_duplicates(self, *, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def drop_duplicates(self, keep=..., inplace: bool = ...) -> Series | None:
+        ...
+
     def drop_duplicates(self, keep="first", inplace=False) -> Series | None:
         """
         Return Series with duplicate values removed.
