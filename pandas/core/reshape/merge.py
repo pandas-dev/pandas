@@ -969,7 +969,16 @@ class _MergeOperation:
                     join_index = self.right.index.take(right_indexer)
                     left_indexer = np.array([-1] * len(join_index), dtype=np.intp)
             elif self.left_index:
-                if len(self.right) > 0:
+                if self.how == "asof":
+                    # GH#33463 asof should always behave like a left merge
+                    join_index = self._create_join_index(
+                        self.left.index,
+                        self.right.index,
+                        left_indexer,
+                        how="left",
+                    )
+
+                elif len(self.right) > 0:
                     join_index = self._create_join_index(
                         self.right.index,
                         self.left.index,
