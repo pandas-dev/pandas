@@ -21,7 +21,7 @@ from pandas.util._decorators import doc
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.common as common
+import pandas.core.common as com
 from pandas.core.util.numba_ import maybe_use_numba
 from pandas.core.window.common import zsqrt
 from pandas.core.window.doc import (
@@ -51,7 +51,7 @@ def get_center_of_mass(
     halflife: float | None,
     alpha: float | None,
 ) -> float:
-    valid_count = common.count_not_none(comass, span, halflife, alpha)
+    valid_count = com.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
         raise ValueError("comass, span, halflife, and alpha are mutually exclusive")
 
@@ -279,7 +279,7 @@ class ExponentialMovingWindow(BaseWindow):
             self._deltas = np.diff(_times) / _halflife
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
-            if common.count_not_none(self.com, self.span, self.alpha) > 0:
+            if com.count_not_none(self.com, self.span, self.alpha) > 0:
                 self._com = get_center_of_mass(self.com, self.span, None, self.alpha)
             else:
                 self._com = 1.0
