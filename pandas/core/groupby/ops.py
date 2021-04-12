@@ -738,12 +738,8 @@ class BaseGrouper:
             # TODO: can we get a performant workaround for EAs backed by ndarray?
             return self._aggregate_series_pure_python(obj, func)
 
-        elif obj.index._has_complex_internals or obj.index.dtype == "object":
-            # (complex internals): Preempt TypeError in _aggregate_series_fast
-            # (object index dtype): _aggregate_series_fast raises TypeError
-            # when applying func because the group indiced become malformatted:
-            # correct indices are in group.index._index_data, but not in
-            # group.index._data.
+        elif obj.index._has_complex_internals:
+            # Preempt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
         try:

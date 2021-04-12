@@ -55,7 +55,7 @@ cdef class _BaseGrouper:
 
     cdef inline _update_cached_objs(self, object cached_typ, object cached_ityp,
                                     Slider islider, Slider vslider):
-        if cached_typ is None:
+        if cached_typ is None or len(islider) != len(cached_ityp):
             cached_ityp = self.ityp(islider.buf)
             cached_typ = self.typ(
                 vslider.buf, dtype=vslider.buf.dtype, index=cached_ityp, name=self.name
