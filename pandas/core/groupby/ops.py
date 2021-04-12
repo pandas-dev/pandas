@@ -568,14 +568,6 @@ class BaseGrouper:
     # Aggregation functions
 
     @final
-    def _is_builtin_func(self, arg):
-        """
-        if we define a builtin function for this argument, return it,
-        otherwise return the arg
-        """
-        return SelectionMixin._builtin_table.get(arg, arg)
-
-    @final
     def _ea_wrap_cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
     ) -> ArrayLike:
@@ -824,7 +816,7 @@ class BaseGrouper:
         #  - obj is backed by an ndarray, not ExtensionArray
         #  - len(obj) > 0
         #  - ngroups != 0
-        func = self._is_builtin_func(func)
+        func = com.is_builtin_func(func)
 
         group_index, _, ngroups = self.group_info
 

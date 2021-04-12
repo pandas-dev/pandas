@@ -414,7 +414,7 @@ def test_single_bin(data, length):
     ser = Series([data] * length)
     result = cut(ser, 1, labels=False)
 
-    expected = Series([0] * length)
+    expected = Series([0] * length, dtype=np.intp)
     tm.assert_series_equal(result, expected)
 
 
