@@ -381,13 +381,15 @@ def unique(values):
 
     >>> pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
     ...                      pd.Timestamp('20160101', tz='US/Eastern')]))
-    array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
-          dtype=object)
+    <DatetimeArray>
+    ['2016-01-01 00:00:00-05:00']
+    Length: 1, dtype: datetime64[ns, US/Eastern]
 
     >>> pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
     ...                     pd.Timestamp('20160101', tz='US/Eastern')]))
     DatetimeIndex(['2016-01-01 00:00:00-05:00'],
-    ...           dtype='datetime64[ns, US/Eastern]', freq=None)
+            dtype='datetime64[ns, US/Eastern]',
+            freq=None)
 
     >>> pd.unique(list('baabc'))
     array(['b', 'a', 'c'], dtype=object)
@@ -396,21 +398,21 @@ def unique(values):
     order of appearance.
 
     >>> pd.unique(pd.Series(pd.Categorical(list('baabc'))))
-    [b, a, c]
-    Categories (3, object): [b, a, c]
+    ['b', 'a', 'c']
+    Categories (3, object): ['b', 'a', 'c']
 
     >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
     ...                                    categories=list('abc'))))
-    [b, a, c]
-    Categories (3, object): [b, a, c]
+    ['b', 'a', 'c']
+    Categories (3, object): ['b', 'a', 'c']
 
     An ordered Categorical preserves the category ordering.
 
     >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
     ...                                    categories=list('abc'),
     ...                                    ordered=True)))
-    [b, a, c]
-    Categories (3, object): [a < b < c]
+    ['b', 'a', 'c']
+    Categories (3, object): ['a' < 'b' < 'c']
 
     An array of tuples
 
