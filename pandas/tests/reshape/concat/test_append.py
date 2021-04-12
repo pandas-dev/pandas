@@ -6,6 +6,8 @@ import dateutil
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -338,6 +340,10 @@ class TestAppend:
         assert appended["A"].dtype == "f8"
         assert appended["B"].dtype == "O"
 
+    # TODO(ArrayManager) DataFrame.append reindexes a Series itself (giving
+    # float dtype) -> delay reindexing until concat_array_managers which properly
+    # takes care of all-null dtype inference
+    @td.skip_array_manager_not_yet_implemented
     def test_append_empty_frame_to_series_with_dateutil_tz(self):
         # GH 23682
         date = Timestamp("2018-10-24 07:30:00", tz=dateutil.tz.tzutc())

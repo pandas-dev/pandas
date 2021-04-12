@@ -30,11 +30,13 @@ from pandas.core.construction import (
 )
 
 
-def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
+def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     """
     Helper function for `arr.astype(common_dtype)` but handling all special
     cases.
     """
+    if is_dtype_equal(arr.dtype, dtype):
+        return arr
     if (
         is_categorical_dtype(arr.dtype)
         and isinstance(dtype, np.dtype)
@@ -121,7 +123,7 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
         # for axis=0
         if not single_dtype:
             target_dtype = find_common_type([x.dtype for x in to_concat])
-            to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
+            to_concat = [cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
         if isinstance(to_concat[0], ExtensionArray):
             cls = type(to_concat[0])

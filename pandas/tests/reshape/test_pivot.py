@@ -8,8 +8,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -1199,8 +1197,7 @@ class TestPivotTable:
                 margins_name=margin_name,
             )
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) concat axis=0
-    def test_pivot_timegrouper(self):
+    def test_pivot_timegrouper(self, using_array_manager):
         df = DataFrame(
             {
                 "Branch": "A A A A A A A B".split(),
@@ -1254,6 +1251,9 @@ class TestPivotTable:
         )
         expected.index.name = "Date"
         expected.columns.name = "Buyer"
+        if using_array_manager:
+            # INFO(ArrayManager) column without NaNs can preserve int dtype
+            expected["Carl"] = expected["Carl"].astype("int64")
 
         result = pivot_table(
             df,
