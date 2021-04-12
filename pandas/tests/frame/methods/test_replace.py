@@ -1681,3 +1681,31 @@ class TestDataFrameReplace:
         expected = obj.copy()
         obj = obj.replace({None: np.nan})
         tm.assert_equal(obj, expected)
+
+    @pytest.mark.parametrize(
+        "value, to_replace, expected, dtype",
+        [
+            (
+                [1.0, 2.0, 3.999, 4.4],
+                {1.0: 9},
+                [9.0, 2.0, 3.999, 4.4],
+                "Float64",
+            ),
+            (
+                [1.0, 2.0, 3.999, 4.4],
+                {1.0: 9.0},
+                [9.0, 2.0, 3.999, 4.4],
+                "Float64",
+            ),
+            ([1, 2, 3, 4], {1: 9}, [9, 2, 3, 4], "Int64"),
+            ([1, 2, 3, 4], {1: 9.0}, [9, 2, 3, 4], "Int64"),
+        ],
+    )
+    def test_replace_nullable_types_with_dict(
+        self, frame_or_series, value, to_replace, expected, dtype
+    ):
+        # GH40732
+        obj = frame_or_series(value, dtype=dtype)
+        expected = frame_or_series(expected, dtype=dtype)
+        result = obj.replace(to_replace)
+        tm.assert_equal(result, expected)
