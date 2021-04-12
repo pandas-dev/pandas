@@ -3348,6 +3348,33 @@ class Index(IndexOpsMixin, PandasObject):
         return loc
 
     _index_shared_docs[
+        "method"
+    ] = """
+        {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
+            * default: exact matches only.
+            * pad / ffill: find the PREVIOUS index value if no exact match.
+            * backfill / bfill: use NEXT index value if no exact match
+            * nearest: use the NEAREST index value if no exact match. Tied
+              distances are broken by preferring the larger index value.
+        """
+    _index_shared_docs[
+        "limit"
+    ] = """
+        int, optional
+            Maximum number of consecutive labels in ``target`` to match for
+            inexact matches.
+        """
+
+    _index_shared_docs[
+        "tolerance"
+    ] = """
+        optional
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations must
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+        """
+
+    _index_shared_docs[
         "get_indexer"
     ] = """
         Compute indexer and mask for new index given the current index. The
@@ -3357,25 +3384,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         target : %(target_klass)s
-        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
-            * default: exact matches only.
-            * pad / ffill: find the PREVIOUS index value if no exact match.
-            * backfill / bfill: use NEXT index value if no exact match
-            * nearest: use the NEAREST index value if no exact match. Tied
-              distances are broken by preferring the larger index value.
-        limit : int, optional
-            Maximum number of consecutive labels in ``target`` to match for
-            inexact matches.
-        tolerance : optional
-            Maximum distance between original and new labels for inexact
-            matches. The values of the index at the matching locations must
-            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
-
-            Tolerance may be a scalar value, which applies the same tolerance
-            to all values, or list-like, which applies variable tolerance per
-            element. List-like includes list, tuple, array, Series, and must be
-            the same size as the index and its dtype must exactly match the
-            index's type.
+        method : %(method)s
+        limit : %(limit)s
+        tolerance : %(tolerance)s
 
         Returns
         -------
@@ -3761,34 +3772,20 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._index_as_unique and len(indexer):
             raise ValueError("cannot reindex from a duplicate axis")
 
-    def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
-        """
+    _index_shared_docs[
+        "reindex"
+    ] = """
         Create an index with target's values.
 
         Parameters
         ----------
         target : an iterable
-        method : {None, ‘backfill’/’bfill’, ‘pad’/’ffill’, ‘nearest’}
-            Method to use for filling holes in reindexed DataFrame.
-            Please note: this is only applicable to DataFrames/Series
-            with a monotonically increasing/decreasing index.
-            - None (default): don’t fill gaps
-            - pad / ffill: Propagate last valid observation forward to next valid.
-            - backfill / bfill: Use next valid observation to fill gap.
-            - nearest: Use nearest valid observations to fill gap.
+        method : %(method)s
         level : int or name
             Broadcast across a level, matching Index values on
             the passed MultiIndex level.
-        limit : int, default None
-            Maximum number of consecutive elements to forward or backward fill.
-        tolerance : optional
-            Maximum distance between original and new labels for inexact matches.
-            The values of the index at the matching locations most satisfy the
-            equation `abs(index[indexer] - target) <= tolerance`.
-            Tolerance may be a scalar value, which applies the same tolerance
-            to all values, or list-like, which applies variable tolerance per element.
-            List-like includes list, tuple, array, Series, and must be the same size
-            as the index and its dtype must exactly match the index’s type.
+        limit : %(limit)s
+        tolerance : %(tolerance)
 
         Returns
         -------
@@ -3817,6 +3814,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> target, indexer
         (Index(['I', 'd', 'III', 'IV'], dtype='object'), array([-1,  3, 0, -1]))
         """
+
+    @Appender(_index_shared_docs["reindex"] % _index_doc_kwargs)
+    @final
+    def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).
         preserve_names = not hasattr(target, "name")
