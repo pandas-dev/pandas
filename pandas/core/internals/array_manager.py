@@ -18,12 +18,14 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    DtypeObj,
     Hashable,
 )
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     astype_array_safe,
+    ensure_dtype_can_hold_na,
     infer_dtype_from_scalar,
     soft_convert_objects,
 )
@@ -49,6 +51,7 @@ from pandas.core.dtypes.inference import is_inferred_bool_dtype
 from pandas.core.dtypes.missing import (
     array_equals,
     isna,
+    na_value_for_dtype,
 )
 
 import pandas.core.algorithms as algos
@@ -952,10 +955,18 @@ class ArrayManager(DataManager):
         # ignored keywords
         consolidate: bool = True,
         only_slice: bool = False,
+        # ArrayManager specific keywords
+        use_na_proxy: bool = False,
     ) -> T:
         axis = self._normalize_axis(axis)
         return self._reindex_indexer(
-            new_axis, indexer, axis, fill_value, allow_dups, copy
+            new_axis,
+            indexer,
+            axis,
+            fill_value,
+            allow_dups,
+            copy,
+            use_na_proxy,
         )
 
     def _reindex_indexer(
@@ -966,6 +977,7 @@ class ArrayManager(DataManager):
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
+        use_na_proxy: bool = False,
     ) -> T:
         """
         Parameters
@@ -1000,7 +1012,9 @@ class ArrayManager(DataManager):
             new_arrays = []
             for i in indexer:
                 if i == -1:
-                    arr = self._make_na_array(fill_value=fill_value)
+                    arr = self._make_na_array(
+                        fill_value=fill_value, use_na_proxy=use_na_proxy
+                    )
                 else:
                     arr = self.arrays[i]
                 new_arrays.append(arr)
@@ -1051,7 +1065,11 @@ class ArrayManager(DataManager):
             new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
         )
 
-    def _make_na_array(self, fill_value=None):
+    def _make_na_array(self, fill_value=None, use_na_proxy=False):
+        if use_na_proxy:
+            assert fill_value is None
+            return NullArrayProxy(self.shape_proper[0])
+
         if fill_value is None:
             fill_value = np.nan
 
@@ -1271,3 +1289,50 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
         valid for the current SingleArrayManager (length, dtype, etc).
         """
         self.arrays[0] = values
+
+
+class NullArrayProxy:
+    """
+    Proxy object for an all-NA array.
+
+    Only stores the length of the array, and not the dtype. The dtype
+    will only be known when actually concatenating (after determining the
+    common dtype, for which this proxy is ignored).
+    Using this object avoids that the internals/concat.py needs to determine
+    the proper dtype and array type.
+    """
+
+    ndim = 1
+
+    def __init__(self, n: int):
+        self.n = n
+
+    @property
+    def shape(self):
+        return (self.n,)
+
+    def to_array(self, dtype: DtypeObj) -> ArrayLike:
+        """
+        Helper function to create the actual all-NA array from the NullArrayProxy
+        object.
+
+        Parameters
+        ----------
+        arr : NullArrayProxy
+        dtype : the dtype for the resulting array
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        if isinstance(dtype, ExtensionDtype):
+            empty = dtype.construct_array_type()._from_sequence([], dtype=dtype)
+            indexer = -np.ones(self.n, dtype=np.intp)
+            return empty.take(indexer, allow_fill=True)
+        else:
+            # when introducing missing values, int becomes float, bool becomes object
+            dtype = ensure_dtype_can_hold_na(dtype)
+            fill_value = na_value_for_dtype(dtype)
+            arr = np.empty(self.n, dtype=dtype)
+            arr.fill(fill_value)
+            return ensure_wrapped_if_datetimelike(arr)
