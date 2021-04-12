@@ -30,7 +30,7 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
-    ensure_int64,
+    ensure_platform_int,
     is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -482,8 +482,7 @@ class ArrayManager(DataManager):
                 arr = arr._data  # type: ignore[attr-defined]
 
             if self.ndim == 2:
-                if isinstance(arr, np.ndarray):
-                    arr = np.atleast_2d(arr)
+                arr = ensure_block_shape(arr, 2)
                 block = new_block(arr, placement=slice(0, 1, 1), ndim=2)
             else:
                 block = new_block(arr, placement=slice(0, len(self), 1), ndim=1)
@@ -493,6 +492,7 @@ class ArrayManager(DataManager):
                 applied = applied[0]
             arr = applied.values
             if self.ndim == 2 and arr.ndim == 2:
+                # 2D for np.ndarray or DatetimeArray/TimedeltaArray
                 assert len(arr) == 1
                 # error: Invalid index type "Tuple[int, slice]" for
                 # "Union[ndarray, ExtensionArray]"; expected type
@@ -1021,7 +1021,7 @@ class ArrayManager(DataManager):
 
         else:
             validate_indices(indexer, len(self._axes[0]))
-            indexer = ensure_int64(indexer)
+            indexer = ensure_platform_int(indexer)
             if (indexer == -1).any():
                 allow_fill = True
             else:
@@ -1116,7 +1116,7 @@ class ArrayManager(DataManager):
             new_indexer[unstacker.mask] = indexer
             allow_fill = True
         new_indexer2D = new_indexer.reshape(*unstacker.full_shape)
-        new_indexer2D = ensure_int64(new_indexer2D)
+        new_indexer2D = ensure_platform_int(new_indexer2D)
 
         new_arrays = []
         for arr in self.arrays:

@@ -43,7 +43,10 @@ import pandas as pd
 from pandas.api.types import is_list_like
 from pandas.core import generic
 import pandas.core.common as com
-from pandas.core.frame import DataFrame
+from pandas.core.frame import (
+    DataFrame,
+    Series,
+)
 from pandas.core.generic import NDFrame
 from pandas.core.indexes.api import Index
 
@@ -179,7 +182,7 @@ class Styler:
         escape: bool = False,
     ):
         # validate ordered args
-        if isinstance(data, pd.Series):
+        if isinstance(data, Series):
             data = data.to_frame()
         if not isinstance(data, DataFrame):
             raise TypeError("``data`` must be a Series or DataFrame")
@@ -1083,7 +1086,8 @@ class Styler:
         Parameters
         ----------
         cond : callable
-            ``cond`` should take a scalar and return a boolean.
+            ``cond`` should take a scalar, and optional keyword arguments, and return
+            a boolean.
         value : str
             Applied when ``cond`` returns true.
         other : str
@@ -1114,7 +1118,8 @@ class Styler:
             other = ""
 
         return self.applymap(
-            lambda val: value if cond(val) else other, subset=subset, **kwargs
+            lambda val: value if cond(val, **kwargs) else other,
+            subset=subset,
         )
 
     def set_precision(self, precision: int) -> Styler:
@@ -1438,21 +1443,27 @@ class Styler:
         text_color_threshold: float = 0.408,
         vmin: float | None = None,
         vmax: float | None = None,
+        gmap: Sequence | None = None,
     ) -> Styler:
         """
         Color the background in a gradient style.
 
         The background color is determined according
-        to the data in each column (optionally row). Requires matplotlib.
+        to the data in each column, row or frame, or by a given
+        gradient map. Requires matplotlib.
 
         Parameters
         ----------
         cmap : str or colormap
             Matplotlib colormap.
         low : float
-            Compress the range by the low.
+            Compress the color range at the low end. This is a multiple of the data
+            range to extend below the minimum; good values usually in [0, 1],
+            defaults to 0.
         high : float
-            Compress the range by the high.
+            Compress the color range at the high end. This is a multiple of the data
+            range to extend above the maximum; good values usually in [0, 1],
+            defaults to 0.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -1460,45 +1471,108 @@ class Styler:
         subset : IndexSlice
             A valid slice for ``data`` to limit the style application to.
         text_color_threshold : float or int
-            Luminance threshold for determining text color. Facilitates text
-            visibility across varying background colors. From 0 to 1.
-            0 = all text is dark colored, 1 = all text is light colored.
+            Luminance threshold for determining text color in [0, 1]. Facilitates text
+            visibility across varying background colors. All text is dark if 0, and
+            light if 1, defaults to 0.408.
 
             .. versionadded:: 0.24.0
 
         vmin : float, optional
             Minimum data value that corresponds to colormap minimum value.
-            When None (default): the minimum value of the data will be used.
+            If not specified the minimum value of the data (or gmap) will be used.
 
             .. versionadded:: 1.0.0
 
         vmax : float, optional
             Maximum data value that corresponds to colormap maximum value.
-            When None (default): the maximum value of the data will be used.
+            If not specified the maximum value of the data (or gmap) will be used.
 
             .. versionadded:: 1.0.0
+
+        gmap : array-like, optional
+            Gradient map for determining the background colors. If not supplied
+            will use the underlying data from rows, columns or frame. If given as an
+            ndarray or list-like must be an identical shape to the underlying data
+            considering ``axis`` and ``subset``. If given as DataFrame or Series must
+            have same index and column labels considering ``axis`` and ``subset``.
+            If supplied, ``vmin`` and ``vmax`` should be given relative to this
+            gradient map.
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
         self : Styler
 
-        Raises
-        ------
-        ValueError
-            If ``text_color_threshold`` is not a value from 0 to 1.
-
         Notes
         -----
-        Set ``text_color_threshold`` or tune ``low`` and ``high`` to keep the
-        text legible by not using the entire range of the color map. The range
-        of the data is extended by ``low * (x.max() - x.min())`` and ``high *
-        (x.max() - x.min())`` before normalizing.
+        When using ``low`` and ``high`` the range
+        of the gradient, given by the data if ``gmap`` is not given or by ``gmap``,
+        is extended at the low end effectively by
+        `map.min - low * map.range` and at the high end by
+        `map.max + high * map.range` before the colors are normalized and determined.
+
+        If combining with ``vmin`` and ``vmax`` the `map.min`, `map.max` and
+        `map.range` are replaced by values according to the values derived from
+        ``vmin`` and ``vmax``.
+
+        This method will preselect numeric columns and ignore non-numeric columns
+        unless a ``gmap`` is supplied in which case no preselection occurs.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({
+        ...          'City': ['Stockholm', 'Oslo', 'Copenhagen'],
+        ...          'Temp (c)': [21.6, 22.4, 24.5],
+        ...          'Rain (mm)': [5.0, 13.3, 0.0],
+        ...          'Wind (m/s)': [3.2, 3.1, 6.7]
+        ... })
+
+        Shading the values column-wise, with ``axis=0``, preselecting numeric columns
+
+        >>> df.style.background_gradient(axis=0)
+
+        .. figure:: ../../_static/style/bg_ax0.png
+
+        Shading all values collectively using ``axis=None``
+
+        >>> df.style.background_gradient(axis=None)
+
+        .. figure:: ../../_static/style/bg_axNone.png
+
+        Compress the color map from the both ``low`` and ``high`` ends
+
+        >>> df.style.background_gradient(axis=None, low=0.75, high=1.0)
+
+        .. figure:: ../../_static/style/bg_axNone_lowhigh.png
+
+        Manually setting ``vmin`` and ``vmax`` gradient thresholds
+
+        >>> df.style.background_gradient(axis=None, vmin=6.7, vmax=21.6)
+
+        .. figure:: ../../_static/style/bg_axNone_vminvmax.png
+
+        Setting a ``gmap`` and applying to all columns with another ``cmap``
+
+        >>> df.style.background_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
+
+        .. figure:: ../../_static/style/bg_gmap.png
+
+        Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to
+        explicitly state ``subset`` to match the ``gmap`` shape
+
+        >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
+        >>> df.style.background_gradient(axis=None, gmap=gmap,
+        ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
+        ... )
+
+        .. figure:: ../../_static/style/bg_axNone_gmap.png
         """
-        if subset is None:
+        if subset is None and gmap is None:
             subset = self.data.select_dtypes(include=np.number).columns
 
         self.apply(
-            self._background_gradient,
+            _background_gradient,
             cmap=cmap,
             subset=subset,
             axis=axis,
@@ -1507,74 +1581,9 @@ class Styler:
             text_color_threshold=text_color_threshold,
             vmin=vmin,
             vmax=vmax,
+            gmap=gmap,
         )
         return self
-
-    @staticmethod
-    def _background_gradient(
-        s,
-        cmap="PuBu",
-        low: float = 0,
-        high: float = 0,
-        text_color_threshold: float = 0.408,
-        vmin: float | None = None,
-        vmax: float | None = None,
-    ):
-        """
-        Color background in a range according to the data.
-        """
-        if (
-            not isinstance(text_color_threshold, (float, int))
-            or not 0 <= text_color_threshold <= 1
-        ):
-            msg = "`text_color_threshold` must be a value from 0 to 1."
-            raise ValueError(msg)
-
-        with _mpl(Styler.background_gradient) as (plt, colors):
-            smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
-            smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
-            rng = smax - smin
-            # extend lower / upper bounds, compresses color range
-            norm = colors.Normalize(smin - (rng * low), smax + (rng * high))
-            # matplotlib colors.Normalize modifies inplace?
-            # https://github.com/matplotlib/matplotlib/issues/5427
-            rgbas = plt.cm.get_cmap(cmap)(norm(s.to_numpy(dtype=float)))
-
-            def relative_luminance(rgba) -> float:
-                """
-                Calculate relative luminance of a color.
-
-                The calculation adheres to the W3C standards
-                (https://www.w3.org/WAI/GL/wiki/Relative_luminance)
-
-                Parameters
-                ----------
-                color : rgb or rgba tuple
-
-                Returns
-                -------
-                float
-                    The relative luminance as a value from 0 to 1
-                """
-                r, g, b = (
-                    x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4
-                    for x in rgba[:3]
-                )
-                return 0.2126 * r + 0.7152 * g + 0.0722 * b
-
-            def css(rgba) -> str:
-                dark = relative_luminance(rgba) < text_color_threshold
-                text_color = "#f1f1f1" if dark else "#000000"
-                return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
-
-            if s.ndim == 1:
-                return [css(rgba) for rgba in rgbas]
-            else:
-                return DataFrame(
-                    [[css(rgba) for rgba in row] for row in rgbas],
-                    index=s.index,
-                    columns=s.columns,
-                )
 
     def set_properties(self, subset=None, **kwargs) -> Styler:
         """
@@ -2346,3 +2355,119 @@ def _non_reducing_slice(slice_):
     else:
         slice_ = [part if pred(part) else [part] for part in slice_]
     return tuple(slice_)
+
+
+def _validate_apply_axis_arg(
+    arg: FrameOrSeries | Sequence | np.ndarray,
+    arg_name: str,
+    dtype: Any | None,
+    data: FrameOrSeries,
+) -> np.ndarray:
+    """
+    For the apply-type methods, ``axis=None`` creates ``data`` as DataFrame, and for
+    ``axis=[1,0]`` it creates a Series. Where ``arg`` is expected as an element
+    of some operator with ``data`` we must make sure that the two are compatible shapes,
+    or raise.
+
+    Parameters
+    ----------
+    arg : sequence, Series or DataFrame
+        the user input arg
+    arg_name : string
+        name of the arg for use in error messages
+    dtype : numpy dtype, optional
+        forced numpy dtype if given
+    data : Series or DataFrame
+        underling subset of Styler data on which operations are performed
+
+    Returns
+    -------
+    ndarray
+    """
+    dtype = {"dtype": dtype} if dtype else {}
+    # raise if input is wrong for axis:
+    if isinstance(arg, Series) and isinstance(data, DataFrame):
+        raise ValueError(
+            f"'{arg_name}' is a Series but underlying data for operations "
+            f"is a DataFrame since 'axis=None'"
+        )
+    elif isinstance(arg, DataFrame) and isinstance(data, Series):
+        raise ValueError(
+            f"'{arg_name}' is a DataFrame but underlying data for "
+            f"operations is a Series with 'axis in [0,1]'"
+        )
+    elif isinstance(arg, (Series, DataFrame)):  # align indx / cols to data
+        arg = arg.reindex_like(data, method=None).to_numpy(**dtype)
+    else:
+        arg = np.asarray(arg, **dtype)
+        assert isinstance(arg, np.ndarray)  # mypy requirement
+        if arg.shape != data.shape:  # check valid input
+            raise ValueError(
+                f"supplied '{arg_name}' is not correct shape for data over "
+                f"selected 'axis': got {arg.shape}, "
+                f"expected {data.shape}"
+            )
+    return arg
+
+
+def _background_gradient(
+    data,
+    cmap="PuBu",
+    low: float = 0,
+    high: float = 0,
+    text_color_threshold: float = 0.408,
+    vmin: float | None = None,
+    vmax: float | None = None,
+    gmap: Sequence | np.ndarray | FrameOrSeries | None = None,
+):
+    """
+    Color background in a range according to the data or a gradient map
+    """
+    if gmap is None:  # the data is used the gmap
+        gmap = data.to_numpy(dtype=float)
+    else:  # else validate gmap against the underlying data
+        gmap = _validate_apply_axis_arg(gmap, "gmap", float, data)
+
+    with _mpl(Styler.background_gradient) as (plt, colors):
+        smin = np.nanmin(gmap) if vmin is None else vmin
+        smax = np.nanmax(gmap) if vmax is None else vmax
+        rng = smax - smin
+        # extend lower / upper bounds, compresses color range
+        norm = colors.Normalize(smin - (rng * low), smax + (rng * high))
+        rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
+
+        def relative_luminance(rgba) -> float:
+            """
+            Calculate relative luminance of a color.
+
+            The calculation adheres to the W3C standards
+            (https://www.w3.org/WAI/GL/wiki/Relative_luminance)
+
+            Parameters
+            ----------
+            color : rgb or rgba tuple
+
+            Returns
+            -------
+            float
+                The relative luminance as a value from 0 to 1
+            """
+            r, g, b = (
+                x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4
+                for x in rgba[:3]
+            )
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+        def css(rgba) -> str:
+            dark = relative_luminance(rgba) < text_color_threshold
+            text_color = "#f1f1f1" if dark else "#000000"
+            return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
+
+        if data.ndim == 1:
+            return [css(rgba) for rgba in rgbas]
+        else:
+            return DataFrame(
+                [[css(rgba) for rgba in row] for row in rgbas],
+                index=data.index,
+                columns=data.columns,
+            )

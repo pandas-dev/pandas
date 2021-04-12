@@ -20,7 +20,7 @@ dependencies:
   # code checks
   - black=20.8b1
   - cpplint
-  - flake8
+  - flake8=3.9.0
   - flake8-bugbear>=21.3.2  # used by flake8, find likely bugs
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
@@ -33,6 +33,7 @@ dependencies:
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
   - sphinx
+  - sphinx-panels
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
