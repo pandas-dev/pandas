@@ -17,6 +17,7 @@ from pandas import (
     CategoricalDtype,
     DataFrame,
     Index,
+    Interval,
     NaT,
     Series,
     array,
@@ -1090,6 +1091,23 @@ class TestiLocBaseIndependent:
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1, 1, 2])
         result = df.iloc[:, [0]]
         expected = df.take([0], axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_iloc_interval(self):
+        # GH#17130
+        df = DataFrame({Interval(1, 2): [1, 2]})
+
+        result = df.iloc[0]
+        expected = Series({Interval(1, 2): 1}, name=0)
+        tm.assert_series_equal(result, expected)
+
+        result = df.iloc[:, 0]
+        expected = Series([1, 2], name=Interval(1, 2))
+        tm.assert_series_equal(result, expected)
+
+        result = df.copy()
+        result.iloc[:, 0] += 1
+        expected = DataFrame({Interval(1, 2): [2, 3]})
         tm.assert_frame_equal(result, expected)
 
 
