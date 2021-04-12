@@ -141,7 +141,7 @@ class StylerRenderer:
         * table_attributes
         """
         self._compute()
-
+        # TODO: namespace all the pandas keys
         d = self._translate()
         d.update(kwargs)
         return self.template.render(**d)
