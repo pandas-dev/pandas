@@ -188,8 +188,8 @@ class StylerRenderer:
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-
-        d.update({"body": self._translate_body(DATA_CLASS, ROW_HEADING_CLASS)})
+        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS)
+        d.update({"body": body})
 
         cellstyle: list[dict[str, CSSList | list[str]]] = [
             {"props": list(props), "selectors": selectors}
