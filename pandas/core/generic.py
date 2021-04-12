@@ -109,7 +109,10 @@ from pandas.core import (
 )
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
-from pandas.core.base import PandasObject
+from pandas.core.base import (
+    PandasObject,
+    SelectionMixin,
+)
 import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
@@ -184,7 +187,7 @@ _shared_doc_kwargs = {
 bool_t = bool  # Need alias because NDFrame has def bool:
 
 
-class NDFrame(PandasObject, indexing.IndexingMixin):
+class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -680,6 +683,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         # error: Incompatible return value type (got "number", expected "int")
         return np.prod(self.shape)  # type: ignore[return-value]
+
+    @final
+    @property
+    def _selected_obj(self: FrameOrSeries) -> FrameOrSeries:
+        """ internal compat with SelectionMixin """
+        return self
+
+    @final
+    @property
+    def _obj_with_exclusions(self: FrameOrSeries) -> FrameOrSeries:
+        """ internal compat with SelectionMixin """
+        return self
 
     @overload
     def set_axis(
@@ -7350,6 +7365,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 threshold = self._constructor(threshold, index=self.index)
             else:
                 threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
+
+        # GH 40420
+        # In order to ignore nan values in the threshold, replace these values with the
+        # values from the original frame/series.
+        if is_list_like(threshold) and threshold.isna().any(axis=None):
+            threshold.where(threshold.notna(), self, inplace=True)
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     @final
@@ -7449,10 +7470,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # so ignore
         # GH 19992
         # numpy doesn't drop a list-like bound containing NaN
-        if not is_list_like(lower) and np.any(isna(lower)):
-            lower = None
-        if not is_list_like(upper) and np.any(isna(upper)):
-            upper = None
+        isna_lower = isna(lower)
+        if not is_list_like(lower):
+            if np.any(isna_lower):
+                lower = None
+        else:
+            if np.all(isna_lower):
+                lower = None
+        isna_upper = isna(upper)
+        if not is_list_like(upper):
+            if np.any(isna_upper):
+                upper = None
+        else:
+            if np.all(isna_upper):
+                upper = None
 
         # GH 2747 (arguments were reversed)
         if (
@@ -10843,7 +10874,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         @doc(
             _num_doc,
             desc="Return the maximum of the values over the requested axis.\n\n"
-            "If you want the *index* of the maximum, use ``idxmax``. This is "
+            "If you want the *index* of the maximum, use ``idxmax``. This is"
             "the equivalent of the ``numpy.ndarray`` method ``argmax``.",
             name1=name1,
             name2=name2,
@@ -10860,7 +10891,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         @doc(
             _num_doc,
             desc="Return the minimum of the values over the requested axis.\n\n"
-            "If you want the *index* of the minimum, use ``idxmin``. This is "
+            "If you want the *index* of the minimum, use ``idxmin``. This is"
             "the equivalent of the ``numpy.ndarray`` method ``argmin``.",
             name1=name1,
             name2=name2,
