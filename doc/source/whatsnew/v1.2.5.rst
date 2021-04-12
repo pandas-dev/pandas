@@ -1,0 +1,48 @@
+.. _whatsnew_125:
+
+What's new in 1.2.5 (May ??, 2021)
+----------------------------------
+
+These are the changes in pandas 1.2.5. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_125.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_125.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_125.other:
+
+Other
+~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_125.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.2.4..v1.2.5|HEAD
