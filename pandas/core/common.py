@@ -5,6 +5,7 @@ Note: pandas.core.common is *not* part of the public API.
 """
 from __future__ import annotations
 
+import builtins
 from collections import (
     abc,
     defaultdict,
@@ -19,10 +20,6 @@ from typing import (
     Collection,
     Iterable,
     Iterator,
-    List,
-    Optional,
-    Tuple,
-    Union,
     cast,
 )
 import warnings
@@ -223,7 +220,7 @@ def count_not_none(*args) -> int:
     return sum(x is not None for x in args)
 
 
-def asarray_tuplesafe(values, dtype: Optional[NpDtype] = None) -> np.ndarray:
+def asarray_tuplesafe(values, dtype: NpDtype | None = None) -> np.ndarray:
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
@@ -253,7 +250,7 @@ def asarray_tuplesafe(values, dtype: Optional[NpDtype] = None) -> np.ndarray:
     return result
 
 
-def index_labels_to_array(labels, dtype: Optional[NpDtype] = None) -> np.ndarray:
+def index_labels_to_array(labels, dtype: NpDtype | None = None) -> np.ndarray:
     """
     Transform label or iterable of labels to array, for use in Index.
 
@@ -286,7 +283,7 @@ def maybe_make_list(obj):
     return obj
 
 
-def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T]:
+def maybe_iterable_to_list(obj: Iterable[T] | T) -> Collection[T] | T:
     """
     If obj is Iterable but not list-like, consume into list.
     """
@@ -308,7 +305,7 @@ def is_null_slice(obj) -> bool:
     )
 
 
-def is_true_slices(line) -> List[bool]:
+def is_true_slices(line) -> list[bool]:
     """
     Find non-trivial slices in "line": return a list of booleans with same length.
     """
@@ -437,7 +434,7 @@ def random_state(state=None):
 
 
 def pipe(
-    obj, func: Union[Callable[..., T], Tuple[Callable[..., T], str]], *args, **kwargs
+    obj, func: Callable[..., T] | tuple[Callable[..., T], str], *args, **kwargs
 ) -> T:
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
@@ -493,8 +490,8 @@ def get_rename_function(mapper):
 
 
 def convert_to_list_like(
-    values: Union[Scalar, Iterable, AnyArrayLike]
-) -> Union[List, AnyArrayLike]:
+    values: Scalar | Iterable | AnyArrayLike,
+) -> list | AnyArrayLike:
     """
     Convert list-like or scalar input to list-like. List, numpy and pandas array-like
     inputs are returned unmodified whereas others are converted to list.
@@ -536,3 +533,49 @@ def require_length_match(data, index: Index):
             "does not match length of index "
             f"({len(index)})"
         )
+
+
+_builtin_table = {builtins.sum: np.sum, builtins.max: np.max, builtins.min: np.min}
+
+_cython_table = {
+    builtins.sum: "sum",
+    builtins.max: "max",
+    builtins.min: "min",
+    np.all: "all",
+    np.any: "any",
+    np.sum: "sum",
+    np.nansum: "sum",
+    np.mean: "mean",
+    np.nanmean: "mean",
+    np.prod: "prod",
+    np.nanprod: "prod",
+    np.std: "std",
+    np.nanstd: "std",
+    np.var: "var",
+    np.nanvar: "var",
+    np.median: "median",
+    np.nanmedian: "median",
+    np.max: "max",
+    np.nanmax: "max",
+    np.min: "min",
+    np.nanmin: "min",
+    np.cumprod: "cumprod",
+    np.nancumprod: "cumprod",
+    np.cumsum: "cumsum",
+    np.nancumsum: "cumsum",
+}
+
+
+def get_cython_func(arg: Callable) -> str | None:
+    """
+    if we define an internal function for this argument, return it
+    """
+    return _cython_table.get(arg)
+
+
+def is_builtin_func(arg):
+    """
+    if we define an builtin function for this argument, return it,
+    otherwise return the arg
+    """
+    return _builtin_table.get(arg, arg)
