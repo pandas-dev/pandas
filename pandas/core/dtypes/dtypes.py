@@ -15,6 +15,7 @@ import numpy as np
 import pytz
 
 from pandas._libs.interval import Interval
+from pandas._libs.properties import cache_readonly
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -81,7 +82,7 @@ class PandasExtensionDtype(ExtensionDtype):
     base: DtypeObj | None = None
     isbuiltin = 0
     isnative = 0
-    _cache: dict[str_type, PandasExtensionDtype] = {}
+    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
     def __str__(self) -> str_type:
         """
@@ -105,7 +106,7 @@ class PandasExtensionDtype(ExtensionDtype):
     @classmethod
     def reset_cache(cls) -> None:
         """ clear the cache """
-        cls._cache = {}
+        cls._cache_dtypes = {}
 
 
 class CategoricalDtypeType(type):
@@ -177,7 +178,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     str = "|O08"
     base = np.dtype("O")
     _metadata = ("categories", "ordered")
-    _cache: dict[str_type, PandasExtensionDtype] = {}
+    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
     def __init__(self, categories=None, ordered: Ordered = False):
         self._finalize(categories, ordered, fastpath=False)
@@ -355,7 +356,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             else:
                 return -2
         # We *do* want to include the real self.ordered here
-        return int(self._hash_categories(self.categories, self.ordered))
+        return int(self._hash_categories)
 
     def __eq__(self, other: Any) -> bool:
         """
@@ -429,13 +430,16 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             data = data.rstrip(", ")
         return f"CategoricalDtype(categories={data}, ordered={self.ordered})"
 
-    @staticmethod
-    def _hash_categories(categories, ordered: Ordered = True) -> int:
+    @cache_readonly
+    def _hash_categories(self) -> int:
         from pandas.core.util.hashing import (
             combine_hash_arrays,
             hash_array,
             hash_tuples,
         )
+
+        categories = self.categories
+        ordered = self.ordered
 
         if len(categories) and isinstance(categories[0], tuple):
             # assumes if any individual category is a tuple, then all our. ATM
@@ -671,7 +675,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     na_value = NaT
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
-    _cache: dict[str_type, PandasExtensionDtype] = {}
+    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
     def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None):
         if isinstance(unit, DatetimeTZDtype):
@@ -837,7 +841,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
     num = 102
     _metadata = ("freq",)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
-    _cache: dict[str_type, PandasExtensionDtype] = {}
+    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
     def __new__(cls, freq=None):
         """
@@ -859,12 +863,12 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
             freq = cls._parse_dtype_strict(freq)
 
         try:
-            return cls._cache[freq.freqstr]
+            return cls._cache_dtypes[freq.freqstr]
         except KeyError:
             dtype_code = freq._period_dtype_code
             u = dtypes.PeriodDtypeBase.__new__(cls, dtype_code)
             u._freq = freq
-            cls._cache[freq.freqstr] = u
+            cls._cache_dtypes[freq.freqstr] = u
             return u
 
     def __reduce__(self):
@@ -1042,7 +1046,7 @@ class IntervalDtype(PandasExtensionDtype):
     _match = re.compile(
         r"(I|i)nterval\[(?P<subtype>[^,]+)(, (?P<closed>(right|left|both|neither)))?\]"
     )
-    _cache: dict[str_type, PandasExtensionDtype] = {}
+    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
     def __new__(cls, subtype=None, closed: str_type | None = None):
         from pandas.core.dtypes.common import (
@@ -1099,12 +1103,12 @@ class IntervalDtype(PandasExtensionDtype):
 
         key = str(subtype) + str(closed)
         try:
-            return cls._cache[key]
+            return cls._cache_dtypes[key]
         except KeyError:
             u = object.__new__(cls)
             u._subtype = subtype
             u._closed = closed
-            cls._cache[key] = u
+            cls._cache_dtypes[key] = u
             return u
 
     @property
