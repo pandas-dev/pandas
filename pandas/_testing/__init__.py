@@ -100,6 +100,7 @@ from pandas._testing.contexts import (  # noqa:F401
 )
 from pandas.core.arrays import (
     DatetimeArray,
+    PandasArray,
     PeriodArray,
     TimedeltaArray,
     period_array,
@@ -204,7 +205,11 @@ def box_expected(expected, box_cls, transpose=True):
     subclass of box_cls
     """
     if box_cls is pd.array:
-        expected = pd.array(expected)
+        if isinstance(expected, RangeIndex):
+            # pd.array would return an IntegerArray
+            expected = PandasArray(np.asarray(expected._values))
+        else:
+            expected = pd.array(expected)
     elif box_cls is Index:
         expected = Index(expected)
     elif box_cls is Series:
@@ -913,12 +918,12 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     return pytest.raises(expected_exception, match=None)
 
 
-cython_table = pd.core.base.SelectionMixin._cython_table.items()
+cython_table = pd.core.common._cython_table.items()
 
 
 def get_cython_table_params(ndframe, func_names_and_expected):
     """
-    Combine frame, functions from SelectionMixin._cython_table
+    Combine frame, functions from com._cython_table
     keys and expected result.
 
     Parameters
