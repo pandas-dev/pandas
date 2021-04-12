@@ -697,7 +697,9 @@ class BaseGrouper:
             func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
         if kind == "aggregate":
-            # i.e. counts is defined
+            # i.e. counts is defined.  Locations where count<min_count
+            # need to have the result set to np.nan, which may require casting,
+            # see GH#40767
             if is_integer_dtype(result.dtype) and not is_datetimelike:
                 cutoff = max(1, min_count)
                 empty_groups = counts < cutoff
