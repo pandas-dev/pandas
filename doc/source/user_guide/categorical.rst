@@ -625,7 +625,6 @@ even if some categories are not present in the data:
 ``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories.
 
 .. ipython:: python
-    :okwarning:
 
     columns = pd.Categorical(
         ["One", "One", "Two"], categories=["One", "Two", "Three"], ordered=True
@@ -634,7 +633,7 @@ even if some categories are not present in the data:
         data=[[1, 2, 3], [4, 5, 6]],
         columns=pd.MultiIndex.from_arrays([["A", "B", "B"], columns]),
     )
-    df.sum(axis=1, level=1)
+    df.groupby(axis=1, level=1).sum()
 
 Groupby will also show "unused" categories:
 

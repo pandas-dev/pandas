@@ -1898,7 +1898,7 @@ Name: Max Speed, dtype: float64
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
                 "deprecated and will be removed in a future version. Use groupby "
-                "instead.",
+                "instead. ser.count(level=1) should use ser.groupby(level=1).count().",
                 FutureWarning,
                 stacklevel=2,
             )

@@ -10263,7 +10263,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
                 "deprecated and will be removed in a future version. Use groupby "
-                "instead.",
+                "instead. df.any(level=1) should use df.groupby(level=1).any()",
                 FutureWarning,
                 stacklevel=4,
             )
@@ -10361,7 +10361,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
                 "deprecated and will be removed in a future version. Use groupby "
-                "instead.",
+                "instead. df.var(level=1) should use df.groupby(level=1).var().",
                 FutureWarning,
                 stacklevel=4,
             )
@@ -10416,7 +10416,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
                 "deprecated and will be removed in a future version. Use groupby "
-                "instead.",
+                "instead. df.median(level=1) should use df.groupby(level=1).median().",
                 FutureWarning,
                 stacklevel=4,
             )
@@ -10485,7 +10485,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
                 "deprecated and will be removed in a future version. Use groupby "
-                "instead.",
+                "instead. df.sum(level=1) should use df.groupby(level=1).sum().",
                 FutureWarning,
                 stacklevel=4,
             )
@@ -10569,7 +10569,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
                 "deprecated and will be removed in a future version. Use groupby "
-                "instead.",
+                "instead. df.mad(level=1) should use df.groupby(level=1).mad()",
                 FutureWarning,
                 stacklevel=3,
             )

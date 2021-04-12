@@ -492,14 +492,13 @@ Using the parameter ``level`` in the :meth:`~DataFrame.reindex` and
 values across a level. For instance:
 
 .. ipython:: python
-   :okwarning:
 
    midx = pd.MultiIndex(
        levels=[["zero", "one"], ["x", "y"]], codes=[[1, 1, 0, 0], [1, 0, 1, 0]]
    )
    df = pd.DataFrame(np.random.randn(4, 2), index=midx)
    df
-   df2 = df.mean(level=0)
+   df2 = df.groupby(level=0).mean()
    df2
    df2.reindex(df.index, level=0)
 

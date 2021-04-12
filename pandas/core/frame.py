@@ -9482,7 +9482,7 @@ NaN 12.3   33.0
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
                 "deprecated and will be removed in a future version. Use groupby "
-                "instead.",
+                "instead. df.count(level=1) should use df.groupby(level=1).count().",
                 FutureWarning,
                 stacklevel=2,
             )
