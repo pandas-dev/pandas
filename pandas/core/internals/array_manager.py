@@ -678,10 +678,18 @@ class BaseArrayManager(DataManager):
         # ignored keywords
         consolidate: bool = True,
         only_slice: bool = False,
+        # ArrayManager specific keywords
+        use_na_proxy: bool = False,
     ) -> T:
         axis = self._normalize_axis(axis)
         return self._reindex_indexer(
-            new_axis, indexer, axis, fill_value, allow_dups, copy
+            new_axis,
+            indexer,
+            axis,
+            fill_value,
+            allow_dups,
+            copy,
+            use_na_proxy,
         )
 
     def _reindex_indexer(
@@ -692,6 +700,7 @@ class BaseArrayManager(DataManager):
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
+        use_na_proxy: bool = False,
     ) -> T:
         """
         Parameters
@@ -726,7 +735,9 @@ class BaseArrayManager(DataManager):
             new_arrays = []
             for i in indexer:
                 if i == -1:
-                    arr = self._make_na_array(fill_value=fill_value)
+                    arr = self._make_na_array(
+                        fill_value=fill_value, use_na_proxy=use_na_proxy
+                    )
                 else:
                     arr = self.arrays[i]
                 new_arrays.append(arr)
