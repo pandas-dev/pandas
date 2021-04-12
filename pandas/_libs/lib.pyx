@@ -2247,7 +2247,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
         val = objects[i]
         if itemsize_max != -1:
             itemsize = get_itemsize(val)
-            if itemsize == -1 or itemsize > itemsize_max:
+            if itemsize > itemsize_max or itemsize == -1:
                 itemsize_max = itemsize
 
         if val is None:
