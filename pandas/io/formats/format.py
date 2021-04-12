@@ -1275,7 +1275,9 @@ class GenericArrayFormatter:
             float_format = get_option("display.float_format")
             if float_format is None:
                 precision = get_option("display.precision")
-                float_format = lambda x: f"{x: .{precision:d}f}"
+                float_format = lambda x: _trim_zeros_single_float(
+                    f"{x: .{precision:d}f}"
+                )
         else:
             float_format = self.float_format
 
@@ -1311,9 +1313,14 @@ class GenericArrayFormatter:
                 return str(formatter(x))
 
         vals = extract_array(self.values, extract_numpy=True)
-
+        if not isinstance(vals, np.ndarray):
+            raise TypeError(
+                "ExtensionArray formatting should use ExtensionArrayFormatter"
+            )
+        inferred = lib.map_infer(vals, is_float)
+        inferred = cast(np.ndarray, inferred)
         is_float_type = (
-            lib.map_infer(vals, is_float)
+            inferred
             # vals may have 2 or more dimensions
             & np.all(notna(vals), axis=tuple(range(1, len(vals.shape))))
         )
@@ -1326,7 +1333,7 @@ class GenericArrayFormatter:
             if not is_float_type[i] and leading_space:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
-                fmt_values.append(_trim_zeros_single_float(float_format(v)))
+                fmt_values.append(float_format(v))
             else:
                 if leading_space is False:
                     # False specifically, so that the default is
