@@ -2439,10 +2439,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                 elif seen.is_bool and not seen.nan_:
                     result = bools.view(np.bool_)
         if result is not None:
-            if itemsize > 0:
+            if itemsize_max > 0:
                 curr_itemsize = cnp.PyArray_ITEMSIZE(result)
-                if itemsize != curr_itemsize:
-                    result = result.astype(result.dtype.kind + str(itemsize))
+                if itemsize_max != curr_itemsize:
+                    result = result.astype(result.dtype.kind + str(itemsize_max))
             return result
 
     return objects
