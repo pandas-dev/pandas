@@ -268,7 +268,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if relabeling:
                 ret.columns = columns
         else:
-            cyfunc = self._get_cython_func(func)
+            cyfunc = com.get_cython_func(func)
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
@@ -536,7 +536,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 result.ravel(), index=data.index, name=data.name
             )
 
-        func = self._get_cython_func(func) or func
+        func = com.get_cython_func(func) or func
 
         if not isinstance(func, str):
             return self._transform_general(func, *args, **kwargs)
@@ -1440,7 +1440,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self.obj._constructor(result, index=data.index, columns=data.columns)
 
         # optimized transforms
-        func = self._get_cython_func(func) or func
+        func = com.get_cython_func(func) or func
 
         if not isinstance(func, str):
             return self._transform_general(func, *args, **kwargs)

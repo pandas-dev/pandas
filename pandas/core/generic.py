@@ -109,10 +109,7 @@ from pandas.core import (
 )
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
-from pandas.core.base import (
-    PandasObject,
-    SelectionMixin,
-)
+from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
@@ -187,7 +184,7 @@ _shared_doc_kwargs = {
 bool_t = bool  # Need alias because NDFrame has def bool:
 
 
-class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
+class NDFrame(PandasObject, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -683,18 +680,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         # error: Incompatible return value type (got "number", expected "int")
         return np.prod(self.shape)  # type: ignore[return-value]
-
-    @final
-    @property
-    def _selected_obj(self: FrameOrSeries) -> FrameOrSeries:
-        """ internal compat with SelectionMixin """
-        return self
-
-    @final
-    @property
-    def _obj_with_exclusions(self: FrameOrSeries) -> FrameOrSeries:
-        """ internal compat with SelectionMixin """
-        return self
 
     @overload
     def set_axis(
@@ -7367,16 +7352,124 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower=...,
+        upper=...,
+        axis: Axis | None = ...,
+        inplace: Literal[False] = ...,
+        *args,
+        **kwargs,
+    ) -> FrameOrSeries:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower,
+        *,
+        axis: Axis | None,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower,
+        *,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        *,
+        upper,
+        axis: Axis | None,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        *,
+        upper,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        *,
+        axis: Axis | None,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower,
+        upper,
+        axis: Axis | None,
+        inplace: Literal[True],
+        *args,
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower,
+        upper,
+        *,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        *,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower=...,
+        upper=...,
+        axis: Axis | None = ...,
+        inplace: bool_t = ...,
+        *args,
+        **kwargs,
+    ) -> FrameOrSeries | None:
+        ...
+
     @final
     def clip(
         self: FrameOrSeries,
         lower=None,
         upper=None,
-        axis=None,
+        axis: Axis | None = None,
         inplace: bool_t = False,
         *args,
         **kwargs,
-    ) -> FrameOrSeries:
+    ) -> FrameOrSeries | None:
         """
         Trim values at input threshold(s).
 
@@ -10858,7 +10951,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         @doc(
             _num_doc,
             desc="Return the maximum of the values over the requested axis.\n\n"
-            "If you want the *index* of the maximum, use ``idxmax``. This is"
+            "If you want the *index* of the maximum, use ``idxmax``. This is "
             "the equivalent of the ``numpy.ndarray`` method ``argmax``.",
             name1=name1,
             name2=name2,
@@ -10875,7 +10968,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         @doc(
             _num_doc,
             desc="Return the minimum of the values over the requested axis.\n\n"
-            "If you want the *index* of the minimum, use ``idxmin``. This is"
+            "If you want the *index* of the minimum, use ``idxmin``. This is "
             "the equivalent of the ``numpy.ndarray`` method ``argmin``.",
             name1=name1,
             name2=name2,
