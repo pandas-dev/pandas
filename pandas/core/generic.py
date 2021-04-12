@@ -7352,16 +7352,124 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower=...,
+        upper=...,
+        axis: Axis | None = ...,
+        inplace: Literal[False] = ...,
+        *args,
+        **kwargs,
+    ) -> FrameOrSeries:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower,
+        *,
+        axis: Axis | None,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower,
+        *,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        *,
+        upper,
+        axis: Axis | None,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        *,
+        upper,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        *,
+        axis: Axis | None,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower,
+        upper,
+        axis: Axis | None,
+        inplace: Literal[True],
+        *args,
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower,
+        upper,
+        *,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        *,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self: FrameOrSeries,
+        lower=...,
+        upper=...,
+        axis: Axis | None = ...,
+        inplace: bool_t = ...,
+        *args,
+        **kwargs,
+    ) -> FrameOrSeries | None:
+        ...
+
     @final
     def clip(
         self: FrameOrSeries,
         lower=None,
         upper=None,
-        axis=None,
+        axis: Axis | None = None,
         inplace: bool_t = False,
         *args,
         **kwargs,
-    ) -> FrameOrSeries:
+    ) -> FrameOrSeries | None:
         """
         Trim values at input threshold(s).
 
@@ -10843,7 +10951,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         @doc(
             _num_doc,
             desc="Return the maximum of the values over the requested axis.\n\n"
-            "If you want the *index* of the maximum, use ``idxmax``. This is"
+            "If you want the *index* of the maximum, use ``idxmax``. This is "
             "the equivalent of the ``numpy.ndarray`` method ``argmax``.",
             name1=name1,
             name2=name2,
@@ -10860,7 +10968,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         @doc(
             _num_doc,
             desc="Return the minimum of the values over the requested axis.\n\n"
-            "If you want the *index* of the minimum, use ``idxmin``. This is"
+            "If you want the *index* of the minimum, use ``idxmin``. This is "
             "the equivalent of the ``numpy.ndarray`` method ``argmin``.",
             name1=name1,
             name2=name2,
