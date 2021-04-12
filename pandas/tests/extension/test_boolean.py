@@ -16,6 +16,8 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import is_numpy_dev
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
@@ -138,6 +140,21 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         else:
             with pytest.raises(exc):
                 op(s, other)
+
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
+        if "floordiv" in all_arithmetic_operators and is_numpy_dev:
+            pytest.skip("NumpyDev behavior GH#40874")
+        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
+
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
+        if "floordiv" in all_arithmetic_operators and is_numpy_dev:
+            pytest.skip("NumpyDev behavior GH#40874")
+        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
+
+    def test_divmod_series_array(self, data, data_for_twos):
+        if is_numpy_dev:
+            pytest.skip("NumpyDev behavior GH#40874")
+        super().test_divmod_series_array(data, data_for_twos)
 
     def _check_divmod_op(self, s, op, other, exc=None):
         # override to not raise an error
