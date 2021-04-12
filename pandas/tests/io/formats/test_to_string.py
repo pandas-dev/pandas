@@ -136,7 +136,7 @@ def test_format_remove_leading_space_dataframe(input_array, expected):
     ],
 )
 def test_truncation_col_placement_no_index(max_cols, expected):
-    df = DataFrame([[0]*11] * 2)
+    df = DataFrame([[0] * 11] * 2)
     assert df.to_string(index=False, max_cols=max_cols).split("\n") == expected
 
 

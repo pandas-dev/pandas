@@ -77,9 +77,7 @@ class StringFormatter:
     def _insert_dot_separator_horizontal(
         self, strcols: List[List[str]], index_length: int
     ) -> List[List[str]]:
-        tr_col_num = (
-            self.fmt.tr_col_num + 1 if self.fmt.index else self.fmt.tr_col_num
-        )
+        tr_col_num = self.fmt.tr_col_num + 1 if self.fmt.index else self.fmt.tr_col_num
         strcols.insert(tr_col_num, [" ..."] * index_length)
         return strcols
 
