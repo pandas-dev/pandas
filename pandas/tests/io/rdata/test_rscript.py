@@ -316,6 +316,7 @@ def test_read_rda_non_dfs(datapath, mode):
         read_rdata(filename, engine="rscript", mode=mode)
 
 
+@td.skip_if_not_us_locale
 def test_read_not_rda_file(datapath, mode):
     with pytest.raises(RScriptError, match="bad restore file magic number"):
         read_rdata(
@@ -326,6 +327,7 @@ def test_read_not_rda_file(datapath, mode):
         )
 
 
+@td.skip_if_not_us_locale
 def test_read_not_rds_file(datapath, mode):
     with pytest.raises(RScriptError, match="unknown input format"):
         read_rdata(
@@ -399,7 +401,7 @@ def test_read_wrong_url():
 
 
 @tm.network
-@pytest.mark.slow
+@td.skip_if_no("s3fs")
 def test_read_rda_s3():
     s3 = "s3://assets.datacamp.com/production/course_1478/datasets/wine.RData"
     s3_df = DataFrame(
@@ -831,6 +833,7 @@ $pandas_dataframe
         assert output == expected
 
 
+@td.skip_if_windows
 def test_write_read_ascii(rtype):
     with tm.ensure_clean_dir() as tmp_dir:
         out_file = os.path.join(tmp_dir, "rdata.out")

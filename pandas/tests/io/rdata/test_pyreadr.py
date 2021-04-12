@@ -4,6 +4,8 @@ from urllib.error import HTTPError
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -296,7 +298,7 @@ def test_read_wrong_url():
 
 
 @tm.network
-@pytest.mark.slow
+@td.skip_if_no("s3fs")
 def test_read_rda_s3():
     s3 = "s3://assets.datacamp.com/production/course_1478/datasets/wine.RData"
     s3_df = DataFrame(

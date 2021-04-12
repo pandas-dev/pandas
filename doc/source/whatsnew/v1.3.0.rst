@@ -115,7 +115,7 @@ For more, see :ref:`io.xml` in the user guide on IO tools.
 Read and write R data files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We added I/O support to read and write R data files (.rda, .Rdata, .rds) using
+We added I/O support to read and write R data files (.RData, .rda, .rds) using
 :func:`pandas.read_rdata` and :meth:`DataFrame.to_rdata`. Equipped with two engines,
 `pyreadr`_ and command line caller, `rscript`_, these methods will maintain fast and
 durable support for open source data migration between R and Python. (:issue:`40287`)
@@ -211,7 +211,7 @@ Even exported back out to R data files:
        ...:     rda_names=["ppm_df", "species_mtx"]
        ...: )
 
-For more, see :ref:`io.read_rdata` in the user guide on IO tools.
+For more, see :ref:`io.rdata` in the user guide on IO tools.
 
 Styler Upgrades
 ^^^^^^^^^^^^^^^
