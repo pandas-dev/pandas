@@ -87,10 +87,6 @@ def test_ufunc_passes_args(func, arg, expected, request):
     result_inplace = np.zeros_like(arr)
     # 1-argument ufunc
     if arg is None:
-        mark = pytest.mark.xfail(
-            reason="Result becomes transposed with block-wise apply of ufunc, #40878"
-        )
-        request.node.add_marker(mark)
         result = func(df, out=result_inplace)
     else:
         result = func(df, arg, out=result_inplace)

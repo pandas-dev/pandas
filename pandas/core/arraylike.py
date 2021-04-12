@@ -364,10 +364,12 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         result = getattr(ufunc, method)(*inputs, **kwargs)
     else:
         # ufunc(dataframe)
-        if method == "__call__":
+        if method == "__call__" and not kwargs:
             # for np.<ufunc>(..) calls
+            # kwargs cannot necessarily be handled block-by-block, so only
+            # take this path if there are no kwargs
             mgr = inputs[0]._mgr
-            result = mgr.apply(getattr(ufunc, method), **kwargs)
+            result = mgr.apply(getattr(ufunc, method))
         else:
             # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
             # Those can have an axis keyword and thus can't be called block-by-block
