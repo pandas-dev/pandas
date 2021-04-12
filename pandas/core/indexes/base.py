@@ -3785,7 +3785,7 @@ class Index(IndexOpsMixin, PandasObject):
             Broadcast across a level, matching Index values on
             the passed MultiIndex level.
         limit : %(limit)s
-        tolerance : %(tolerance)
+        tolerance : %(tolerance)s
 
         Returns
         -------
