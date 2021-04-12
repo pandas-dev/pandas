@@ -351,15 +351,17 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
         # * len(inputs) > 1 is doable when we know that we have
         #   aligned blocks / dtypes.
         inputs = tuple(np.asarray(x) for x in inputs)
-        result = getattr(ufunc, method)(*inputs)
+        result = getattr(ufunc, method)(*inputs, **kwargs)
     elif self.ndim == 1:
         # ufunc(series, ...)
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
     else:
         # ufunc(dataframe)
-        if method == "__call__":
+        if method == "__call__" and not kwargs:
             # for np.<ufunc>(..) calls
+            # kwargs cannot necessarily be handled block-by-block, so only
+            # take this path if there are no kwargs
             mgr = inputs[0]._mgr
             result = mgr.apply(getattr(ufunc, method))
         else:
