@@ -489,6 +489,14 @@ class MPLPlot:
         """Post process for each axes. Overridden in child classes"""
         pass
 
+    def has_iterable_only_float_or_int(self, list_iterable: list) -> bool:
+        """checks if an iterable has float or int datatype """
+        """targeting #GH40781"""
+        for item in list_iterable:
+            if not is_integer(item) and not is_float(item):
+                return False
+        return True
+
     def _adorn_subplots(self):
         """Common post process unrelated to data"""
         if len(self.axes) > 0:
@@ -511,10 +519,24 @@ class MPLPlot:
             if self.xticks is not None:
                 ax.set_xticks(self.xticks)
 
+            # Addressing issue #40781 raising ValueError
+            # if xlim or ylim contain non float or non int dtype
             if self.ylim is not None:
+                if not self.has_iterable_only_float_or_int(self.ylim):
+                    raise ValueError(
+                        "`ylim` contains values"
+                        " which are not of float or int type"
+                        f" in {self.ylim}"
+                    )
                 ax.set_ylim(self.ylim)
 
             if self.xlim is not None:
+                if not self.has_iterable_only_float_or_int(self.xlim):
+                    raise ValueError(
+                        "`xlim` contains values"
+                        " which are not of float or int type"
+                        f" in {self.xlim}"
+                    )
                 ax.set_xlim(self.xlim)
 
             # GH9093, currently Pandas does not show ylabel, so if users provide
