@@ -114,16 +114,16 @@ def adj_int(df):
 def test_read_rds_file(datapath):
     filename = datapath("io", "data", "rdata", "ghg_df.rds")
     r_df = read_rdata(filename, engine="pyreadr")
-    r_df = adj_int(r_df)
+    output = adj_int(r_df).tail()
 
-    tm.assert_frame_equal(ghg_df, r_df.tail())
+    tm.assert_frame_equal(ghg_df, output)
 
 
 def test_read_rda_file(datapath):
     filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
     r_dfs = read_rdata(filename, engine="pyreadr")
 
-    r_dfs = {k: adj_int(v) for k, v in r_dfs.items()}
+    r_dfs = {str(k): adj_int(v) for k, v in r_dfs.items()}
 
     assert list(r_dfs.keys()) == ["ghg_df", "plants_df", "sea_ice_df"]
 
@@ -136,20 +136,20 @@ def test_bytes_read_rds(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
 
     with open(filename, "rb") as f:
-        r_df = read_rdata(f.read(), file_format="rds", engine="pyreadr")
+        r_df = read_rdata(f, file_format="rds", engine="pyreadr")
 
-    r_df = adj_int(r_df)
+    output = adj_int(r_df).tail()
 
-    tm.assert_frame_equal(sea_ice_df, r_df.tail())
+    tm.assert_frame_equal(sea_ice_df, output)
 
 
 def test_bytes_read_rda(datapath):
     filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
 
     with open(filename, "rb") as f:
-        r_dfs = read_rdata(f.read(), file_format="rda", engine="pyreadr")
+        r_dfs = read_rdata(f, file_format="rda", engine="pyreadr")
 
-    r_dfs = {k: adj_int(v) for k, v in r_dfs.items()}
+    r_dfs = {str(k): adj_int(v) for k, v in r_dfs.items()}
 
     assert list(r_dfs.keys()) == ["ghg_df", "plants_df", "sea_ice_df"]
 
@@ -165,9 +165,9 @@ def test_bytesio_rds(datapath):
         with BytesIO(f.read()) as b_io:
             r_df = read_rdata(b_io, file_format="rds", engine="pyreadr")
 
-    r_df = adj_int(r_df)
+    output = adj_int(r_df).tail()
 
-    tm.assert_frame_equal(sea_ice_df, r_df.tail())
+    tm.assert_frame_equal(sea_ice_df, output)
 
 
 def test_bytesio_rda(datapath):
@@ -177,7 +177,7 @@ def test_bytesio_rda(datapath):
         with BytesIO(f.read()) as b_io:
             r_dfs = read_rdata(b_io, file_format="rda", engine="pyreadr")
 
-    r_dfs = {k: adj_int(v) for k, v in r_dfs.items()}
+    r_dfs = {str(k): adj_int(v) for k, v in r_dfs.items()}
 
     assert list(r_dfs.keys()) == ["ghg_df", "plants_df", "sea_ice_df"]
 
@@ -238,7 +238,7 @@ def test_bytes_read_infer_rds(datapath):
 
     with pytest.raises(ValueError, match="Unable to infer file format from file name"):
         with open(filename, "rb") as f:
-            read_rdata(f.read(), engine="pyreadr")
+            read_rdata(f, engine="pyreadr")
 
 
 def test_bytes_read_infer_rda(datapath):
@@ -246,7 +246,7 @@ def test_bytes_read_infer_rda(datapath):
 
     with pytest.raises(ValueError, match="Unable to infer file format from file name"):
         with open(filename, "rb") as f:
-            read_rdata(f.read(), engine="pyreadr")
+            read_rdata(f, engine="pyreadr")
 
 
 # URL
@@ -370,7 +370,11 @@ def test_read_select_frames_rda_dfs(datapath):
 def test_read_wrong_select_frames(datapath):
     with pytest.raises(TypeError, match="not a valid type for select_frames"):
         filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
-        read_rdata(filename, engine="pyreadr", select_frames="plants_df")
+        read_rdata(
+            filename,
+            engine="pyreadr",
+            select_frames="plants_df",  # type: ignore[arg-type]
+        )
 
 
 # ROWNAMES
@@ -380,14 +384,16 @@ def test_read_rownames_true_rds(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
     r_df = read_rdata(filename, engine="pyreadr", rownames=True)
 
-    assert r_df.index.name == "rownames"
+    if isinstance(r_df, DataFrame):
+        assert r_df.index.name == "rownames"
 
 
 def test_read_rownames_false_rds(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
     r_df = read_rdata(filename, engine="pyreadr", rownames=False)
 
-    assert r_df.index.name != "rownames"
+    if isinstance(r_df, DataFrame):
+        assert r_df.index.name != "rownames"
 
 
 def test_read_rownames_true_rda(datapath):
@@ -457,7 +463,10 @@ def test_write_read_filelike(rtype):
     with BytesIO() as b_io:
         sea_ice_df.to_rdata(b_io, file_format=rtype, engine="pyreadr", index=False)
         r_dfs = read_rdata(
-            b_io.getvalue(), file_format=rtype, engine="pyreadr", rownames=False
+            b_io.getvalue(),  # type: ignore[arg-type]
+            file_format=rtype,
+            engine="pyreadr",
+            rownames=False,
         )
 
         expected = sea_ice_df.reset_index(drop=True)
@@ -511,7 +520,8 @@ def test_index_true(rtype):
 
     r_df = r_dfs if rtype == "rds" else r_dfs["pandas_dataframe"]
 
-    assert "index" in r_df.columns
+    if isinstance(r_df, DataFrame):
+        assert "index" in r_df.columns
 
 
 def test_index_false(rtype):
@@ -523,7 +533,8 @@ def test_index_false(rtype):
 
     r_df = r_dfs if rtype == "rds" else r_dfs["pandas_dataframe"]
 
-    assert "index" not in r_df.columns
+    if isinstance(r_df, DataFrame):
+        assert "index" not in r_df.columns
 
 
 # ASCII

@@ -6058,7 +6058,7 @@ to read data natively in R and transfer content with several options of ``mode``
 .. ipython:: python
 
    rds_file = os.path.join(file_path, "plants_df.rds")
-   plants_df = pd.read_rdata(rds_file, engine="rscript", mode="sqlite").tail()
+   plants_df = pd.read_rdata(rds_file, engine="rscript", mode="csv").tail()
    plants_df
 
 .. note::

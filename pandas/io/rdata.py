@@ -729,11 +729,11 @@ class _RscriptParser(_RDataReader):
             rda_file = self.buffer_to_disk(tmp_dir)
 
             output = self.run_rscript(tmp_dir, r_batch, ["Rscript", r_file, rda_file])
-            output = [i for i in output.strip().split("\n") if i != ""]
+            output_list = [i for i in output.strip().split("\n") if i != ""]
 
             oline: str
             dfs: Dict[str, DataFrame] = {}
-            for oline in output:
+            for oline in output_list:
                 with open(
                     os.path.join(tmp_dir, f"meta_{oline}.txt"),
                     encoding=self.encoding,
@@ -801,12 +801,12 @@ class _RscriptParser(_RDataReader):
             rda_file = self.buffer_to_disk(tmp_dir)
 
             output = self.run_rscript(tmp_dir, r_batch, ["Rscript", r_file, rda_file])
-            output = [i for i in output.strip().split("\n") if i != ""]
+            output_list = [i for i in output.strip().split("\n") if i != ""]
 
             oline: str
             dfs: Dict[str, DataFrame] = {
                 oline: read_feather(os.path.join(tmp_dir, f"data_{oline}.feather"))
-                for oline in output
+                for oline in output_list
             }
 
         return dfs
@@ -851,12 +851,12 @@ class _RscriptParser(_RDataReader):
             rda_file = self.buffer_to_disk(tmp_dir)
 
             output = self.run_rscript(tmp_dir, r_batch, ["Rscript", r_file, rda_file])
-            output = [i for i in output.strip().split("\n") if i != ""]
+            output_list = [i for i in output.strip().split("\n") if i != ""]
 
             oline: str
             dfs: Dict[str, DataFrame] = {
                 oline: read_parquet(os.path.join(tmp_dir, f"data_{oline}.parquet"))
-                for oline in output
+                for oline in output_list
             }
 
         return dfs
@@ -905,12 +905,13 @@ class _RscriptParser(_RDataReader):
             rda_file = self.buffer_to_disk(tmp_dir)
 
             output = self.run_rscript(tmp_dir, r_batch, ["Rscript", r_file, rda_file])
-            output = [i for i in output.strip().split("\n") if i != ""]
+            output_list = [i for i in output.strip().split("\n") if i != ""]
 
             oline: str
             conn = sqlite3.connect(r_db)
             dfs: Dict[str, DataFrame] = {
-                oline: read_sql(f"SELECT * FROM data_{oline}", conn) for oline in output
+                oline: read_sql(f"SELECT * FROM data_{oline}", conn)
+                for oline in output_list
             }
             conn.close()
 

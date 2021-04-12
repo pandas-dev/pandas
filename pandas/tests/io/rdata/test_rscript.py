@@ -214,7 +214,8 @@ def test_read_rds_file(datapath):
     filename = datapath("io", "data", "rdata", "ghg_df.rds")
     r_df = read_rdata(filename, engine="rscript")
 
-    tm.assert_frame_equal(ghg_df, r_df.tail())
+    if isinstance(r_df, DataFrame):
+        tm.assert_frame_equal(ghg_df, r_df.tail())
 
 
 def test_read_rda_file(datapath):
@@ -234,18 +235,18 @@ def test_buffer_read_rds(datapath):
     with open(filename, "rb") as f:
         r_df = read_rdata(f, file_format="rds", engine="rscript")
 
-    r_df = adj_int(r_df)
+    output = adj_int(r_df).tail()
 
-    tm.assert_frame_equal(sea_ice_df, r_df.tail())
+    tm.assert_frame_equal(sea_ice_df, output)
 
 
 def test_bytes_read_rda(datapath):
     filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
 
     with open(filename, "rb") as f:
-        r_dfs = read_rdata(f.read(), file_format="rda", engine="rscript")
+        r_dfs = read_rdata(f, file_format="rda", engine="rscript")
 
-    r_dfs = {k: adj_int(v) for k, v in r_dfs.items()}
+    r_dfs = {str(k): adj_int(v) for k, v in r_dfs.items()}
 
     assert list(r_dfs.keys()) == ["plants_df", "sea_ice_df", "ghg_df"]
 
@@ -261,9 +262,9 @@ def test_bytesio_rds(datapath):
         with BytesIO(f.read()) as b_io:
             r_df = read_rdata(b_io, file_format="rds", engine="rscript")
 
-    r_df = adj_int(r_df)
+    output = adj_int(r_df).tail()
 
-    tm.assert_frame_equal(sea_ice_df, r_df.tail())
+    tm.assert_frame_equal(sea_ice_df, output)
 
 
 def test_bytesio_rda(datapath):
@@ -273,7 +274,7 @@ def test_bytesio_rda(datapath):
         with BytesIO(f.read()) as b_io:
             r_dfs = read_rdata(b_io, file_format="rda", engine="rscript")
 
-    r_dfs = {k: adj_int(v) for k, v in r_dfs.items()}
+    r_dfs = {str(k): adj_int(v) for k, v in r_dfs.items()}
 
     assert list(r_dfs.keys()) == ["plants_df", "sea_ice_df", "ghg_df"]
 
@@ -340,7 +341,7 @@ def test_bytes_read_infer_rds(datapath):
 
     with pytest.raises(ValueError, match="Unable to infer file format from file name"):
         with open(filename, "rb") as f:
-            read_rdata(f.read(), engine="rscript")
+            read_rdata(f, engine="rscript")
 
 
 def test_bytes_read_infer_rda(datapath):
@@ -348,7 +349,7 @@ def test_bytes_read_infer_rda(datapath):
 
     with pytest.raises(ValueError, match="Unable to infer file format from file name"):
         with open(filename, "rb") as f:
-            read_rdata(f.read(), engine="rscript")
+            read_rdata(f, engine="rscript")
 
 
 # URL
@@ -466,9 +467,9 @@ def test_read_rds_mode_file(datapath, mode):
     filename = datapath("io", "data", "rdata", "ghg_df.rds")
     r_df = read_rdata(filename, engine="rscript", mode=mode)
 
-    r_df = adj_int(r_df)
+    output = adj_int(r_df).tail()
 
-    tm.assert_frame_equal(ghg_df, r_df.tail())
+    tm.assert_frame_equal(ghg_df, output)
 
 
 @pytest.mark.slow
@@ -529,7 +530,11 @@ def test_read_select_frames_rda_objs(datapath):
 def test_read_wrong_select_frames(datapath):
     with pytest.raises(TypeError, match="not a valid type for select_frames"):
         filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
-        read_rdata(filename, engine="rscript", select_frames="plants_df")
+        read_rdata(
+            filename,
+            engine="rscript",
+            select_frames="plants_df",  # type: ignore[arg-type]
+        )
 
 
 # ROWNAMES
@@ -539,14 +544,16 @@ def test_read_rownames_true_rds(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
     r_df = read_rdata(filename, engine="rscript", rownames=True)
 
-    assert r_df.index.name == "rownames"
+    if isinstance(r_df, DataFrame):
+        assert r_df.index.name == "rownames"
 
 
 def test_read_rownames_false_rds(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
     r_df = read_rdata(filename, engine="rscript", rownames=False)
 
-    assert r_df.index.name != "rownames"
+    if isinstance(r_df, DataFrame):
+        assert r_df.index.name != "rownames"
 
 
 def test_read_rownames_true_rda(datapath):
@@ -570,7 +577,9 @@ def test_read_rownames_false_rda(datapath):
 # ENCODING
 
 
-@td.skip_if_not_us_locale
+@pytest.mark.xfail(
+    reason="R encoding is locale specific. Need to think about workaround."
+)
 def test_non_utf8_data(datapath, rtype):
     filename = datapath("io", "data", "rdata", f"climate_non_utf8_df.{rtype}")
 
@@ -640,7 +649,7 @@ def test_write_read_bytes_io(datapath, rtype, mode):
             b_io, file_format=rtype, engine="rscript", mode=mode, index=False
         )
         r_dfs = read_rdata(
-            b_io.getvalue(),
+            b_io.getvalue(),  # type: ignore[arg-type]
             file_format=rtype,
             engine="rscript",
             mode=mode,
@@ -835,7 +844,7 @@ def test_write_read_ascii(rtype):
             compress=False,
         )
 
-        with open(out_file) as f:
+        with open(out_file, newline="") as f:
             r_dfs = read_rdata(f, file_format=rtype, engine="rscript", rownames=False)
 
         expected = ghg_df.reset_index(drop=True)
