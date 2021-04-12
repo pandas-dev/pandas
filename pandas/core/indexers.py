@@ -209,16 +209,21 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
 
     Examples
     --------
-    >>> validate_indices([1, 2], 3)
-    # OK
-    >>> validate_indices([1, -2], 3)
-    ValueError
-    >>> validate_indices([1, 2, 3], 3)
-    IndexError
-    >>> validate_indices([-1, -1], 0)
-    # OK
-    >>> validate_indices([0, 1], 0)
-    IndexError
+    >>> validate_indices(np.ndarray([1, 2]), 3) # OK
+
+    >>> validate_indices(np.ndarray([1, -2]), 3)
+    Traceback (most recent call last):
+        ...
+    ValueError: negative dimensions are not allowed
+
+    >>> validate_indices(np.ndarray([1, 2, 3]), 3) # OK
+
+    >>> validate_indices(np.ndarray([-1, -1]), 0)
+    Traceback (most recent call last):
+        ...
+    ValueError: negative dimensions are not allowed
+
+    >>> validate_indices(np.ndarray([0, 1]), 0) # OK
     """
     if len(indices):
         min_idx = indices.min()

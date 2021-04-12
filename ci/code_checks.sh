@@ -166,6 +166,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/generic.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests indexers.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/indexers.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests nanops.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/nanops.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
