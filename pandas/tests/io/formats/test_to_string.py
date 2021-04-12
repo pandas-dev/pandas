@@ -105,22 +105,39 @@ def test_format_remove_leading_space_dataframe(input_array, expected):
     df = DataFrame(input_array).to_string(index=False)
     assert df == expected
 
-def test_truncation_col_placement_no_index():
+
+@pytest.mark.parametrize(
+    "max_cols, expected",
+    [
+        (
+            10,
+            [
+                " 0   1   2   3   4   ...  6   7   8   9   10",
+                "  0   0   0   0   0  ...   0   0   0   0   0",
+                "  0   0   0   0   0  ...   0   0   0   0   0",
+            ],
+        ),
+        (
+            9,
+            [
+                " 0   1   2   3   ...  7   8   9   10",
+                "  0   0   0   0  ...   0   0   0   0",
+                "  0   0   0   0  ...   0   0   0   0",
+            ],
+        ),
+        (
+            1,
+            [
+                " 0  ...",
+                " 0  ...",
+                " 0  ...",
+            ],
+        ),
+    ],
+)
+def test_truncation_col_placement_no_index(max_cols, expected):
     df = DataFrame([[0]*11] * 2)
-
-    # Even max_cols.
-    assert df.to_string(index=False, max_cols=10)).split("\n") == [
-        " 0   1   2   3   4   ...  6   7   8   9   10",
-        "  0   0   0   0   0  ...   0   0   0   0   0",
-        "  0   0   0   0   0  ...   0   0   0   0   0",
-    ]
-
-    # Odd max_cols.
-    assert df.to_string(index=False, max_cols=9)).split("\n") == [
-        " 0   1   2   3   4   ...  7   8   9   10",
-        "  0   0   0   0   0  ...   0   0   0   0",
-        "  0   0   0   0   0  ...   0   0   0   0",
-    ]
+    assert df.to_string(index=False, max_cols=max_cols).split("\n") == expected
 
 
 def test_to_string_unicode_columns(float_frame):
