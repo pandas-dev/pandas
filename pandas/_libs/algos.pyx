@@ -563,7 +563,7 @@ ctypedef fused algos_t:
     uint8_t
 
 
-def validate_limit(nobs: int, limit=None) -> int:
+def validate_limit(nobs: int | None, limit=None) -> int:
     """
     Check that the `limit` argument is a positive integer.
 

@@ -4,8 +4,6 @@ import copy
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    List,
     Sequence,
 )
 
@@ -30,7 +28,10 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_sparse,
 )
-from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.concat import (
+    cast_to_common_type,
+    concat_compat,
+)
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -44,7 +45,10 @@ from pandas.core.arrays import (
     ExtensionArray,
 )
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.internals.array_manager import ArrayManager
+from pandas.core.internals.array_manager import (
+    ArrayManager,
+    NullArrayProxy,
+)
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     new_block,
@@ -56,7 +60,7 @@ if TYPE_CHECKING:
 
 
 def _concatenate_array_managers(
-    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
     Concatenate array managers into one.
@@ -76,14 +80,16 @@ def _concatenate_array_managers(
     mgrs = []
     for mgr, indexers in mgrs_indexers:
         for ax, indexer in indexers.items():
-            mgr = mgr.reindex_indexer(axes[ax], indexer, axis=ax, allow_dups=True)
+            mgr = mgr.reindex_indexer(
+                axes[ax], indexer, axis=ax, allow_dups=True, use_na_proxy=True
+            )
         mgrs.append(mgr)
 
     if concat_axis == 1:
         # concatting along the rows -> concat the reindexed arrays
         # TODO(ArrayManager) doesn't yet preserve the correct dtype
         arrays = [
-            concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))])
+            concat_arrays([mgrs[i].arrays[j] for i in range(len(mgrs))])
             for j in range(len(mgrs[0].arrays))
         ]
         return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
@@ -94,8 +100,70 @@ def _concatenate_array_managers(
         return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
 
 
+def concat_arrays(to_concat: list) -> ArrayLike:
+    """
+    Alternative for concat_compat but specialized for use in the ArrayManager.
+
+    Differences: only deals with 1D arrays (no axis keyword), assumes
+    ensure_wrapped_if_datetimelike and does not skip empty arrays to determine
+    the dtype.
+    In addition ensures that all NullArrayProxies get replaced with actual
+    arrays.
+
+    Parameters
+    ----------
+    to_concat : list of arrays
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+    """
+    # ignore the all-NA proxies to determine the resulting dtype
+    to_concat_no_proxy = [x for x in to_concat if not isinstance(x, NullArrayProxy)]
+
+    single_dtype = len({x.dtype for x in to_concat_no_proxy}) == 1
+
+    if not single_dtype:
+        target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
+    else:
+        target_dtype = to_concat_no_proxy[0].dtype
+
+    if target_dtype.kind in ["m", "M"]:
+        # for datetimelike use DatetimeArray/TimedeltaArray concatenation
+        # don't use arr.astype(target_dtype, copy=False), because that doesn't
+        # work for DatetimeArray/TimedeltaArray (returns ndarray)
+        to_concat = [
+            arr.to_array(target_dtype) if isinstance(arr, NullArrayProxy) else arr
+            for arr in to_concat
+        ]
+        return type(to_concat_no_proxy[0])._concat_same_type(to_concat, axis=0)
+
+    to_concat = [
+        arr.to_array(target_dtype)
+        if isinstance(arr, NullArrayProxy)
+        else cast_to_common_type(arr, target_dtype)
+        for arr in to_concat
+    ]
+
+    if isinstance(to_concat[0], ExtensionArray):
+        cls = type(to_concat[0])
+        return cls._concat_same_type(to_concat)
+
+    result = np.concatenate(to_concat)
+
+    # TODO decide on exact behaviour (we shouldn't do this only for empty result)
+    # see https://github.com/pandas-dev/pandas/issues/39817
+    if len(result) == 0:
+        # all empties -> check for bool to not coerce to float
+        kinds = {obj.dtype.kind for obj in to_concat_no_proxy}
+        if len(kinds) != 1:
+            if "b" in kinds:
+                result = result.astype(object)
+    return result
+
+
 def concatenate_managers(
-    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
     Concatenate block managers into one.
@@ -160,7 +228,7 @@ def concatenate_managers(
     return BlockManager(blocks, axes)
 
 
-def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarray]):
+def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarray]):
     """
     Construct concatenation plan for given block manager and indexers.
 
@@ -395,7 +463,7 @@ class JoinUnit:
 
 
 def _concatenate_join_units(
-    join_units: List[JoinUnit], concat_axis: int, copy: bool
+    join_units: list[JoinUnit], concat_axis: int, copy: bool
 ) -> ArrayLike:
     """
     Concatenate values from several join units along selected axis.
@@ -500,7 +568,7 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
     return dtype
 
 
-def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
+def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic

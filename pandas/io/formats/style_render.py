@@ -63,11 +63,11 @@ class StylerRenderer:
     def __init__(
         self,
         data: FrameOrSeriesUnion,
-        uuid: Optional[str] = None,
+        uuid: str | None = None,
         uuid_len: int = 5,
-        table_styles: Optional[CSSStyles] = None,
-        table_attributes: Optional[str] = None,
-        caption: Optional[str] = None,
+        table_styles: CSSStyles | None = None,
+        table_attributes: str | None = None,
+        caption: str | None = None,
         cell_ids: bool = True,
     ):
 
@@ -93,13 +93,13 @@ class StylerRenderer:
         # add rendering variables
         self.hidden_index: bool = False
         self.hidden_columns: Sequence[int] = []
-        self.ctx: DefaultDict[Tuple[int, int], CSSList] = defaultdict(list)
-        self.cell_context: DefaultDict[Tuple[int, int], str] = defaultdict(str)
-        self._todo: List[Tuple[Callable, Tuple, Dict]] = []
-        self.tooltips: Optional[Tooltips] = None
+        self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
+        self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
+        self._todo: list[tuple[Callable, tuple, dict]] = []
+        self.tooltips: Tooltips | None = None
         def_precision = get_option("display.precision")
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
-            Tuple[int, int], Callable[[Any], str]
+            tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
 
     def render(self, **kwargs) -> str:
@@ -185,13 +185,13 @@ class StylerRenderer:
         )
         d.update({"head": head})
 
-        self.cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(
+        self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
 
         d.update({"body": self._translate_body(DATA_CLASS, ROW_HEADING_CLASS)})
 
-        cellstyle: List[Dict[str, Union[CSSList, List[str]]]] = [
+        cellstyle: list[dict[str, CSSList | list[str]]] = [
             {"props": list(props), "selectors": selectors}
             for props, selectors in self.cellstyle_map.items()
         ]
@@ -362,10 +362,10 @@ class StylerRenderer:
 
     def format(
         self,
-        formatter: Optional[ExtFormatter] = None,
-        subset: Optional[Union[slice, Sequence[Any]]] = None,
-        na_rep: Optional[str] = None,
-        precision: Optional[int] = None,
+        formatter: ExtFormatter | None = None,
+        subset: slice | Sequence[Any] | None = None,
+        na_rep: str | None = None,
+        precision: int | None = None,
         escape: bool = False,
     ) -> StylerRenderer:
         """
@@ -519,7 +519,7 @@ def _element(
     value: Any,
     is_visible: bool,
     **kwargs,
-) -> Dict:
+) -> dict:
     """
     Template to return container with information for a <td></td> or <th></th> element.
     """
@@ -629,9 +629,9 @@ def _default_formatter(x: Any, precision: int) -> Any:
 
 
 def _maybe_wrap_formatter(
-    formatter: Optional[BaseFormatter] = None,
-    na_rep: Optional[str] = None,
-    precision: Optional[int] = None,
+    formatter: BaseFormatter | None = None,
+    na_rep: str | None = None,
+    precision: int | None = None,
     escape: bool = False,
 ) -> Callable:
     """
@@ -836,7 +836,7 @@ class Tooltips:
             },
         ]
 
-    def _translate(self, styler_data: FrameOrSeriesUnion, uuid: str, d: Dict):
+    def _translate(self, styler_data: FrameOrSeriesUnion, uuid: str, d: dict):
         """
         Mutate the render dictionary to allow for tooltips:
 
