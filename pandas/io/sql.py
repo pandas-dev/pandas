@@ -1747,7 +1747,7 @@ class SQLDatabase(PandasSQL):
             ``io.sql.engine`` is used. The default ``io.sql.engine``
             behavior is 'sqlalchemy'
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.3.0
 
         **engine_kwargs
             Any additional kwargs are passed to the engine.
