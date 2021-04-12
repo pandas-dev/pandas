@@ -55,7 +55,7 @@ cdef class _BaseGrouper:
 
     cdef inline _update_cached_objs(self, object cached_typ, object cached_ityp,
                                     Slider islider, Slider vslider):
-        if cached_typ is None or len(vslider.buf) != len(cached_ityp):
+        if cached_typ is None:
             cached_ityp = self.ityp(islider.buf)
             cached_typ = self.typ(
                 vslider.buf, dtype=vslider.buf.dtype, index=cached_ityp, name=self.name
@@ -65,12 +65,12 @@ cdef class _BaseGrouper:
             # We need this for EA-backed indexes that have a reference
             # to a 1-d ndarray like datetime / timedelta / period.
             object.__setattr__(cached_ityp, '_index_data', islider.buf)
+            object.__setattr__(cached_ityp, '_data', islider.buf)
             cached_ityp._engine.clear_mapping()
             cached_ityp._cache.clear()  # e.g. inferred_freq must go
             cached_typ._mgr.set_values(vslider.buf)
             object.__setattr__(cached_typ, '_index', cached_ityp)
             object.__setattr__(cached_typ, 'name', self.name)
-
         return cached_typ, cached_ityp
 
     cdef inline object _apply_to_group(self,
@@ -259,6 +259,7 @@ cdef class SeriesGrouper(_BaseGrouper):
                         start += group_size
                         group_size = 0
                         continue
+                    print(f"Group size: {group_size}")
 
                     end = start + group_size
                     islider.move(start, end)
