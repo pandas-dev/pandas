@@ -7,6 +7,7 @@ from typing import (
     Any,
     List,
     Optional,
+    Sequence,
     Tuple,
     TypeVar,
     Union,
@@ -24,6 +25,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    NaTType,
     Resolution,
     Tick,
 )
@@ -136,9 +138,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # Abstract data attributes
 
     @property
-    # error: Return type "ndarray" of "values" incompatible with return type "ArrayLike"
-    # in supertype "Index"
-    def values(self) -> np.ndarray:  # type: ignore[override]
+    def values(self) -> np.ndarray:
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._ndarray
 
@@ -220,7 +220,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_na = True
 
-    _na_value = NaT
+    _na_value: NaTType = NaT
     """The expected NA value to use with this index."""
 
     def _convert_tolerance(self, tolerance, target):
@@ -530,16 +530,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         PeriodIndex.shift : Shift values of PeriodIndex.
         """
         arr = self._data.view()
-        # error: "ExtensionArray" has no attribute "_freq"
-        arr._freq = self.freq  # type: ignore[attr-defined]
-        # error: "ExtensionArray" has no attribute "_time_shift"
-        result = arr._time_shift(periods, freq=freq)  # type: ignore[attr-defined]
+        arr._freq = self.freq
+        result = arr._time_shift(periods, freq=freq)
         return type(self)(result, name=self.name)
 
     # --------------------------------------------------------------------
     # List-like Methods
 
-    def _get_delete_freq(self, loc: int):
+    def _get_delete_freq(self, loc: Union[int, slice, Sequence[int]]):
         """
         Find the `freq` for self.delete(loc).
         """
@@ -552,7 +550,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                     freq = self.freq
             else:
                 if is_list_like(loc):
-                    loc = lib.maybe_indices_to_slice(
+                    # error: Incompatible types in assignment (expression has
+                    # type "Union[slice, ndarray]", variable has type
+                    # "Union[int, slice, Sequence[int]]")
+                    loc = lib.maybe_indices_to_slice(  # type: ignore[assignment]
                         np.asarray(loc, dtype=np.intp), len(self)
                     )
                 if isinstance(loc, slice) and loc.step in (1, None):
@@ -649,7 +650,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
-        return type(self)._simple_new(arr, name=self.name)
+        return type(self)._simple_new(arr, name=self._name)
 
     @property
     def _has_complex_internals(self) -> bool:
@@ -831,7 +832,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     _join_precedence = 10
 
     def join(
-        self, other, how: str = "left", level=None, return_indexers=False, sort=False
+        self,
+        other,
+        how: str = "left",
+        level=None,
+        return_indexers: bool = False,
+        sort: bool = False,
     ):
         """
         See Index.join

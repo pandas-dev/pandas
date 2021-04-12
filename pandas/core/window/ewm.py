@@ -3,10 +3,6 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import (
-    Optional,
-    Union,
-)
 import warnings
 
 import numpy as np
@@ -14,6 +10,7 @@ import numpy as np
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
+    Axis,
     FrameOrSeries,
     FrameOrSeriesUnion,
     TimedeltaConvertibleTypes,
@@ -49,10 +46,10 @@ from pandas.core.window.rolling import (
 
 
 def get_center_of_mass(
-    comass: Optional[float],
-    span: Optional[float],
-    halflife: Optional[float],
-    alpha: Optional[float],
+    comass: float | None,
+    span: float | None,
+    halflife: float | None,
+    alpha: float | None,
 ) -> float:
     valid_count = common.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
@@ -227,16 +224,16 @@ class ExponentialMovingWindow(BaseWindow):
 
     def __init__(
         self,
-        obj,
-        com: Optional[float] = None,
-        span: Optional[float] = None,
-        halflife: Optional[Union[float, TimedeltaConvertibleTypes]] = None,
-        alpha: Optional[float] = None,
+        obj: FrameOrSeries,
+        com: float | None = None,
+        span: float | None = None,
+        halflife: float | TimedeltaConvertibleTypes | None = None,
+        alpha: float | None = None,
         min_periods: int = 0,
         adjust: bool = True,
         ignore_na: bool = False,
-        axis: int = 0,
-        times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
+        axis: Axis = 0,
+        times: str | np.ndarray | FrameOrSeries | None = None,
     ):
         super().__init__(
             obj=obj,
@@ -446,7 +443,7 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame , optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -471,8 +468,8 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def cov(
         self,
-        other: Optional[FrameOrSeriesUnion] = None,
-        pairwise: Optional[bool] = None,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
         bias: bool = False,
         **kwargs,
     ):
@@ -513,7 +510,7 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -536,8 +533,8 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def corr(
         self,
-        other: Optional[FrameOrSeriesUnion] = None,
-        pairwise: Optional[bool] = None,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
         **kwargs,
     ):
         from pandas import Series

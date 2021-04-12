@@ -165,7 +165,7 @@ def _convert_listlike(arg, unit=None, errors="raise", name=None):
         arg = np.array(list(arg), dtype=object)
 
     try:
-        value = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
+        td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
     except ValueError:
         if errors == "ignore":
             return arg
@@ -181,7 +181,5 @@ def _convert_listlike(arg, unit=None, errors="raise", name=None):
 
     from pandas import TimedeltaIndex
 
-    # error: Incompatible types in assignment (expression has type "TimedeltaIndex",
-    # variable has type "ndarray")
-    value = TimedeltaIndex(value, unit="ns", name=name)  # type: ignore[assignment]
+    value = TimedeltaIndex(td64arr, unit="ns", name=name)
     return value

@@ -10,15 +10,11 @@ from __future__ import annotations
 
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Optional,
     Sequence,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -28,6 +24,7 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    PositionalIndexer,
     Shape,
 )
 from pandas.compat import set_function_name
@@ -71,7 +68,17 @@ from pandas.core.sorting import (
     nargsort,
 )
 
-_extension_array_shared_docs: Dict[str, str] = {}
+if TYPE_CHECKING:
+
+    class ExtensionArraySupportsAnyAll("ExtensionArray"):
+        def any(self, *, skipna: bool = True) -> bool:
+            pass
+
+        def all(self, *, skipna: bool = True) -> bool:
+            pass
+
+
+_extension_array_shared_docs: dict[str, str] = {}
 
 ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
 
@@ -212,7 +219,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -235,7 +242,7 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+        cls, strings, *, dtype: Dtype | None = None, copy=False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -282,9 +289,7 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
 
-    def __getitem__(
-        self, item: Union[int, slice, np.ndarray]
-    ) -> Union[ExtensionArray, Any]:
+    def __getitem__(self, item: PositionalIndexer) -> ExtensionArray | Any:
         """
         Select a subset of self.
 
@@ -315,7 +320,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __setitem__(self, key: Union[int, np.ndarray], value: Any) -> None:
+    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
         """
         Set one or more values inplace.
 
@@ -380,7 +385,7 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __contains__(self, item) -> bool:
+    def __contains__(self, item) -> bool | np.bool_:
         """
         Return for `item in self`.
         """
@@ -391,8 +396,7 @@ class ExtensionArray:
             if not self._can_hold_na:
                 return False
             elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
-                # error: "ExtensionArray" has no attribute "any"
-                return self.isna().any()  # type: ignore[attr-defined]
+                return self.isna().any()
             else:
                 return False
         else:
@@ -420,7 +424,7 @@ class ExtensionArray:
 
     def to_numpy(
         self,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -543,7 +547,7 @@ class ExtensionArray:
 
         return np.array(self, dtype=dtype, copy=copy)
 
-    def isna(self) -> ArrayLike:
+    def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
         A 1-D array indicating if each value is missing.
 
@@ -648,8 +652,7 @@ class ExtensionArray:
         ExtensionArray.argmax
         """
         validate_bool_kwarg(skipna, "skipna")
-        # error: "ExtensionArray" has no attribute "any"
-        if not skipna and self.isna().any():  # type: ignore[attr-defined]
+        if not skipna and self.isna().any():
             raise NotImplementedError
         return nargminmax(self, "argmin")
 
@@ -673,8 +676,7 @@ class ExtensionArray:
         ExtensionArray.argmin
         """
         validate_bool_kwarg(skipna, "skipna")
-        # error: "ExtensionArray" has no attribute "any"
-        if not skipna and self.isna().any():  # type: ignore[attr-defined]
+        if not skipna and self.isna().any():
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
@@ -714,8 +716,7 @@ class ExtensionArray:
             value, mask, len(self)  # type: ignore[arg-type]
         )
 
-        # error: "ExtensionArray" has no attribute "any"
-        if mask.any():  # type: ignore[attr-defined]
+        if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
                 new_values, _ = func(self.astype(object), limit=limit, mask=mask)
@@ -902,7 +903,7 @@ class ExtensionArray:
         """
         return isin(np.asarray(self), values)
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
+    def _values_for_factorize(self) -> tuple[np.ndarray, Any]:
         """
         Return an array and missing value suitable for factorization.
 
@@ -926,7 +927,7 @@ class ExtensionArray:
         """
         return self.astype(object), np.nan
 
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
@@ -1136,7 +1137,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
         """
         Return a view on the array.
 
@@ -1156,9 +1157,7 @@ class ExtensionArray:
         #   giving a view with the same dtype as self.
         if dtype is not None:
             raise NotImplementedError(dtype)
-        # error: Incompatible return value type (got "Union[ExtensionArray, Any]",
-        # expected "ndarray")
-        return self[:]  # type: ignore[return-value]
+        return self[:]
 
     # ------------------------------------------------------------------------
     # Printing
@@ -1176,7 +1175,7 @@ class ExtensionArray:
         class_name = f"<{type(self).__name__}>\n"
         return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
 
-    def _formatter(self, boxed: bool = False) -> Callable[[Any], Optional[str]]:
+    def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         """
         Formatting function for scalar values.
 
@@ -1242,7 +1241,7 @@ class ExtensionArray:
 
     @classmethod
     def _concat_same_type(
-        cls: Type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
+        cls: type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
     ) -> ExtensionArrayT:
         """
         Concatenate multiple array of this dtype.

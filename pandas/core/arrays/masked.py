@@ -3,12 +3,8 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
     Sequence,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
 )
 
 import numpy as np
@@ -21,7 +17,9 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     NpDtype,
+    PositionalIndexer,
     Scalar,
+    type_t,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -74,7 +72,7 @@ class BaseMaskedDtype(ExtensionDtype):
 
     name: str
     base = None
-    type: Type
+    type: type
 
     na_value = libmissing.NA
 
@@ -93,7 +91,7 @@ class BaseMaskedDtype(ExtensionDtype):
         return self.numpy_dtype.itemsize
 
     @classmethod
-    def construct_array_type(cls) -> Type[BaseMaskedArray]:
+    def construct_array_type(cls) -> type_t[BaseMaskedArray]:
         """
         Return the array type associated with this dtype.
 
@@ -137,9 +135,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 
-    def __getitem__(
-        self, item: Union[int, slice, np.ndarray]
-    ) -> Union[BaseMaskedArray, Any]:
+    def __getitem__(self, item: PositionalIndexer) -> BaseMaskedArray | Any:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
@@ -182,7 +178,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             new_values = self.copy()
         return new_values
 
-    def _coerce_to_array(self, values) -> Tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, values) -> tuple[np.ndarray, np.ndarray]:
         raise AbstractMethodError(self)
 
     def __setitem__(self, key, value) -> None:
@@ -217,7 +213,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
     def to_numpy(  # type: ignore[override]
         self,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         copy: bool = False,
         na_value: Scalar = lib.no_default,
     ) -> np.ndarray:
@@ -310,12 +306,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if is_dtype_equal(dtype, self.dtype):
             if copy:
-                # error: Incompatible return value type (got "BaseMaskedArray", expected
-                # "ndarray")
-                return self.copy()  # type: ignore[return-value]
-            # error: Incompatible return value type (got "BaseMaskedArray", expected
-            # "ndarray")
-            return self  # type: ignore[return-value]
+                return self.copy()
+            return self
 
         # if we are astyping to another nullable masked dtype, we can fastpath
         if isinstance(dtype, BaseMaskedDtype):
@@ -325,9 +317,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # not directly depending on the `copy` keyword
             mask = self._mask if data is self._data else self._mask.copy()
             cls = dtype.construct_array_type()
-            # error: Incompatible return value type (got "BaseMaskedArray", expected
-            # "ndarray")
-            return cls(data, mask, copy=False)  # type: ignore[return-value]
+            return cls(data, mask, copy=False)
 
         if isinstance(dtype, ExtensionDtype):
             eacls = dtype.construct_array_type()
@@ -337,7 +327,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """
         the array interface, return my values
         We return an object array here to preserve our scalar values
@@ -361,9 +351,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # error: Incompatible return value type (got "bool_", expected "bool")
         return self._mask.any()  # type: ignore[return-value]
 
-    # error: Return type "ndarray" of "isna" incompatible with return type
-    # "ArrayLike" in supertype "ExtensionArray"
-    def isna(self) -> np.ndarray:  # type: ignore[override]
+    def isna(self) -> np.ndarray:
         return self._mask
 
     @property
@@ -376,7 +364,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def _concat_same_type(
-        cls: Type[BaseMaskedArrayT], to_concat: Sequence[BaseMaskedArrayT]
+        cls: type[BaseMaskedArrayT], to_concat: Sequence[BaseMaskedArrayT]
     ) -> BaseMaskedArrayT:
         data = np.concatenate([x._data for x in to_concat])
         mask = np.concatenate([x._mask for x in to_concat])
@@ -387,7 +375,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         indexer,
         *,
         allow_fill: bool = False,
-        fill_value: Optional[Scalar] = None,
+        fill_value: Scalar | None = None,
     ) -> BaseMaskedArrayT:
         # we always fill with 1 internally
         # to avoid upcasting
@@ -433,7 +421,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return type(self)(data, mask, copy=False)
 
     @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         arr = self._data
         mask = self._mask
 

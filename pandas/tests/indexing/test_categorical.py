@@ -469,7 +469,11 @@ class TestCategoricalIndex:
 
     def test_loc_slice(self):
         # GH9748
-        with pytest.raises(KeyError, match="1"):
+        msg = (
+            "cannot do slice indexing on CategoricalIndex with these "
+            r"indexers \[1\] of type int"
+        )
+        with pytest.raises(TypeError, match=msg):
             self.df.loc[1:5]
 
         result = self.df.loc["b":"c"]

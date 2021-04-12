@@ -25,7 +25,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Type,
+    Type as type_t,
     TypeVar,
     Union,
 )
@@ -47,9 +47,9 @@ if TYPE_CHECKING:
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
-    from pandas.core.arrays.base import ExtensionArray  # noqa: F401
+    from pandas.core.arrays.base import ExtensionArray
     from pandas.core.frame import DataFrame
-    from pandas.core.generic import NDFrame  # noqa: F401
+    from pandas.core.generic import NDFrame
     from pandas.core.groupby.generic import (
         DataFrameGroupBy,
         SeriesGroupBy,
@@ -74,13 +74,13 @@ else:
 
 # array-like
 
-AnyArrayLike = TypeVar("AnyArrayLike", "ExtensionArray", "Index", "Series", np.ndarray)
-ArrayLike = TypeVar("ArrayLike", "ExtensionArray", np.ndarray)
+ArrayLike = Union["ExtensionArray", np.ndarray]
+AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 
 # scalars
 
 PythonScalar = Union[str, int, float, bool]
-DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timedelta")
+DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
 
@@ -119,7 +119,7 @@ Axes = Collection[Any]
 # dtypes
 NpDtype = Union[str, np.dtype]
 Dtype = Union[
-    "ExtensionDtype", NpDtype, Type[Union[str, float, int, complex, bool, object]]
+    "ExtensionDtype", NpDtype, type_t[Union[str, float, int, complex, bool, object]]
 ]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
@@ -185,5 +185,16 @@ ColspaceArgType = Union[
 ]
 
 # internals
-Manager = Union["ArrayManager", "BlockManager"]
+Manager = Union["ArrayManager", "BlockManager", "SingleBlockManager"]
 SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
+
+# indexing
+# PositionalIndexer -> valid 1D positional indexer, e.g. can pass
+# to ndarray.__getitem__
+# TODO: add Ellipsis, see
+# https://github.com/python/typing/issues/684#issuecomment-548203158
+# https://bugs.python.org/issue41810
+PositionalIndexer = Union[int, np.integer, slice, Sequence[int], np.ndarray]
+PositionalIndexer2D = Union[
+    PositionalIndexer, Tuple[PositionalIndexer, PositionalIndexer]
+]

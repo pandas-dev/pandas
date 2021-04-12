@@ -189,7 +189,13 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
             marks=td.skip_array_manager_not_yet_implemented,
         ),
         (ParquetPyArrowUserAgentResponder, pd.read_parquet, "pyarrow"),
-        (ParquetFastParquetUserAgentResponder, pd.read_parquet, "fastparquet"),
+        pytest.param(
+            ParquetFastParquetUserAgentResponder,
+            pd.read_parquet,
+            "fastparquet",
+            # TODO(ArrayManager) fastparquet
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
         (PickleUserAgentResponder, pd.read_pickle, None),
         (StataUserAgentResponder, pd.read_stata, None),
         (GzippedCSVUserAgentResponder, pd.read_csv, None),
@@ -234,7 +240,13 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
             marks=td.skip_array_manager_not_yet_implemented,
         ),
         (ParquetPyArrowUserAgentResponder, pd.read_parquet, "pyarrow"),
-        (ParquetFastParquetUserAgentResponder, pd.read_parquet, "fastparquet"),
+        pytest.param(
+            ParquetFastParquetUserAgentResponder,
+            pd.read_parquet,
+            "fastparquet",
+            # TODO(ArrayManager) fastparquet
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
         (PickleUserAgentResponder, pd.read_pickle, None),
         (StataUserAgentResponder, pd.read_stata, None),
         (GzippedCSVUserAgentResponder, pd.read_csv, None),

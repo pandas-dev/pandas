@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import itertools
 from typing import (
-    List,
-    Optional,
-    Union,
+    TYPE_CHECKING,
+    cast,
 )
 
 import numpy as np
@@ -43,6 +42,9 @@ from pandas.core.sorting import (
     get_group_index,
     get_group_index_sorter,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.arrays import ExtensionArray
 
 
 class _Unstacker:
@@ -140,7 +142,7 @@ class _Unstacker:
         ngroups = len(obs_ids)
 
         indexer = get_group_index_sorter(comp_index, ngroups)
-
+        indexer = ensure_platform_int(indexer)
         return indexer, to_sort
 
     @cache_readonly
@@ -760,7 +762,7 @@ def get_dummies(
     columns=None,
     sparse: bool = False,
     drop_first: bool = False,
-    dtype: Optional[Dtype] = None,
+    dtype: Dtype | None = None,
 ) -> DataFrame:
     """
     Convert categorical variable into dummy/indicator variables.
@@ -899,7 +901,7 @@ def get_dummies(
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
-        with_dummies: List[DataFrame]
+        with_dummies: list[DataFrame]
         if data_to_encode.shape == data.shape:
             # Encoding the entire df, do not prepend any dropped columns
             with_dummies = []
@@ -942,11 +944,11 @@ def _get_dummies_1d(
     data,
     prefix,
     prefix_sep="_",
-    dummy_na=False,
-    sparse=False,
-    drop_first=False,
-    dtype: Optional[Dtype] = None,
-):
+    dummy_na: bool = False,
+    sparse: bool = False,
+    drop_first: bool = False,
+    dtype: Dtype | None = None,
+) -> DataFrame:
     from pandas.core.reshape.concat import concat
 
     # Series avoids inconsistent NaN handling
@@ -986,9 +988,9 @@ def _get_dummies_1d(
     if prefix is None:
         dummy_cols = levels
     else:
-        dummy_cols = [f"{prefix}{prefix_sep}{level}" for level in levels]
+        dummy_cols = Index([f"{prefix}{prefix_sep}{level}" for level in levels])
 
-    index: Optional[Index]
+    index: Index | None
     if isinstance(data, Series):
         index = data.index
     else:
@@ -996,7 +998,7 @@ def _get_dummies_1d(
 
     if sparse:
 
-        fill_value: Union[bool, float, int]
+        fill_value: bool | float | int
         if is_integer_dtype(dtype):
             fill_value = 0
         elif dtype == bool:
@@ -1006,7 +1008,7 @@ def _get_dummies_1d(
 
         sparse_series = []
         N = len(data)
-        sp_indices: List[List] = [[] for _ in range(len(dummy_cols))]
+        sp_indices: list[list] = [[] for _ in range(len(dummy_cols))]
         mask = codes != -1
         codes = codes[mask]
         n_idx = np.arange(N)[mask]
@@ -1029,10 +1031,13 @@ def _get_dummies_1d(
             sparse_series.append(Series(data=sarr, index=index, name=col))
 
         out = concat(sparse_series, axis=1, copy=False)
+        # TODO: overload concat with Literal for axis
+        out = cast(DataFrame, out)
         return out
 
     else:
-        dummy_mat = np.eye(number_of_cols, dtype=dtype).take(codes, axis=0)
+        # take on axis=1 + transpose to ensure ndarray layout is column-major
+        dummy_mat = np.eye(number_of_cols, dtype=dtype).take(codes, axis=1).T
 
         if not dummy_na:
             # reset NaN GH4446
@@ -1045,7 +1050,9 @@ def _get_dummies_1d(
         return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
 
-def _reorder_for_extension_array_stack(arr, n_rows: int, n_columns: int):
+def _reorder_for_extension_array_stack(
+    arr: ExtensionArray, n_rows: int, n_columns: int
+) -> ExtensionArray:
     """
     Re-orders the values when stacking multiple extension-arrays.
 

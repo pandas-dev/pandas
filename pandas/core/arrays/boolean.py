@@ -1,14 +1,7 @@
 from __future__ import annotations
 
 import numbers
-from typing import (
-    TYPE_CHECKING,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -20,6 +13,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    type_t,
 )
 from pandas.compat.numpy import function as nv
 
@@ -79,7 +73,7 @@ class BooleanDtype(BaseMaskedDtype):
     # https://github.com/python/mypy/issues/4125
     # error: Signature of "type" incompatible with supertype "BaseMaskedDtype"
     @property
-    def type(self) -> Type:  # type: ignore[override]
+    def type(self) -> type:  # type: ignore[override]
         return np.bool_
 
     @property
@@ -91,7 +85,7 @@ class BooleanDtype(BaseMaskedDtype):
         return np.dtype("bool")
 
     @classmethod
-    def construct_array_type(cls) -> Type[BooleanArray]:
+    def construct_array_type(cls) -> type_t[BooleanArray]:
         """
         Return the array type associated with this dtype.
 
@@ -113,7 +107,7 @@ class BooleanDtype(BaseMaskedDtype):
         return True
 
     def __from_arrow__(
-        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> BooleanArray:
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.
@@ -137,7 +131,7 @@ class BooleanDtype(BaseMaskedDtype):
 
 def coerce_to_array(
     values, mask=None, copy: bool = False
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask.
 
@@ -296,7 +290,7 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> BooleanArray:
         if dtype:
             assert dtype == "boolean"
@@ -306,12 +300,12 @@ class BooleanArray(BaseMaskedArray):
     @classmethod
     def _from_sequence_of_strings(
         cls,
-        strings: List[str],
+        strings: list[str],
         *,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
-        true_values: Optional[List[str]] = None,
-        false_values: Optional[List[str]] = None,
+        true_values: list[str] | None = None,
+        false_values: list[str] | None = None,
     ) -> BooleanArray:
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
@@ -331,7 +325,7 @@ class BooleanArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For BooleanArray inputs, we apply the ufunc to ._data
         # and mask the result.
         if method == "reduce":
@@ -376,7 +370,7 @@ class BooleanArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
@@ -406,18 +400,14 @@ class BooleanArray(BaseMaskedArray):
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, ExtensionDtype):
-            # error: Incompatible return value type (got "ExtensionArray", expected
-            # "ndarray")
-            return super().astype(dtype, copy)  # type: ignore[return-value]
+            return super().astype(dtype, copy)
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
             if self._hasna:
                 raise ValueError("cannot convert float NaN to bool")
             else:
-                # error: Incompatible return value type (got "ndarray", expected
-                # "ExtensionArray")
-                return self._data.astype(dtype, copy=copy)  # type: ignore[return-value]
+                return self._data.astype(dtype, copy=copy)
 
         # for integer, error if there are missing values
         if is_integer_dtype(dtype) and self._hasna:
@@ -429,12 +419,7 @@ class BooleanArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
-
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return self.to_numpy(  # type: ignore[return-value]
-            dtype=dtype, na_value=na_value, copy=False
-        )
+        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         """

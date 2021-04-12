@@ -41,9 +41,11 @@ except ImportError:
     _HAVE_FASTPARQUET = False
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning"),
+    # TODO(ArrayManager) fastparquet / pyarrow rely on BlockManager internals
+    td.skip_array_manager_not_yet_implemented,
+]
 
 
 # setup engines & skips
@@ -571,6 +573,7 @@ class TestBasic(Base):
         self.check_error_on_write(df, engine, ValueError, msg)
 
 
+@pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
 
@@ -833,6 +836,14 @@ class TestParquetPyArrow(Base):
             expected = df.assign(a=df.a.astype("float64"))
         check_round_trip(df, pa, expected=expected)
 
+    @td.skip_if_no("pyarrow", min_version="1.0.0")
+    def test_pyarrow_backed_string_array(self, pa):
+        # test ArrowStringArray supported through the __arrow_array__ protocol
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+        df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="arrow_string")})
+        check_round_trip(df, pa, expected=df)
+
     @td.skip_if_no("pyarrow", min_version="0.16.0")
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
@@ -914,7 +925,6 @@ class TestParquetPyArrow(Base):
 
 
 class TestParquetFastParquet(Base):
-    @td.skip_if_no("fastparquet", min_version="0.3.2")
     def test_basic(self, fp, df_full):
         df = df_full
 

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 
 from pandas._libs import lib
@@ -164,13 +166,10 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
+    mask: Optional[np.ndarray] = None
     if isinstance(values, NumericArray):
         mask = values._mask
         values = values._data[~mask]
-    else:
-        # error: Incompatible types in assignment (expression has type "None", variable
-        # has type "ndarray")
-        mask = None  # type: ignore[assignment]
 
     values_dtype = getattr(values, "dtype", None)
     if is_numeric_dtype(values_dtype):

@@ -3,12 +3,12 @@ from io import (
     StringIO,
 )
 import os
-import sys
 from typing import Union
 
 import numpy as np
 import pytest
 
+from pandas.compat import PY38
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -364,8 +364,8 @@ def test_na_empty_elem_option(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason=("etree alpha ordered attributes <= py3.7"),
+    not PY38,
+    reason=("etree alpha ordered attributes < py 3.8"),
 )
 def test_attrs_cols_nan_output(datapath, parser):
     expected = """\
@@ -383,8 +383,8 @@ def test_attrs_cols_nan_output(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason=("etree alpha ordered attributes <= py3.7"),
+    not PY38,
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_attrs_cols_prefix(datapath, parser):
     expected = """\
@@ -411,12 +411,12 @@ doc:degrees="180" doc:sides="3.0"/>
 
 def test_attrs_unknown_column(parser):
     with pytest.raises(KeyError, match=("no valid column")):
-        geom_df.to_xml(attr_cols=["shape", "degreees", "sides"], parser=parser)
+        geom_df.to_xml(attr_cols=["shape", "degree", "sides"], parser=parser)
 
 
 def test_attrs_wrong_type(parser):
     with pytest.raises(TypeError, match=("is not a valid type for attr_cols")):
-        geom_df.to_xml(attr_cols='"shape", "degreees", "sides"', parser=parser)
+        geom_df.to_xml(attr_cols='"shape", "degree", "sides"', parser=parser)
 
 
 # ELEM_COLS
@@ -453,12 +453,12 @@ def test_elems_cols_nan_output(datapath, parser):
 
 def test_elems_unknown_column(parser):
     with pytest.raises(KeyError, match=("no valid column")):
-        geom_df.to_xml(elem_cols=["shape", "degreees", "sides"], parser=parser)
+        geom_df.to_xml(elem_cols=["shape", "degree", "sides"], parser=parser)
 
 
 def test_elems_wrong_type(parser):
     with pytest.raises(TypeError, match=("is not a valid type for elem_cols")):
-        geom_df.to_xml(elem_cols='"shape", "degreees", "sides"', parser=parser)
+        geom_df.to_xml(elem_cols='"shape", "degree", "sides"', parser=parser)
 
 
 def test_elems_and_attrs_cols(datapath, parser):
@@ -541,8 +541,8 @@ def test_hierarchical_columns(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason=("etree alpha ordered attributes <= py3.7"),
+    not PY38,
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_hierarchical_attrs_columns(datapath, parser):
     expected = """\
@@ -614,8 +614,8 @@ def test_multi_index(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason=("etree alpha ordered attributes <= py3.7"),
+    not PY38,
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_multi_index_attrs_cols(datapath, parser):
     expected = """\
@@ -1172,6 +1172,7 @@ def test_style_to_string():
     assert out_xml == out_str
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) JSON
 @td.skip_if_no("lxml")
 def test_style_to_json():
     xsl = """\

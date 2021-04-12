@@ -95,9 +95,7 @@ def compare_or_regex_search(
 
     if is_numeric_v_string_like(a, b):
         # GH#29553 avoid deprecation warnings from numpy
-        # error: Incompatible return value type (got "ndarray", expected
-        # "Union[ExtensionArray, bool]")
-        return np.zeros(a.shape, dtype=bool)  # type: ignore[return-value]
+        return np.zeros(a.shape, dtype=bool)
 
     elif is_datetimelike_v_numeric(a, b):
         # GH#29553 avoid deprecation warnings from numpy
@@ -154,8 +152,6 @@ def replace_regex(values: ArrayLike, rx: re.Pattern, value, mask: Optional[np.nd
     f = np.vectorize(re_replacer, otypes=[values.dtype])
 
     if mask is None:
-        # error: Invalid index type "slice" for "ExtensionArray"; expected type
-        # "Union[int, ndarray]"
-        values[:] = f(values)  # type: ignore[index]
+        values[:] = f(values)
     else:
         values[mask] = f(values[mask])

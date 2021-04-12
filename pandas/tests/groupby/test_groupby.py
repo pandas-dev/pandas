@@ -840,7 +840,7 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = "reduction operation 'sum' not allowed for this dtype"
+    msg = "'DatetimeArray' does not implement reduction 'sum'"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
@@ -1976,17 +1976,6 @@ def test_groupby_duplicate_index():
     result = gb.mean()
     expected = Series([2, 5.5, 8], index=[2.0, 4.0, 5.0])
     tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-def test_bool_aggs_dup_column_labels(bool_agg_func):
-    # 21668
-    df = DataFrame([[True, True]], columns=["a", "a"])
-    grp_by = df.groupby([0])
-    result = getattr(grp_by, bool_agg_func)()
-
-    expected = df
-    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(

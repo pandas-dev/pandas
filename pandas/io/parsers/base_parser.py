@@ -531,7 +531,11 @@ class ParserBase:
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
-                    mask = algorithms.isin(values, list(na_values)).view(np.uint8)
+                    # error: Argument 2 to "isin" has incompatible type "List[Any]";
+                    # expected "Union[Union[ExtensionArray, ndarray], Index, Series]"
+                    mask = algorithms.isin(
+                        values, list(na_values)  # type: ignore[arg-type]
+                    ).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
 
                 cvals, na_count = self._infer_types(
@@ -657,7 +661,9 @@ class ParserBase:
         """
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
-            mask = algorithms.isin(values, list(na_values))
+            # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
+            # "Union[Union[ExtensionArray, ndarray], Index, Series]"
+            mask = algorithms.isin(values, list(na_values))  # type: ignore[arg-type]
             # error: Incompatible types in assignment (expression has type
             # "number[Any]", variable has type "int")
             na_count = mask.sum()  # type: ignore[assignment]
@@ -719,9 +725,7 @@ class ParserBase:
                 # c-parser which parses all categories
                 # as strings
 
-                # error: Argument 2 to "astype_nansafe" has incompatible type
-                # "Type[str]"; expected "Union[dtype[Any], ExtensionDtype]"
-                values = astype_nansafe(values, str)  # type: ignore[arg-type]
+                values = astype_nansafe(values, np.dtype(str))
 
             cats = Index(values).unique().dropna()
             values = Categorical._from_inferred_categories(

@@ -191,16 +191,10 @@ def extract_bool_array(mask: ArrayLike) -> np.ndarray:
         # We could have BooleanArray, Sparse[bool], ...
         #  Except for BooleanArray, this is equivalent to just
         #  np.asarray(mask, dtype=bool)
+        mask = mask.to_numpy(dtype=bool, na_value=False)
 
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "ExtensionArray")
-        mask = mask.to_numpy(dtype=bool, na_value=False)  # type: ignore[assignment]
-
-    # error: Incompatible types in assignment (expression has type "ndarray", variable
-    # has type "ExtensionArray")
-    mask = np.asarray(mask, dtype=bool)  # type: ignore[assignment]
-    # error: Incompatible return value type (got "ExtensionArray", expected "ndarray")
-    return mask  # type: ignore[return-value]
+    mask = np.asarray(mask, dtype=bool)
+    return mask
 
 
 def setitem_datetimelike_compat(values: np.ndarray, num_set: int, other):
