@@ -489,13 +489,17 @@ class MPLPlot:
         """Post process for each axes. Overridden in child classes"""
         pass
 
-    def has_iterable_only_float_or_int(self, list_iterable: list) -> bool:
-        """checks if an iterable has float or int datatype """
+    def _has_iterable_only_float_int_or_datetime(self, list_iterable: list) -> bool:
+        """checks if an iterable has float,int or datetime datatype """
         """targeting #GH40781"""
-        for item in list_iterable:
-            if not is_integer(item) and not is_float(item):
-                return False
-        return True
+        from datetime import datetime as dt
+        if (
+            all(([isinstance(x, dt) for x in list_iterable]))
+            or np.issubdtype(np.array(list_iterable).dtype, np.int)
+            or np.issubdtype(np.array(list_iterable).dtype, np.float)
+        ):
+            return True
+        return False
 
     def _adorn_subplots(self):
         """Common post process unrelated to data"""
@@ -522,19 +526,19 @@ class MPLPlot:
             # Addressing issue #40781 raising ValueError
             # if xlim or ylim contain non float or non int dtype
             if self.ylim is not None:
-                if not self.has_iterable_only_float_or_int(self.ylim):
+                if not self._has_iterable_only_float_int_or_datetime(self.ylim):
                     raise ValueError(
                         "`ylim` contains values"
-                        " which are not of float or int type"
+                        " which are not of float, int or datetime type"
                         f" in {self.ylim}"
                     )
                 ax.set_ylim(self.ylim)
 
             if self.xlim is not None:
-                if not self.has_iterable_only_float_or_int(self.xlim):
+                if not self._has_iterable_only_float_int_or_datetime(self.xlim):
                     raise ValueError(
                         "`xlim` contains values"
-                        " which are not of float or int type"
+                        " which are not of float, int or datetime type"
                         f" in {self.xlim}"
                     )
                 ax.set_xlim(self.xlim)
