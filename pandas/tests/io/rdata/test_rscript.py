@@ -12,16 +12,12 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.rdata import (
-    R_ARROW,
-    R_RSQLITE,
     RSCRIPT_EXISTS,
     RScriptError,
     read_rdata,
 )
 
 pytestmark = pytest.mark.skipif(not RSCRIPT_EXISTS, reason="R is not installed.")
-
-PYARROW = import_optional_dependency("pyarrow")
 
 ghg_df = DataFrame(
     {
@@ -112,13 +108,40 @@ def run_rscript(cmds) -> str:
         f.write(r_batch)
 
     p = subprocess.Popen(
-        cmds, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cmds,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="UTF-8",
     )
     output, error = p.communicate()
     if len(error) != 0:
-        raise ValueError(error.decode("UTF-8"))
+        raise ValueError(error)
 
-    return output.decode("UTF-8")
+    return output
+
+
+def r_package_installed(name):
+    """
+    Check if R package is installed.
+
+    Method runs a quick command line call to Rscript to
+    check if library call succeeds on named package.
+    """
+
+    p = subprocess.Popen(
+        ["Rscript", "-e", f"suppressPackageStartupMessages(library({name}))"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    out, err = p.communicate()
+
+    return len(err) == 0
+
+
+R_ARROW = r_package_installed("arrow") if RSCRIPT_EXISTS else None
+R_RSQLITE = r_package_installed("RSQLite") if RSCRIPT_EXISTS else None
+PYARROW = import_optional_dependency("pyarrow", errors="ignore")
 
 
 def adj_int(df):
@@ -547,6 +570,7 @@ def test_read_rownames_false_rda(datapath):
 # ENCODING
 
 
+@td.skip_if_not_us_locale
 def test_non_utf8_data(datapath, rtype):
     filename = datapath("io", "data", "rdata", f"climate_non_utf8_df.{rtype}")
 

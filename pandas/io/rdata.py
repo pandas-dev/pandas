@@ -72,28 +72,6 @@ def _executable_exists(name) -> bool:
 RSCRIPT_EXISTS = _executable_exists("Rscript")
 
 
-def r_package_installed(name):
-    """
-    Check if R package is installed.
-
-    Method runs a quick command line call to Rscript to
-    check if library call succeeds on named package.
-    """
-
-    p = subprocess.Popen(
-        ["Rscript", "-e", f"suppressPackageStartupMessages(library({name}))"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    out, err = p.communicate()
-
-    return len(err) == 0
-
-
-R_ARROW = r_package_installed("arrow") if RSCRIPT_EXISTS else None
-R_RSQLITE = r_package_installed("RSQLite") if RSCRIPT_EXISTS else None
-
-
 @doc(storage_options=_shared_docs["storage_options"])
 def read_rdata(
     path_or_buffer: FilePathOrBuffer,
@@ -640,13 +618,14 @@ class _RscriptParser(_RDataReader):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            encoding=self.encoding,
             cwd=tmp_dir,
         )
         output, error = p.communicate()
         if len(error) != 0:
-            raise RScriptError(error.decode(self.encoding))
+            raise RScriptError(error)
 
-        return output.decode(self.encoding)
+        return output
 
     def parse_data(self) -> Union[DataFrame, Dict[str, DataFrame]]:
         self.r_to_py_types = {
@@ -750,10 +729,11 @@ class _RscriptParser(_RDataReader):
             rda_file = self.buffer_to_disk(tmp_dir)
 
             output = self.run_rscript(tmp_dir, r_batch, ["Rscript", r_file, rda_file])
+            output = [i for i in output.strip().split("\n") if i != ""]
 
             oline: str
             dfs: Dict[str, DataFrame] = {}
-            for oline in filter(None, output.strip().split("\n")):
+            for oline in output:
                 with open(
                     os.path.join(tmp_dir, f"meta_{oline}.txt"),
                     encoding=self.encoding,
@@ -821,11 +801,12 @@ class _RscriptParser(_RDataReader):
             rda_file = self.buffer_to_disk(tmp_dir)
 
             output = self.run_rscript(tmp_dir, r_batch, ["Rscript", r_file, rda_file])
+            output = [i for i in output.strip().split("\n") if i != ""]
 
             oline: str
             dfs: Dict[str, DataFrame] = {
                 oline: read_feather(os.path.join(tmp_dir, f"data_{oline}.feather"))
-                for oline in filter(None, output.strip().split("\n"))
+                for oline in output
             }
 
         return dfs
@@ -870,11 +851,12 @@ class _RscriptParser(_RDataReader):
             rda_file = self.buffer_to_disk(tmp_dir)
 
             output = self.run_rscript(tmp_dir, r_batch, ["Rscript", r_file, rda_file])
+            output = [i for i in output.strip().split("\n") if i != ""]
 
             oline: str
             dfs: Dict[str, DataFrame] = {
                 oline: read_parquet(os.path.join(tmp_dir, f"data_{oline}.parquet"))
-                for oline in filter(None, output.strip().split("\n"))
+                for oline in output
             }
 
         return dfs
@@ -923,12 +905,12 @@ class _RscriptParser(_RDataReader):
             rda_file = self.buffer_to_disk(tmp_dir)
 
             output = self.run_rscript(tmp_dir, r_batch, ["Rscript", r_file, rda_file])
+            output = [i for i in output.strip().split("\n") if i != ""]
 
             oline: str
             conn = sqlite3.connect(r_db)
             dfs: Dict[str, DataFrame] = {
-                oline: read_sql(f"SELECT * FROM data_{oline}", conn)
-                for oline in filter(None, output.strip().split("\n"))
+                oline: read_sql(f"SELECT * FROM data_{oline}", conn) for oline in output
             }
             conn.close()
 
@@ -1375,11 +1357,12 @@ class RscriptWriter(RDataWriter):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            encoding=self.encoding,
             cwd=tmp_dir,
         )
         output, error = a.communicate()
         if len(error) != 0:
-            raise RScriptError(error.decode(self.encoding))
+            raise RScriptError(error)
 
         return None
 
