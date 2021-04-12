@@ -2,6 +2,8 @@ import pytest
 import pandas as pd
 from datetime import datetime as dt
 
+"""targeting #GH40781"""
+
 
 def test_if_plotable_xlim_ylim_both_ints() -> bool:
     # checks if ValueError is raised with invalid dtype
