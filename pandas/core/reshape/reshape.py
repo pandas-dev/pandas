@@ -3,9 +3,6 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
-    List,
-    Optional,
-    Union,
     cast,
 )
 
@@ -765,7 +762,7 @@ def get_dummies(
     columns=None,
     sparse: bool = False,
     drop_first: bool = False,
-    dtype: Optional[Dtype] = None,
+    dtype: Dtype | None = None,
 ) -> DataFrame:
     """
     Convert categorical variable into dummy/indicator variables.
@@ -904,7 +901,7 @@ def get_dummies(
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
-        with_dummies: List[DataFrame]
+        with_dummies: list[DataFrame]
         if data_to_encode.shape == data.shape:
             # Encoding the entire df, do not prepend any dropped columns
             with_dummies = []
@@ -950,7 +947,7 @@ def _get_dummies_1d(
     dummy_na: bool = False,
     sparse: bool = False,
     drop_first: bool = False,
-    dtype: Optional[Dtype] = None,
+    dtype: Dtype | None = None,
 ) -> DataFrame:
     from pandas.core.reshape.concat import concat
 
@@ -993,7 +990,7 @@ def _get_dummies_1d(
     else:
         dummy_cols = Index([f"{prefix}{prefix_sep}{level}" for level in levels])
 
-    index: Optional[Index]
+    index: Index | None
     if isinstance(data, Series):
         index = data.index
     else:
@@ -1001,7 +998,7 @@ def _get_dummies_1d(
 
     if sparse:
 
-        fill_value: Union[bool, float, int]
+        fill_value: bool | float | int
         if is_integer_dtype(dtype):
             fill_value = 0
         elif dtype == bool:
@@ -1011,7 +1008,7 @@ def _get_dummies_1d(
 
         sparse_series = []
         N = len(data)
-        sp_indices: List[List] = [[] for _ in range(len(dummy_cols))]
+        sp_indices: list[list] = [[] for _ in range(len(dummy_cols))]
         mask = codes != -1
         codes = codes[mask]
         n_idx = np.arange(N)[mask]
