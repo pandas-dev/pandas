@@ -109,7 +109,7 @@ def test_masked_kleene_logic(bool_agg_func, data, expected_data, skipna):
         (
             "float",
             "Float64",
-            pd.array([True], dtype=bool),
+            np.array([True], dtype=bool),
             pd.array([pd.NA], dtype="boolean"),
         ),
         (
