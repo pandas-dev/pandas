@@ -157,7 +157,7 @@ ignore,this,row
                 {
                     "A": pd_array([True, NA, False], dtype="boolean"),
                     "B": pd_array([False, True, NA], dtype="boolean"),
-                    "C": np.array([np.nan, np.nan, np.nan], dtype="float64"),
+                    "C": pd_array([np.nan, np.nan, np.nan], dtype="Float64"),
                     "D": np.array([True, False, True], dtype="bool"),
                 }
             ),
@@ -229,10 +229,48 @@ NA,2,1,2
             True,
             DataFrame(
                 {
+                    "A": pd_array([1.0, NA, 2.0], dtype="Float64"),
+                    "B": np.array([3.0, 2.0, 1.0], dtype="float64"),
+                    "C": pd_array([NA, 1.0, 2.0], dtype="Float64"),
+                    "D": pd_array([NA, NA, NA], dtype="Float64"),
+                }
+            ),
+        ),
+        (
+            False,
+            DataFrame(
+                {
+                    "A": np.array([1.0, np.nan, 2.0], dtype="float64"),
+                    "B": np.array([3.0, 2.0, 1.0], dtype="float64"),
+                    "C": np.array([np.nan, 1.0, 2.0], dtype="float64"),
+                    "D": np.array([np.nan, np.nan, np.nan], dtype="float64"),
+                }
+            ),
+        ),
+    ],
+)
+def test_float_na_values(all_parsers, use_nullable_dtypes, expected):
+    data = """A,B,C,D
+1.0,3,NA,NA
+NA,2,1.0,NA
+2,1.0,2.0,NA"""
+    parser = all_parsers
+    result = parser.read_csv(StringIO(data), use_nullable_dtypes=use_nullable_dtypes)
+    print(result)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "use_nullable_dtypes, expected",
+    [
+        (
+            True,
+            DataFrame(
+                {
                     "A": np.array(["hi", "hello", "hey"], dtype=object),
                     "B": pd_array(["hi", NA, "hello"], dtype="string"),
                     "C": pd_array([NA, "hi", "hey"], dtype="string"),
-                    "D": np.array([np.nan, np.nan, np.nan], dtype="float64"),
+                    "D": pd_array([np.nan, np.nan, np.nan], dtype="Float64"),
                 }
             ),
         )

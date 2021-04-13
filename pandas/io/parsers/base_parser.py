@@ -716,12 +716,11 @@ class ParserBase:
                 )
             # Maybe StringArray? Must have NA value to trigger
             # Since it is called use_nullable_dtypes after all
-            # However, all NA -> float64 not StringArray
-            if self.use_nullable_dtypes and na_count > 0 and na_count < len(result):
+            # However, all NA -> Float64 not StringArray
+            if self.use_nullable_dtypes and 0 < na_count < len(result):
                 try:
                     result = StringArray(result)
-                except ValueError as e:
-                    print(e)
+                except ValueError:
                     pass
 
         return result, na_count
