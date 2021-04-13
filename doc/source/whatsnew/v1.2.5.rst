@@ -25,7 +25,8 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
-- Fixed bug in :meth:`DataFrame.to_string` where ``index=False`` resulted in a misplaced truncation column (:issue:`40907`)
+-
+-
 
 .. ---------------------------------------------------------------------------
 
