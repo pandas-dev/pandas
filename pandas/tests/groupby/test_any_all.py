@@ -7,6 +7,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
+    Series,
     isna,
 )
 import pandas._testing as tm
@@ -74,33 +75,27 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize(
-    # expected_data indexed as [[skipna=False/any, skipna=False/all],
-    #                           [skipna=True/any, skipna=True/all]]
-    "data,expected_data",
+    "data",
     [
-        ([False, False, False], [[False, False], [False, False]]),
-        ([True, True, True], [[True, True], [True, True]]),
-        ([pd.NA, pd.NA, pd.NA], [[pd.NA, pd.NA], [False, True]]),
-        ([False, pd.NA, False], [[pd.NA, False], [False, False]]),
-        ([True, pd.NA, True], [[True, pd.NA], [True, True]]),
-        ([True, pd.NA, False], [[True, False], [True, False]]),
+        [False, False, False],
+        [True, True, True],
+        [pd.NA, pd.NA, pd.NA],
+        [False, pd.NA, False],
+        [True, pd.NA, True],
+        [True, pd.NA, False],
     ],
 )
-def test_masked_kleene_logic(bool_agg_func, data, expected_data, skipna):
+def test_masked_kleene_logic(bool_agg_func, skipna, data):
     # GH#37506
-    df = DataFrame(data, dtype="boolean")
-    expected = DataFrame(
-        [expected_data[skipna][bool_agg_func == "all"]], dtype="boolean", index=[1]
-    )
+    ser = Series(data, dtype="boolean")
 
-    result = df.groupby([1, 1, 1]).agg(bool_agg_func, skipna=skipna)
-    tm.assert_frame_equal(result, expected)
+    # The result should match aggregating on the whole series. Correctness
+    # there is verified in test_reductions.py::test_any_all_boolean_kleene_logic
+    expected_data = getattr(ser, bool_agg_func)(skipna=skipna)
+    expected = Series(expected_data, dtype="boolean")
 
-    # The expected result we compared to should match aggregating on the whole
-    # series
-    result = getattr(df[0], bool_agg_func)(skipna=skipna)
-    expected = expected_data[skipna][bool_agg_func == "all"]
-    assert (result is pd.NA and expected is pd.NA) or result == expected
+    result = ser.groupby([0, 0, 0]).agg(bool_agg_func, skipna=skipna)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
