@@ -1579,7 +1579,7 @@ class Styler(StylerRenderer):
         q_left: float = 0.0,
         q_right: float = 1.0,
         interpolation: str = "linear",
-        inclusive: str | bool = True,
+        inclusive: str = "both",
         props: str | None = None,
     ) -> Styler:
         """
@@ -1602,7 +1602,7 @@ class Styler(StylerRenderer):
             Right bound, in (q_left, 1], for the target quantile range.
         interpolation : {‘linear’, ‘lower’, ‘higher’, ‘midpoint’, ‘nearest’}
             Argument passed to ``numpy.quantile`` for quantile estimation.
-        inclusive : {'both', 'neither', 'left', 'right'} or bool, default True
+        inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether quantile bounds are closed or open.
         props : str, default None
             CSS properties to use for highlighting. If ``props`` is given, ``color``
@@ -1648,10 +1648,11 @@ class Styler(StylerRenderer):
         subset_ = non_reducing_slice(subset_)
         data = self.data.loc[subset_]
 
-        q = np.quantile(
+        q = np.nanquantile(
             data.to_numpy(), [q_left, q_right], axis=axis, interpolation=interpolation
         )
-        # after quantile is found along axis, reverse axis for highlight application
+        # after quantile is found along axis, e.g. along rows,
+        # applying the calculated quantile to alternate axis, e.g. to each column
         if axis in [0, 1]:
             axis = 1 - axis
 
