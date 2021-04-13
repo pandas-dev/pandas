@@ -217,6 +217,9 @@ Other enhancements
 - :class:`RangeIndex` can now be constructed by passing a ``range`` object directly e.g. ``pd.RangeIndex(range(3))`` (:issue:`12067`)
 - :meth:`round` being enabled for the nullable integer and floating dtypes (:issue:`38844`)
 - :meth:`pandas.read_csv` and :meth:`pandas.read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
+- :meth:`.GroupBy.any` and :meth:`.GroupBy.all` use Kleene logic with nullable data types (:issue:`37506`)
+- :meth:`.GroupBy.any` and :meth:`.GroupBy.all` return a ``BooleanDtype`` for columns with nullable data types (:issue:`33449`)
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -787,6 +790,8 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
 - Bug in aggregation functions for :class:`DataFrame` not respecting ``numeric_only`` argument when ``level`` keyword was given (:issue:`40660`)
 - Bug in :class:`core.window.RollingGroupby` where ``as_index=False`` argument in ``groupby`` was ignored (:issue:`39433`)
+- Bug in :meth:`.GroupBy.any` and :meth:`.GroupBy.all` raising ``ValueError`` when using with nullable type columns holding ``NA`` even with ``skipna=True`` (:issue:`40585`)
+
 
 Reshaping
 ^^^^^^^^^
