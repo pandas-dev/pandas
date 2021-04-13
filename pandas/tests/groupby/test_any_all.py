@@ -104,14 +104,14 @@ def test_masked_kleene_logic(bool_agg_func, skipna, data):
         (
             "float",
             "Float64",
-            pd.array([True], dtype=bool),
+            np.array([True], dtype=bool),
             pd.array([pd.NA], dtype="boolean"),
         ),
         (
             "Int64",
             "float",
             pd.array([pd.NA], dtype="boolean"),
-            pd.array([True], dtype=bool),
+            np.array([True], dtype=bool),
         ),
         (
             "Int64",
