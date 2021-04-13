@@ -1894,8 +1894,16 @@ Name: Max Speed, dtype: float64
         """
         if level is None:
             return notna(self._values).sum()
-        elif not isinstance(self.index, MultiIndex):
-            raise ValueError("Series.count level is only valid with a MultiIndex")
+        else:
+            warnings.warn(
+                "Using the level keyword in DataFrame and Series aggregations is "
+                "deprecated and will be removed in a future version. Use groupby "
+                "instead. ser.count(level=1) should use ser.groupby(level=1).count().",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if not isinstance(self.index, MultiIndex):
+                raise ValueError("Series.count level is only valid with a MultiIndex")
 
         index = self.index
         assert isinstance(index, MultiIndex)  # for mypy
