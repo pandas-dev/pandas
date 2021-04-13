@@ -524,7 +524,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
 
     Parameters
     ----------
-    xi : array_like
+    xi : array-like
         sorted 1D array of x-coordinates
     yi : array_like or list of array-likes
         yi[i][j] is the j-th derivative known at xi[i]
