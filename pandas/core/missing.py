@@ -526,9 +526,9 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     ----------
     xi : array-like
         sorted 1D array of x-coordinates
-    yi : array_like or list of array-likes
+    yi : array-like or list of array-likes
         yi[i][j] is the j-th derivative known at xi[i]
-    order: None or int or array_like of ints. Default: None.
+    order: None or int or array-like of ints. Default: None.
         Specifies the degree of local polynomials. If not None, some
         derivatives are ignored.
     der : int or list
