@@ -45,6 +45,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
+    ExtensionArray,
 )
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.array_manager import (
