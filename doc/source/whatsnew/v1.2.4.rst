@@ -30,4 +30,4 @@ Fixed regressions
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.2.3..v1.2.4|HEAD
+.. contributors:: v1.2.3..v1.2.4
