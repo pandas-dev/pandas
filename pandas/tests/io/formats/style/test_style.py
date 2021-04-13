@@ -1367,7 +1367,7 @@ def test_block_names():
         "tr",
         "after_rows",
     }
-    result = set(Styler.template.blocks)
+    result = set(Styler.template_html.blocks)
     assert result == expected
 
 
@@ -1386,6 +1386,6 @@ def test_from_custom_template(tmpdir):
     result = Styler.from_custom_template(str(tmpdir.join("templates")), "myhtml.tpl")
     assert issubclass(result, Styler)
     assert result.env is not Styler.env
-    assert result.template is not Styler.template
+    assert result.template_html is not Styler.template_html
     styler = result(DataFrame({"A": [1, 2]}))
     assert styler.render()

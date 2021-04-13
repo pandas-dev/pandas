@@ -1485,7 +1485,7 @@ class Styler(StylerRenderer):
         # error: Invalid base class "cls"
         class MyStyler(cls):  # type:ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
-            template = env.get_template(name)
+            template_html = env.get_template(name)
 
         return MyStyler
 
