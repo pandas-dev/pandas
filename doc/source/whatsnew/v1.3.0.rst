@@ -590,7 +590,7 @@ Performance improvements
 - Performance improvement in :meth:`core.window.ewm.ExponentialMovingWindow.mean` with ``times`` (:issue:`39784`)
 - Performance improvement in :meth:`.GroupBy.apply` when requiring the python fallback implementation (:issue:`40176`)
 <<<<<<< HEAD
-- Performance improvement in :class:`SeriesGroupBy` and :class:`DataFrameGroupBy` when using methods ``cummin`` and ``cummax`` with nullable data types (:issue:`37493`)
+- Performance improvement in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` with nullable data types (:issue:`37493`)
 -
 =======
 - Performance improvement for concatenation of data with type :class:`CategoricalDtype` (:issue:`40193`)
@@ -792,7 +792,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
 - Bug in aggregation functions for :class:`DataFrame` not respecting ``numeric_only`` argument when ``level`` keyword was given (:issue:`40660`)
 - Bug in :class:`core.window.RollingGroupby` where ``as_index=False`` argument in ``groupby`` was ignored (:issue:`39433`)
-- Bug in :class:`SeriesGroupBy` and :class:`DataFrameGroupBy` computing wrong result for methods ``cummin`` and ``cummax`` with nullable data types too large to roundtrip when casting to float (:issue:`37493`)
+- Bug in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` computing wrong result with nullable data types too large to roundtrip when casting to float (:issue:`37493`)
 
 
 Reshaping
