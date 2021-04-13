@@ -426,8 +426,6 @@ class OpenpyxlWriter(ExcelWriter):
                     del self.book[sheet_name]
                     wks = self.book.create_sheet(sheet_name, target_index)
                     self.sheets[sheet_name] = wks
-                elif self.if_sheet_exists == "overwrite":
-                    wks = self.sheets[sheet_name]
                 elif self.if_sheet_exists == "error":
                     raise ValueError(
                         f"Sheet '{sheet_name}' already exists and "
@@ -436,7 +434,7 @@ class OpenpyxlWriter(ExcelWriter):
                 else:
                     raise ValueError(
                         f"'{self.if_sheet_exists}' is not valid for if_sheet_exists. "
-                        "Valid options are 'new', 'replace', 'overwrite' and 'error'."
+                        "Valid options are 'error', 'new' and 'replace'."
                     )
             else:
                 wks = self.sheets[sheet_name]

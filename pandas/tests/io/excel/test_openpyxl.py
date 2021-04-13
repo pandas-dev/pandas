@@ -115,7 +115,6 @@ def test_write_append_mode(ext, mode, expected):
     [
         ("new", 2, ["apple", "banana"]),
         ("replace", 1, ["pear"]),
-        ("overwrite", 1, ["pear", "banana"]),
     ],
 )
 def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected):
@@ -136,8 +135,6 @@ def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected
         result = pd.read_excel(wb, "foo", engine="openpyxl")
         assert list(result["fruit"]) == expected
         if len(wb.sheetnames) == 2:
-            # atm the name given for the second sheet will be "foo1"
-            # but we don't want the test to fail if openpyxl changes this
             result = pd.read_excel(wb, wb.sheetnames[1], engine="openpyxl")
             tm.assert_frame_equal(result, df2)
         wb.close()
@@ -149,7 +146,7 @@ def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected
         (
             "invalid",
             "'invalid' is not valid for if_sheet_exists. Valid options "
-            "are 'new', 'replace', 'overwrite' and 'error'.",
+            "are 'error', 'new' and 'replace'.",
         ),
         (
             "error",
