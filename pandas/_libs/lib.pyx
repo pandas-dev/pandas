@@ -2007,7 +2007,9 @@ def maybe_convert_numeric(
     set na_values,
     bint convert_empty=True,
     bint coerce_numeric=False,
-) -> ndarray:
+    bint convert_to_nullable_integer=False,
+    bint convert_to_floating_array=False,
+) -> "ArrayLike":
     """
     Convert object array to a numeric array if possible.
 
@@ -2031,10 +2033,15 @@ def maybe_convert_numeric(
         numeric array has no suitable numerical dtype to return (i.e. uint64,
         int32, uint8). If set to False, the original object array will be
         returned. Otherwise, a ValueError will be raised.
-
+    convert_to_nullable_integer : bool, default False
+        If an array-like object contains only integer values (and NaN) is
+        encountered, whether to convert and return an IntegerArray.
+    convert_to_floating_array : bool, default False
+        If an array-like object contains only float values (and NaN) is
+        encountered, whether to convert and return an FloatingArray.
     Returns
     -------
-    np.ndarray
+    np.ndarray or ExtensionArray
         Array of converted object values to numerical ones.
     """
     if len(values) == 0:
@@ -2062,21 +2069,39 @@ def maybe_convert_numeric(
         ndarray[int64_t] ints = np.empty(n, dtype='i8')
         ndarray[uint64_t] uints = np.empty(n, dtype='u8')
         ndarray[uint8_t] bools = np.empty(n, dtype='u1')
+        ndarray[uint8_t] mask = np.zeros(n, dtype="u1")
         float64_t fval
 
     for i in range(n):
         val = values[i]
+        # We only want to disable NaNs showing as float if
+        # a) convert_to_nullable_integer = True
+        # b) no floats have been seen ( assuming an int shows up later )
+        # However, if no ints present (all null array), we need to return floats
+        allow_null_in_int = convert_to_nullable_integer and not seen.float_
 
         if val.__hash__ is not None and val in na_values:
-            seen.saw_null()
+            if allow_null_in_int:
+                seen.null_ = True
+                mask[i] = 1
+            else:
+                if convert_to_floating_array:
+                    mask[i] = 1
+                seen.saw_null()
             floats[i] = complexes[i] = NaN
         elif util.is_float_object(val):
             fval = val
             if fval != fval:
                 seen.null_ = True
-
+                if allow_null_in_int:
+                    mask[i] = 1
+                else:
+                    if convert_to_floating_array:
+                        mask[i] = 1
+                    seen.float_ = True
+            else:
+                seen.float_ = True
             floats[i] = complexes[i] = fval
-            seen.float_ = True
         elif util.is_integer_object(val):
             floats[i] = complexes[i] = val
 
@@ -2099,7 +2124,13 @@ def maybe_convert_numeric(
             floats[i] = uints[i] = ints[i] = bools[i] = val
             seen.bool_ = True
         elif val is None or val is C_NA:
-            seen.saw_null()
+            if allow_null_in_int:
+                seen.null_ = True
+                mask[i] = 1
+            else:
+                if convert_to_floating_array:
+                    mask[i] = 1
+                seen.saw_null()
             floats[i] = complexes[i] = NaN
         elif hasattr(val, '__len__') and len(val) == 0:
             if convert_empty or seen.coerce_numeric:
@@ -2123,6 +2154,7 @@ def maybe_convert_numeric(
                 else:
                     if fval != fval:
                         seen.null_ = True
+                        mask[i] = 1
 
                     floats[i] = fval
 
@@ -2130,7 +2162,10 @@ def maybe_convert_numeric(
                     as_int = int(val)
 
                     if as_int in na_values:
-                        seen.saw_null()
+                        mask[i] = 1
+                        seen.null_ = True
+                        if not convert_to_nullable_integer:
+                            seen.float_ = True
                     else:
                         seen.saw_int(as_int)
 
@@ -2160,11 +2195,25 @@ def maybe_convert_numeric(
     if seen.check_uint64_conflict():
         return values
 
+    # This occurs since we disabled float nulls showing as null in anticipation
+    # of seeing ints that were never seen. So then, we return float
+    if convert_to_nullable_integer and seen.null_ and not seen.int_:
+        seen.float_ = True
+
     if seen.complex_:
         return complexes
     elif seen.float_:
+        if seen.null_ and convert_to_floating_array:
+            from pandas.core.arrays import FloatingArray
+            return FloatingArray(floats, mask.view(np.bool_))
         return floats
     elif seen.int_:
+        if seen.null_ and convert_to_nullable_integer:
+            from pandas.core.arrays import IntegerArray
+            if seen.uint_:
+                return IntegerArray(uints, mask.view(np.bool_))
+            else:
+                return IntegerArray(ints, mask.view(np.bool_))
         if seen.uint_:
             return uints
         else:
