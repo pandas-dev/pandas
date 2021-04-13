@@ -149,12 +149,12 @@ class TestDataFrameClip:
 
         result = df.clip(lower=[4, 5, np.nan], axis=0)
         expected = DataFrame(
-            {"col_0": [4, 5, np.nan], "col_1": [4, 5, np.nan], "col_2": [7, 8, np.nan]}
+            {"col_0": [4, 5, 3], "col_1": [4, 5, 6], "col_2": [7, 8, 9]}
         )
         tm.assert_frame_equal(result, expected)
 
         result = df.clip(lower=[4, 5, np.nan], axis=1)
         expected = DataFrame(
-            {"col_0": [4, 4, 4], "col_1": [5, 5, 6], "col_2": [np.nan, np.nan, np.nan]}
+            {"col_0": [4, 4, 4], "col_1": [5, 5, 6], "col_2": [7, 8, 9]}
         )
         tm.assert_frame_equal(result, expected)

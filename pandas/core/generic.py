@@ -7370,7 +7370,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # In order to ignore nan values in the threshold, replace these values with the
         # values from the original frame/series.
         if is_list_like(threshold) and threshold.isna().any(axis=None):
-            threshold.where(threshold.notna(), self, inplace=True)
+            threshold = threshold.where(threshold.notna(), self, inplace=False)
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     @final
