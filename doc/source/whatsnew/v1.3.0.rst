@@ -214,7 +214,7 @@ Other enhancements
 - :meth:`round` being enabled for the nullable integer and floating dtypes (:issue:`38844`)
 - :meth:`pandas.read_csv` and :meth:`pandas.read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
 - :meth:`.GroupBy.any` and :meth:`.GroupBy.all` use Kleene logic with nullable data types (:issue:`37506`)
-- :class:`SeriesGroupBy` and :class:`DataFrameGroupBy` return a ``BooleanDType`` for methods ``any`` and ``all`` with nullable data types (:issue:`33449`)
+- :meth:`.GroupBy.any` and :meth:`.GroupBy.all` return a ``BooleanDtype`` for columns with nullable data types (:issue:`33449`)
 -
 
 .. ---------------------------------------------------------------------------
