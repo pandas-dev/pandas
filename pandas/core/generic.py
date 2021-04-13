@@ -8863,27 +8863,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # one has > 1 ndim
             fdata = self._mgr
-            if axis == 0:
-                join_index = self.index
+            if axis in [0, 1]:
+                join_index = self.axes[axis]
                 lidx, ridx = None, None
-                if not self.index.equals(other.index):
-                    join_index, lidx, ridx = self.index.join(
+                if not join_index.equals(other.index):
+                    join_index, lidx, ridx = join_index.join(
                         other.index, how=join, level=level, return_indexers=True
                     )
 
                 if lidx is not None:
-                    fdata = fdata.reindex_indexer(join_index, lidx, axis=1)
+                    bm_axis = self._get_block_manager_axis(axis)
+                    fdata = fdata.reindex_indexer(join_index, lidx, axis=bm_axis)
 
-            elif axis == 1:
-                join_index = self.columns
-                lidx, ridx = None, None
-                if not self.columns.equals(other.index):
-                    join_index, lidx, ridx = self.columns.join(
-                        other.index, how=join, level=level, return_indexers=True
-                    )
-
-                if lidx is not None:
-                    fdata = fdata.reindex_indexer(join_index, lidx, axis=0)
             else:
                 raise ValueError("Must specify axis=0 or 1")
 
