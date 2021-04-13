@@ -787,7 +787,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
 - Bug in aggregation functions for :class:`DataFrame` not respecting ``numeric_only`` argument when ``level`` keyword was given (:issue:`40660`)
 - Bug in :class:`core.window.RollingGroupby` where ``as_index=False`` argument in ``groupby`` was ignored (:issue:`39433`)
-- Bug in :class:`SeriesGroupBy` and :class:`DataFrameGroupBy` computing wrong result for methods ``cummin`` and ``cummax`` with nullable data types too large to roundtrip when casting to float (:issue:`37493`)
+- Bug in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` computing wrong result with nullable data types too large to roundtrip when casting to float (:issue:`37493`)
 
 
 Reshaping
