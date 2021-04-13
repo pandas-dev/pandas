@@ -67,7 +67,6 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
-from pandas.core import algorithms
 from pandas.core.arrays import ExtensionArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -757,7 +756,7 @@ class BaseGrouper:
         # avoids object / Series creation overhead
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
-        group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
+        group_index = group_index.take(indexer)
         grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups)
         result, counts = grouper.get_result()
         return result, counts
@@ -788,7 +787,7 @@ class BaseGrouper:
             result[label] = res
 
         out = lib.maybe_convert_objects(result, try_float=False)
-        out = maybe_cast_result(out, obj, numeric_only=True)
+        out = maybe_cast_result(out, obj.dtype, numeric_only=True)
 
         return out, counts
 
@@ -988,7 +987,7 @@ class DataSplitter(Generic[FrameOrSeries]):
     @cache_readonly
     def slabels(self) -> np.ndarray:  # np.ndarray[np.intp]
         # Sorted labels
-        return algorithms.take_nd(self.labels, self._sort_idx, allow_fill=False)
+        return self.labels.take(self._sort_idx)
 
     @cache_readonly
     def _sort_idx(self) -> np.ndarray:  # np.ndarray[np.intp]

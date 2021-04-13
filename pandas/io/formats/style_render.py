@@ -58,7 +58,7 @@ class StylerRenderer:
 
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
     env = jinja2.Environment(loader=loader, trim_blocks=True)
-    template = env.get_template("html.tpl")
+    template_html = env.get_template("html.tpl")
     template_latex = env.get_template("latex.tpl")
 
     def __init__(
@@ -144,7 +144,7 @@ class StylerRenderer:
         # TODO: namespace all the pandas keys
         d = self._translate()
         d.update(kwargs)
-        return self.template.render(**d)
+        return self.template_html.render(**d)
 
     def _render_latex(self, **kwargs) -> str:
         """
