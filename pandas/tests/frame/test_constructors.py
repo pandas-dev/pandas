@@ -2399,11 +2399,15 @@ class TestDataFrameConstructors:
     def test_consistency_of_string_columns_with_none(self):
         # df created from list, None is casted to str
         df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
-        type(df.loc[2].values[0])
+
+        assert isinstance(df.loc[0].values[0], str)
+        assert df.loc[2].values[0] is None
 
         # Equivalent df created from dict, None remains NoneType
         df = DataFrame({"a": ["1", "2", None]}, dtype="str")
-        type(df.loc[2].values[0])
+
+        assert isinstance(df.loc[0].values[0], str)
+        assert df.loc[2].values[0] is None
 
 
 class TestDataFrameConstructorWithDatetimeTZ:
