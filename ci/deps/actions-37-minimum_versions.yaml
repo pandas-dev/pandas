@@ -18,7 +18,7 @@ dependencies:
   - jinja2=2.10
   - numba=0.46.0
   - numexpr=2.6.8
-  - numpy=1.16.5
+  - numpy=1.17.3
   - openpyxl=3.0.0
   - pytables=3.5.1
   - python-dateutil=2.7.3

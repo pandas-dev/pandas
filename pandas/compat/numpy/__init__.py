@@ -8,12 +8,11 @@ import numpy as np
 # numpy versioning
 _np_version = np.__version__
 _nlv = LooseVersion(_np_version)
-np_version_under1p17 = _nlv < LooseVersion("1.17")
 np_version_under1p18 = _nlv < LooseVersion("1.18")
 np_version_under1p19 = _nlv < LooseVersion("1.19")
 np_version_under1p20 = _nlv < LooseVersion("1.20")
 is_numpy_dev = ".dev" in str(_nlv)
-_min_numpy_ver = "1.16.5"
+_min_numpy_ver = "1.17.3"
 
 
 if _nlv < _min_numpy_ver:
@@ -65,6 +64,5 @@ def np_array_datetime64_compat(arr, dtype="M8[ns]"):
 __all__ = [
     "np",
     "_np_version",
-    "np_version_under1p17",
     "is_numpy_dev",
 ]

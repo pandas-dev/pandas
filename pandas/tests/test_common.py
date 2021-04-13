@@ -6,7 +6,7 @@ import string
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p17
+from pandas.compat import np_version_under1p18
 
 import pandas as pd
 from pandas import Series
@@ -72,7 +72,7 @@ def test_random_state():
 
     # Check BitGenerators
     # GH32503
-    if not np_version_under1p17:
+    if not np_version_under1p18:
         assert (
             com.random_state(npr.MT19937(3)).uniform()
             == npr.RandomState(npr.MT19937(3)).uniform()
