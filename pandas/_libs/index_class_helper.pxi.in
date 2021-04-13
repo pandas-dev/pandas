@@ -44,8 +44,8 @@ cdef class {{name}}Engine(IndexEngine):
             raise KeyError(val)
     {{endif}}
 
-    cdef void _call_map_locations(self, ndarray values):
-        self.mapping.map_locations(algos.ensure_{{name.lower()}}(values))
+    cdef void _call_map_locations(self, ndarray[{{dtype}}_t] values):
+        self.mapping.map_locations(values)
 
     cdef _maybe_get_bool_indexer(self, object val):
         # Returns ndarray[bool] or int

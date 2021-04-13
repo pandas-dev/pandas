@@ -74,6 +74,7 @@ cdef class IndexEngine:
         return val in self.mapping
 
     cpdef get_loc(self, object val):
+        # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
             Py_ssize_t loc
 
@@ -109,6 +110,7 @@ cdef class IndexEngine:
             raise KeyError(val)
 
     cdef inline _get_loc_duplicates(self, object val):
+        # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
             Py_ssize_t diff
 
@@ -142,6 +144,7 @@ cdef class IndexEngine:
     cdef _unpack_bool_indexer(self,
                               ndarray[uint8_t, ndim=1, cast=True] indexer,
                               object val):
+        # Returns ndarray[bool] or int
         cdef:
             ndarray[intp_t, ndim=1] found
             int count
