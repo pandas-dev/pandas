@@ -1229,6 +1229,8 @@ def test_groupby_index_object_dtype():
     df.index = df.index.astype("O")
     grouped = df.groupby(["c0", "c1"])
     res = grouped.p.agg(lambda x: all(x > 0))
+    # Check that providing a user-defined function in agg()
+    # produces the correct index shape when using an object-typed index.
     expected_index = MultiIndex.from_tuples(
         [("x", "x"), ("x", "y")], names=("c0", "c1")
     )
