@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import contextlib
 import inspect
-from typing import Tuple
 
 
 @contextlib.contextmanager
@@ -15,7 +16,7 @@ def rewrite_exception(old_name: str, new_name: str):
             raise
         msg = str(err.args[0])
         msg = msg.replace(old_name, new_name)
-        args: Tuple[str, ...] = (msg,)
+        args: tuple[str, ...] = (msg,)
         if len(err.args) > 1:
             args = args + err.args[1:]
         err.args = args
