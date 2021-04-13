@@ -30,6 +30,8 @@ from pandas._typing import (
     NpDtype,
     Ordered,
     Scalar,
+    Shape,
+    type_t,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -1525,6 +1527,30 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return Series(count, index=CategoricalIndex(ix), dtype="int64")
 
+    # error: Argument 2 of "_empty" is incompatible with supertype
+    # "NDArrayBackedExtensionArray"; supertype defines the argument type as
+    # "ExtensionDtype"
+    @classmethod
+    def _empty(  # type: ignore[override]
+        cls: type_t[Categorical], shape: Shape, dtype: CategoricalDtype
+    ) -> Categorical:
+        """
+        Analogous to np.empty(shape, dtype=dtype)
+
+        Parameters
+        ----------
+        shape : tuple[int]
+        dtype : CategoricalDtype
+        """
+        arr = cls._from_sequence([], dtype=dtype)
+
+        # We have to use np.zeros instead of np.empty otherwise the resulting
+        #  ndarray may contain codes not supported by this dtype, in which
+        #  case repr(result) could segfault.
+        backing = np.zeros(shape, dtype=arr._ndarray.dtype)
+
+        return arr._from_backing_data(backing)
+
     def _internal_get_values(self):
         """
         Return the values.
@@ -2576,10 +2602,14 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
         if not isinstance(values, cls):
             # exception raised in _from_sequence
             values = ensure_object(values)
-            categories = ensure_object(categories)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Index")
+            categories = ensure_object(categories)  # type: ignore[assignment]
     elif not dtype_equal:
         values = ensure_object(values)
-        categories = ensure_object(categories)
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "Index")
+        categories = ensure_object(categories)  # type: ignore[assignment]
 
     if isinstance(categories, ABCIndex):
         return coerce_indexer_dtype(categories.get_indexer_for(values), categories)

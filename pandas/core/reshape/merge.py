@@ -969,7 +969,16 @@ class _MergeOperation:
                     join_index = self.right.index.take(right_indexer)
                     left_indexer = np.array([-1] * len(join_index), dtype=np.intp)
             elif self.left_index:
-                if len(self.right) > 0:
+                if self.how == "asof":
+                    # GH#33463 asof should always behave like a left merge
+                    join_index = self._create_join_index(
+                        self.left.index,
+                        self.right.index,
+                        left_indexer,
+                        how="left",
+                    )
+
+                elif len(self.right) > 0:
                     join_index = self._create_join_index(
                         self.right.index,
                         self.left.index,
@@ -1485,7 +1494,8 @@ def get_join_indexers(
         "outer": libjoin.full_outer_join,
     }[how]
 
-    return join_func(lkey, rkey, count, **kwargs)
+    # error: Cannot call function of unknown type
+    return join_func(lkey, rkey, count, **kwargs)  # type: ignore[operator]
 
 
 def restore_dropped_levels_multijoin(
@@ -1624,9 +1634,20 @@ class _OrderedMerge(_MergeOperation):
             self.left._info_axis, self.right._info_axis, self.suffixes
         )
 
+        left_join_indexer: np.ndarray | None
+        right_join_indexer: np.ndarray | None
+
         if self.fill_method == "ffill":
-            left_join_indexer = libjoin.ffill_indexer(left_indexer)
-            right_join_indexer = libjoin.ffill_indexer(right_indexer)
+            # error: Argument 1 to "ffill_indexer" has incompatible type
+            # "Optional[ndarray]"; expected "ndarray"
+            left_join_indexer = libjoin.ffill_indexer(
+                left_indexer  # type: ignore[arg-type]
+            )
+            # error: Argument 1 to "ffill_indexer" has incompatible type
+            # "Optional[ndarray]"; expected "ndarray"
+            right_join_indexer = libjoin.ffill_indexer(
+                right_indexer  # type: ignore[arg-type]
+            )
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
@@ -1928,8 +1949,10 @@ class _AsOfMerge(_OrderedMerge):
             # upcast 'by' parameter because HashTable is limited
             by_type = _get_cython_type_upcast(left_by_values.dtype)
             by_type_caster = _type_casters[by_type]
-            left_by_values = by_type_caster(left_by_values)
-            right_by_values = by_type_caster(right_by_values)
+            # error: Cannot call function of unknown type
+            left_by_values = by_type_caster(left_by_values)  # type: ignore[operator]
+            # error: Cannot call function of unknown type
+            right_by_values = by_type_caster(right_by_values)  # type: ignore[operator]
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
@@ -2080,8 +2103,9 @@ def _factorize_keys(
     (array([0, 1, 2]), array([0, 1]), 3)
     """
     # Some pre-processing for non-ndarray lk / rk
-    lk = extract_array(lk, extract_numpy=True)
-    rk = extract_array(rk, extract_numpy=True)
+    lk = extract_array(lk, extract_numpy=True, extract_range=True)
+    rk = extract_array(rk, extract_numpy=True, extract_range=True)
+    # TODO: if either is a RangeIndex, we can likely factorize more efficiently?
 
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values

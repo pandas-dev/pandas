@@ -254,6 +254,12 @@ class StringArray(PandasArray):
     ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
+    @classmethod
+    def _empty(cls, shape, dtype) -> StringArray:
+        values = np.empty(shape, dtype=object)
+        values[:] = libmissing.NA
+        return cls(values).astype(dtype, copy=False)
+
     def __arrow_array__(self, type=None):
         """
         Convert myself into a pyarrow Array.
@@ -441,7 +447,9 @@ class StringArray(PandasArray):
             if not na_value_is_na:
                 mask[:] = False
 
-            return constructor(result, mask)
+            # error: Argument 1 to "maybe_convert_objects" has incompatible
+            # type "Union[ExtensionArray, ndarray]"; expected "ndarray"
+            return constructor(result, mask)  # type: ignore[arg-type]
 
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype

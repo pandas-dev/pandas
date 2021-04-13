@@ -2184,7 +2184,9 @@ class MultiIndex(Index):
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats: int, axis=None) -> MultiIndex:
         nv.validate_repeat((), {"axis": axis})
-        repeats = ensure_platform_int(repeats)
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "int")
+        repeats = ensure_platform_int(repeats)  # type: ignore[assignment]
         return MultiIndex(
             levels=self.levels,
             codes=[
@@ -2532,7 +2534,7 @@ class MultiIndex(Index):
             else:
                 target = ensure_index(target)
             target, indexer, _ = self._join_level(
-                target, level, how="right", return_indexers=True, keep_order=False
+                target, level, how="right", keep_order=False
             )
         else:
             target = ensure_index(target)

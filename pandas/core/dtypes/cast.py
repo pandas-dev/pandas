@@ -102,7 +102,6 @@ from pandas.core.dtypes.missing import (
 if TYPE_CHECKING:
     from typing import Literal
 
-    from pandas import Series
     from pandas.core.arrays import (
         DatetimeArray,
         ExtensionArray,
@@ -121,18 +120,19 @@ def maybe_convert_platform(
     values: list | tuple | range | np.ndarray | ExtensionArray,
 ) -> ArrayLike:
     """ try to do platform conversion, allow ndarray or list here """
+    arr: ArrayLike
+
     if isinstance(values, (list, tuple, range)):
         arr = construct_1d_object_array_from_listlike(values)
     else:
         # The caller is responsible for ensuring that we have np.ndarray
         #  or ExtensionArray here.
-
-        # error: Incompatible types in assignment (expression has type "Union[ndarray,
-        # ExtensionArray]", variable has type "ndarray")
-        arr = values  # type: ignore[assignment]
+        arr = values
 
     if arr.dtype == object:
-        arr = lib.maybe_convert_objects(arr)
+        # error: Argument 1 to "maybe_convert_objects" has incompatible type
+        # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+        arr = lib.maybe_convert_objects(arr)  # type: ignore[arg-type]
 
     return arr
 
@@ -374,7 +374,11 @@ def maybe_downcast_numeric(
 
 
 def maybe_cast_result(
-    result: ArrayLike, obj: Series, numeric_only: bool = False, how: str = ""
+    result: ArrayLike,
+    dtype: DtypeObj,
+    numeric_only: bool = False,
+    how: str = "",
+    same_dtype: bool = True,
 ) -> ArrayLike:
     """
     Try casting result to a different type if appropriate
@@ -383,19 +387,20 @@ def maybe_cast_result(
     ----------
     result : array-like
         Result to cast.
-    obj : Series
+    dtype : np.dtype or ExtensionDtype
         Input Series from which result was calculated.
     numeric_only : bool, default False
         Whether to cast only numerics or datetimes as well.
     how : str, default ""
         How the result was computed.
+    same_dtype : bool, default True
+        Specify dtype when calling _from_sequence
 
     Returns
     -------
     result : array-like
         result maybe casted to the dtype.
     """
-    dtype = obj.dtype
     dtype = maybe_cast_result_dtype(dtype, how)
 
     assert not is_scalar(result)
@@ -406,7 +411,10 @@ def maybe_cast_result(
             # things like counts back to categorical
 
             cls = dtype.construct_array_type()
-            result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
+            if same_dtype:
+                result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
+            else:
+                result = maybe_cast_to_extension_array(cls, result)
 
     elif (numeric_only and is_numeric_dtype(dtype)) or not numeric_only:
         result = maybe_downcast_to_dtype(result, dtype)
@@ -1226,9 +1234,7 @@ def astype_nansafe(
             from pandas import to_datetime
 
             return astype_nansafe(
-                # error: No overload variant of "to_datetime" matches argument type
-                # "ndarray"
-                to_datetime(arr).values,  # type: ignore[call-overload]
+                to_datetime(arr).values,
                 dtype,
                 copy=copy,
             )
@@ -1436,9 +1442,13 @@ def convert_dtypes(
 
     Returns
     -------
+    str, np.dtype, or ExtensionDtype
     dtype
         new dtype
     """
+    inferred_dtype: str | np.dtype | ExtensionDtype
+    # TODO: rule out str
+
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and isinstance(input_array, np.ndarray):

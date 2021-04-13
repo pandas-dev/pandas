@@ -106,9 +106,9 @@ class RangeIndex(NumericIndex):
         stop=None,
         step=None,
         dtype: Dtype | None = None,
-        copy=False,
-        name=None,
-    ):
+        copy: bool = False,
+        name: Hashable = None,
+    ) -> RangeIndex:
 
         # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
         # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
@@ -528,12 +528,17 @@ class RangeIndex(NumericIndex):
         --------
         numpy.ndarray.argsort
         """
+        ascending = kwargs.pop("ascending", True)  # EA compat
         nv.validate_argsort(args, kwargs)
 
         if self._range.step > 0:
-            return np.arange(len(self))
+            result = np.arange(len(self))
         else:
-            return np.arange(len(self) - 1, -1, -1)
+            result = np.arange(len(self) - 1, -1, -1)
+
+        if not ascending:
+            result = result[::-1]
+        return result
 
     def factorize(
         self, sort: bool = False, na_sentinel: int | None = -1
@@ -579,7 +584,7 @@ class RangeIndex(NumericIndex):
         # solve intersection problem
         # performance hint: for identical step sizes, could use
         # cheaper alternative
-        gcd, s, t = self._extended_gcd(first.step, second.step)
+        gcd, s, _ = self._extended_gcd(first.step, second.step)
 
         # check whether element sets intersect
         if (first.start - second.start) % gcd:
@@ -614,7 +619,7 @@ class RangeIndex(NumericIndex):
         no_steps = (upper_limit - self.start) // abs(self.step)
         return self.start + abs(self.step) * no_steps
 
-    def _extended_gcd(self, a, b):
+    def _extended_gcd(self, a: int, b: int) -> tuple[int, int, int]:
         """
         Extended Euclidean algorithms to solve Bezout's identity:
            a*x + b*y = gcd(x, y)
@@ -740,7 +745,7 @@ class RangeIndex(NumericIndex):
             new_index = new_index[::-1]
         return new_index
 
-    def symmetric_difference(self, other, result_name=None, sort=None):
+    def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
         if not isinstance(other, RangeIndex) or sort is not None:
             return super().symmetric_difference(other, result_name, sort)
 
@@ -754,7 +759,7 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
-    def _concat(self, indexes, name):
+    def _concat(self, indexes, name: Hashable):
         """
         Overriding parent method for the case of all RangeIndex instances.
 
@@ -920,7 +925,8 @@ class RangeIndex(NumericIndex):
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
-        other = extract_array(other, extract_numpy=True)
+        # TODO: if other is a RangeIndex we may have more efficient options
+        other = extract_array(other, extract_numpy=True, extract_range=True)
         attrs = self._get_attributes_dict()
 
         left, right = self, other

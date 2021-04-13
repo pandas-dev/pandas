@@ -50,7 +50,7 @@ from pandas.core.indexes.extension import (
     inherit_names,
 )
 
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
+_index_doc_kwargs: dict[str, str] = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 
 
@@ -217,9 +217,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         categories=None,
         ordered=None,
         dtype: Dtype | None = None,
-        copy=False,
-        name=None,
-    ):
+        copy: bool = False,
+        name: Hashable = None,
+    ) -> CategoricalIndex:
 
         name = maybe_extract_name(name, data, cls)
 
@@ -239,7 +239,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         self,
         values: Categorical,
         name: Hashable = no_default,
-    ):
+    ) -> CategoricalIndex:
         name = self._name if name is no_default else name
 
         if values is not None:
