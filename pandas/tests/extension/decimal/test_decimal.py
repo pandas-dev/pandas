@@ -362,13 +362,18 @@ class DecimalArrayWithoutCoercion(DecimalArrayWithoutFromSequence):
 DecimalArrayWithoutCoercion._add_arithmetic_ops()
 
 
-def test_combine_from_sequence_raises():
+def test_combine_from_sequence_raises(monkeypatch):
     # https://github.com/pandas-dev/pandas/issues/22850
-    ser = pd.Series(
-        DecimalArrayWithoutFromSequence(
-            [decimal.Decimal("1.0"), decimal.Decimal("2.0")]
-        )
-    )
+    cls = DecimalArrayWithoutFromSequence
+
+    @classmethod
+    def construct_array_type(cls):
+        return DecimalArrayWithoutFromSequence
+
+    monkeypatch.setattr(DecimalDtype, "construct_array_type", construct_array_type)
+
+    arr = cls([decimal.Decimal("1.0"), decimal.Decimal("2.0")])
+    ser = pd.Series(arr)
     result = ser.combine(ser, operator.add)
 
     # note: object dtype
