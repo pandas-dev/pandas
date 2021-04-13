@@ -826,7 +826,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        value : array_like
+        value : array-like
             Values to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
