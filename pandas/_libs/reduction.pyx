@@ -105,8 +105,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
 
     cdef public:
         ndarray arr, index, dummy_arr, dummy_index
-        object values, f, bins, typ, ityp, name
-        object idtype
+        object values, f, bins, typ, ityp, name, idtype
 
     def __init__(self, object series, object f, object bins):
 
@@ -200,8 +199,7 @@ cdef class SeriesGrouper(_BaseGrouper):
 
     cdef public:
         ndarray arr, index, dummy_arr, dummy_index
-        object f, labels, values, typ, ityp, name
-        object idtype
+        object f, labels, values, typ, ityp, name, idtype
 
     def __init__(self, object series, object f, ndarray[intp_t] labels,
                  Py_ssize_t ngroups):
@@ -262,7 +260,6 @@ cdef class SeriesGrouper(_BaseGrouper):
                         start += group_size
                         group_size = 0
                         continue
-                    print(f"Group size: {group_size}")
 
                     end = start + group_size
                     islider.move(start, end)
