@@ -6446,11 +6446,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     )
 
                 result = self if inplace else self.copy()
+                is_dict = isinstance(downcast, dict)
                 for k, v in value.items():
                     if k not in result:
                         continue
                     obj = result[k]
-                    obj.fillna(v, limit=limit, inplace=True, downcast=downcast)
+                    downcast_k = downcast if not is_dict else downcast.get(k)
+                    obj.fillna(v, limit=limit, inplace=True, downcast=downcast_k)
                 return result if not inplace else None
 
             elif not is_list_like(value):
