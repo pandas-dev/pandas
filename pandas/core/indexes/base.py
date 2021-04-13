@@ -3380,7 +3380,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        indexer : ndarray of int
+        indexer : np.ndarray[np.intp]
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
@@ -4610,7 +4610,7 @@ class Index(IndexOpsMixin, PandasObject):
             return name in self
         return False
 
-    def append(self, other) -> Index:
+    def append(self, other: Index | Sequence[Index]) -> Index:
         """
         Append a collection of Index options together.
 
@@ -4627,7 +4627,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(other, (list, tuple)):
             to_concat += list(other)
         else:
-            to_concat.append(other)
+            # error: Argument 1 to "append" of "list" has incompatible type
+            # "Union[Index, Sequence[Index]]"; expected "Index"
+            to_concat.append(other)  # type: ignore[arg-type]
 
         for obj in to_concat:
             if not isinstance(obj, Index):
@@ -5181,11 +5183,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        indexer : ndarray of int
+        indexer : np.ndarray[np.intp]
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
-        missing : ndarray of int
+        missing : np.ndarray[np.intp]
             An indexer into the target of the values not found.
             These correspond to the -1 in the indexer array.
         """
@@ -5227,7 +5229,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        np.ndarray[np.intp]
             List of indices.
         """
         if self._index_as_unique:
