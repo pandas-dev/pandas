@@ -1559,59 +1559,111 @@ class Styler(StylerRenderer):
         .. figure:: ../../_static/style/hbetw_props.png
         """
 
-        def f(
-            data: FrameOrSeries,
-            props: str,
-            left: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
-            right: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
-            inclusive: bool | str = True,
-        ) -> np.ndarray:
-            if np.iterable(left) and not isinstance(left, str):
-                left = _validate_apply_axis_arg(
-                    left, "left", None, data  # type: ignore[arg-type]
-                )
-
-            if np.iterable(right) and not isinstance(right, str):
-                right = _validate_apply_axis_arg(
-                    right, "right", None, data  # type: ignore[arg-type]
-                )
-
-            # get ops with correct boundary attribution
-            if inclusive == "both":
-                ops = (operator.ge, operator.le)
-            elif inclusive == "neither":
-                ops = (operator.gt, operator.lt)
-            elif inclusive == "left":
-                ops = (operator.ge, operator.lt)
-            elif inclusive == "right":
-                ops = (operator.gt, operator.le)
-            else:
-                raise ValueError(
-                    f"'inclusive' values can be 'both', 'left', 'right', or 'neither' "
-                    f"got {inclusive}"
-                )
-
-            g_left = (
-                ops[0](data, left)
-                if left is not None
-                else np.full(data.shape, True, dtype=bool)
-            )
-            l_right = (
-                ops[1](data, right)
-                if right is not None
-                else np.full(data.shape, True, dtype=bool)
-            )
-            return np.where(g_left & l_right, props, "")
-
         if props is None:
             props = f"background-color: {color};"
         return self.apply(
-            f,  # type: ignore[arg-type]
+            _highlight_between,  # type: ignore[arg-type]
             axis=axis,
             subset=subset,
             props=props,
             left=left,
             right=right,
+            inclusive=inclusive,
+        )
+
+    def highlight_quantile(
+        self,
+        subset: IndexLabel | None = None,
+        color: str = "yellow",
+        axis: Axis | None = 0,
+        q_left: float = 0.0,
+        q_right: float = 1.0,
+        interpolation: str = "linear",
+        inclusive: str | bool = True,
+        props: str | None = None,
+    ) -> Styler:
+        """
+        Highlight values defined by a quantile with a style.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        subset : IndexSlice, default None
+            A valid slice for ``data`` to limit the style application to.
+        color : str, default 'yellow'
+            Background color to use for highlighting
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Axis along which to determine and highlight quantiles. If ``None`` quantiles
+            are measured over the entire DataFrame. See examples.
+        q_left : float, default 0
+            Left bound, in [0, q_right), for the target quantile range.
+        q_right : float, default 1
+            Right bound, in (q_left, 1], for the target quantile range.
+        interpolation : {‘linear’, ‘lower’, ‘higher’, ‘midpoint’, ‘nearest’}
+            Argument passed to ``numpy.quantile`` for quantile estimation.
+        inclusive : {'both', 'neither', 'left', 'right'} or bool, default True
+            Identify whether quantile bounds are closed or open.
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_between: Highlight a defined range with a style.
+
+        Notes
+        -----
+        This function does not work with ``str``, ``Timedelta`` or ``Timestamp`` dtypes.
+
+        Examples
+        --------
+        Using ``axis=None`` and apply a quantile to all collective data
+
+        >>> df = pd.DataFrame(np.arange(10).reshape(2,5) + 1)
+        >>> df.style.highlight_quantile(axis=None, q_left=0.8, color="#fffd75")
+
+        .. figure:: ../../_static/style/hq_axNone.png
+
+        Or highlight quantiles row-wise or column-wise, in this case by row-wise
+
+        >>> df.style.highlight_quantile(axis=1, q_left=0.8, color="#fffd75")
+
+        .. figure:: ../../_static/style/hq_ax1.png
+        Use ``props`` instead of default background coloring
+
+        >>> df.style.highlight_quantile(axis=None, q_left=0.2, q_right=0.8,
+        ...     props='font-weight:bold;color:#e83e8c')
+
+        .. figure:: ../../_static/style/hq_props.png
+        """
+        subset_ = slice(None) if subset is None else subset
+        subset_ = non_reducing_slice(subset_)
+        data = self.data.loc[subset_]
+
+        q = np.quantile(
+            data.to_numpy(), [q_left, q_right], axis=axis, interpolation=interpolation
+        )
+        # after quantile is found along axis, reverse axis for highlight application
+        if axis in [0, 1]:
+            axis = 1 - axis
+
+        if props is None:
+            props = f"background-color: {color};"
+        return self.apply(
+            _highlight_between,
+            axis=axis,
+            subset=subset,
+            props=props,
+            left=q[0],
+            right=q[1],
             inclusive=inclusive,
         )
 
@@ -1831,3 +1883,50 @@ def _background_gradient(
                 index=data.index,
                 columns=data.columns,
             )
+
+
+def _highlight_between(
+    data: FrameOrSeries,
+    props: str,
+    left: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
+    right: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
+    inclusive: bool | str = True,
+) -> np.ndarray:
+    """
+    Calculate an array with css props based on the data values and the range boundaries
+    """
+    if np.iterable(left) and not isinstance(left, str):
+        left = _validate_apply_axis_arg(
+            left, "left", None, data  # type: ignore[arg-type]
+        )
+    if np.iterable(right) and not isinstance(right, str):
+        right = _validate_apply_axis_arg(
+            right, "right", None, data  # type: ignore[arg-type]
+        )
+
+    # get ops with correct boundary attribution
+    if inclusive == "both":
+        ops = (operator.ge, operator.le)
+    elif inclusive == "neither":
+        ops = (operator.gt, operator.lt)
+    elif inclusive == "left":
+        ops = (operator.ge, operator.lt)
+    elif inclusive == "right":
+        ops = (operator.gt, operator.le)
+    else:
+        raise ValueError(
+            f"'inclusive' values can be 'both', 'left', 'right', or 'neither' "
+            f"got {inclusive}"
+        )
+
+    g_left = (
+        ops[0](data, left)
+        if left is not None
+        else np.full(data.shape, True, dtype=bool)
+    )
+    l_right = (
+        ops[1](data, right)
+        if right is not None
+        else np.full(data.shape, True, dtype=bool)
+    )
+    return np.where(g_left & l_right, props, "")
