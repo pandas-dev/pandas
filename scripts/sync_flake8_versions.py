@@ -165,4 +165,5 @@ if __name__ == "__main__":
         precommit_config = yaml.safe_load(fd)
     with open("environment.yml") as fd:
         environment = yaml.safe_load(fd)
+    get_revisions(precommit_config, environment)
     sys.exit(0)
