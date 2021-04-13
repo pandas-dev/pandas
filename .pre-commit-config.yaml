@@ -1,5 +1,7 @@
 minimum_pre_commit_version: 2.9.2
 exclude: ^LICENSES/|\.(html|csv|svg)$
+ci:
+    autofix_prs: false
 repos:
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
     rev: v0.3.0
