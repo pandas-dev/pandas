@@ -677,17 +677,20 @@ class TestSeriesReductions:
             index=pd.MultiIndex.from_product([("a", "b"), (0, 1)]),
         )
         # 1 / 0 by default
-        result = getattr(s, method)(level=0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(s, method)(level=0)
         expected = Series([1, unit], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
         # min_count=0
-        result = getattr(s, method)(level=0, min_count=0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(s, method)(level=0, min_count=0)
         expected = Series([1, unit], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
         # min_count=1
-        result = getattr(s, method)(level=0, min_count=1)
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(s, method)(level=0, min_count=1)
         expected = Series([1, np.nan], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
@@ -915,14 +918,18 @@ class TestSeriesReductions:
 
         # Check level.
         s = Series([False, False, True, True, False, True], index=[0, 0, 1, 1, 2, 2])
-        tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
-        tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
 
         msg = "Option bool_only is not implemented with option level"
         with pytest.raises(NotImplementedError, match=msg):
-            s.any(bool_only=True, level=0)
+            with tm.assert_produces_warning(FutureWarning):
+                s.any(bool_only=True, level=0)
         with pytest.raises(NotImplementedError, match=msg):
-            s.all(bool_only=True, level=0)
+            with tm.assert_produces_warning(FutureWarning):
+                s.all(bool_only=True, level=0)
 
         # bool_only is not implemented alone.
         # TODO GH38810 change this error message to:
@@ -955,8 +962,10 @@ class TestSeriesReductions:
             index=[0, 0, 1, 1, 2, 2],
             dtype="boolean",
         )
-        tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
-        tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
 
     def test_any_axis1_bool_only(self):
         # GH#32432

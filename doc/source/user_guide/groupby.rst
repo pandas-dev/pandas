@@ -320,14 +320,6 @@ number:
 
    s.groupby(level="second").sum()
 
-The aggregation functions such as ``sum`` will take the level parameter
-directly. Additionally, the resulting index will be named according to the
-chosen level:
-
-.. ipython:: python
-
-   s.sum(level="second")
-
 Grouping with multiple levels is supported.
 
 .. ipython:: python

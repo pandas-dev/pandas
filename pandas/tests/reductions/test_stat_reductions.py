@@ -263,7 +263,8 @@ class TestSeriesStatReductions:
             codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
         )
         s = Series(np.random.randn(6), index=index)
-        tm.assert_almost_equal(s.kurt(), s.kurt(level=0)["bar"])
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_almost_equal(s.kurt(), s.kurt(level=0)["bar"])
 
         # test corner cases, kurt() returns NaN unless there's at least 4
         # values

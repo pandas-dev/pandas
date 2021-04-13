@@ -599,7 +599,8 @@ class TestDataFrameSubclassing:
                 list(zip(list("WWXX"), list("yzyz"))), names=["www", "yyy"]
             ),
         )
-        result = df.count(level=1)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.count(level=1)
         assert isinstance(result, tm.SubclassedDataFrame)
 
         df = tm.SubclassedDataFrame()

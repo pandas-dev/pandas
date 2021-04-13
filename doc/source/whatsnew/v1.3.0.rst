@@ -563,6 +563,7 @@ Deprecations
 - Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like and raises anything but ``TypeError``; ``func`` raising anything but a ``TypeError`` will raise in a future version (:issue:`40211`)
 - Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
 - Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
+- Deprecated the ``level`` keyword for :class:`DataFrame` and :class:`Series` aggregations; use groupby instead (:issue:`39983`)
 
 .. ---------------------------------------------------------------------------
 

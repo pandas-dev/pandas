@@ -580,7 +580,8 @@ class TestDataFrameAnalytics:
         df = DataFrame(np.random.randn(6, 3), index=index)
 
         kurt = df.kurt()
-        kurt2 = df.kurt(level=0).xs("bar")
+        with tm.assert_produces_warning(FutureWarning):
+            kurt2 = df.kurt(level=0).xs("bar")
         tm.assert_series_equal(kurt, kurt2, check_names=False)
         assert kurt.name is None
         assert kurt2.name == "bar"
@@ -1240,7 +1241,8 @@ class TestDataFrameAnalytics:
         )
         xpr = "Must specify 'axis' when aggregating by level."
         with pytest.raises(ValueError, match=xpr):
-            getattr(df, method)(axis=None, level="out")
+            with tm.assert_produces_warning(FutureWarning):
+                getattr(df, method)(axis=None, level="out")
 
     # ---------------------------------------------------------------------
     # Unsorted
@@ -1365,11 +1367,13 @@ class TestDataFrameReductions:
             ],
         )
 
-        result = df.any(level=0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.any(level=0)
         ex = DataFrame({"data": [False, True]}, index=["one", "two"])
         tm.assert_frame_equal(result, ex)
 
-        result = df.all(level=0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.all(level=0)
         ex = DataFrame({"data": [False, False]}, index=["one", "two"])
         tm.assert_frame_equal(result, ex)
 
@@ -1389,6 +1393,34 @@ class TestDataFrameReductions:
         result = df.any(axis=1)
         expected = Series(data=[False, True])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "func",
+        [
+            "any",
+            "all",
+            "count",
+            "sum",
+            "prod",
+            "max",
+            "min",
+            "mean",
+            "median",
+            "skew",
+            "kurt",
+            "sem",
+            "var",
+            "std",
+            "mad",
+        ],
+    )
+    def test_reductions_deprecation_level_argument(self, frame_or_series, func):
+        # GH#39983
+        obj = frame_or_series(
+            [1, 2, 3], index=MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            getattr(obj, func)(level=0)
 
 
 class TestNuisanceColumns:
@@ -1556,7 +1588,8 @@ def test_groupy_regular_arithmetic_equivalent(meth):
     )
     expected = df.copy()
 
-    result = getattr(df, meth)(level=0)
+    with tm.assert_produces_warning(FutureWarning):
+        result = getattr(df, meth)(level=0)
     tm.assert_frame_equal(result, expected)
 
     result = getattr(df.groupby(level=0), meth)(numeric_only=False)
