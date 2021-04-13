@@ -117,6 +117,9 @@ We provided some focused development on :class:`.Styler`, including altering met
 to accept more universal CSS language for arguments, such as ``'color:red;'`` instead of
 ``[('color', 'red')]`` (:issue:`39564`). This is also added to the built-in methods
 to allow custom CSS highlighting instead of default background coloring (:issue:`40242`).
+Enhancements to other built-in methods include extending the :meth:`.Styler.background_gradient`
+method to shade elements based on a given gradient map and not be restricted only to
+values in the DataFrame (:issue:`39930` :issue:`22727` :issue:`28901`).
 
 The :meth:`.Styler.apply` now consistently allows functions with ``ndarray`` output to
 allow more flexible development of UDFs when ``axis`` is ``None`` ``0`` or ``1`` (:issue:`39393`).
@@ -206,6 +209,7 @@ Other enhancements
 - :meth:`.Styler.background_gradient` now allows the ability to supply a specific gradient map (:issue:`22727`)
 - :meth:`.Styler.clear` now clears :attr:`Styler.hidden_index` and :attr:`Styler.hidden_columns` as well (:issue:`40484`)
 - Builtin highlighting methods in :class:`Styler` have a more consistent signature and css customisability (:issue:`40242`)
+- :meth:`.Styler.highlight_between` added to list of builtin styling methods (:issue:`39821`)
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
 - Add support for parsing ``ISO 8601``-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
@@ -563,6 +567,7 @@ Deprecations
 - Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like and raises anything but ``TypeError``; ``func`` raising anything but a ``TypeError`` will raise in a future version (:issue:`40211`)
 - Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
 - Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
+- Deprecated the ``level`` keyword for :class:`DataFrame` and :class:`Series` aggregations; use groupby instead (:issue:`39983`)
 
 .. ---------------------------------------------------------------------------
 
@@ -584,6 +589,7 @@ Performance improvements
 - Performance improvement in :class:`Styler` where render times are more than 50% reduced (:issue:`39972` :issue:`39952`)
 - Performance improvement in :meth:`core.window.ewm.ExponentialMovingWindow.mean` with ``times`` (:issue:`39784`)
 - Performance improvement in :meth:`.GroupBy.apply` when requiring the python fallback implementation (:issue:`40176`)
+- Performance improvement for concatenation of data with type :class:`CategoricalDtype` (:issue:`40193`)
 
 .. ---------------------------------------------------------------------------
 
@@ -786,6 +792,7 @@ Reshaping
 ^^^^^^^^^
 - Bug in :func:`merge` raising error when performing an inner join with partial index and ``right_index`` when no overlap between indices (:issue:`33814`)
 - Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
+- Bug in :func:`merge_asof` propagating the right Index with ``left_index=True`` and ``right_on`` specification instead of left Index (:issue:`33463`)
 - Bug in :func:`join` over :class:`MultiIndex` returned wrong result, when one of both indexes had only one level (:issue:`36909`)
 - :meth:`merge_asof` raises ``ValueError`` instead of cryptic ``TypeError`` in case of non-numerical merge columns (:issue:`29130`)
 - Bug in :meth:`DataFrame.join` not assigning values correctly when having :class:`MultiIndex` where at least one dimension is from dtype ``Categorical`` with non-alphabetically sorted categories (:issue:`38502`)
@@ -813,19 +820,12 @@ ExtensionArray
 
 - Bug in :meth:`DataFrame.where` when ``other`` is a :class:`Series` with :class:`ExtensionArray` dtype (:issue:`38729`)
 - Fixed bug where :meth:`Series.idxmax`, :meth:`Series.idxmin` and ``argmax/min`` fail when the underlying data is :class:`ExtensionArray` (:issue:`32749`, :issue:`33719`, :issue:`36566`)
+- Fixed a bug where some properties of subclasses of :class:`PandasExtensionDtype` where improperly cached (:issue:`40329`)
 -
 
-Other
-^^^^^
-- Bug in :class:`Index` constructor sometimes silently ignoring a specified ``dtype`` (:issue:`38879`)
-- Bug in :func:`pandas.api.types.infer_dtype` not recognizing Series, Index or array with a period dtype (:issue:`23553`)
-- Bug in :func:`pandas.api.types.infer_dtype` raising an error for general :class:`.ExtensionArray` objects. It will now return ``"unknown-array"`` instead of raising (:issue:`37367`)
-- Bug in constructing a :class:`Series` from a list and a :class:`PandasDtype` (:issue:`39357`)
-- Bug in :class:`Styler` which caused CSS to duplicate on multiple renders. (:issue:`39395`, :issue:`40334`)
-- ``inspect.getmembers(Series)`` no longer raises an ``AbstractMethodError`` (:issue:`38782`)
-- Bug in :meth:`Series.where` with numeric dtype and ``other = None`` not casting to ``nan`` (:issue:`39761`)
-- :meth:`Index.where` behavior now mirrors :meth:`Index.putmask` behavior, i.e. ``index.where(mask, other)`` matches ``index.putmask(~mask, other)`` (:issue:`39412`)
-- Bug in :func:`pandas.testing.assert_series_equal`, :func:`pandas.testing.assert_frame_equal`, :func:`pandas.testing.assert_index_equal` and :func:`pandas.testing.assert_extension_array_equal` incorrectly raising when an attribute has an unrecognized NA type (:issue:`39461`)
+Styler
+^^^^^^
+
 - Bug in :class:`Styler` where ``subset`` arg in methods raised an error for some valid multiindex slices (:issue:`33562`)
 - :class:`Styler` rendered HTML output minor alterations to support w3 good code standard (:issue:`39626`)
 - Bug in :class:`Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
@@ -833,6 +833,19 @@ Other
 - Bug in :class:`Styler` where multiple elements in CSS-selectors were not correctly added to ``table_styles`` (:issue:`39942`)
 - Bug in :class:`.Styler` where copying from Jupyter dropped top left cell and misaligned headers (:issue:`12147`)
 - Bug in :class:`.Styler.where` where ``kwargs`` were not passed to the applicable callable (:issue:`40845`)
+- Bug in :class:`Styler` which caused CSS to duplicate on multiple renders. (:issue:`39395`, :issue:`40334`)
+
+
+Other
+^^^^^
+- Bug in :class:`Index` constructor sometimes silently ignoring a specified ``dtype`` (:issue:`38879`)
+- Bug in :func:`pandas.api.types.infer_dtype` not recognizing Series, Index or array with a period dtype (:issue:`23553`)
+- Bug in :func:`pandas.api.types.infer_dtype` raising an error for general :class:`.ExtensionArray` objects. It will now return ``"unknown-array"`` instead of raising (:issue:`37367`)
+- Bug in constructing a :class:`Series` from a list and a :class:`PandasDtype` (:issue:`39357`)
+- ``inspect.getmembers(Series)`` no longer raises an ``AbstractMethodError`` (:issue:`38782`)
+- Bug in :meth:`Series.where` with numeric dtype and ``other = None`` not casting to ``nan`` (:issue:`39761`)
+- :meth:`Index.where` behavior now mirrors :meth:`Index.putmask` behavior, i.e. ``index.where(mask, other)`` matches ``index.putmask(~mask, other)`` (:issue:`39412`)
+- Bug in :func:`pandas.testing.assert_series_equal`, :func:`pandas.testing.assert_frame_equal`, :func:`pandas.testing.assert_index_equal` and :func:`pandas.testing.assert_extension_array_equal` incorrectly raising when an attribute has an unrecognized NA type (:issue:`39461`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)
