@@ -597,17 +597,13 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         ser = Series([2, 3, 1], index=[3, 5, 4], dtype=float)
         if using_array_manager:
             # TODO(ArrayManager) with "split" path, we still overwrite the column
-            # and therefore don't take the order of the indexer into account
-            ser = Series([1, 2, 3], index=[3, 5, 4], dtype="int64")
+            # and therefore don't take the dtype of the underlying object into account
+            ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
         expected = DataFrame({"A": ser})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.xfail(reason="split path wrong update - GH40480")
     def test_loc_setitem_frame_with_reindex_mixed(self):
-        # same test as above, but with mixed dataframe
-        # TODO with "split" path we still actually overwrite the column
-        # and therefore don't take the order of the indexer into account
-        # -> this is a bug: https://github.com/pandas-dev/pandas/issues/40480
+        # GH#40480
         df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
@@ -616,8 +612,16 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected["B"] = "string"
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_frame_with_inverted_slice(self):
+        # GH#40480
+        df = DataFrame(index=[1, 2, 3], columns=["A", "B"], dtype=float)
+        df["B"] = "string"
+        df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
+        expected = DataFrame({"A": [3, 2, 1], "B": "string"}, index=[1, 2, 3])
+        tm.assert_frame_equal(df, expected)
+
     # TODO(ArrayManager) "split" path overwrites column and therefore don't take
-    # the order of the indexer into account
+    # the dtype of the underlying object into account
     @td.skip_array_manager_not_yet_implemented
     def test_loc_setitem_empty_frame(self):
         # GH#6252 setting with an empty frame
