@@ -785,7 +785,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
 - Bug in aggregation functions for :class:`DataFrame` not respecting ``numeric_only`` argument when ``level`` keyword was given (:issue:`40660`)
 - Bug in :class:`core.window.RollingGroupby` where ``as_index=False`` argument in ``groupby`` was ignored (:issue:`39433`)
-- Bug in :class:`SeriesGroupBy` and :class:`DataFrameGroupBy` raising ``ValueError`` when using methods ``any`` and ``all`` with nullable type columns holding ``NA`` even with ``skipna=True`` (:issue:`40585`)
+- Bug in :meth:`.GroupBy.any` and :meth:`.GroupBy.all` raising ``ValueError`` when using with nullable type columns holding ``NA`` even with ``skipna=True`` (:issue:`40585`)
 
 
 Reshaping
