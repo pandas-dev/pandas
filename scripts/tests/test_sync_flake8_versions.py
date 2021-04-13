@@ -3,7 +3,7 @@ import pytest
 from ..sync_flake8_versions import get_revisions
 
 
-def test_wrong_yesqa(capsys):
+def test_wrong_yesqa_flake8(capsys):
     precommit_config = {
         "repos": [
             {
@@ -12,7 +12,6 @@ def test_wrong_yesqa(capsys):
                 "hooks": [
                     {
                         "id": "flake8",
-                        "additional_dependencies": ["pandas-dev-flaker==0.2.0"],
                     }
                 ],
             },
@@ -24,7 +23,6 @@ def test_wrong_yesqa(capsys):
                         "id": "yesqa",
                         "additional_dependencies": [
                             "flake8==0.4.2",
-                            "pandas-dev-flaker==0.2.1",
                         ],
                     }
                 ],
@@ -43,7 +41,7 @@ def test_wrong_yesqa(capsys):
     assert result == expected
 
 
-def test_wrong_env(capsys):
+def test_wrong_env_flake8(capsys):
     precommit_config = {
         "repos": [
             {
@@ -52,7 +50,6 @@ def test_wrong_env(capsys):
                 "hooks": [
                     {
                         "id": "flake8",
-                        "additional_dependencies": ["pandas-dev-flaker==0.2.0"],
                     }
                 ],
             },
@@ -64,7 +61,6 @@ def test_wrong_env(capsys):
                         "id": "yesqa",
                         "additional_dependencies": [
                             "flake8==0.4.2",
-                            "pandas-dev-flaker==0.2.1",
                         ],
                     }
                 ],
@@ -74,12 +70,6 @@ def test_wrong_env(capsys):
     environment = {
         "dependencies": [
             "flake8=1.5.6",
-            {
-                "pip": [
-                    "git+https://github.com/pydata/pydata-sphinx-theme.git@master",
-                    "pandas-dev-flaker>=0.2.2",
-                ]
-            },
         ]
     }
     with pytest.raises(SystemExit, match=None):
@@ -91,7 +81,7 @@ def test_wrong_env(capsys):
     assert result == expected
 
 
-def test_get_revisions_yesqa_failure(capsys):
+def test_wrong_yesqa_add_dep(capsys):
     precommit_config = {
         "repos": [
             {
@@ -101,7 +91,6 @@ def test_get_revisions_yesqa_failure(capsys):
                     {
                         "id": "flake8",
                         "additional_dependencies": [
-                            "pandas-dev-flaker==0.2.0",
                             "flake8-bugs==1.1.1",
                         ],
                     }
@@ -115,7 +104,6 @@ def test_get_revisions_yesqa_failure(capsys):
                         "id": "yesqa",
                         "additional_dependencies": [
                             "flake8==0.4.2",
-                            "pandas-dev-flaker==0.2.1",
                             "flake8-bugs>=1.1.1",
                         ],
                     }
@@ -127,23 +115,19 @@ def test_get_revisions_yesqa_failure(capsys):
         "dependencies": [
             "flake8=1.5.6",
             "flake8-bugs=1.1.1",
-            {
-                "pip": [
-                    "pandas-dev-flaker>=0.2.2",
-                ]
-            },
         ]
     }
     with pytest.raises(SystemExit, match=None):
         get_revisions(precommit_config, environment)
     result, _ = capsys.readouterr()
     expected = (
-        "Additional depedency of 'flake8' 'flake8-bugs' does not match in 'yesqa'"
+        "Mismatch of 'flake8-bugs' version between 'flake8' and 'yesqa' in "
+        "'.pre-commit-config.yaml'\n"
     )
     assert result == expected
 
 
-def test_get_revisions_env_failure(capsys):
+def test_wrong_env_add_dep(capsys):
     precommit_config = {
         "repos": [
             {
@@ -153,7 +137,6 @@ def test_get_revisions_env_failure(capsys):
                     {
                         "id": "flake8",
                         "additional_dependencies": [
-                            "pandas-dev-flaker==0.2.0",
                             "flake8-bugs==1.1.1",
                         ],
                     }
@@ -167,7 +150,6 @@ def test_get_revisions_env_failure(capsys):
                         "id": "yesqa",
                         "additional_dependencies": [
                             "flake8==0.4.2",
-                            "pandas-dev-flaker==0.2.1",
                             "flake8-bugs==1.1.1",
                         ],
                     }
@@ -179,19 +161,14 @@ def test_get_revisions_env_failure(capsys):
         "dependencies": [
             "flake8=1.5.6",
             "flake8-bugs=1.1.2",
-            {
-                "pip": [
-                    "pandas-dev-flaker>=0.2.3",
-                ]
-            },
         ]
     }
     with pytest.raises(SystemExit, match=None):
         get_revisions(precommit_config, environment)
     result, _ = capsys.readouterr()
     expected = (
-        "Additional depedency of 'flake8' 'flake8-bugs' does not "
-        "match in 'environment.yml'"
+        "Mismatch of 'flake8-bugs' version between 'enviroment.yml' "
+        "and additional dependencies of 'flake8' in '.pre-commit-config.yaml'\n"
     )
     assert result == expected
 
@@ -234,6 +211,7 @@ def test_get_revisions_no_failure(capsys):
             "flake8-bugs=1.1.1",
             {
                 "pip": [
+                    "git+https://github.com/pydata/pydata-sphinx-theme.git@master",
                     "pandas-dev-flaker==0.2.0",
                 ]
             },
