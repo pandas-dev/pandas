@@ -173,7 +173,7 @@ __all__ = ["Index"]
 
 _unsortable_types = frozenset(("mixed", "mixed-integer"))
 
-_index_doc_kwargs = {
+_index_doc_kwargs: dict[str, str] = {
     "klass": "Index",
     "inplace": "",
     "target_klass": "Index",
@@ -181,7 +181,7 @@ _index_doc_kwargs = {
     "unique": "Index",
     "duplicated": "np.ndarray",
 }
-_index_shared_docs = {}
+_index_shared_docs: dict[str, str] = {}
 str_t = str
 
 
@@ -1189,7 +1189,7 @@ class Index(IndexOpsMixin, PandasObject):
         return header + result
 
     @final
-    def to_native_types(self, slicer=None, **kwargs):
+    def to_native_types(self, slicer=None, **kwargs) -> np.ndarray:
         """
         Format specified values of `self` and return them.
 
@@ -2998,7 +2998,7 @@ class Index(IndexOpsMixin, PandasObject):
             missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
         if len(missing) > 0:
-            other_diff = algos.take_nd(rvals, missing, allow_fill=False)
+            other_diff = rvals.take(missing)
             result = concat_compat((lvals, other_diff))
         else:
             # error: Incompatible types in assignment (expression has type
@@ -4237,9 +4237,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if right_lev_indexer is not None:
-            right_indexer = algos.take_nd(
-                right_lev_indexer, join_index.codes[level], allow_fill=False
-            )
+            right_indexer = right_lev_indexer.take(join_index.codes[level])
         else:
             right_indexer = join_index.codes[level]
 
@@ -4390,7 +4388,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def where(self, cond, other=None):
+    def where(self, cond, other=None) -> Index:
         """
         Replace values where the condition is False.
 
@@ -4606,7 +4604,7 @@ class Index(IndexOpsMixin, PandasObject):
             return name in self
         return False
 
-    def append(self, other):
+    def append(self, other) -> Index:
         """
         Append a collection of Index options together.
 
@@ -4616,7 +4614,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        appended : Index
+        Index
         """
         to_concat = [self]
 
@@ -4846,7 +4844,7 @@ class Index(IndexOpsMixin, PandasObject):
                 loc = loc.indices(len(self))[-1]
             return self[loc]
 
-    def asof_locs(self, where: Index, mask) -> np.ndarray:
+    def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
         """
         Return the locations (indices) of labels in the index.
 
@@ -4863,13 +4861,13 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         where : Index
             An Index consisting of an array of timestamps.
-        mask : array-like
+        mask : np.ndarray[bool]
             Array of booleans denoting where values in the original
             data are not NA.
 
         Returns
         -------
-        numpy.ndarray
+        np.ndarray[np.intp]
             An array of locations (indices) of the labels from the Index
             which correspond to the return values of the `asof` function
             for every element in `where`.
@@ -4877,7 +4875,7 @@ class Index(IndexOpsMixin, PandasObject):
         locs = self._values[mask].searchsorted(where._values, side="right")
         locs = np.where(locs > 0, locs - 1, 0)
 
-        result = np.arange(len(self))[mask].take(locs)
+        result = np.arange(len(self), dtype=np.intp)[mask].take(locs)
 
         # TODO: overload return type of ExtensionArray.__getitem__
         first_value = cast(Any, self._values[mask.argmax()])
@@ -5050,7 +5048,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
+        np.ndarray[np.intp]
             Integer indices that would sort the index if used as
             an indexer.
 
@@ -5838,7 +5836,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
-            New Index with passed location(-s) deleted.
+            Will be same type as self, except for RangeIndex.
 
         See Also
         --------
@@ -6352,8 +6350,8 @@ def _maybe_cast_data_without_dtype(subarr):
 
     elif inferred == "interval":
         try:
-            data = IntervalArray._from_sequence(subarr, copy=False)
-            return data
+            ia_data = IntervalArray._from_sequence(subarr, copy=False)
+            return ia_data
         except (ValueError, TypeError):
             # GH27172: mixed closed Intervals --> object dtype
             pass

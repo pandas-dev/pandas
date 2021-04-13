@@ -36,7 +36,7 @@ from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
     FrameOrSeriesUnion,
-    Manager,
+    Manager2D,
 )
 from pandas.util._decorators import (
     Appender,
@@ -176,6 +176,9 @@ def pin_allowlisted_properties(klass: type[FrameOrSeries], allowlist: frozenset[
 @pin_allowlisted_properties(Series, base.series_apply_allowlist)
 class SeriesGroupBy(GroupBy[Series]):
     _apply_allowlist = base.series_apply_allowlist
+
+    # Defined as a cache_readonly in SelectionMixin
+    _obj_with_exclusions: Series
 
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
@@ -927,6 +930,9 @@ class SeriesGroupBy(GroupBy[Series]):
 @pin_allowlisted_properties(DataFrame, base.dataframe_apply_allowlist)
 class DataFrameGroupBy(GroupBy[DataFrame]):
 
+    # Defined as a cache_readonly in SelectionMixin
+    _obj_with_exclusions: DataFrame
+
     _apply_allowlist = base.dataframe_apply_allowlist
 
     _agg_examples_doc = dedent(
@@ -1095,9 +1101,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _cython_agg_manager(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ) -> Manager:
+    ) -> Manager2D:
 
-        data: Manager = self._get_data_to_aggregate()
+        data: Manager2D = self._get_data_to_aggregate()
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
@@ -1691,7 +1697,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             return self.obj._constructor(result, index=obj.index, columns=result_index)
 
-    def _get_data_to_aggregate(self) -> Manager:
+    def _get_data_to_aggregate(self) -> Manager2D:
         obj = self._obj_with_exclusions
         if self.axis == 1:
             return obj.T._mgr
@@ -1776,7 +1782,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _wrap_agged_manager(self, mgr: Manager) -> DataFrame:
+    def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         if not self.as_index:
             index = np.arange(mgr.shape[1])
             mgr.set_axis(1, ibase.Index(index), verify_integrity=False)
