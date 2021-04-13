@@ -9,10 +9,6 @@ from typing import (
     Hashable,
     Iterator,
     List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
     cast,
 )
 import warnings
@@ -48,6 +44,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.algorithms import safe_sort
 from pandas.core.base import (
     DataError,
+    SelectionMixin,
     SpecificationError,
 )
 import pandas.core.common as com
@@ -77,13 +74,13 @@ def frame_apply(
     func: AggFuncType,
     axis: Axis = 0,
     raw: bool = False,
-    result_type: Optional[str] = None,
+    result_type: str | None = None,
     args=None,
     kwargs=None,
 ) -> FrameApply:
     """ construct and return a row or column based frame apply object """
     axis = obj._get_axis_number(axis)
-    klass: Type[FrameApply]
+    klass: type[FrameApply]
     if axis == 0:
         klass = FrameRowApply
     elif axis == 1:
@@ -107,7 +104,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj: AggObjType,
         func,
         raw: bool,
-        result_type: Optional[str],
+        result_type: str | None,
         args,
         kwargs,
     ):
@@ -152,7 +149,7 @@ class Apply(metaclass=abc.ABCMeta):
     def apply(self) -> FrameOrSeriesUnion:
         pass
 
-    def agg(self) -> Optional[FrameOrSeriesUnion]:
+    def agg(self) -> FrameOrSeriesUnion | None:
         """
         Provide an implementation for the aggregators.
 
@@ -177,7 +174,7 @@ class Apply(metaclass=abc.ABCMeta):
             return self.agg_list_like()
 
         if callable(arg):
-            f = obj._get_cython_func(arg)
+            f = com.get_cython_func(arg)
             if f and not args and not kwargs:
                 return getattr(obj, f)()
 
@@ -265,7 +262,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         func = self.normalize_dictlike_arg("transform", obj, func)
 
-        results: Dict[Hashable, FrameOrSeriesUnion] = {}
+        results: dict[Hashable, FrameOrSeriesUnion] = {}
         failed_names = []
         all_type_errors = True
         for name, how in func.items():
@@ -305,10 +302,10 @@ class Apply(metaclass=abc.ABCMeta):
         kwargs = self.kwargs
 
         if isinstance(func, str):
-            return obj._try_aggregate_string_function(func, *args, **kwargs)
+            return self._try_aggregate_string_function(obj, func, *args, **kwargs)
 
         if not args and not kwargs:
-            f = obj._get_cython_func(func)
+            f = com.get_cython_func(func)
             if f:
                 return getattr(obj, f)()
 
@@ -331,7 +328,10 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
         arg = cast(List[AggFuncTypeBase], self.f)
 
-        if obj._selected_obj.ndim == 1:
+        if not isinstance(obj, SelectionMixin):
+            # i.e. obj is Series or DataFrame
+            selected_obj = obj
+        elif obj._selected_obj.ndim == 1:
             selected_obj = obj._selected_obj
         else:
             selected_obj = obj._obj_with_exclusions
@@ -410,13 +410,19 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
         arg = cast(AggFuncTypeDict, self.f)
 
-        selected_obj = obj._selected_obj
+        if not isinstance(obj, SelectionMixin):
+            # i.e. obj is Series or DataFrame
+            selected_obj = obj
+            selection = None
+        else:
+            selected_obj = obj._selected_obj
+            selection = obj._selection
 
         arg = self.normalize_dictlike_arg("agg", selected_obj, arg)
 
         if selected_obj.ndim == 1:
             # key only used for output
-            colg = obj._gotitem(obj._selection, ndim=1)
+            colg = obj._gotitem(selection, ndim=1)
             results = {key: colg.agg(how) for key, how in arg.items()}
         else:
             # key used for column selection and output
@@ -459,7 +465,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         return result
 
-    def maybe_apply_str(self) -> Optional[FrameOrSeriesUnion]:
+    def maybe_apply_str(self) -> FrameOrSeriesUnion | None:
         """
         Compute apply in case of a string.
 
@@ -490,9 +496,9 @@ class Apply(metaclass=abc.ABCMeta):
                 self.kwargs["axis"] = self.axis
             elif self.axis != 0:
                 raise ValueError(f"Operation {f} does not support axis=1")
-        return obj._try_aggregate_string_function(f, *self.args, **self.kwargs)
+        return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
-    def maybe_apply_multiple(self) -> Optional[FrameOrSeriesUnion]:
+    def maybe_apply_multiple(self) -> FrameOrSeriesUnion | None:
         """
         Compute apply in case of a list-like or dict-like.
 
@@ -550,6 +556,35 @@ class Apply(metaclass=abc.ABCMeta):
                     new_func[k] = v
             func = new_func
         return func
+
+    def _try_aggregate_string_function(self, obj, arg: str, *args, **kwargs):
+        """
+        if arg is a string, then try to operate on it:
+        - try to find a function (or attribute) on ourselves
+        - try to find a numpy function
+        - raise
+        """
+        assert isinstance(arg, str)
+
+        f = getattr(obj, arg, None)
+        if f is not None:
+            if callable(f):
+                return f(*args, **kwargs)
+
+            # people may try to aggregate on a non-callable attribute
+            # but don't let them think they can pass args to it
+            assert len(args) == 0
+            assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
+            return f
+
+        f = getattr(np, arg, None)
+        if f is not None and hasattr(obj, "__array__"):
+            # in particular exclude Window
+            return f(obj, *args, **kwargs)
+
+        raise AttributeError(
+            f"'{arg}' is not a valid function for '{type(obj).__name__}' object"
+        )
 
 
 class FrameApply(Apply):
@@ -754,7 +789,7 @@ class FrameApply(Apply):
         # wrap results
         return self.wrap_results(results, res_index)
 
-    def apply_series_generator(self) -> Tuple[ResType, Index]:
+    def apply_series_generator(self) -> tuple[ResType, Index]:
         assert callable(self.f)
 
         series_gen = self.series_generator
@@ -1026,7 +1061,16 @@ class SeriesApply(Apply):
                 mapped = obj._values.map(f)
             else:
                 values = obj.astype(object)._values
-                mapped = lib.map_infer(values, f, convert=self.convert_dtype)
+                # error: Argument 2 to "map_infer" has incompatible type
+                # "Union[Callable[..., Any], str, List[Union[Callable[..., Any], str]],
+                # Dict[Hashable, Union[Union[Callable[..., Any], str],
+                # List[Union[Callable[..., Any], str]]]]]"; expected
+                # "Callable[[Any], Any]"
+                mapped = lib.map_infer(
+                    values,
+                    f,  # type: ignore[arg-type]
+                    convert=self.convert_dtype,
+                )
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             # GH 25959 use pd.array instead of tolist
@@ -1039,11 +1083,11 @@ class SeriesApply(Apply):
 
 
 class GroupByApply(Apply):
-    obj: Union[SeriesGroupBy, DataFrameGroupBy]
+    obj: SeriesGroupBy | DataFrameGroupBy
 
     def __init__(
         self,
-        obj: Union[SeriesGroupBy, DataFrameGroupBy],
+        obj: SeriesGroupBy | DataFrameGroupBy,
         func: AggFuncType,
         args,
         kwargs,
@@ -1068,11 +1112,11 @@ class GroupByApply(Apply):
 
 class ResamplerWindowApply(Apply):
     axis = 0
-    obj: Union[Resampler, BaseWindow]
+    obj: Resampler | BaseWindow
 
     def __init__(
         self,
-        obj: Union[Resampler, BaseWindow],
+        obj: Resampler | BaseWindow,
         func: AggFuncType,
         args,
         kwargs,
