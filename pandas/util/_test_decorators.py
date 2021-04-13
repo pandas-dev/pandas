@@ -23,13 +23,12 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
+from __future__ import annotations
+
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 import locale
-from typing import (
-    Callable,
-    Optional,
-)
+from typing import Callable
 import warnings
 
 import numpy as np
@@ -49,7 +48,7 @@ from pandas.core.computation.expressions import (
 )
 
 
-def safe_import(mod_name: str, min_version: Optional[str] = None):
+def safe_import(mod_name: str, min_version: str | None = None):
     """
     Parameters
     ----------
@@ -144,7 +143,7 @@ def skip_if_installed(package: str):
 
 # TODO: return type, _pytest.mark.structures.MarkDecorator is not public
 # https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_no(package: str, min_version: Optional[str] = None):
+def skip_if_no(package: str, min_version: str | None = None):
     """
     Generic function to help skip tests when required packages are not
     present on the testing system.
@@ -208,7 +207,7 @@ skip_if_no_ne = pytest.mark.skipif(
 
 # TODO: return type, _pytest.mark.structures.MarkDecorator is not public
 # https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_np_lt(ver_str: str, *args, reason: Optional[str] = None):
+def skip_if_np_lt(ver_str: str, *args, reason: str | None = None):
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(

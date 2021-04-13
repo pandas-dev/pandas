@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import codecs
 import json
 import locale
@@ -5,11 +7,6 @@ import os
 import platform
 import struct
 import sys
-from typing import (
-    Dict,
-    Optional,
-    Union,
-)
 
 from pandas._typing import JSONSerializable
 from pandas.compat._optional import (
@@ -19,7 +16,7 @@ from pandas.compat._optional import (
 )
 
 
-def _get_commit_hash() -> Optional[str]:
+def _get_commit_hash() -> str | None:
     """
     Use vendored versioneer code to get git hash, which handles
     git worktree correctly.
@@ -30,7 +27,7 @@ def _get_commit_hash() -> Optional[str]:
     return versions["full-revisionid"]
 
 
-def _get_sys_info() -> Dict[str, JSONSerializable]:
+def _get_sys_info() -> dict[str, JSONSerializable]:
     """
     Returns system information as a JSON serializable dictionary.
     """
@@ -52,7 +49,7 @@ def _get_sys_info() -> Dict[str, JSONSerializable]:
     }
 
 
-def _get_dependency_info() -> Dict[str, JSONSerializable]:
+def _get_dependency_info() -> dict[str, JSONSerializable]:
     """
     Returns dependency information as a JSON serializable dictionary.
     """
@@ -86,14 +83,14 @@ def _get_dependency_info() -> Dict[str, JSONSerializable]:
     ]
     deps.extend(list(VERSIONS))
 
-    result: Dict[str, JSONSerializable] = {}
+    result: dict[str, JSONSerializable] = {}
     for modname in deps:
         mod = import_optional_dependency(modname, errors="ignore")
         result[modname] = get_version(mod) if mod else None
     return result
 
 
-def show_versions(as_json: Union[str, bool] = False) -> None:
+def show_versions(as_json: str | bool = False) -> None:
     """
     Provide useful information, important for bug reports.
 

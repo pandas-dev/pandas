@@ -1,6 +1,6 @@
-from typing import Dict
+from __future__ import annotations
 
-_shared_docs: Dict[str, str] = {}
+_shared_docs: dict[str, str] = {}
 
 _shared_docs[
     "aggregate"

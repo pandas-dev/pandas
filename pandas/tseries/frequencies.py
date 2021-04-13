@@ -1,4 +1,5 @@
-from typing import Optional
+from __future__ import annotations
+
 import warnings
 
 import numpy as np
@@ -93,7 +94,7 @@ for _d in DAYS:
     _offset_to_period_map[f"W-{_d}"] = f"W-{_d}"
 
 
-def get_period_alias(offset_str: str) -> Optional[str]:
+def get_period_alias(offset_str: str) -> str | None:
     """
     Alias to closest period strings BQ->Q etc.
     """
@@ -123,7 +124,7 @@ def get_offset(name: str) -> DateOffset:
 # Period codes
 
 
-def infer_freq(index, warn: bool = True) -> Optional[str]:
+def infer_freq(index, warn: bool = True) -> str | None:
     """
     Infer the most likely frequency given the input index. If the frequency is
     uncertain, a warning will be printed.
@@ -239,7 +240,7 @@ class _FrequencyInferer:
     def is_unique_asi8(self) -> bool:
         return len(self.deltas_asi8) == 1
 
-    def get_freq(self) -> Optional[str]:
+    def get_freq(self) -> str | None:
         """
         Find the appropriate frequency string to describe the inferred
         frequency of self.i8values
@@ -313,7 +314,7 @@ class _FrequencyInferer:
     def ydiffs(self):
         return unique_deltas(self.fields["Y"].astype("i8"))
 
-    def _infer_daily_rule(self) -> Optional[str]:
+    def _infer_daily_rule(self) -> str | None:
         annual_rule = self._get_annual_rule()
         if annual_rule:
             nyears = self.ydiffs[0]
@@ -345,7 +346,7 @@ class _FrequencyInferer:
 
         return None
 
-    def _get_daily_rule(self) -> Optional[str]:
+    def _get_daily_rule(self) -> str | None:
         days = self.deltas[0] / _ONE_DAY
         if days % 7 == 0:
             # Weekly
@@ -355,7 +356,7 @@ class _FrequencyInferer:
         else:
             return _maybe_add_count("D", days)
 
-    def _get_annual_rule(self) -> Optional[str]:
+    def _get_annual_rule(self) -> str | None:
         if len(self.ydiffs) > 1:
             return None
 
@@ -365,7 +366,7 @@ class _FrequencyInferer:
         pos_check = self.month_position_check()
         return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(pos_check)
 
-    def _get_quarterly_rule(self) -> Optional[str]:
+    def _get_quarterly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
             return None
 
@@ -375,7 +376,7 @@ class _FrequencyInferer:
         pos_check = self.month_position_check()
         return {"cs": "QS", "bs": "BQS", "ce": "Q", "be": "BQ"}.get(pos_check)
 
-    def _get_monthly_rule(self) -> Optional[str]:
+    def _get_monthly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
             return None
         pos_check = self.month_position_check()
@@ -397,7 +398,7 @@ class _FrequencyInferer:
             | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
         )
 
-    def _get_wom_rule(self) -> Optional[str]:
+    def _get_wom_rule(self) -> str | None:
         # FIXME: dont leave commented-out
         #         wdiffs = unique(np.diff(self.index.week))
         # We also need -47, -49, -48 to catch index spanning year boundary

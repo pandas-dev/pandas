@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import distutils.version
 import importlib
 import sys
 import types
-from typing import Optional
 import warnings
 
 # Update install.rst when updating versions!
@@ -63,7 +64,7 @@ def import_optional_dependency(
     name: str,
     extra: str = "",
     errors: str = "raise",
-    min_version: Optional[str] = None,
+    min_version: str | None = None,
 ):
     """
     Import an optional dependency.

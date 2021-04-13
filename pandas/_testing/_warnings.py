@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 import re
 from typing import (
-    Optional,
     Sequence,
     Type,
-    Union,
     cast,
 )
 import warnings
@@ -12,11 +12,11 @@ import warnings
 
 @contextmanager
 def assert_produces_warning(
-    expected_warning: Optional[Union[Type[Warning], bool]] = Warning,
+    expected_warning: type[Warning] | bool | None = Warning,
     filter_level="always",
     check_stacklevel: bool = True,
     raise_on_extra_warnings: bool = True,
-    match: Optional[str] = None,
+    match: str | None = None,
 ):
     """
     Context manager for running code expected to either raise a specific
@@ -99,8 +99,8 @@ def assert_produces_warning(
 def _assert_caught_expected_warning(
     *,
     caught_warnings: Sequence[warnings.WarningMessage],
-    expected_warning: Type[Warning],
-    match: Optional[str],
+    expected_warning: type[Warning],
+    match: str | None,
     check_stacklevel: bool,
 ) -> None:
     """Assert that there was the expected warning among the caught warnings."""
@@ -135,7 +135,7 @@ def _assert_caught_expected_warning(
 def _assert_caught_no_extra_warnings(
     *,
     caught_warnings: Sequence[warnings.WarningMessage],
-    expected_warning: Optional[Union[Type[Warning], bool]],
+    expected_warning: type[Warning] | bool | None,
 ) -> None:
     """Assert that no extra warnings apart from the expected ones are caught."""
     extra_warnings = []
@@ -157,7 +157,7 @@ def _assert_caught_no_extra_warnings(
 
 def _is_unexpected_warning(
     actual_warning: warnings.WarningMessage,
-    expected_warning: Optional[Union[Type[Warning], bool]],
+    expected_warning: type[Warning] | bool | None,
 ) -> bool:
     """Check if the actual warning issued is unexpected."""
     if actual_warning and not expected_warning:

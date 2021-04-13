@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 from datetime import (
     datetime,
     timedelta,
 )
-from typing import List
 import warnings
 
 from dateutil.relativedelta import (  # noqa
@@ -384,7 +385,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     Abstract interface to create holidays following certain rules.
     """
 
-    rules: List[Holiday] = []
+    rules: list[Holiday] = []
     start_date = Timestamp(datetime(1970, 1, 1))
     end_date = Timestamp(datetime(2200, 12, 31))
     _cache = None
