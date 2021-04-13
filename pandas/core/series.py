@@ -60,15 +60,13 @@ from pandas.util._validators import (
 from pandas.core.dtypes.cast import (
     convert_dtypes,
     maybe_box_native,
-    maybe_cast_to_extension_array,
+    maybe_cast_result,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
-    is_categorical_dtype,
     is_dict_like,
-    is_extension_array_dtype,
     is_integer,
     is_iterator,
     is_list_like,
@@ -1894,8 +1892,16 @@ Name: Max Speed, dtype: float64
         """
         if level is None:
             return notna(self._values).sum()
-        elif not isinstance(self.index, MultiIndex):
-            raise ValueError("Series.count level is only valid with a MultiIndex")
+        else:
+            warnings.warn(
+                "Using the level keyword in DataFrame and Series aggregations is "
+                "deprecated and will be removed in a future version. Use groupby "
+                "instead. ser.count(level=1) should use ser.groupby(level=1).count().",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if not isinstance(self.index, MultiIndex):
+                raise ValueError("Series.count level is only valid with a MultiIndex")
 
         index = self.index
         assert isinstance(index, MultiIndex)  # for mypy
@@ -3079,22 +3085,9 @@ Keep all original rows and also all original values
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        if is_categorical_dtype(self.dtype):
-            pass
-        elif is_extension_array_dtype(self.dtype):
-            # TODO: can we do this for only SparseDtype?
-            # The function can return something of any type, so check
-            # if the type is compatible with the calling EA.
-
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ExtensionArray, ndarray]", variable has type "List[Any]")
-            new_values = maybe_cast_to_extension_array(  # type: ignore[assignment]
-                # error: Argument 2 to "maybe_cast_to_extension_array" has incompatible
-                # type "List[Any]"; expected "Union[ExtensionArray, ndarray]"
-                type(self._values),
-                new_values,  # type: ignore[arg-type]
-            )
-        return self._constructor(new_values, index=new_index, name=new_name)
+        res_values = sanitize_array(new_values, None)
+        res_values = maybe_cast_result(res_values, self.dtype, same_dtype=False)
+        return self._constructor(res_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> Series:
         """
