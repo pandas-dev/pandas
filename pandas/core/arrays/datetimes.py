@@ -190,7 +190,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _infer_matches = ("datetime", "datetime64", "date")
 
     # define my properties & methods for delegation
-    _bool_ops = [
+    _bool_ops: list[str] = [
         "is_month_start",
         "is_month_end",
         "is_quarter_start",
@@ -199,8 +199,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "is_year_end",
         "is_leap_year",
     ]
-    _object_ops = ["freq", "tz"]
-    _field_ops = [
+    _object_ops: list[str] = ["freq", "tz"]
+    _field_ops: list[str] = [
         "year",
         "month",
         "day",
@@ -220,9 +220,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "microsecond",
         "nanosecond",
     ]
-    _other_ops = ["date", "time", "timetz"]
-    _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
-    _datetimelike_methods = [
+    _other_ops: list[str] = ["date", "time", "timetz"]
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops + _other_ops
+    _datetimelike_methods: list[str] = [
         "to_period",
         "tz_localize",
         "tz_convert",

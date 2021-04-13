@@ -408,7 +408,7 @@ def nargminmax(values, method: str, axis: int = 0):
     ----------
     values : ExtensionArray
     method : {"argmax", "argmin"}
-    axis: int, default 0
+    axis : int, default 0
 
     Returns
     -------

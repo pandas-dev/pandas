@@ -106,9 +106,9 @@ class RangeIndex(NumericIndex):
         stop=None,
         step=None,
         dtype: Dtype | None = None,
-        copy=False,
-        name=None,
-    ):
+        copy: bool = False,
+        name: Hashable = None,
+    ) -> RangeIndex:
 
         # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
         # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
@@ -584,7 +584,7 @@ class RangeIndex(NumericIndex):
         # solve intersection problem
         # performance hint: for identical step sizes, could use
         # cheaper alternative
-        gcd, s, t = self._extended_gcd(first.step, second.step)
+        gcd, s, _ = self._extended_gcd(first.step, second.step)
 
         # check whether element sets intersect
         if (first.start - second.start) % gcd:
@@ -619,7 +619,7 @@ class RangeIndex(NumericIndex):
         no_steps = (upper_limit - self.start) // abs(self.step)
         return self.start + abs(self.step) * no_steps
 
-    def _extended_gcd(self, a, b):
+    def _extended_gcd(self, a: int, b: int) -> tuple[int, int, int]:
         """
         Extended Euclidean algorithms to solve Bezout's identity:
            a*x + b*y = gcd(x, y)
@@ -745,7 +745,7 @@ class RangeIndex(NumericIndex):
             new_index = new_index[::-1]
         return new_index
 
-    def symmetric_difference(self, other, result_name=None, sort=None):
+    def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
         if not isinstance(other, RangeIndex) or sort is not None:
             return super().symmetric_difference(other, result_name, sort)
 
@@ -759,7 +759,7 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
-    def _concat(self, indexes, name):
+    def _concat(self, indexes, name: Hashable):
         """
         Overriding parent method for the case of all RangeIndex instances.
 

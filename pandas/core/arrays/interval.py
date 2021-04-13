@@ -87,7 +87,7 @@ from pandas.core.ops import (
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
-_interval_shared_docs = {}
+_interval_shared_docs: dict[str, str] = {}
 
 _shared_docs_kwargs = {
     "klass": "IntervalArray",

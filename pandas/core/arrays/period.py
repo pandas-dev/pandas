@@ -157,9 +157,9 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     # Names others delegate to us
     _other_ops: list[str] = []
-    _bool_ops = ["is_leap_year"]
-    _object_ops = ["start_time", "end_time", "freq"]
-    _field_ops = [
+    _bool_ops: list[str] = ["is_leap_year"]
+    _object_ops: list[str] = ["start_time", "end_time", "freq"]
+    _field_ops: list[str] = [
         "year",
         "month",
         "day",

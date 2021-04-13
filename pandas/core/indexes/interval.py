@@ -283,7 +283,7 @@ class IntervalIndex(ExtensionIndex):
         copy: bool = False,
         name: Hashable = None,
         verify_integrity: bool = True,
-    ):
+    ) -> IntervalIndex:
 
         name = maybe_extract_name(name, data, cls)
 
@@ -318,10 +318,10 @@ class IntervalIndex(ExtensionIndex):
         cls,
         breaks,
         closed: str = "right",
-        name=None,
+        name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-    ):
+    ) -> IntervalIndex:
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_breaks(
                 breaks, closed=closed, copy=copy, dtype=dtype
@@ -349,10 +349,10 @@ class IntervalIndex(ExtensionIndex):
         left,
         right,
         closed: str = "right",
-        name=None,
+        name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-    ):
+    ) -> IntervalIndex:
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_arrays(
                 left, right, closed, copy=copy, dtype=dtype
@@ -379,10 +379,10 @@ class IntervalIndex(ExtensionIndex):
         cls,
         data,
         closed: str = "right",
-        name=None,
+        name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-    ):
+    ) -> IntervalIndex:
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)
         return cls._simple_new(arr, name=name)
@@ -878,7 +878,7 @@ class IntervalIndex(ExtensionIndex):
         arr.putmask(mask, value)
         return type(self)._simple_new(arr, name=self.name)
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         """
         Return a new IntervalIndex inserting new item at location. Follows
         Python list.append semantics for negative values.  Only Interval
@@ -1077,8 +1077,8 @@ def _is_type_compatible(a, b) -> bool:
 
 
 def interval_range(
-    start=None, end=None, periods=None, freq=None, name=None, closed="right"
-):
+    start=None, end=None, periods=None, freq=None, name: Hashable = None, closed="right"
+) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
 
