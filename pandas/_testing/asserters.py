@@ -154,6 +154,9 @@ def assert_almost_equal(
                 else:
                     obj = "Input"
                 assert_class_equal(left, right, obj=obj)
+
+        # if we have "equiv", this becomes True
+        check_dtype = bool(check_dtype)
         _testing.assert_almost_equal(
             left, right, check_dtype=check_dtype, rtol=rtol, atol=atol, **kwargs
         )
@@ -388,12 +391,15 @@ def assert_index_equal(
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:
+
+        # if we have "equiv", this becomes True
+        exact_bool = bool(exact)
         _testing.assert_almost_equal(
             left.values,
             right.values,
             rtol=rtol,
             atol=atol,
-            check_dtype=exact,
+            check_dtype=exact_bool,
             obj=obj,
             lobj=left,
             robj=right,
