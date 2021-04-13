@@ -1254,7 +1254,7 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
         Array to store cummin/max in.
     values : np.ndarray[groupby_t, ndim=2]
         Values to take cummin/max of.
-    mask : array[uint8_t] or None
+    mask : np.ndarray[bool] or None
         If not None, indices represent missing values,
         otherwise the mask will not be used
     labels : np.ndarray[np.intp]
@@ -1281,7 +1281,7 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
     use_mask = mask is not None
 
     N, K = (<object>values).shape
-    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype, order='C')
+    accum = np.empty((ngroups, K), dtype=values.dtype)
     if groupby_t is int64_t:
         accum[:] = -_int64_max if compute_max else _int64_max
     elif groupby_t is uint64_t:

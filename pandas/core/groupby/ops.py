@@ -634,9 +634,8 @@ class BaseGrouper:
         """
         orig_values = values
 
-        # isna just directly returns self._mask, so copy here to prevent
-        # modifying the original
-        mask = isna(values).copy()
+        # Copy to ensure input and result masks don't end up shared
+        mask = values._mask.copy()
         arr = values._data
 
         if is_integer_dtype(arr.dtype) or is_bool_dtype(arr.dtype):
@@ -650,9 +649,7 @@ class BaseGrouper:
         assert isinstance(dtype, BaseMaskedDtype)
         cls = dtype.construct_array_type()
 
-        return cls(
-            res_values.astype(dtype.type, copy=False), mask.astype(bool, copy=False)
-        )
+        return cls(res_values.astype(dtype.type, copy=False), mask)
 
     @final
     def _cython_operation(
