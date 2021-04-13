@@ -639,7 +639,7 @@ class BaseGrouper:
         mask = isna(values).copy()
         arr = values._data
 
-        if is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
+        if is_integer_dtype(arr.dtype) or is_bool_dtype(arr.dtype):
             # IntegerArray or BooleanArray
             arr = ensure_int_or_float(arr)
 
