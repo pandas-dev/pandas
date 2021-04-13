@@ -65,7 +65,6 @@ from pandas.core.arrays import (
     BooleanArray,
     FloatingArray,
     IntegerArray,
-    StringArray,
 )
 
 
