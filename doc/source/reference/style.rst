@@ -23,7 +23,7 @@ Styler properties
    :toctree: api/
 
    Styler.env
-   Styler.template
+   Styler.template_html
    Styler.template_latex
    Styler.loader
 
@@ -54,6 +54,7 @@ Builtin styles
    Styler.highlight_null
    Styler.highlight_max
    Styler.highlight_min
+   Styler.highlight_between
    Styler.background_gradient
    Styler.bar
 
