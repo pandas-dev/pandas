@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import is_categorical_dtype
 
 from pandas import (
@@ -440,8 +438,7 @@ class TestCrosstab:
         )
         tm.assert_frame_equal(test_case, norm_sum)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) concat axis=0
-    def test_crosstab_with_empties(self):
+    def test_crosstab_with_empties(self, using_array_manager):
         # Check handling of empties
         df = DataFrame(
             {
@@ -466,6 +463,9 @@ class TestCrosstab:
             index=Index([1, 2], name="a", dtype="int64"),
             columns=Index([3, 4], name="b"),
         )
+        if using_array_manager:
+            # INFO(ArrayManager) column without NaNs can preserve int dtype
+            nans[3] = nans[3].astype("int64")
 
         calculated = crosstab(df.a, df.b, values=df.c, aggfunc="count", normalize=False)
         tm.assert_frame_equal(nans, calculated)
