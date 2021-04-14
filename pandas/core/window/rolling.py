@@ -897,33 +897,6 @@ class Window(BaseWindow):
     2013-01-01 09:00:03  3.0
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
-
-    Rolling window apply function that uses multiple columns as input using
-    method='table'. The apply function multiplies A with B and sums all rows
-    (dot product).
-
-    >>> df = pd.DataFrame({'A': range(5), 'B': range(5,0,-1)})
-
-    >>> df
-       A  B
-    0  0  5
-    1  1  4
-    2  2  3
-    3  3  2
-    4  4  1
-
-    >>> def apply_func(M):
-    ...     return (M[:,0] * M[:,1]).sum(axis=0)
-    >>> df.rolling(3, method='table').apply(apply_func, engine='numba', raw=True)
-          A     B
-    0   NaN   NaN
-    1   NaN   NaN
-    2  10.0  10.0
-    3  16.0  16.0
-    4  16.0  16.0
-
-    method='table' requires the use of the engine='numba' which in turn requires
-    raw=True. Therefore the apply function is provided a numpy.ndarray as input.
     """
 
     _attributes = [
@@ -1637,6 +1610,35 @@ class Rolling(RollingAndExpandingMixin):
         template_returns,
         create_section_header("See Also"),
         template_see_also[:-1],
+        create_section_header("Examples"),
+        dedent("""
+        Apply function that uses multiple columns as input using
+        method='table'. The apply function multiplies A with B and sums all rows
+        (dot product).
+        
+        >>> df = pd.DataFrame({'A': range(5), 'B': range(5,0,-1)})
+        
+        >>> df
+           A  B
+        0  0  5
+        1  1  4
+        2  2  3
+        3  3  2
+        4  4  1
+        
+        >>> def apply_func(M):
+        ...     return (M[:,0] * M[:,1]).sum(axis=0)
+        >>> df.rolling(3, method='table').apply(apply_func, engine='numba', raw=True)
+              A     B
+        0   NaN   NaN
+        1   NaN   NaN
+        2  10.0  10.0
+        3  16.0  16.0
+        4  16.0  16.0
+        
+        method='table' requires the use of the engine='numba' which in turn requires
+        raw=True. Therefore the apply function is provided a numpy.ndarray as input.
+        """),
         window_method="rolling",
         aggregation_description="custom aggregation function",
         agg_method="apply",
