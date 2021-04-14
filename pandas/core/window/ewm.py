@@ -596,6 +596,8 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             groupby_order = np.concatenate(list(self._grouper.indices.values())).astype(
                 np.int64
             )
+            # error: Item "str" of "Union[str, ndarray, FrameOrSeries]" has no
+            # attribute "take"
             self.times = self.times.take(groupby_order)
             self._calculate_deltas()
 
