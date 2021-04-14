@@ -857,8 +857,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         This method takes a time zone (tz) naive Datetime Array/Index object
         and makes this time zone aware. It does not move the time to another
         time zone.
-        Time zone localization helps to switch from time zone aware to time
-        zone unaware objects.
+        Time zone localization helps to switch from time zone unaware to time
+        zone aware objects.
 
         Parameters
         ----------
