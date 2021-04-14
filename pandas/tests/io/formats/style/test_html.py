@@ -110,6 +110,23 @@ def test_w3_html_format():
     assert expected == s.render()
 
 
+def test_colspan_w3():
+    # GH 36223
+    df = DataFrame(data=[[1, 2]], columns=[["l0", "l0"], ["l1a", "l1b"]])
+    s = Styler(df, uuid="_", cell_ids=False)
+    assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in s.render()
+
+
+def test_rowspan_w3():
+    # GH 38533
+    df = DataFrame(data=[[1, 2]], index=[["l0", "l0"], ["l1a", "l1b"]])
+    s = Styler(df, uuid="_", cell_ids=False)
+    assert (
+        '<th id="T___level0_row0" class="row_heading '
+        'level0 row0" rowspan="2">l0</th>' in s.render()
+    )
+
+
 def test_styles():
     s = Styler(DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]), uuid="abc")
     result = s.to_html()
