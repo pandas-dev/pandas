@@ -1026,21 +1026,21 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "func_name, expected_value",
+        "op, expected_value",
         [("idxmax", [0, 4]), ("idxmin", [0, 5])],
     )
-    def test_idxmax_idxmin_convert_dtypes(self, func_name, expected_value):
+    def test_idxmax_idxmin_convert_dtypes(self, op, expected_value):
+        # GH 40346
         df = DataFrame(
             {
                 "ID": [100, 100, 100, 200, 200, 200],
                 "value": [0, 0, 0, 1, 2, 0],
-            }
+            },
+            dtype="Int64",
         )
+        df = df.groupby("ID")
 
-        df = df.convert_dtypes().groupby("ID")
-        func = getattr(df, func_name)
-
-        result = func()
+        result = getattr(df, op)()
         expected = DataFrame(
             {"value": expected_value},
             index=Index([100, 200], dtype="object", name="ID"),
