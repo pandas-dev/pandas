@@ -58,6 +58,7 @@ class TextReader:
         true_values=...,
         false_values=...,
         allow_leading_cols: bool = ...,
+        low_memory: bool = ...,
         skiprows=...,
         skipfooter: int = ...,  # int64_t
         verbose: bool = ...,
@@ -74,4 +75,3 @@ class TextReader:
     def close(self) -> None: ...
 
     def read(self, rows: int | None = ...) -> dict[int, ArrayLike]: ...
-    def read_low_memory(self, rows: int | None) -> list[dict[int, ArrayLike]]: ...
