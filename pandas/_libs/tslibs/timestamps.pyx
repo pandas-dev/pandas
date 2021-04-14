@@ -1073,7 +1073,7 @@ class Timestamp(_Timestamp):
             )
         return result
 
-    def round(self, freq, ambiguous: bool | str = "raise", nonexistent: str = "raise"):
+    def round(self, freq, ambiguous='raise', nonexistent='raise'):
         """
         Round the Timestamp to the specified resolution.
 
@@ -1118,7 +1118,7 @@ timedelta}, default 'raise'
             freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
         )
 
-    def floor(self, freq, ambiguous: bool | str = "raise", nonexistent: str = "raise"):
+    def floor(self, freq, ambiguous='raise', nonexistent='raise'):
         """
         Return a new Timestamp floored to this resolution.
 
@@ -1157,7 +1157,7 @@ timedelta}, default 'raise'
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
-    def ceil(self, freq, ambiguous: bool | str = "raise", nonexistent: str = "raise"):
+    def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
         """
         Return a new Timestamp ceiled to this resolution.
 
