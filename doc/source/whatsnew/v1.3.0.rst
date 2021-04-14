@@ -727,7 +727,7 @@ Plotting
 
 - Bug in :func:`scatter_matrix` raising when 2d ``ax`` argument passed (:issue:`16253`)
 - Prevent warnings when matplotlib's ``constrained_layout`` is enabled (:issue:`25261`)
--
+- Bug in :meth:`BoxPlot._validate_color_args` caps or min/max markers on box plot would not be visible with 'dark_background' theme (:issue:`40769`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -753,6 +753,7 @@ Groupby/resample/rolling
 - Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would not retain ``com``, ``span``, ``alpha`` or ``halflife`` attributes  (:issue:`40164`)
 - :class:`core.window.ewm.ExponentialMovingWindow` now raises a ``NotImplementedError`` when specifying ``times`` with ``adjust=False`` due to an incorrect calculation (:issue:`40098`)
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
+
 
 Reshaping
 ^^^^^^^^^
