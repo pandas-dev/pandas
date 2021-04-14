@@ -11,7 +11,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import missing as libmissing
-from pandas.compat import np_version_under1p17
 
 from pandas.core.nanops import check_below_min_count
 
@@ -54,13 +53,7 @@ def _sumprod(
         ):
             return libmissing.NA
 
-        if np_version_under1p17:
-            if values.ndim == 1:
-                return func(values[~mask], axis=axis)
-            else:
-                raise NotImplementedError
-        else:
-            return func(values, where=~mask, axis=axis)
+        return func(values, where=~mask, axis=axis)
 
 
 def sum(

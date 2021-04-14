@@ -351,7 +351,7 @@ class ExtensionIndex(Index):
             return self.astype(object).map(mapper)
 
     @doc(Index.astype)
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True) -> Index:
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(self.dtype, dtype):
             if not copy:
@@ -410,7 +410,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
     def _get_engine_target(self) -> np.ndarray:
         return self._data._ndarray
 
-    def insert(self: _T, loc: int, item) -> _T:
+    def insert(self: _T, loc: int, item) -> Index:
         """
         Make new Index inserting new item at location. Follows
         Python list.append semantics for negative values.
