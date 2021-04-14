@@ -1026,6 +1026,28 @@ class TestDataFrameAnalytics:
         expected = Series([0, 2, 1, 2], index=[1, 2, 3, 4])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "op, expected_value",
+        [("idxmax", [0, 4]), ("idxmin", [0, 5])],
+    )
+    def test_idxmax_idxmin_convert_dtypes(self, op, expected_value):
+        # GH 40346
+        df = DataFrame(
+            {
+                "ID": [100, 100, 100, 200, 200, 200],
+                "value": [0, 0, 0, 1, 2, 0],
+            },
+            dtype="Int64",
+        )
+        df = df.groupby("ID")
+
+        result = getattr(df, op)()
+        expected = DataFrame(
+            {"value": expected_value},
+            index=Index([100, 200], dtype="object", name="ID"),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_idxmax_dt64_multicolumn_axis1(self):
         dti = date_range("2016-01-01", periods=3)
         df = DataFrame({3: dti, 4: dti[::-1]})
