@@ -518,3 +518,6 @@ def test_union_duplicates(index):
     mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
     result = mi1.union(mi2)
     tm.assert_index_equal(result, mi2.sort_values())
+
+    result = mi2.union(mi1)
+    tm.assert_index_equal(result, mi2.sort_values())
