@@ -9,6 +9,7 @@ from pandas._libs import (
     lib,
     tslibs,
 )
+from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -227,8 +228,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if freq:
             freq = to_offset(freq)
 
-        self._ndarray = values
-        self._dtype = dtype
+        NDArrayBacked.__init__(self, values=values, dtype=dtype)
         self._freq = freq
 
         if inferred_freq is None and freq is not None:
@@ -242,10 +242,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         assert isinstance(values, np.ndarray), type(values)
         assert values.dtype == TD64NS_DTYPE
 
-        result = object.__new__(cls)
-        result._ndarray = values
+        result = super()._simple_new(values=values, dtype=TD64NS_DTYPE)
         result._freq = freq
-        result._dtype = TD64NS_DTYPE
         return result
 
     @classmethod
