@@ -1640,6 +1640,7 @@ class Styler(StylerRenderer):
         >>> df.style.highlight_quantile(axis=1, q_left=0.8, color="#fffd75")
 
         .. figure:: ../../_static/style/hq_ax1.png
+
         Use ``props`` instead of default background coloring
 
         >>> df.style.highlight_quantile(axis=None, q_left=0.2, q_right=0.8,
