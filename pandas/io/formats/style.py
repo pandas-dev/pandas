@@ -1652,19 +1652,24 @@ class Styler(StylerRenderer):
         subset_ = non_reducing_slice(subset_)
         data = self.data.loc[subset_]
 
+        # after quantile is found along axis, e.g. along rows,
+        # applying the calculated quantile to alternate axis, e.g. to each column
+        axis_apply: int | None = 1
+        if axis in [0, "index"]:
+            axis, axis_apply = 0, 1
+        elif axis in [1, "columns"]:
+            axis, axis_apply = 1, 0
+        else:
+            axis, axis_apply = None, None
         q = np.nanquantile(
             data.to_numpy(), [q_left, q_right], axis=axis, interpolation=interpolation
         )
-        # after quantile is found along axis, e.g. along rows,
-        # applying the calculated quantile to alternate axis, e.g. to each column
-        if axis in [0, 1]:
-            axis = 1 - axis
 
         if props is None:
             props = f"background-color: {color};"
         return self.apply(
-            _highlight_between,
-            axis=axis,
+            _highlight_between,  # type: ignore[arg-type]
+            axis=axis_apply,
             subset=subset,
             props=props,
             left=q[0],
