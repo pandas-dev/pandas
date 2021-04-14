@@ -646,7 +646,7 @@ class TestPeriodMethods:
                 return p.start_time + Timedelta(days=1, nanoseconds=-1)
             return Timestamp((p + p.freq).start_time.value - 1)
 
-        for i, fcode in enumerate(from_lst):
+        for fcode in from_lst:
             p = Period("1982", freq=fcode)
             result = p.to_timestamp().to_period(fcode)
             assert result == p
