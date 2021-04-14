@@ -2209,11 +2209,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas.core.dtypes.concat import union_categoricals
 
         result = union_categoricals(to_concat)
+
+        # in case we are concatenating along axis != 0, we need to reshape
+        #  the result from union_categoricals
         first = to_concat[0]
         if axis >= first.ndim:
             raise ValueError
         if axis == 1:
-            first = to_concat[0]
             if not all(len(x) == len(first) for x in to_concat):
                 raise ValueError
             # TODO: Will this get contiguity wrong?
