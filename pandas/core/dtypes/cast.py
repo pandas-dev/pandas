@@ -191,9 +191,15 @@ def maybe_box_native(value: Scalar) -> Scalar:
     if is_datetime_or_timedelta_dtype(value):
         value = maybe_box_datetimelike(value)
     elif is_float(value):
-        value = float(value)
+        # error: Argument 1 to "float" has incompatible type
+        # "Union[Union[str, int, float, bool], Union[Any, Any, Timedelta, Any]]";
+        # expected "Union[SupportsFloat, _SupportsIndex, str]"
+        value = float(value)  # type: ignore[arg-type]
     elif is_integer(value):
-        value = int(value)
+        # error: Argument 1 to "int" has incompatible type
+        # "Union[Union[str, int, float, bool], Union[Any, Any, Timedelta, Any]]";
+        # pected "Union[str, SupportsInt, _SupportsIndex, _SupportsTrunc]"
+        value = int(value)  # type: ignore[arg-type]
     elif is_bool(value):
         value = bool(value)
     return value
@@ -2107,10 +2113,15 @@ def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
     ------
     ValueError
     """
+    # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+    # "Union[Union[str, int, float, bool], Union[Any, Any, Timedelta, Any]]";
+    # expected "Union[Union[int, float, complex, str, bytes, generic],
+    # Sequence[Union[int, float, complex, str, bytes, generic]],
+    # Sequence[Sequence[Any]], _SupportsArray]"
     if (
         issubclass(dtype.type, (np.integer, np.bool_))
         and is_float(value)
-        and np.isnan(value)
+        and np.isnan(value)  # type: ignore[arg-type]
     ):
         raise ValueError("Cannot assign nan to integer series")
 
