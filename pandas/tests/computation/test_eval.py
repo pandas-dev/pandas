@@ -12,10 +12,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    is_platform_windows,
-    np_version_under1p17,
-)
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
@@ -220,22 +216,6 @@ class TestEvalNumexprPandas:
 
     @pytest.mark.parametrize("op", _good_arith_ops)
     def test_binary_arith_ops(self, op, lhs, rhs, request):
-
-        if (
-            op == "/"
-            and isinstance(lhs, DataFrame)
-            and isinstance(rhs, DataFrame)
-            and not lhs.isna().any().any()
-            and rhs.shape == (10, 5)
-            and np_version_under1p17
-            and is_platform_windows()
-            and compat.PY38
-        ):
-            mark = pytest.mark.xfail(
-                reason="GH#37328 floating point precision on Windows builds"
-            )
-            request.node.add_marker(mark)
-
         self.check_binary_arith_op(lhs, op, rhs)
 
     def test_modulus(self, lhs, rhs):
