@@ -2977,7 +2977,8 @@ class Index(IndexOpsMixin, PandasObject):
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
                 value_list.extend([x for x in rvals if x not in value_set])
-                return Index(value_list)._values  # do type inference here
+                # If objects are unorderable, we must have object dtype.
+                return np.array(value_list, dtype=object)
 
         elif not other.is_unique and not self.is_unique:
             # self and other both have duplicates
