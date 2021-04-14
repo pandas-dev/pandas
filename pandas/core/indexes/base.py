@@ -215,7 +215,7 @@ def _maybe_return_indexers(meth: F) -> F:
     return cast(F, join)
 
 
-def disallow_kwargs(kwargs: dict[str, Any]):
+def disallow_kwargs(kwargs: dict[str, Any]) -> None:
     if kwargs:
         raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
 
@@ -626,7 +626,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise DuplicateLabelError(msg)
 
     @final
-    def _format_duplicate_message(self):
+    def _format_duplicate_message(self) -> DataFrame:
         """
         Construct the DataFrame for a DuplicateLabelError.
 
@@ -789,7 +789,7 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(result, **attrs)
 
     @cache_readonly
-    def dtype(self):
+    def dtype(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
         """
@@ -1064,11 +1064,11 @@ class Index(IndexOpsMixin, PandasObject):
         return new_index
 
     @final
-    def __copy__(self, **kwargs):
+    def __copy__(self: _IndexT, **kwargs) -> _IndexT:
         return self.copy(**kwargs)
 
     @final
-    def __deepcopy__(self, memo=None):
+    def __deepcopy__(self: _IndexT, memo=None) -> _IndexT:
         """
         Parameters
         ----------
@@ -1354,7 +1354,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Series(self._values.copy(), index=index, name=name)
 
-    def to_frame(self, index: bool = True, name=None) -> DataFrame:
+    def to_frame(self, index: bool = True, name: Hashable = None) -> DataFrame:
         """
         Create a DataFrame with a column containing the Index.
 
@@ -1426,7 +1426,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: Hashable):
         if self._no_setting_name:
             # Used in MultiIndex.levels to avoid silently ignoring name updates.
             raise RuntimeError(
@@ -2367,7 +2367,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     @final
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         """
         Whether or not the index values only consist of dates.
         """
