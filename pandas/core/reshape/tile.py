@@ -1,6 +1,11 @@
 """
 Quantilization functions and related stuff
 """
+from typing import (
+    Any,
+    Callable,
+)
+
 import numpy as np
 
 from pandas._libs import (
@@ -549,6 +554,8 @@ def _format_labels(
 ):
     """ based on the dtype, return our labels """
     closed = "right" if right else "left"
+
+    formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]
 
     if is_datetime64tz_dtype(dtype):
         formatter = lambda x: Timestamp(x, tz=dtype.tz)
