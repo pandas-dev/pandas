@@ -268,15 +268,7 @@ class ExponentialMovingWindow(BaseWindow):
                 )
             if isna(self.times).any():
                 raise ValueError("Cannot convert NaT values to integer")
-            # error: Item "str" of "Union[str, ndarray, FrameOrSeries, None]" has no
-            # attribute "view"
-            # error: Item "None" of "Union[str, ndarray, FrameOrSeries, None]" has no
-            # attribute "view"
-            _times = np.asarray(
-                self.times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
-            )
-            _halflife = float(Timedelta(self.halflife).value)
-            self._deltas = np.diff(_times) / _halflife
+            self._calculate_deltas()
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
             if common.count_not_none(self.com, self.span, self.alpha) > 0:
@@ -302,6 +294,17 @@ class ExponentialMovingWindow(BaseWindow):
                 self.halflife,  # type: ignore[arg-type]
                 self.alpha,
             )
+
+    def _calculate_deltas(self) -> None:
+        # error: Item "str" of "Union[str, ndarray, FrameOrSeries, None]" has no
+        # attribute "view"
+        # error: Item "None" of "Union[str, ndarray, FrameOrSeries, None]" has no
+        # attribute "view"
+        _times = np.asarray(
+            self.times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
+        )
+        _halflife = float(Timedelta(self.halflife).value)
+        self._deltas = np.diff(_times) / _halflife
 
     def _get_window_indexer(self) -> BaseIndexer:
         """
@@ -585,6 +588,17 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
 
     _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
 
+    def __init__(self, obj, *args, _grouper=None, **kwargs):
+        super().__init__(obj, *args, _grouper=_grouper, **kwargs)
+
+        if not obj.empty and self.times is not None:
+            # sort the times and recalculate the deltas according to the groups
+            groupby_order = np.concatenate(list(self._grouper.indices.values())).astype(
+                np.int64
+            )
+            self.times = self.times.take(groupby_order)
+            self._calculate_deltas()
+
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -628,10 +642,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         """
         if maybe_use_numba(engine):
             groupby_ewma_func = generate_numba_groupby_ewma_func(
-                engine_kwargs,
-                self._com,
-                self.adjust,
-                self.ignore_na,
+                engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
             )
             return self._apply(
                 groupby_ewma_func,
