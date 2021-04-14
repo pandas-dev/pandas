@@ -213,14 +213,14 @@ class CParserWrapper(ParserBase):
             names = self._maybe_dedup_names(names)
 
             # rename dict keys
-            data = sorted(data.items())
-            data = {k: v for k, (i, v) in zip(names, data)}
+            data_tups = sorted(data.items())
+            data = {k: v for k, (i, v) in zip(names, data_tups)}
 
             names, data = self._do_date_conversions(names, data)
 
         else:
             # rename dict keys
-            data = sorted(data.items())
+            data_tups = sorted(data.items())
 
             # ugh, mutation
 
@@ -233,9 +233,9 @@ class CParserWrapper(ParserBase):
                 names = self._filter_usecols(names)
 
             # columns as list
-            alldata = [x[1] for x in data]
+            alldata = [x[1] for x in data_tups]
 
-            data = {k: v for k, (i, v) in zip(names, data)}
+            data = {k: v for k, (i, v) in zip(names, data_tups)}
 
             names, data = self._do_date_conversions(names, data)
             index, names = self._make_index(data, alldata, names)

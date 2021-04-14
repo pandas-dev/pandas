@@ -2977,10 +2977,11 @@ class Index(IndexOpsMixin, PandasObject):
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
                 value_list.extend([x for x in rvals if x not in value_set])
-                return Index(value_list)._values  # do type inference here
+                # If objects are unorderable, we must have object dtype.
+                return np.array(value_list, dtype=object)
 
-        elif not other.is_unique and not self.is_unique:
-            # self and other both have duplicates
+        elif not other.is_unique:
+            # other has duplicates
 
             # error: Argument 1 to "union_with_duplicates" has incompatible type
             # "Union[ExtensionArray, ndarray]"; expected "ndarray"
@@ -2989,7 +2990,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = algos.union_with_duplicates(lvals, rvals)  # type: ignore[arg-type]
             return _maybe_try_sort(result, sort)
 
-        # Either other or self is not unique
+        # Self may have duplicates
         # find indexes of things in "other" that are not in "self"
         if self.is_unique:
             indexer = self.get_indexer(other)
