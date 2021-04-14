@@ -1893,7 +1893,7 @@ Name: Max Speed, dtype: float64
         2
         """
         if level is None:
-            return notna(self._values).sum()
+            return notna(self._values).sum().astype("int64")
         elif not isinstance(self.index, MultiIndex):
             raise ValueError("Series.count level is only valid with a MultiIndex")
 

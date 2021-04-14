@@ -1924,7 +1924,7 @@ class TestDataFrameConstructors:
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
         result = df.dtypes
-        expected = Series([np.dtype("int64")] * 5)
+        expected = Series([np.dtype("int")] * 5)
         tm.assert_series_equal(result, expected)
 
         df = DataFrame([np.array(np.arange(5), dtype="int32") for x in range(5)])
