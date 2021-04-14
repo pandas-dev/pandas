@@ -1558,7 +1558,6 @@ class Styler(StylerRenderer):
 
         .. figure:: ../../_static/style/hbetw_props.png
         """
-
         if props is None:
             props = f"background-color: {color};"
         return self.apply(
@@ -1601,7 +1600,7 @@ class Styler(StylerRenderer):
         q_right : float, default 1
             Right bound, in (q_left, 1], for the target quantile range.
         interpolation : {‘linear’, ‘lower’, ‘higher’, ‘midpoint’, ‘nearest’}
-            Argument passed to ``numpy.quantile`` for quantile estimation.
+            Argument passed to ``numpy.nanquantile`` for quantile estimation.
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether quantile bounds are closed or open.
         props : str, default None
@@ -1894,12 +1893,13 @@ def _highlight_between(
     inclusive: bool | str = True,
 ) -> np.ndarray:
     """
-    Calculate an array with css props based on the data values and the range boundaries
+    Return an array of css props based on condition of data values within given range.
     """
     if np.iterable(left) and not isinstance(left, str):
         left = _validate_apply_axis_arg(
             left, "left", None, data  # type: ignore[arg-type]
         )
+
     if np.iterable(right) and not isinstance(right, str):
         right = _validate_apply_axis_arg(
             right, "right", None, data  # type: ignore[arg-type]

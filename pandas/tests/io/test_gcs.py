@@ -99,12 +99,13 @@ def test_to_read_gcs(gcs_buffer, format):
 
 def assert_equal_zip_safe(result: bytes, expected: bytes):
     """
-    We would like to assert these are equal, but the 11th byte is a last-modified
-    timestamp, which in some builds is off-by-one, so we check around that.
+    We would like to assert these are equal, but the 10th and 11th bytes are a
+    last-modified timestamp, which in some builds is off-by-one, so we check around
+    that.
 
     See https://en.wikipedia.org/wiki/ZIP_(file_format)#File_headers
     """
-    assert result[:10] == expected[:10]
+    assert result[:9] == expected[:9]
     assert result[11:] == expected[11:]
 
 
