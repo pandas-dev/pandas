@@ -1611,13 +1611,13 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also[:-1],
         create_section_header("Examples"),
-        dedent("""
+        dedent(
+        """
         Apply function that uses multiple columns as input using
         method='table'. The apply function multiplies A with B and sums all rows
         (dot product).
         
-        >>> df = pd.DataFrame({'A': range(5), 'B': range(5,0,-1)})
-        
+        >>> df = pd.DataFrame({{'A': range(5), 'B': range(5,0,-1)}})
         >>> df
            A  B
         0  0  5
@@ -1638,7 +1638,8 @@ class Rolling(RollingAndExpandingMixin):
         
         method='table' requires the use of the engine='numba' which in turn requires
         raw=True. Therefore the apply function is provided a numpy.ndarray as input.
-        """),
+        """
+        ).replace("\n", "", 1),
         window_method="rolling",
         aggregation_description="custom aggregation function",
         agg_method="apply",
