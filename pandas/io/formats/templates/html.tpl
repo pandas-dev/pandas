@@ -1,6 +1,6 @@
 {# Update the template_structure.html documentation too #}
-{% if no_styles %}
-{% extends "html_excl.tpl" %}
+{% if exclude_styles %}
+{% extends "html_basic.tpl" %}
 {% else %}
-{% extends "html_all.tpl" %}
+{% extends "html_styles.tpl" %}
 {% endif %}

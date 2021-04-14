@@ -1420,31 +1420,6 @@ class TestStyler:
         tm.assert_frame_equal(result, expected)
 
 
-def test_block_names():
-    # catch accidental removal of a block
-    expected = {
-        "before_style",
-        "style",
-        "table_styles",
-        "before_cellstyle",
-        "cellstyle",
-        "before_table",
-        "table",
-        "caption",
-        "thead",
-        "tbody",
-        "after_table",
-        "before_head_rows",
-        "head_tr",
-        "after_head_rows",
-        "before_rows",
-        "tr",
-        "after_rows",
-    }
-    result = set(Styler.template_html.blocks)
-    assert result == expected
-
-
 def test_from_custom_template(tmpdir):
     p = tmpdir.mkdir("templates").join("myhtml.tpl")
     p.write(

@@ -327,100 +327,72 @@ class Styler(StylerRenderer):
     def to_html(
         self,
         buf: FilePathOrBuffer[str] | None = None,
-        # columns: Optional[Sequence] = None,
-        # hide_columns: bool = False,
-        # ignored: col_space,
-        # header: bool = True,
-        # index: bool = True,
-        # formatter: Optional[ExtFormatter] = None,
-        # na_rep: Optional[str] = None,
-        # precision: Optional[int] = None,
-        # escape: bool = False,
-        bold_headers: bool = True,
-        # ignored: sparsify - not yet implementable: TODO
-        # ignored: index_names - not yet implementable: MAYBE TODO
-        # ignored: justify
-        # ignored: max_rows
-        # ignored: min_rows
-        # ignored: max_cols
         table_uuid: str | None = None,
         table_attributes: str | None = None,
-        # ignored: border - this attribute is deprecated in HTML in favour of CSS.
-        #   is technically still possible anyway by adding 'table_attributes="border=1"'
-        encoding: str | bool = False,
-        no_styles: bool = False,
-        # ignored: notebook - not sure what this property actually did.
-        # ignored: table_id - replaced by UUID.
-        # ignored: classes - removed in favour of table_attributes which is more flexble
-        # ignored: bold_rows - changed to bold_headers
-        # ignored: float_format - removed in favour of using `.format()` method
-        # ignored: formatters - removed and switched to formatter for `.format()`
-        # ignored: decimal - removed since too much cross over with float_format
-        # ignored: show_dimensions - removed since not necessary feature of to_html
+        encoding: str | None = None,
+        doctype_html: bool = True,
+        exclude_styles: bool = False,
     ):
         """
-        render styler to HTML or file IO
+        Write Styler to a file, buffer or string in HTML-CSS format.
+
+        Parameters
+        ----------
+        buf : str, Path, or StringIO-like, optional, default None
+            Buffer to write to. If ``None``, the output is returned as a string.
+        table_uuid: str, optional
+            Id attribute assigned to the <table> HTML element in the format:
+
+            ``<table id="T_<table_uuid>" ..>``
+
+            If not given uses Styler's initially assigned value.
+        table_attributes: str, optional
+            Attributes to assign within the `<table>` HTML element in the format:
+
+            ``<table .. <table_attributes> >``
+
+            If not given defaults to Styler's preexisting value.
+        encoding : str, optional
+            Character encoding setting for file output, and HTML meta tags,
+            defaults to "utf-8" if None.
+        doctype_html : bool, default True
+            Whether to output a fully structured HTML file including all
+            HTML elements, or just the core ``<style>`` and ``<table>`` elements.
+        exclude_styles : bool, default False
+            Whether to include the ``<style>`` element and all associated element
+            ``class`` and ``id`` identifiers, or solely the ``<table>`` element without
+            styling identifiers.
+
+        Returns
+        -------
+        str or None
+            If `buf` is None, returns the result as a string. Otherwise returns `None`.
         """
-        # if columns and not hide_columns:
-        #     hidden = [col for col in self.data.columns if col not in columns]
-        #     self.hide_columns(hidden)
-        # elif columns and hide_columns:
-        #     self.hide_columns(columns)
-
-        # if not index:
-        #     self.hide_index()
-
-        # if not header:
-        #     self.set_table_styles(
-        #         [{"selector": "thead tr", "props": "display:none;"}], overwrite=False
-        #     )
-
-        if bold_headers:
-            self.set_tablestyles(
-                [{"selector": "th", "props": "fornt-weight: bold;"}], overwrite=False
-            )
-
-        # if any(
-        #     formatter is not None, precision is not None, na_rep is not None, escape
-        # ):
-        #     self.format(
-        #         formatter=formatter, precision=precision, na_rep=na_rep, escape=escape
-        #     )
-
         if table_uuid:
             self.set_uuid(table_uuid)
 
         if table_attributes:
             self.set_table_attributes(table_attributes)
 
-        # if float_format:
-        #     float_cols = self.data.select_dtypes(include=[float])
-        #     self.format({col: float_format for col in float_cols})
-
         # Build HTML string..
-        styler_html = self.render(no_styles=no_styles).split("</style>\n")
-        if no_styles:
-            styler_html = ("", styler_html[0])
+        styler_html = self.render(exclude_styles=exclude_styles).split("</style>\n")
+        if exclude_styles:
+            style, body = "", styler_html[0]
         else:
-            styler_html = ("\n  " + styler_html[0] + "  </style>", styler_html[1])
+            style, body = "\n  " + styler_html[0] + "  </style>", styler_html[1]
 
-        if encoding:
-            encoding = "utf-8" if encoding is True else encoding
-            html = f"""\
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="{encoding}">{styler_html[0]}
-</head>
-<body>
-{styler_html[1]}</body>
-</html>
-"""
+        if doctype_html:
+            html = (
+                f'<!DOCTYPE html>\n<html>\n<head>\n  <meta charset="'
+                f'{encoding if encoding is not None else "utf-8"}">'
+                f"{style}\n</head>\n<body>\n{body}</body>\n</html>\n"
+            )
         else:
-            encoding = None
-            html = styler_html[0] + styler_html[1]
+            html = style + body
 
-        return save_to_buffer(html, buf=buf, encoding=encoding)
+        return save_to_buffer(
+            html, buf=buf, encoding=(encoding if buf is not None else None)
+        )
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
