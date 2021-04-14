@@ -30,13 +30,17 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import (
     DatetimeArray,
     SparseArray,
+    TimedeltaArray,
 )
 from pandas.core.internals import (
     BlockManager,
     SingleBlockManager,
     make_block,
 )
-from pandas.core.internals.blocks import new_block
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    new_block,
+)
 
 # this file contains BlockManager specific tests
 # TODO(ArrayManager) factor out interleave_dtype tests
@@ -137,6 +141,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
         tz = m.groups()[0]
         assert num_items == 1, "must have only 1 num items for a tz-aware"
         values = DatetimeIndex(np.arange(N) * 1e9, tz=tz)._data
+        values = ensure_block_shape(values, ndim=len(shape))
     elif typestr in ("timedelta", "td", "m8[ns]"):
         values = (mat * 1).astype("m8[ns]")
     elif typestr in ("category",):
@@ -299,6 +304,23 @@ class TestBlock:
 
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
+
+    def test_delete_datetimelike(self):
+        # dont use np.delete on values, as that will coerce from DTA/TDA to ndarray
+        arr = np.arange(20, dtype="i8").reshape(5, 4).view("m8[ns]")
+        df = DataFrame(arr)
+        blk = df._mgr.blocks[0]
+        assert isinstance(blk.values, TimedeltaArray)
+
+        blk.delete(1)
+        assert isinstance(blk.values, TimedeltaArray)
+
+        df = DataFrame(arr.view("M8[ns]"))
+        blk = df._mgr.blocks[0]
+        assert isinstance(blk.values, DatetimeArray)
+
+        blk.delete([1, 3])
+        assert isinstance(blk.values, DatetimeArray)
 
     def test_split(self):
         # GH#37799

@@ -19,19 +19,13 @@ from textwrap import dedent
 import types
 from typing import (
     Callable,
-    Dict,
-    FrozenSet,
     Generic,
     Hashable,
     Iterable,
     Iterator,
     List,
     Mapping,
-    Optional,
     Sequence,
-    Set,
-    Tuple,
-    Type,
     TypeVar,
     Union,
 )
@@ -83,6 +77,8 @@ from pandas.core.dtypes.missing import (
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
+    BaseMaskedArray,
+    BooleanArray,
     Categorical,
     ExtensionArray,
 )
@@ -529,8 +525,8 @@ _KeysArgType = Union[
 
 
 class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
-    _group_selection: Optional[IndexLabel] = None
-    _apply_allowlist: FrozenSet[str] = frozenset()
+    _group_selection: IndexLabel | None = None
+    _apply_allowlist: frozenset[str] = frozenset()
     _hidden_attrs = PandasObject._hidden_attrs | {
         "as_index",
         "axis",
@@ -550,12 +546,12 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def __init__(
         self,
         obj: FrameOrSeries,
-        keys: Optional[_KeysArgType] = None,
+        keys: _KeysArgType | None = None,
         axis: int = 0,
-        level: Optional[IndexLabel] = None,
-        grouper: Optional[ops.BaseGrouper] = None,
-        exclusions: Optional[Set[Hashable]] = None,
-        selection: Optional[IndexLabel] = None,
+        level: IndexLabel | None = None,
+        grouper: ops.BaseGrouper | None = None,
+        exclusions: set[Hashable] | None = None,
+        selection: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
@@ -623,7 +619,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     @final
     @property
-    def groups(self) -> Dict[Hashable, np.ndarray]:
+    def groups(self) -> dict[Hashable, np.ndarray]:
         """
         Dict {group name -> group labels}.
         """
@@ -786,7 +782,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         return result
 
     @final
-    def _dir_additions(self) -> Set[str]:
+    def _dir_additions(self) -> set[str]:
         return self.obj._dir_additions() | self._apply_allowlist
 
     def __getattr__(self, attr: str):
@@ -824,7 +820,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     @Appender(_pipe_template)
     def pipe(
         self,
-        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        func: Callable[..., T] | tuple[Callable[..., T], str],
         *args,
         **kwargs,
     ) -> T:
@@ -897,7 +893,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
         return obj._take_with_is_copy(inds, axis=self.axis)
 
-    def __iter__(self) -> Iterator[Tuple[Hashable, FrameOrSeries]]:
+    def __iter__(self) -> Iterator[tuple[Hashable, FrameOrSeries]]:
         """
         Groupby iterator.
 
@@ -915,7 +911,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     )
     def apply(self, func, *args, **kwargs):
 
-        func = self._is_builtin_func(func)
+        func = com.is_builtin_func(func)
 
         # this is needed so we don't try and wrap strings. If we could
         # resolve functions to their callable functions prior, this
@@ -1025,7 +1021,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def _cython_transform(
         self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
     ):
-        output: Dict[base.OutputKey, ArrayLike] = {}
+        output: dict[base.OutputKey, ArrayLike] = {}
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
@@ -1049,7 +1045,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         return self._wrap_transformed_output(output)
 
     def _wrap_aggregated_output(
-        self, output: Mapping[base.OutputKey, np.ndarray], index: Optional[Index]
+        self, output: Mapping[base.OutputKey, np.ndarray], index: Index | None
     ):
         raise AbstractMethodError(self)
 
@@ -1098,7 +1094,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output: Dict[base.OutputKey, ArrayLike] = {}
+        output: dict[base.OutputKey, ArrayLike] = {}
         # Ideally we would be able to enumerate self._iterate_slices and use
         # the index from enumeration as the key of output, but ohlc in particular
         # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
@@ -1146,7 +1142,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             )
         labels, _, n_groups = self.grouper.group_info
         sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = labels.take(sorted_index)
+        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
 
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
 
@@ -1211,11 +1207,11 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     @final
     def _python_agg_general(self, func, *args, **kwargs):
-        func = self._is_builtin_func(func)
+        func = com.is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
-        output: Dict[base.OutputKey, np.ndarray] = {}
+        output: dict[base.OutputKey, np.ndarray] = {}
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
@@ -1406,7 +1402,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> Type[Series]:
+    def _obj_1d_constructor(self) -> type[Series]:
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced
@@ -1419,24 +1415,34 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Shared func to call any / all Cython GroupBy implementations.
         """
 
-        def objs_to_bool(vals: np.ndarray) -> Tuple[np.ndarray, Type]:
+        def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
+            elif isinstance(vals, BaseMaskedArray):
+                vals = vals._data.astype(bool, copy=False)
             else:
                 vals = vals.astype(bool)
 
-            return vals.view(np.uint8), bool
+            return vals.view(np.int8), bool
 
-        def result_to_bool(result: np.ndarray, inference: Type) -> np.ndarray:
-            return result.astype(inference, copy=False)
+        def result_to_bool(
+            result: np.ndarray,
+            inference: type,
+            nullable: bool = False,
+        ) -> ArrayLike:
+            if nullable:
+                return BooleanArray(result.astype(bool, copy=False), result == -1)
+            else:
+                return result.astype(inference, copy=False)
 
         return self._get_cythonized_result(
             "group_any_all",
             aggregate=True,
             numeric_only=False,
-            cython_dtype=np.dtype(np.uint8),
+            cython_dtype=np.dtype(np.int8),
             needs_values=True,
             needs_mask=True,
+            needs_nullable=True,
             pre_processing=objs_to_bool,
             post_processing=result_to_bool,
             val_test=val_test,
@@ -1926,6 +1932,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             self._selected_obj,
             *args,
             _grouper=self.grouper,
+            _as_index=self.as_index,
             **kwargs,
         )
 
@@ -2058,7 +2065,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def nth(self, n: Union[int, List[int]], dropna: Optional[str] = None) -> DataFrame:
+    def nth(self, n: int | list[int], dropna: str | None = None) -> DataFrame:
         """
         Take the nth row from each group if n is an int, or a subset of rows
         if n is a list of ints.
@@ -2266,13 +2273,13 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas import concat
 
-        def pre_processor(vals: ArrayLike) -> Tuple[np.ndarray, Optional[np.dtype]]:
+        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, np.dtype | None]:
             if is_object_dtype(vals):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
 
-            inference: Optional[np.dtype] = None
+            inference: np.dtype | None = None
             if is_integer_dtype(vals.dtype):
                 if isinstance(vals, ExtensionArray):
                     out = vals.to_numpy(dtype=float, na_value=np.nan)
@@ -2292,7 +2299,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             return out, inference
 
-        def post_processor(vals: np.ndarray, inference: Optional[Type]) -> np.ndarray:
+        def post_processor(vals: np.ndarray, inference: type | None) -> np.ndarray:
             if inference:
                 # Check for edge case
                 if not (
@@ -2618,7 +2625,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         needs_counts: bool = False,
         needs_values: bool = False,
         needs_2d: bool = False,
-        min_count: Optional[int] = None,
+        needs_nullable: bool = False,
+        min_count: int | None = None,
         needs_mask: bool = False,
         needs_ngroups: bool = False,
         result_is_index: bool = False,
@@ -2654,6 +2662,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             signature
         needs_ngroups : bool, default False
             Whether number of groups is part of the Cython call signature
+        needs_nullable : bool, default False
+            Whether a bool specifying if the input is nullable is part
+            of the Cython call signature
         result_is_index : bool, default False
             Whether the result of the Cython operation is an index of
             values to be retrieved, instead of the actual values themselves
@@ -2669,7 +2680,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Function to be applied to result of Cython function. Should accept
             an array of values as the first argument and type inferences as its
             second argument, i.e. the signature should be
-            (ndarray, Type).
+            (ndarray, Type). If `needs_nullable=True`, a third argument should be
+            `nullable`, to allow for processing specific to nullable values.
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -2692,7 +2704,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         grouper = self.grouper
 
         labels, _, ngroups = grouper.group_info
-        output: Dict[base.OutputKey, np.ndarray] = {}
+        output: dict[base.OutputKey, np.ndarray] = {}
         base_func = getattr(libgroupby, how)
 
         error_msg = ""
@@ -2743,6 +2755,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             if needs_ngroups:
                 func = partial(func, ngroups)
+
+            if needs_nullable:
+                is_nullable = isinstance(values, BaseMaskedArray)
+                func = partial(func, nullable=is_nullable)
+                if post_processing:
+                    post_processing = partial(post_processing, nullable=is_nullable)
 
             func(**kwargs)  # Call func to modify indexer values in place
 
@@ -3007,10 +3025,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     def sample(
         self,
-        n: Optional[int] = None,
-        frac: Optional[float] = None,
+        n: int | None = None,
+        frac: float | None = None,
         replace: bool = False,
-        weights: Optional[Union[Sequence, Series]] = None,
+        weights: Sequence | Series | None = None,
         random_state=None,
     ):
         """
@@ -3122,10 +3140,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 @doc(GroupBy)
 def get_groupby(
     obj: NDFrame,
-    by: Optional[_KeysArgType] = None,
+    by: _KeysArgType | None = None,
     axis: int = 0,
     level=None,
-    grouper: Optional[ops.BaseGrouper] = None,
+    grouper: ops.BaseGrouper | None = None,
     exclusions=None,
     selection=None,
     as_index: bool = True,
@@ -3137,7 +3155,7 @@ def get_groupby(
     dropna: bool = True,
 ) -> GroupBy:
 
-    klass: Type[GroupBy]
+    klass: type[GroupBy]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 
