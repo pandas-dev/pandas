@@ -12,6 +12,7 @@ from typing import (
     Hashable,
     Iterator,
     Sequence,
+    cast,
 )
 
 import numpy as np
@@ -42,6 +43,8 @@ if TYPE_CHECKING:
 
 
 class CSVFormatter:
+    cols: np.ndarray
+
     def __init__(
         self,
         formatter: DataFrameFormatter,
@@ -136,9 +139,7 @@ class CSVFormatter:
     def has_mi_columns(self) -> bool:
         return bool(isinstance(self.obj.columns, ABCMultiIndex))
 
-    def _initialize_columns(
-        self, cols: Sequence[Hashable] | None
-    ) -> Sequence[Hashable]:
+    def _initialize_columns(self, cols: Sequence[Hashable] | None) -> np.ndarray:
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:
@@ -155,10 +156,7 @@ class CSVFormatter:
         # update columns to include possible multiplicity of dupes
         # and make sure cols is just a list of labels
         new_cols = self.obj.columns
-        if isinstance(new_cols, ABCIndex):
-            return new_cols._format_native_types(**self._number_format)
-        else:
-            return list(new_cols)
+        return new_cols._format_native_types(**self._number_format)
 
     def _initialize_chunksize(self, chunksize: int | None) -> int:
         if chunksize is None:
@@ -214,7 +212,9 @@ class CSVFormatter:
             else:
                 return self.header
         else:
-            return self.cols
+            # self.cols is an ndarray derived from Index._format_native_types,
+            #  so its entries are strings, i.e. hashable
+            return cast(Sequence[Hashable], self.cols)
 
     @property
     def encoded_labels(self) -> list[Hashable]:
@@ -308,12 +308,10 @@ class CSVFormatter:
         data = [res.iget_values(i) for i in range(len(res.items))]
 
         ix = self.data_index[slicer]._format_native_types(**self._number_format)
-        # error: Argument 4 to "write_csv_rows" has incompatible type
-        # "Sequence[Hashable]"; expected "ndarray"
         libwriters.write_csv_rows(
             data,
             ix,
             self.nlevels,
-            self.cols,  # type: ignore[arg-type]
+            self.cols,
             self.writer,
         )

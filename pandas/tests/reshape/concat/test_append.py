@@ -190,7 +190,10 @@ class TestAppend:
         pd.MultiIndex.from_arrays(["A B C".split(), "D E F".split()])
     ]
 
-    all_indexes = indexes_can_append + indexes_cannot_append_with_other
+    # error: Unsupported operand types for + ("List[Index]" and "List[MultiIndex]")
+    all_indexes = (
+        indexes_can_append + indexes_cannot_append_with_other  # type: ignore[operator]
+    )
 
     @pytest.mark.parametrize("index", all_indexes, ids=lambda x: type(x).__name__)
     def test_append_same_columns_type(self, index):
