@@ -518,6 +518,7 @@ class IndexingMixin:
         sidewinder mark i          10      20
                    mark ii          1       4
         viper      mark ii          7       1
+
         """
         return _LocIndexer("loc", self)
 
@@ -615,6 +616,32 @@ class IndexingMixin:
 
         >>> df.loc[0].iat[1]
         2
+
+        Set value at a partial column
+
+        >>> d = {'a': [1,2,3]}
+        >>> df = pd.DataFrame(d)
+        >>> df
+           a
+        0  1
+        1  2
+        2  3
+        >>> df['b'] = pd.Series({1: 'y'})
+
+        Set value of a label missing from the series index
+
+        >>> df
+           a    b
+        0  1  NaN
+        1  2    y
+        2  3  NaN
+        >>> df['c'] = pd.Series({4: 'E'})
+        >>> df
+           a    b    c
+        0  1  NaN  NaN
+        1  2    y  NaN
+        2  3  NaN  NaN
+
         """
         return _iAtIndexer("iat", self)
 
@@ -2009,7 +2036,7 @@ class _iLocIndexer(_LocationIndexer):
             Indexer used to get the locations that will be set to `ser`.
         ser : pd.Series
             Values to assign to the locations specified by `indexer`.
-        multiindex_indexer : boolean, optional
+        multiindex_indexer : bool, optional
             Defaults to False. Should be set to True if `indexer` was from
             a `pd.MultiIndex`, to avoid unnecessary broadcasting.
 
@@ -2248,7 +2275,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
         """
         Require integer args. (and convert to label arguments)
         """
-        for a, i in zip(self.obj.axes, key):
+        for i in key:
             if not is_integer(i):
                 raise ValueError("iAt based indexing can only have integer indexers")
         return key
