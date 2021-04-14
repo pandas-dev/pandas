@@ -614,32 +614,65 @@ class TestInference:
         out = lib.maybe_convert_objects(ind.values, safe=1)
         tm.assert_numpy_array_equal(out, exp)
 
-    @pytest.mark.parametrize("data0", [True, np.uint8(1), np.uint16(1), np.uint32(1), np.uint64(1), np.int8(1), np.int16(1), np.int32(1), np.int64(1), np.float16(1), np.float32(1), np.float64(1)])
-    @pytest.mark.parametrize("data1",
-                             [True, np.uint8(1), np.uint16(1), np.uint32(1), np.uint64(1), np.int8(1), np.int16(1),
-                              np.int32(1), np.int64(1), np.float16(1), np.float32(1), np.float64(1)])
-    def test_maybe_convert_objects_itemsize(self, request, data0, data1):
-        if hasattr(data0, "dtype") and hasattr(data1, "dtype") and (data0.dtype.kind == 'u' or data1.dtype.kind == 'u'):
-            if data0.dtype.kind == 'u' and data1.dtype.kind == 'u':
-                request.node.add_marker(pytest.mark.xfail(reason="uints not handled correctly"))
-            # elif data0.dtype.kind == 'i' and data0.dtype.itemsize < data1.dtype.itemsize:
-            #     request.node.add_marker(pytest.mark.xfail(reason="uints not handled correctly"))
-            elif data1.dtype.kind == 'i' and data1.dtype.itemsize < data0.dtype.itemsize:
-                request.node.add_marker(pytest.mark.xfail(reason="uints not handled correctly"))
+    @pytest.mark.parametrize(
+        "data0",
+        [
+            True,
+            1,
+            1.0,
+            np.int8(1),
+            np.int16(1),
+            np.int32(1),
+            np.int64(1),
+            np.float16(1),
+            np.float32(1),
+            np.float64(1),
+            np.float128(1),
+            np.complex64(1),
+            np.complex128(1),
+            np.complex256(1),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "data1",
+        [
+            True,
+            1,
+            1.0,
+            np.int8(1),
+            np.int16(1),
+            np.int32(1),
+            np.int64(1),
+            np.float16(1),
+            np.float32(1),
+            np.float64(1),
+            np.float128(1),
+            np.complex64(1),
+            np.complex128(1),
+            np.complex256(1),
+        ],
+    )
+    def test_maybe_convert_objects_itemsize(self, data0, data1):
         data = [data0, data1]
         arr = np.array(data, dtype="object")
-        expected = np.array(data)
-        if data0 is True or data1 is True:
-            if data0 is True and data1 is True:
-                expected_dtype = "bool"
-            else:
-                expected_dtype = "object"
+
+        kind = np.find_common_type([type(data0), type(data1)], scalar_types=[]).kind
+        is_nptype0 = hasattr(data0, "dtype")
+        is_nptype1 = hasattr(data1, "dtype")
+        if is_nptype0 and is_nptype1:
+            itemsize = max(data0.dtype.itemsize, data1.dtype.itemsize)
+        elif data0 is True or data1 is True:
+            kind = "bool" if (data0 is True and data1 is True) else "object"
+            itemsize = ""
+        elif not is_nptype0 and is_nptype1:
+            itemsize = 16 if data1.dtype.kind == "c" else 8
+        elif is_nptype0 and not is_nptype1:
+            itemsize = 16 if data0.dtype.kind == "c" else 8
         else:
-            expected_dtype = f'{expected.dtype.kind}{max(data0.dtype.itemsize, data1.dtype.itemsize)}'
-        expected = expected.astype(expected_dtype)
+            itemsize = 8
+        expected = np.array(data, dtype=f"{kind}{itemsize}")
 
         result = lib.maybe_convert_objects(arr)
-        print(type(data0), type(data1))
         tm.assert_numpy_array_equal(result, expected)
 
     def test_mixed_dtypes_remain_object_array(self):
