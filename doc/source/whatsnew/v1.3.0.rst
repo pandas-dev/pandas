@@ -468,7 +468,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-| numpy           | 1.16.5          |    X     |         |
+| numpy           | 1.17.3          |    X     |    X    |
 +-----------------+-----------------+----------+---------+
 | pytz            | 2017.3          |    X     |         |
 +-----------------+-----------------+----------+---------+
@@ -714,7 +714,7 @@ Missing
 
 - Bug in :class:`Grouper` now correctly propagates ``dropna`` argument and :meth:`DataFrameGroupBy.transform` now correctly handles missing values for ``dropna=True`` (:issue:`35612`)
 - Bug in :func:`isna`, and :meth:`Series.isna`, :meth:`Index.isna`, :meth:`DataFrame.isna` (and the corresponding ``notna`` functions) not recognizing ``Decimal("NaN")`` objects (:issue:`39409`)
--
+- Bug in :meth:`DataFrame.fillna` not accepting dictionary for ``downcast`` keyword (:issue:`40809`)
 
 MultiIndex
 ^^^^^^^^^^
