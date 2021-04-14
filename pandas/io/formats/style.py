@@ -1355,6 +1355,7 @@ class Styler(StylerRenderer):
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
         def f(data: DataFrame, props: str) -> np.ndarray:
@@ -1403,6 +1404,7 @@ class Styler(StylerRenderer):
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
@@ -1451,6 +1453,7 @@ class Styler(StylerRenderer):
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
@@ -1507,6 +1510,7 @@ class Styler(StylerRenderer):
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
 
         Notes
         -----
