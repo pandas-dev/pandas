@@ -147,7 +147,7 @@ class TestGroupbyEWMMean:
         tm.assert_frame_equal(result, expected)
 
     def test_cython_vs_numba_times(self, nogil, parallel, nopython, ignore_na):
-        # GH tbd
+        # GH 40951
         halflife = "23 days"
         times = to_datetime(
             [

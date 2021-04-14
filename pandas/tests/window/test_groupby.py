@@ -928,7 +928,7 @@ class TestEWM:
         tm.assert_frame_equal(result, expected)
 
     def test_times(self):
-        # GH tbd
+        # GH 40951
         halflife = "23 days"
         df = DataFrame(
             {
