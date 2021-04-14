@@ -4,6 +4,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import iNaT
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -591,6 +592,38 @@ def test_max_nan_bug():
     assert not r["File"].isna().any()
 
 
+def test_max_inat():
+    # GH#40767 dont interpret iNaT as NaN
+    ser = Series([1, iNaT])
+    gb = ser.groupby([1, 1])
+
+    result = gb.max(min_count=2)
+    expected = Series({1: 1}, dtype=np.int64)
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+    result = gb.min(min_count=2)
+    expected = Series({1: iNaT}, dtype=np.int64)
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+    # not enough entries -> gets masked to NaN
+    result = gb.min(min_count=3)
+    expected = Series({1: np.nan})
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+
+def test_max_inat_not_all_na():
+    # GH#40767 dont interpret iNaT as NaN
+
+    # make sure we dont round iNaT+1 to iNaT
+    ser = Series([1, iNaT, 2, iNaT + 1])
+    gb = ser.groupby([1, 2, 3, 3])
+    result = gb.min(min_count=2)
+
+    # Note: in converting to float64, the iNaT + 1 maps to iNaT, i.e. is lossy
+    expected = Series({1: np.nan, 2: np.nan, 3: iNaT + 1})
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+
 def test_nlargest():
     a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])
     b = Series(list("a" * 5 + "b" * 5))
@@ -708,11 +741,13 @@ def test_cummin(numpy_dtypes_for_minmax):
 
     # Test w/ min value for dtype
     df.loc[[2, 6], "B"] = min_val
+    df.loc[[1, 5], "B"] = min_val + 1
     expected.loc[[2, 3, 6, 7], "B"] = min_val
+    expected.loc[[1, 5], "B"] = min_val + 1  # should not be rounded to min_val
     result = df.groupby("A").cummin()
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_exact=True)
     expected = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_exact=True)
 
     # Test nan in some values
     base_df.loc[[0, 2, 4, 6], "B"] = np.nan

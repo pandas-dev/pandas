@@ -1139,6 +1139,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
                    ndarray[groupby_t, ndim=2] values,
                    const intp_t[:] labels,
                    Py_ssize_t min_count=-1,
+                   bint is_datetimelike=False,
                    bint compute_max=True):
     """
     Compute minimum/maximum  of columns of `values`, in row groups `labels`.
@@ -1156,6 +1157,8 @@ cdef group_min_max(groupby_t[:, ::1] out,
     min_count : Py_ssize_t, default -1
         The minimum number of non-NA group elements, NA result if threshold
         is not met
+    is_datetimelike : bool
+        True if `values` contains datetime-like entries.
     compute_max : bint, default True
         True to compute group-wise max, False to compute min
 
@@ -1204,8 +1207,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
             for j in range(K):
                 val = values[i, j]
 
-                if not _treat_as_na(val, True):
-                    # TODO: Sure we always want is_datetimelike=True?
+                if not _treat_as_na(val, is_datetimelike):
                     nobs[lab, j] += 1
                     if compute_max:
                         if val > group_min_or_max[lab, j]:
@@ -1237,9 +1239,18 @@ def group_max(groupby_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[groupby_t, ndim=2] values,
               const intp_t[:] labels,
-              Py_ssize_t min_count=-1) -> None:
+              Py_ssize_t min_count=-1,
+              bint is_datetimelike=False) -> None:
     """See group_min_max.__doc__"""
-    group_min_max(out, counts, values, labels, min_count=min_count, compute_max=True)
+    group_min_max(
+        out,
+        counts,
+        values,
+        labels,
+        min_count=min_count,
+        is_datetimelike=is_datetimelike,
+        compute_max=True,
+    )
 
 
 @cython.wraparound(False)
@@ -1248,9 +1259,18 @@ def group_min(groupby_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[groupby_t, ndim=2] values,
               const intp_t[:] labels,
-              Py_ssize_t min_count=-1) -> None:
+              Py_ssize_t min_count=-1,
+              bint is_datetimelike=False) -> None:
     """See group_min_max.__doc__"""
-    group_min_max(out, counts, values, labels, min_count=min_count, compute_max=False)
+    group_min_max(
+        out,
+        counts,
+        values,
+        labels,
+        min_count=min_count,
+        is_datetimelike=is_datetimelike,
+        compute_max=False,
+    )
 
 
 @cython.boundscheck(False)
