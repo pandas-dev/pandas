@@ -614,6 +614,34 @@ class TestInference:
         out = lib.maybe_convert_objects(ind.values, safe=1)
         tm.assert_numpy_array_equal(out, exp)
 
+    @pytest.mark.parametrize("data0", [True, np.uint8(1), np.uint16(1), np.uint32(1), np.uint64(1), np.int8(1), np.int16(1), np.int32(1), np.int64(1), np.float16(1), np.float32(1), np.float64(1)])
+    @pytest.mark.parametrize("data1",
+                             [True, np.uint8(1), np.uint16(1), np.uint32(1), np.uint64(1), np.int8(1), np.int16(1),
+                              np.int32(1), np.int64(1), np.float16(1), np.float32(1), np.float64(1)])
+    def test_maybe_convert_objects_itemsize(self, request, data0, data1):
+        if hasattr(data0, "dtype") and hasattr(data1, "dtype") and (data0.dtype.kind == 'u' or data1.dtype.kind == 'u'):
+            if data0.dtype.kind == 'u' and data1.dtype.kind == 'u':
+                request.node.add_marker(pytest.mark.xfail(reason="uints not handled correctly"))
+            # elif data0.dtype.kind == 'i' and data0.dtype.itemsize < data1.dtype.itemsize:
+            #     request.node.add_marker(pytest.mark.xfail(reason="uints not handled correctly"))
+            elif data1.dtype.kind == 'i' and data1.dtype.itemsize < data0.dtype.itemsize:
+                request.node.add_marker(pytest.mark.xfail(reason="uints not handled correctly"))
+        data = [data0, data1]
+        arr = np.array(data, dtype="object")
+        expected = np.array(data)
+        if data0 is True or data1 is True:
+            if data0 is True and data1 is True:
+                expected_dtype = "bool"
+            else:
+                expected_dtype = "object"
+        else:
+            expected_dtype = f'{expected.dtype.kind}{max(data0.dtype.itemsize, data1.dtype.itemsize)}'
+        expected = expected.astype(expected_dtype)
+
+        result = lib.maybe_convert_objects(arr)
+        print(type(data0), type(data1))
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
         arr = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
