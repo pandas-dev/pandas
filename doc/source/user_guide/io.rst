@@ -5925,13 +5925,12 @@ For .rds types that only contains a single R object, method will return a single
 
 .. note::
 
-   Since *any* R object can be saved in these types, this method will only return
+   Since any R object can be saved in these types, this method will only return
    data.frame objects or objects coercible to data.frames including matrices,
-   tibbles, and data.tables even 3D arrays. Depending on engine used, either
-   an error raises for non-data.frame objects or such objects are ignored.
+   tibbles, and data.tables and to some extent, arrays.
 
-For example, consider the following generated data.frames in R using samples from
-US EPA, UK BGCI, and NOAA pubilc data:
+For example, consider the following generated data.frames in R using environment
+data samples from US EPA, UK BGCI, and NOAA pubilc data:
 
 .. code-block:: r
 
@@ -5974,7 +5973,7 @@ US EPA, UK BGCI, and NOAA pubilc data:
 
    save(ghg_df, plants_df, sea_ice_df, file="env_data_dfs.rda")
 
-Then in pandas you can read the .rds or .rda files:
+With ``read_rdata``, you can read these above .rds or .rda files:
 
 .. ipython:: python
    :suppress:
@@ -5990,7 +5989,7 @@ Then in pandas you can read the .rds or .rda files:
 
    rda_file = os.path.join(file_path, "env_data_dfs.rda")
    env_dfs = pd.read_rdata(rda_file)
-   env_dfs
+   {k: df.tail() for k, df in env_dfs.items()}
 
 To ignore the rownames of data.frame, use option ``rownames=False``:
 
@@ -6009,16 +6008,6 @@ To select specific objects in .rda, pass a list of names into ``select_frames``:
    env_dfs = pd.read_rdata(rda_file, select_frames=["sea_ice_df"])
    env_dfs
 
-To read from URL, pass link directly into method:
-
-.. ipython:: python
-
-   url = ("https://github.com/hadley/nycflights13/"
-          "blob/master/data/airlines.rda?raw=true")
-
-   airlines = pd.read_rdata(url, file_format="rda")
-   airlines
-
 To read from a file-like object, read object in argument, ``path_or_buffer``:
 
 .. ipython:: python
@@ -6029,42 +6018,34 @@ To read from a file-like object, read object in argument, ``path_or_buffer``:
 
    sea_ice_df
 
-With ``rscript`` as ``engine``, a direct command line call to Rscript is run
-to read data natively in R and transfer content with several options of ``mode``.
-
-.. note::
-
-   If you do not have R installed and attempt to use the ``rscript`` ``engine``,
-   then an ``ImportError`` will raise. Do note: Rscript must be recognized as a
-   top-level command on machine. Hence, R's bin folder must be in Path environment
-   variable for the OS. If Rscript is not recognized even if you have R installed,
-   you will receive same ``ImportError``.
-
-- For the ``csv`` mode (default), no other package in R is required.
-  Data types are adhered in this data exchange following a text approach.
-
-- For the ``feather`` mode, the ``arrow`` package in R must be installed.
-  Additionally, the counterpart ``pyarrow`` package in Python must be
-  installed. This binary approach allows faster data exchange than text approach.
-
-- For the ``parquet`` mode, again the ``arrow`` package in R must be installed.
-  and again ``pyarrow`` package in Python must be installed. Similarly, this
-  binary approach allows faster data exchange than text approach.
-
-- For the ``sqlite`` mode, the ``RSQLite`` package in R (part of DBI family of
-  database APIs) must be installed with no additional package needed for Python.
-  This database approach ensures data type integrity.
+To read from URL, pass link directly into method:
 
 .. ipython:: python
 
-   rds_file = os.path.join(file_path, "plants_df.rds")
-   plants_df = pd.read_rdata(rds_file, engine="rscript", mode="csv").tail()
-   plants_df
+   url = ("https://github.com/hadley/nycflights13/"
+          "blob/master/data/airlines.rda?raw=true")
 
-.. note::
+   airlines = pd.read_rdata(url, file_format="rda")
+   airlines
 
-   The above selected options for ``mode`` will not generate such formats but
-   uses them under the hood in disk transfer of data between R and Python.
+To read from an Amazon S3 bucket, point to the storage path. This also raises
+another issue. Any R data encoded in non utf-8 is currently not supported:
+
+.. code-block:: ipython
+
+   In [608]: ghcran = pd.read_rdata("s3://public-r-data/ghcran.Rdata")
+   ...
+   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe9 in position 45:
+invalid continuation byte
+
+Also, remember if R data files do not contain any data frame object, a parsing error
+will occur:
+
+.. code-block:: ipython
+
+   In [608]: rds_file = os.path.join(file_path, "env_data_non_dfs.rda")
+   ...
+   LibrdataError: Invalid file, or file has unsupported features
 
 
 .. _io.rdata_writer:
@@ -6075,80 +6056,90 @@ Writing R data
 .. versionadded:: 1.3.0
 
 The method :func:`~pandas.core.frame.DataFrame.to_rdata` will write a DataFrame
-or multiple DataFrames into R data files (.Rdata, .rda, and .rds).
+or multiple DataFrames into R data files (.RData, .rda, and .rds).
 
-For single object in rds type:
+For a single DataFrame in rds type, pass in a file or buffer in method:
 
 .. ipython:: python
 
    plants_df.to_rdata("plants_df.rds")
 
-For multiple objects in RData or rda types using the ``rscript`` engine,
-use the ``other_frames`` argument and be sure to provide ``rda_names`` for all
-DataFrames:
+For a single DataFrame in RData or rda types, pass in a file or buffer in method
+and optionally give it a name:
 
 .. ipython:: python
 
-   plants_df.to_rdata(
-       "env_dfs.rda",
-       engine="rscript",
-       other_frames=[ghg_df, sea_ice_df],
-       rda_names=["plants_df", "ghg_df", "sea_ice_df"]
+   plants_df.to_rdata("plants_df.rda", rda_name="plants_df")
+
+While RData and rda types can hold multiple R objects, this method currently
+only supports writing out a single DataFrame.
+
+Even write to a buffer and read its content:
+
+.. ipython:: python
+
+    with BytesIO() as b_io:
+        sea_ice_df.to_rdata(b_io, file_format="rda", index=False)
+        print(
+            pd.read_rdata(
+                b_io.getvalue(),
+                file_format="rda",
+                rownames=False,
+            )["pandas_dataframe"].tail()
+        )
+
+While DataFrame index will not map into R rownames, by default ``index=True``
+will output as a named column or multiple columns for MultiIndex.
+
+.. ipython:: python
+
+    ghg_df.rename_axis(None).to_rdata("ghg_df.rds")
+
+    pd.read_rdata("ghg_df.rds").tail()
+
+To ignore the index, use ``index=False``:
+
+.. ipython:: python
+
+    ghg_df.rename_axis(None).to_rdata("ghg_df.rds", index=False)
+
+    pd.read_rdata("ghg_df.rds").tail()
+
+By default, these R serialized types are compressed files in either gzip, bzip2,
+or xz algorithms. Similarly to R, the default type in this method is "gzip" or
+"gz". Notice difference of compressed and uncompressed files
+
+.. ipython:: python
+
+   plants_df.to_rdata("plants_df_gz.rds")
+   plants_df.to_rdata("plants_df_bz2.rds", compression="bz2")
+   plants_df.to_rdata("plants_df_xz.rds", compression="xz")
+   plants_df.to_rdata("plants_df_non_comp.rds", compression=None)
+
+   os.stat("plants_df_gz.rds").st_size
+   os.stat("plants_df_bz2.rds").st_size
+   os.stat("plants_df_xz.rds").st_size
+   os.stat("plants_df_non_comp.rds").st_size
+
+Like other IO methods, ``storage_options`` are enabled to write to those platforms:
+
+.. code-block:: ipython
+
+   ghg_df.to_rdata(
+       "s3://path/to/my/storage/pandas_df.rda",
+       storage_options={"user": "xxx", "password": "???"}
    )
-
-With either engine, pandas index will not map into R rownames. Using the default
-``index=True`` will output an index column or multiple columns for MultiIndex.
-
-.. ipython:: python
-
-    (ghg_df.rename_axis(None)
-        .to_rdata("ghg_df.rds", engine="rscript")
-     )
-    pd.read_rdata("ghg_df.rds").tail()
-
-Otherwise, use ``index=False``:
-
-.. ipython:: python
-
-    (ghg_df.rename_axis(None)
-        .to_rdata("ghg_df.rds", engine="rscript", index=False)
-     )
-    pd.read_rdata("ghg_df.rds").tail()
-
-With both engines, the default compression of R data files will be ``gzip``.
-Notice the different sizes of compressed and uncompressed files:
-
-.. ipython:: python
-
-   plants_df.to_rdata("plants_df_uncomp.rds", compress=False)
-
-   os.stat("plants_df.rds").st_size
-   os.stat("plants_df_uncomp.rds").st_size
-
-The ``rscript`` engine supports all listed compression types including:
-``gzip``, ``bzip2``, and ``xz``.
-
-Additionally, with ``rscript`` engine, data files can be written in ascii (text)
-rather than default binary with ``ascii`` argument:
-
-.. ipython:: python
-
-   sea_ice_df.to_rdata("sea_ice_df_ascii.rda", engine="rscript",
-                       ascii=True, compress=False)
-
-   with open("sea_ice_df_ascii.rda", "r") as f:
-       for i in range(10):
-           line = next(f).strip()
-           print(line)
 
 .. ipython:: python
    :suppress:
 
    os.remove("ghg_df.rds")
    os.remove("plants_df.rds")
-   os.remove("env_dfs.rda")
-   os.remove("plants_df_uncomp.rds")
-   os.remove("sea_ice_df_ascii.rda")
+   os.remove("plants_df.rda")
+   os.remove("plants_df_gz.rds")
+   os.remove("plants_df_bz2.rds")
+   os.remove("plants_df_xz.rds")
+   os.remove("plants_df_non_comp.rds")
 
 Once exported, the single DataFrame can be read back in R or multiple DataFrames
 loaded in R:
@@ -6191,9 +6182,9 @@ loaded in R:
    144 Fluorinated gases 2018  182.7824
    145             Total 2018 6676.6496
 
-For more information of ``pyreadr`` engine, see main page of `pyreadr`_ package for
-further notes on support and limitations. For more information of R serialization
-data types, see docs on `rds`_ and `rda`_ data files.
+For more information of the underlying ``pyreadr`` package, see main page of
+`pyreadr`_ for further notes on support and limitations. For more information of R
+serialization data types, see docs on `rds`_ and `rda`_ data files.
 
 .. _pyreadr: https://github.com/ofajardo/pyreadr
 

@@ -25,4 +25,5 @@ dependencies:
   - flask
   - tabulate
   - pyreadstat
+  - pyreadr
   - pip

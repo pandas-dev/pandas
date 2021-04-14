@@ -77,13 +77,8 @@ def rtype(request):
     return request.param
 
 
-@pytest.fixture(params=[None, False, "gzip"])
-def ok_comp(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, "bzip2", "xz"])
-def bad_comp(request):
+@pytest.fixture(params=[None, "gzip", "bz2", "xz"])
+def comp(request):
     return request.param
 
 
@@ -115,7 +110,7 @@ def adj_int(df):
 
 def test_read_rds_file(datapath):
     filename = datapath("io", "data", "rdata", "ghg_df.rds")
-    r_df = read_rdata(filename, engine="pyreadr")
+    r_df = read_rdata(filename)
     output = adj_int(r_df).tail()
 
     tm.assert_frame_equal(ghg_df, output)
@@ -123,7 +118,7 @@ def test_read_rds_file(datapath):
 
 def test_read_rda_file(datapath):
     filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
-    r_dfs = read_rdata(filename, engine="pyreadr")
+    r_dfs = read_rdata(filename)
 
     r_dfs = {str(k): adj_int(v) for k, v in r_dfs.items()}
 
@@ -138,7 +133,7 @@ def test_bytes_read_rds(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
 
     with open(filename, "rb") as f:
-        r_df = read_rdata(f, file_format="rds", engine="pyreadr")
+        r_df = read_rdata(f, file_format="rds")
 
     output = adj_int(r_df).tail()
 
@@ -149,7 +144,7 @@ def test_bytes_read_rda(datapath):
     filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
 
     with open(filename, "rb") as f:
-        r_dfs = read_rdata(f, file_format="rda", engine="pyreadr")
+        r_dfs = read_rdata(f, file_format="rda")
 
     r_dfs = {str(k): adj_int(v) for k, v in r_dfs.items()}
 
@@ -165,7 +160,7 @@ def test_bytesio_rds(datapath):
 
     with open(filename, "rb") as f:
         with BytesIO(f.read()) as b_io:
-            r_df = read_rdata(b_io, file_format="rds", engine="pyreadr")
+            r_df = read_rdata(b_io, file_format="rds")
 
     output = adj_int(r_df).tail()
 
@@ -177,7 +172,7 @@ def test_bytesio_rda(datapath):
 
     with open(filename, "rb") as f:
         with BytesIO(f.read()) as b_io:
-            r_dfs = read_rdata(b_io, file_format="rda", engine="pyreadr")
+            r_dfs = read_rdata(b_io, file_format="rda")
 
     r_dfs = {str(k): adj_int(v) for k, v in r_dfs.items()}
 
@@ -194,13 +189,13 @@ def test_bytesio_rda(datapath):
 def test_read_wrong_format(datapath):
     with pytest.raises(ValueError, match="not a valid value for file_format"):
         filename = datapath("io", "data", "rdata", "plants_df.rds")
-        read_rdata(filename, engine="pyreadr", file_format="r")
+        read_rdata(filename, file_format="r")
 
 
 def test_read_wrong_file():
     with pytest.raises(FileNotFoundError, match="file cannot be found"):
         filename = os.path.join("data", "rdata", "plants_df.rda")
-        read_rdata(filename, engine="pyreadr")
+        read_rdata(filename)
 
 
 def test_read_rds_non_df(datapath):
@@ -211,7 +206,7 @@ def test_read_rds_non_df(datapath):
         match="Invalid file, or file has unsupported features",
     ):
         filename = datapath("io", "data", "rdata", "ppm_ts.rds")
-        read_rdata(filename, engine="pyreadr")
+        read_rdata(filename)
 
 
 def test_read_rda_non_dfs(datapath):
@@ -222,7 +217,7 @@ def test_read_rda_non_dfs(datapath):
         match="Invalid file, or file has unsupported features",
     ):
         filename = datapath("io", "data", "rdata", "env_data_non_dfs.rda")
-        read_rdata(filename, engine="pyreadr")
+        read_rdata(filename)
 
 
 def test_read_not_rda_file(datapath):
@@ -232,7 +227,7 @@ def test_read_not_rda_file(datapath):
         custom_errors.LibrdataError, match="The file contains an unrecognized object"
     ):
         filename = datapath("io", "data", "rdata", "ppm_df.csv")
-        read_rdata(filename, file_format="rda", engine="pyreadr")
+        read_rdata(filename, file_format="rda")
 
 
 def test_bytes_read_infer_rds(datapath):
@@ -240,7 +235,7 @@ def test_bytes_read_infer_rds(datapath):
 
     with pytest.raises(ValueError, match="Unable to infer file format from file name"):
         with open(filename, "rb") as f:
-            read_rdata(f, engine="pyreadr")
+            read_rdata(f)
 
 
 def test_bytes_read_infer_rda(datapath):
@@ -248,7 +243,7 @@ def test_bytes_read_infer_rda(datapath):
 
     with pytest.raises(ValueError, match="Unable to infer file format from file name"):
         with open(filename, "rb") as f:
-            read_rdata(f, engine="pyreadr")
+            read_rdata(f)
 
 
 # URL
@@ -272,7 +267,7 @@ def test_read_rda_url():
     url = (
         "https://github.com/hadley/nycflights13/blob/master/data/airlines.rda?raw=true"
     )
-    r_dfs = read_rdata(url, file_format="rda", engine="pyreadr")
+    r_dfs = read_rdata(url, file_format="rda")
 
     tm.assert_frame_equal(url_df, r_dfs["airlines"].head())
 
@@ -284,14 +279,14 @@ def test_read_unable_infer_format():
             "https://github.com/hadley/nycflights13/"
             "blob/master/data/airlines.rda?raw=true"
         )
-        read_rdata(url, engine="pyreadr")
+        read_rdata(url)
 
 
 @tm.network
 def test_read_wrong_url():
     with pytest.raises(HTTPError, match="HTTP Error 404: Not Found"):
         url = "https://example.com/data.rdata"
-        read_rdata(url, engine="pyreadr")
+        read_rdata(url)
 
 
 # S3
@@ -317,7 +312,7 @@ def test_read_rda_s3():
             "Proline": {1: 1050, 2: 1185, 3: 1480, 4: 735, 5: 1450},
         }
     ).rename_axis("rownames")
-    r_dfs = read_rdata(s3, engine="pyreadr")
+    r_dfs = read_rdata(s3)
     r_dfs["wine"] = adj_int(r_dfs["wine"])
 
     # pyreadr remove dots in colnames
@@ -331,38 +326,25 @@ def test_read_rda_s3():
 
 def test_read_rds_df_output(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
-    r_df = read_rdata(filename, engine="pyreadr")
+    r_df = read_rdata(filename)
 
     assert isinstance(r_df, DataFrame)
 
 
 def test_read_rda_dict_output(datapath):
     filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
-    r_dfs = read_rdata(filename, engine="pyreadr")
+    r_dfs = read_rdata(filename)
 
     assert isinstance(r_dfs, dict)
     assert list(r_dfs.keys()) == ["ghg_df", "plants_df", "sea_ice_df"]
 
 
-def test_read_wrong_engine(datapath):
-    with pytest.raises(ValueError, match="not a supported engine"):
-        filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
-        read_rdata(filename, engine="rpy2")
-
-
-# MODE
-
-# IGNORED OPTION FOR pyreadr ENGINE
-
-
-# USE_OBJECTS
+# SELECT_FRAMES
 
 
 def test_read_select_frames_rda_dfs(datapath):
     filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
-    r_dfs = read_rdata(
-        filename, engine="pyreadr", select_frames=["ghg_df", "sea_ice_df"]
-    )
+    r_dfs = read_rdata(filename, select_frames=["ghg_df", "sea_ice_df"])
 
     assert "plants_df" not in list(r_dfs.keys())
     assert "ghg_df" in list(r_dfs.keys())
@@ -372,11 +354,7 @@ def test_read_select_frames_rda_dfs(datapath):
 def test_read_wrong_select_frames(datapath):
     with pytest.raises(TypeError, match="not a valid type for select_frames"):
         filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
-        read_rdata(
-            filename,
-            engine="pyreadr",
-            select_frames="plants_df",  # type: ignore[arg-type]
-        )
+        read_rdata(filename, select_frames="plants_df")
 
 
 # ROWNAMES
@@ -384,7 +362,7 @@ def test_read_wrong_select_frames(datapath):
 
 def test_read_rownames_true_rds(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
-    r_df = read_rdata(filename, engine="pyreadr", rownames=True)
+    r_df = read_rdata(filename, rownames=True)
 
     if isinstance(r_df, DataFrame):
         assert r_df.index.name == "rownames"
@@ -392,7 +370,7 @@ def test_read_rownames_true_rds(datapath):
 
 def test_read_rownames_false_rds(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
-    r_df = read_rdata(filename, engine="pyreadr", rownames=False)
+    r_df = read_rdata(filename, rownames=False)
 
     if isinstance(r_df, DataFrame):
         assert r_df.index.name != "rownames"
@@ -400,7 +378,7 @@ def test_read_rownames_false_rds(datapath):
 
 def test_read_rownames_true_rda(datapath):
     filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
-    r_dfs = read_rdata(filename, engine="pyreadr", rownames=True)
+    r_dfs = read_rdata(filename, rownames=True)
 
     assert r_dfs["ghg_df"].index.name == "rownames"
     assert r_dfs["plants_df"].index.name == "rownames"
@@ -409,7 +387,7 @@ def test_read_rownames_true_rda(datapath):
 
 def test_read_rownames_false_rda(datapath):
     filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
-    r_dfs = read_rdata(filename, engine="pyreadr", rownames=False)
+    r_dfs = read_rdata(filename, rownames=False)
 
     assert r_dfs["ghg_df"].index.name != "rownames"
     assert r_dfs["plants_df"].index.name != "rownames"
@@ -422,7 +400,7 @@ def test_read_rownames_false_rda(datapath):
 def test_non_utf8_data(datapath, rtype):
     filename = datapath("io", "data", "rdata", f"climate_non_utf8_df.{rtype}")
     with pytest.raises(UnicodeDecodeError, match=("'utf-8' codec can't decode byte")):
-        read_rdata(filename, engine="pyreadr")
+        read_rdata(filename)
 
 
 # RDA WRITER
@@ -432,8 +410,8 @@ def test_non_utf8_data(datapath, rtype):
 
 def test_write_read_file(rtype):
     with tm.ensure_clean("test.out") as path:
-        ghg_df.to_rdata(path, file_format=rtype, engine="pyreadr", index=False)
-        r_dfs = read_rdata(path, file_format=rtype, engine="pyreadr", rownames=False)
+        ghg_df.to_rdata(path, file_format=rtype, index=False)
+        r_dfs = read_rdata(path, file_format=rtype, rownames=False)
 
         expected = ghg_df.reset_index(drop=True)
         output = (
@@ -448,10 +426,8 @@ def test_write_read_pathlib(rtype):
 
     with tm.ensure_clean_dir() as tmp_dir:
         tmp_file = Path(tmp_dir).joinpath("test.out")
-        sea_ice_df.to_rdata(tmp_file, file_format=rtype, engine="pyreadr", index=False)
-        r_dfs = read_rdata(
-            tmp_file, file_format=rtype, engine="pyreadr", rownames=False
-        )
+        sea_ice_df.to_rdata(tmp_file, file_format=rtype, index=False)
+        r_dfs = read_rdata(tmp_file, file_format=rtype, rownames=False)
 
         expected = sea_ice_df.reset_index(drop=True)
         output = (
@@ -463,11 +439,10 @@ def test_write_read_pathlib(rtype):
 
 def test_write_read_filelike(rtype):
     with BytesIO() as b_io:
-        sea_ice_df.to_rdata(b_io, file_format=rtype, engine="pyreadr", index=False)
+        sea_ice_df.to_rdata(b_io, file_format=rtype, index=False)
         r_dfs = read_rdata(
-            b_io.getvalue(),  # type: ignore[arg-type]
+            b_io.getvalue(),
             file_format=rtype,
-            engine="pyreadr",
             rownames=False,
         )
 
@@ -485,7 +460,7 @@ def test_write_read_filelike(rtype):
 def test_write_wrong_format():
     with tm.ensure_clean("test.rda") as path:
         with pytest.raises(ValueError, match=("not a valid value for file_format")):
-            ghg_df.to_rdata(path, engine="pyreadr", file_format="csv")
+            ghg_df.to_rdata(path, file_format="csv")
 
 
 def test_write_unable_to_infer():
@@ -493,21 +468,7 @@ def test_write_unable_to_infer():
         with pytest.raises(
             ValueError, match=("Unable to infer file format from file name")
         ):
-            ghg_df.to_rdata(path, engine="pyreadr")
-
-
-# ENGINE
-
-
-def test_write_wrong_engine():
-    with tm.ensure_clean("test.rda") as path:
-        with pytest.raises(ValueError, match=("not a supported engine")):
-            ghg_df.to_rdata(path, engine="rpy2")
-
-
-# MODE
-
-# IGNORED OPTION FOR pyreadr ENGINE
+            ghg_df.to_rdata(path)
 
 
 # INDEX
@@ -515,10 +476,8 @@ def test_write_wrong_engine():
 
 def test_index_true(rtype):
     with tm.ensure_clean("test.out") as path:
-        plants_df.rename_axis(None).to_rdata(
-            path, file_format=rtype, engine="pyreadr", index=True
-        )
-        r_dfs = read_rdata(path, file_format=rtype, engine="pyreadr")
+        plants_df.rename_axis(None).to_rdata(path, file_format=rtype, index=True)
+        r_dfs = read_rdata(path, file_format=rtype)
 
     r_df = r_dfs if rtype == "rds" else r_dfs["pandas_dataframe"]
 
@@ -528,10 +487,8 @@ def test_index_true(rtype):
 
 def test_index_false(rtype):
     with tm.ensure_clean("test.out") as path:
-        plants_df.rename_axis(None).to_rdata(
-            path, file_format=rtype, engine="pyreadr", index=False
-        )
-        r_dfs = read_rdata(path, file_format=rtype, engine="pyreadr")
+        plants_df.rename_axis(None).to_rdata(path, file_format=rtype, index=False)
+        r_dfs = read_rdata(path, file_format=rtype)
 
     r_df = r_dfs if rtype == "rds" else r_dfs["pandas_dataframe"]
 
@@ -539,20 +496,13 @@ def test_index_false(rtype):
         assert "index" not in r_df.columns
 
 
-# ASCII
-
-# IGNORED OPTION FOR pyreadr ENGINE
-
-
 # COMPRESS
 
 
-def test_compress_ok_comp(rtype, ok_comp):
+def test_compress_ok_comp(rtype, comp):
     with tm.ensure_clean("test.out") as path:
-        ghg_df.to_rdata(
-            path, file_format=rtype, engine="pyreadr", compress=ok_comp, index=False
-        )
-        r_dfs = read_rdata(path, file_format=rtype, engine="pyreadr", rownames=False)
+        ghg_df.to_rdata(path, file_format=rtype, compression=comp, index=False)
+        r_dfs = read_rdata(path, file_format=rtype, rownames=False)
 
         expected = ghg_df.reset_index(drop=True)
         output = (
@@ -562,34 +512,10 @@ def test_compress_ok_comp(rtype, ok_comp):
         tm.assert_frame_equal(output, expected)
 
 
-def test_compress_bad_comp(rtype, bad_comp):
-    from pyreadr import custom_errors
-
-    with tm.ensure_clean("test.out") as path:
-        with pytest.raises(
-            custom_errors.PyreadrError,
-            match=(f"compression {bad_comp} not implemented!"),
-        ):
-            ghg_df.to_rdata(
-                path,
-                file_format=rtype,
-                engine="pyreadr",
-                index=False,
-                compress=bad_comp,
-            )
-
-
 def test_compress_zip(rtype):
     with tm.ensure_clean("test.out") as path:
-        with pytest.raises(ValueError, match=("not a supported value for compress")):
-            ghg_df.to_rdata(
-                path, file_format=rtype, engine="pyreadr", index=False, compress="zip"
-            )
-
-
-# OTHER_FRAMES
-
-# IGNORED OPTION FOR pyreadr ENGINE
+        with pytest.raises(ValueError, match=("not a supported value for compression")):
+            ghg_df.to_rdata(path, file_format=rtype, index=False, compression="zip")
 
 
 # RDA_NAMES
@@ -597,13 +523,7 @@ def test_compress_zip(rtype):
 
 def test_new_rda_name():
     with tm.ensure_clean("test.rda") as path:
-        ghg_df.to_rdata(path, engine="pyreadr", rda_names=["py_df"])
-        r_dfs = read_rdata(path, engine="pyreadr")
+        ghg_df.to_rdata(path, rda_name="py_df")
+        r_dfs = read_rdata(path)
 
         assert "py_df" in list(r_dfs.keys())
-
-
-def test_type_rda_name():
-    with tm.ensure_clean("test.rds") as path:
-        with pytest.raises(TypeError, match=("not a valid type for rda_names")):
-            ghg_df.to_rdata(path, engine="rscript", rda_names="py)df")

@@ -116,14 +116,13 @@ Read and write R data files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We added I/O support to read and write R data files (.RData, .rda, .rds) using
-:func:`pandas.read_rdata` and :meth:`DataFrame.to_rdata`. Equipped with two engines,
-`pyreadr`_ and command line caller, `rscript`_, these methods will maintain fast and
-durable support for open source data migration between R and Python. (:issue:`40287`)
+:func:`pandas.read_rdata` and :meth:`DataFrame.to_rdata`. Both methods rely on
+the `pyreadr`_ package to support open source data migration between R and
+Python pandas. (:issue:`40287`)
 
 .. _pyreadr: https://github.com/ofajardo/pyreadr
-.. _rscript: https://www.rdocumentation.org/packages/utils/versions/3.6.2/topics/Rscript
 
-In R, the below generated data frame and matrix:
+For example, consider the below generated data frame and matrix in R:
 
 .. code-block:: r
 
@@ -160,11 +159,12 @@ In R, the below generated data frame and matrix:
     In [3]: saveRDS(ppm_df, "ppm_df_r.rds")
     In [4]: save(ppm_df, iucn_species_mtx, "env_objs_r.rda")
 
-Can then be read in pandas with either engine:
+Now, both R data files can be read in pandas to return either DataFrame
+for .rds types or ``dict`` of DataFrames for .RData and .rda types:
 
 .. code-block:: ipython
 
-    In [1]: ppm_df = pd.read_rdata("ppm_df_r.rds", engine="pyreadr")
+    In [1]: ppm_df = pd.read_rdata("ppm_df_r.rds")
     In [2]: ppm_df
     Out[3]:
        year  month  monthly_average  num_days  st_dev_of_days  unc_mon_mean
@@ -174,7 +174,7 @@ Can then be read in pandas with either engine:
     3  2021      1           415.52        29            0.44          0.16
     4  2021      2           416.75        28            1.01          0.36
 
-    In [4]: env_objs = pd.read_rdata("env_objs_r.rda", engine="rscript")
+    In [4]: env_objs = pd.read_rdata("env_objs_r.rda")
     Out[5]:
     {'carbon_ppm_df':
         year  month  monthly_average  num_days  st_dev_of_days  unc_mon_mean
@@ -185,7 +185,7 @@ Can then be read in pandas with either engine:
      4  2021      2           416.75        28            1.01          0.36
 
      [5 rows x 6 columns],
-     'species_matrix':
+     'iucn_species_mtx':
                       EX  EW  CR(PE)  CR(PEW)    CR     EN     VU     DD   Total
      rownames
      MAGNOLIOPSIDA   102  30     409       29  3770   6972   7089   2990   43885
@@ -199,16 +199,14 @@ Can then be read in pandas with either engine:
 
      [8 rows x 9 columns]}
 
-Even exported back out to R data files:
+Additionally, pandas data can be written back out into the same R data files:
 
 .. code-block:: ipython
 
     In [5]: ppm_df.to_rdata("ppm_df_py.rds")
-    In [6]: ppm_df.to_rdata(
-       ...:     "env_objs_py.rda",
-       ...:     engine="rscript",
-       ...:     other_frames=env_objs["species_matrix"],
-       ...:     rda_names=["ppm_df", "species_mtx"]
+    In [6]: env_objs['iucn_species_mtx'].to_rdata(
+       ...:     "iucn_species_py.rda",
+       ...:     rda_name="iucn_species_df"
        ...: )
 
 For more, see :ref:`io.rdata` in the user guide on IO tools.
