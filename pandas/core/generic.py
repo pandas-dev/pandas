@@ -8983,7 +8983,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     join="left",
                     axis=axis,
                     level=level,
-                    fill_value=np.nan,
+                    fill_value=None,
                     copy=False,
                 )
 
