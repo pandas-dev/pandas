@@ -25,19 +25,17 @@ from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
+    is_array_like,
+    is_bool_dtype,
+    is_integer,
+    is_integer_dtype,
     is_object_dtype,
+    is_scalar,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.api.types import (
-    is_array_like,
-    is_bool_dtype,
-    is_integer,
-    is_integer_dtype,
-    is_scalar,
-)
 from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
