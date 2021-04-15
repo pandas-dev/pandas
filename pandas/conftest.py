@@ -1144,6 +1144,8 @@ def nullable_string_dtype(request):
     * 'string'
     * 'arrow_string'
     """
+    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
     return request.param
 
 
