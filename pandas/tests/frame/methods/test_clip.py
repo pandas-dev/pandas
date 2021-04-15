@@ -140,7 +140,7 @@ class TestDataFrameClip:
 
     def test_clip_with_na_args(self, float_frame):
         """Should process np.nan argument as None """
-        # GH#17276 an adjusted in GH#40420
+        # GH#17276
         tm.assert_frame_equal(float_frame.clip(np.nan), float_frame)
         tm.assert_frame_equal(float_frame.clip(upper=np.nan, lower=np.nan), float_frame)
 
