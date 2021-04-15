@@ -17,8 +17,8 @@ from pandas.arrays import (
     FloatingArray,
     IntegerArray,
     IntervalArray,
+    PythonStringArray,
     SparseArray,
-    StringArray,
     TimedeltaArray,
 )
 from pandas.core.arrays import (
@@ -132,8 +132,8 @@ from pandas.tests.extension.decimal import (
         ([1, None], "Int16", pd.array([1, None], dtype="Int16")),
         (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
         # String
-        (["a", None], "string", StringArray._from_sequence(["a", None])),
-        (["a", None], pd.StringDtype(), StringArray._from_sequence(["a", None])),
+        (["a", None], "string", PythonStringArray._from_sequence(["a", None])),
+        (["a", None], pd.StringDtype(), PythonStringArray._from_sequence(["a", None])),
         # Boolean
         ([True, None], "boolean", BooleanArray._from_sequence([True, None])),
         ([True, None], pd.BooleanDtype(), BooleanArray._from_sequence([True, None])),
@@ -253,8 +253,8 @@ cet = pytz.timezone("CET")
         ([1, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
         ([1, np.nan, 2.0], FloatingArray._from_sequence([1.0, None, 2.0])),
         # string
-        (["a", "b"], StringArray._from_sequence(["a", "b"])),
-        (["a", None], StringArray._from_sequence(["a", None])),
+        (["a", "b"], PythonStringArray._from_sequence(["a", "b"])),
+        (["a", None], PythonStringArray._from_sequence(["a", None])),
         # Boolean
         ([True, False], BooleanArray._from_sequence([True, False])),
         ([True, None], BooleanArray._from_sequence([True, None])),

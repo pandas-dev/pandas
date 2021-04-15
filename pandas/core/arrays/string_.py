@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    TypeVar,
+)
 
 import numpy as np
 
@@ -36,6 +39,7 @@ from pandas.core.arrays import (
     IntegerArray,
     PandasArray,
 )
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
@@ -85,7 +89,7 @@ class StringDtype(ExtensionDtype):
         return str
 
     @classmethod
-    def construct_array_type(cls) -> type_t[StringArray]:
+    def construct_array_type(cls) -> type_t[PythonStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -93,16 +97,16 @@ class StringDtype(ExtensionDtype):
         -------
         type
         """
-        return StringArray
+        return PythonStringArray
 
     def __repr__(self) -> str:
         return "StringDtype"
 
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
-    ) -> StringArray:
+    ) -> PythonStringArray:
         """
-        Construct StringArray from pyarrow Array/ChunkedArray.
+        Construct PythonStringArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow
 
@@ -115,13 +119,20 @@ class StringDtype(ExtensionDtype):
         results = []
         for arr in chunks:
             # using _from_sequence to ensure None is converted to NA
-            str_arr = StringArray._from_sequence(np.array(arr))
+            str_arr = PythonStringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
-        return StringArray._concat_same_type(results)
+        return PythonStringArray._concat_same_type(results)
 
 
-class StringArray(PandasArray):
+StringArrayT = TypeVar("StringArrayT", bound="StringArray")
+
+
+class StringArray(ExtensionArray):
+    pass
+
+
+class PythonStringArray(StringArray, PandasArray):
     """
     Extension array for string data.
 
@@ -129,7 +140,7 @@ class StringArray(PandasArray):
 
     .. warning::
 
-       StringArray is considered experimental. The implementation and
+       PythonStringArray is considered experimental. The implementation and
        parts of the API may change without warning.
 
     Parameters
@@ -143,7 +154,7 @@ class StringArray(PandasArray):
            where the elements are Python strings or :attr:`pandas.NA`.
            This may change without warning in the future. Use
            :meth:`pandas.array` with ``dtype="string"`` for a stable way of
-           creating a `StringArray` from any sequence.
+           creating a `PythonStringArray` from any sequence.
 
     copy : bool, default False
         Whether to copy the array of data.
@@ -159,23 +170,23 @@ class StringArray(PandasArray):
     See Also
     --------
     array
-        The recommended function for creating a StringArray.
+        The recommended function for creating a PythonStringArray.
     Series.str
         The string methods are available on Series backed by
-        a StringArray.
+        a PythonStringArray.
 
     Notes
     -----
-    StringArray returns a BooleanArray for comparison methods.
+    PythonStringArray returns a BooleanArray for comparison methods.
 
     Examples
     --------
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
-    <StringArray>
+    <PythonStringArray>
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
 
-    Unlike arrays instantiated with ``dtype="object"``, ``StringArray``
+    Unlike arrays instantiated with ``dtype="object"``, ``PythonStringArray``
     will convert the values to strings.
 
     >>> pd.array(['1', 1], dtype="object")
@@ -187,9 +198,10 @@ class StringArray(PandasArray):
     ['1', '1']
     Length: 2, dtype: string
 
-    However, instantiating StringArrays directly with non-strings will raise an error.
+    However, instantiating PythonStringArrays directly with non-strings will raise an
+    error.
 
-    For comparison methods, `StringArray` returns a :class:`pandas.BooleanArray`:
+    For comparison methods, `PythonStringArray` returns a :class:`pandas.BooleanArray`:
 
     >>> pd.array(["a", None, "c"], dtype="string") == "a"
     <BooleanArray>
@@ -213,10 +225,12 @@ class StringArray(PandasArray):
     def _validate(self):
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
+            raise ValueError(
+                "PythonStringArray requires a sequence of strings or pandas.NA"
+            )
         if self._ndarray.dtype != "object":
             raise ValueError(
-                "StringArray requires a sequence of strings or pandas.NA. Got "
+                "PythonStringArray requires a sequence of strings or pandas.NA. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
 
@@ -255,7 +269,7 @@ class StringArray(PandasArray):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
-    def _empty(cls, shape, dtype) -> StringArray:
+    def _empty(cls, shape, dtype) -> PythonStringArray:
         values = np.empty(shape, dtype=object)
         values[:] = libmissing.NA
         return cls(values).astype(dtype, copy=False)
@@ -297,7 +311,7 @@ class StringArray(PandasArray):
                 value = StringDtype.na_value
             elif not isinstance(value, str):
                 raise ValueError(
-                    f"Cannot set non-string value '{value}' into a StringArray."
+                    f"Cannot set non-string value '{value}' into a PythonStringArray."
                 )
         else:
             if not is_array_like(value):
@@ -376,7 +390,7 @@ class StringArray(PandasArray):
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
 
-        if isinstance(other, StringArray):
+        if isinstance(other, PythonStringArray):
             other = other._ndarray
 
         mask = isna(self) | isna(other)
@@ -396,7 +410,7 @@ class StringArray(PandasArray):
             result = np.empty_like(self._ndarray, dtype="object")
             result[mask] = StringDtype.na_value
             result[valid] = op(self._ndarray[valid], other)
-            return StringArray(result)
+            return PythonStringArray(result)
         else:
             # logical
             result = np.zeros(len(self._ndarray), dtype="bool")
@@ -456,7 +470,7 @@ class StringArray(PandasArray):
             result = lib.map_infer_mask(
                 arr, f, mask.view("uint8"), convert=False, na_value=na_value
             )
-            return StringArray(result)
+            return PythonStringArray(result)
         else:
             # This is when the result type is object. We reach this when
             # -> We know the result type is truly object (e.g. .encode returns bytes

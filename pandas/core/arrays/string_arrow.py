@@ -41,6 +41,7 @@ from pandas.api.types import (
 from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.string_ import StringArray
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
@@ -159,7 +160,7 @@ class ArrowStringDtype(ExtensionDtype):
 # fallback for the ones that pyarrow doesn't yet support
 
 
-class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
+class ArrowStringArray(OpsMixin, StringArray, ObjectStringArrayMixin):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 

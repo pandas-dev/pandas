@@ -122,7 +122,7 @@ def array(
         :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
         :class:`int`                   :class:`pandas.arrays.IntegerArray`
         :class:`float`                 :class:`pandas.arrays.FloatingArray`
-        :class:`str`                   :class:`pandas.arrays.StringArray`
+        :class:`str`                   :class:`pandas.arrays.PythonStringArray`
         :class:`bool`                  :class:`pandas.arrays.BooleanArray`
         ============================== =====================================
 
@@ -236,7 +236,7 @@ def array(
     Length: 2, dtype: Float64
 
     >>> pd.array(["a", None, "c"])
-    <StringArray>
+    <PythonStringArray>
     ['a', <NA>, 'c']
     Length: 3, dtype: string
 
@@ -292,7 +292,7 @@ def array(
         IntegerArray,
         IntervalArray,
         PandasArray,
-        StringArray,
+        PythonStringArray,
         TimedeltaArray,
         period_array,
     )
@@ -345,7 +345,7 @@ def array(
             return TimedeltaArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "string":
-            return StringArray._from_sequence(data, copy=copy)
+            return PythonStringArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
