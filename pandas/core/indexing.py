@@ -1068,7 +1068,7 @@ class _LocIndexer(_LocationIndexer):
         ----------
         key : iterable
             Targeted labels.
-        axis: int
+        axis : int
             Dimension on which the indexing is being made.
 
         Raises
@@ -1271,7 +1271,7 @@ class _LocIndexer(_LocationIndexer):
         ----------
         key : list-like
             Targeted labels.
-        axis: int
+        axis:  int
             Dimension on which the indexing is being made.
         raise_missing: bool, default False
             Whether to raise a KeyError if some labels were not found.
@@ -1326,7 +1326,7 @@ class _LocIndexer(_LocationIndexer):
         indexer: array-like of booleans
             Indices corresponding to the key,
             (with -1 indicating not found).
-        axis: int
+        axis : int
             Dimension on which the indexing is being made.
         raise_missing: bool
             Whether to raise a KeyError if some labels are not found. Will be
@@ -1883,7 +1883,11 @@ class _iLocIndexer(_LocationIndexer):
         if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
             ser = value
         elif is_array_like(value) and is_exact_shape_match(ser, value):
-            ser = value
+            if is_list_like(pi):
+                ser = value[np.argsort(pi)]
+            else:
+                # in case of slice
+                ser = value[pi]
         else:
             # set the item, possibly having a dtype change
             ser = ser.copy()
