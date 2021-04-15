@@ -11,14 +11,22 @@ from pandas import (
 )
 
 
-def test_string_array(any_string_method):
+def test_string_array(nullable_string_dtype, any_string_method, request):
     method_name, args, kwargs = any_string_method
     if method_name == "decode":
         pytest.skip("decode requires bytes.")
 
+    if nullable_string_dtype == "arrow_string" and method_name in {
+        "extract",
+        "extractall",
+    }:
+        reason = "extract/extractall does not yet dispatch to array"
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
     data = ["a", "bb", np.nan, "ccc"]
     a = Series(data, dtype=object)
-    b = Series(data, dtype="string")
+    b = Series(data, dtype=nullable_string_dtype)
 
     expected = getattr(a.str, method_name)(*args, **kwargs)
     result = getattr(b.str, method_name)(*args, **kwargs)
@@ -27,7 +35,7 @@ def test_string_array(any_string_method):
         if expected.dtype == "object" and lib.is_string_array(
             expected.dropna().values,
         ):
-            assert result.dtype == "string"
+            assert result.dtype == nullable_string_dtype
             result = result.astype(object)
 
         elif expected.dtype == "object" and lib.is_bool_array(
@@ -46,7 +54,7 @@ def test_string_array(any_string_method):
 
     elif isinstance(expected, DataFrame):
         columns = expected.select_dtypes(include="object").columns
-        assert all(result[columns].dtypes == "string")
+        assert all(result[columns].dtypes == nullable_string_dtype)
         result[columns] = result[columns].astype(object)
     tm.assert_equal(result, expected)
 
@@ -60,8 +68,8 @@ def test_string_array(any_string_method):
         ("rindex", [2, None]),
     ],
 )
-def test_string_array_numeric_integer_array(method, expected):
-    s = Series(["aba", None], dtype="string")
+def test_string_array_numeric_integer_array(nullable_string_dtype, method, expected):
+    s = Series(["aba", None], dtype=nullable_string_dtype)
     result = getattr(s.str, method)("a")
     expected = Series(expected, dtype="Int64")
     tm.assert_series_equal(result, expected)
@@ -73,33 +81,39 @@ def test_string_array_numeric_integer_array(method, expected):
         ("isdigit", [False, None, True]),
         ("isalpha", [True, None, False]),
         ("isalnum", [True, None, True]),
-        ("isdigit", [False, None, True]),
+        ("isnumeric", [False, None, True]),
     ],
 )
-def test_string_array_boolean_array(method, expected):
-    s = Series(["a", None, "1"], dtype="string")
+def test_string_array_boolean_array(nullable_string_dtype, method, expected):
+    s = Series(["a", None, "1"], dtype=nullable_string_dtype)
     result = getattr(s.str, method)()
     expected = Series(expected, dtype="boolean")
     tm.assert_series_equal(result, expected)
 
 
-def test_string_array_extract():
+def test_string_array_extract(nullable_string_dtype, request):
     # https://github.com/pandas-dev/pandas/issues/30969
     # Only expand=False & multiple groups was failing
-    a = Series(["a1", "b2", "cc"], dtype="string")
+
+    if nullable_string_dtype == "arrow_string":
+        reason = "extract does not yet dispatch to array"
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
+    a = Series(["a1", "b2", "cc"], dtype=nullable_string_dtype)
     b = Series(["a1", "b2", "cc"], dtype="object")
     pat = r"(\w)(\d)"
 
     result = a.str.extract(pat, expand=False)
     expected = b.str.extract(pat, expand=False)
-    assert all(result.dtypes == "string")
+    assert all(result.dtypes == nullable_string_dtype)
 
     result = result.astype(object)
     tm.assert_equal(result, expected)
 
 
-def test_str_get_stringarray_multiple_nans():
-    s = Series(pd.array(["a", "ab", pd.NA, "abc"]))
+def test_str_get_stringarray_multiple_nans(nullable_string_dtype):
+    s = Series(pd.array(["a", "ab", pd.NA, "abc"], dtype=nullable_string_dtype))
     result = s.str.get(2)
-    expected = Series(pd.array([pd.NA, pd.NA, pd.NA, "c"]))
+    expected = Series(pd.array([pd.NA, pd.NA, pd.NA, "c"], dtype=nullable_string_dtype))
     tm.assert_series_equal(result, expected)
