@@ -15,6 +15,8 @@ Instructions for installing from source,
 `PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <https://github.com/pandas-dev/pandas>`__ are also provided.
 
+.. _install.version:
+
 Python version support
 ----------------------
 
@@ -184,7 +186,7 @@ You can find simple installation instructions for pandas in this document: ``ins
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a pandas development environment.
+See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing_environment>` if you wish to create a pandas development environment.
 
 Running the test suite
 ----------------------
@@ -220,7 +222,7 @@ Dependencies
 Package                                                          Minimum supported version
 ================================================================ ==========================
 `setuptools <https://setuptools.readthedocs.io/en/latest/>`__    38.6.0
-`NumPy <https://numpy.org>`__                                    1.16.5
+`NumPy <https://numpy.org>`__                                    1.17.3
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
 `pytz <https://pypi.org/project/pytz/>`__                        2017.3
 ================================================================ ==========================

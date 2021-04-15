@@ -10,9 +10,7 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
     Sequence,
-    Union,
     cast,
 )
 
@@ -52,14 +50,15 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_sparse,
     is_string_dtype,
     is_timedelta64_ns_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCPandasArray,
+    ABCRangeIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna
@@ -75,8 +74,8 @@ if TYPE_CHECKING:
 
 
 def array(
-    data: Union[Sequence[object], AnyArrayLike],
-    dtype: Optional[Dtype] = None,
+    data: Sequence[object] | AnyArrayLike,
+    dtype: Dtype | None = None,
     copy: bool = True,
 ) -> ExtensionArray:
     """
@@ -369,7 +368,9 @@ def array(
     return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
 
 
-def extract_array(obj: object, extract_numpy: bool = False) -> Union[Any, ArrayLike]:
+def extract_array(
+    obj: object, extract_numpy: bool = False, extract_range: bool = False
+) -> Any | ArrayLike:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -383,6 +384,10 @@ def extract_array(obj: object, extract_numpy: bool = False) -> Union[Any, ArrayL
 
     extract_numpy : bool, default False
         Whether to extract the ndarray from a PandasArray
+
+    extract_range : bool, default False
+        If we have a RangeIndex, return range._values if True
+        (which is a materialized integer ndarray), otherwise return unchanged.
 
     Returns
     -------
@@ -412,6 +417,11 @@ def extract_array(obj: object, extract_numpy: bool = False) -> Union[Any, ArrayL
     array([1, 2, 3])
     """
     if isinstance(obj, (ABCIndex, ABCSeries)):
+        if isinstance(obj, ABCRangeIndex):
+            if extract_range:
+                return obj._values
+            return obj
+
         obj = obj.array
 
     if extract_numpy and isinstance(obj, ABCPandasArray):
@@ -454,8 +464,8 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
 
 def sanitize_array(
     data,
-    index: Optional[Index],
-    dtype: Optional[DtypeObj] = None,
+    index: Index | None,
+    dtype: DtypeObj | None = None,
     copy: bool = False,
     raise_cast_failure: bool = True,
 ) -> ArrayLike:
@@ -549,12 +559,10 @@ def sanitize_array(
 
     subarr = _sanitize_ndim(subarr, data, dtype, index)
 
-    if not (is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype)):
-        # error: Argument 1 to "_sanitize_str_dtypes" has incompatible type
-        # "ExtensionArray"; expected "ndarray"
-        subarr = _sanitize_str_dtypes(
-            subarr, data, dtype, copy  # type: ignore[arg-type]
-        )
+    if not (
+        isinstance(subarr.dtype, ExtensionDtype) or isinstance(dtype, ExtensionDtype)
+    ):
+        subarr = _sanitize_str_dtypes(subarr, data, dtype, copy)
 
         is_object_or_str_dtype = is_object_dtype(dtype) or is_string_dtype(dtype)
         if is_object_dtype(subarr.dtype) and not is_object_or_str_dtype:
@@ -567,7 +575,7 @@ def sanitize_array(
 
 
 def _sanitize_ndim(
-    result: ArrayLike, data, dtype: Optional[DtypeObj], index: Optional[Index]
+    result: ArrayLike, data, dtype: DtypeObj | None, index: Index | None
 ) -> ArrayLike:
     """
     Ensure we have a 1-dimensional result array.
@@ -599,7 +607,7 @@ def _sanitize_ndim(
 
 
 def _sanitize_str_dtypes(
-    result: np.ndarray, data, dtype: Optional[DtypeObj], copy: bool
+    result: np.ndarray, data, dtype: np.dtype | None, copy: bool
 ) -> np.ndarray:
     """
     Ensure we have a dtype that is supported by pandas.
@@ -613,16 +621,12 @@ def _sanitize_str_dtypes(
         # GH#19853: If data is a scalar, result has already the result
         if not lib.is_scalar(data):
             if not np.all(isna(data)):
-                # error: Argument "dtype" to "array" has incompatible type
-                # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[dtype[Any],
-                # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
-                # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-                data = np.array(data, dtype=dtype, copy=False)  # type: ignore[arg-type]
+                data = np.array(data, dtype=dtype, copy=False)
             result = np.array(data, dtype=object, copy=copy)
     return result
 
 
-def _maybe_repeat(arr: ArrayLike, index: Optional[Index]) -> ArrayLike:
+def _maybe_repeat(arr: ArrayLike, index: Index | None) -> ArrayLike:
     """
     If we have a length-1 array and an index describing how long we expect
     the result to be, repeat the array.
@@ -634,8 +638,8 @@ def _maybe_repeat(arr: ArrayLike, index: Optional[Index]) -> ArrayLike:
 
 
 def _try_cast(
-    arr: Union[list, np.ndarray],
-    dtype: Optional[DtypeObj],
+    arr: list | np.ndarray,
+    dtype: DtypeObj | None,
     copy: bool,
     raise_cast_failure: bool,
 ) -> ArrayLike:
@@ -666,7 +670,7 @@ def _try_cast(
     ):
         return arr
 
-    if isinstance(dtype, ExtensionDtype) and (dtype.kind != "M" or is_sparse(dtype)):
+    if isinstance(dtype, ExtensionDtype) and not isinstance(dtype, DatetimeTZDtype):
         # create an extension array from its dtype
         # DatetimeTZ case needs to go through maybe_cast_to_datetime but
         # SparseDtype does not
@@ -733,9 +737,9 @@ def is_empty_data(data: Any) -> bool:
 
 def create_series_with_explicit_dtype(
     data: Any = None,
-    index: Optional[Union[ArrayLike, Index]] = None,
-    dtype: Optional[Dtype] = None,
-    name: Optional[str] = None,
+    index: ArrayLike | Index | None = None,
+    dtype: Dtype | None = None,
+    name: str | None = None,
     copy: bool = False,
     fastpath: bool = False,
     dtype_if_empty: Dtype = object,
