@@ -5,7 +5,6 @@ from typing import (
     Pattern,
     Set,
     Union,
-    cast,
 )
 import unicodedata
 import warnings
@@ -371,9 +370,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         try:
             arr = sep + arr + sep
         except TypeError:
-            arr = cast(Series, arr)
             arr = sep + arr.astype(str) + sep
-        arr = cast(Series, arr)
 
         tags: Set[str] = set()
         for ts in Series(arr).str.split(sep):
