@@ -5014,8 +5014,8 @@ class DataFrame(NDFrame, OpsMixin):
         method: str | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
-        limit: int | None = ...,
-        downcast: dict | str | None = ...,
+        limit=...,
+        downcast=...,
     ) -> DataFrame:
         ...
 
@@ -5026,8 +5026,8 @@ class DataFrame(NDFrame, OpsMixin):
         method: str | None,
         axis: Axis | None,
         inplace: Literal[True],
-        limit: int | None = ...,
-        downcast: dict | str | None = ...,
+        limit=...,
+        downcast=...,
     ) -> None:
         ...
 
@@ -5036,8 +5036,8 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         inplace: Literal[True],
-        limit: int | None = ...,
-        downcast: dict | str | None = ...,
+        limit=...,
+        downcast=...,
     ) -> None:
         ...
 
@@ -5047,8 +5047,8 @@ class DataFrame(NDFrame, OpsMixin):
         value,
         *,
         inplace: Literal[True],
-        limit: int | None = ...,
-        downcast: dict | str | None = ...,
+        limit=...,
+        downcast=...,
     ) -> None:
         ...
 
@@ -5058,8 +5058,8 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         method: str | None,
         inplace: Literal[True],
-        limit: int | None = ...,
-        downcast: dict | str | None = ...,
+        limit=...,
+        downcast=...,
     ) -> None:
         ...
 
@@ -5069,8 +5069,8 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         axis: Axis | None,
         inplace: Literal[True],
-        limit: int | None = ...,
-        downcast: dict | str | None = ...,
+        limit=...,
+        downcast=...,
     ) -> None:
         ...
 
@@ -5081,8 +5081,8 @@ class DataFrame(NDFrame, OpsMixin):
         method: str | None,
         axis: Axis | None,
         inplace: Literal[True],
-        limit: int | None = ...,
-        downcast: dict | str | None = ...,
+        limit=...,
+        downcast=...,
     ) -> None:
         ...
 
@@ -5093,8 +5093,8 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         axis: Axis | None,
         inplace: Literal[True],
-        limit: int | None = ...,
-        downcast: dict | str | None = ...,
+        limit=...,
+        downcast=...,
     ) -> None:
         ...
 
@@ -5105,8 +5105,8 @@ class DataFrame(NDFrame, OpsMixin):
         method: str | None,
         *,
         inplace: Literal[True],
-        limit: int | None = ...,
-        downcast: dict | str | None = ...,
+        limit=...,
+        downcast=...,
     ) -> None:
         ...
 
@@ -5117,8 +5117,8 @@ class DataFrame(NDFrame, OpsMixin):
         method: str | None = ...,
         axis: Axis | None = ...,
         inplace: bool = ...,
-        limit: int | None = ...,
-        downcast: dict | str | None = ...,
+        limit=...,
+        downcast=...,
     ) -> DataFrame | None:
         ...
 
