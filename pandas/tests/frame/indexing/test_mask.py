@@ -105,6 +105,7 @@ def test_mask_try_cast_deprecated(frame_or_series):
 
 
 def test_mask_stringdtype():
+    # GH 40824
     df = DataFrame(
         {"A": ["foo", "bar", "baz", NA]},
         index=["id1", "id2", "id3", "id4"],
@@ -113,5 +114,12 @@ def test_mask_stringdtype():
     filtered_df = DataFrame(
         {"A": ["this", "that"]}, index=["id2", "id3"], dtype=StringDtype()
     )
-    filter = Series([False, True, True, False])
-    df.mask(filter, filtered_df)
+    filter_ser = Series([False, True, True, False])
+    result = df.mask(filter_ser, filtered_df)
+
+    expected = DataFrame(
+        {"A": [NA, "this", "that", NA]},
+        index=["id1", "id2", "id3", "id4"],
+        dtype=StringDtype(),
+    )
+    tm.assert_equal(result, expected)
