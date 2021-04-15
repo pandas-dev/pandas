@@ -7576,7 +7576,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2      0      6
         3      6      8
         4      5      3
-
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
