@@ -597,9 +597,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
 
         if not obj.empty and self.times is not None:
             # sort the times and recalculate the deltas according to the groups
-            groupby_order = np.concatenate(list(self._grouper.indices.values())).astype(
-                np.int64
-            )
+            groupby_order = np.concatenate(list(self._grouper.indices.values()))
             self._calculate_deltas(
                 self.times.take(groupby_order),  # type: ignore[union-attr]
                 self.halflife,
