@@ -1876,21 +1876,21 @@ def _sort_tuples(values: np.ndarray) -> np.ndarray:
     return values[indexer]
 
 
-def union_with_duplicates(lvals: np.ndarray, rvals: np.ndarray) -> np.ndarray:
+def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     """
     Extracts the union from lvals and rvals with respect to duplicates and nans in
     both arrays.
 
     Parameters
     ----------
-    lvals: np.ndarray
+    lvals: ArrayLike
         left values which is ordered in front.
-    rvals: np.ndarray
+    rvals: ArrayLike
         right values ordered after lvals.
 
     Returns
     -------
-    np.ndarray containing the unsorted union of both arrays
+    ArrayLike containing the unsorted union of both arrays
     """
     indexer = []
     l_count = value_counts(lvals, dropna=False)

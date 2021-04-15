@@ -2983,11 +2983,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif not other.is_unique:
             # other has duplicates
 
-            # error: Argument 1 to "union_with_duplicates" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            # error: Argument 2 to "union_with_duplicates" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            result = algos.union_with_duplicates(lvals, rvals)  # type: ignore[arg-type]
+            result = algos.union_with_duplicates(lvals, rvals)
             return _maybe_try_sort(result, sort)
 
         # Self may have duplicates
