@@ -5010,7 +5010,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def fillna(
         self,
-        value: Scalar | dict | Series | DataFrame | None = ...,
+        value=...,
         method: str | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
@@ -5022,7 +5022,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def fillna(
         self,
-        value: Scalar | dict | Series | DataFrame | None,
+        value,
         method: str | None,
         axis: Axis | None,
         inplace: Literal[True],
@@ -5044,7 +5044,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def fillna(
         self,
-        value: Scalar | dict | Series | DataFrame | None,
+        value,
         *,
         inplace: Literal[True],
         limit: int | None = ...,
@@ -5089,7 +5089,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def fillna(
         self,
-        value: Scalar | dict | Series | DataFrame | None,
+        value,
         *,
         axis: Axis | None,
         inplace: Literal[True],
@@ -5101,7 +5101,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def fillna(
         self,
-        value: Scalar | dict | Series | DataFrame | None,
+        value,
         method: str | None,
         *,
         inplace: Literal[True],
@@ -5113,7 +5113,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def fillna(
         self,
-        value: Scalar | dict | Series | DataFrame | None = ...,
+        value=...,
         method: str | None = ...,
         axis: Axis | None = ...,
         inplace: bool = ...,

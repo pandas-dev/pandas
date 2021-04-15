@@ -41,7 +41,6 @@ from pandas._typing import (
     FrameOrSeriesUnion,
     IndexKeyFunc,
     NpDtype,
-    Scalar,
     SingleManager,
     StorageOptions,
     ValueKeyFunc,
@@ -4585,7 +4584,7 @@ Keep all original rows and also all original values
     @overload
     def fillna(
         self,
-        value: Scalar | dict | Series | DataFrame | None = ...,
+        value=...,
         method: str | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
@@ -4597,7 +4596,7 @@ Keep all original rows and also all original values
     @overload
     def fillna(
         self,
-        value: Scalar | dict | Series | DataFrame | None,
+        value,
         method: str | None,
         axis: Axis | None,
         inplace: Literal[True],
@@ -4619,7 +4618,7 @@ Keep all original rows and also all original values
     @overload
     def fillna(
         self,
-        value: Scalar | dict | Series | DataFrame | None,
+        value,
         *,
         inplace: Literal[True],
         limit: int | None = ...,
@@ -4664,7 +4663,7 @@ Keep all original rows and also all original values
     @overload
     def fillna(
         self,
-        value: Scalar | dict | Series | DataFrame | None,
+        value,
         *,
         axis: Axis | None,
         inplace: Literal[True],
@@ -4676,7 +4675,7 @@ Keep all original rows and also all original values
     @overload
     def fillna(
         self,
-        value: Scalar | dict | Series | DataFrame | None,
+        value,
         method: str | None,
         *,
         inplace: Literal[True],
@@ -4688,7 +4687,7 @@ Keep all original rows and also all original values
     @overload
     def fillna(
         self,
-        value: Scalar | dict | Series | DataFrame | None = ...,
+        value=...,
         method: str | None = ...,
         axis: Axis | None = ...,
         inplace: bool = ...,
