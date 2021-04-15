@@ -7352,10 +7352,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
 
         # GH 40420
-        # In order to ignore nan values in the threshold, replace these values with the
-        # values from the original frame/series.
+        # In order to ignore nan values in the threshold, set the values in
+        # subset that correspond to these na values to True. This indicates to the
+        # final where() to not clip.
         if is_list_like(threshold) and threshold.isna().any(axis=None):
-            threshold = threshold.where(threshold.notna(), self, inplace=False)
+            subset_kwargs = {"axis": axis} if threshold.ndim != subset.ndim else {}
+            subset = subset.where(threshold.notna(), True, **subset_kwargs)
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     @overload
@@ -7487,10 +7489,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         lower : float or array_like, default None
             Minimum threshold value. All values below this
-            threshold will be set to it.
+            threshold will be set to it. A missing
+            threshold (e.g `NA`) will not clip the value.
         upper : float or array_like, default None
             Maximum threshold value. All values above this
-            threshold will be set to it.
+            threshold will be set to it. A missing
+            threshold (e.g `NA`) will not clip the value.
         axis : int or str axis name, optional
             Align object with lower and upper along the given axis.
         inplace : bool, default False
@@ -7551,6 +7555,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2      0      3
         3      6      8
         4      5      3
+
+        Clips using specific lower threshold per column element, with missing values:
+
+        >>> t = pd.Series([2, -4, np.NaN, 6, 3])
+        >>> t
+        0       2
+        1      -4
+        2    <NA>
+        3       6
+        4       3
+        dtype: object
+
+        >>> df.clip(t, axis=0)
+        col_0  col_1
+        0      9      2
+        1     -3     -4
+        2      0      6
+        3      6      8
+        4      5      3
+
+
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -7567,16 +7592,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not is_list_like(lower):
             if np.any(isna_lower):
                 lower = None
-        else:
-            if np.all(isna_lower):
-                lower = None
+        elif np.all(isna_lower):
+            lower = None
         isna_upper = isna(upper)
         if not is_list_like(upper):
             if np.any(isna_upper):
                 upper = None
-        else:
-            if np.all(isna_upper):
-                upper = None
+        elif np.all(isna_upper):
+            upper = None
 
         # GH 2747 (arguments were reversed)
         if (
