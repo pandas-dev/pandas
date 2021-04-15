@@ -154,6 +154,11 @@ class ArrowStringDtype(ExtensionDtype):
             return False
 
 
+# TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from
+# ObjectStringArrayMixin because we want to have the object-dtype based methods as
+# fallback for the ones that pyarrow doesn't yet support
+
+
 class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
@@ -688,6 +693,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     _str_na_value = ArrowStringDtype.na_value
 
     def _str_map(self, f, na_value=None, dtype: Dtype | None = None):
+        # TODO: de-duplicate with StringArray method. This method is moreless copy and
+        # paste.
+
         from pandas.arrays import (
             BooleanArray,
             IntegerArray,
