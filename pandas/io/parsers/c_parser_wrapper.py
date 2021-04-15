@@ -5,15 +5,18 @@ import warnings
 import numpy as np
 
 import pandas._libs.parsers as parsers
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import (
+    ArrayLike,
+    FilePathOrBuffer,
+)
 from pandas.errors import DtypeWarning
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_extension_array_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.concat import union_categoricals
+from pandas.core.dtypes.dtypes import ExtensionDtype
 
 from pandas.core.indexes.api import ensure_index_from_sequences
 
@@ -24,11 +27,15 @@ from pandas.io.parsers.base_parser import (
 
 
 class CParserWrapper(ParserBase):
+    low_memory: bool
+
     def __init__(self, src: FilePathOrBuffer, **kwds):
         self.kwds = kwds
         kwds = kwds.copy()
 
         ParserBase.__init__(self, kwds)
+
+        self.low_memory = kwds.pop("low_memory", False)
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -175,7 +182,13 @@ class CParserWrapper(ParserBase):
 
     def read(self, nrows=None):
         try:
-            data = self._reader.read(nrows)
+            if self.low_memory:
+                chunks = self._reader.read_low_memory(nrows)
+                # destructive to chunks
+                data = _concatenate_chunks(chunks)
+
+            else:
+                data = self._reader.read(nrows)
         except StopIteration:
             if self._first_chunk:
                 self._first_chunk = False
@@ -198,10 +211,6 @@ class CParserWrapper(ParserBase):
             else:
                 self.close()
                 raise
-        else:
-            if self._reader.low_memory:
-                # destructive to data
-                data = _concatenate_chunks(data)
 
         # Done with first read, next time raise StopIteration
         self._first_chunk = False
@@ -290,7 +299,7 @@ class CParserWrapper(ParserBase):
         return values
 
 
-def _concatenate_chunks(chunks: list[dict]) -> dict:
+def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
     """
     Concatenate chunks of data read with low_memory=True.
 
@@ -323,10 +332,15 @@ def _concatenate_chunks(chunks: list[dict]) -> dict:
         if is_categorical_dtype(dtype):
             result[name] = union_categoricals(arrs, sort_categories=False)
         else:
-            if is_extension_array_dtype(dtype):
+            if isinstance(dtype, ExtensionDtype):
                 # TODO: concat_compat?
                 array_type = dtype.construct_array_type()
-                result[name] = array_type._concat_same_type(arrs)
+                # error: Argument 1 to "_concat_same_type" of "ExtensionArray"
+                # has incompatible type "List[Union[ExtensionArray, ndarray]]";
+                # expected "Sequence[ExtensionArray]"
+                result[name] = array_type._concat_same_type(
+                    arrs  # type: ignore[arg-type]
+                )
             else:
                 result[name] = np.concatenate(arrs)
 

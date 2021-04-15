@@ -314,7 +314,7 @@ cdef class TextReader:
 
     cdef public:
         int64_t leading_cols, table_width, skipfooter, buffer_lines
-        bint allow_leading_cols, mangle_dupe_cols, low_memory
+        bint allow_leading_cols, mangle_dupe_cols
         bint delim_whitespace
         object delimiter  # bytes or str
         object converters
@@ -359,7 +359,6 @@ cdef class TextReader:
                   true_values=None,
                   false_values=None,
                   bint allow_leading_cols=True,
-                  bint low_memory=False,
                   skiprows=None,
                   skipfooter=0,         # int64_t
                   bint verbose=False,
@@ -476,7 +475,6 @@ cdef class TextReader:
         self.na_filter = na_filter
 
         self.verbose = verbose
-        self.low_memory = low_memory
 
         if float_precision == "round_trip":
             # see gh-15140
@@ -768,19 +766,18 @@ cdef class TextReader:
         """
         rows=None --> read all rows
         """
-        if self.low_memory:
-            # Conserve intermediate space
-            # Caller is responsible for concatenating chunks,
-            #  see c_parser_wrapper._concatenatve_chunks
-            columns = self._read_low_memory(rows)
-        else:
-            # Don't care about memory usage
-            columns = self._read_rows(rows, 1)
+        # Don't care about memory usage
+        columns = self._read_rows(rows, 1)
 
         return columns
 
-    #  -> dict[int, "ArrayLike"]
-    cdef _read_low_memory(self, rows):
+    def read_low_memory(self, rows: int | None)-> list[dict[int, "ArrayLike"]]:
+        """
+        rows=None --> read all rows
+        """
+        # Conserve intermediate space
+        # Caller is responsible for concatenating chunks,
+        #  see c_parser_wrapper._concatenatve_chunks
         cdef:
             size_t rows_read = 0
             list chunks = []
