@@ -927,30 +927,10 @@ class TestEWM:
         expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
         tm.assert_frame_equal(result, expected)
 
-    def test_times(self):
+    def test_times(self, times_frame):
         # GH 40951
         halflife = "23 days"
-        df = DataFrame(
-            {
-                "A": ["a", "b", "c", "a", "b", "c", "a", "b", "c", "a"],
-                "B": [0, 0, 0, 1, 1, 1, 2, 2, 2, 3],
-                "C": to_datetime(
-                    [
-                        "2020-01-01",
-                        "2020-01-01",
-                        "2020-01-01",
-                        "2020-01-02",
-                        "2020-01-10",
-                        "2020-01-22",
-                        "2020-01-03",
-                        "2020-01-23",
-                        "2020-01-23",
-                        "2020-01-04",
-                    ]
-                ),
-            }
-        )
-        result = df.groupby("A").ewm(halflife=halflife, times="C").mean()
+        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
         expected = DataFrame(
             {
                 "B": [
@@ -984,13 +964,25 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_times_vs_apply(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
         expected = (
-            df.groupby("A")
+            times_frame.groupby("A")
             .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
             .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
             .reset_index(drop=True)
         )
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
-        expected = df.groupby("A").ewm(halflife=halflife, times=df["C"].values).mean()
+    def test_times_array(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        expected = (
+            times_frame.groupby("A")
+            .ewm(halflife=halflife, times=times_frame["C"].values)
+            .mean()
+        )
         tm.assert_frame_equal(result, expected)

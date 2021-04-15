@@ -268,7 +268,7 @@ class ExponentialMovingWindow(BaseWindow):
                 )
             if isna(self.times).any():
                 raise ValueError("Cannot convert NaT values to integer")
-            self._calculate_deltas()
+            self._calculate_deltas(self.times, self.halflife)
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
             if common.count_not_none(self.com, self.span, self.alpha) > 0:
@@ -295,15 +295,19 @@ class ExponentialMovingWindow(BaseWindow):
                 self.alpha,
             )
 
-    def _calculate_deltas(self) -> None:
+    def _calculate_deltas(
+        self,
+        times: str | np.ndarray | FrameOrSeries | None,
+        halflife: float | TimedeltaConvertibleTypes | None,
+    ) -> None:
         # error: Item "str" of "Union[str, ndarray, FrameOrSeries, None]" has no
         # attribute "view"
         # error: Item "None" of "Union[str, ndarray, FrameOrSeries, None]" has no
         # attribute "view"
         _times = np.asarray(
-            self.times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
+            times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
         )
-        _halflife = float(Timedelta(self.halflife).value)
+        _halflife = float(Timedelta(halflife).value)
         self._deltas = np.diff(_times) / _halflife
 
     def _get_window_indexer(self) -> BaseIndexer:
@@ -596,10 +600,10 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             groupby_order = np.concatenate(list(self._grouper.indices.values())).astype(
                 np.int64
             )
-            # error: Item "str" of "Union[str, ndarray, FrameOrSeries]" has no
-            # attribute "take"
-            self.times = self.times.take(groupby_order)
-            self._calculate_deltas()
+            self._calculate_deltas(
+                self.times.take(groupby_order),  # type: ignore[union-attr]
+                self.halflife,
+            )
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """

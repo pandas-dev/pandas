@@ -1511,7 +1511,7 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
         s = start[j]
         e = end[j]
         sub_vals = vals[s:e]
-        sub_deltas = deltas[s:e-1]
+        sub_deltas = deltas[s:e - 1]
         win_size = len(sub_vals)
         sub_output = np.empty(win_size, dtype=float)
 
