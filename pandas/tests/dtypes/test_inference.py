@@ -629,10 +629,8 @@ class TestInference:
             np.float16(1),
             np.float32(1),
             np.float64(1),
-            np.float128(1),
             np.complex64(1),
             np.complex128(1),
-            np.complex256(1),
         ],
     )
     @pytest.mark.parametrize(
@@ -649,10 +647,8 @@ class TestInference:
             np.float16(1),
             np.float32(1),
             np.float64(1),
-            np.float128(1),
             np.complex64(1),
             np.complex128(1),
-            np.complex256(1),
         ],
     )
     def test_maybe_convert_objects_itemsize(self, data0, data1):
