@@ -980,7 +980,8 @@ def test_groupby_complex():
     result = a.groupby(level=0).sum()
     tm.assert_series_equal(result, expected)
 
-    result = a.sum(level=0)
+    with tm.assert_produces_warning(FutureWarning):
+        result = a.sum(level=0)
     tm.assert_series_equal(result, expected)
 
 
