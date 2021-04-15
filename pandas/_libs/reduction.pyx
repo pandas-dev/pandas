@@ -56,7 +56,7 @@ cdef class _BaseGrouper:
     cdef inline _update_cached_objs(self, object cached_typ, object cached_ityp,
                                     Slider islider, Slider vslider):
         if cached_typ is None:
-            cached_ityp = self.ityp(islider.buf)
+            cached_ityp = self.ityp(islider.buf, dtype=self.idtype)
             cached_typ = self.typ(
                 vslider.buf, dtype=vslider.buf.dtype, index=cached_ityp, name=self.name
             )
@@ -70,7 +70,6 @@ cdef class _BaseGrouper:
             cached_typ._mgr.set_values(vslider.buf)
             object.__setattr__(cached_typ, '_index', cached_ityp)
             object.__setattr__(cached_typ, 'name', self.name)
-
         return cached_typ, cached_ityp
 
     cdef inline object _apply_to_group(self,
@@ -106,7 +105,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
 
     cdef public:
         ndarray arr, index, dummy_arr, dummy_index
-        object values, f, bins, typ, ityp, name
+        object values, f, bins, typ, ityp, name, idtype
 
     def __init__(self, object series, object f, object bins):
 
@@ -122,6 +121,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
         self.arr = values
         self.typ = series._constructor
         self.ityp = series.index._constructor
+        self.idtype = series.index.dtype
         self.index = series.index.values
         self.name = series.name
 
@@ -199,7 +199,7 @@ cdef class SeriesGrouper(_BaseGrouper):
 
     cdef public:
         ndarray arr, index, dummy_arr, dummy_index
-        object f, labels, values, typ, ityp, name
+        object f, labels, values, typ, ityp, name, idtype
 
     def __init__(self, object series, object f, ndarray[intp_t] labels,
                  Py_ssize_t ngroups):
@@ -218,6 +218,7 @@ cdef class SeriesGrouper(_BaseGrouper):
         self.arr = values
         self.typ = series._constructor
         self.ityp = series.index._constructor
+        self.idtype = series.index.dtype
         self.index = series.index.values
         self.name = series.name
 
