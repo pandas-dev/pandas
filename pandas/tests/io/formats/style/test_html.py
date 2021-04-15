@@ -1,4 +1,4 @@
-import textwrap
+from textwrap import dedent
 
 import pytest
 
@@ -36,33 +36,36 @@ def test_html_template_extends_options():
 def test_exclude_styles():
     s = Styler(DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]))
     result = s.to_html(exclude_styles=True)
-    expected = """<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-</head>
-<body>
-<table>
-  <thead>
-    <tr>
-      <th >&nbsp;</th>
-      <th >A</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th >a</th>
-      <td >2.610000</td>
-    </tr>
-    <tr>
-      <th >b</th>
-      <td >2.690000</td>
-    </tr>
-  </tbody>
-</table>
-</body>
-</html>
-"""
+    expected = dedent(
+        """\
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+        </head>
+        <body>
+        <table>
+          <thead>
+            <tr>
+              <th >&nbsp;</th>
+              <th >A</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th >a</th>
+              <td >2.610000</td>
+            </tr>
+            <tr>
+              <th >b</th>
+              <td >2.690000</td>
+            </tr>
+          </tbody>
+        </table>
+        </body>
+        </html>
+        """
+    )
     assert result == expected
 
 
@@ -79,34 +82,37 @@ def test_w3_html_format():
         .format("{:.1f}")
         .set_caption("A comprehensive test")
     )
-    expected = """<style type="text/css">
-#T__ th {
-  att2: v2;
-}
-#T__row0_col0, #T__row1_col0 {
-  att1: v1;
-}
-</style>
-<table id="T__" class="my-cls1" style="attr3:v3;">
-  <caption>A comprehensive test</caption>
-  <thead>
-    <tr>
-      <th class="blank level0" >&nbsp;</th>
-      <th class="col_heading level0 col0" >A</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th id="T__level0_row0" class="row_heading level0 row0" >a</th>
-      <td id="T__row0_col0" class="data row0 col0 my-cls2" >2.6</td>
-    </tr>
-    <tr>
-      <th id="T__level0_row1" class="row_heading level0 row1" >b</th>
-      <td id="T__row1_col0" class="data row1 col0" >2.7</td>
-    </tr>
-  </tbody>
-</table>
-"""
+    expected = dedent(
+        """\
+        <style type="text/css">
+        #T__ th {
+          att2: v2;
+        }
+        #T__row0_col0, #T__row1_col0 {
+          att1: v1;
+        }
+        </style>
+        <table id="T__" class="my-cls1" style="attr3:v3;">
+          <caption>A comprehensive test</caption>
+          <thead>
+            <tr>
+              <th class="blank level0" >&nbsp;</th>
+              <th class="col_heading level0 col0" >A</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th id="T__level0_row0" class="row_heading level0 row0" >a</th>
+              <td id="T__row0_col0" class="data row0 col0 my-cls2" >2.6</td>
+            </tr>
+            <tr>
+              <th id="T__level0_row1" class="row_heading level0 row1" >b</th>
+              <td id="T__row1_col0" class="data row1 col0" >2.7</td>
+            </tr>
+          </tbody>
+        </table>
+        """
+    )
     assert expected == s.render()
 
 
@@ -130,35 +136,38 @@ def test_rowspan_w3():
 def test_styles():
     s = Styler(DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]), uuid="abc")
     result = s.to_html()
-    expected = """<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style type="text/css">
-  </style>
-</head>
-<body>
-<table id="T_abc_">
-  <thead>
-    <tr>
-      <th class="blank level0" >&nbsp;</th>
-      <th class="col_heading level0 col0" >A</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th id="T_abc_level0_row0" class="row_heading level0 row0" >a</th>
-      <td id="T_abc_row0_col0" class="data row0 col0" >2.610000</td>
-    </tr>
-    <tr>
-      <th id="T_abc_level0_row1" class="row_heading level0 row1" >b</th>
-      <td id="T_abc_row1_col0" class="data row1 col0" >2.690000</td>
-    </tr>
-  </tbody>
-</table>
-</body>
-</html>
-"""
+    expected = dedent(
+        """\
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style type="text/css">
+          </style>
+        </head>
+        <body>
+        <table id="T_abc_">
+          <thead>
+            <tr>
+              <th class="blank level0" >&nbsp;</th>
+              <th class="col_heading level0 col0" >A</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th id="T_abc_level0_row0" class="row_heading level0 row0" >a</th>
+              <td id="T_abc_row0_col0" class="data row0 col0" >2.610000</td>
+            </tr>
+            <tr>
+              <th id="T_abc_level0_row1" class="row_heading level0 row1" >b</th>
+              <td id="T_abc_row1_col0" class="data row1 col0" >2.690000</td>
+            </tr>
+          </tbody>
+        </table>
+        </body>
+        </html>
+        """
+    )
     assert result == expected
 
 
@@ -194,7 +203,7 @@ def test_block_names(tpl_styles, tpl_basic):
 def test_from_custom_template(tmpdir):
     p = tmpdir.mkdir("templates").join("myhtml.tpl")
     p.write(
-        textwrap.dedent(
+        dedent(
             """\
         {% extends "html.tpl" %}
         {% block table %}
