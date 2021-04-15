@@ -36,6 +36,8 @@ matrix:
 
   include:
     - arch: arm64-graviton2
+      virt: lxd
+      group: edge
       env:
         - JOB="3.7, arm64" PYTEST_WORKERS="auto" ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
 
