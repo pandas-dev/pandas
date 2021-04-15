@@ -339,58 +339,6 @@ class BaseBlockManager(DataManager):
             output += f"\n{block}"
         return output
 
-    def _verify_integrity(self) -> None:
-        mgr_shape = self.shape
-        tot_items = sum(len(x.mgr_locs) for x in self.blocks)
-        for block in self.blocks:
-            if block.shape[1:] != mgr_shape[1:]:
-                raise construction_error(tot_items, block.shape[1:], self.axes)
-        if len(self.items) != tot_items:
-            raise AssertionError(
-                "Number of manager items must equal union of "
-                f"block items\n# manager items: {len(self.items)}, # "
-                f"tot_items: {tot_items}"
-            )
-
-    def reduce(
-        self: T, func: Callable, ignore_failures: bool = False
-    ) -> tuple[T, np.ndarray]:
-        """
-        Apply reduction function blockwise, returning a single-row BlockManager.
-
-        Parameters
-        ----------
-        func : reduction function
-        ignore_failures : bool, default False
-            Whether to drop blocks where func raises TypeError.
-
-        Returns
-        -------
-        BlockManager
-        np.ndarray
-            Indexer of mgr_locs that are retained.
-        """
-        # If 2D, we assume that we're operating column-wise
-        assert self.ndim == 2
-
-        res_blocks: list[Block] = []
-        for blk in self.blocks:
-            nbs = blk.reduce(func, ignore_failures)
-            res_blocks.extend(nbs)
-
-        index = Index([None])  # placeholder
-        if ignore_failures:
-            if res_blocks:
-                indexer = np.concatenate([blk.mgr_locs.as_array for blk in res_blocks])
-                new_mgr = self._combine(res_blocks, copy=False, index=index)
-            else:
-                indexer = []
-                new_mgr = type(self).from_blocks([], [Index([]), index])
-        else:
-            indexer = np.arange(self.shape[0])
-            new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
-        return new_mgr, indexer
-
     def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
         """
         Apply grouped reduction function blockwise, returning a new BlockManager.
@@ -491,46 +439,6 @@ class BaseBlockManager(DataManager):
             return self.make_empty(self.axes)
 
         return type(self).from_blocks(result_blocks, self.axes)
-
-    def quantile(
-        self: T,
-        *,
-        qs: Float64Index,
-        axis: int = 0,
-        interpolation="linear",
-    ) -> T:
-        """
-        Iterate over blocks applying quantile reduction.
-        This routine is intended for reduction type operations and
-        will do inference on the generated blocks.
-
-        Parameters
-        ----------
-        axis: reduction axis, default 0
-        consolidate: bool, default True. Join together blocks having same
-            dtype
-        interpolation : type of interpolation, default 'linear'
-        qs : list of the quantiles to be computed
-
-        Returns
-        -------
-        BlockManager
-        """
-        # Series dispatches to DataFrame for quantile, which allows us to
-        #  simplify some of the code here and in the blocks
-        assert self.ndim >= 2
-        assert is_list_like(qs)  # caller is responsible for this
-        assert axis == 1  # only ever called this way
-
-        new_axes = list(self.axes)
-        new_axes[1] = Float64Index(qs)
-
-        blocks = [
-            blk.quantile(axis=axis, qs=qs, interpolation=interpolation)
-            for blk in self.blocks
-        ]
-
-        return type(self)(blocks, new_axes)
 
     def where(self: T, other, cond, align: bool, errors: str) -> T:
         if align:
@@ -904,48 +812,6 @@ class BaseBlockManager(DataManager):
         # TODO(EA2D): the combine will be unnecessary with 2D EAs
         return {dtype: self._combine(blocks, copy=copy) for dtype, blocks in bd.items()}
 
-    def fast_xs(self, loc: int) -> ArrayLike:
-        """
-        Return the array corresponding to `frame.iloc[loc]`.
-
-        Parameters
-        ----------
-        loc : int
-
-        Returns
-        -------
-        np.ndarray or ExtensionArray
-        """
-        if len(self.blocks) == 1:
-            return self.blocks[0].iget((slice(None), loc))
-
-        dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
-
-        n = len(self)
-        if is_extension_array_dtype(dtype):
-            # we'll eventually construct an ExtensionArray.
-            result = np.empty(n, dtype=object)
-        else:
-            # error: Argument "dtype" to "empty" has incompatible type
-            # "Union[dtype, ExtensionDtype, None]"; expected "Union[dtype,
-            # None, type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any,
-            # Union[int, Sequence[int]]], List[Any], _DtypeDict, Tuple[Any,
-            # Any]]"
-            result = np.empty(n, dtype=dtype)  # type: ignore[arg-type]
-
-        result = ensure_wrapped_if_datetimelike(result)
-
-        for blk in self.blocks:
-            # Such assignment may incorrectly coerce NaT to None
-            # result[blk.mgr_locs] = blk._slice((slice(None), loc))
-            for i, rl in enumerate(blk.mgr_locs):
-                result[rl] = blk.iget((i, loc))
-
-        if isinstance(dtype, ExtensionDtype):
-            result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
-
-        return result
-
     def consolidate(self: T) -> T:
         """
         Join together blocks having same dtype
@@ -968,188 +834,6 @@ class BaseBlockManager(DataManager):
             self._is_consolidated = True
             self._known_consolidated = True
             self._rebuild_blknos_and_blklocs()
-
-    def iget_values(self, i: int) -> ArrayLike:
-        """
-        Return the data for column i as the values (ndarray or ExtensionArray).
-        """
-        block = self.blocks[self.blknos[i]]
-        values = block.iget(self.blklocs[i])
-        return values
-
-    def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
-        """
-        Set new item in-place. Does not consolidate. Adds new Block if not
-        contained in the current set of items
-        """
-        value = extract_array(value, extract_numpy=True)
-        # FIXME: refactor, clearly separate broadcasting & zip-like assignment
-        #        can prob also fix the various if tests for sparse/categorical
-        if self._blklocs is None and self.ndim > 1:
-            self._rebuild_blknos_and_blklocs()
-
-        # Note: we exclude DTA/TDA here
-        value_is_extension_type = is_extension_array_dtype(value)
-
-        # categorical/sparse/datetimetz
-        if value_is_extension_type:
-
-            def value_getitem(placement):
-                return value
-
-        else:
-            if value.ndim == 2:
-                value = value.T
-            else:
-                value = ensure_block_shape(value, ndim=2)
-
-            def value_getitem(placement):
-                return value[placement.indexer]
-
-            if value.shape[1:] != self.shape[1:]:
-                raise AssertionError(
-                    "Shape of new values must be compatible with manager shape"
-                )
-
-        if lib.is_integer(loc):
-            # We have 6 tests where loc is _not_ an int.
-            # In this case, get_blkno_placements will yield only one tuple,
-            #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
-
-            # error: Incompatible types in assignment (expression has type
-            # "List[Union[int, slice, ndarray]]", variable has type "Union[int,
-            # slice, ndarray]")
-            loc = [loc]  # type: ignore[assignment]
-
-        # Accessing public blknos ensures the public versions are initialized
-        blknos = self.blknos[loc]
-        blklocs = self.blklocs[loc].copy()
-
-        unfit_mgr_locs = []
-        unfit_val_locs = []
-        removed_blknos = []
-        for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
-            blk = self.blocks[blkno]
-            blk_locs = blklocs[val_locs.indexer]
-            if blk.should_store(value):
-                blk.set_inplace(blk_locs, value_getitem(val_locs))
-            else:
-                unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
-                unfit_val_locs.append(val_locs)
-
-                # If all block items are unfit, schedule the block for removal.
-                if len(val_locs) == len(blk.mgr_locs):
-                    removed_blknos.append(blkno)
-                else:
-                    blk.delete(blk_locs)
-                    self._blklocs[blk.mgr_locs.indexer] = np.arange(len(blk))
-
-        if len(removed_blknos):
-            # Remove blocks & update blknos accordingly
-            is_deleted = np.zeros(self.nblocks, dtype=np.bool_)
-            is_deleted[removed_blknos] = True
-
-            new_blknos = np.empty(self.nblocks, dtype=np.intp)
-            new_blknos.fill(-1)
-            new_blknos[~is_deleted] = np.arange(self.nblocks - len(removed_blknos))
-            self._blknos = new_blknos[self._blknos]
-            self.blocks = tuple(
-                blk for i, blk in enumerate(self.blocks) if i not in set(removed_blknos)
-            )
-
-        if unfit_val_locs:
-            unfit_mgr_locs = np.concatenate(unfit_mgr_locs)
-            unfit_count = len(unfit_mgr_locs)
-
-            new_blocks: list[Block] = []
-            if value_is_extension_type:
-                # This code (ab-)uses the fact that EA blocks contain only
-                # one item.
-                # TODO(EA2D): special casing unnecessary with 2D EAs
-                new_blocks.extend(
-                    new_block(
-                        values=value,
-                        ndim=self.ndim,
-                        placement=slice(mgr_loc, mgr_loc + 1),
-                    )
-                    for mgr_loc in unfit_mgr_locs
-                )
-
-                self._blknos[unfit_mgr_locs] = np.arange(unfit_count) + len(self.blocks)
-                self._blklocs[unfit_mgr_locs] = 0
-
-            else:
-                # unfit_val_locs contains BlockPlacement objects
-                unfit_val_items = unfit_val_locs[0].append(unfit_val_locs[1:])
-
-                new_blocks.append(
-                    new_block(
-                        values=value_getitem(unfit_val_items),
-                        ndim=self.ndim,
-                        placement=unfit_mgr_locs,
-                    )
-                )
-
-                self._blknos[unfit_mgr_locs] = len(self.blocks)
-                self._blklocs[unfit_mgr_locs] = np.arange(unfit_count)
-
-            self.blocks += tuple(new_blocks)
-
-            # Newly created block's dtype may already be present.
-            self._known_consolidated = False
-
-    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
-        """
-        Insert item at selected position.
-
-        Parameters
-        ----------
-        loc : int
-        item : hashable
-        value : np.ndarray or ExtensionArray
-        """
-        # insert to the axis; this could possibly raise a TypeError
-        new_axis = self.items.insert(loc, item)
-
-        if value.ndim == 2:
-            value = value.T
-        else:
-            value = ensure_block_shape(value, ndim=self.ndim)
-
-        block = new_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
-
-        for blkno, count in _fast_count_smallints(self.blknos[loc:]):
-            blk = self.blocks[blkno]
-            if count == len(blk.mgr_locs):
-                blk.mgr_locs = blk.mgr_locs.add(1)
-            else:
-                new_mgr_locs = blk.mgr_locs.as_array.copy()
-                new_mgr_locs[new_mgr_locs >= loc] += 1
-                blk.mgr_locs = BlockPlacement(new_mgr_locs)
-
-        # Accessing public blklocs ensures the public versions are initialized
-        if loc == self.blklocs.shape[0]:
-            # np.append is a lot faster, let's use it if we can.
-            self._blklocs = np.append(self._blklocs, 0)
-            self._blknos = np.append(self._blknos, len(self.blocks))
-        else:
-            self._blklocs = np.insert(self._blklocs, loc, 0)
-            self._blknos = np.insert(self._blknos, loc, len(self.blocks))
-
-        self.axes[0] = new_axis
-        self.blocks += (block,)
-
-        self._known_consolidated = False
-
-        if len(self.blocks) > 100:
-            warnings.warn(
-                "DataFrame is highly fragmented.  This is usually the result "
-                "of calling `frame.insert` many times, which has poor performance.  "
-                "Consider using pd.concat instead.  To get a de-fragmented frame, "
-                "use `newframe = frame.copy()`",
-                PerformanceWarning,
-                stacklevel=5,
-            )
 
     def reindex_indexer(
         self: T,
@@ -1402,6 +1086,9 @@ class BlockManager(BaseBlockManager):
 
     ndim = 2
 
+    # ----------------------------------------------------------------
+    # Constructors
+
     def __init__(
         self,
         blocks: Sequence[Block],
@@ -1430,6 +1117,19 @@ class BlockManager(BaseBlockManager):
         # variable has type "ndarray")
         self._blklocs = None  # type: ignore[assignment]
 
+    def _verify_integrity(self) -> None:
+        mgr_shape = self.shape
+        tot_items = sum(len(x.mgr_locs) for x in self.blocks)
+        for block in self.blocks:
+            if block.shape[1:] != mgr_shape[1:]:
+                raise construction_error(tot_items, block.shape[1:], self.axes)
+        if len(self.items) != tot_items:
+            raise AssertionError(
+                "Number of manager items must equal union of "
+                f"block items\n# manager items: {len(self.items)}, # "
+                f"tot_items: {tot_items}"
+            )
+
     @classmethod
     def _simple_new(cls, blocks: tuple[Block, ...], axes: list[Index]):
         """
@@ -1451,6 +1151,51 @@ class BlockManager(BaseBlockManager):
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
         return cls(blocks, axes, verify_integrity=False)
+
+    # ----------------------------------------------------------------
+    # Indexing
+
+    def fast_xs(self, loc: int) -> ArrayLike:
+        """
+        Return the array corresponding to `frame.iloc[loc]`.
+
+        Parameters
+        ----------
+        loc : int
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        if len(self.blocks) == 1:
+            return self.blocks[0].iget((slice(None), loc))
+
+        dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+
+        n = len(self)
+        if is_extension_array_dtype(dtype):
+            # we'll eventually construct an ExtensionArray.
+            result = np.empty(n, dtype=object)
+        else:
+            # error: Argument "dtype" to "empty" has incompatible type
+            # "Union[dtype, ExtensionDtype, None]"; expected "Union[dtype,
+            # None, type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any,
+            # Union[int, Sequence[int]]], List[Any], _DtypeDict, Tuple[Any,
+            # Any]]"
+            result = np.empty(n, dtype=dtype)  # type: ignore[arg-type]
+
+        result = ensure_wrapped_if_datetimelike(result)
+
+        for blk in self.blocks:
+            # Such assignment may incorrectly coerce NaT to None
+            # result[blk.mgr_locs] = blk._slice((slice(None), loc))
+            for i, rl in enumerate(blk.mgr_locs):
+                result[rl] = blk.iget((i, loc))
+
+        if isinstance(dtype, ExtensionDtype):
+            result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
+
+        return result
 
     def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
         assert isinstance(slobj, slice), type(slobj)
@@ -1480,6 +1225,188 @@ class BlockManager(BaseBlockManager):
         nb = type(block)(values, placement=bp, ndim=1)
         return SingleBlockManager(nb, self.axes[1])
 
+    def iget_values(self, i: int) -> ArrayLike:
+        """
+        Return the data for column i as the values (ndarray or ExtensionArray).
+        """
+        block = self.blocks[self.blknos[i]]
+        values = block.iget(self.blklocs[i])
+        return values
+
+    def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
+        """
+        Set new item in-place. Does not consolidate. Adds new Block if not
+        contained in the current set of items
+        """
+        value = extract_array(value, extract_numpy=True)
+        # FIXME: refactor, clearly separate broadcasting & zip-like assignment
+        #        can prob also fix the various if tests for sparse/categorical
+        if self._blklocs is None and self.ndim > 1:
+            self._rebuild_blknos_and_blklocs()
+
+        # Note: we exclude DTA/TDA here
+        value_is_extension_type = is_extension_array_dtype(value)
+
+        # categorical/sparse/datetimetz
+        if value_is_extension_type:
+
+            def value_getitem(placement):
+                return value
+
+        else:
+            if value.ndim == 2:
+                value = value.T
+            else:
+                value = ensure_block_shape(value, ndim=2)
+
+            def value_getitem(placement):
+                return value[placement.indexer]
+
+            if value.shape[1:] != self.shape[1:]:
+                raise AssertionError(
+                    "Shape of new values must be compatible with manager shape"
+                )
+
+        if lib.is_integer(loc):
+            # We have 6 tests where loc is _not_ an int.
+            # In this case, get_blkno_placements will yield only one tuple,
+            #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
+
+            # error: Incompatible types in assignment (expression has type
+            # "List[Union[int, slice, ndarray]]", variable has type "Union[int,
+            # slice, ndarray]")
+            loc = [loc]  # type: ignore[assignment]
+
+        # Accessing public blknos ensures the public versions are initialized
+        blknos = self.blknos[loc]
+        blklocs = self.blklocs[loc].copy()
+
+        unfit_mgr_locs = []
+        unfit_val_locs = []
+        removed_blknos = []
+        for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
+            blk = self.blocks[blkno]
+            blk_locs = blklocs[val_locs.indexer]
+            if blk.should_store(value):
+                blk.set_inplace(blk_locs, value_getitem(val_locs))
+            else:
+                unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
+                unfit_val_locs.append(val_locs)
+
+                # If all block items are unfit, schedule the block for removal.
+                if len(val_locs) == len(blk.mgr_locs):
+                    removed_blknos.append(blkno)
+                else:
+                    blk.delete(blk_locs)
+                    self._blklocs[blk.mgr_locs.indexer] = np.arange(len(blk))
+
+        if len(removed_blknos):
+            # Remove blocks & update blknos accordingly
+            is_deleted = np.zeros(self.nblocks, dtype=np.bool_)
+            is_deleted[removed_blknos] = True
+
+            new_blknos = np.empty(self.nblocks, dtype=np.intp)
+            new_blknos.fill(-1)
+            new_blknos[~is_deleted] = np.arange(self.nblocks - len(removed_blknos))
+            self._blknos = new_blknos[self._blknos]
+            self.blocks = tuple(
+                blk for i, blk in enumerate(self.blocks) if i not in set(removed_blknos)
+            )
+
+        if unfit_val_locs:
+            unfit_mgr_locs = np.concatenate(unfit_mgr_locs)
+            unfit_count = len(unfit_mgr_locs)
+
+            new_blocks: list[Block] = []
+            if value_is_extension_type:
+                # This code (ab-)uses the fact that EA blocks contain only
+                # one item.
+                # TODO(EA2D): special casing unnecessary with 2D EAs
+                new_blocks.extend(
+                    new_block(
+                        values=value,
+                        ndim=self.ndim,
+                        placement=slice(mgr_loc, mgr_loc + 1),
+                    )
+                    for mgr_loc in unfit_mgr_locs
+                )
+
+                self._blknos[unfit_mgr_locs] = np.arange(unfit_count) + len(self.blocks)
+                self._blklocs[unfit_mgr_locs] = 0
+
+            else:
+                # unfit_val_locs contains BlockPlacement objects
+                unfit_val_items = unfit_val_locs[0].append(unfit_val_locs[1:])
+
+                new_blocks.append(
+                    new_block(
+                        values=value_getitem(unfit_val_items),
+                        ndim=self.ndim,
+                        placement=unfit_mgr_locs,
+                    )
+                )
+
+                self._blknos[unfit_mgr_locs] = len(self.blocks)
+                self._blklocs[unfit_mgr_locs] = np.arange(unfit_count)
+
+            self.blocks += tuple(new_blocks)
+
+            # Newly created block's dtype may already be present.
+            self._known_consolidated = False
+
+    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
+        """
+        Insert item at selected position.
+
+        Parameters
+        ----------
+        loc : int
+        item : hashable
+        value : np.ndarray or ExtensionArray
+        """
+        # insert to the axis; this could possibly raise a TypeError
+        new_axis = self.items.insert(loc, item)
+
+        if value.ndim == 2:
+            value = value.T
+        else:
+            value = ensure_block_shape(value, ndim=self.ndim)
+
+        block = new_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
+
+        for blkno, count in _fast_count_smallints(self.blknos[loc:]):
+            blk = self.blocks[blkno]
+            if count == len(blk.mgr_locs):
+                blk.mgr_locs = blk.mgr_locs.add(1)
+            else:
+                new_mgr_locs = blk.mgr_locs.as_array.copy()
+                new_mgr_locs[new_mgr_locs >= loc] += 1
+                blk.mgr_locs = BlockPlacement(new_mgr_locs)
+
+        # Accessing public blklocs ensures the public versions are initialized
+        if loc == self.blklocs.shape[0]:
+            # np.append is a lot faster, let's use it if we can.
+            self._blklocs = np.append(self._blklocs, 0)
+            self._blknos = np.append(self._blknos, len(self.blocks))
+        else:
+            self._blklocs = np.insert(self._blklocs, loc, 0)
+            self._blknos = np.insert(self._blknos, loc, len(self.blocks))
+
+        self.axes[0] = new_axis
+        self.blocks += (block,)
+
+        self._known_consolidated = False
+
+        if len(self.blocks) > 100:
+            warnings.warn(
+                "DataFrame is highly fragmented.  This is usually the result "
+                "of calling `frame.insert` many times, which has poor performance.  "
+                "Consider using pd.concat instead.  To get a de-fragmented frame, "
+                "use `newframe = frame.copy()`",
+                PerformanceWarning,
+                stacklevel=5,
+            )
+
     def idelete(self, indexer) -> BlockManager:
         """
         Delete selected locations, returning a new BlockManager.
@@ -1496,6 +1423,45 @@ class BlockManager(BaseBlockManager):
     # ----------------------------------------------------------------
     # Block-wise Operation
 
+    def reduce(
+        self: T, func: Callable, ignore_failures: bool = False
+    ) -> tuple[T, np.ndarray]:
+        """
+        Apply reduction function blockwise, returning a single-row BlockManager.
+
+        Parameters
+        ----------
+        func : reduction function
+        ignore_failures : bool, default False
+            Whether to drop blocks where func raises TypeError.
+
+        Returns
+        -------
+        BlockManager
+        np.ndarray
+            Indexer of mgr_locs that are retained.
+        """
+        # If 2D, we assume that we're operating column-wise
+        assert self.ndim == 2
+
+        res_blocks: list[Block] = []
+        for blk in self.blocks:
+            nbs = blk.reduce(func, ignore_failures)
+            res_blocks.extend(nbs)
+
+        index = Index([None])  # placeholder
+        if ignore_failures:
+            if res_blocks:
+                indexer = np.concatenate([blk.mgr_locs.as_array for blk in res_blocks])
+                new_mgr = self._combine(res_blocks, copy=False, index=index)
+            else:
+                indexer = []
+                new_mgr = type(self).from_blocks([], [Index([]), index])
+        else:
+            indexer = np.arange(self.shape[0])
+            new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
+        return new_mgr, indexer
+
     def operate_blockwise(self, other: BlockManager, array_op) -> BlockManager:
         """
         Apply array_op blockwise with another (aligned) BlockManager.
@@ -1508,6 +1474,46 @@ class BlockManager(BaseBlockManager):
         assuming shape and indexes have already been checked.
         """
         return blockwise_all(self, other, array_equals)
+
+    def quantile(
+        self: T,
+        *,
+        qs: Float64Index,
+        axis: int = 0,
+        interpolation="linear",
+    ) -> T:
+        """
+        Iterate over blocks applying quantile reduction.
+        This routine is intended for reduction type operations and
+        will do inference on the generated blocks.
+
+        Parameters
+        ----------
+        axis: reduction axis, default 0
+        consolidate: bool, default True. Join together blocks having same
+            dtype
+        interpolation : type of interpolation, default 'linear'
+        qs : list of the quantiles to be computed
+
+        Returns
+        -------
+        BlockManager
+        """
+        # Series dispatches to DataFrame for quantile, which allows us to
+        #  simplify some of the code here and in the blocks
+        assert self.ndim >= 2
+        assert is_list_like(qs)  # caller is responsible for this
+        assert axis == 1  # only ever called this way
+
+        new_axes = list(self.axes)
+        new_axes[1] = Float64Index(qs)
+
+        blocks = [
+            blk.quantile(axis=axis, qs=qs, interpolation=interpolation)
+            for blk in self.blocks
+        ]
+
+        return type(self)(blocks, new_axes)
 
     # ----------------------------------------------------------------
 
