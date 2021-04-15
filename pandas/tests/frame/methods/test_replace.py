@@ -10,7 +10,7 @@ from typing import (
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p19
+from pandas.compat import np_version_under1p20
 
 import pandas as pd
 from pandas import (
@@ -1521,7 +1521,7 @@ class TestDataFrameReplace:
         if np.isscalar(replacer) and replacer.dtype.itemsize < 8:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    np_version_under1p19, reason="np.putmask doesn't coerce dtype"
+                    np_version_under1p20, reason="np.putmask doesn't coerce dtype"
                 )
             )
         df = DataFrame(["a"])
