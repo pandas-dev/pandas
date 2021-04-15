@@ -7562,12 +7562,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> t = pd.Series([2, -4, np.NaN, 6, 3])
         >>> t
-        0       2
-        1      -4
-        2    <NA>
-        3       6
-        4       3
-        dtype: object
+        0    2.0
+        1   -4.0
+        2    NaN
+        3    6.0
+        4    3.0
+        dtype: float64
 
         >>> df.clip(t, axis=0)
         col_0  col_1
