@@ -27,11 +27,11 @@ from pandas._libs.lib import (
 )
 
 
-cpdef check_result_array(object obj):
+cpdef check_result_array(object obj, Py_ssize_t cnt):
 
     if (is_array(obj) or
-            (isinstance(obj, list) and len(obj) == 0) or
-            getattr(obj, 'shape', None) == (0,)):
+            (isinstance(obj, list) and len(obj) == cnt) or
+            getattr(obj, 'shape', None) == (cnt,)):
         raise ValueError('Must produce aggregated value')
 
 
@@ -53,27 +53,27 @@ cdef class _BaseGrouper:
 
         return values, index
 
-    cdef _init_dummy_series_and_index(self, Slider islider, Slider vslider):
-        """
-        Create Series and Index objects that we will alter in-place while iterating.
-        """
-        cached_index = self.ityp(islider.buf, dtype=self.idtype)
-        cached_series = self.typ(
-            vslider.buf, dtype=vslider.buf.dtype, index=cached_index, name=self.name
-        )
-        return cached_index, cached_series
-
-    cdef inline _update_cached_objs(self, object cached_series, object cached_index,
+    cdef inline _update_cached_objs(self, object cached_typ, object cached_ityp,
                                     Slider islider, Slider vslider):
-        # See the comment in indexes/base.py about _index_data.
-        # We need this for EA-backed indexes that have a reference
-        # to a 1-d ndarray like datetime / timedelta / period.
-        cached_index._engine.clear_mapping()
-        cached_index._cache.clear()  # e.g. inferred_freq must go
-        cached_series._mgr.set_values(vslider.buf)
+        if cached_typ is None:
+            cached_ityp = self.ityp(islider.buf, dtype=self.idtype)
+            cached_typ = self.typ(
+                vslider.buf, dtype=vslider.buf.dtype, index=cached_ityp, name=self.name
+            )
+        else:
+            # See the comment in indexes/base.py about _index_data.
+            # We need this for EA-backed indexes that have a reference
+            # to a 1-d ndarray like datetime / timedelta / period.
+            object.__setattr__(cached_ityp, '_index_data', islider.buf)
+            cached_ityp._engine.clear_mapping()
+            cached_ityp._cache.clear()  # e.g. inferred_freq must go
+            cached_typ._mgr.set_values(vslider.buf)
+            object.__setattr__(cached_typ, '_index', cached_ityp)
+            object.__setattr__(cached_typ, 'name', self.name)
+        return cached_typ, cached_ityp
 
     cdef inline object _apply_to_group(self,
-                                       object cached_series, object cached_index,
+                                       object cached_typ, object cached_ityp,
                                        bint initialized):
         """
         Call self.f on our new group, then update to the next group.
@@ -81,15 +81,17 @@ cdef class _BaseGrouper:
         cdef:
             object res
 
-        # NB: we assume that _update_cached_objs has already cleared cleared
-        #  the cache and engine mapping
-        res = self.f(cached_series)
+        cached_ityp._engine.clear_mapping()
+        cached_ityp._cache.clear()  # e.g. inferred_freq must go
+        res = self.f(cached_typ)
         res = extract_result(res)
         if not initialized:
             # On the first pass, we check the output shape to see
             #  if this looks like a reduction.
             initialized = True
-            check_result_array(res)
+            # In all tests other than test_series_grouper and
+            #  test_series_bin_grouper, we have len(self.dummy_arr) == 0
+            check_result_array(res, len(self.dummy_arr))
 
         return res, initialized
 
@@ -140,7 +142,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
             object res
             bint initialized = 0
             Slider vslider, islider
-            object cached_series = None, cached_index = None
+            object cached_typ = None, cached_ityp = None
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
@@ -160,10 +162,6 @@ cdef class SeriesBinGrouper(_BaseGrouper):
 
         result = np.empty(self.ngroups, dtype='O')
 
-        cached_index, cached_series = self._init_dummy_series_and_index(
-            islider, vslider
-        )
-
         start = 0
         try:
             for i in range(self.ngroups):
@@ -173,10 +171,10 @@ cdef class SeriesBinGrouper(_BaseGrouper):
                 islider.move(start, end)
                 vslider.move(start, end)
 
-                self._update_cached_objs(
-                    cached_series, cached_index, islider, vslider)
+                cached_typ, cached_ityp = self._update_cached_objs(
+                    cached_typ, cached_ityp, islider, vslider)
 
-                res, initialized = self._apply_to_group(cached_series, cached_index,
+                res, initialized = self._apply_to_group(cached_typ, cached_ityp,
                                                         initialized)
                 start += group_size
 
@@ -238,7 +236,7 @@ cdef class SeriesGrouper(_BaseGrouper):
             object res
             bint initialized = 0
             Slider vslider, islider
-            object cached_series = None, cached_index = None
+            object cached_typ = None, cached_ityp = None
 
         labels = self.labels
         counts = np.zeros(self.ngroups, dtype=np.int64)
@@ -249,10 +247,6 @@ cdef class SeriesGrouper(_BaseGrouper):
         islider = Slider(self.index, self.dummy_index)
 
         result = np.empty(self.ngroups, dtype='O')
-
-        cached_index, cached_series = self._init_dummy_series_and_index(
-            islider, vslider
-        )
 
         start = 0
         try:
@@ -271,10 +265,10 @@ cdef class SeriesGrouper(_BaseGrouper):
                     islider.move(start, end)
                     vslider.move(start, end)
 
-                    self._update_cached_objs(
-                        cached_series, cached_index, islider, vslider)
+                    cached_typ, cached_ityp = self._update_cached_objs(
+                        cached_typ, cached_ityp, islider, vslider)
 
-                    res, initialized = self._apply_to_group(cached_series, cached_index,
+                    res, initialized = self._apply_to_group(cached_typ, cached_ityp,
                                                             initialized)
 
                     start += group_size
@@ -297,20 +291,20 @@ cdef class SeriesGrouper(_BaseGrouper):
         return result, counts
 
 
-cpdef inline extract_result(object res):
+cpdef inline extract_result(object res, bint squeeze=True):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
     if hasattr(res, "_values"):
         # Preserve EA
         res = res._values
-        if res.ndim == 1 and len(res) == 1:
+        if squeeze and res.ndim == 1 and len(res) == 1:
             res = res[0]
     if hasattr(res, 'values') and is_array(res.values):
         res = res.values
     if is_array(res):
         if res.ndim == 0:
             res = res.item()
-        elif res.ndim == 1 and len(res) == 1:
+        elif squeeze and res.ndim == 1 and len(res) == 1:
             res = res[0]
     return res
 
@@ -495,6 +489,6 @@ cdef class BlockSlider:
         Ensure that we have the original blocks, blknos, and blklocs.
         """
         mgr = self.dummy._mgr
-        mgr.blocks = tuple(self.blocks)
+        mgr.blocks = self.blocks
         mgr._blklocs = self.orig_blklocs
         mgr._blknos = self.orig_blknos
