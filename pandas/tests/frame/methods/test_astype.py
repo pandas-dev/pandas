@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -564,17 +566,25 @@ class TestAstype:
         assert result is not df
 
     @pytest.mark.parametrize(
-        "df",
+        "data, dtype",
         [
-            DataFrame(Series(["x", "y", "z"], dtype="string")),
-            DataFrame(Series(["x", "y", "z"], dtype="category")),
-            DataFrame(Series(3 * [Timestamp("2020-01-01", tz="UTC")])),
-            DataFrame(Series(3 * [Interval(0, 1)])),
+            (["x", "y", "z"], "string"),
+            pytest.param(
+                ["x", "y", "z"],
+                "arrow_string",
+                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+            ),
+            (["x", "y", "z"], "category"),
+            (3 * [Timestamp("2020-01-01", tz="UTC")], None),
+            (3 * [Interval(0, 1)], None),
         ],
     )
     @pytest.mark.parametrize("errors", ["raise", "ignore"])
-    def test_astype_ignores_errors_for_extension_dtypes(self, df, errors):
+    def test_astype_ignores_errors_for_extension_dtypes(self, data, dtype, errors):
         # https://github.com/pandas-dev/pandas/issues/35471
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+        df = DataFrame(Series(data, dtype=dtype))
         if errors == "ignore":
             expected = df
             result = df.astype(float, errors=errors)
