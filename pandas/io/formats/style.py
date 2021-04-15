@@ -1071,9 +1071,61 @@ class Styler(StylerRenderer):
 
         This method will preselect numeric columns and ignore non-numeric columns
         unless a ``gmap`` is supplied in which case no preselection occurs.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({
+        ...          'City': ['Stockholm', 'Oslo', 'Copenhagen'],
+        ...          'Temp (c)': [21.6, 22.4, 24.5],
+        ...          'Rain (mm)': [5.0, 13.3, 0.0],
+        ...          'Wind (m/s)': [3.2, 3.1, 6.7]
+        ... })
+
+        Shading the values column-wise, with ``axis=0``, preselecting numeric columns
+
+        >>> df.style.background_gradient(axis=0)
+
+        .. figure:: ../../_static/style/tg_ax0.png
+
+        Shading all values collectively using ``axis=None``
+
+        >>> df.style.background_gradient(axis=None)
+
+        .. figure:: ../../_static/style/tg_axNone.png
+
+        Compress the color map from the both ``low`` and ``high`` ends
+
+        >>> df.style.background_gradient(axis=None, low=0.75, high=1.0)
+
+        .. figure:: ../../_static/style/tg_axNone_lowhigh.png
+
+        Manually setting ``vmin`` and ``vmax`` gradient thresholds
+
+        >>> df.style.background_gradient(axis=None, vmin=6.7, vmax=21.6)
+
+        .. figure:: ../../_static/style/tg_axNone_vminvmax.png
+
+        Setting a ``gmap`` and applying to all columns with another ``cmap``
+
+        >>> df.style.background_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
+
+        .. figure:: ../../_static/style/tg_gmap.png
+
+        Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to
+        explicitly state ``subset`` to match the ``gmap`` shape
+
+        >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
+        >>> df.style.background_gradient(axis=None, gmap=gmap,
+        ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
+        ... )
+
+        .. figure:: ../../_static/style/tg_axNone_gmap.png
         """
+        if subset is None and gmap is None:
+            subset = self.data.select_dtypes(include=np.number).columns
+
         return self.apply(
-            self._background_gradient,
+            _background_gradient,
             cmap=cmap,
             subset=subset,
             axis=axis,
