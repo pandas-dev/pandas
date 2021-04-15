@@ -27,6 +27,22 @@ def test_series_grouper():
     tm.assert_almost_equal(counts, exp_counts)
 
 
+def test_series_grouper_result_length_difference():
+    # GH 40014
+    obj = Series(np.random.randn(10), dtype="float64")
+    obj.index = obj.index.astype("O")
+    labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.intp)
+
+    grouper = libreduction.SeriesGrouper(obj, lambda x: all(x > 0), labels, 2)
+    result, counts = grouper.get_result()
+
+    expected = np.array([all(obj[3:6] > 0), all(obj[6:] > 0)])
+    tm.assert_equal(result, expected)
+
+    exp_counts = np.array([3, 4], dtype=np.int64)
+    tm.assert_equal(counts, exp_counts)
+
+
 def test_series_grouper_requires_nonempty_raises():
     # GH#29500
     obj = Series(np.random.randn(10))
