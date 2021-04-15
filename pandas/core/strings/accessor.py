@@ -154,11 +154,10 @@ class StringMethods(NoNewAttributesMixin):
 
     def __init__(self, data):
         from pandas.core.arrays.string_ import StringDtype
-        from pandas.core.arrays.string_arrow import ArrowStringDtype
 
         self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data.dtype)
-        self._is_string = isinstance(data.dtype, (StringDtype, ArrowStringDtype))
+        self._is_string = isinstance(data.dtype, StringDtype)
         self._data = data
 
         self._index = self._name = None
