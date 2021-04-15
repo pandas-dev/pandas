@@ -36,7 +36,7 @@ from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
     FrameOrSeriesUnion,
-    Manager,
+    Manager2D,
 )
 from pandas.util._decorators import (
     Appender,
@@ -268,7 +268,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if relabeling:
                 ret.columns = columns
         else:
-            cyfunc = self._get_cython_func(func)
+            cyfunc = com.get_cython_func(func)
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
@@ -536,7 +536,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 result.ravel(), index=data.index, name=data.name
             )
 
-        func = self._get_cython_func(func) or func
+        func = com.get_cython_func(func) or func
 
         if not isinstance(func, str):
             return self._transform_general(func, *args, **kwargs)
@@ -1095,9 +1095,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _cython_agg_manager(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ) -> Manager:
+    ) -> Manager2D:
 
-        data: Manager = self._get_data_to_aggregate()
+        data: Manager2D = self._get_data_to_aggregate()
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
@@ -1440,7 +1440,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self.obj._constructor(result, index=data.index, columns=data.columns)
 
         # optimized transforms
-        func = self._get_cython_func(func) or func
+        func = com.get_cython_func(func) or func
 
         if not isinstance(func, str):
             return self._transform_general(func, *args, **kwargs)
@@ -1691,7 +1691,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             return self.obj._constructor(result, index=obj.index, columns=result_index)
 
-    def _get_data_to_aggregate(self) -> Manager:
+    def _get_data_to_aggregate(self) -> Manager2D:
         obj = self._obj_with_exclusions
         if self.axis == 1:
             return obj.T._mgr
@@ -1776,7 +1776,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _wrap_agged_manager(self, mgr: Manager) -> DataFrame:
+    def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         if not self.as_index:
             index = np.arange(mgr.shape[1])
             mgr.set_axis(1, ibase.Index(index), verify_integrity=False)
