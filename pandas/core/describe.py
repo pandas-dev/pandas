@@ -175,10 +175,13 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             ldesc.append(describe_func(series, percentiles))
 
         col_names = reorder_columns(ldesc)
-        d = concat(
-            [x.reindex(col_names, copy=False) for x in ldesc],
-            axis=1,
-            sort=False,
+        d = cast(
+            DataFrame,
+            concat(
+                [x.reindex(col_names, copy=False) for x in ldesc],
+                axis=1,
+                sort=False,
+            ),
         )
         d.columns = data.columns.copy()
         return d
