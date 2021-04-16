@@ -8,6 +8,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     Dtype,
     Scalar,
@@ -209,7 +210,7 @@ class StringArray(PandasArray):
         super().__init__(values, copy=copy)
         # error: Incompatible types in assignment (expression has type "StringDtype",
         # variable has type "PandasDtype")
-        self._dtype = StringDtype()  # type: ignore[assignment]
+        NDArrayBacked.__init__(self, self._ndarray, StringDtype())
         if not isinstance(values, type(self)):
             self._validate()
 
@@ -245,9 +246,8 @@ class StringArray(PandasArray):
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
-        new_string_array = object.__new__(cls)
-        new_string_array._dtype = StringDtype()
-        new_string_array._ndarray = result
+        new_string_array = cls.__new__(cls)
+        NDArrayBacked.__init__(new_string_array, result, StringDtype())
 
         return new_string_array
 
@@ -325,9 +325,7 @@ class StringArray(PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
         elif isinstance(dtype, FloatingDtype):
-            # error: Incompatible types in assignment (expression has type
-            # "StringArray", variable has type "ndarray")
-            arr = self.copy()  # type: ignore[assignment]
+            arr = self.copy()
             mask = self.isna()
             arr[mask] = "0"
             values = arr.astype(dtype.numpy_dtype)
