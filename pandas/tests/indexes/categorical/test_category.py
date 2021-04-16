@@ -4,7 +4,10 @@ import pytest
 from pandas._libs import index as libindex
 
 import pandas as pd
-from pandas import Categorical
+from pandas import (
+    Categorical,
+    CategoricalDtype,
+)
 import pandas._testing as tm
 from pandas.core.indexes.api import (
     CategoricalIndex,
@@ -186,18 +189,19 @@ class TestCategoricalIndex(Base):
             tm.assert_index_equal(result, e)
 
     @pytest.mark.parametrize(
-        "data, categories, expected_data, expected_categories",
+        "data, categories, expected_data",
         [
-            ([1, 1, 1], [1, 2, 3], [1], [1]),
-            ([1, 1, 1], list("abc"), [np.nan], []),
-            ([1, 2, "a"], [1, 2, 3], [1, 2, np.nan], [1, 2]),
-            ([2, "a", "b"], list("abc"), [np.nan, "a", "b"], ["a", "b"]),
+            ([1, 1, 1], [1, 2, 3], [1]),
+            ([1, 1, 1], list("abc"), [np.nan]),
+            ([1, 2, "a"], [1, 2, 3], [1, 2, np.nan]),
+            ([2, "a", "b"], list("abc"), [np.nan, "a", "b"]),
         ],
     )
-    def test_unique(self, data, categories, expected_data, expected_categories):
+    def test_unique(self, data, categories, expected_data, ordered):
+        dtype = CategoricalDtype(categories, ordered=ordered)
 
-        idx = CategoricalIndex(data, categories=categories)
-        expected = CategoricalIndex(expected_data, categories=expected_categories)
+        idx = CategoricalIndex(data, dtype=dtype)
+        expected = CategoricalIndex(expected_data, dtype=dtype)
         tm.assert_index_equal(idx.unique(), expected)
 
     def test_repr_roundtrip(self):

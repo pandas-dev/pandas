@@ -602,7 +602,7 @@ class TestUnique:
 
         # we are expecting to return in the order
         # of appearance
-        expected = Categorical(list("bac"), categories=list("bac"))
+        expected = Categorical(list("bac"))
 
         # we are expecting to return in the order
         # of the categories
@@ -632,7 +632,7 @@ class TestUnique:
         tm.assert_categorical_equal(result, expected)
 
         # CI -> return CI
-        ci = CategoricalIndex(Categorical(list("baabc"), categories=list("bac")))
+        ci = CategoricalIndex(Categorical(list("baabc"), categories=list("abc")))
         expected = CategoricalIndex(expected)
         result = ci.unique()
         tm.assert_index_equal(result, expected)
