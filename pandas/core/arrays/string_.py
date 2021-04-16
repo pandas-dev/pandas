@@ -308,16 +308,12 @@ class StringArray(PandasArray):
         super().__setitem__(key, value)
 
     def astype(self, dtype, copy=True):
-        from pandas.core.arrays.string_arrow import ArrowStringDtype
-
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):
             if copy:
                 return self.copy()
             return self
-        elif isinstance(dtype, ArrowStringDtype):
-            return ArrowStringDtype.construct_array_type()._from_sequence(self)
         elif isinstance(dtype, _IntegerDtype):
             arr = self._ndarray.copy()
             mask = self.isna()
