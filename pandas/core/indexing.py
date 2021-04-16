@@ -2040,7 +2040,7 @@ class _iLocIndexer(_LocationIndexer):
             Indexer used to get the locations that will be set to `ser`.
         ser : pd.Series
             Values to assign to the locations specified by `indexer`.
-        multiindex_indexer : bool, optional
+        multiindex_indexer : boolean, optional
             Defaults to False. Should be set to True if `indexer` was from
             a `pd.MultiIndex`, to avoid unnecessary broadcasting.
 
@@ -2279,7 +2279,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
         """
         Require integer args. (and convert to label arguments)
         """
-        for i in key:
+        for a, i in zip(self.obj.axes, key):
             if not is_integer(i):
                 raise ValueError("iAt based indexing can only have integer indexers")
         return key
