@@ -348,6 +348,7 @@ def test_reindex_periodindex_with_object(p_values, o_values, values, expected_va
 
 
 def test_reindex_too_many_args():
+    # GH 40980
     ser = Series([1, 2])
     with pytest.raises(
         TypeError, match=r"Only one positional argument \('index'\) is allowed"
@@ -356,6 +357,7 @@ def test_reindex_too_many_args():
 
 
 def test_reindex_double_index():
+    # GH 40980
     ser = Series([1, 2])
     with pytest.raises(
         TypeError, match=r"'index' passed as both positional and keyword argument"
