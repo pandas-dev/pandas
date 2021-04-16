@@ -4416,8 +4416,6 @@ Keep all original rows and also all original values
         """
         if index is not None and mapper is not None:
             raise TypeError("Cannot specify both 'mapper' and 'index'")
-        if index is None and mapper is None:
-            raise TypeError("Must pass a mapper")
         if mapper is None:
             mapper = index
         if callable(mapper) or is_dict_like(mapper):

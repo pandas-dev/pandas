@@ -109,8 +109,9 @@ class TestRename:
         with pytest.raises(TypeError, match="Cannot specify both 'mapper' and 'index'"):
             s.rename(str, index=str)
 
-    def test_rename_no_method_no_index(self):
+    def test_rename_none(self):
         # GH 40977
-        s = Series([1, 2])
-        with pytest.raises(TypeError, match="Must pass a mapper"):
-            s.rename(inplace=False)
+        s = Series([1, 2], name="foo")
+        result = s.rename(None)
+        expected = Series([1, 2])
+        tm.assert_series_equal(result, expected)
