@@ -134,5 +134,9 @@ def test_capitalize(input, method, nullable_string_dtype):
     result = method(a.str)
     expected = method(b.str)
 
-    assert result.dtype.name == nullable_string_dtype
+    if nullable_string_dtype == "string":
+        assert result.dtype.name == "string[python]"
+    else:
+        assert result.dtype.name == nullable_string_dtype
+
     tm.assert_series_equal(result.astype(object), expected)

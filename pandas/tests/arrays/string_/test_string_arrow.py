@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.testing as tm
+import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.0")
 

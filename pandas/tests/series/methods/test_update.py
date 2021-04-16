@@ -11,7 +11,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
 
 
 class TestUpdate:
@@ -88,11 +87,12 @@ class TestUpdate:
         "data, other, expected, dtype",
         [
             (["a", None], [None, "b"], ["a", "b"], "string"),
+            (["a", None], [None, "b"], ["a", "b"], "string[python]"),
             pytest.param(
                 ["a", None],
                 [None, "b"],
                 ["a", "b"],
-                "arrow_string",
+                "string[pyarrow]",
                 marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
             ),
             ([1, None], [None, 2], [1, 2], "Int64"),

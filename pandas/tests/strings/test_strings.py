@@ -139,7 +139,7 @@ def test_repeat():
 def test_repeat_with_null(nullable_string_dtype, request):
     # GH: 31632
 
-    if nullable_string_dtype == "arrow_string":
+    if nullable_string_dtype == "string[pyarrow]":
         reason = 'Attribute "dtype" are different'
         mark = pytest.mark.xfail(reason=reason)
         request.node.add_marker(mark)
