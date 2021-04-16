@@ -8937,15 +8937,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # if DatetimeIndex have different tz, convert to UTC
         if is_series or (not is_series and axis == 0):
-            if is_datetime64tz_dtype(left.index.dtype):
-                if left.index.tz != right.index.tz:
-                    if join_index is not None:
-                        # GH#33671 ensure we don't change the index on
-                        #  our original Series (NB: by default deep=False)
-                        left = left.copy()
-                        right = right.copy()
-                        left.index = join_index
-                        right.index = join_index
+            left, right = _align_as_utc(left, right, join_index)
 
         return (
             left.__finalize__(self),
