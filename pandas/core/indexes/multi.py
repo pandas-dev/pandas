@@ -2503,7 +2503,9 @@ class MultiIndex(Index):
 
         return new_index, indexer
 
-    def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
+    def reindex(
+        self, target, method=None, level=None, limit=None, tolerance=None
+    ) -> tuple[MultiIndex, np.ndarray | None]:
         """
         Create index with target's values (move/add/delete values as necessary)
 
@@ -2511,7 +2513,7 @@ class MultiIndex(Index):
         -------
         new_index : pd.MultiIndex
             Resulting index
-        indexer : np.ndarray or None
+        indexer : np.ndarray[np.intp] or None
             Indices of output values in original index.
 
         """

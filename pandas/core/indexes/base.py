@@ -3762,7 +3762,9 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._index_as_unique and len(indexer):
             raise ValueError("cannot reindex from a duplicate axis")
 
-    def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
+    def reindex(
+        self, target, method=None, level=None, limit=None, tolerance=None
+    ) -> tuple[Index, np.ndarray | None]:
         """
         Create index with target's values.
 
@@ -3774,7 +3776,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : pd.Index
             Resulting index.
-        indexer : np.ndarray or None
+        indexer : np.ndarray[np.intp] or None
             Indices of output values in original index.
         """
         # GH6552: preserve names when reindexing to non-named target
@@ -3815,7 +3817,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return target, indexer
 
-    def _reindex_non_unique(self, target):
+    def _reindex_non_unique(
+        self, target: Index
+    ) -> tuple[Index, np.ndarray, np.ndarray | None]:
         """
         Create a new index with target's values (move/add/delete values as
         necessary) use with non-unique Index and a possibly non-unique target.
@@ -3828,8 +3832,9 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : pd.Index
             Resulting index.
-        indexer : np.ndarray or None
+        indexer : np.ndarray[np.intp]
             Indices of output values in original index.
+        new_indexer : np.ndarray[np.intp] or None
 
         """
         target = ensure_index(target)
@@ -3858,13 +3863,13 @@ class Index(IndexOpsMixin, PandasObject):
             # GH#38906
             if not len(self):
 
-                new_indexer = np.arange(0)
+                new_indexer = np.arange(0, dtype=np.intp)
 
             # a unique indexer
             elif target.is_unique:
 
                 # see GH5553, make sure we use the right indexer
-                new_indexer = np.arange(len(indexer))
+                new_indexer = np.arange(len(indexer), dtype=np.intp)
                 new_indexer[cur_indexer] = np.arange(len(cur_labels))
                 new_indexer[missing_indexer] = -1
 
@@ -3876,7 +3881,7 @@ class Index(IndexOpsMixin, PandasObject):
                 indexer[~check] = -1
 
                 # reset the new indexer to account for the new size
-                new_indexer = np.arange(len(self.take(indexer)))
+                new_indexer = np.arange(len(self.take(indexer)), dtype=np.intp)
                 new_indexer[~check] = -1
 
         if isinstance(self, ABCMultiIndex):
