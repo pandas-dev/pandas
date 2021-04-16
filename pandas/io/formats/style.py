@@ -1625,7 +1625,7 @@ class Styler(StylerRenderer):
 
         Notes
         -----
-        This function does not work with ``str``, ``Timedelta`` or ``Timestamp`` dtypes.
+        This function does not work with ``str`` dtypes.
 
         Examples
         --------
