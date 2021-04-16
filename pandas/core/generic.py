@@ -8813,15 +8813,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
-        if is_datetime64tz_dtype(left.index.dtype):
-            if left.index.tz != right.index.tz:
-                if join_index is not None:
-                    # GH#33671 ensure we don't change the index on
-                    #  our original Series (NB: by default deep=False)
-                    left = left.copy()
-                    right = right.copy()
-                    left.index = join_index
-                    right.index = join_index
+        left, right = _align_as_utc(left, right, join_index)
 
         return (
             left.__finalize__(self),
@@ -8863,27 +8855,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # one has > 1 ndim
             fdata = self._mgr
-            if axis == 0:
-                join_index = self.index
+            if axis in [0, 1]:
+                join_index = self.axes[axis]
                 lidx, ridx = None, None
-                if not self.index.equals(other.index):
-                    join_index, lidx, ridx = self.index.join(
+                if not join_index.equals(other.index):
+                    join_index, lidx, ridx = join_index.join(
                         other.index, how=join, level=level, return_indexers=True
                     )
 
                 if lidx is not None:
-                    fdata = fdata.reindex_indexer(join_index, lidx, axis=1)
+                    bm_axis = self._get_block_manager_axis(axis)
+                    fdata = fdata.reindex_indexer(join_index, lidx, axis=bm_axis)
 
-            elif axis == 1:
-                join_index = self.columns
-                lidx, ridx = None, None
-                if not self.columns.equals(other.index):
-                    join_index, lidx, ridx = self.columns.join(
-                        other.index, how=join, level=level, return_indexers=True
-                    )
-
-                if lidx is not None:
-                    fdata = fdata.reindex_indexer(join_index, lidx, axis=0)
             else:
                 raise ValueError("Must specify axis=0 or 1")
 
@@ -8905,15 +8888,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # if DatetimeIndex have different tz, convert to UTC
         if is_series or (not is_series and axis == 0):
-            if is_datetime64tz_dtype(left.index.dtype):
-                if left.index.tz != right.index.tz:
-                    if join_index is not None:
-                        # GH#33671 ensure we don't change the index on
-                        #  our original Series (NB: by default deep=False)
-                        left = left.copy()
-                        right = right.copy()
-                        left.index = join_index
-                        right.index = join_index
+            left, right = _align_as_utc(left, right, join_index)
 
         return (
             left.__finalize__(self),
@@ -11887,3 +11862,23 @@ min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 """
+
+
+def _align_as_utc(
+    left: FrameOrSeries, right: FrameOrSeries, join_index: Index | None
+) -> tuple[FrameOrSeries, FrameOrSeries]:
+    """
+    If we are aligning timezone-aware DatetimeIndexes and the timezones
+    do not match, convert both to UTC.
+    """
+    if is_datetime64tz_dtype(left.index.dtype):
+        if left.index.tz != right.index.tz:
+            if join_index is not None:
+                # GH#33671 ensure we don't change the index on
+                #  our original Series (NB: by default deep=False)
+                left = left.copy()
+                right = right.copy()
+                left.index = join_index
+                right.index = join_index
+
+    return left, right
