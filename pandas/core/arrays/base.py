@@ -420,8 +420,6 @@ class ExtensionArray:
         """
         Return for `self != other` (element-wise in-equality).
         """
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndex)):
-            return NotImplemented
         return ~(self == other)
 
     def to_numpy(
@@ -1052,9 +1050,9 @@ class ExtensionArray:
               from the right (the default). This is similar to
               :func:`numpy.take`.
 
-            * True: ``-1`` in `indices` indicate missing values.
-              These values are set to `fill_value`. Any other negative
-              value raises a ``ValueError``.
+            * True: negative values in `indices` indicate
+              missing values. These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
 
         fill_value : any, optional
             Fill value to use for NA-indices when `allow_fill` is True.
