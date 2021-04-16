@@ -1152,6 +1152,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # We've split an object block! Everything we've assumed
                 # about a single block input returning a single block output
                 # is a lie. See eg GH-39329
+                mgr = cast(Manager2D, mgr)
                 return mgr.as_array()
             else:
                 # We are a single block from a BlockManager
