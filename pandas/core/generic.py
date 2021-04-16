@@ -7342,8 +7342,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return self._clip_with_scalar(None, threshold, inplace=inplace)
             return self._clip_with_scalar(threshold, None, inplace=inplace)
 
-        subset = method(threshold, axis=axis) | isna(self)
-
         # GH #15390
         # In order for where method to work, the threshold must
         # be transformed to NDFrame from other array like structure.
@@ -7354,12 +7352,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
 
         # GH 40420
+        if is_list_like(threshold):
+            fill_value = np.inf if method.__name__ == "le" else -np.inf
+            threshold_inf = threshold.fillna(fill_value)
+        else:
+            threshold_inf = threshold
+
+        subset = method(threshold_inf, axis=axis) | isna(self)
+
+        # GH 40420
         # In order to ignore nan values in the threshold, set the values in
         # subset that correspond to these na values to True. This indicates to the
         # final where() to not clip.
-        if is_list_like(threshold) and threshold.isna().any(axis=None):
-            subset_kwargs = {"axis": axis} if threshold.ndim != subset.ndim else {}
-            subset = subset.where(threshold.notna(), True, **subset_kwargs)
+        # if is_list_like(threshold) and threshold.isna().any(axis=None):
+        #     subset_kwargs = {"axis": axis} if threshold.ndim != subset.ndim else {}
+        #     subset = subset.where(threshold.notna(), True, **subset_kwargs)
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     @overload
