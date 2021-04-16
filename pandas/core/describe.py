@@ -176,7 +176,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
 
         col_names = reorder_columns(ldesc)
         d = cast(
-            DataFrame,
+            "DataFrame",
             concat(
                 [x.reindex(col_names, copy=False) for x in ldesc],
                 axis=1,
