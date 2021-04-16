@@ -4476,7 +4476,7 @@ Keep all original rows and also all original values
         if len(args) > 1:
             raise TypeError("Only one positional argument ('index') is allowed")
         if args:
-            index = args[0]
+            (index,) = args
             if "index" in kwargs:
                 raise TypeError(
                     "'index' passed as both positional and keyword argument"
