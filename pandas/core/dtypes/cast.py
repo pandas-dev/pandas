@@ -1117,9 +1117,9 @@ def astype_td64_unit_conversion(
 
 # fmt: off
 @overload
-def astype_nansafe( arr: np.ndarray, dtype: np.dtype, copy: bool = ..., skipna: bool = ...) -> np.ndarray: ...  # noqa
+def astype_nansafe(arr: np.ndarray, dtype: np.dtype, copy: bool = ..., skipna: bool = ...) -> np.ndarray: ...  # noqa
 @overload
-def astype_nansafe( arr: np.ndarray, dtype: ExtensionDtype, copy: bool = ..., skipna: bool = ...) -> ExtensionArray: ...  # noqa
+def astype_nansafe(arr: np.ndarray, dtype: ExtensionDtype, copy: bool = ..., skipna: bool = ...) -> ExtensionArray: ...  # noqa
 # fmt: on
 
 

@@ -1919,9 +1919,9 @@ default 'raise'
 
 # fmt: off
 @overload
-def sequence_to_datetimes( data, allow_object: Literal[False] = ..., require_iso8601: bool = ...) -> DatetimeArray: ...  # noqa
+def sequence_to_datetimes(data, allow_object: Literal[False] = ..., require_iso8601: bool = ...) -> DatetimeArray: ...  # noqa
 @overload
-def sequence_to_datetimes( data, allow_object: Literal[True] = ..., require_iso8601: bool = ...) -> np.ndarray | DatetimeArray: ...  # noqa
+def sequence_to_datetimes(data, allow_object: Literal[True] = ..., require_iso8601: bool = ...) -> np.ndarray | DatetimeArray: ...  # noqa
 # fmt: on
 
 

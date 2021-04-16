@@ -28,9 +28,9 @@ if TYPE_CHECKING:
 
 # fmt: off
 @overload
-def take_nd( arr: np.ndarray, indexer, axis: int = ..., fill_value=..., allow_fill: bool = ...,) -> np.ndarray: ...  # noqa
+def take_nd(arr: np.ndarray, indexer, axis: int = ..., fill_value=..., allow_fill: bool = ...) -> np.ndarray: ...  # noqa
 @overload
-def take_nd( arr: ExtensionArray, indexer, axis: int = ..., fill_value=..., allow_fill: bool = ...,) -> ArrayLike: ...  # noqa
+def take_nd(arr: ExtensionArray, indexer, axis: int = ..., fill_value=..., allow_fill: bool = ...) -> ArrayLike: ...  # noqa
 # fmt: on
 
 

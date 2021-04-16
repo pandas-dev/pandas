@@ -213,9 +213,9 @@ def execute(sql, con, cur=None, params=None):
 
 # fmt: off
 @overload
-def read_sql_table( table_name, con, schema=None, index_col=None, coerce_float=True, parse_dates=None, columns=None, chunksize: None = None,) -> DataFrame: ...  # noqa
+def read_sql_table(table_name, con, schema=None, index_col=None, coerce_float=True, parse_dates=None, columns=None, chunksize: None = None) -> DataFrame: ...  # noqa
 @overload
-def read_sql_table( table_name, con, schema=None, index_col=None, coerce_float=True, parse_dates=None, columns=None, chunksize: int = 1,) -> Iterator[DataFrame]: ...  # noqa
+def read_sql_table(table_name, con, schema=None, index_col=None, coerce_float=True, parse_dates=None, columns=None, chunksize: int = 1) -> Iterator[DataFrame]: ...  # noqa
 # fmt: on
 
 
@@ -316,9 +316,9 @@ def read_sql_table(
 
 # fmt: off
 @overload
-def read_sql_query( sql, con, index_col=None, coerce_float=True, params=None, parse_dates=None, chunksize: None = None, dtype: DtypeArg | None = None,) -> DataFrame: ...  # noqa
+def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None, parse_dates=None, chunksize: None = None, dtype: DtypeArg | None = None) -> DataFrame: ...  # noqa
 @overload
-def read_sql_query( sql, con, index_col=None, coerce_float=True, params=None, parse_dates=None, chunksize: int = 1, dtype: DtypeArg | None = None,) -> Iterator[DataFrame]: ...  # noqa
+def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None, parse_dates=None, chunksize: int = 1, dtype: DtypeArg | None = None) -> Iterator[DataFrame]: ...  # noqa
 # fmt: on
 
 
@@ -403,9 +403,9 @@ def read_sql_query(
 
 # fmt: off
 @overload
-def read_sql( sql, con, index_col=None, coerce_float=True, params=None, parse_dates=None, columns=None, chunksize: None = None,) -> DataFrame: ...  # noqa
+def read_sql(sql, con, index_col=None, coerce_float=True, params=None, parse_dates=None, columns=None, chunksize: None = None) -> DataFrame: ...  # noqa
 @overload
-def read_sql( sql, con, index_col=None, coerce_float=True, params=None, parse_dates=None, columns=None, chunksize: int = 1,) -> Iterator[DataFrame]: ...  # noqa
+def read_sql(sql, con, index_col=None, coerce_float=True, params=None, parse_dates=None, columns=None, chunksize: int = 1) -> Iterator[DataFrame]: ...  # noqa
 # fmt: on
 
 

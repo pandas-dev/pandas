@@ -44,9 +44,9 @@ class ReaderBase(metaclass=ABCMeta):
 
 # fmt: off
 @overload
-def read_sas( filepath_or_buffer: FilePathOrBuffer, format: str | None = ..., index: Hashable | None = ..., encoding: str | None = ..., chunksize: int = ..., iterator: bool = ...,) -> ReaderBase: ...  # noqa
+def read_sas(filepath_or_buffer: FilePathOrBuffer, format: str | None = ..., index: Hashable | None = ..., encoding: str | None = ..., chunksize: int = ..., iterator: bool = ...) -> ReaderBase: ...  # noqa
 @overload
-def read_sas( filepath_or_buffer: FilePathOrBuffer, format: str | None = ..., index: Hashable | None = ..., encoding: str | None = ..., chunksize: None = ..., iterator: bool = ...,) -> DataFrame | ReaderBase: ...  # noqa
+def read_sas(filepath_or_buffer: FilePathOrBuffer, format: str | None = ..., index: Hashable | None = ..., encoding: str | None = ..., chunksize: None = ..., iterator: bool = ...) -> DataFrame | ReaderBase: ...  # noqa
 # fmt: on
 
 
