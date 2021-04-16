@@ -633,7 +633,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_intsafe(ndarray[object] arr, new_dtype) -> ndarray:
+def astype_intsafe(ndarray[object] arr, cnp.dtype new_dtype) -> ndarray:
     cdef:
         Py_ssize_t i, n = len(arr)
         object val
