@@ -4650,9 +4650,9 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def set_axis(self, labels, axis: Axis = ..., inplace: Literal[False] = ...) -> DataFrame: ...  # noqa: E501, E704
     @overload
-    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None: ...  # noqa: E501, E704 .................
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None: ...  # noqa: E501, E704 https://github.com/asottile/yesqa/issues/67
     @overload
-    def set_axis(self, labels, *, inplace: Literal[True]) -> None: ...  # noqa: E501, E704 ..........................
+    def set_axis(self, labels, *, inplace: Literal[True]) -> None: ...  # noqa: E501, E704 https://github.com/asottile/yesqa/issues/67
     @overload
     def set_axis(self, labels, axis: Axis = ..., inplace: bool = ...) -> DataFrame | None: ...  # noqa: E501, E704
     # fmt: on
@@ -5000,7 +5000,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def fillna(self, value, method: str | None, axis: Axis | None, inplace: Literal[True], limit=..., downcast=...) -> None: ...  # noqa: E501, E704
     @overload
-    def fillna(self, *, inplace: Literal[True], limit=..., downcast=...) -> None: ...  # noqa: E501, E704 ......
+    def fillna(self, *, inplace: Literal[True], limit=..., downcast=...) -> None: ...  # noqa: E501, E704 https://github.com/asottile/yesqa/issues/67
     @overload
     def fillna(self, value, *, inplace: Literal[True], limit=..., downcast=...) -> None: ...  # noqa: E501, E704
     @overload
