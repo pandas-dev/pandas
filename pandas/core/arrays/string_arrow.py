@@ -9,8 +9,6 @@ from typing import (
 )
 
 import numpy as np
-import pyarrow as pa
-import pyarrow.compute as pc
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -42,14 +40,25 @@ from pandas.core.indexers import (
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-ARROW_CMP_FUNCS = {
-    "eq": pc.equal,
-    "ne": pc.not_equal,
-    "lt": pc.less,
-    "gt": pc.greater,
-    "le": pc.less_equal,
-    "ge": pc.greater_equal,
-}
+try:
+    import pyarrow as pa
+except ImportError:
+    pa = None
+else:
+    # PyArrow backed StringArrays are available starting at 1.0.0, but this
+    # file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
+    # and its compute functions existed. GH38801
+    if LooseVersion(pa.__version__) >= "1.0.0":
+        import pyarrow.compute as pc
+
+        ARROW_CMP_FUNCS = {
+            "eq": pc.equal,
+            "ne": pc.not_equal,
+            "lt": pc.less,
+            "gt": pc.greater,
+            "le": pc.less_equal,
+            "ge": pc.greater_equal,
+        }
 
 
 if TYPE_CHECKING:
