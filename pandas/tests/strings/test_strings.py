@@ -136,17 +136,23 @@ def test_repeat():
     tm.assert_series_equal(rs, xp)
 
 
-def test_repeat_with_null():
+def test_repeat_with_null(nullable_string_dtype, request):
     # GH: 31632
-    values = Series(["a", None], dtype="string")
-    result = values.str.repeat([3, 4])
-    exp = Series(["aaa", None], dtype="string")
-    tm.assert_series_equal(result, exp)
 
-    values = Series(["a", "b"], dtype="string")
-    result = values.str.repeat([3, None])
-    exp = Series(["aaa", None], dtype="string")
-    tm.assert_series_equal(result, exp)
+    if nullable_string_dtype == "arrow_string":
+        reason = 'Attribute "dtype" are different'
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
+    ser = Series(["a", None], dtype=nullable_string_dtype)
+    result = ser.str.repeat([3, 4])
+    expected = Series(["aaa", None], dtype=nullable_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser = Series(["a", "b"], dtype=nullable_string_dtype)
+    result = ser.str.repeat([3, None])
+    expected = Series(["aaa", None], dtype=nullable_string_dtype)
+    tm.assert_series_equal(result, expected)
 
 
 def test_empty_str_methods():

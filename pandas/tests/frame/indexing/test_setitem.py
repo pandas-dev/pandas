@@ -610,6 +610,21 @@ class TestDataFrameSetItem:
         expected = Series(tuples, index=float_frame.index, name="tuples")
         tm.assert_series_equal(result, expected)
 
+    def test_setitem_iloc_generator(self):
+        # GH#39614
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        indexer = (x for x in [1, 2])
+        df.iloc[indexer] = 1
+        expected = DataFrame({"a": [1, 1, 1], "b": [4, 1, 1]})
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_iloc_two_dimensional_generator(self):
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        indexer = (x for x in [1, 2])
+        df.iloc[indexer, 1] = 1
+        expected = DataFrame({"a": [1, 2, 3], "b": [4, 1, 1]})
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture

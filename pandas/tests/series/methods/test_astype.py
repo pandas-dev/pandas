@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+import pandas.util._test_decorators as td
 
 from pandas import (
     NA,
@@ -246,25 +247,34 @@ class TestAstype:
         assert result.dtype == np.object_
 
     @pytest.mark.parametrize(
-        "values",
+        "data, dtype",
         [
-            Series(["x", "y", "z"], dtype="string"),
-            Series(["x", "y", "z"], dtype="category"),
-            Series(3 * [Timestamp("2020-01-01", tz="UTC")]),
-            Series(3 * [Interval(0, 1)]),
+            (["x", "y", "z"], "string"),
+            pytest.param(
+                ["x", "y", "z"],
+                "arrow_string",
+                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+            ),
+            (["x", "y", "z"], "category"),
+            (3 * [Timestamp("2020-01-01", tz="UTC")], None),
+            (3 * [Interval(0, 1)], None),
         ],
     )
     @pytest.mark.parametrize("errors", ["raise", "ignore"])
-    def test_astype_ignores_errors_for_extension_dtypes(self, values, errors):
+    def test_astype_ignores_errors_for_extension_dtypes(self, data, dtype, errors):
         # https://github.com/pandas-dev/pandas/issues/35471
+
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+        ser = Series(data, dtype=dtype)
         if errors == "ignore":
-            expected = values
-            result = values.astype(float, errors="ignore")
+            expected = ser
+            result = ser.astype(float, errors="ignore")
             tm.assert_series_equal(result, expected)
         else:
             msg = "(Cannot cast)|(could not convert)"
             with pytest.raises((ValueError, TypeError), match=msg):
-                values.astype(float, errors=errors)
+                ser.astype(float, errors=errors)
 
     @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
     def test_astype_from_float_to_str(self, dtype):
