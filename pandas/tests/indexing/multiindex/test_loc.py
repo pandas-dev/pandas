@@ -764,7 +764,8 @@ def test_loc_getitem_index_differently_ordered_slice_none():
     tm.assert_frame_equal(result, expected)
 
 
-def test_loc_getitem_index_differently_ordered_slice_none_duplicates():
+@pytest.mark.parametrize("indexer", [[1, 2, 7, 6, 2, 3, 8, 7], [1, 2, 7, 6, 3, 8]])
+def test_loc_getitem_index_differently_ordered_slice_none_duplicates(indexer):
     # GH#40978
     df = DataFrame(
         [1] * 8,
@@ -773,7 +774,7 @@ def test_loc_getitem_index_differently_ordered_slice_none_duplicates():
         ),
         columns=["a"],
     )
-    result = df.loc[(slice(None), df.index.get_level_values(1)), :]
+    result = df.loc[(slice(None), indexer), :]
     expected = DataFrame(
         [1] * 8,
         index=[[1, 1, 2, 1, 2, 1, 2, 2], [1, 2, 2, 7, 7, 6, 3, 8]],
