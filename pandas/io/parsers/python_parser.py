@@ -431,6 +431,7 @@ class PythonParser(ParserBase):
                         ic = len(self.index_col) if self.index_col is not None else 0
                         unnamed_count = len(this_unnamed_cols)
 
+                        # if wrong number of blanks or no index, not our format
                         if (lc != unnamed_count and lc - ic > unnamed_count) or ic == 0:
                             clear_buffer = False
                             this_columns = [None] * lc
