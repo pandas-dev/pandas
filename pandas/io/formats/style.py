@@ -1655,17 +1655,15 @@ class Styler(StylerRenderer):
 
         # after quantile is found along axis, e.g. along rows,
         # applying the calculated quantile to alternate axis, e.g. to each column
-        kwargs = {"numeric_only": False, "interpolation": interpolation}
+        kwargs = {"q": [q_left, q_right], "interpolation": interpolation}
         if axis in [0, "index"]:
-            q = data.quantile([q_left, q_right], axis=axis, **kwargs)
-            axis_apply = 1
+            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            axis_apply: int | None = 1
         elif axis in [1, "columns"]:
-            q = data.quantile([q_left, q_right], axis=axis, **kwargs)
+            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
             axis_apply = 0
         else:  # axis is None
-            # TODO: this might be better with Series.quantile but no `numeric_only` kw
-            q = DataFrame(data.to_numpy().ravel())
-            q = q.quantile([q_left, q_right], **kwargs)[0]
+            q = Series(data.to_numpy().ravel()).quantile(**kwargs)
             axis_apply = None
 
         if props is None:
