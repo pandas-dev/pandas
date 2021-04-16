@@ -56,7 +56,7 @@ from pandas.core.base import (
     DataError,
     SelectionMixin,
 )
-import pandas.core.common as common
+import pandas.core.common as com
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -643,7 +643,7 @@ class BaseWindowGroupby(BaseWindow):
             )
 
             gb_pairs = (
-                common.maybe_make_list(pair) for pair in self._grouper.indices.keys()
+                com.maybe_make_list(pair) for pair in self._grouper.indices.keys()
             )
             groupby_codes = []
             groupby_levels = []

@@ -21,7 +21,7 @@ from pandas.util._decorators import doc
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.common as common
+import pandas.core.common as common  # noqa: PDF018
 from pandas.core.util.numba_ import maybe_use_numba
 from pandas.core.window.common import zsqrt
 from pandas.core.window.doc import (

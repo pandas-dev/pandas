@@ -14,7 +14,7 @@ def test_inconsistent_usage(content, capsys):
     result_msg = (
         "t.py:2:0: Don't use pd.array in core, import array as pd_array instead\n"
     )
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=None):
         use_pd_array(content, PATH)
     expected_msg, _ = capsys.readouterr()
     assert result_msg == expected_msg

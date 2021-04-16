@@ -38,7 +38,10 @@ repos:
     rev: 3.9.0
     hooks:
     -   id: flake8
-        additional_dependencies: [flake8-comprehensions>=3.1.0, flake8-bugbear>=21.3.2]
+        additional_dependencies:
+            - flake8-comprehensions==3.1.0
+            - flake8-bugbear==21.3.2
+            - pandas-dev-flaker==0.2.0
     -   id: flake8
         name: flake8 (cython)
         types: [cython]
@@ -71,7 +74,11 @@ repos:
     rev: v1.2.2
     hooks:
     -   id: yesqa
-        additional_dependencies: [flake8==3.9.0]
+        additional_dependencies:
+            - flake8==3.9.0
+            - flake8-comprehensions==3.1.0
+            - flake8-bugbear==21.3.2
+            - pandas-dev-flaker==0.2.0
 -   repo: local
     hooks:
     -   id: flake8-rst
@@ -82,28 +89,6 @@ repos:
         types: [rst]
         args: [--filename=*.rst]
         additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
-    -   id: frame-or-series-union
-        name: Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias
-        entry: Union\[.*(Series,.*DataFrame|DataFrame,.*Series).*\]
-        language: pygrep
-        types: [python]
-        exclude: ^pandas/_typing\.py$
-    -   id: inconsistent-namespace-usage
-        name: 'Check for inconsistent use of pandas namespace'
-        entry: python scripts/check_for_inconsistent_pandas_namespace.py
-        language: python
-        types: [python]
-    -   id: no-os-remove
-        name: Check code for instances of os.remove
-        entry: os\.remove
-        language: pygrep
-        types: [python]
-        files: ^pandas/tests/
-        exclude: |
-            (?x)^
-            pandas/tests/io/excel/test_writers\.py
-            |pandas/tests/io/pytables/common\.py
-            |pandas/tests/io/pytables/test_store\.py$
     -   id: unwanted-patterns
         name: Unwanted patterns
         language: pygrep
@@ -113,51 +98,9 @@ repos:
             \#\ type:\ (?!ignore)
             |\#\ type:\s?ignore(?!\[)
 
-            # foo._class__ instead of type(foo)
-            |\.__class__
-
-            # np.bool/np.object instead of np.bool_/np.object_
-            |np\.bool[^_8]
-            |np\.object[^_8]
-
-            # imports from pandas.core.common instead of `import pandas.core.common as com`
-            |from\ pandas\.core\.common\ import
-            |from\ pandas\.core\ import\ common
-
-            # imports from collections.abc instead of `from collections import abc`
-            |from\ collections\.abc\ import
-
-            # Numpy
-            |from\ numpy\ import\ random
-            |from\ numpy\.random\ import
-
             # Incorrect code-block / IPython directives
             |\.\.\ code-block\ ::
             |\.\.\ ipython\ ::
-        types_or: [python, cython, rst]
-        exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
-    -   id: unwanted-patterns-in-tests
-        name: Unwanted patterns in tests
-        language: pygrep
-        entry: |
-            (?x)
-            # pytest.xfail instead of pytest.mark.xfail
-            pytest\.xfail
-
-            # imports from pandas._testing instead of `import pandas._testing as tm`
-            |from\ pandas\._testing\ import
-            |from\ pandas\ import\ _testing\ as\ tm
-
-            # No direct imports from conftest
-            |conftest\ import
-            |import\ conftest
-
-            # pandas.testing instead of tm
-            |pd\.testing\.
-
-            # pd.api.types instead of from pandas.api.types import ...
-            |(pd|pandas)\.api\.types\.
-        files: ^pandas/tests/
         types_or: [python, cython, rst]
     -   id: pip-to-conda
         name: Generate pip dependency from conda
@@ -180,35 +123,6 @@ repos:
         language: python
         types: [rst]
         files: ^doc/source/(development|reference)/
-    -   id: unwanted-patterns-bare-pytest-raises
-        name: Check for use of bare pytest raises
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pytest_raises"
-        types: [python]
-        files: ^pandas/tests/
-        exclude: ^pandas/tests/extension/
-    -   id: unwanted-patterns-private-function-across-module
-        name: Check for use of private functions across modules
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
-        types: [python]
-        exclude: ^(asv_bench|pandas/tests|doc)/
-    -   id: unwanted-patterns-private-import-across-module
-        name: Check for import of private attributes across modules
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module"
-        types: [python]
-        exclude: ^(asv_bench|pandas/tests|doc)/
-    -   id: unwanted-patterns-strings-to-concatenate
-        name: Check for use of not concatenated strings
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate"
-        types_or: [python, cython]
-    -   id: unwanted-patterns-strings-with-wrong-placed-whitespace
-        name: Check for strings with wrong placed spaces
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
-        types_or: [python, cython]
     -   id: use-pd_array-in-core
         name: Import pandas.array as pd_array in core
         language: python
