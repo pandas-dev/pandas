@@ -429,13 +429,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
 
     # fmt: off
     @overload
-    def view(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT: ...  # noqa
+    def view(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT: ...  # noqa: E704
     @overload
-    def view(self, dtype: Literal["M8[ns]"]) -> DatetimeArray: ...  # noqa
+    def view(self, dtype: Literal["M8[ns]"]) -> DatetimeArray: ...  # noqa: E704
     @overload
-    def view(self, dtype: Literal["m8[ns]"]) -> TimedeltaArray: ...  # noqa
+    def view(self, dtype: Literal["m8[ns]"]) -> TimedeltaArray: ...  # noqa: E704
     @overload
-    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...  # noqa
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...  # noqa: E704
     # fmt: on
 
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
