@@ -443,6 +443,33 @@ class IndexingMixin:
         8          4       5
         9          7       8
 
+        **Setting values using series**
+
+        >>> df['shield'] = pd.Series({7: 8, 8: 10, 9: 10})
+        >>> df
+           max_speed  shield
+        7          1       8
+        8          4      10
+        9          7      10
+
+        Assign partial column with labels in dataframe missing from series
+
+        >>> df['shield'] = pd.Series({8: 10})
+        >>> df
+           max_speed  shield
+        7          1     NaN
+        8          4    10.0
+        9          7     NaN
+
+        Assign column containing value with missing index
+
+        >>> df['shield'] = pd.Series({10: 14})
+        >>> df
+           max_speed  shield
+        7          1     NaN
+        8          4     NaN
+        9          7     NaN
+
         **Getting values with a MultiIndex**
 
         A number of examples using a DataFrame with a MultiIndex
@@ -616,31 +643,6 @@ class IndexingMixin:
 
         >>> df.loc[0].iat[1]
         2
-
-        Set value at a partial column
-
-        >>> d = {'a': [1,2,3]}
-        >>> df = pd.DataFrame(d)
-        >>> df
-           a
-        0  1
-        1  2
-        2  3
-        >>> df['b'] = pd.Series({1: 'y'})
-
-        Set value of a label missing from the series index
-
-        >>> df
-           a    b
-        0  1  NaN
-        1  2    y
-        2  3  NaN
-        >>> df['c'] = pd.Series({4: 'E'})
-        >>> df
-           a    b    c
-        0  1  NaN  NaN
-        1  2    y  NaN
-        2  3  NaN  NaN
 
         """
         return _iAtIndexer("iat", self)
