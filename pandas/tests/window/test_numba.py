@@ -8,6 +8,7 @@ from pandas import (
     DataFrame,
     Series,
     option_context,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
@@ -138,6 +139,30 @@ class TestGroupbyEWMMean:
     def test_cython_vs_numba(self, nogil, parallel, nopython, ignore_na, adjust):
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         gb_ewm = df.groupby("A").ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
+
+        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+        result = gb_ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+        expected = gb_ewm.mean(engine="cython")
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_cython_vs_numba_times(self, nogil, parallel, nopython, ignore_na):
+        # GH 40951
+        halflife = "23 days"
+        times = to_datetime(
+            [
+                "2020-01-01",
+                "2020-01-01",
+                "2020-01-02",
+                "2020-01-10",
+                "2020-02-23",
+                "2020-01-03",
+            ]
+        )
+        df = DataFrame({"A": ["a", "b", "a", "b", "b", "a"], "B": [0, 0, 1, 1, 2, 2]})
+        gb_ewm = df.groupby("A").ewm(
+            halflife=halflife, adjust=True, ignore_na=ignore_na, times=times
+        )
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
         result = gb_ewm.mean(engine="numba", engine_kwargs=engine_kwargs)

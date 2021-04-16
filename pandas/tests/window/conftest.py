@@ -13,6 +13,7 @@ from pandas import (
     Series,
     bdate_range,
     notna,
+    to_datetime,
 )
 
 
@@ -299,6 +300,31 @@ def frame():
         np.random.randn(100, 10),
         index=bdate_range(datetime(2009, 1, 1), periods=100),
         columns=np.arange(10),
+    )
+
+
+@pytest.fixture
+def times_frame():
+    """Frame for testing times argument in EWM groupby."""
+    return DataFrame(
+        {
+            "A": ["a", "b", "c", "a", "b", "c", "a", "b", "c", "a"],
+            "B": [0, 0, 0, 1, 1, 1, 2, 2, 2, 3],
+            "C": to_datetime(
+                [
+                    "2020-01-01",
+                    "2020-01-01",
+                    "2020-01-01",
+                    "2020-01-02",
+                    "2020-01-10",
+                    "2020-01-22",
+                    "2020-01-03",
+                    "2020-01-23",
+                    "2020-01-23",
+                    "2020-01-04",
+                ]
+            ),
+        }
     )
 
 
