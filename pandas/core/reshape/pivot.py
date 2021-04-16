@@ -174,7 +174,15 @@ def __internal_pivot_table(
                 and v in agged
                 and not is_integer_dtype(agged[v])
             ):
-                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
+                if isinstance(agged[v], ABCDataFrame):
+                    # exclude DataFrame case bc maybe_downcast_to_dtype expects
+                    #  ArrayLike
+                    # TODO: why does test_pivot_table_doctest_case fail if
+                    # we don't do this apparently-unnecessary setitem?
+                    agged[v] = agged[v]
+                    pass
+                else:
+                    agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
 

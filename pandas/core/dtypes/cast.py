@@ -4,7 +4,6 @@ Routines for casting.
 
 from __future__ import annotations
 
-from contextlib import suppress
 from datetime import (
     date,
     datetime,
@@ -29,7 +28,6 @@ from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
-    Period,
     Timedelta,
     Timestamp,
     conversion,
@@ -87,7 +85,6 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
-    ABCDataFrame,
     ABCExtensionArray,
     ABCSeries,
 )
@@ -249,9 +246,6 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
     """
-    if isinstance(result, ABCDataFrame):
-        # see test_pivot_table_doctest_case
-        return result
     do_round = False
 
     if isinstance(dtype, str):
@@ -278,15 +272,9 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
 
         dtype = np.dtype(dtype)
 
-    elif dtype.type is Period:
-        from pandas.core.arrays import PeriodArray
-
-        with suppress(TypeError):
-            # e.g. TypeError: int() argument must be a string, a
-            #  bytes-like object or a number, not 'Period
-
-            # error: "dtype[Any]" has no attribute "freq"
-            return PeriodArray(result, freq=dtype.freq)  # type: ignore[attr-defined]
+    if not isinstance(dtype, np.dtype):
+        # enforce our signature annotation
+        raise TypeError(dtype)  # pragma: no cover
 
     converted = maybe_downcast_numeric(result, dtype, do_round)
     if converted is not result:
@@ -295,15 +283,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     # a datetimelike
     # GH12821, iNaT is cast to float
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
-        if isinstance(dtype, DatetimeTZDtype):
-            # convert to datetime and change timezone
-            i8values = result.astype("i8", copy=False)
-            cls = dtype.construct_array_type()
-            # equiv: DatetimeArray(i8values).tz_localize("UTC").tz_convert(dtype.tz)
-            dt64values = i8values.view("M8[ns]")
-            result = cls._simple_new(dt64values, dtype=dtype)
-        else:
-            result = result.astype(dtype)
+        result = result.astype(dtype)
 
     return result
 
