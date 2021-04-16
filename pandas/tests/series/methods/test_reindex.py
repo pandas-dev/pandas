@@ -345,3 +345,19 @@ def test_reindex_periodindex_with_object(p_values, o_values, values, expected_va
     result = ser.reindex(object_index)
     expected = Series(expected_values, index=object_index)
     tm.assert_series_equal(result, expected)
+
+
+def test_reindex_too_many_args():
+    ser = Series([1, 2])
+    with pytest.raises(
+        TypeError, match=r"Only one positional argument \('index'\) is allowed"
+    ):
+        ser.reindex([2, 3], False)
+
+
+def test_reindex_double_index():
+    ser = Series([1, 2])
+    with pytest.raises(
+        TypeError, match=r"'index' passed as both positional and keyword argument"
+    ):
+        ser.reindex([2, 3], index=[3, 4])
