@@ -1694,7 +1694,7 @@ class SQLDatabase(PandasSQL):
         index_label=None,
         schema=None,
         chunksize=None,
-        dtype: Optional[DtypeArg] = None,
+        dtype: DtypeArg | None = None,
         method=None,
         engine="auto",
         **engine_kwargs,
