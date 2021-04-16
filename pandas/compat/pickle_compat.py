@@ -10,9 +10,17 @@ import pickle as pkl
 from typing import TYPE_CHECKING
 import warnings
 
+import numpy as np
+
+from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import BaseOffset
 
 from pandas import Index
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -50,6 +58,10 @@ def load_reduce(self):
             # TypeError: object.__new__(Day) is not safe, use Day.__new__()
             cls = args[0]
             stack[-1] = cls.__new__(*args)
+            return
+        elif args and issubclass(args[0], PeriodArray):
+            cls = args[0]
+            stack[-1] = NDArrayBacked.__new__(*args)
             return
 
         raise
@@ -204,6 +216,13 @@ def load_newobj(self):
     # compat
     if issubclass(cls, Index):
         obj = object.__new__(cls)
+    elif issubclass(cls, DatetimeArray) and not args:
+        arr = np.array([], dtype="M8[ns]")
+        obj = cls.__new__(cls, arr, arr.dtype)
+    elif issubclass(cls, TimedeltaArray) and not args:
+        arr = np.array([], dtype="m8[ns]")
+        obj = cls.__new__(cls, arr, arr.dtype)
+
     else:
         obj = cls.__new__(cls, *args)
 

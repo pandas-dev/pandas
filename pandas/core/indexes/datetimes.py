@@ -8,7 +8,10 @@ from datetime import (
     tzinfo,
 )
 import operator
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+)
 import warnings
 
 import numpy as np
@@ -314,15 +317,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         data=None,
         freq=lib.no_default,
         tz=None,
-        normalize=False,
+        normalize: bool = False,
         closed=None,
         ambiguous="raise",
-        dayfirst=False,
-        yearfirst=False,
+        dayfirst: bool = False,
+        yearfirst: bool = False,
         dtype: Dtype | None = None,
-        copy=False,
-        name=None,
-    ):
+        copy: bool = False,
+        name: Hashable = None,
+    ) -> DatetimeIndex:
 
         if is_scalar(data):
             raise TypeError(
@@ -637,7 +640,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # _parsed_string_to_bounds allows it.
             raise KeyError
 
-    def _deprecate_mismatched_indexing(self, key):
+    def _deprecate_mismatched_indexing(self, key) -> None:
         # GH#36148
         # we get here with isinstance(key, self._data._recognized_scalars)
         try:
@@ -851,7 +854,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # sure we can't have ambiguous indexing
         return "datetime64"
 
-    def indexer_at_time(self, time, asof=False):
+    def indexer_at_time(self, time, asof: bool = False) -> np.ndarray:
         """
         Return index locations of values at particular time of day
         (e.g. 9:30AM).
@@ -865,7 +868,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Returns
         -------
-        values_at_time : array of integers
+        np.ndarray[np.intp]
 
         See Also
         --------
@@ -891,8 +894,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return (micros == time_micros).nonzero()[0]
 
     def indexer_between_time(
-        self, start_time, end_time, include_start=True, include_end=True
-    ):
+        self, start_time, end_time, include_start: bool = True, include_end: bool = True
+    ) -> np.ndarray:
         """
         Return index locations of values between particular times of day
         (e.g., 9:00-9:30AM).
@@ -908,7 +911,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Returns
         -------
-        values_between_time : array of integers
+        np.ndarray[np.intp]
 
         See Also
         --------
@@ -948,8 +951,8 @@ def date_range(
     periods=None,
     freq=None,
     tz=None,
-    normalize=False,
-    name=None,
+    normalize: bool = False,
+    name: Hashable = None,
     closed=None,
     **kwargs,
 ) -> DatetimeIndex:
@@ -1120,8 +1123,8 @@ def bdate_range(
     periods: int | None = None,
     freq="B",
     tz=None,
-    normalize=True,
-    name=None,
+    normalize: bool = True,
+    name: Hashable = None,
     weekmask=None,
     holidays=None,
     closed=None,
