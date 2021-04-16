@@ -1019,7 +1019,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         loc = self.index.get_loc(label)
         return self.index._get_values_for_loc(self, loc, label)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()
 
@@ -1058,7 +1058,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if cacher_needs_updating:
             self._maybe_update_cacher()
 
-    def _set_with_engine(self, key, value):
+    def _set_with_engine(self, key, value) -> None:
         # fails with AttributeError for IntervalIndex
         loc = self.index._engine.get_loc(key)
         # error: Argument 1 to "validate_numeric_casting" has incompatible type
@@ -1094,7 +1094,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 self.loc[key] = value
 
-    def _set_labels(self, key, value):
+    def _set_labels(self, key, value) -> None:
         key = com.asarray_tuplesafe(key)
         indexer: np.ndarray = self.index.get_indexer(key)
         mask = indexer == -1
@@ -1102,7 +1102,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             raise KeyError(f"{key[mask]} not in index")
         self._set_values(indexer, value)
 
-    def _set_values(self, key, value):
+    def _set_values(self, key, value) -> None:
         if isinstance(key, Series):
             key = key._values
 
