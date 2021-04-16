@@ -29,18 +29,16 @@ from pandas.core.window.doc import (
     args_compat,
     create_section_header,
     kwargs_compat,
-    numba_notes,
     template_header,
     template_returns,
     template_see_also,
-    window_agg_numba_parameters,
 )
 from pandas.core.window.indexers import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,
     GroupbyIndexer,
 )
-from pandas.core.window.numba_ import generate_numba_ewma_func
+from pandas.core.window.numba_ import generate_numba_groupby_ewma_func
 from pandas.core.window.rolling import (
     BaseWindow,
     BaseWindowGroupby,
@@ -374,41 +372,26 @@ class ExponentialMovingWindow(BaseWindow):
         template_header,
         create_section_header("Parameters"),
         args_compat,
-        window_agg_numba_parameters,
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Notes"),
-        numba_notes.replace("\n", "", 1),
+        template_see_also[:-1],
         window_method="ewm",
         aggregation_description="(exponential weighted moment) mean",
         agg_method="mean",
     )
-    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
-        if maybe_use_numba(engine):
-            ewma_func = generate_numba_ewma_func(
-                engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
-            )
-            return self._apply(
-                ewma_func,
-                numba_cache_key=(lambda x: x, "ewma"),
-            )
-        elif engine in ("cython", None):
-            if engine_kwargs is not None:
-                raise ValueError("cython engine does not accept engine_kwargs")
-            nv.validate_window_func("mean", args, kwargs)
-            window_func = partial(
-                window_aggregations.ewma,
-                com=self._com,
-                adjust=self.adjust,
-                ignore_na=self.ignore_na,
-                deltas=self._deltas,
-            )
-            return self._apply(window_func)
-        else:
-            raise ValueError("engine must be either 'numba' or 'cython'")
+    def mean(self, *args, **kwargs):
+        nv.validate_window_func("mean", args, kwargs)
+        window_func = window_aggregations.ewma
+        window_func = partial(
+            window_func,
+            com=self._com,
+            adjust=self.adjust,
+            ignore_na=self.ignore_na,
+            deltas=self._deltas,
+        )
+        return self._apply(window_func)
 
     @doc(
         template_header,
@@ -466,7 +449,7 @@ class ExponentialMovingWindow(BaseWindow):
     def var(self, bias: bool = False, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = window_aggregations.ewmcov
-        wfunc = partial(
+        window_func = partial(
             window_func,
             com=self._com,
             adjust=self.adjust,
@@ -475,7 +458,7 @@ class ExponentialMovingWindow(BaseWindow):
         )
 
         def var_func(values, begin, end, min_periods):
-            return wfunc(values, begin, end, min_periods, values)
+            return window_func(values, begin, end, min_periods, values)
 
         return self._apply(var_func)
 
@@ -535,9 +518,7 @@ class ExponentialMovingWindow(BaseWindow):
                 x_array,
                 start,
                 end,
-                # error: Argument 4 to "ewmcov" has incompatible type
-                # "Optional[int]"; expected "int"
-                self.min_periods,  # type: ignore[arg-type]
+                self.min_periods,
                 y_array,
                 self._com,
                 self.adjust,
@@ -603,12 +584,12 @@ class ExponentialMovingWindow(BaseWindow):
                     X,
                     start,
                     end,
-                    min_periods,
+                    self.min_periods,
                     Y,
                     self._com,
                     self.adjust,
                     self.ignore_na,
-                    True,
+                    1,
                 )
 
             with np.errstate(all="ignore"):
@@ -652,3 +633,45 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             window_indexer=ExponentialMovingWindowIndexer,
         )
         return window_indexer
+
+    def mean(self, engine=None, engine_kwargs=None):
+        """
+        Parameters
+        ----------
+        engine : str, default None
+            * ``'cython'`` : Runs mean through C-extensions from cython.
+            * ``'numba'`` : Runs mean through JIT compiled code from numba.
+              Only available when ``raw`` is set to ``True``.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+              .. versionadded:: 1.2.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``.
+
+              .. versionadded:: 1.2.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is determined by the caller.
+        """
+        if maybe_use_numba(engine):
+            groupby_ewma_func = generate_numba_groupby_ewma_func(
+                engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
+            )
+            return self._apply(
+                groupby_ewma_func,
+                numba_cache_key=(lambda x: x, "groupby_ewma"),
+            )
+        elif engine in ("cython", None):
+            if engine_kwargs is not None:
+                raise ValueError("cython engine does not accept engine_kwargs")
+            return super().mean()
+        else:
+            raise ValueError("engine must be either 'numba' or 'cython'")
