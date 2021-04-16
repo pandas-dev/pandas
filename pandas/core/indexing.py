@@ -703,6 +703,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
+            key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
             key = com.apply_if_callable(key, self.obj)
@@ -911,6 +912,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     def __getitem__(self, key):
         if type(key) is tuple:
+            key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
                 with suppress(KeyError, IndexError, AttributeError):
@@ -1242,6 +1244,9 @@ class _LocIndexer(_LocationIndexer):
 
         elif is_list_like_indexer(key):
 
+            if is_iterator(key):
+                key = list(key)
+
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(labels, key)
                 (inds,) = key.nonzero()
@@ -1530,6 +1535,9 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
 
+        if is_iterator(key):
+            key = list(key)
+
         if isinstance(key, list):
             key = np.asarray(key)
 
@@ -1571,6 +1579,8 @@ class _iLocIndexer(_LocationIndexer):
 
     def _get_setitem_indexer(self, key):
         # GH#32257 Fall through to let numpy do validation
+        if is_iterator(key):
+            return list(key)
         return key
 
     # -------------------------------------------------------------------
