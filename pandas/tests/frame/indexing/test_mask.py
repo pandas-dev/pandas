@@ -122,4 +122,4 @@ def test_mask_stringdtype():
         index=["id1", "id2", "id3", "id4"],
         dtype=StringDtype(),
     )
-    tm.assert_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
