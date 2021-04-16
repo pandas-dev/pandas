@@ -2323,7 +2323,7 @@ def _items_overlap_with_suffix(
     if dups:
         warnings.warn(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
-            f"result is deprecated and will be removed in a future version.",
+            f"result is deprecated and will raise a MergeError in a future version.",
             FutureWarning,
             stacklevel=4,
         )
