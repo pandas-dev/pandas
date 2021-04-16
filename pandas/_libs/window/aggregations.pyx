@@ -1485,8 +1485,7 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
     com : float64
     adjust : bool
     ignore_na : bool
-    times : ndarray (float64 type)
-    halflife : float64
+    deltas : ndarray (float64 type)
 
     Returns
     -------
@@ -1511,6 +1510,8 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
         s = start[j]
         e = end[j]
         sub_vals = vals[s:e]
+        # note that len(deltas) = len(vals) - 1 and deltas[i] is to be used in
+        # conjunction with vals[i+1]
         sub_deltas = deltas[s:e - 1]
         win_size = len(sub_vals)
         sub_output = np.empty(win_size, dtype=float)

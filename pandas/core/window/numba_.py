@@ -143,6 +143,8 @@ def generate_numba_groupby_ewma_func(
 
                     if is_observation or not ignore_na:
 
+                        # note that len(deltas) = len(vals) - 1 and deltas[i] is to be
+                        # used in conjunction with vals[i+1]
                         old_wt *= old_wt_factor ** deltas[start + j - 1]
                         if is_observation:
 
