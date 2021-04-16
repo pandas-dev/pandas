@@ -6012,11 +6012,11 @@ To read from a file-like object, read object in argument, ``path_or_buffer``:
 
 .. ipython:: python
 
-   rds_file = os.path.join(file_path, "sea_ice_df.rds")
+   rds_file = os.path.join(file_path, "plants_df.rds")
    with open(rds_file, "rb") as f:
-       sea_ice_df = pd.read_rdata(f.read(), file_format="rds")
+       plants_df = pd.read_rdata(f.read(), file_format="rds")
 
-   sea_ice_df
+   plants_df
 
 To read from URL, pass link directly into method:
 
@@ -6035,8 +6035,7 @@ another issue. Any R data encoded in non utf-8 is currently not supported:
 
    In [608]: ghcran = pd.read_rdata("s3://public-r-data/ghcran.Rdata")
    ...
-   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe9 in position 45:
-invalid continuation byte
+   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe9 in position 45: invalid continuation byte
 
 Also, remember if R data files do not contain any data frame object, a parsing error
 will occur:
@@ -6049,6 +6048,17 @@ will occur:
 
 
 .. _io.rdata_writer:
+
+Please note R's ``Date`` (without time component) will translate to ``object`` type
+in pandas. Also, R's date/time field type, ``POSIXct``, will translate to UTC time
+in pandas.
+
+.. ipython:: python
+
+   ppm_df = pd.read_rdata(os.path.join(file_path, "ppm_df.rds"))
+   ppm_df.head()
+   ppm_df.tail()
+   ppm_df.dtypes
 
 Writing R data
 ''''''''''''''
@@ -6069,7 +6079,7 @@ and optionally give it a name:
 
 .. ipython:: python
 
-   plants_df.to_rdata("plants_df.rda", rda_name="plants_df")
+   ghg_df.to_rdata("ghg_df.rda", rda_name="ghg_df")
 
 While RData and rda types can hold multiple R objects, this method currently
 only supports writing out a single DataFrame.
@@ -6079,7 +6089,7 @@ Even write to a buffer and read its content:
 .. ipython:: python
 
     with BytesIO() as b_io:
-        sea_ice_df.to_rdata(b_io, file_format="rda", index=False)
+        env_dfs["sea_ice_df"].to_rdata(b_io, file_format="rda", index=False)
         print(
             pd.read_rdata(
                 b_io.getvalue(),
@@ -6134,8 +6144,8 @@ Like other IO methods, ``storage_options`` are enabled to write to those platfor
    :suppress:
 
    os.remove("ghg_df.rds")
+   os.remove("ghg_df.rda")
    os.remove("plants_df.rds")
-   os.remove("plants_df.rda")
    os.remove("plants_df_gz.rds")
    os.remove("plants_df_bz2.rds")
    os.remove("plants_df_xz.rds")
@@ -6147,7 +6157,7 @@ loaded in R:
 .. code-block:: r
 
    plants_df <- readRDS("plants_df.rds")
-   tail(plants_df, 5)
+   plants_df
         plant_group              status count
    16 Pteridophytes      Data Deficient   398
    17 Pteridophytes             Extinct    65
@@ -6155,25 +6165,9 @@ loaded in R:
    19 Pteridophytes Possibly Threatened   408
    20 Pteridophytes          Threatened  1275
 
+   load("ghg_df.rda")
 
-   load("env_dfs.rda")
-   eapply(.GlobalEnv, tail, 5)
-   $plants_df
-        plant_group              status count
-   16 Pteridophytes      Data Deficient   398
-   17 Pteridophytes             Extinct    65
-   18 Pteridophytes      Not Threatened  1294
-   19 Pteridophytes Possibly Threatened   408
-   20 Pteridophytes          Threatened  1275
-
-   $sea_ice_df
-   year mo data.type region extent area
-   1012 2016 12   Goddard      S   8.28 5.51
-   1013 2017 12   Goddard      S   9.48 6.23
-   1014 2018 12   Goddard      S   9.19 5.59
-   1015 2019 12   Goddard      S   9.41 6.59
-   1016 2020 12   NRTSI-G      S  10.44 6.50
-
+   mget(list=ls())
    $ghg_df
                      gas year emissions
    141    Carbon dioxide 2018 5424.8815

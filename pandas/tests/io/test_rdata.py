@@ -129,7 +129,7 @@ def test_read_rda_file(datapath):
     tm.assert_frame_equal(sea_ice_df, r_dfs["sea_ice_df"].tail())
 
 
-def test_bytes_read_rds(datapath):
+def test_read_rds_filelike(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
 
     with open(filename, "rb") as f:
@@ -140,7 +140,7 @@ def test_bytes_read_rds(datapath):
     tm.assert_frame_equal(sea_ice_df, output)
 
 
-def test_bytes_read_rda(datapath):
+def test_read_rda_filelike(datapath):
     filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
 
     with open(filename, "rb") as f:

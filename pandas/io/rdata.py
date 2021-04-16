@@ -1,4 +1,3 @@
-from datetime import datetime
 import io
 import os
 from tempfile import TemporaryDirectory
@@ -52,7 +51,7 @@ def read_rdata(
         Any valid file path is acceptable. The string could be a URL.
         Valid URL schemes include http, ftp, s3, and file.
 
-    file_format : {{'infer', 'rda', 'rdata', 'rds'}}, default 'infer'
+    file_format : {{'infer', 'rdata', 'rda', 'rds'}}, default 'infer'
         R serialization type as output from R's base::save or base::saveRDS
         commands. Default 'infer' will use extension in file name to
         to determine the format type.
@@ -269,7 +268,7 @@ class _RDataReader:
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file.
 
-    file_format : {{'infer', 'rda', 'rdata', 'rds'}}, default 'infer'
+    file_format : {{'infer', 'rdata', 'rda', 'rds'}}, default 'infer'
         R serialization type.
 
     select_frames : list, default None
@@ -318,7 +317,13 @@ class _RDataReader:
         and raise appropriate errors.
         """
 
-        if self.file_format not in ["infer", "rda", "rdata", "rds"]:
+        path_ext: Optional[str] = (
+            os.path.splitext(self.path_or_buffer.lower())[1][1:]
+            if isinstance(self.path_or_buffer, str)
+            else None
+        )
+
+        if self.file_format not in ["infer", "rdata", "rda", "rds"]:
             raise ValueError(
                 f"'{self.file_format}' is not a valid value for file_format"
             )
@@ -326,15 +331,15 @@ class _RDataReader:
         if (
             self.file_format == "infer"
             and isinstance(self.path_or_buffer, str)
-            and not self.path_or_buffer.lower().endswith((".rda", ".rdata", ".rds"))
+            and path_ext not in ["rdata", "rda", "rds"]
         ) or (self.file_format == "infer" and not isinstance(self.path_or_buffer, str)):
             raise ValueError(
                 f"Unable to infer file format from file name: {self.path_or_buffer}. "
-                "Please use known R data type (.rda, .rdata, .rds)."
+                "Please use known R data type (rdata, rda, rds)."
             )
 
-        if self.file_format == "infer":
-            self.file_format = os.path.splitext(self.path_or_buffer.lower())[1][1:]
+        if self.file_format == "infer" and isinstance(path_ext, str):
+            self.file_format = path_ext
 
         if self.select_frames is not None and not is_list_like(self.select_frames):
             raise TypeError(
@@ -360,9 +365,9 @@ class _RDataReader:
         )
 
         with _preprocess_data(handle_data) as r_data:
-            mode = "wb" if isinstance(r_data, io.BytesIO) else "w"
-            with open(r_temp, mode) as f:
-                f.write(r_data.read())
+            if isinstance(r_data, io.BytesIO):
+                with open(r_temp, "wb") as f:
+                    f.write(r_data.read())
 
         return r_temp
 
@@ -412,10 +417,9 @@ class _PyReadrParser(_RDataReader):
     def parse_data(self) -> Union[DataFrame, Dict[str, DataFrame]]:
         from pyreadr import read_r
 
-        tz = datetime.now().astimezone().tzinfo
         with TemporaryDirectory() as tmp_dir:
             r_temp = self.buffer_to_disk(tmp_dir)
-            rdata = read_r(r_temp, use_objects=self.select_frames, timezone=tz)
+            rdata = read_r(r_temp, use_objects=self.select_frames)
 
         rdata = {k: self.handle_rownames(df) for k, df in rdata.items()}
         rdata = rdata[None] if self.file_format == "rds" else dict(rdata)
@@ -432,7 +436,7 @@ class RDataWriter:
     path_or_buffer : a valid str, path object or file-like object
         Any valid string path is acceptable.
 
-    file_format : {{'infer', 'rda', 'rdata', 'rds'}}, default 'infer'
+    file_format : {{'infer', 'rdata', 'rda', 'rds'}}, default 'infer'
         R serialization type.
 
     rda_name : str, default "pandas_dataframe"
@@ -487,7 +491,13 @@ class RDataWriter:
         and raise appropriate errors.
         """
 
-        if self.file_format not in ["infer", "rda", "rdata", "rds"]:
+        path_ext: Optional[str] = (
+            os.path.splitext(self.path_or_buffer.lower())[1][1:]
+            if isinstance(self.path_or_buffer, str)
+            else None
+        )
+
+        if self.file_format not in ["infer", "rdata", "rda", "rds"]:
             raise ValueError(
                 f"{self.file_format} is not a valid value for file_format."
             )
@@ -495,15 +505,15 @@ class RDataWriter:
         if (
             self.file_format == "infer"
             and isinstance(self.path_or_buffer, str)
-            and not self.path_or_buffer.lower().endswith((".rda", ".rdata", ".rds"))
+            and path_ext not in ["rdata", "rda", "rds"]
         ):
             raise ValueError(
                 f"Unable to infer file format from file name: {self.path_or_buffer}"
-                "Please use known R data type (.rda, .rdata, .rds)."
+                "Please use known R data type (rdata, rda, rds)."
             )
 
-        if self.file_format == "infer" and isinstance(self.path_or_buffer, str):
-            self.file_format = os.path.splitext(self.path_or_buffer.lower())[1][1:]
+        if self.file_format == "infer" and isinstance(path_ext, str):
+            self.file_format = path_ext
 
         if self.compression is not None and self.compression not in [
             "gzip",
