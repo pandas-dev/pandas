@@ -395,7 +395,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         #  of result, not self.
         return type(self)._simple_new(result, name=self.name)
 
-    def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
+    def reindex(
+        self, target, method=None, level=None, limit=None, tolerance=None
+    ) -> tuple[Index, np.ndarray | None]:
         """
         Create index with target's values (move/add/delete values as necessary)
 
@@ -403,7 +405,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         -------
         new_index : pd.Index
             Resulting index
-        indexer : np.ndarray or None
+        indexer : np.ndarray[np.intp] or None
             Indices of output values in original index
 
         """
@@ -440,7 +442,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             if not isinstance(cats, CategoricalIndex) or (cats == -1).any():
                 # coerce to a regular index here!
                 result = Index(np.array(self), name=self.name)
-                new_target, indexer, _ = result._reindex_non_unique(np.array(target))
+                new_target, indexer, _ = result._reindex_non_unique(target)
             else:
 
                 codes = new_target.codes.copy()
@@ -462,25 +464,34 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         return new_target, indexer
 
-    def _reindex_non_unique(self, target):
+    # error: Return type "Tuple[Index, Optional[ndarray], Optional[ndarray]]"
+    # of "_reindex_non_unique" incompatible with return type
+    # "Tuple[Index, ndarray, Optional[ndarray]]" in supertype "Index"
+    def _reindex_non_unique(  # type: ignore[override]
+        self, target: Index
+    ) -> tuple[Index, np.ndarray | None, np.ndarray | None]:
         """
         reindex from a non-unique; which CategoricalIndex's are almost
         always
         """
+        # TODO: rule out `indexer is None` here to make the signature
+        #  match the parent class's signature. This should be equivalent
+        #  to ruling out `self.equals(target)`
         new_target, indexer = self.reindex(target)
         new_indexer = None
 
         check = indexer == -1
-        if check.any():
-            new_indexer = np.arange(len(self.take(indexer)))
+        # error: Item "bool" of "Union[Any, bool]" has no attribute "any"
+        if check.any():  # type: ignore[union-attr]
+            new_indexer = np.arange(len(self.take(indexer)), dtype=np.intp)
             new_indexer[check] = -1
 
         cats = self.categories.get_indexer(target)
         if not (cats == -1).any():
             # .reindex returns normal Index. Revert to CategoricalIndex if
             # all targets are included in my categories
-            new_target = Categorical(new_target, dtype=self.dtype)
-            new_target = type(self)._simple_new(new_target, name=self.name)
+            cat = Categorical(new_target, dtype=self.dtype)
+            new_target = type(self)._simple_new(cat, name=self.name)
 
         return new_target, indexer, new_indexer
 

@@ -1,4 +1,7 @@
-import operator
+"""
+This module tests the functionality of StringArray and ArrowStringArray.
+Tests for the str accessors are in pandas/tests/strings/test_string_array.py
+"""
 
 import numpy as np
 import pytest
@@ -86,23 +89,6 @@ def test_setitem_with_scalar_string(dtype):
     arr[0] = "d"
     expected = pd.array(["d", "c"], dtype=dtype)
     tm.assert_extension_array_equal(arr, expected)
-
-
-@pytest.mark.parametrize(
-    "input, method",
-    [
-        (["a", "b", "c"], operator.methodcaller("capitalize")),
-        (["a b", "a bc. de"], operator.methodcaller("capitalize")),
-    ],
-)
-def test_string_methods(input, method, dtype):
-    a = pd.Series(input, dtype=dtype)
-    b = pd.Series(input, dtype="object")
-    result = method(a.str)
-    expected = method(b.str)
-
-    assert result.dtype.name == dtype
-    tm.assert_series_equal(result.astype(object), expected)
 
 
 def test_astype_roundtrip(dtype, request):
