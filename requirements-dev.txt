@@ -9,8 +9,8 @@ cython>=0.29.21
 black==20.8b1
 cpplint
 flake8==3.9.0
-flake8-bugbear>=21.3.2
-flake8-comprehensions>=3.1.0
+flake8-bugbear==21.3.2
+flake8-comprehensions==3.1.0
 isort>=5.2.1
 mypy==0.812
 pre-commit>=2.9.2
@@ -80,3 +80,4 @@ tabulate>=0.8.3
 natsort
 git+https://github.com/pydata/pydata-sphinx-theme.git@master
 numpydoc < 1.2
+pandas-dev-flaker==0.2.0
