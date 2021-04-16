@@ -67,8 +67,6 @@ def test_unique_null(null_obj, index_or_series_obj):
         if is_datetime64tz_dtype(obj.dtype):
             result = result.normalize()
             expected = expected.normalize()
-        elif isinstance(obj, pd.CategoricalIndex):
-            expected = expected.set_categories(unique_values_not_null)
         tm.assert_index_equal(result, expected)
     else:
         expected = np.array(unique_values, dtype=obj.dtype)
