@@ -2011,13 +2011,13 @@ Name: Max Speed, dtype: float64
 
     # fmt: off
     @overload
-    def drop_duplicates(self, keep=..., inplace: Literal[False] = ...) -> Series: ...  # noqa: E704
+    def drop_duplicates(self, keep=..., inplace: Literal[False] = ...) -> Series: ...  # noqa: E501, E704 https://github.com/asottile/yesqa/issues/67
     @overload
     def drop_duplicates(self, keep, inplace: Literal[True]) -> None: ...   # noqa: E704
     @overload
     def drop_duplicates(self, *, inplace: Literal[True]) -> None: ...   # noqa: E704
     @overload
-    def drop_duplicates(self, keep=..., inplace: bool = ...) -> Series | None: ...   # noqa: E704
+    def drop_duplicates(self, keep=..., inplace: bool = ...) -> Series | None: ...   # noqa: E501, E704 https://github.com/asottile/yesqa/issues/67
     # fmt: on
 
     def drop_duplicates(self, keep="first", inplace=False) -> Series | None:
@@ -4416,9 +4416,9 @@ Keep all original rows and also all original values
 
     # fmt: off
     @overload
-    def set_axis( self, labels, axis: Axis = ..., inplace: Literal[False] = ...) -> Series: ...  # noqa: E501, E704
+    def set_axis(self, labels, axis: Axis = ..., inplace: Literal[False] = ...) -> Series: ...  # noqa: E501, E704
     @overload
-    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None: ...   # noqa: E704
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None: ...   # noqa: E501, E704 https://github.com/asottile/yesqa/issues/67
     @overload
     def set_axis(self, labels, *, inplace: Literal[True]) -> None: ...   # noqa: E704
     @overload
@@ -4575,7 +4575,7 @@ Keep all original rows and also all original values
     @overload
     def fillna(self, value, method: str | None, axis: Axis | None, inplace: Literal[True], limit=..., downcast=...) -> None: ...  # noqa: E501, E704
     @overload
-    def fillna(self, *, inplace: Literal[True], limit=..., downcast=...) -> None: ...  # noqa: E704
+    def fillna(self, *, inplace: Literal[True], limit=..., downcast=...) -> None: ...  # noqa: E501, E704 https://github.com/asottile/yesqa/issues/67
     @overload
     def fillna(self, value, *, inplace: Literal[True], limit=..., downcast=...) -> None: ...  # noqa: E501, E704
     @overload

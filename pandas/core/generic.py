@@ -687,7 +687,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def set_axis(self: FrameOrSeries, labels, axis: Axis, inplace: Literal[True]) -> None: ...   # noqa: E501, E704
     @overload
-    def set_axis(self: FrameOrSeries, labels, *, inplace: Literal[True]) -> None: ...  # noqa: E704
+    def set_axis(self: FrameOrSeries, labels, *, inplace: Literal[True]) -> None: ...  # noqa: E501, E704 https://github.com/asottile/yesqa/issues/67
     @overload
     def set_axis(self: FrameOrSeries, labels, axis: Axis = ..., inplace: bool_t = ...) -> FrameOrSeries | None: ...  # noqa: E501, E704
     # fmt: on
@@ -7361,7 +7361,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def clip(self: FrameOrSeries, lower, upper, *, inplace: Literal[True], **kwargs) -> None: ...   # noqa: E501, E704
     @overload
-    def clip(self: FrameOrSeries, *, inplace: Literal[True], **kwargs) -> None: ...   # noqa: E704
+    def clip(self: FrameOrSeries, *, inplace: Literal[True], **kwargs) -> None: ...   # noqa: E501, E704 https://github.com/asottile/yesqa/issues/67
     @overload
     def clip(self: FrameOrSeries, lower=..., upper=..., axis: Axis | None = ..., inplace: bool_t = ..., *args, **kwargs) -> FrameOrSeries | None: ...  # noqa: E501, E704
     # fmt: on

@@ -641,7 +641,7 @@ def _adjust_to_origin(arg, origin, unit):
 @overload
 def to_datetime(arg: DatetimeScalar, errors: str = ..., dayfirst: bool = ..., yearfirst: bool = ..., utc: bool | None = ..., format: str | None = ..., exact: bool = ..., unit: str | None = ..., infer_datetime_format: bool = ..., origin=..., cache: bool = ...) -> DatetimeScalar | NaTType: ...  # noqa: E501, E704
 @overload
-def to_datetime(arg: Series, errors: str = ..., dayfirst: bool = ..., yearfirst: bool = ..., utc: bool | None = ..., format: str | None = ..., exact: bool = ..., unit: str | None = ..., infer_datetime_format: bool = ..., origin=..., cache: bool = ...) -> Series: ... # noqa: E501, E704
+def to_datetime(arg: Series, errors: str = ..., dayfirst: bool = ..., yearfirst: bool = ..., utc: bool | None = ..., format: str | None = ..., exact: bool = ..., unit: str | None = ..., infer_datetime_format: bool = ..., origin=..., cache: bool = ...) -> Series: ...  # noqa: E501, E704
 @overload
 def to_datetime(arg: list | tuple | np.ndarray, errors: str = ..., dayfirst: bool = ..., yearfirst: bool = ..., utc: bool | None = ..., format: str | None = ..., exact: bool = ..., unit: str | None = ..., infer_datetime_format: bool = ..., origin=..., cache: bool = ...) -> DatetimeIndex: ...  # noqa: E501, E704
 # fmt: on

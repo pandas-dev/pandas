@@ -56,7 +56,7 @@ if TYPE_CHECKING:
 @overload
 def concat(objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame], axis=0, join: str = "outer", ignore_index: bool = False, keys=None, levels=None, names=None, verify_integrity: bool = False, sort: bool = False, copy: bool = True) -> DataFrame: ...  # noqa: E501, E704
 @overload
-def concat(objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame], axis=0, join: str = "outer", ignore_index: bool = False, keys=None, levels=None, names=None, verify_integrity: bool = False, sort: bool = False, copy: bool = True) -> FrameOrSeriesUnion: ... # noqa: E501, E704
+def concat(objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame], axis=0, join: str = "outer", ignore_index: bool = False, keys=None, levels=None, names=None, verify_integrity: bool = False, sort: bool = False, copy: bool = True) -> FrameOrSeriesUnion: ...  # noqa: E501, E704
 # fmt: on
 
 
