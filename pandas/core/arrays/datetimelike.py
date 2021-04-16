@@ -591,7 +591,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
                 # kludge for #31971 since Period(integer) tries to cast to str
                 new_fill = Period._from_ordinal(fill_value, freq=self.freq)
             else:
-                new_fill = self._scalar_type(fill_value)
+                # error: Incompatible types in assignment (expression has type
+                # "Union[Period, Any, Timedelta]", variable has type "Period")
+                new_fill = self._scalar_type(fill_value)  # type: ignore[assignment]
 
             # stacklevel here is chosen to be correct when called from
             #  DataFrame.shift or Series.shift
