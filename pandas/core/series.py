@@ -4345,14 +4345,16 @@ Keep all original rows and also all original values
 
     def rename(
         self,
-        index=None,
+        mapper=None,
         *,
+        index=None,
+        columns=None,
         axis=None,
         copy=True,
         inplace=False,
         level=None,
         errors="ignore",
-    ):
+    ) -> Series | None:
         """
         Alter Series index labels or name.
 
@@ -4368,7 +4370,7 @@ Keep all original rows and also all original values
         ----------
         axis : {0 or "index"}
             Unused. Accepted for compatibility with DataFrame method only.
-        index : scalar, hashable sequence, dict-like or function, optional
+        mapper : scalar, hashable sequence, dict-like or function, optional
             Functions or dict-like are transformations to apply to
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
@@ -4412,12 +4414,18 @@ Keep all original rows and also all original values
         5    3
         dtype: int64
         """
-        if callable(index) or is_dict_like(index):
+        if index is not None and mapper is not None:
+            raise TypeError("Cannot specify both 'mapper' and 'index'")
+        if index is None and mapper is None:
+            raise TypeError("Must pass a mapper")
+        if mapper is None:
+            mapper = index
+        if callable(mapper) or is_dict_like(mapper):
             return super().rename(
-                index, copy=copy, inplace=inplace, level=level, errors=errors
+                mapper, copy=copy, inplace=inplace, level=level, errors=errors
             )
         else:
-            return self._set_name(index, inplace=inplace)
+            return self._set_name(mapper, inplace=inplace)
 
     @overload
     def set_axis(

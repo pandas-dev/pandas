@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import numpy as np
+import pytest
 
 from pandas import (
     Index,
@@ -101,3 +102,15 @@ class TestRename:
         tm.assert_series_equal(result, expected)
 
         assert result.name == expected.name
+
+    def test_rename_method_and_index(self):
+        # GH 40977
+        s = Series([1, 2])
+        with pytest.raises(TypeError, match="Cannot specify both 'mapper' and 'index'"):
+            s.rename(str, index=str)
+
+    def test_rename_no_method_no_index(self):
+        # GH 40977
+        s = Series([1, 2])
+        with pytest.raises(TypeError, match="Must pass a mapper"):
+            s.rename(inplace=False)
