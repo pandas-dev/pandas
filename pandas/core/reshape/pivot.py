@@ -64,7 +64,6 @@ def pivot_table(
     dropna=True,
     margins_name="All",
     observed=False,
-    sort=True,
 ) -> DataFrame:
     index = _convert_by(index)
     columns = _convert_by(columns)
@@ -84,7 +83,6 @@ def pivot_table(
                 dropna=dropna,
                 margins_name=margins_name,
                 observed=observed,
-                sort=sort,
             )
             pieces.append(_table)
             keys.append(getattr(func, "__name__", func))
@@ -103,7 +101,6 @@ def pivot_table(
         dropna,
         margins_name,
         observed,
-        sort,
     )
     return table.__finalize__(data, method="pivot_table")
 
@@ -119,7 +116,6 @@ def __internal_pivot_table(
     dropna: bool,
     margins_name: str,
     observed: bool,
-    sort: bool,
 ) -> DataFrame:
     """
     Helper of :func:`pandas.pivot_table` for any non-list ``aggfunc``.
@@ -161,7 +157,7 @@ def __internal_pivot_table(
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys, observed=observed, sort=sort)
+    grouped = data.groupby(keys, observed=observed)
     agged = grouped.agg(aggfunc)
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how="all")
@@ -184,6 +180,7 @@ def __internal_pivot_table(
                     # TODO: why does test_pivot_table_doctest_case fail if
                     # we don't do this apparently-unnecessary setitem?
                     agged[v] = agged[v]
+                    pass
                 else:
                     agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
