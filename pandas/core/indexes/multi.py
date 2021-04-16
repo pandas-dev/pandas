@@ -2503,7 +2503,9 @@ class MultiIndex(Index):
 
         return new_index, indexer
 
-    def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
+    def reindex(
+        self, target, method=None, level=None, limit=None, tolerance=None
+    ) -> tuple[MultiIndex, np.ndarray | None]:
         """
         Create index with target's values (move/add/delete values as necessary)
 
@@ -2511,7 +2513,7 @@ class MultiIndex(Index):
         -------
         new_index : pd.MultiIndex
             Resulting index
-        indexer : np.ndarray or None
+        indexer : np.ndarray[np.intp] or None
             Indices of output values in original index.
 
         """
@@ -3533,14 +3535,10 @@ class MultiIndex(Index):
             if not np.array_equal(self_mask, other_mask):
                 return False
             self_codes = self_codes[~self_mask]
-            self_values = algos.take_nd(
-                np.asarray(self.levels[i]._values), self_codes, allow_fill=False
-            )
+            self_values = self.levels[i]._values.take(self_codes)
 
             other_codes = other_codes[~other_mask]
-            other_values = other_values = algos.take_nd(
-                np.asarray(other.levels[i]._values), other_codes, allow_fill=False
-            )
+            other_values = other.levels[i]._values.take(other_codes)
 
             # since we use NaT both datetime64 and timedelta64 we can have a
             # situation where a level is typed say timedelta64 in self (IOW it

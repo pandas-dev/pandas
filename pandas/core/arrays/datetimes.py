@@ -19,6 +19,7 @@ from pandas._libs import (
     lib,
     tslib,
 )
+from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -190,7 +191,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _infer_matches = ("datetime", "datetime64", "date")
 
     # define my properties & methods for delegation
-    _bool_ops = [
+    _bool_ops: list[str] = [
         "is_month_start",
         "is_month_end",
         "is_quarter_start",
@@ -199,8 +200,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "is_year_end",
         "is_leap_year",
     ]
-    _object_ops = ["freq", "tz"]
-    _field_ops = [
+    _object_ops: list[str] = ["freq", "tz"]
+    _field_ops: list[str] = [
         "year",
         "month",
         "day",
@@ -220,9 +221,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "microsecond",
         "nanosecond",
     ]
-    _other_ops = ["date", "time", "timetz"]
-    _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
-    _datetimelike_methods = [
+    _other_ops: list[str] = ["date", "time", "timetz"]
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops + _other_ops
+    _datetimelike_methods: list[str] = [
         "to_period",
         "tz_localize",
         "tz_convert",
@@ -313,8 +314,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # be incorrect(ish?) for the array as a whole
             dtype = DatetimeTZDtype(tz=timezones.tz_standardize(dtype.tz))
 
-        self._ndarray = values
-        self._dtype = dtype
+        NDArrayBacked.__init__(self, values=values, dtype=dtype)
         self._freq = freq
 
         if inferred_freq is None and freq is not None:
@@ -327,10 +327,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         assert isinstance(values, np.ndarray)
         assert values.dtype == DT64NS_DTYPE
 
-        result = object.__new__(cls)
-        result._ndarray = values
+        result = super()._simple_new(values, dtype)
         result._freq = freq
-        result._dtype = dtype
         return result
 
     @classmethod
