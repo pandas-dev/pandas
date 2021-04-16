@@ -1830,7 +1830,7 @@ def validate_endpoints(closed):
     left_closed = False
     right_closed = False
 
-    if if closed is None:
+    if closed is None:
         left_closed = True
         right_closed = True
     elif closed == "left":

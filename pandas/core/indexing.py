@@ -547,7 +547,6 @@ class IndexingMixin:
         sidewinder mark i          10      20
                    mark ii          1       4
         viper      mark ii          7       1
-
         """
         return _LocIndexer("loc", self)
 
@@ -645,7 +644,6 @@ class IndexingMixin:
 
         >>> df.loc[0].iat[1]
         2
-
         """
         return _iAtIndexer("iat", self)
 
