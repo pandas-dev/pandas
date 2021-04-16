@@ -268,7 +268,7 @@ class ExponentialMovingWindow(BaseWindow):
                 )
             if isna(self.times).any():
                 raise ValueError("Cannot convert NaT values to integer")
-            self._calculate_deltas(self.times, self.halflife)
+            self._deltas = self._calculate_deltas(self.times, self.halflife)
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
             if common.count_not_none(self.com, self.span, self.alpha) > 0:
@@ -295,11 +295,28 @@ class ExponentialMovingWindow(BaseWindow):
                 self.alpha,
             )
 
+    @staticmethod
     def _calculate_deltas(
-        self,
         times: str | np.ndarray | FrameOrSeries | None,
         halflife: float | TimedeltaConvertibleTypes | None,
-    ) -> None:
+    ) -> np.ndarray:
+        """
+        Return the diff of the times divided by the half-life. These values are used in
+        the calculation of the ewm mean.
+
+        Parameters
+        ----------
+        times : str, np.ndarray, Series, default None
+            Times corresponding to the observations. Must be monotonically increasing
+            and ``datetime64[ns]`` dtype.
+        halflife : float, str, timedelta, optional
+            Half-life specifying the decay
+
+        Returns
+        -------
+        np.ndarray
+            Diff of the times divided by the half-life
+        """
         # error: Item "str" of "Union[str, ndarray, FrameOrSeries, None]" has no
         # attribute "view"
         # error: Item "None" of "Union[str, ndarray, FrameOrSeries, None]" has no
@@ -308,7 +325,7 @@ class ExponentialMovingWindow(BaseWindow):
             times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
         )
         _halflife = float(Timedelta(halflife).value)
-        self._deltas = np.diff(_times) / _halflife
+        return np.diff(_times) / _halflife
 
     def _get_window_indexer(self) -> BaseIndexer:
         """
@@ -598,7 +615,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         if not obj.empty and self.times is not None:
             # sort the times and recalculate the deltas according to the groups
             groupby_order = np.concatenate(list(self._grouper.indices.values()))
-            self._calculate_deltas(
+            self._deltas = self._calculate_deltas(
                 self.times.take(groupby_order),  # type: ignore[union-attr]
                 self.halflife,
             )

@@ -98,6 +98,7 @@ def generate_numba_groupby_ewma_func(
     com : float
     adjust : bool
     ignore_na : bool
+    deltas : numpy.ndarray
 
     Returns
     -------
