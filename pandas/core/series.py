@@ -4056,9 +4056,8 @@ Keep all original rows and also all original values
             Python function or NumPy ufunc to apply.
         convert_dtype : bool, default True
             Try to find better dtype for elementwise function results. If
-            False, leave as dtype=object. Note that conversion does not
-            happen for extension array dtypes which have a map method
-            (e.g. Categorical).
+            False, leave as dtype=object. Note that the dtype is always
+            preserved for extension array dtypes, such as Categorical.
         args : tuple
             Positional arguments passed to func after the series value.
         **kwargs
