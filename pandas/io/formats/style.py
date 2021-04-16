@@ -1604,7 +1604,8 @@ class Styler(StylerRenderer):
         q_right : float, default 1
             Right bound, in (q_left, 1], for the target quantile range.
         interpolation : {‘linear’, ‘lower’, ‘higher’, ‘midpoint’, ‘nearest’}
-            Argument passed to ``numpy.nanquantile`` for quantile estimation.
+            Argument passed to ``Series.quantile`` or ``DataFrame.quantile`` for
+            quantile estimation.
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether quantile bounds are closed or open.
         props : str, default None
@@ -1654,16 +1655,18 @@ class Styler(StylerRenderer):
 
         # after quantile is found along axis, e.g. along rows,
         # applying the calculated quantile to alternate axis, e.g. to each column
-        axis_apply: int | None = 1
+        kwargs = {"numeric_only": False, "interpolation": interpolation}
         if axis in [0, "index"]:
-            axis, axis_apply = 0, 1
+            q = data.quantile([q_left, q_right], axis=axis, **kwargs)
+            axis_apply = 1
         elif axis in [1, "columns"]:
-            axis, axis_apply = 1, 0
-        else:
-            axis, axis_apply = None, None
-        q = np.nanquantile(
-            data.to_numpy(), [q_left, q_right], axis=axis, interpolation=interpolation
-        )
+            q = data.quantile([q_left, q_right], axis=axis, **kwargs)
+            axis_apply = 0
+        else:  # axis is None
+            # TODO: this might be better with Series.quantile but no `numeric_only` kw
+            q = DataFrame(data.to_numpy().ravel())
+            q = q.quantile([q_left, q_right], **kwargs)[0]
+            axis_apply = None
 
         if props is None:
             props = f"background-color: {color};"
@@ -1672,8 +1675,8 @@ class Styler(StylerRenderer):
             axis=axis_apply,
             subset=subset,
             props=props,
-            left=q[0],
-            right=q[1],
+            left=q.iloc[0],
+            right=q.iloc[1],
             inclusive=inclusive,
         )
 
