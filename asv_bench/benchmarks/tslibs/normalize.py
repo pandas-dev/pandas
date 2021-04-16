@@ -14,6 +14,7 @@ import pandas as pd
 from .tslib import (
     _sizes,
     _tzs,
+    tzlocal_obj,
 )
 
 
@@ -29,6 +30,10 @@ class Normalize:
         #  so we do not short-circuit early.
         dti = pd.date_range("2016-01-01", periods=10, tz=tz).repeat(size // 10)
         self.i8data = dti.asi8
+
+        if size == 10 ** 6 and tz is tzlocal_obj:
+            # tzlocal is cumbersomely slow, so skip to keep runtime in check
+            raise NotImplementedError
 
     def time_normalize_i8_timestamps(self, size, tz):
         normalize_i8_timestamps(self.i8data, tz)

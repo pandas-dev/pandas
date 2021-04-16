@@ -130,7 +130,7 @@ def to_json(
     if path_or_buf is not None:
         # apply compression and byte/text conversion
         with get_handle(
-            path_or_buf, "wt", compression=compression, storage_options=storage_options
+            path_or_buf, "w", compression=compression, storage_options=storage_options
         ) as handles:
             handles.handle.write(s)
     else:
@@ -334,6 +334,7 @@ def read_json(
     precise_float: bool = False,
     date_unit=None,
     encoding=None,
+    encoding_errors: Optional[str] = "strict",
     lines: bool = False,
     chunksize: Optional[int] = None,
     compression: CompressionOptions = "infer",
@@ -455,6 +456,12 @@ def read_json(
 
     encoding : str, default is 'utf-8'
         The encoding to use to decode py3 bytes.
+
+    encoding_errors : str, optional, default "strict"
+        How encoding errors are treated. `List of possible values
+        <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
+
+        .. versionadded:: 1.3
 
     lines : bool, default False
         Read the file as a json object per line.
@@ -584,6 +591,7 @@ def read_json(
         compression=compression,
         nrows=nrows,
         storage_options=storage_options,
+        encoding_errors=encoding_errors,
     )
 
     if chunksize:
@@ -620,6 +628,7 @@ class JsonReader(abc.Iterator):
         compression: CompressionOptions,
         nrows: Optional[int],
         storage_options: StorageOptions = None,
+        encoding_errors: Optional[str] = "strict",
     ):
 
         self.orient = orient
@@ -638,6 +647,7 @@ class JsonReader(abc.Iterator):
         self.chunksize = chunksize
         self.nrows_seen = 0
         self.nrows = nrows
+        self.encoding_errors = encoding_errors
         self.handles: Optional[IOHandles] = None
 
         if self.chunksize is not None:
@@ -661,8 +671,8 @@ class JsonReader(abc.Iterator):
         Otherwise, we read it into memory for the `read` method.
         """
         if hasattr(data, "read") and not (self.chunksize or self.nrows):
-            data = data.read()
-            self.close()
+            with self:
+                data = data.read()
         if not hasattr(data, "read") and (self.chunksize or self.nrows):
             data = StringIO(data)
 
@@ -692,6 +702,7 @@ class JsonReader(abc.Iterator):
                 encoding=self.encoding,
                 compression=self.compression,
                 storage_options=self.storage_options,
+                errors=self.encoding_errors,
             )
             filepath_or_buffer = self.handles.handle
 

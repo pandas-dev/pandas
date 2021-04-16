@@ -37,20 +37,24 @@ class TestCategoricalIndex:
         )
 
     def test_loc_scalar(self):
+        dtype = CDT(list("cab"))
         result = self.df.loc["a"]
-        expected = DataFrame(
-            {"A": [0, 1, 5], "B": (Series(list("aaa")).astype(CDT(list("cab"))))}
-        ).set_index("B")
+        bidx = Series(list("aaa"), name="B").astype(dtype)
+        assert bidx.dtype == dtype
+
+        expected = DataFrame({"A": [0, 1, 5]}, index=Index(bidx))
         tm.assert_frame_equal(result, expected)
 
         df = self.df.copy()
         df.loc["a"] = 20
+        bidx2 = Series(list("aabbca"), name="B").astype(dtype)
+        assert bidx2.dtype == dtype
         expected = DataFrame(
             {
                 "A": [20, 20, 2, 3, 4, 20],
-                "B": (Series(list("aabbca")).astype(CDT(list("cab")))),
-            }
-        ).set_index("B")
+            },
+            index=Index(bidx2),
+        )
         tm.assert_frame_equal(df, expected)
 
         # value not in the categories
@@ -64,14 +68,38 @@ class TestCategoricalIndex:
         df2.loc["d"] = 10
         tm.assert_frame_equal(df2, expected)
 
-        msg = "'fill_value=d' is not present in this Categorical's categories"
-        with pytest.raises(TypeError, match=msg):
-            df.loc["d", "A"] = 10
-        with pytest.raises(TypeError, match=msg):
-            df.loc["d", "C"] = 10
+    def test_loc_setitem_with_expansion_non_category(self):
+        # Setting-with-expansion with a new key "d" that is not among caegories
+        df = self.df
+        df.loc["a"] = 20
 
+        # Setting a new row on an existing column
+        df3 = df.copy()
+        df3.loc["d", "A"] = 10
+        bidx3 = Index(list("aabbcad"), name="B")
+        expected3 = DataFrame(
+            {
+                "A": [20, 20, 2, 3, 4, 20, 10.0],
+            },
+            index=Index(bidx3),
+        )
+        tm.assert_frame_equal(df3, expected3)
+
+        # Settig a new row _and_ new column
+        df4 = df.copy()
+        df4.loc["d", "C"] = 10
+        expected3 = DataFrame(
+            {
+                "A": [20, 20, 2, 3, 4, 20, np.nan],
+                "C": [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 10],
+            },
+            index=Index(bidx3),
+        )
+        tm.assert_frame_equal(df4, expected3)
+
+    def test_loc_getitem_scalar_non_category(self):
         with pytest.raises(KeyError, match="^1$"):
-            df.loc[1]
+            self.df.loc[1]
 
     def test_slicing(self):
         cat = Series(Categorical([1, 2, 3, 4]))

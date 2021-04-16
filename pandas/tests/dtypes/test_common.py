@@ -765,7 +765,7 @@ def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
 
 @pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
 def test_astype_object_preserves_datetime_na(from_type):
-    arr = np.array([from_type("NaT")])
+    arr = np.array([from_type("NaT", "ns")])
     result = astype_nansafe(arr, dtype=np.dtype("object"))
 
     assert isna(result)[0]

@@ -9,7 +9,6 @@ from typing import (
 
 import numpy as np
 
-import pandas._libs.algos as libalgos
 import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
 from pandas._typing import Dtype
@@ -42,6 +41,7 @@ from pandas.core.sorting import (
     decons_obs_group_ids,
     get_compressed_ids,
     get_group_index,
+    get_group_index_sorter,
 )
 
 
@@ -139,8 +139,7 @@ class _Unstacker:
         comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
         ngroups = len(obs_ids)
 
-        indexer = libalgos.groupsort_indexer(comp_index, ngroups)[0]
-        indexer = ensure_platform_int(indexer)
+        indexer = get_group_index_sorter(comp_index, ngroups)
 
         return indexer, to_sort
 
@@ -429,7 +428,7 @@ def unstack(obj, level, fill_value=None):
             return obj.T.stack(dropna=False)
     elif not isinstance(obj.index, MultiIndex):
         # GH 36113
-        # Give nicer error messages when unstack a  Series whose
+        # Give nicer error messages when unstack a Series whose
         # Index is not a MultiIndex.
         raise ValueError(
             f"index must be a MultiIndex to unstack, {type(obj.index)} was passed"
@@ -441,7 +440,7 @@ def unstack(obj, level, fill_value=None):
             obj.index, level=level, constructor=obj._constructor_expanddim
         )
         return unstacker.get_result(
-            obj.values, value_columns=None, fill_value=fill_value
+            obj._values, value_columns=None, fill_value=fill_value
         )
 
 
@@ -451,9 +450,10 @@ def _unstack_frame(obj, level, fill_value=None):
         mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
         return obj._constructor(mgr)
     else:
-        return _Unstacker(
-            obj.index, level=level, constructor=obj._constructor
-        ).get_result(obj._values, value_columns=obj.columns, fill_value=fill_value)
+        unstacker = _Unstacker(obj.index, level=level, constructor=obj._constructor)
+        return unstacker.get_result(
+            obj._values, value_columns=obj.columns, fill_value=fill_value
+        )
 
 
 def _unstack_extension_series(series, level, fill_value):

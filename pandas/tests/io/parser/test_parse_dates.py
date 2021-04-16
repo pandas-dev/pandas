@@ -1526,7 +1526,7 @@ def test_parse_timezone(all_parsers):
 
     dti = DatetimeIndex(
         list(
-            pd.date_range(
+            date_range(
                 start="2018-01-04 09:01:00",
                 end="2018-01-04 09:05:00",
                 freq="1min",

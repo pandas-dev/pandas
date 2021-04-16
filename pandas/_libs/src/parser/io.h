@@ -64,6 +64,6 @@ void *buffer_file_bytes(void *source, size_t nbytes, size_t *bytes_read,
                         int *status);
 
 void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
-                      int *status);
+                      int *status, const char *encoding_errors);
 
 #endif  // PANDAS__LIBS_SRC_PARSER_IO_H_

@@ -275,7 +275,7 @@ class TestRoundTrip:
 
     def test_multiindex_interval_datetimes(self, ext):
         # GH 30986
-        midx = pd.MultiIndex.from_arrays(
+        midx = MultiIndex.from_arrays(
             [
                 range(4),
                 pd.interval_range(
@@ -289,7 +289,7 @@ class TestRoundTrip:
             result = pd.read_excel(pth, index_col=[0, 1])
         expected = DataFrame(
             range(4),
-            pd.MultiIndex.from_arrays(
+            MultiIndex.from_arrays(
                 [
                     range(4),
                     [

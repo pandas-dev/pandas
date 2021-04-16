@@ -10,6 +10,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
+    Categorical,
     DataFrame,
     Grouper,
     Index,
@@ -18,6 +19,7 @@ from pandas import (
     Timestamp,
     date_range,
     read_csv,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
@@ -1232,7 +1234,7 @@ def test_groupby_list_infer_array_like(df):
 def test_groupby_keys_same_size_as_index():
     # GH 11185
     freq = "s"
-    index = pd.date_range(
+    index = date_range(
         start=Timestamp("2015-09-29T11:34:44-0700"), periods=2, freq=freq
     )
     df = DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=index)
@@ -1702,7 +1704,7 @@ def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = DataFrame(
         {
-            "eventDate": pd.date_range(datetime.today(), periods=20, freq="M").tolist(),
+            "eventDate": date_range(datetime.today(), periods=20, freq="M").tolist(),
             "thename": range(0, 20),
         }
     )
@@ -1716,15 +1718,48 @@ def test_pivot_table_values_key_error():
         )
 
 
-def test_empty_dataframe_groupby():
-    # GH8093
-    df = DataFrame(columns=["A", "B", "C"])
+@pytest.mark.parametrize("columns", ["C", ["C"]])
+@pytest.mark.parametrize("keys", [["A"], ["A", "B"]])
+@pytest.mark.parametrize(
+    "values",
+    [
+        [True],
+        [0],
+        [0.0],
+        ["a"],
+        [Categorical([0])],
+        [to_datetime(0)],
+        [date_range(0, 1, 1, tz="US/Eastern")],
+        [pd.array([0], dtype="Int64")],
+    ],
+)
+@pytest.mark.parametrize("method", ["attr", "agg", "apply"])
+@pytest.mark.parametrize(
+    "op", ["idxmax", "idxmin", "mad", "min", "max", "sum", "prod", "skew"]
+)
+def test_empty_groupby(columns, keys, values, method, op):
+    # GH8093 & GH26411
 
-    result = df.groupby("A").sum()
-    expected = DataFrame(columns=["B", "C"], dtype=np.float64)
-    expected.index.name = "A"
+    override_dtype = None
+    if isinstance(values[0], bool) and op in ("prod", "sum") and method != "apply":
+        # sum/product of bools is an integer
+        override_dtype = "int64"
 
-    tm.assert_frame_equal(result, expected)
+    df = DataFrame([3 * values], columns=list("ABC"))
+    df = df.iloc[:0]
+
+    gb = df.groupby(keys)[columns]
+    if method == "attr":
+        result = getattr(gb, op)()
+    else:
+        result = getattr(gb, method)(op)
+
+    expected = df.set_index(keys)[columns]
+    if override_dtype is not None:
+        expected = expected.astype(override_dtype)
+    if len(keys) == 1:
+        expected.index.name = keys[0]
+    tm.assert_equal(result, expected)
 
 
 def test_tuple_as_grouping():
@@ -1758,7 +1793,7 @@ def test_groupby_agg_ohlc_non_first():
     df = DataFrame(
         [[1], [1]],
         columns=["foo"],
-        index=pd.date_range("2018-01-01", periods=2, freq="D"),
+        index=date_range("2018-01-01", periods=2, freq="D"),
     )
 
     expected = DataFrame(
@@ -1772,7 +1807,7 @@ def test_groupby_agg_ohlc_non_first():
                 ("foo", "ohlc", "close"),
             )
         ),
-        index=pd.date_range("2018-01-01", periods=2, freq="D"),
+        index=date_range("2018-01-01", periods=2, freq="D"),
     )
 
     result = df.groupby(Grouper(freq="D")).agg(["sum", "ohlc"])

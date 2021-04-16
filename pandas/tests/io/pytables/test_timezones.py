@@ -327,7 +327,7 @@ def test_legacy_datetimetz_object(datapath, setup_path):
 def test_dst_transitions(setup_path):
     # make sure we are not failing on transitions
     with ensure_clean_store(setup_path) as store:
-        times = pd.date_range(
+        times = date_range(
             "2013-10-26 23:00",
             "2013-10-27 01:00",
             tz="Europe/London",
@@ -347,7 +347,7 @@ def test_dst_transitions(setup_path):
 def test_read_with_where_tz_aware_index(setup_path):
     # GH 11926
     periods = 10
-    dts = pd.date_range("20151201", periods=periods, freq="D", tz="UTC")
+    dts = date_range("20151201", periods=periods, freq="D", tz="UTC")
     mi = pd.MultiIndex.from_arrays([dts, range(periods)], names=["DATE", "NO"])
     expected = DataFrame({"MYCOL": 0}, index=mi)
 

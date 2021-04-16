@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -92,7 +90,6 @@ class TestAstype:
         casted = mn.astype("O")
         _check_cast(casted, "object")
 
-    @td.skip_array_manager_not_yet_implemented
     def test_astype_with_exclude_string(self, float_frame):
         df = float_frame.copy()
         expected = float_frame.astype(int)
@@ -127,7 +124,6 @@ class TestAstype:
         casted = tf.astype(np.int64)
         casted = tf.astype(np.float32)  # noqa
 
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
     @pytest.mark.parametrize("val", [np.nan, np.inf])
     def test_astype_cast_nan_inf_int(self, val, dtype):
@@ -386,7 +382,6 @@ class TestAstype:
 
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
     def test_astype_to_datetime_unit(self, unit):
         # tests all units from datetime origination
@@ -411,7 +406,6 @@ class TestAstype:
 
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("unit", ["us", "ms", "s", "h", "m", "D"])
     def test_astype_to_timedelta_unit(self, unit):
         # coerce to float
@@ -441,7 +435,6 @@ class TestAstype:
         with pytest.raises(TypeError, match=msg):
             df.astype(dtype)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_astype_arg_for_errors(self):
         # GH#14878
 
@@ -570,7 +563,6 @@ class TestAstype:
         tm.assert_frame_equal(result, df)
         assert result is not df
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) ignore keyword
     @pytest.mark.parametrize(
         "df",
         [
@@ -648,3 +640,32 @@ class TestAstype:
         # GH#39474
         result = DataFrame(["foo", "bar", "baz"]).astype(bytes)
         assert result.dtypes[0] == np.dtype("S3")
+
+
+class TestAstypeCategorical:
+    def test_astype_from_categorical3(self):
+        df = DataFrame({"cats": [1, 2, 3, 4, 5, 6], "vals": [1, 2, 3, 4, 5, 6]})
+        cats = Categorical([1, 2, 3, 4, 5, 6])
+        exp_df = DataFrame({"cats": cats, "vals": [1, 2, 3, 4, 5, 6]})
+        df["cats"] = df["cats"].astype("category")
+        tm.assert_frame_equal(exp_df, df)
+
+    def test_astype_from_categorical4(self):
+        df = DataFrame(
+            {"cats": ["a", "b", "b", "a", "a", "d"], "vals": [1, 2, 3, 4, 5, 6]}
+        )
+        cats = Categorical(["a", "b", "b", "a", "a", "d"])
+        exp_df = DataFrame({"cats": cats, "vals": [1, 2, 3, 4, 5, 6]})
+        df["cats"] = df["cats"].astype("category")
+        tm.assert_frame_equal(exp_df, df)
+
+    def test_categorical_astype_to_int(self, any_int_or_nullable_int_dtype):
+        # GH#39402
+
+        df = DataFrame(data={"col1": pd.array([2.0, 1.0, 3.0])})
+        df.col1 = df.col1.astype("category")
+        df.col1 = df.col1.astype(any_int_or_nullable_int_dtype)
+        expected = DataFrame(
+            {"col1": pd.array([2, 1, 3], dtype=any_int_or_nullable_int_dtype)}
+        )
+        tm.assert_frame_equal(df, expected)

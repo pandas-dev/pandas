@@ -3,7 +3,6 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     DataFrame,
     get_option,
@@ -216,7 +215,7 @@ class TestClipboard:
             """.strip()
         )
         mock_clipboard[request.node.name] = text
-        df = pd.read_clipboard(**clip_kwargs)
+        df = read_clipboard(**clip_kwargs)
 
         # excel data is parsed correctly
         assert df.iloc[1][1] == "Harry Carney"
@@ -230,7 +229,7 @@ class TestClipboard:
             """.strip()
         )
         mock_clipboard[request.node.name] = text
-        res = pd.read_clipboard(**clip_kwargs)
+        res = read_clipboard(**clip_kwargs)
 
         text = dedent(
             """
@@ -240,7 +239,7 @@ class TestClipboard:
             """.strip()
         )
         mock_clipboard[request.node.name] = text
-        exp = pd.read_clipboard(**clip_kwargs)
+        exp = read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
 
@@ -250,7 +249,7 @@ class TestClipboard:
         with pytest.raises(ValueError, match=msg):
             df.to_clipboard(encoding="ascii")
         with pytest.raises(NotImplementedError, match=msg):
-            pd.read_clipboard(encoding="ascii")
+            read_clipboard(encoding="ascii")
 
     @pytest.mark.parametrize("enc", ["UTF-8", "utf-8", "utf8"])
     def test_round_trip_valid_encodings(self, enc, df):

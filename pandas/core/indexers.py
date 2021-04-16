@@ -344,7 +344,7 @@ def length_of_indexer(indexer, target=None) -> int:
     raise AssertionError("cannot find the length of the indexer")
 
 
-def deprecate_ndim_indexing(result, stacklevel=3):
+def deprecate_ndim_indexing(result, stacklevel: int = 3):
     """
     Helper function to raise the deprecation warning for multi-dimensional
     indexing on 1D Series/Index.

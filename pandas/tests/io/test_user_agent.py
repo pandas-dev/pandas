@@ -179,39 +179,40 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
 
 
 @pytest.mark.parametrize(
-    "responder, read_method, port, parquet_engine",
+    "responder, read_method, parquet_engine",
     [
-        (CSVUserAgentResponder, pd.read_csv, 34259, None),
+        (CSVUserAgentResponder, pd.read_csv, None),
         pytest.param(
             JSONUserAgentResponder,
             pd.read_json,
-            34260,
             None,
             marks=td.skip_array_manager_not_yet_implemented,
         ),
-        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34261, "pyarrow"),
-        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34262, "fastparquet"),
-        (PickleUserAgentResponder, pd.read_pickle, 34263, None),
-        (StataUserAgentResponder, pd.read_stata, 34264, None),
-        (GzippedCSVUserAgentResponder, pd.read_csv, 34265, None),
+        (ParquetPyArrowUserAgentResponder, pd.read_parquet, "pyarrow"),
+        (ParquetFastParquetUserAgentResponder, pd.read_parquet, "fastparquet"),
+        (PickleUserAgentResponder, pd.read_pickle, None),
+        (StataUserAgentResponder, pd.read_stata, None),
+        (GzippedCSVUserAgentResponder, pd.read_csv, None),
         pytest.param(
             GzippedJSONUserAgentResponder,
             pd.read_json,
-            34266,
             None,
             marks=td.skip_array_manager_not_yet_implemented,
         ),
     ],
 )
-def test_server_and_default_headers(responder, read_method, port, parquet_engine):
+def test_server_and_default_headers(responder, read_method, parquet_engine):
     if parquet_engine is not None:
         pytest.importorskip(parquet_engine)
         if parquet_engine == "fastparquet":
             pytest.importorskip("fsspec")
 
-    with http.server.HTTPServer(("localhost", port), responder) as server:
+    # passing 0 for the port will let the system find an unused port
+    with http.server.HTTPServer(("localhost", 0), responder) as server:
         server_thread = threading.Thread(target=server.serve_forever)
         server_thread.start()
+
+        port = server.server_port
         if parquet_engine is None:
             df_http = read_method(f"http://localhost:{port}")
         else:
@@ -223,31 +224,29 @@ def test_server_and_default_headers(responder, read_method, port, parquet_engine
 
 
 @pytest.mark.parametrize(
-    "responder, read_method, port, parquet_engine",
+    "responder, read_method, parquet_engine",
     [
-        (CSVUserAgentResponder, pd.read_csv, 34267, None),
+        (CSVUserAgentResponder, pd.read_csv, None),
         pytest.param(
             JSONUserAgentResponder,
             pd.read_json,
-            34268,
             None,
             marks=td.skip_array_manager_not_yet_implemented,
         ),
-        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34269, "pyarrow"),
-        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34270, "fastparquet"),
-        (PickleUserAgentResponder, pd.read_pickle, 34271, None),
-        (StataUserAgentResponder, pd.read_stata, 34272, None),
-        (GzippedCSVUserAgentResponder, pd.read_csv, 34273, None),
+        (ParquetPyArrowUserAgentResponder, pd.read_parquet, "pyarrow"),
+        (ParquetFastParquetUserAgentResponder, pd.read_parquet, "fastparquet"),
+        (PickleUserAgentResponder, pd.read_pickle, None),
+        (StataUserAgentResponder, pd.read_stata, None),
+        (GzippedCSVUserAgentResponder, pd.read_csv, None),
         pytest.param(
             GzippedJSONUserAgentResponder,
             pd.read_json,
-            34274,
             None,
             marks=td.skip_array_manager_not_yet_implemented,
         ),
     ],
 )
-def test_server_and_custom_headers(responder, read_method, port, parquet_engine):
+def test_server_and_custom_headers(responder, read_method, parquet_engine):
     if parquet_engine is not None:
         pytest.importorskip(parquet_engine)
         if parquet_engine == "fastparquet":
@@ -255,10 +254,13 @@ def test_server_and_custom_headers(responder, read_method, port, parquet_engine)
 
     custom_user_agent = "Super Cool One"
     df_true = pd.DataFrame({"header": [custom_user_agent]})
-    with http.server.HTTPServer(("localhost", port), responder) as server:
+
+    # passing 0 for the port will let the system find an unused port
+    with http.server.HTTPServer(("localhost", 0), responder) as server:
         server_thread = threading.Thread(target=server.serve_forever)
         server_thread.start()
 
+        port = server.server_port
         if parquet_engine is None:
             df_http = read_method(
                 f"http://localhost:{port}",
@@ -279,22 +281,25 @@ def test_server_and_custom_headers(responder, read_method, port, parquet_engine)
 
 
 @pytest.mark.parametrize(
-    "responder, read_method, port",
+    "responder, read_method",
     [
-        (AllHeaderCSVResponder, pd.read_csv, 34275),
+        (AllHeaderCSVResponder, pd.read_csv),
     ],
 )
-def test_server_and_all_custom_headers(responder, read_method, port):
+def test_server_and_all_custom_headers(responder, read_method):
     custom_user_agent = "Super Cool One"
     custom_auth_token = "Super Secret One"
     storage_options = {
         "User-Agent": custom_user_agent,
         "Auth": custom_auth_token,
     }
-    with http.server.HTTPServer(("localhost", port), responder) as server:
+
+    # passing 0 for the port will let the system find an unused port
+    with http.server.HTTPServer(("localhost", 0), responder) as server:
         server_thread = threading.Thread(target=server.serve_forever)
         server_thread.start()
 
+        port = server.server_port
         df_http = read_method(
             f"http://localhost:{port}",
             storage_options=storage_options,

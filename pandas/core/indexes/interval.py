@@ -822,9 +822,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         if not isinstance(dtype, IntervalDtype):
             return False
-        if self.closed != dtype.closed:
-            return False
-        common_subtype = find_common_type([self.dtype.subtype, dtype.subtype])
+        common_subtype = find_common_type([self.dtype, dtype])
         return not is_object_dtype(common_subtype)
 
     # --------------------------------------------------------------------
@@ -1035,9 +1033,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     _difference = _setop("difference")
 
     # --------------------------------------------------------------------
-
-    def _validate_fill_value(self, value):
-        return self._data._validate_setitem_value(value)
 
     @property
     def _is_all_dates(self) -> bool:

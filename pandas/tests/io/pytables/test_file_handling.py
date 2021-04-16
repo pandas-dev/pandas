@@ -5,7 +5,6 @@ import pytest
 
 from pandas.compat import is_platform_little_endian
 
-import pandas as pd
 from pandas import (
     DataFrame,
     HDFStore,
@@ -188,7 +187,7 @@ def test_complibs_default_settings(setup_path):
     # default value
     with ensure_clean_path(setup_path) as tmpfile:
         df.to_hdf(tmpfile, "df", complevel=9)
-        result = pd.read_hdf(tmpfile, "df")
+        result = read_hdf(tmpfile, "df")
         tm.assert_frame_equal(result, df)
 
         with tables.open_file(tmpfile, mode="r") as h5file:
@@ -199,7 +198,7 @@ def test_complibs_default_settings(setup_path):
     # Set complib and check to see if compression is disabled
     with ensure_clean_path(setup_path) as tmpfile:
         df.to_hdf(tmpfile, "df", complib="zlib")
-        result = pd.read_hdf(tmpfile, "df")
+        result = read_hdf(tmpfile, "df")
         tm.assert_frame_equal(result, df)
 
         with tables.open_file(tmpfile, mode="r") as h5file:
@@ -210,7 +209,7 @@ def test_complibs_default_settings(setup_path):
     # Check if not setting complib or complevel results in no compression
     with ensure_clean_path(setup_path) as tmpfile:
         df.to_hdf(tmpfile, "df")
-        result = pd.read_hdf(tmpfile, "df")
+        result = read_hdf(tmpfile, "df")
         tm.assert_frame_equal(result, df)
 
         with tables.open_file(tmpfile, mode="r") as h5file:
@@ -256,7 +255,7 @@ def test_complibs(setup_path):
 
             # Write and read file to see if data is consistent
             df.to_hdf(tmpfile, gname, complib=lib, complevel=lvl)
-            result = pd.read_hdf(tmpfile, gname)
+            result = read_hdf(tmpfile, gname)
             tm.assert_frame_equal(result, df)
 
             # Open file and check metadata

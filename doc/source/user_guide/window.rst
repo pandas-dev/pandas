@@ -79,7 +79,7 @@ which will first group the data by the specified keys and then perform a windowi
 .. versionadded:: 1.3
 
 Some windowing operations also support the ``method='table'`` option in the constructor which
-performs the windowing operaion over an entire :class:`DataFrame` instead of a single column or row at a time.
+performs the windowing operation over an entire :class:`DataFrame` instead of a single column or row at a time.
 This can provide a useful performance benefit for a :class:`DataFrame` with many columns or rows
 (with the corresponding ``axis`` argument) or the ability to utilize other columns during the windowing
 operation. The ``method='table'`` option can only be used if ``engine='numba'`` is specified
@@ -581,7 +581,7 @@ The following formula is used to compute exponentially weighted mean with an inp
 
 .. math::
 
-    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{0.5^\frac{t_{t} - t_{i}}{\lambda}},
+    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda}},
 
 
 ExponentialMovingWindow also has an ``ignore_na`` argument, which determines how

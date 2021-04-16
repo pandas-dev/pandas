@@ -6,7 +6,6 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -207,7 +206,7 @@ def test_unsuppored_hdf_file_error(datapath):
     )
 
     with pytest.raises(ValueError, match=message):
-        pd.read_hdf(data_path)
+        read_hdf(data_path)
 
 
 def test_read_hdf_errors(setup_path):

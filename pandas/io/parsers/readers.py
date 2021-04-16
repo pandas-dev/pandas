@@ -296,11 +296,24 @@ encoding : str, optional
     Encoding to use for UTF when reading/writing (ex. 'utf-8'). `List of Python
     standard encodings
     <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
+
     .. versionchanged:: 1.2
 
        When ``encoding`` is ``None``, ``errors="replace"`` is passed to
        ``open()``. Otherwise, ``errors="strict"`` is passed to ``open()``.
        This behavior was previously only the case for ``engine="python"``.
+
+    .. versionchanged:: 1.3
+
+       ``encoding_errors`` is a new argument. ``encoding`` has no longer an
+       influence on how encoding errors are handled.
+
+encoding_errors : str, optional, default "strict"
+    How encoding errors are treated. `List of possible values
+    <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
+
+    .. versionadded:: 1.3
+
 dialect : str or csv.Dialect, optional
     If provided, this parameter will override values (default or not) for the
     following parameters: `delimiter`, `doublequote`, `escapechar`,
@@ -515,6 +528,7 @@ def read_csv(
     escapechar=None,
     comment=None,
     encoding=None,
+    encoding_errors: Optional[str] = "strict",
     dialect=None,
     # Error Handling
     error_bad_lines=True,
@@ -599,6 +613,7 @@ def read_table(
     # Error Handling
     error_bad_lines=True,
     warn_bad_lines=True,
+    encoding_errors: Optional[str] = "strict",
     # Internal
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],

@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_numpy_dev
+from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
 from pandas import (
@@ -104,7 +105,7 @@ class TestTimedeltaAdditionSubtraction:
         with pytest.raises(OverflowError, match=msg):
             Timestamp("1700-01-01") + Timedelta(13 * 19999, unit="D")
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd])

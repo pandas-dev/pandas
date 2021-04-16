@@ -415,12 +415,12 @@ def test_append_with_strings(setup_path):
             # just make sure there is a longer string:
             df2 = df.copy().reset_index().assign(C="longer").set_index("C")
             store.append("ss3", df2)
-            tm.assert_frame_equal(store.select("ss3"), pd.concat([df, df2]))
+            tm.assert_frame_equal(store.select("ss3"), concat([df, df2]))
 
             # same as above, with a Series
             store.put("ss4", df["B"], format="table", min_itemsize={"index": 6})
             store.append("ss4", df2["B"])
-            tm.assert_series_equal(store.select("ss4"), pd.concat([df["B"], df2["B"]]))
+            tm.assert_series_equal(store.select("ss4"), concat([df["B"], df2["B"]]))
 
             # with nans
             _maybe_remove(store, "df")

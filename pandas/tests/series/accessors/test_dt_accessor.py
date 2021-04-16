@@ -74,7 +74,7 @@ class TestSeriesDatetimeValues:
             if isinstance(result, np.ndarray):
                 if is_integer_dtype(result):
                     result = result.astype("int64")
-            elif not is_list_like(result) or isinstance(result, pd.DataFrame):
+            elif not is_list_like(result) or isinstance(result, DataFrame):
                 return result
             return Series(result, index=s.index, name=s.name)
 
@@ -83,7 +83,7 @@ class TestSeriesDatetimeValues:
             b = get_expected(s, prop)
             if not (is_list_like(a) and is_list_like(b)):
                 assert a == b
-            elif isinstance(a, pd.DataFrame):
+            elif isinstance(a, DataFrame):
                 tm.assert_frame_equal(a, b)
             else:
                 tm.assert_series_equal(a, b)
@@ -180,7 +180,7 @@ class TestSeriesDatetimeValues:
             assert result.dtype == object
 
             result = s.dt.total_seconds()
-            assert isinstance(result, pd.Series)
+            assert isinstance(result, Series)
             assert result.dtype == "float64"
 
             freq_result = s.dt.freq
@@ -236,11 +236,11 @@ class TestSeriesDatetimeValues:
 
         # 11295
         # ambiguous time error on the conversions
-        s = Series(pd.date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
+        s = Series(date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
         s = s.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
         results = get_dir(s)
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
-        exp_values = pd.date_range(
+        exp_values = date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
         ).tz_convert("America/Chicago")
         # freq not preserved by tz_localize above
@@ -297,7 +297,7 @@ class TestSeriesDatetimeValues:
     @pytest.mark.parametrize("method", ["ceil", "round", "floor"])
     def test_dt_round_tz_ambiguous(self, method):
         # GH 18946 round near "fall back" DST
-        df1 = pd.DataFrame(
+        df1 = DataFrame(
             [
                 pd.to_datetime("2017-10-29 02:00:00+02:00", utc=True),
                 pd.to_datetime("2017-10-29 02:00:00+01:00", utc=True),
@@ -634,7 +634,7 @@ class TestSeriesDatetimeValues:
         assert not hasattr(ser, "dt")
 
     def test_dt_accessor_updates_on_inplace(self):
-        s = Series(pd.date_range("2018-01-01", periods=10))
+        s = Series(date_range("2018-01-01", periods=10))
         s[2] = None
         return_value = s.fillna(pd.Timestamp("2018-01-01"), inplace=True)
         assert return_value is None
@@ -680,7 +680,7 @@ class TestSeriesDatetimeValues:
     )
     def test_isocalendar(self, input_series, expected_output):
         result = pd.to_datetime(Series(input_series)).dt.isocalendar()
-        expected_frame = pd.DataFrame(
+        expected_frame = DataFrame(
             expected_output, columns=["year", "week", "day"], dtype="UInt32"
         )
         tm.assert_frame_equal(result, expected_frame)

@@ -163,7 +163,7 @@ void *buffer_file_bytes(void *source, size_t nbytes, size_t *bytes_read,
 }
 
 void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
-                      int *status) {
+                      int *status, const char *encoding_errors) {
     PyGILState_STATE state;
     PyObject *result, *func, *args, *tmp;
 
@@ -191,7 +191,7 @@ void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
         *status = CALLING_READ_FAILED;
         return NULL;
     } else if (!PyBytes_Check(result)) {
-        tmp = PyUnicode_AsUTF8String(result);
+        tmp = PyUnicode_AsEncodedString(result, "utf-8", encoding_errors);
         Py_DECREF(result);
         if (tmp == NULL) {
             PyGILState_Release(state);

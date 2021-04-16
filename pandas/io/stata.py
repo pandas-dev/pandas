@@ -1091,6 +1091,9 @@ class StataReader(StataParser, abc.Iterator):
             compression=compression,
         ) as handles:
             # Copy to BytesIO, and ensure no encoding
+
+            # Argument 1 to "BytesIO" has incompatible type "Union[Any, bytes, None,
+            # str]"; expected "bytes"
             self.path_or_buf = BytesIO(handles.handle.read())  # type: ignore[arg-type]
 
         self._read_header()

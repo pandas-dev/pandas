@@ -675,7 +675,7 @@ class _TestSQLApi(PandasSQLTest):
         query = "SELECT * FROM iris_view WHERE SepalLength < 0.0"
         with_batch = sql.read_sql_query(query, self.conn, chunksize=5)
         without_batch = sql.read_sql_query(query, self.conn)
-        tm.assert_frame_equal(pd.concat(with_batch), without_batch)
+        tm.assert_frame_equal(concat(with_batch), without_batch)
 
     def test_to_sql(self):
         sql.to_sql(self.test_frame1, "test_frame1", self.conn)
@@ -1592,7 +1592,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 )
 
         # GH11216
-        df = pd.read_sql_query("select * from types_test_data", self.conn)
+        df = read_sql_query("select * from types_test_data", self.conn)
         if not hasattr(df, "DateColWithTz"):
             pytest.skip("no column with datetime with time zone")
 
@@ -1602,7 +1602,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         col = df.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
 
-        df = pd.read_sql_query(
+        df = read_sql_query(
             "select * from types_test_data", self.conn, parse_dates=["DateColWithTz"]
         )
         if not hasattr(df, "DateColWithTz"):
@@ -1612,11 +1612,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert str(col.dt.tz) == "UTC"
         check(df.DateColWithTz)
 
-        df = pd.concat(
+        df = concat(
             list(
-                pd.read_sql_query(
-                    "select * from types_test_data", self.conn, chunksize=1
-                )
+                read_sql_query("select * from types_test_data", self.conn, chunksize=1)
             ),
             ignore_index=True,
         )
@@ -2851,7 +2849,7 @@ class TestXMySQL(MySQLMixIn):
         sql.to_sql(frame, name="test", con=self.conn)
         query = "select * from test"
         chunksize = 5
-        chunk_gen = pd.read_sql_query(
+        chunk_gen = read_sql_query(
             sql=query, con=self.conn, chunksize=chunksize, index_col="index"
         )
         chunk_df = next(chunk_gen)

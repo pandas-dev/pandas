@@ -1,0 +1,48 @@
+.. _whatsnew_124:
+
+What's new in 1.2.4 (April ??, 2021)
+---------------------------------------
+
+These are the changes in pandas 1.2.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_124.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+- Fixed regression in :meth:`DataFrame.sum` when ``min_count`` greater than the :class:`DataFrame` shape was passed resulted in a ``ValueError`` (:issue:`39738`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_124.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_124.other:
+
+Other
+~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_124.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.2.3..v1.2.4|HEAD

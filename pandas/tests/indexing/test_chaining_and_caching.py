@@ -457,3 +457,19 @@ class TestChaining:
         tm.assert_frame_equal(df, expected)
         expected = Series([0, 0, 0, 2, 0], name="f")
         tm.assert_series_equal(df.f, expected)
+
+    def test_iloc_setitem_chained_assignment(self):
+        # GH#3970
+        with option_context("chained_assignment", None):
+            df = DataFrame({"aa": range(5), "bb": [2.2] * 5})
+            df["cc"] = 0.0
+
+            ck = [True] * len(df)
+
+            df["bb"].iloc[0] = 0.13
+
+            # TODO: unused
+            df_tmp = df.iloc[ck]  # noqa
+
+            df["bb"].iloc[0] = 0.15
+            assert df["bb"].iloc[0] == 0.15
