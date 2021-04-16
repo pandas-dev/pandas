@@ -24,8 +24,8 @@ from pandas.core.dtypes.common import (
     is_datetime_or_timedelta_dtype,
     is_extension_array_dtype,
     is_integer,
-    is_numeric_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
     is_timedelta64_dtype,
 )
