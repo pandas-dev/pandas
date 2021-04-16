@@ -781,7 +781,7 @@ Interval
 Indexing
 ^^^^^^^^
 
-- Bug in :meth:`Index.union` dropping duplicate ``Index`` values when ``Index`` was not monotonic or ``sort`` was set to ``False`` (:issue:`36289`, :issue:`31326`)
+- Bug in :meth:`Index.union` dropping duplicate ``Index`` values when ``Index`` was not monotonic or ``sort`` was set to ``False`` (:issue:`36289`, :issue:`31326`, :issue:`40862`)
 - Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
 - Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` when setting multiple values to duplicate columns (:issue:`15695`)
@@ -791,6 +791,8 @@ Indexing
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` with empty :class:`DataFrame` and specified columns for string indexer and non empty :class:`DataFrame` to set (:issue:`38831`)
 - Bug in :meth:`DataFrame.loc.__setitem__` raising ValueError when expanding unique column for :class:`DataFrame` with duplicate columns (:issue:`38521`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` and :meth:`DataFrame.loc.__setitem__` with mixed dtypes when setting with a dictionary value (:issue:`38335`)
+- Bug in :meth:`Series.loc.__setitem__` and :meth:`DataFrame.loc.__setitem__` raising ``KeyError`` for boolean Iterator indexer (:issue:`39614`)
+- Bug in :meth:`Series.iloc` and :meth:`DataFrame.iloc` raising ``KeyError`` for Iterator indexer (:issue:`39614`)
 - Bug in :meth:`DataFrame.__setitem__` not raising ``ValueError`` when right hand side is a :class:`DataFrame` with wrong number of columns (:issue:`38604`)
 - Bug in :meth:`Series.__setitem__` raising ``ValueError`` when setting a :class:`Series` with a scalar indexer (:issue:`38303`)
 - Bug in :meth:`DataFrame.loc` dropping levels of :class:`MultiIndex` when :class:`DataFrame` used as input has only one row (:issue:`10521`)
@@ -848,6 +850,7 @@ I/O
 - Bug in :func:`read_hdf` returning unexpected records when filtering on categorical string columns using ``where`` parameter (:issue:`39189`)
 - Bug in :func:`read_sas` raising ``ValueError`` when ``datetimes`` were null (:issue:`39725`)
 - Bug in :func:`read_excel` dropping empty values from single-column spreadsheets (:issue:`39808`)
+- Bug in :meth:`DataFrame.to_string` misplacing the truncation column when ``index=False`` (:issue:`40907`)
 
 Period
 ^^^^^^
@@ -889,9 +892,10 @@ Groupby/resample/rolling
 - :class:`core.window.ewm.ExponentialMovingWindow` now raises a ``NotImplementedError`` when specifying ``times`` with ``adjust=False`` due to an incorrect calculation (:issue:`40098`)
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
 - Bug in aggregation functions for :class:`DataFrame` not respecting ``numeric_only`` argument when ``level`` keyword was given (:issue:`40660`)
+- Bug in :meth:`SeriesGroupBy.aggregate` where using a user-defined function to aggregate a ``Series`` with an object-typed :class:`Index` causes an incorrect :class:`Index` shape (issue:`40014`)
 - Bug in :class:`core.window.RollingGroupby` where ``as_index=False`` argument in ``groupby`` was ignored (:issue:`39433`)
 - Bug in :meth:`.GroupBy.any` and :meth:`.GroupBy.all` raising ``ValueError`` when using with nullable type columns holding ``NA`` even with ``skipna=True`` (:issue:`40585`)
-
+- Bug in :meth:`GroupBy.cummin` and :meth:`GroupBy.cummax` incorrectly rounding integer values near the ``int64`` implementations bounds (:issue:`40767`)
 
 Reshaping
 ^^^^^^^^^
