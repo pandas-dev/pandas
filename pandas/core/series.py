@@ -2753,13 +2753,15 @@ Name: Max Speed, dtype: float64
         return self.dot(np.transpose(other))
 
     @doc(base.IndexOpsMixin.searchsorted, klass="Series")
-    def searchsorted(self, value, side="left", sorter=None):
+    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     # -------------------------------------------------------------------
     # Combination
 
-    def append(self, to_append, ignore_index=False, verify_integrity=False):
+    def append(
+        self, to_append, ignore_index: bool = False, verify_integrity: bool = False
+    ):
         """
         Concatenate two or more Series.
 
@@ -2843,7 +2845,7 @@ Name: Max Speed, dtype: float64
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )
 
-    def _binop(self, other, func, level=None, fill_value=None):
+    def _binop(self, other: Series, func, level=None, fill_value=None):
         """
         Perform generic binary operation with optional fill value.
 
@@ -3606,7 +3608,7 @@ Keep all original rows and also all original values
 
         Returns
         -------
-        Series
+        Series[np.intp]
             Positions of values within the sort order with -1 indicating
             nan values.
 
@@ -3727,7 +3729,7 @@ Keep all original rows and also all original values
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nlargest()
 
-    def nsmallest(self, n=5, keep="first") -> Series:
+    def nsmallest(self, n: int = 5, keep: str = "first") -> Series:
         """
         Return the smallest `n` elements.
 
@@ -3939,7 +3941,7 @@ Keep all original rows and also all original values
 
         return self._constructor(values, index=index, name=self.name)
 
-    def unstack(self, level=-1, fill_value=None):
+    def unstack(self, level=-1, fill_value=None) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
 
@@ -4291,7 +4293,11 @@ Keep all original rows and also all original values
             with np.errstate(all="ignore"):
                 return op(delegate, skipna=skipna, **kwds)
 
-    def _reindex_indexer(self, new_index, indexer, copy):
+    def _reindex_indexer(
+        self, new_index: Index | None, indexer: np.ndarray | None, copy: bool
+    ) -> Series:
+        # Note: new_index is None iff indexer is None
+        # if not None, indexer is np.intp
         if indexer is None:
             if copy:
                 return self.copy()

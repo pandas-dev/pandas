@@ -609,7 +609,7 @@ class ExtensionArray:
 
         Returns
         -------
-        ndarray
+        np.ndarray[np.intp]
             Array of indices that sort ``self``. If NaN values are contained,
             NaN values are placed at the end.
 

@@ -4,6 +4,7 @@
 from typing import (
     Any,
     Callable,
+    Generator,
 )
 
 import numpy as np
@@ -52,8 +53,7 @@ def is_bool_array(values: np.ndarray, skipna: bool = False): ...
 
 def fast_multiget(mapping: dict, keys: np.ndarray, default=np.nan) -> ArrayLike: ...
 
-# TODO: gen: Generator?
-def fast_unique_multiple_list_gen(gen: object, sort: bool = True) -> list: ...
+def fast_unique_multiple_list_gen(gen: Generator, sort: bool = True) -> list: ...
 def fast_unique_multiple_list(lists: list, sort: bool = True) -> list: ...
 def fast_unique_multiple(arrays: list, sort: bool = True) -> list: ...
 
@@ -90,10 +90,9 @@ def infer_datetimelike_array(
     arr: np.ndarray  # np.ndarray[object]
 ) -> str: ...
 
-# TODO: new_dtype -> np.dtype?
 def astype_intsafe(
     arr: np.ndarray,  # np.ndarray[object]
-    new_dtype,
+    new_dtype: np.dtype,
 ) -> np.ndarray: ...
 
 def fast_zip(ndarrays: list) -> np.ndarray: ...  # np.ndarray[object]
@@ -134,15 +133,13 @@ def memory_usage_of_objects(
 ) -> int: ...  # np.int64
 
 
-# TODO: f: Callable?
-# TODO: dtype -> DtypeObj?
 def map_infer_mask(
     arr: np.ndarray,
     f: Callable[[Any], Any],
     mask: np.ndarray,  # const uint8_t[:]
     convert: bool = ...,
     na_value: Any = ...,
-    dtype: Any = ...,
+    dtype: np.dtype = ...,
 ) -> ArrayLike: ...
 
 def indices_fast(

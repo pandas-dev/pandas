@@ -1599,7 +1599,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        numpy.array
+        np.ndarray[np.intp]
 
         See Also
         --------
