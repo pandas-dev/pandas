@@ -443,18 +443,20 @@ class IndexingMixin:
         8          4       5
         9          7       8
 
-        **Setting values using series**
+        **Setting values using Series**
 
-        >>> df['shield'] = pd.Series({7: 8, 8: 10, 9: 10})
+        Assign column using Series
+
+        >>> df.loc[:, 'shield'] = pd.Series({7: 8, 8: 10, 9: 13})
         >>> df
            max_speed  shield
         7          1       8
         8          4      10
-        9          7      10
+        9          7      13
 
-        Assign partial column with labels in dataframe missing from series
+        Assign partial column with labels in dataframe missing from Series
 
-        >>> df['shield'] = pd.Series({8: 10})
+        >>> df.loc[:, 'shield'] = pd.Series({8: 10})
         >>> df
            max_speed  shield
         7          1     NaN
@@ -463,7 +465,7 @@ class IndexingMixin:
 
         Assign column containing value with missing index
 
-        >>> df['shield'] = pd.Series({10: 14})
+        >>> df.loc[:, 'shield'] = pd.Series({11: 14})
         >>> df
            max_speed  shield
         7          1     NaN
