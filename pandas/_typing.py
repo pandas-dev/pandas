@@ -25,7 +25,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Type,
+    Type as type_t,
     TypeVar,
     Union,
 )
@@ -119,7 +119,7 @@ Axes = Collection[Any]
 # dtypes
 NpDtype = Union[str, np.dtype]
 Dtype = Union[
-    "ExtensionDtype", NpDtype, Type[Union[str, float, int, complex, bool, object]]
+    "ExtensionDtype", NpDtype, type_t[Union[str, float, int, complex, bool, object]]
 ]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
@@ -185,5 +185,19 @@ ColspaceArgType = Union[
 ]
 
 # internals
-Manager = Union["ArrayManager", "BlockManager"]
+Manager = Union[
+    "ArrayManager", "SingleArrayManager", "BlockManager", "SingleBlockManager"
+]
 SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
+Manager2D = Union["ArrayManager", "BlockManager"]
+
+# indexing
+# PositionalIndexer -> valid 1D positional indexer, e.g. can pass
+# to ndarray.__getitem__
+# TODO: add Ellipsis, see
+# https://github.com/python/typing/issues/684#issuecomment-548203158
+# https://bugs.python.org/issue41810
+PositionalIndexer = Union[int, np.integer, slice, Sequence[int], np.ndarray]
+PositionalIndexer2D = Union[
+    PositionalIndexer, Tuple[PositionalIndexer, PositionalIndexer]
+]
