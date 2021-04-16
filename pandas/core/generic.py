@@ -7352,6 +7352,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
 
         # GH 40420
+        # Treat missing thresholds as no bounds, not clipping the values
         if is_list_like(threshold):
             fill_value = np.inf if method.__name__ == "le" else -np.inf
             threshold_inf = threshold.fillna(fill_value)
@@ -7361,12 +7362,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         subset = method(threshold_inf, axis=axis) | isna(self)
 
         # GH 40420
-        # In order to ignore nan values in the threshold, set the values in
-        # subset that correspond to these na values to True. This indicates to the
-        # final where() to not clip.
-        # if is_list_like(threshold) and threshold.isna().any(axis=None):
-        #     subset_kwargs = {"axis": axis} if threshold.ndim != subset.ndim else {}
-        #     subset = subset.where(threshold.notna(), True, **subset_kwargs)
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     @overload
@@ -8857,7 +8852,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
-        left, right = _align_as_utc(left, right, join_index)
+        if is_datetime64tz_dtype(left.index.dtype):
+            if left.index.tz != right.index.tz:
+                if join_index is not None:
+                    # GH#33671 ensure we don't change the index on
+                    #  our original Series (NB: by default deep=False)
+                    left = left.copy()
+                    right = right.copy()
+                    left.index = join_index
+                    right.index = join_index
 
         return (
             left.__finalize__(self),
@@ -8899,18 +8902,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # one has > 1 ndim
             fdata = self._mgr
-            if axis in [0, 1]:
-                join_index = self.axes[axis]
+            if axis == 0:
+                join_index = self.index
                 lidx, ridx = None, None
-                if not join_index.equals(other.index):
-                    join_index, lidx, ridx = join_index.join(
+                if not self.index.equals(other.index):
+                    join_index, lidx, ridx = self.index.join(
                         other.index, how=join, level=level, return_indexers=True
                     )
 
                 if lidx is not None:
-                    bm_axis = self._get_block_manager_axis(axis)
-                    fdata = fdata.reindex_indexer(join_index, lidx, axis=bm_axis)
+                    fdata = fdata.reindex_indexer(join_index, lidx, axis=1)
 
+            elif axis == 1:
+                join_index = self.columns
+                lidx, ridx = None, None
+                if not self.columns.equals(other.index):
+                    join_index, lidx, ridx = self.columns.join(
+                        other.index, how=join, level=level, return_indexers=True
+                    )
+
+                if lidx is not None:
+                    fdata = fdata.reindex_indexer(join_index, lidx, axis=0)
             else:
                 raise ValueError("Must specify axis=0 or 1")
 
@@ -8932,7 +8944,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # if DatetimeIndex have different tz, convert to UTC
         if is_series or (not is_series and axis == 0):
-            left, right = _align_as_utc(left, right, join_index)
+            if is_datetime64tz_dtype(left.index.dtype):
+                if left.index.tz != right.index.tz:
+                    if join_index is not None:
+                        # GH#33671 ensure we don't change the index on
+                        #  our original Series (NB: by default deep=False)
+                        left = left.copy()
+                        right = right.copy()
+                        left.index = join_index
+                        right.index = join_index
 
         return (
             left.__finalize__(self),
@@ -11906,23 +11926,3 @@ min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 """
-
-
-def _align_as_utc(
-    left: FrameOrSeries, right: FrameOrSeries, join_index: Index | None
-) -> tuple[FrameOrSeries, FrameOrSeries]:
-    """
-    If we are aligning timezone-aware DatetimeIndexes and the timezones
-    do not match, convert both to UTC.
-    """
-    if is_datetime64tz_dtype(left.index.dtype):
-        if left.index.tz != right.index.tz:
-            if join_index is not None:
-                # GH#33671 ensure we don't change the index on
-                #  our original Series (NB: by default deep=False)
-                left = left.copy()
-                right = right.copy()
-                left.index = join_index
-                right.index = join_index
-
-    return left, right
