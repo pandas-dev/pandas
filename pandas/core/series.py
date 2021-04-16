@@ -2009,21 +2009,16 @@ Name: Max Speed, dtype: float64
         """
         return super().unique()
 
+    # fmt: off
     @overload
-    def drop_duplicates(self, keep=..., inplace: Literal[False] = ...) -> Series:
-        ...
-
+    def drop_duplicates(self, keep=..., inplace: Literal[False] = ...) -> Series: ...  # noqa
     @overload
-    def drop_duplicates(self, keep, inplace: Literal[True]) -> None:
-        ...
-
+    def drop_duplicates(self, keep, inplace: Literal[True]) -> None: ...   # noqa
     @overload
-    def drop_duplicates(self, *, inplace: Literal[True]) -> None:
-        ...
-
+    def drop_duplicates(self, *, inplace: Literal[True]) -> None: ...   # noqa
     @overload
-    def drop_duplicates(self, keep=..., inplace: bool = ...) -> Series | None:
-        ...
+    def drop_duplicates(self, keep=..., inplace: bool = ...) -> Series | None: ...   # noqa
+    # fmt: on
 
     def drop_duplicates(self, keep="first", inplace=False) -> Series | None:
         """
@@ -4419,23 +4414,16 @@ Keep all original rows and also all original values
         else:
             return self._set_name(index, inplace=inplace)
 
+    # fmt: off
     @overload
-    def set_axis(
-        self, labels, axis: Axis = ..., inplace: Literal[False] = ...
-    ) -> Series:
-        ...
-
+    def set_axis( self, labels, axis: Axis = ..., inplace: Literal[False] = ...) -> Series: ...  # noqa
     @overload
-    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
-        ...
-
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None: ...   # noqa
     @overload
-    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
-        ...
-
+    def set_axis(self, labels, *, inplace: Literal[True]) -> None: ...   # noqa
     @overload
-    def set_axis(self, labels, axis: Axis = ..., inplace: bool = ...) -> Series | None:
-        ...
+    def set_axis(self, labels, axis: Axis = ..., inplace: bool = ...) -> Series | None: ...  # noqa
+    # fmt: on
 
     @Appender(
         """
@@ -4581,120 +4569,28 @@ Keep all original rows and also all original values
             errors=errors,
         )
 
+    # fmt: off
     @overload
-    def fillna(
-        self,
-        value=...,
-        method: str | None = ...,
-        axis: Axis | None = ...,
-        inplace: Literal[False] = ...,
-        limit=...,
-        downcast=...,
-    ) -> Series:
-        ...
-
+    def fillna( self, value=..., method: str | None = ..., axis: Axis | None = ..., inplace: Literal[False] = ..., limit=..., downcast=...,) -> Series: ...  # noqa
     @overload
-    def fillna(
-        self,
-        value,
-        method: str | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, value, method: str | None, axis: Axis | None, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, *, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        value,
-        *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, value, *, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        *,
-        method: str | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, *, method: str | None, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, *, axis: Axis | None, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        *,
-        method: str | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, *, method: str | None, axis: Axis | None, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        value,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, value, *, axis: Axis | None, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        value,
-        method: str | None,
-        *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, value, method: str | None, *, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        value=...,
-        method: str | None = ...,
-        axis: Axis | None = ...,
-        inplace: bool = ...,
-        limit=...,
-        downcast=...,
-    ) -> Series | None:
-        ...
+    def fillna( self, value=..., method: str | None = ..., axis: Axis | None = ..., inplace: bool = ..., limit=..., downcast=...,) -> Series | None: ...  # noqa
+    # fmt: on
 
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(

@@ -427,21 +427,16 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
         else:
             return np.asarray(self, dtype=dtype)
 
+    # fmt: off
     @overload
-    def view(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
-        ...
-
+    def view(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT: ...  # noqa
     @overload
-    def view(self, dtype: Literal["M8[ns]"]) -> DatetimeArray:
-        ...
-
+    def view(self, dtype: Literal["M8[ns]"]) -> DatetimeArray: ...  # noqa
     @overload
-    def view(self, dtype: Literal["m8[ns]"]) -> TimedeltaArray:
-        ...
-
+    def view(self, dtype: Literal["m8[ns]"]) -> TimedeltaArray: ...  # noqa
     @overload
-    def view(self, dtype: Dtype | None = ...) -> ArrayLike:
-        ...
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...  # noqa
+    # fmt: on
 
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
         # We handle datetime64, datetime64tz, timedelta64, and period

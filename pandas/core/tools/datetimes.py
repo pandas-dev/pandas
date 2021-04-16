@@ -637,55 +637,14 @@ def _adjust_to_origin(arg, origin, unit):
     return arg
 
 
+# fmt: off
 @overload
-def to_datetime(
-    arg: DatetimeScalar,
-    errors: str = ...,
-    dayfirst: bool = ...,
-    yearfirst: bool = ...,
-    utc: bool | None = ...,
-    format: str | None = ...,
-    exact: bool = ...,
-    unit: str | None = ...,
-    infer_datetime_format: bool = ...,
-    origin=...,
-    cache: bool = ...,
-) -> DatetimeScalar | NaTType:
-    ...
-
-
+def to_datetime( arg: DatetimeScalar, errors: str = ..., dayfirst: bool = ..., yearfirst: bool = ..., utc: bool | None = ..., format: str | None = ..., exact: bool = ..., unit: str | None = ..., infer_datetime_format: bool = ..., origin=..., cache: bool = ...,) -> DatetimeScalar | NaTType: ...  # noqa
 @overload
-def to_datetime(
-    arg: Series,
-    errors: str = ...,
-    dayfirst: bool = ...,
-    yearfirst: bool = ...,
-    utc: bool | None = ...,
-    format: str | None = ...,
-    exact: bool = ...,
-    unit: str | None = ...,
-    infer_datetime_format: bool = ...,
-    origin=...,
-    cache: bool = ...,
-) -> Series:
-    ...
-
-
+def to_datetime( arg: Series, errors: str = ..., dayfirst: bool = ..., yearfirst: bool = ..., utc: bool | None = ..., format: str | None = ..., exact: bool = ..., unit: str | None = ..., infer_datetime_format: bool = ..., origin=..., cache: bool = ...,) -> Series: ... # noqa
 @overload
-def to_datetime(
-    arg: list | tuple | np.ndarray,
-    errors: str = ...,
-    dayfirst: bool = ...,
-    yearfirst: bool = ...,
-    utc: bool | None = ...,
-    format: str | None = ...,
-    exact: bool = ...,
-    unit: str | None = ...,
-    infer_datetime_format: bool = ...,
-    origin=...,
-    cache: bool = ...,
-) -> DatetimeIndex:
-    ...
+def to_datetime( arg: list | tuple | np.ndarray, errors: str = ..., dayfirst: bool = ..., yearfirst: bool = ..., utc: bool | None = ..., format: str | None = ..., exact: bool = ..., unit: str | None = ..., infer_datetime_format: bool = ..., origin=..., cache: bool = ...,) -> DatetimeIndex: ...  # noqa
+# fmt: on
 
 
 def to_datetime(

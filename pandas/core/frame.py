@@ -1300,13 +1300,12 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
+    # fmt: off
     @overload
-    def dot(self, other: Series) -> Series:
-        ...
-
+    def dot(self, other: Series) -> Series: ...  # noqa
     @overload
-    def dot(self, other: DataFrame | Index | ArrayLike) -> DataFrame:
-        ...
+    def dot(self, other: DataFrame | Index | ArrayLike) -> DataFrame: ...  # noqa
+    # fmt: on
 
     def dot(self, other: AnyArrayLike | FrameOrSeriesUnion) -> FrameOrSeriesUnion:
         """
@@ -1418,15 +1417,12 @@ class DataFrame(NDFrame, OpsMixin):
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
+    # fmt: off
     @overload
-    def __matmul__(self, other: Series) -> Series:
-        ...
-
+    def __matmul__(self, other: Series) -> Series: ...  # noqa
     @overload
-    def __matmul__(
-        self, other: AnyArrayLike | FrameOrSeriesUnion
-    ) -> FrameOrSeriesUnion:
-        ...
+    def __matmul__( self, other: AnyArrayLike | FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...  # noqa
+    # fmt: on
 
     def __matmul__(
         self, other: AnyArrayLike | FrameOrSeriesUnion
@@ -4650,25 +4646,16 @@ class DataFrame(NDFrame, OpsMixin):
             broadcast_axis=broadcast_axis,
         )
 
+    # fmt: off
     @overload
-    def set_axis(
-        self, labels, axis: Axis = ..., inplace: Literal[False] = ...
-    ) -> DataFrame:
-        ...
-
+    def set_axis( self, labels, axis: Axis = ..., inplace: Literal[False] = ...) -> DataFrame: ...  # noqa
     @overload
-    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
-        ...
-
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None: ...  # noqa
     @overload
-    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
-        ...
-
+    def set_axis(self, labels, *, inplace: Literal[True]) -> None: ...  # noqa
     @overload
-    def set_axis(
-        self, labels, axis: Axis = ..., inplace: bool = ...
-    ) -> DataFrame | None:
-        ...
+    def set_axis( self, labels, axis: Axis = ..., inplace: bool = ...) -> DataFrame | None: ...  # noqa
+    # fmt: on
 
     @Appender(
         """
@@ -5007,120 +4994,28 @@ class DataFrame(NDFrame, OpsMixin):
             errors=errors,
         )
 
+    # fmt: off
     @overload
-    def fillna(
-        self,
-        value=...,
-        method: str | None = ...,
-        axis: Axis | None = ...,
-        inplace: Literal[False] = ...,
-        limit=...,
-        downcast=...,
-    ) -> DataFrame:
-        ...
-
+    def fillna( self, value=..., method: str | None = ..., axis: Axis | None = ..., inplace: Literal[False] = ..., limit=..., downcast=...,) -> DataFrame: ...  # noqa
     @overload
-    def fillna(
-        self,
-        value,
-        method: str | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, value, method: str | None, axis: Axis | None, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, *, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        value,
-        *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, value, *, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        *,
-        method: str | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, *, method: str | None, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, *, axis: Axis | None, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        *,
-        method: str | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, *, method: str | None, axis: Axis | None, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        value,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, value, *, axis: Axis | None, inplace: Literal[True], limit=..., downcast=...,) -> None: ...   # noqa
     @overload
-    def fillna(
-        self,
-        value,
-        method: str | None,
-        *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
+    def fillna( self, value, method: str | None, *, inplace: Literal[True], limit=..., downcast=...,) -> None: ...  # noqa
     @overload
-    def fillna(
-        self,
-        value=...,
-        method: str | None = ...,
-        axis: Axis | None = ...,
-        inplace: bool = ...,
-        limit=...,
-        downcast=...,
-    ) -> DataFrame | None:
-        ...
+    def fillna( self, value=..., method: str | None = ..., axis: Axis | None = ..., inplace: bool = ..., limit=..., downcast=...,) -> DataFrame | None: ...  # noqa
+    # fmt: on
 
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
@@ -5496,70 +5391,20 @@ class DataFrame(NDFrame, OpsMixin):
         if not inplace:
             return frame
 
+    # fmt: off
     @overload
-    def reset_index(
-        self,
-        level: Hashable | Sequence[Hashable] | None = ...,
-        drop: bool = ...,
-        inplace: Literal[False] = ...,
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
-    ) -> DataFrame:
-        ...
-
+    def reset_index( self, level: Hashable | Sequence[Hashable] | None = ..., drop: bool = ..., inplace: Literal[False] = ..., col_level: Hashable = ..., col_fill: Hashable = ...,) -> DataFrame: ...  # noqa
     @overload
-    def reset_index(
-        self,
-        level: Hashable | Sequence[Hashable] | None,
-        drop: bool,
-        inplace: Literal[True],
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
-    ) -> None:
-        ...
-
+    def reset_index( self, level: Hashable | Sequence[Hashable] | None, drop: bool, inplace: Literal[True], col_level: Hashable = ..., col_fill: Hashable = ...,) -> None: ...  # noqa
     @overload
-    def reset_index(
-        self,
-        *,
-        drop: bool,
-        inplace: Literal[True],
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
-    ) -> None:
-        ...
-
+    def reset_index( self, *, drop: bool, inplace: Literal[True], col_level: Hashable = ..., col_fill: Hashable = ...,) -> None: ...  # noqa
     @overload
-    def reset_index(
-        self,
-        level: Hashable | Sequence[Hashable] | None,
-        *,
-        inplace: Literal[True],
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
-    ) -> None:
-        ...
-
+    def reset_index( self, level: Hashable | Sequence[Hashable] | None, *, inplace: Literal[True], col_level: Hashable = ..., col_fill: Hashable = ...,) -> None: ...  # noqa
     @overload
-    def reset_index(
-        self,
-        *,
-        inplace: Literal[True],
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
-    ) -> None:
-        ...
-
+    def reset_index( self, *, inplace: Literal[True], col_level: Hashable = ..., col_fill: Hashable = ...,) -> None: ...  # noqa
     @overload
-    def reset_index(
-        self,
-        level: Hashable | Sequence[Hashable] | None = ...,
-        drop: bool = ...,
-        inplace: bool = ...,
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
-    ) -> DataFrame | None:
-        ...
+    def reset_index( self, level: Hashable | Sequence[Hashable] | None = ..., drop: bool = ..., inplace: bool = ..., col_level: Hashable = ..., col_fill: Hashable = ...,) -> DataFrame | None: ...  # noqa
+    # fmt: on
 
     def reset_index(
         self,

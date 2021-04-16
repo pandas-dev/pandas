@@ -26,26 +26,12 @@ if TYPE_CHECKING:
     from pandas.core.arrays.base import ExtensionArray
 
 
+# fmt: off
 @overload
-def take_nd(
-    arr: np.ndarray,
-    indexer,
-    axis: int = ...,
-    fill_value=...,
-    allow_fill: bool = ...,
-) -> np.ndarray:
-    ...
-
-
+def take_nd( arr: np.ndarray, indexer, axis: int = ..., fill_value=..., allow_fill: bool = ...,) -> np.ndarray: ...  # noqa
 @overload
-def take_nd(
-    arr: ExtensionArray,
-    indexer,
-    axis: int = ...,
-    fill_value=...,
-    allow_fill: bool = ...,
-) -> ArrayLike:
-    ...
+def take_nd( arr: ExtensionArray, indexer, axis: int = ..., fill_value=..., allow_fill: bool = ...,) -> ArrayLike: ...  # noqa
+# fmt: on
 
 
 def take_nd(

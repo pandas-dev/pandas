@@ -52,36 +52,12 @@ if TYPE_CHECKING:
 # Concatenate DataFrame objects
 
 
+# fmt: off
 @overload
-def concat(
-    objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
-    axis=0,
-    join: str = "outer",
-    ignore_index: bool = False,
-    keys=None,
-    levels=None,
-    names=None,
-    verify_integrity: bool = False,
-    sort: bool = False,
-    copy: bool = True,
-) -> DataFrame:
-    ...
-
-
+def concat( objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame], axis=0, join: str = "outer", ignore_index: bool = False, keys=None, levels=None, names=None, verify_integrity: bool = False, sort: bool = False, copy: bool = True,) -> DataFrame: ...  # noqa
 @overload
-def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
-    axis=0,
-    join: str = "outer",
-    ignore_index: bool = False,
-    keys=None,
-    levels=None,
-    names=None,
-    verify_integrity: bool = False,
-    sort: bool = False,
-    copy: bool = True,
-) -> FrameOrSeriesUnion:
-    ...
+def concat( objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame], axis=0, join: str = "outer", ignore_index: bool = False, keys=None, levels=None, names=None, verify_integrity: bool = False, sort: bool = False, copy: bool = True,) -> FrameOrSeriesUnion: ... # noqa
+# fmt: on
 
 
 def concat(

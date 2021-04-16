@@ -681,27 +681,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # error: Incompatible return value type (got "number", expected "int")
         return np.prod(self.shape)  # type: ignore[return-value]
 
+    # fmt: off
     @overload
-    def set_axis(
-        self: FrameOrSeries, labels, axis: Axis = ..., inplace: Literal[False] = ...
-    ) -> FrameOrSeries:
-        ...
-
+    def set_axis( self: FrameOrSeries, labels, axis: Axis = ..., inplace: Literal[False] = ...) -> FrameOrSeries: ...  # noqa
     @overload
-    def set_axis(
-        self: FrameOrSeries, labels, axis: Axis, inplace: Literal[True]
-    ) -> None:
-        ...
-
+    def set_axis( self: FrameOrSeries, labels, axis: Axis, inplace: Literal[True]) -> None: ...   # noqa
     @overload
-    def set_axis(self: FrameOrSeries, labels, *, inplace: Literal[True]) -> None:
-        ...
-
+    def set_axis(self: FrameOrSeries, labels, *, inplace: Literal[True]) -> None: ...  # noqa
     @overload
-    def set_axis(
-        self: FrameOrSeries, labels, axis: Axis = ..., inplace: bool_t = ...
-    ) -> FrameOrSeries | None:
-        ...
+    def set_axis( self: FrameOrSeries, labels, axis: Axis = ..., inplace: bool_t = ...) -> FrameOrSeries | None: ...  # noqa
+    # fmt: on
 
     def set_axis(self, labels, axis: Axis = 0, inplace: bool_t = False):
         """
@@ -7354,113 +7343,28 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
+    # fmt: off
     @overload
-    def clip(
-        self: FrameOrSeries,
-        lower=...,
-        upper=...,
-        axis: Axis | None = ...,
-        inplace: Literal[False] = ...,
-        *args,
-        **kwargs,
-    ) -> FrameOrSeries:
-        ...
-
+    def clip( self: FrameOrSeries, lower=..., upper=..., axis: Axis | None = ..., inplace: Literal[False] = ..., *args, **kwargs,) -> FrameOrSeries: ...  # noqa
     @overload
-    def clip(
-        self: FrameOrSeries,
-        lower,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
+    def clip( self: FrameOrSeries, lower, *, axis: Axis | None, inplace: Literal[True], **kwargs,) -> None: ...  # noqa
     @overload
-    def clip(
-        self: FrameOrSeries,
-        lower,
-        *,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
+    def clip( self: FrameOrSeries, lower, *, inplace: Literal[True], **kwargs,) -> None: ...  # noqa
     @overload
-    def clip(
-        self: FrameOrSeries,
-        *,
-        upper,
-        axis: Axis | None,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
+    def clip( self: FrameOrSeries, *, upper, axis: Axis | None, inplace: Literal[True], **kwargs,) -> None: ...  # noqa
     @overload
-    def clip(
-        self: FrameOrSeries,
-        *,
-        upper,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
+    def clip( self: FrameOrSeries, *, upper, inplace: Literal[True], **kwargs,) -> None: ...  # noqa
     @overload
-    def clip(
-        self: FrameOrSeries,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
+    def clip( self: FrameOrSeries, *, axis: Axis | None, inplace: Literal[True], **kwargs,) -> None: ...  # noqa
     @overload
-    def clip(
-        self: FrameOrSeries,
-        lower,
-        upper,
-        axis: Axis | None,
-        inplace: Literal[True],
-        *args,
-        **kwargs,
-    ) -> None:
-        ...
-
+    def clip( self: FrameOrSeries, lower, upper, axis: Axis | None, inplace: Literal[True], *args, **kwargs,) -> None: ...  # noqa
     @overload
-    def clip(
-        self: FrameOrSeries,
-        lower,
-        upper,
-        *,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
+    def clip( self: FrameOrSeries, lower, upper, *, inplace: Literal[True], **kwargs,) -> None: ...   # noqa
     @overload
-    def clip(
-        self: FrameOrSeries,
-        *,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
+    def clip( self: FrameOrSeries, *, inplace: Literal[True], **kwargs,) -> None: ...   # noqa
     @overload
-    def clip(
-        self: FrameOrSeries,
-        lower=...,
-        upper=...,
-        axis: Axis | None = ...,
-        inplace: bool_t = ...,
-        *args,
-        **kwargs,
-    ) -> FrameOrSeries | None:
-        ...
+    def clip( self: FrameOrSeries, lower=..., upper=..., axis: Axis | None = ..., inplace: bool_t = ..., *args, **kwargs,) -> FrameOrSeries | None: ...  # noqa
+    # fmt: on
 
     @final
     def clip(

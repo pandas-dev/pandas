@@ -503,14 +503,12 @@ def maybe_cast_to_extension_array(
     return result
 
 
+# fmt: off
 @overload
-def ensure_dtype_can_hold_na(dtype: np.dtype) -> np.dtype:
-    ...
-
-
+def ensure_dtype_can_hold_na(dtype: np.dtype) -> np.dtype: ...  # noqa
 @overload
-def ensure_dtype_can_hold_na(dtype: ExtensionDtype) -> ExtensionDtype:
-    ...
+def ensure_dtype_can_hold_na(dtype: ExtensionDtype) -> ExtensionDtype: ...  # noqa
+# fmt: on
 
 
 def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
@@ -1117,18 +1115,12 @@ def astype_td64_unit_conversion(
     return result
 
 
+# fmt: off
 @overload
-def astype_nansafe(
-    arr: np.ndarray, dtype: np.dtype, copy: bool = ..., skipna: bool = ...
-) -> np.ndarray:
-    ...
-
-
+def astype_nansafe( arr: np.ndarray, dtype: np.dtype, copy: bool = ..., skipna: bool = ...) -> np.ndarray: ...  # noqa
 @overload
-def astype_nansafe(
-    arr: np.ndarray, dtype: ExtensionDtype, copy: bool = ..., skipna: bool = ...
-) -> ExtensionArray:
-    ...
+def astype_nansafe( arr: np.ndarray, dtype: ExtensionDtype, copy: bool = ..., skipna: bool = ...) -> ExtensionArray: ...  # noqa
+# fmt: on
 
 
 def astype_nansafe(
