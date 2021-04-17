@@ -2673,6 +2673,7 @@ class MultiIndex(Index):
         limit: int | None = None,
         tolerance=None,
     ) -> np.ndarray:
+        # returned ndarray is np.intp
 
         # empty indexer
         if not len(target):
