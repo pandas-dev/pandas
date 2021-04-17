@@ -314,6 +314,7 @@ class StringArray(PandasArray):
             if copy:
                 return self.copy()
             return self
+
         elif isinstance(dtype, _IntegerDtype):
             arr = self._ndarray.copy()
             mask = self.isna()
