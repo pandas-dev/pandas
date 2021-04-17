@@ -44,7 +44,7 @@ def test_ffill_missing_arguments():
 
 
 @pytest.mark.parametrize("method", ["ffill", "bfill"])
-def test_ffill_with_string_dtype(method):
+def test_fillna_with_string_dtype(method):
     # GH 40250
     result = (
         DataFrame({"a": pd.array([None, "a", None], dtype="string"), "b": [0, 0, 0]})
