@@ -1,9 +1,9 @@
 """
 Top level ``eval`` module.
 """
+from __future__ import annotations
 
 import tokenize
-from typing import Optional
 import warnings
 
 from pandas._libs.lib import no_default
@@ -20,7 +20,7 @@ from pandas.core.computation.scope import ensure_scope
 from pandas.io.formats.printing import pprint_thing
 
 
-def _check_engine(engine: Optional[str]) -> str:
+def _check_engine(engine: str | None) -> str:
     """
     Make sure a valid engine is passed.
 
@@ -161,9 +161,9 @@ def _check_for_locals(expr: str, stack_level: int, parser: str):
 
 
 def eval(
-    expr,
-    parser="pandas",
-    engine: Optional[str] = None,
+    expr: str,
+    parser: str = "pandas",
+    engine: str | None = None,
     truediv=no_default,
     local_dict=None,
     global_dict=None,
@@ -313,6 +313,7 @@ def eval(
         _check_expression(expr)
         exprs = [e.strip() for e in expr.splitlines() if e.strip() != ""]
     else:
+        # ops.BinOp; for internal compat, not intended to be passed by users
         exprs = [expr]
     multi_line = len(exprs) > 1
 
