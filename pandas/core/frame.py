@@ -678,7 +678,7 @@ class DataFrame(NDFrame, OpsMixin):
                     # Sanitize column names
                     for i in range(len(columns)):
                         if columns[i].find('.') != -1:
-                            columns[i] = columns[i][columns[i].find('.')+1:]
+                            columns[i] = columns[i][columns[i].find('.') + 1:]
 
                 data = list(data)
             if len(data) > 0:
