@@ -22,6 +22,29 @@ from pandas.core.arrays import SparseArray
 
 
 class TestDataFrameSetItem:
+    @pytest.mark.parametrize(
+        argnames="arr", argvalues=[(4, 2), (4, 3), (4, 4), (4, 10), (4, 20), (4, 30)]
+    )
+    def test_setitem_size_incompatible_ndarray(self, arr):
+        data = DataFrame(np.zeros((4, 2)), columns=["A", "B"])
+        msg = (
+            "Dataframe column 'A' is being assigned to a 2D "
+            "array with more than two columns. Column assignment "
+            "accepts only 2D arrays with one column."
+        )
+        with pytest.raises(Exception, match=msg):
+            data["A"] = np.random.randn(arr[0], arr[1])
+
+    def test_setitem_size_compatible_ndarray(self):
+        data = DataFrame(np.zeros(4), columns=["A"])
+
+        data_to_set = np.random.randn(4, 1)
+
+        expected = DataFrame(data=data_to_set, columns=["A"])
+
+        data["A"] = data_to_set
+        tm.assert_frame_equal(data, expected)
+
     @pytest.mark.parametrize("dtype", ["int32", "int64", "float32", "float64"])
     def test_setitem_dtype(self, dtype, float_frame):
         arr = np.random.randn(len(float_frame))
