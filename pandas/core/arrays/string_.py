@@ -155,7 +155,7 @@ class StringDtype(ExtensionDtype):
         # custom __eq__ so have to override __hash__
         return super().__hash__()
 
-    # TODO: this is a classmethod, but we need to know the storage type.
+    # https://github.com/pandas-dev/pandas/issues/36126
     # error: Signature of "construct_array_type" incompatible with supertype
     # "ExtensionDtype"
     def construct_array_type(  # type: ignore[override]
