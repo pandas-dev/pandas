@@ -14,6 +14,7 @@ from pandas.core.computation.expr import (
     PARSERS,
     Expr,
 )
+from pandas.core.computation.ops import BinOp
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 
@@ -161,7 +162,7 @@ def _check_for_locals(expr: str, stack_level: int, parser: str):
 
 
 def eval(
-    expr: str,
+    expr: str | BinOp,  # we leave BinOp out of the docstr bc it isn't for users
     parser: str = "pandas",
     engine: str | None = None,
     truediv=no_default,
