@@ -175,16 +175,15 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             ldesc.append(describe_func(series, percentiles))
 
         col_names = reorder_columns(ldesc)
-        d = cast(
-            "DataFrame",
-            concat(
-                [x.reindex(col_names, copy=False) for x in ldesc],
-                axis=1,
-                sort=False,
-            ),
+        d = concat(
+            [x.reindex(col_names, copy=False) for x in ldesc],
+            axis=1,
+            sort=False,
         )
         d.columns = data.columns.copy()
-        return d
+        # Incompatible return value type (got "Union[DataFrame, Series]",
+        # expected "DataFrame")
+        return d  # type: ignore[return-value]
 
     def _select_data(self):
         """Select columns to be described."""
