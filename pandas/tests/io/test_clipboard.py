@@ -3,11 +3,17 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, get_option, read_clipboard
+from pandas import (
+    DataFrame,
+    get_option,
+    read_clipboard,
+)
 import pandas._testing as tm
 
-from pandas.io.clipboard import clipboard_get, clipboard_set
+from pandas.io.clipboard import (
+    clipboard_get,
+    clipboard_set,
+)
 
 
 def build_kwargs(sep, excel):
@@ -199,7 +205,7 @@ class TestClipboard:
 
     def test_read_clipboard_infer_excel(self, request, mock_clipboard):
         # gh-19010: avoid warnings
-        clip_kwargs = dict(engine="python")
+        clip_kwargs = {"engine": "python"}
 
         text = dedent(
             """
@@ -209,7 +215,7 @@ class TestClipboard:
             """.strip()
         )
         mock_clipboard[request.node.name] = text
-        df = pd.read_clipboard(**clip_kwargs)
+        df = read_clipboard(**clip_kwargs)
 
         # excel data is parsed correctly
         assert df.iloc[1][1] == "Harry Carney"
@@ -223,7 +229,7 @@ class TestClipboard:
             """.strip()
         )
         mock_clipboard[request.node.name] = text
-        res = pd.read_clipboard(**clip_kwargs)
+        res = read_clipboard(**clip_kwargs)
 
         text = dedent(
             """
@@ -233,16 +239,17 @@ class TestClipboard:
             """.strip()
         )
         mock_clipboard[request.node.name] = text
-        exp = pd.read_clipboard(**clip_kwargs)
+        exp = read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
 
     def test_invalid_encoding(self, df):
+        msg = "clipboard only supports utf-8 encoding"
         # test case for testing invalid encoding
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.to_clipboard(encoding="ascii")
-        with pytest.raises(NotImplementedError):
-            pd.read_clipboard(encoding="ascii")
+        with pytest.raises(NotImplementedError, match=msg):
+            read_clipboard(encoding="ascii")
 
     @pytest.mark.parametrize("enc", ["UTF-8", "utf-8", "utf8"])
     def test_round_trip_valid_encodings(self, enc, df):

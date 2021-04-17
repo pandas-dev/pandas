@@ -1,6 +1,9 @@
 import pytest
 
-from pandas.util._validators import validate_bool_kwarg, validate_kwargs
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_kwargs,
+)
 
 _fname = "func"
 
@@ -41,7 +44,7 @@ def test_validation():
     # No exceptions should be raised.
     compat_args = {"f": None, "b": 1, "ba": "s"}
 
-    kwargs = dict(f=None, b=1)
+    kwargs = {"f": None, "b": 1}
     validate_kwargs(_fname, kwargs, compat_args)
 
 

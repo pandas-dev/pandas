@@ -1,4 +1,9 @@
-from typing import Any, List
+from __future__ import annotations
+
+from typing import (
+    Any,
+    Hashable,
+)
 import warnings
 
 import numpy as np
@@ -6,32 +11,47 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex
-from pandas._libs.hashtable import duplicated_int64
 from pandas._libs.lib import no_default
-from pandas._typing import ArrayLike, Label
-from pandas.util._decorators import Appender, cache_readonly, doc
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+)
+from pandas.util._decorators import (
+    Appender,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_categorical_dtype,
-    is_interval_dtype,
-    is_list_like,
     is_scalar,
-    pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+    notna,
+)
 
 from pandas.core import accessor
-from pandas.core.arrays.categorical import Categorical, contains
+from pandas.core.arrays.categorical import (
+    Categorical,
+    contains,
+)
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
-from pandas.core.indexes.extension import NDArrayBackedExtensionIndex, inherit_names
-import pandas.core.missing as missing
+from pandas.core.indexes.base import (
+    Index,
+    _index_shared_docs,
+    maybe_extract_name,
+)
+from pandas.core.indexes.extension import (
+    NDArrayBackedExtensionIndex,
+    inherit_names,
+)
 
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
+_index_doc_kwargs: dict[str, str] = dict(ibase._index_doc_kwargs)
+_index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 
 
 @inherit_names(
@@ -130,7 +150,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`__
     for more.
 
     Examples
@@ -159,6 +179,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     """
 
     _typ = "categoricalindex"
+    _data_cls = Categorical
 
     @property
     def _can_hold_strings(self):
@@ -173,12 +194,17 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def _engine_type(self):
         # self.codes can have dtype int8, int16, int32 or int64, so we need
         # to return the corresponding engine type (libindex.Int8Engine, etc.).
+
+        # error: Invalid index type "Type[generic]" for "Dict[Type[signedinteger[Any]],
+        # Any]"; expected type "Type[signedinteger[Any]]"
         return {
             np.int8: libindex.Int8Engine,
             np.int16: libindex.Int16Engine,
             np.int32: libindex.Int32Engine,
             np.int64: libindex.Int64Engine,
-        }[self.codes.dtype.type]
+        }[
+            self.codes.dtype.type  # type: ignore[index]
+        ]
 
     _attributes = ["name"]
 
@@ -186,54 +212,40 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     # Constructors
 
     def __new__(
-        cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None
-    ):
-
-        dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
+        cls,
+        data=None,
+        categories=None,
+        ordered=None,
+        dtype: Dtype | None = None,
+        copy: bool = False,
+        name: Hashable = None,
+    ) -> CategoricalIndex:
 
         name = maybe_extract_name(name, data, cls)
 
-        if not is_categorical_dtype(data):
-            # don't allow scalars
-            # if data is None, then categories must be provided
-            if is_scalar(data):
-                if data is not None or categories is None:
-                    raise cls._scalar_data_error(data)
-                data = []
+        if is_scalar(data):
+            raise cls._scalar_data_error(data)
 
-        assert isinstance(dtype, CategoricalDtype), dtype
-        data = extract_array(data, extract_numpy=True)
-
-        if not isinstance(data, Categorical):
-            data = Categorical(data, dtype=dtype)
-        elif isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
-            # we want to silently ignore dtype='category'
-            data = data._set_dtype(dtype)
-
-        data = data.copy() if copy else data
+        data = Categorical(
+            data, categories=categories, ordered=ordered, dtype=dtype, copy=copy
+        )
 
         return cls._simple_new(data, name=name)
-
-    @classmethod
-    def _simple_new(cls, values: Categorical, name: Label = None):
-        assert isinstance(values, Categorical), type(values)
-        result = object.__new__(cls)
-
-        result._data = values
-        result.name = name
-        result._cache = {}
-
-        result._reset_identity()
-        result._no_setting_name = False
-        return result
 
     # --------------------------------------------------------------------
 
     @doc(Index._shallow_copy)
-    def _shallow_copy(self, values=None, name: Label = no_default):
-        name = self.name if name is no_default else name
+    def _shallow_copy(
+        self,
+        values: Categorical,
+        name: Hashable = no_default,
+    ) -> CategoricalIndex:
+        name = self._name if name is no_default else name
 
         if values is not None:
+            # In tests we only get here with Categorical objects that
+            #  have matching .ordered, and values.categories a subset of
+            #  our own.  However we do _not_ have a dtype match in general.
             values = Categorical(values, dtype=self.dtype)
 
         return super()._shallow_copy(values=values, name=name)
@@ -244,6 +256,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         provide a comparison between the dtype of self and other (coercing if
         needed)
+
+        Parameters
+        ----------
+        other : Index
 
         Returns
         -------
@@ -261,8 +277,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 )
         else:
             values = other
-            if not is_list_like(values):
-                values = [values]
 
             cat = Categorical(other, dtype=self.dtype)
             other = CategoricalIndex(cat)
@@ -324,8 +338,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 "categories",
                 ibase.default_pprint(self.categories, max_seq_items=max_categories),
             ),
-            # pandas\core\indexes\category.py:315: error: "CategoricalIndex"
-            # has no attribute "ordered"  [attr-defined]
+            # error: "CategoricalIndex" has no attribute "ordered"
             ("ordered", self.ordered),  # type: ignore[attr-defined]
         ]
         if self.name is not None:
@@ -336,7 +349,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             attrs.append(("length", len(self)))
         return attrs
 
-    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
+    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
         from pandas.io.formats.printing import pprint_thing
 
         result = [
@@ -351,54 +364,27 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def inferred_type(self) -> str:
         return "categorical"
 
-    @property
-    def values(self):
-        """ return the underlying data, which is a Categorical """
-        return self._data
-
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
     @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
         # if key is a NaN, check if any NaN is in self.
-        if is_valid_nat_for_dtype(key, self.categories.dtype):
+        if is_valid_na_for_dtype(key, self.categories.dtype):
             return self.hasnans
 
         return contains(self, key, container=self._engine)
 
-    @doc(Index.astype)
-    def astype(self, dtype, copy=True):
-        if dtype is not None:
-            dtype = pandas_dtype(dtype)
-
-        if is_interval_dtype(dtype):
-            from pandas import IntervalIndex
-
-            return IntervalIndex(np.array(self))
-        elif is_categorical_dtype(dtype):
-            # GH 18630
-            dtype = self.dtype.update_dtype(dtype)
-            if dtype == self.dtype:
-                return self.copy() if copy else self
-
-        return Index.astype(self, dtype=dtype, copy=copy)
-
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
         value = self._require_scalar(value)
-        cat = self._data.fillna(value)
-        return type(self)._simple_new(cat, name=self.name)
+        try:
+            cat = self._data.fillna(value)
+        except (ValueError, TypeError):
+            # invalid fill_value
+            if not self.isna().any():
+                # nothing to fill, we can get away without casting
+                return self.copy()
+            return self.astype(object).fillna(value, downcast=downcast)
 
-    @cache_readonly
-    def _engine(self):
-        # we are going to look things up with the codes themselves.
-        # To avoid a reference cycle, bind `codes` to a local variable, so
-        # `self` is not passed into the lambda.
-        codes = self.codes
-        return self._engine_type(lambda: codes, len(self))
+        return type(self)._simple_new(cat, name=self.name)
 
     @doc(Index.unique)
     def unique(self, level=None):
@@ -409,28 +395,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         #  of result, not self.
         return type(self)._simple_new(result, name=self.name)
 
-    @doc(Index.duplicated)
-    def duplicated(self, keep="first"):
-        codes = self.codes.astype("i8")
-        return duplicated_int64(codes, keep)
-
-    def _to_safe_for_reshape(self):
-        """ convert to object if we are a categorical """
-        return self.astype("object")
-
-    @doc(Index.where)
-    def where(self, cond, other=None):
-        # TODO: Investigate an alternative implementation with
-        # 1. copy the underlying Categorical
-        # 2. setitem with `cond` and `other`
-        # 3. Rebuild CategoricalIndex.
-        if other is None:
-            other = self._na_value
-        values = np.where(cond, self._values, other)
-        cat = Categorical(values, dtype=self.dtype)
-        return type(self)._simple_new(cat, name=self.name)
-
-    def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
+    def reindex(
+        self, target, method=None, level=None, limit=None, tolerance=None
+    ) -> tuple[Index, np.ndarray | None]:
         """
         Create index with target's values (move/add/delete values as necessary)
 
@@ -438,7 +405,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         -------
         new_index : pd.Index
             Resulting index
-        indexer : np.ndarray or None
+        indexer : np.ndarray[np.intp] or None
             Indices of output values in original index
 
         """
@@ -457,10 +424,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         target = ibase.ensure_index(target)
 
-        missing: List[int]
         if self.equals(target):
             indexer = None
-            missing = []
+            missing = np.array([], dtype=np.intp)
         else:
             indexer, missing = self.get_indexer_non_unique(np.array(target))
 
@@ -473,10 +439,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if len(missing):
             cats = self.categories.get_indexer(target)
 
-            if (cats == -1).any():
+            if not isinstance(cats, CategoricalIndex) or (cats == -1).any():
                 # coerce to a regular index here!
                 result = Index(np.array(self), name=self.name)
-                new_target, indexer, _ = result._reindex_non_unique(np.array(target))
+                new_target, indexer, _ = result._reindex_non_unique(target)
             else:
 
                 codes = new_target.codes.copy()
@@ -491,30 +457,41 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         # in which case we are going to conform to the passed Categorical
         new_target = np.asarray(new_target)
         if is_categorical_dtype(target):
-            new_target = target._shallow_copy(new_target, name=self.name)
+            cat = Categorical(new_target, dtype=target.dtype)
+            new_target = type(self)._simple_new(cat, name=self.name)
         else:
             new_target = Index(new_target, name=self.name)
 
         return new_target, indexer
 
-    def _reindex_non_unique(self, target):
+    # error: Return type "Tuple[Index, Optional[ndarray], Optional[ndarray]]"
+    # of "_reindex_non_unique" incompatible with return type
+    # "Tuple[Index, ndarray, Optional[ndarray]]" in supertype "Index"
+    def _reindex_non_unique(  # type: ignore[override]
+        self, target: Index
+    ) -> tuple[Index, np.ndarray | None, np.ndarray | None]:
         """
         reindex from a non-unique; which CategoricalIndex's are almost
         always
         """
+        # TODO: rule out `indexer is None` here to make the signature
+        #  match the parent class's signature. This should be equivalent
+        #  to ruling out `self.equals(target)`
         new_target, indexer = self.reindex(target)
         new_indexer = None
 
         check = indexer == -1
-        if check.any():
-            new_indexer = np.arange(len(self.take(indexer)))
+        # error: Item "bool" of "Union[Any, bool]" has no attribute "any"
+        if check.any():  # type: ignore[union-attr]
+            new_indexer = np.arange(len(self.take(indexer)), dtype=np.intp)
             new_indexer[check] = -1
 
         cats = self.categories.get_indexer(target)
         if not (cats == -1).any():
             # .reindex returns normal Index. Revert to CategoricalIndex if
             # all targets are included in my categories
-            new_target = self._shallow_copy(new_target)
+            cat = Categorical(new_target, dtype=self.dtype)
+            new_target = type(self)._simple_new(cat, name=self.name)
 
         return new_target, indexer, new_indexer
 
@@ -524,58 +501,44 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def _maybe_cast_indexer(self, key) -> int:
         return self._data._unbox_scalar(key)
 
-    @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        method = missing.clean_reindex_fill_method(method)
-        target = ibase.ensure_index(target)
+    def _get_indexer(
+        self,
+        target: Index,
+        method: str | None = None,
+        limit: int | None = None,
+        tolerance=None,
+    ) -> np.ndarray:
 
-        if self.is_unique and self.equals(target):
+        if self.equals(target):
             return np.arange(len(self), dtype="intp")
 
-        if method == "pad" or method == "backfill":
-            raise NotImplementedError(
-                "method='pad' and method='backfill' not "
-                "implemented yet for CategoricalIndex"
-            )
-        elif method == "nearest":
-            raise NotImplementedError(
-                "method='nearest' not implemented yet for CategoricalIndex"
-            )
-
-        # Note: we use engine.get_indexer_non_unique below because, even if
-        #  `target` is unique, any non-category entries in it will be encoded
-        #  as -1 by _get_codes_for_get_indexer, so `codes` may not be unique.
-        codes = self._get_codes_for_get_indexer(target._values)
-        indexer, _ = self._engine.get_indexer_non_unique(codes)
-        return ensure_platform_int(indexer)
+        return self._get_indexer_non_unique(target._values)[0]
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = ibase.ensure_index(target)
+        return self._get_indexer_non_unique(target._values)
 
-        codes = self._get_codes_for_get_indexer(target._values)
-        indexer, missing = self._engine.get_indexer_non_unique(codes)
-        return ensure_platform_int(indexer), missing
-
-    def _get_codes_for_get_indexer(self, target: ArrayLike) -> np.ndarray:
+    def _get_indexer_non_unique(self, values: ArrayLike):
         """
-        Extract integer codes we can use for comparison.
-
-        Notes
-        -----
-        If a value in target is not present, it gets coded as -1.
+        get_indexer_non_unique but after unrapping the target Index object.
         """
+        # Note: we use engine.get_indexer_non_unique for get_indexer in addition
+        #  to get_indexer_non_unique because, even if `target` is unique, any
+        #  non-category entries in it will be encoded as -1  so `codes` may
+        #  not be unique.
 
-        if isinstance(target, Categorical):
+        if isinstance(values, Categorical):
             # Indexing on codes is more efficient if categories are the same,
             #  so we can apply some optimizations based on the degree of
             #  dtype-matching.
-            cat = self._data._encode_with_my_categories(target)
+            cat = self._data._encode_with_my_categories(values)
             codes = cat._codes
         else:
-            codes = self.categories.get_indexer(target)
+            codes = self.categories.get_indexer(values)
 
-        return codes
+        indexer, missing = self._engine.get_indexer_non_unique(codes)
+        return ensure_platform_int(indexer), missing
 
     @doc(Index._convert_list_indexer)
     def _convert_list_indexer(self, keyarr):
@@ -583,32 +546,16 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         # the categories
 
         if self.categories._defer_to_indexing:
+            # See tests.indexing.interval.test_interval:test_loc_getitem_frame
             indexer = self.categories._convert_list_indexer(keyarr)
             return Index(self.codes).get_indexer_for(indexer)
 
-        msg = "a list-indexer must only include values that are in the categories"
-        if self.hasnans:
-            msg += " or NA"
-        try:
-            codes = self._data._validate_setitem_value(keyarr)
-        except (ValueError, TypeError) as err:
-            if "Index data must be 1-dimensional" in str(err):
-                # e.g. test_setitem_ndarray_3d
-                raise
-            raise KeyError(msg)
-        if not self.hasnans and (codes == -1).any():
-            raise KeyError(msg)
-
-        return self.get_indexer(keyarr)
-
-    @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str, kind):
-        if kind == "loc":
-            return label
-
-        return super()._maybe_cast_slice_bound(label, side, kind)
+        return self.get_indexer_for(keyarr)
 
     # --------------------------------------------------------------------
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        return self.categories._is_comparable_dtype(dtype)
 
     def take_nd(self, *args, **kwargs):
         """Alias for `take`"""
@@ -689,11 +636,19 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
 
-    def _concat(self, to_concat: List["Index"], name: Label) -> "CategoricalIndex":
+    def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
         # if calling index is category, don't check dtype of others
-        codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
-        cat = self._data._from_backing_data(codes)
-        return type(self)._simple_new(cat, name=name)
+        try:
+            codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
+        except TypeError:
+            # not all to_concat elements are among our categories (or NA)
+            from pandas.core.dtypes.concat import concat_compat
+
+            res = concat_compat(to_concat)
+            return Index(res, name=name)
+        else:
+            cat = self._data._from_backing_data(codes)
+            return type(self)._simple_new(cat, name=name)
 
     def _delegate_method(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """

@@ -1,6 +1,13 @@
-from typing import Dict, List, Tuple
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+)
 
 import pandas._libs.json as json
+from pandas._typing import StorageOptions
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import validate_freeze_panes
@@ -168,11 +175,14 @@ class XlsxWriter(ExcelWriter):
         engine=None,
         date_format=None,
         datetime_format=None,
-        mode="w",
-        **engine_kwargs,
+        mode: str = "w",
+        storage_options: StorageOptions = None,
+        engine_kwargs: Optional[Dict[str, Any]] = None,
     ):
         # Use the xlsxwriter module as the Excel writer.
         from xlsxwriter import Workbook
+
+        engine_kwargs = engine_kwargs or {}
 
         if mode == "a":
             raise ValueError("Append mode is not supported with xlsxwriter!")
@@ -183,10 +193,11 @@ class XlsxWriter(ExcelWriter):
             date_format=date_format,
             datetime_format=datetime_format,
             mode=mode,
-            **engine_kwargs,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
         )
 
-        self.book = Workbook(path, **engine_kwargs)
+        self.book = Workbook(self.handles.handle, **engine_kwargs)
 
     def save(self):
         """

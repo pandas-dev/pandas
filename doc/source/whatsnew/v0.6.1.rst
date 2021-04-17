@@ -25,12 +25,12 @@ New features
   constructor (:issue:`444`)
 - DataFrame.convert_objects method for :ref:`inferring better dtypes <basics.cast>`
   for object columns (:issue:`302`)
-- Add :ref:`rolling_corr_pairwise <stats.moments.corr_pairwise>` function for
+- Add :ref:`rolling_corr_pairwise <window.corr_pairwise>` function for
   computing Panel of correlation matrices (:issue:`189`)
 - Add :ref:`margins <reshaping.pivot.margins>` option to :ref:`pivot_table
   <reshaping.pivot>` for computing subgroup aggregates (:issue:`114`)
 - Add ``Series.from_csv`` function (:issue:`482`)
-- :ref:`Can pass <stats.moments.binary>` DataFrame/DataFrame and
+- :ref:`Can pass <window.cov_corr>` DataFrame/DataFrame and
   DataFrame/Series to rolling_corr/rolling_cov (GH #462)
 - MultiIndex.get_level_values can :ref:`accept the level name <advanced.get_level_values>`
 

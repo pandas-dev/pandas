@@ -1,7 +1,12 @@
 """Common utilities for Numba operations"""
 from distutils.version import LooseVersion
 import types
-from typing import Callable, Dict, Optional, Tuple
+from typing import (
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+)
 
 import numpy as np
 
@@ -9,7 +14,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
 
 GLOBAL_USE_NUMBA: bool = False
-NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = dict()
+NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = {}
 
 
 def maybe_use_numba(engine: Optional[str]) -> bool:

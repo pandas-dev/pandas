@@ -1,6 +1,11 @@
 """Indexer objects for computing start/end window bounds for rolling operations"""
 from datetime import timedelta
-from typing import Dict, Optional, Tuple, Type
+from typing import (
+    Dict,
+    Optional,
+    Tuple,
+    Type,
+)
 
 import numpy as np
 
@@ -108,8 +113,17 @@ class VariableWindowIndexer(BaseIndexer):
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
+        # error: Argument 4 to "calculate_variable_window_bounds" has incompatible
+        # type "Optional[bool]"; expected "bool"
+        # error: Argument 6 to "calculate_variable_window_bounds" has incompatible
+        # type "Optional[ndarray]"; expected "ndarray"
         return calculate_variable_window_bounds(
-            num_values, self.window_size, min_periods, center, closed, self.index_array
+            num_values,
+            self.window_size,
+            min_periods,
+            center,  # type: ignore[arg-type]
+            closed,
+            self.index_array,  # type: ignore[arg-type]
         )
 
 
@@ -315,6 +329,8 @@ class GroupbyIndexer(BaseIndexer):
         end_arrays = []
         window_indicies_start = 0
         for key, indices in self.groupby_indicies.items():
+            index_array: np.ndarray | None
+
             if self.index_array is not None:
                 index_array = self.index_array.take(ensure_platform_int(indices))
             else:
@@ -344,3 +360,18 @@ class GroupbyIndexer(BaseIndexer):
         start = np.concatenate(start_arrays)
         end = np.concatenate(end_arrays)
         return start, end
+
+
+class ExponentialMovingWindowIndexer(BaseIndexer):
+    """Calculate ewm window bounds (the entire window)"""
+
+    @Appender(get_window_bounds_doc)
+    def get_window_bounds(
+        self,
+        num_values: int = 0,
+        min_periods: Optional[int] = None,
+        center: Optional[bool] = None,
+        closed: Optional[str] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+
+        return np.array([0], dtype=np.int64), np.array([num_values], dtype=np.int64)

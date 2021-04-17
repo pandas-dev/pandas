@@ -35,7 +35,7 @@ We will not introduce new deprecations in patch releases.
 Deprecations will only be enforced in **major** releases. For example, if a
 behavior is deprecated in pandas 1.2.0, it will continue to work, with a
 warning, for all releases in the 1.x series. The behavior will change and the
-deprecation removed in the next next major release (2.0.0).
+deprecation removed in the next major release (2.0.0).
 
 .. note::
 

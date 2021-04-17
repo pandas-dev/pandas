@@ -1,8 +1,19 @@
 """
 Module for formatting output data in Latex.
 """
-from abc import ABC, abstractmethod
-from typing import Iterator, List, Optional, Sequence, Tuple, Type, Union
+from abc import (
+    ABC,
+    abstractmethod,
+)
+from typing import (
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
@@ -153,11 +164,11 @@ class RowStringConverter(ABC):
                         break
                 return [x[0]] + [i if i else " " * len(pad) for i in x[1:]]
 
-            out = (pad_empties(i) for i in out)
+            gen = (pad_empties(i) for i in out)
 
             # Add empty spaces for each column level
             clevels = self.frame.columns.nlevels
-            out = [[" " * len(i[-1])] * clevels + i for i in out]
+            out = [[" " * len(i[-1])] * clevels + i for i in gen]
 
             # Add the column names to the last index column
             cnames = self.frame.columns.names

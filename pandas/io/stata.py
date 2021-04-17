@@ -9,14 +9,21 @@ a once again improved version.
 You can find more information on http://presbrey.mit.edu/PyDTA and
 https://www.statsmodels.org/devel/
 """
+from __future__ import annotations
+
 from collections import abc
 import datetime
 from io import BytesIO
 import os
-from pathlib import Path
 import struct
 import sys
-from typing import Any, AnyStr, Dict, List, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    Any,
+    AnyStr,
+    Hashable,
+    Sequence,
+    cast,
+)
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -28,10 +35,12 @@ from pandas._typing import (
     Buffer,
     CompressionOptions,
     FilePathOrBuffer,
-    Label,
     StorageOptions,
 )
-from pandas.util._decorators import Appender
+from pandas.util._decorators import (
+    Appender,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -49,16 +58,12 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+from pandas.core import generic
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
 
-from pandas.io.common import (
-    IOHandles,
-    get_filepath_or_buffer,
-    get_handle,
-    stringify_path,
-)
+from pandas.io.common import get_handle
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
@@ -96,6 +101,19 @@ chunksize : int, default None
     Return StataReader object for iterations, returns chunks with
     given number of lines."""
 
+_compression_params = f"""\
+compression : str or dict, default None
+    If string, specifies compression mode. If dict, value at key 'method'
+    specifies compression mode. Compression mode must be one of {{'infer',
+    'gzip', 'bz2', 'zip', 'xz', None}}. If compression mode is 'infer'
+    and `filepath_or_buffer` is path-like, then detect compression from
+    the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise
+    no compression). If dict and compression mode is one of
+    {{'zip', 'gzip', 'bz2'}}, or inferred as one of the above,
+    other entries passed as additional compression options.
+{generic._shared_docs["storage_options"]}"""
+
+
 _iterator_params = """\
 iterator : bool, default False
     Return StataReader object."""
@@ -127,6 +145,7 @@ filepath_or_buffer : str, path object or file-like object
 {_statafile_processing_params2}
 {_chunksize_params}
 {_iterator_params}
+{_compression_params}
 
 Returns
 -------
@@ -178,6 +197,7 @@ path_or_buf : path (string), buffer or path object
 {_statafile_processing_params1}
 {_statafile_processing_params2}
 {_chunksize_params}
+{_compression_params}
 
 {_reader_notes}
 """
@@ -375,15 +395,15 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         if is_datetime64_dtype(dates.dtype):
             if delta:
                 time_delta = dates - stata_epoch
-                d["delta"] = time_delta._values.astype(np.int64) // 1000  # microseconds
+                d["delta"] = time_delta._values.view(np.int64) // 1000  # microseconds
             if days or year:
                 date_index = DatetimeIndex(dates)
                 d["year"] = date_index._data.year
                 d["month"] = date_index._data.month
             if days:
-                days_in_ns = dates.astype(np.int64) - to_datetime(
+                days_in_ns = dates.view(np.int64) - to_datetime(
                     d["year"], format="%Y"
-                ).astype(np.int64)
+                ).view(np.int64)
                 d["days"] = days_in_ns // NS_PER_DAY
 
         elif infer_dtype(dates, skipna=False) == "datetime":
@@ -627,12 +647,12 @@ class StataValueLabel:
         self.value_labels = list(zip(np.arange(len(categories)), categories))
         self.value_labels.sort(key=lambda x: x[0])
         self.text_len = 0
-        self.txt: List[bytes] = []
+        self.txt: list[bytes] = []
         self.n = 0
 
         # Compute lengths and setup lists of offsets and labels
-        offsets: List[int] = []
-        values: List[int] = []
+        offsets: list[int] = []
+        values: list[int] = []
         for vl in self.value_labels:
             category = vl[1]
             if not isinstance(category, str):
@@ -711,8 +731,7 @@ class StataValueLabel:
         for text in self.txt:
             bio.write(text + null_byte)
 
-        bio.seek(0)
-        return bio.read()
+        return bio.getvalue()
 
 
 class StataMissingValue:
@@ -753,7 +772,7 @@ class StataMissingValue:
     """
 
     # Construct a dictionary of missing values
-    MISSING_VALUES: Dict[float, str] = {}
+    MISSING_VALUES: dict[float, str] = {}
     bases = (101, 32741, 2147483621)
     for b in bases:
         # Conversion to long to avoid hash issues on 32 bit platforms #8968
@@ -789,7 +808,7 @@ class StataMissingValue:
         "float64": struct.unpack("<d", float64_base)[0],
     }
 
-    def __init__(self, value: Union[int, float]):
+    def __init__(self, value: int | float):
         self._value = value
         # Conversion to int to avoid hash issues on 32 bit platforms #8968
         value = int(value) if value < 2147483648 else float(value)
@@ -808,7 +827,7 @@ class StataMissingValue:
         return self._str
 
     @property
-    def value(self) -> Union[int, float]:
+    def value(self) -> int | float:
         """
         The binary representation of the missing value.
 
@@ -833,7 +852,7 @@ class StataMissingValue:
         )
 
     @classmethod
-    def get_base_missing_value(cls, dtype: np.dtype) -> Union[int, float]:
+    def get_base_missing_value(cls, dtype: np.dtype) -> int | float:
         if dtype == np.int8:
             value = cls.BASE_MISSING_VALUES["int8"]
         elif dtype == np.int16:
@@ -877,30 +896,26 @@ class StataParser:
                 (255, np.dtype(np.float64)),
             ]
         )
-        self.DTYPE_MAP_XML = dict(
-            [
-                (32768, np.dtype(np.uint8)),  # Keys to GSO
-                (65526, np.dtype(np.float64)),
-                (65527, np.dtype(np.float32)),
-                (65528, np.dtype(np.int32)),
-                (65529, np.dtype(np.int16)),
-                (65530, np.dtype(np.int8)),
-            ]
-        )
+        self.DTYPE_MAP_XML = {
+            32768: np.dtype(np.uint8),  # Keys to GSO
+            65526: np.dtype(np.float64),
+            65527: np.dtype(np.float32),
+            65528: np.dtype(np.int32),
+            65529: np.dtype(np.int16),
+            65530: np.dtype(np.int8),
+        }
         # error: Argument 1 to "list" has incompatible type "str";
         #  expected "Iterable[int]"  [arg-type]
         self.TYPE_MAP = list(range(251)) + list("bhlfd")  # type: ignore[arg-type]
-        self.TYPE_MAP_XML = dict(
-            [
-                # Not really a Q, unclear how to handle byteswap
-                (32768, "Q"),
-                (65526, "d"),
-                (65527, "f"),
-                (65528, "l"),
-                (65529, "h"),
-                (65530, "b"),
-            ]
-        )
+        self.TYPE_MAP_XML = {
+            # Not really a Q, unclear how to handle byteswap
+            32768: "Q",
+            65526: "d",
+            65527: "f",
+            65528: "l",
+            65529: "h",
+            65530: "b",
+        }
         # NOTE: technically, some of these are wrong. there are more numbers
         # that can be represented. it's the 27 ABOVE and BELOW the max listed
         # numeric data type in [U] 12.2.2 of the 11.2 manual
@@ -1023,16 +1038,17 @@ class StataReader(StataParser, abc.Iterator):
         path_or_buf: FilePathOrBuffer,
         convert_dates: bool = True,
         convert_categoricals: bool = True,
-        index_col: Optional[str] = None,
+        index_col: str | None = None,
         convert_missing: bool = False,
         preserve_dtypes: bool = True,
-        columns: Optional[Sequence[str]] = None,
+        columns: Sequence[str] | None = None,
         order_categoricals: bool = True,
-        chunksize: Optional[int] = None,
+        chunksize: int | None = None,
+        compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ):
         super().__init__()
-        self.col_sizes: List[int] = []
+        self.col_sizes: list[int] = []
 
         # Arguments to the reader (can be temporarily overridden in
         # calls to read).
@@ -1058,29 +1074,27 @@ class StataReader(StataParser, abc.Iterator):
         self._column_selector_set = False
         self._value_labels_read = False
         self._data_read = False
-        self._dtype: Optional[np.dtype] = None
+        self._dtype: np.dtype | None = None
         self._lines_read = 0
 
         self._native_byteorder = _set_endianness(sys.byteorder)
-        self.ioargs = get_filepath_or_buffer(
-            path_or_buf, storage_options=storage_options
-        )
-
-        if isinstance(self.ioargs.filepath_or_buffer, (str, bytes)):
-            self.ioargs.filepath_or_buffer = open(self.ioargs.filepath_or_buffer, "rb")
-            self.ioargs.should_close = True
-        elif hasattr(path_or_buf, "read"):
+        with get_handle(
+            path_or_buf,
+            "rb",
+            storage_options=storage_options,
+            is_text=False,
+            compression=compression,
+        ) as handles:
             # Copy to BytesIO, and ensure no encoding
-            contents = self.ioargs.filepath_or_buffer.read()
-            self.ioargs.close()
-            self.ioargs.filepath_or_buffer = BytesIO(contents)  # type: ignore[arg-type]
-            self.ioargs.should_close = True
-        self.path_or_buf = cast(BytesIO, self.ioargs.filepath_or_buffer)
+
+            # Argument 1 to "BytesIO" has incompatible type "Union[Any, bytes, None,
+            # str]"; expected "bytes"
+            self.path_or_buf = BytesIO(handles.handle.read())  # type: ignore[arg-type]
 
         self._read_header()
         self._setup_dtype()
 
-    def __enter__(self) -> "StataReader":
+    def __enter__(self) -> StataReader:
         """ enter context manager """
         return self
 
@@ -1090,7 +1104,7 @@ class StataReader(StataParser, abc.Iterator):
 
     def close(self) -> None:
         """ close the handle if its open """
-        self.ioargs.close()
+        self.path_or_buf.close()
 
     def _set_encoding(self) -> None:
         """
@@ -1192,7 +1206,7 @@ class StataReader(StataParser, abc.Iterator):
     # Get data type information, works for versions 117-119.
     def _get_dtypes(
         self, seek_vartypes: int
-    ) -> Tuple[List[Union[int, str]], List[Union[str, np.dtype]]]:
+    ) -> tuple[list[int | str], list[str | np.dtype]]:
 
         self.path_or_buf.seek(seek_vartypes)
         raw_typlist = [
@@ -1200,7 +1214,7 @@ class StataReader(StataParser, abc.Iterator):
             for _ in range(self.nvar)
         ]
 
-        def f(typ: int) -> Union[int, str]:
+        def f(typ: int) -> int | str:
             if typ <= 2045:
                 return typ
             try:
@@ -1210,11 +1224,13 @@ class StataReader(StataParser, abc.Iterator):
 
         typlist = [f(x) for x in raw_typlist]
 
-        def g(typ: int) -> Union[str, np.dtype]:
+        def g(typ: int) -> str | np.dtype:
             if typ <= 2045:
                 return str(typ)
             try:
-                return self.DTYPE_MAP_XML[typ]
+                # error: Incompatible return value type (got "Type[number]", expected
+                # "Union[str, dtype]")
+                return self.DTYPE_MAP_XML[typ]  # type: ignore[return-value]
             except KeyError as err:
                 raise ValueError(f"cannot convert stata dtype [{typ}]") from err
 
@@ -1222,13 +1238,13 @@ class StataReader(StataParser, abc.Iterator):
 
         return typlist, dtyplist
 
-    def _get_varlist(self) -> List[str]:
+    def _get_varlist(self) -> list[str]:
         # 33 in order formats, 129 in formats 118 and 119
         b = 33 if self.format_version < 118 else 129
         return [self._decode(self.path_or_buf.read(b)) for _ in range(self.nvar)]
 
     # Returns the format list
-    def _get_fmtlist(self) -> List[str]:
+    def _get_fmtlist(self) -> list[str]:
         if self.format_version >= 118:
             b = 57
         elif self.format_version > 113:
@@ -1241,7 +1257,7 @@ class StataReader(StataParser, abc.Iterator):
         return [self._decode(self.path_or_buf.read(b)) for _ in range(self.nvar)]
 
     # Returns the label list
-    def _get_lbllist(self) -> List[str]:
+    def _get_lbllist(self) -> list[str]:
         if self.format_version >= 118:
             b = 129
         elif self.format_version > 108:
@@ -1250,7 +1266,7 @@ class StataReader(StataParser, abc.Iterator):
             b = 9
         return [self._decode(self.path_or_buf.read(b)) for _ in range(self.nvar)]
 
-    def _get_variable_labels(self) -> List[str]:
+    def _get_variable_labels(self) -> list[str]:
         if self.format_version >= 118:
             vlblist = [
                 self._decode(self.path_or_buf.read(321)) for _ in range(self.nvar)
@@ -1409,7 +1425,7 @@ class StataReader(StataParser, abc.Iterator):
 
         return self._dtype
 
-    def _calcsize(self, fmt: Union[int, str]) -> int:
+    def _calcsize(self, fmt: int | str) -> int:
         if isinstance(fmt, int):
             return fmt
         return struct.calcsize(self.byteorder + fmt)
@@ -1438,7 +1454,7 @@ the string values returned are correct."""
         if self.format_version <= 108:
             # Value labels are not supported in version 108 and earlier.
             self._value_labels_read = True
-            self.value_label_dict: Dict[str, Dict[Union[float, int], str]] = {}
+            self.value_label_dict: dict[str, dict[float | int, str]] = {}
             return
 
         if self.format_version >= 117:
@@ -1477,7 +1493,7 @@ the string values returned are correct."""
             off = off[ii]
             val = val[ii]
             txt = self.path_or_buf.read(txtlen)
-            self.value_label_dict[labname] = dict()
+            self.value_label_dict[labname] = {}
             for i in range(n):
                 end = off[i + 1] if i < n - 1 else txtlen
                 self.value_label_dict[labname][val[i]] = self._decode(txt[off[i] : end])
@@ -1520,7 +1536,7 @@ the string values returned are correct."""
         self._using_iterator = True
         return self.read(nrows=self._chunksize)
 
-    def get_chunk(self, size: Optional[int] = None) -> DataFrame:
+    def get_chunk(self, size: int | None = None) -> DataFrame:
         """
         Reads lines from Stata file and returns as dataframe
 
@@ -1540,14 +1556,14 @@ the string values returned are correct."""
     @Appender(_read_method_doc)
     def read(
         self,
-        nrows: Optional[int] = None,
-        convert_dates: Optional[bool] = None,
-        convert_categoricals: Optional[bool] = None,
-        index_col: Optional[str] = None,
-        convert_missing: Optional[bool] = None,
-        preserve_dtypes: Optional[bool] = None,
-        columns: Optional[Sequence[str]] = None,
-        order_categoricals: Optional[bool] = None,
+        nrows: int | None = None,
+        convert_dates: bool | None = None,
+        convert_categoricals: bool | None = None,
+        index_col: str | None = None,
+        convert_missing: bool | None = None,
+        preserve_dtypes: bool | None = None,
+        columns: Sequence[str] | None = None,
+        order_categoricals: bool | None = None,
     ) -> DataFrame:
         # Handle empty file or chunk.  If reading incrementally raise
         # StopIteration.  If reading the whole thing return an empty
@@ -1647,7 +1663,12 @@ the string values returned are correct."""
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
                 dtype = data[col].dtype
-                if dtype != np.dtype(object) and dtype != self.dtyplist[i]:
+                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
+                # "object"
+                if (
+                    dtype != np.dtype(object)  # type: ignore[type-var]
+                    and dtype != self.dtyplist[i]
+                ):
                     requires_type_conversion = True
                     data_formatted.append(
                         (col, Series(data[col], ix, self.dtyplist[i]))
@@ -1790,7 +1811,7 @@ the string values returned are correct."""
     def _do_convert_categoricals(
         self,
         data: DataFrame,
-        value_label_dict: Dict[str, Dict[Union[float, int], str]],
+        value_label_dict: dict[str, dict[float | int, str]],
         lbllist: Sequence[str],
         order_categoricals: bool,
     ) -> DataFrame:
@@ -1807,7 +1828,7 @@ the string values returned are correct."""
                 column = data[col]
                 key_matches = column.isin(keys)
                 if self._using_iterator and key_matches.all():
-                    initial_categories: Optional[np.ndarray] = keys
+                    initial_categories: np.ndarray | None = keys
                     # If all categories are in the keys and we are iterating,
                     # use the same keys for all chunks. If some are missing
                     # value labels, then we will fall back to the categories
@@ -1868,7 +1889,7 @@ The repeated labels are:
         """
         return self._data_label
 
-    def variable_labels(self) -> Dict[str, str]:
+    def variable_labels(self) -> dict[str, str]:
         """
         Return variable labels as a dict, associating each variable name
         with corresponding label.
@@ -1879,7 +1900,7 @@ The repeated labels are:
         """
         return dict(zip(self.varlist, self._variable_labels))
 
-    def value_labels(self) -> Dict[str, Dict[Union[float, int], str]]:
+    def value_labels(self) -> dict[str, dict[float | int, str]]:
         """
         Return a dict, associating each variable name a dict, associating
         each value its corresponding label.
@@ -1899,15 +1920,16 @@ def read_stata(
     filepath_or_buffer: FilePathOrBuffer,
     convert_dates: bool = True,
     convert_categoricals: bool = True,
-    index_col: Optional[str] = None,
+    index_col: str | None = None,
     convert_missing: bool = False,
     preserve_dtypes: bool = True,
-    columns: Optional[Sequence[str]] = None,
+    columns: Sequence[str] | None = None,
     order_categoricals: bool = True,
-    chunksize: Optional[int] = None,
+    chunksize: int | None = None,
     iterator: bool = False,
+    compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
-) -> Union[DataFrame, StataReader]:
+) -> DataFrame | StataReader:
 
     reader = StataReader(
         filepath_or_buffer,
@@ -1920,58 +1942,14 @@ def read_stata(
         order_categoricals=order_categoricals,
         chunksize=chunksize,
         storage_options=storage_options,
+        compression=compression,
     )
 
     if iterator or chunksize:
         return reader
 
-    try:
-        data = reader.read()
-    finally:
-        reader.close()
-    return data
-
-
-def _open_file_binary_write(
-    fname: FilePathOrBuffer,
-    compression: CompressionOptions,
-    storage_options: StorageOptions = None,
-) -> Tuple[IOHandles, CompressionOptions]:
-    """
-    Open a binary file or no-op if file-like.
-
-    Parameters
-    ----------
-    fname : string path, path object or buffer
-        The file name or buffer.
-    compression : {str, dict, None}
-        The compression method to use.
-
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
-
-        .. versionadded:: 1.2.0
-    """
-    ioargs = get_filepath_or_buffer(
-        fname, mode="wb", compression=compression, storage_options=storage_options
-    )
-    handles = get_handle(
-        ioargs.filepath_or_buffer,
-        "wb",
-        compression=ioargs.compression,
-        is_text=False,
-    )
-    if ioargs.filepath_or_buffer != fname and not isinstance(
-        ioargs.filepath_or_buffer, str
-    ):
-        # add handle created by get_filepath_or_buffer
-        handles.created_handles.append(ioargs.filepath_or_buffer)
-    return handles, ioargs.compression
+    with reader:
+        return reader.read()
 
 
 def _set_endianness(endianness: str) -> str:
@@ -2017,7 +1995,7 @@ def _convert_datetime_to_stata_type(fmt: str) -> np.dtype:
         raise NotImplementedError(f"Format {fmt} not implemented")
 
 
-def _maybe_convert_to_int_keys(convert_dates: Dict, varlist: List[Label]) -> Dict:
+def _maybe_convert_to_int_keys(convert_dates: dict, varlist: list[Hashable]) -> dict:
     new_dict = {}
     for key in convert_dates:
         if not convert_dates[key].startswith("%"):  # make sure proper fmts
@@ -2112,6 +2090,7 @@ def _dtype_to_default_stata_fmt(
         raise NotImplementedError(f"Data type {dtype} not supported.")
 
 
+@doc(storage_options=generic._shared_docs["storage_options"])
 class StataWriter(StataParser):
     """
     A class for writing Stata binary dta files
@@ -2146,22 +2125,16 @@ class StataWriter(StataParser):
     compression : str or dict, default 'infer'
         For on-the-fly compression of the output dta. If string, specifies
         compression mode. If dict, value at key 'method' specifies compression
-        mode. Compression mode must be one of {'infer', 'gzip', 'bz2', 'zip',
-        'xz', None}. If compression mode is 'infer' and `fname` is path-like,
+        mode. Compression mode must be one of {{'infer', 'gzip', 'bz2', 'zip',
+        'xz', None}}. If compression mode is 'infer' and `fname` is path-like,
         then detect compression from the following extensions: '.gz', '.bz2',
         '.zip', or '.xz' (otherwise no compression). If dict and compression
-        mode is one of {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
+        mode is one of {{'zip', 'gzip', 'bz2'}}, or inferred as one of the above,
         other entries passed as additional compression options.
 
         .. versionadded:: 1.1.0
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+    {storage_options}
 
         .. versionadded:: 1.2.0
 
@@ -2189,14 +2162,14 @@ class StataWriter(StataParser):
     >>> writer.write_file()
 
     Directly write a zip file
-    >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
+    >>> compression = {{"method": "zip", "archive_name": "data_file.dta"}}
     >>> writer = StataWriter('./data_file.zip', data, compression=compression)
     >>> writer.write_file()
 
     Save a DataFrame with dates
     >>> from datetime import datetime
     >>> data = pd.DataFrame([[datetime(2000,1,1)]], columns=['date'])
-    >>> writer = StataWriter('./date_data_file.dta', data, {'date' : 'tw'})
+    >>> writer = StataWriter('./date_data_file.dta', data, {{'date' : 'tw'}})
     >>> writer.write_file()
     """
 
@@ -2207,12 +2180,12 @@ class StataWriter(StataParser):
         self,
         fname: FilePathOrBuffer,
         data: DataFrame,
-        convert_dates: Optional[Dict[Label, str]] = None,
+        convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
-        byteorder: Optional[str] = None,
-        time_stamp: Optional[datetime.datetime] = None,
-        data_label: Optional[str] = None,
-        variable_labels: Optional[Dict[Label, str]] = None,
+        byteorder: str | None = None,
+        time_stamp: datetime.datetime | None = None,
+        data_label: str | None = None,
+        variable_labels: dict[Hashable, str] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ):
@@ -2223,7 +2196,7 @@ class StataWriter(StataParser):
         self._data_label = data_label
         self._variable_labels = variable_labels
         self._compression = compression
-        self._output_file: Optional[Buffer] = None
+        self._output_file: Buffer | None = None
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
         self.storage_options = storage_options
@@ -2231,9 +2204,9 @@ class StataWriter(StataParser):
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
-        self._fname = stringify_path(fname)
+        self._fname = fname
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
-        self._converted_names: Dict[Label, str] = {}
+        self._converted_names: dict[Hashable, str] = {}
 
     def _write(self, to_write: str) -> None:
         """
@@ -2256,7 +2229,7 @@ class StataWriter(StataParser):
         """
         is_cat = [is_categorical_dtype(data[col].dtype) for col in data]
         self._is_col_cat = is_cat
-        self._value_labels: List[StataValueLabel] = []
+        self._value_labels: list[StataValueLabel] = []
         if not any(is_cat):
             return data
 
@@ -2355,8 +2328,8 @@ class StataWriter(StataParser):
         dates are exported, the variable name is propagated to the date
         conversion dictionary
         """
-        converted_names: Dict[Label, str] = {}
-        columns: List[Label] = list(data.columns)
+        converted_names: dict[Hashable, str] = {}
+        columns = list(data.columns)
         original_columns = columns[:]
 
         duplicate_var_id = 0
@@ -2412,8 +2385,8 @@ class StataWriter(StataParser):
         return data
 
     def _set_formats_and_types(self, dtypes: Series) -> None:
-        self.fmtlist: List[str] = []
-        self.typlist: List[int] = []
+        self.fmtlist: list[str] = []
+        self.typlist: list[int] = []
         for col, dtype in dtypes.items():
             self.fmtlist.append(_dtype_to_default_stata_fmt(dtype, self.data[col]))
             self.typlist.append(_dtype_to_stata_type(dtype, self.data[col]))
@@ -2511,45 +2484,54 @@ supported types."""
                     self.data[col] = encoded
 
     def write_file(self) -> None:
-        self.handles, compression = _open_file_binary_write(
-            self._fname, self._compression, storage_options=self.storage_options
-        )
-        if compression is not None:
-            # ZipFile creates a file (with the same name) for each write call.
-            # Write it first into a buffer and then write the buffer to the ZipFile.
-            self._output_file = self.handles.handle
-            self.handles.handle = BytesIO()
-        try:
-            self._write_header(data_label=self._data_label, time_stamp=self._time_stamp)
-            self._write_map()
-            self._write_variable_types()
-            self._write_varnames()
-            self._write_sortlist()
-            self._write_formats()
-            self._write_value_label_names()
-            self._write_variable_labels()
-            self._write_expansion_fields()
-            self._write_characteristics()
-            records = self._prepare_data()
-            self._write_data(records)
-            self._write_strls()
-            self._write_value_labels()
-            self._write_file_close_tag()
-            self._write_map()
-        except Exception as exc:
-            self._close()
-            if isinstance(self._fname, (str, Path)):
-                try:
-                    os.unlink(self._fname)
-                except OSError:
-                    warnings.warn(
-                        f"This save was not successful but {self._fname} could not "
-                        "be deleted.  This file is not valid.",
-                        ResourceWarning,
-                    )
-            raise exc
-        else:
-            self._close()
+        with get_handle(
+            self._fname,
+            "wb",
+            compression=self._compression,
+            is_text=False,
+            storage_options=self.storage_options,
+        ) as self.handles:
+
+            if self.handles.compression["method"] is not None:
+                # ZipFile creates a file (with the same name) for each write call.
+                # Write it first into a buffer and then write the buffer to the ZipFile.
+                self._output_file, self.handles.handle = self.handles.handle, BytesIO()
+                self.handles.created_handles.append(self.handles.handle)
+
+            try:
+                self._write_header(
+                    data_label=self._data_label, time_stamp=self._time_stamp
+                )
+                self._write_map()
+                self._write_variable_types()
+                self._write_varnames()
+                self._write_sortlist()
+                self._write_formats()
+                self._write_value_label_names()
+                self._write_variable_labels()
+                self._write_expansion_fields()
+                self._write_characteristics()
+                records = self._prepare_data()
+                self._write_data(records)
+                self._write_strls()
+                self._write_value_labels()
+                self._write_file_close_tag()
+                self._write_map()
+                self._close()
+            except Exception as exc:
+                self.handles.close()
+                if isinstance(self._fname, (str, os.PathLike)) and os.path.isfile(
+                    self._fname
+                ):
+                    try:
+                        os.unlink(self._fname)
+                    except OSError:
+                        warnings.warn(
+                            f"This save was not successful but {self._fname} could not "
+                            "be deleted. This file is not valid.",
+                            ResourceWarning,
+                        )
+                raise exc
 
     def _close(self) -> None:
         """
@@ -2561,13 +2543,8 @@ supported types."""
         # write compression
         if self._output_file is not None:
             assert isinstance(self.handles.handle, BytesIO)
-            bio = self.handles.handle
-            bio.seek(0)
-            self.handles.handle = self._output_file
-            self.handles.handle.write(bio.read())  # type: ignore[arg-type]
-            bio.close()
-        # close any created handles
-        self.handles.close()
+            bio, self.handles.handle = self.handles.handle, self._output_file
+            self.handles.handle.write(bio.getvalue())  # type: ignore[arg-type]
 
     def _write_map(self) -> None:
         """No-op, future compatibility"""
@@ -2595,8 +2572,8 @@ supported types."""
 
     def _write_header(
         self,
-        data_label: Optional[str] = None,
-        time_stamp: Optional[datetime.datetime] = None,
+        data_label: str | None = None,
+        time_stamp: datetime.datetime | None = None,
     ) -> None:
         byteorder = self._byteorder
         # ds_format - just use 114
@@ -2796,7 +2773,7 @@ def _dtype_to_stata_type_117(dtype: np.dtype, column: Series, force_strl: bool) 
         raise NotImplementedError(f"Data type {dtype} not supported.")
 
 
-def _pad_bytes_new(name: Union[str, bytes], length: int) -> bytes:
+def _pad_bytes_new(name: str | bytes, length: int) -> bytes:
     """
     Takes a bytes instance and pads it with null bytes until it's length chars.
     """
@@ -2839,7 +2816,7 @@ class StataStrLWriter:
         df: DataFrame,
         columns: Sequence[str],
         version: int = 117,
-        byteorder: Optional[str] = None,
+        byteorder: str | None = None,
     ):
         if version not in (117, 118, 119):
             raise ValueError("Only dta versions 117, 118 and 119 supported")
@@ -2867,11 +2844,11 @@ class StataStrLWriter:
         self._gso_o_type = gso_o_type
         self._gso_v_type = gso_v_type
 
-    def _convert_key(self, key: Tuple[int, int]) -> int:
+    def _convert_key(self, key: tuple[int, int]) -> int:
         v, o = key
         return v + self._o_offet * o
 
-    def generate_table(self) -> Tuple[Dict[str, Tuple[int, int]], DataFrame]:
+    def generate_table(self) -> tuple[dict[str, tuple[int, int]], DataFrame]:
         """
         Generates the GSO lookup table for the DataFrame
 
@@ -2922,7 +2899,7 @@ class StataStrLWriter:
 
         return gso_table, gso_df
 
-    def generate_blob(self, gso_table: Dict[str, Tuple[int, int]]) -> bytes:
+    def generate_blob(self, gso_table: dict[str, tuple[int, int]]) -> bytes:
         """
         Generates the binary blob of GSOs that is written to the dta file.
 
@@ -2983,8 +2960,7 @@ class StataStrLWriter:
             bio.write(utf8_string)
             bio.write(null)
 
-        bio.seek(0)
-        return bio.read()
+        return bio.getvalue()
 
 
 class StataWriter117(StataWriter):
@@ -3080,18 +3056,18 @@ class StataWriter117(StataWriter):
         self,
         fname: FilePathOrBuffer,
         data: DataFrame,
-        convert_dates: Optional[Dict[Label, str]] = None,
+        convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
-        byteorder: Optional[str] = None,
-        time_stamp: Optional[datetime.datetime] = None,
-        data_label: Optional[str] = None,
-        variable_labels: Optional[Dict[Label, str]] = None,
-        convert_strl: Optional[Sequence[Label]] = None,
+        byteorder: str | None = None,
+        time_stamp: datetime.datetime | None = None,
+        data_label: str | None = None,
+        variable_labels: dict[Hashable, str] | None = None,
+        convert_strl: Sequence[Hashable] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ):
         # Copy to new list since convert_strl might be modified later
-        self._convert_strl: List[Label] = []
+        self._convert_strl: list[Hashable] = []
         if convert_strl is not None:
             self._convert_strl.extend(convert_strl)
 
@@ -3107,11 +3083,11 @@ class StataWriter117(StataWriter):
             compression=compression,
             storage_options=storage_options,
         )
-        self._map: Dict[str, int] = {}
+        self._map: dict[str, int] = {}
         self._strl_blob = b""
 
     @staticmethod
-    def _tag(val: Union[str, bytes], tag: str) -> bytes:
+    def _tag(val: str | bytes, tag: str) -> bytes:
         """Surround val with <tag></tag>"""
         if isinstance(val, str):
             val = bytes(val, "utf-8")
@@ -3124,8 +3100,8 @@ class StataWriter117(StataWriter):
 
     def _write_header(
         self,
-        data_label: Optional[str] = None,
-        time_stamp: Optional[datetime.datetime] = None,
+        data_label: str | None = None,
+        time_stamp: datetime.datetime | None = None,
     ) -> None:
         """Write the file header"""
         byteorder = self._byteorder
@@ -3178,8 +3154,7 @@ class StataWriter117(StataWriter):
         # '\x11' added due to inspection of Stata file
         stata_ts = b"\x11" + bytes(ts, "utf-8")
         bio.write(self._tag(stata_ts, "timestamp"))
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "header"))
+        self._write_bytes(self._tag(bio.getvalue(), "header"))
 
     def _write_map(self) -> None:
         """
@@ -3188,39 +3163,35 @@ class StataWriter117(StataWriter):
         all blocks have been written.
         """
         if not self._map:
-            self._map = dict(
-                (
-                    ("stata_data", 0),
-                    ("map", self.handles.handle.tell()),
-                    ("variable_types", 0),
-                    ("varnames", 0),
-                    ("sortlist", 0),
-                    ("formats", 0),
-                    ("value_label_names", 0),
-                    ("variable_labels", 0),
-                    ("characteristics", 0),
-                    ("data", 0),
-                    ("strls", 0),
-                    ("value_labels", 0),
-                    ("stata_data_close", 0),
-                    ("end-of-file", 0),
-                )
-            )
+            self._map = {
+                "stata_data": 0,
+                "map": self.handles.handle.tell(),
+                "variable_types": 0,
+                "varnames": 0,
+                "sortlist": 0,
+                "formats": 0,
+                "value_label_names": 0,
+                "variable_labels": 0,
+                "characteristics": 0,
+                "data": 0,
+                "strls": 0,
+                "value_labels": 0,
+                "stata_data_close": 0,
+                "end-of-file": 0,
+            }
         # Move to start of map
         self.handles.handle.seek(self._map["map"])
         bio = BytesIO()
         for val in self._map.values():
             bio.write(struct.pack(self._byteorder + "Q", val))
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "map"))
+        self._write_bytes(self._tag(bio.getvalue(), "map"))
 
     def _write_variable_types(self) -> None:
         self._update_map("variable_types")
         bio = BytesIO()
         for typ in self.typlist:
             bio.write(struct.pack(self._byteorder + "H", typ))
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "variable_types"))
+        self._write_bytes(self._tag(bio.getvalue(), "variable_types"))
 
     def _write_varnames(self) -> None:
         self._update_map("varnames")
@@ -3231,8 +3202,7 @@ class StataWriter117(StataWriter):
             name = self._null_terminate_str(name)
             name = _pad_bytes_new(name[:32].encode(self._encoding), vn_len + 1)
             bio.write(name)
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "varnames"))
+        self._write_bytes(self._tag(bio.getvalue(), "varnames"))
 
     def _write_sortlist(self) -> None:
         self._update_map("sortlist")
@@ -3245,8 +3215,7 @@ class StataWriter117(StataWriter):
         fmt_len = 49 if self._dta_version == 117 else 57
         for fmt in self.fmtlist:
             bio.write(_pad_bytes_new(fmt.encode(self._encoding), fmt_len))
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "formats"))
+        self._write_bytes(self._tag(bio.getvalue(), "formats"))
 
     def _write_value_label_names(self) -> None:
         self._update_map("value_label_names")
@@ -3261,8 +3230,7 @@ class StataWriter117(StataWriter):
             name = self._null_terminate_str(name)
             encoded_name = _pad_bytes_new(name[:32].encode(self._encoding), vl_len + 1)
             bio.write(encoded_name)
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "value_label_names"))
+        self._write_bytes(self._tag(bio.getvalue(), "value_label_names"))
 
     def _write_variable_labels(self) -> None:
         # Missing labels are 80 blank characters plus null termination
@@ -3275,8 +3243,7 @@ class StataWriter117(StataWriter):
         if self._variable_labels is None:
             for _ in range(self.nvar):
                 bio.write(blank)
-            bio.seek(0)
-            self._write_bytes(self._tag(bio.read(), "variable_labels"))
+            self._write_bytes(self._tag(bio.getvalue(), "variable_labels"))
             return
 
         for col in self.data:
@@ -3295,8 +3262,7 @@ class StataWriter117(StataWriter):
                 bio.write(_pad_bytes_new(encoded, vl_len + 1))
             else:
                 bio.write(blank)
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "variable_labels"))
+        self._write_bytes(self._tag(bio.getvalue(), "variable_labels"))
 
     def _write_characteristics(self) -> None:
         self._update_map("characteristics")
@@ -3323,8 +3289,7 @@ class StataWriter117(StataWriter):
             lab = vl.generate_value_label(self._byteorder)
             lab = self._tag(lab, "lbl")
             bio.write(lab)
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "value_labels"))
+        self._write_bytes(self._tag(bio.getvalue(), "value_labels"))
 
     def _write_file_close_tag(self) -> None:
         self._update_map("stata_data_close")
@@ -3483,14 +3448,14 @@ class StataWriterUTF8(StataWriter117):
         self,
         fname: FilePathOrBuffer,
         data: DataFrame,
-        convert_dates: Optional[Dict[Label, str]] = None,
+        convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
-        byteorder: Optional[str] = None,
-        time_stamp: Optional[datetime.datetime] = None,
-        data_label: Optional[str] = None,
-        variable_labels: Optional[Dict[Label, str]] = None,
-        convert_strl: Optional[Sequence[Label]] = None,
-        version: Optional[int] = None,
+        byteorder: str | None = None,
+        time_stamp: datetime.datetime | None = None,
+        data_label: str | None = None,
+        variable_labels: dict[Hashable, str] | None = None,
+        convert_strl: Sequence[Hashable] | None = None,
+        version: int | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ):

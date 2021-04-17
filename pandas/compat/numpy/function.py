@@ -16,11 +16,22 @@ methods that are spread throughout the codebase. This module will make it
 easier to adjust to future upstream changes in the analogous numpy signatures.
 """
 from distutils.version import LooseVersion
-from typing import Any, Dict, Optional, Union
+from typing import (
+    Any,
+    Dict,
+    Optional,
+    Union,
+)
 
-from numpy import __version__, ndarray
+from numpy import (
+    __version__,
+    ndarray,
+)
 
-from pandas._libs.lib import is_bool, is_integer
+from pandas._libs.lib import (
+    is_bool,
+    is_integer,
+)
 from pandas.errors import UnsupportedFunctionCall
 from pandas.util._validators import (
     validate_args,
@@ -71,7 +82,7 @@ class CompatValidator:
                 raise ValueError(f"invalid validation method '{method}'")
 
 
-ARGMINMAX_DEFAULTS = dict(out=None)
+ARGMINMAX_DEFAULTS = {"out": None}
 validate_argmin = CompatValidator(
     ARGMINMAX_DEFAULTS, fname="argmin", method="both", max_fname_arg_count=1
 )
@@ -151,7 +162,7 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
     return ascending
 
 
-CLIP_DEFAULTS: Dict[str, Any] = dict(out=None)
+CLIP_DEFAULTS: Dict[str, Any] = {"out": None}
 validate_clip = CompatValidator(
     CLIP_DEFAULTS, fname="clip", method="both", max_fname_arg_count=3
 )
@@ -201,6 +212,7 @@ ALLANY_DEFAULTS: Dict[str, Optional[bool]] = {}
 ALLANY_DEFAULTS["dtype"] = None
 ALLANY_DEFAULTS["out"] = None
 ALLANY_DEFAULTS["keepdims"] = False
+ALLANY_DEFAULTS["axis"] = None
 validate_all = CompatValidator(
     ALLANY_DEFAULTS, fname="all", method="both", max_fname_arg_count=1
 )
@@ -208,10 +220,10 @@ validate_any = CompatValidator(
     ALLANY_DEFAULTS, fname="any", method="both", max_fname_arg_count=1
 )
 
-LOGICAL_FUNC_DEFAULTS = dict(out=None, keepdims=False)
+LOGICAL_FUNC_DEFAULTS = {"out": None, "keepdims": False}
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method="kwargs")
 
-MINMAX_DEFAULTS = dict(axis=None, out=None, keepdims=False)
+MINMAX_DEFAULTS = {"axis": None, "out": None, "keepdims": False}
 validate_min = CompatValidator(
     MINMAX_DEFAULTS, fname="min", method="both", max_fname_arg_count=1
 )
@@ -219,17 +231,17 @@ validate_max = CompatValidator(
     MINMAX_DEFAULTS, fname="max", method="both", max_fname_arg_count=1
 )
 
-RESHAPE_DEFAULTS: Dict[str, str] = dict(order="C")
+RESHAPE_DEFAULTS: Dict[str, str] = {"order": "C"}
 validate_reshape = CompatValidator(
     RESHAPE_DEFAULTS, fname="reshape", method="both", max_fname_arg_count=1
 )
 
-REPEAT_DEFAULTS: Dict[str, Any] = dict(axis=None)
+REPEAT_DEFAULTS: Dict[str, Any] = {"axis": None}
 validate_repeat = CompatValidator(
     REPEAT_DEFAULTS, fname="repeat", method="both", max_fname_arg_count=1
 )
 
-ROUND_DEFAULTS: Dict[str, Any] = dict(out=None)
+ROUND_DEFAULTS: Dict[str, Any] = {"out": None}
 validate_round = CompatValidator(
     ROUND_DEFAULTS, fname="round", method="both", max_fname_arg_count=1
 )
@@ -300,7 +312,7 @@ def validate_take_with_convert(convert, args, kwargs):
     return convert
 
 
-TRANSPOSE_DEFAULTS = dict(axes=None)
+TRANSPOSE_DEFAULTS = {"axes": None}
 validate_transpose = CompatValidator(
     TRANSPOSE_DEFAULTS, fname="transpose", method="both", max_fname_arg_count=0
 )

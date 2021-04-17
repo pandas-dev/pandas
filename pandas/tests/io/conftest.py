@@ -1,3 +1,4 @@
+import logging
 import os
 import shlex
 import subprocess
@@ -36,7 +37,7 @@ def feather_file(datapath):
 @pytest.fixture
 def s3so(worker_id):
     worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
-    return dict(client_kwargs={"endpoint_url": f"http://127.0.0.1:555{worker_id}/"})
+    return {"client_kwargs": {"endpoint_url": f"http://127.0.0.1:555{worker_id}/"}}
 
 
 @pytest.fixture(scope="session")
@@ -49,6 +50,7 @@ def s3_base(worker_id):
     pytest.importorskip("s3fs")
     pytest.importorskip("boto3")
     requests = pytest.importorskip("requests")
+    logging.getLogger("requests").disabled = True
 
     with tm.ensure_safe_environment_variables():
         # temporary workaround as moto fails for botocore >= 1.11 otherwise,
@@ -68,7 +70,9 @@ def s3_base(worker_id):
 
         # pipe to null to avoid logging in terminal
         proc = subprocess.Popen(
-            shlex.split(f"moto_server s3 -p {endpoint_port}"), stdout=subprocess.DEVNULL
+            shlex.split(f"moto_server s3 -p {endpoint_port}"),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
 
         timeout = 5

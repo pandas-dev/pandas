@@ -7,12 +7,24 @@ import numpy as np
 import pytest
 import pytz
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.core.computation.expressions import _MIN_ELEMENTS, NUMEXPR_INSTALLED
-from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
+from pandas.core.computation.expressions import (
+    _MIN_ELEMENTS,
+    NUMEXPR_INSTALLED,
+)
+from pandas.tests.frame.common import (
+    _check_mixed_float,
+    _check_mixed_int,
+)
 
 
 class DummyElement:
@@ -46,6 +58,21 @@ class DummyElement:
 
 class TestFrameComparisons:
     # Specifically _not_ flex-comparisons
+
+    def test_comparison_with_categorical_dtype(self):
+        # GH#12564
+
+        df = DataFrame({"A": ["foo", "bar", "baz"]})
+        exp = DataFrame({"A": [True, False, False]})
+
+        res = df == "foo"
+        tm.assert_frame_equal(res, exp)
+
+        # casting to categorical shouldn't affect the result
+        df["A"] = df["A"].astype("category")
+
+        res = df == "foo"
+        tm.assert_frame_equal(res, exp)
 
     def test_frame_in_list(self):
         # GH#12689 this should raise at the DataFrame level, not blocks
@@ -473,7 +500,7 @@ class TestFrameFlexArithmetic:
         result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
         expected = f(mixed_float_frame, 2 * mixed_float_frame)
         tm.assert_frame_equal(result, expected)
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
     @pytest.mark.parametrize("op", ["__add__", "__sub__", "__mul__"])
     def test_arith_flex_frame_mixed(
@@ -488,9 +515,9 @@ class TestFrameFlexArithmetic:
         # no overflow in the uint
         dtype = None
         if op in ["__sub__"]:
-            dtype = dict(B="uint64", C=None)
+            dtype = {"B": "uint64", "C": None}
         elif op in ["__add__", "__mul__"]:
-            dtype = dict(C=None)
+            dtype = {"C": None}
         tm.assert_frame_equal(result, expected)
         _check_mixed_int(result, dtype=dtype)
 
@@ -498,7 +525,7 @@ class TestFrameFlexArithmetic:
         result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
         expected = f(mixed_float_frame, 2 * mixed_float_frame)
         tm.assert_frame_equal(result, expected)
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
         # vs plain int
         result = getattr(int_frame, op)(2 * int_frame)
@@ -587,6 +614,26 @@ class TestFrameFlexArithmetic:
         res = df.add(2, fill_value=0)
         tm.assert_frame_equal(res, exp)
 
+    def test_sub_alignment_with_duplicate_index(self):
+        # GH#5185 dup aligning operations should work
+        df1 = DataFrame([1, 2, 3, 4, 5], index=[1, 2, 1, 2, 3])
+        df2 = DataFrame([1, 2, 3], index=[1, 2, 3])
+        expected = DataFrame([0, 2, 0, 2, 2], index=[1, 1, 2, 2, 3])
+        result = df1.sub(df2)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("op", ["__add__", "__mul__", "__sub__", "__truediv__"])
+    def test_arithmetic_with_duplicate_columns(self, op):
+        # operations
+        df = DataFrame({"A": np.arange(10), "B": np.random.rand(10)})
+        expected = getattr(df, op)(df)
+        expected.columns = ["A", "A"]
+        df.columns = ["A", "A"]
+        result = getattr(df, op)(df)
+        tm.assert_frame_equal(result, expected)
+        str(result)
+        result.dtypes
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
@@ -641,6 +688,7 @@ class TestFrameArithmetic:
         result = collike + df
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
     def test_df_arith_2d_array_rowlike_broadcasts(self, all_arithmetic_operators):
         # GH#23000
         opname = all_arithmetic_operators
@@ -662,6 +710,7 @@ class TestFrameArithmetic:
         result = getattr(df, opname)(rowlike)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
     def test_df_arith_2d_array_collike_broadcasts(self, all_arithmetic_operators):
         # GH#23000
         opname = all_arithmetic_operators
@@ -834,17 +883,13 @@ class TestFrameArithmetic:
         ids=lambda x: x.__name__,
     )
     def test_binop_other(self, op, value, dtype):
+
         skip = {
-            (operator.add, "bool"),
-            (operator.sub, "bool"),
-            (operator.mul, "bool"),
             (operator.truediv, "bool"),
-            (operator.mod, "i8"),
-            (operator.mod, "complex128"),
             (operator.pow, "bool"),
+            (operator.add, "bool"),
+            (operator.mul, "bool"),
         }
-        if (op, dtype) in skip:
-            pytest.skip(f"Invalid combination {op},{dtype}")
 
         e = DummyElement(value, dtype)
         s = DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
@@ -857,26 +902,52 @@ class TestFrameArithmetic:
             (operator.add, "<M8[ns]"),
             (operator.pow, "<m8[ns]"),
             (operator.mul, "<m8[ns]"),
+            (operator.sub, "bool"),
+            (operator.mod, "complex128"),
         }
 
         if (op, dtype) in invalid:
-            msg = (
-                None
-                if (dtype == "<M8[ns]" and op == operator.add)
-                or (dtype == "<m8[ns]" and op == operator.mul)
-                else (
+            warn = None
+            if (dtype == "<M8[ns]" and op == operator.add) or (
+                dtype == "<m8[ns]" and op == operator.mul
+            ):
+                msg = None
+            elif dtype == "complex128":
+                msg = "ufunc 'remainder' not supported for the input types"
+                warn = UserWarning  # "evaluating in Python space because ..."
+            elif op is operator.sub:
+                msg = "numpy boolean subtract, the `-` operator, is "
+                warn = UserWarning  # "evaluating in Python space because ..."
+            else:
+                msg = (
                     f"cannot perform __{op.__name__}__ with this "
                     "index type: (DatetimeArray|TimedeltaArray)"
                 )
-            )
 
             with pytest.raises(TypeError, match=msg):
-                op(s, e.value)
+                with tm.assert_produces_warning(warn):
+                    op(s, e.value)
+
+        elif (op, dtype) in skip:
+
+            if op in [operator.add, operator.mul]:
+                with tm.assert_produces_warning(UserWarning):
+                    # "evaluating in Python space because ..."
+                    op(s, e.value)
+
+            else:
+                msg = "operator '.*' not implemented for .* dtypes"
+                with pytest.raises(NotImplementedError, match=msg):
+                    with tm.assert_produces_warning(UserWarning):
+                        # "evaluating in Python space because ..."
+                        op(s, e.value)
+
         else:
             # FIXME: Since dispatching to Series, this test no longer
             # asserts anything meaningful
-            result = op(s, e.value).dtypes
-            expected = op(s, value).dtypes
+            with tm.assert_produces_warning(None):
+                result = op(s, e.value).dtypes
+                expected = op(s, value).dtypes
             tm.assert_series_equal(result, expected)
 
 
@@ -950,7 +1021,7 @@ class TestFrameArithmeticUnsorted:
 
         result = ts + ts[::2]
         expected = ts + ts
-        expected.values[1::2] = np.nan
+        expected.iloc[1::2] = np.nan
         tm.assert_frame_equal(result, expected)
 
         half = ts[::2]
@@ -1126,7 +1197,7 @@ class TestFrameArithmeticUnsorted:
 
         # mix vs mix
         added = mixed_float_frame + mixed_float_frame
-        _check_mixed_float(added, dtype=dict(C=None))
+        _check_mixed_float(added, dtype={"C": None})
 
         # with int
         added = float_frame + mixed_int_frame
@@ -1160,20 +1231,20 @@ class TestFrameArithmeticUnsorted:
 
         # vs mix (upcast) as needed
         added = mixed_float_frame + series.astype("float32")
-        _check_mixed_float(added, dtype=dict(C=None))
+        _check_mixed_float(added, dtype={"C": None})
         added = mixed_float_frame + series.astype("float16")
-        _check_mixed_float(added, dtype=dict(C=None))
+        _check_mixed_float(added, dtype={"C": None})
 
         # FIXME: don't leave commented-out
         # these raise with numexpr.....as we are adding an int64 to an
         # uint64....weird vs int
 
         # added = mixed_int_frame + (100*series).astype('int64')
-        # _check_mixed_int(added, dtype = dict(A = 'int64', B = 'float64', C =
-        # 'int64', D = 'int64'))
+        # _check_mixed_int(added, dtype = {"A": 'int64', "B": 'float64', "C":
+        # 'int64', "D": 'int64'})
         # added = mixed_int_frame + (100*series).astype('int32')
-        # _check_mixed_int(added, dtype = dict(A = 'int32', B = 'float64', C =
-        # 'int32', D = 'int64'))
+        # _check_mixed_int(added, dtype = {"A": 'int32', "B": 'float64', "C":
+        # 'int32', "D": 'int64'})
 
         # TimeSeries
         ts = datetime_frame["A"]
@@ -1228,7 +1299,7 @@ class TestFrameArithmeticUnsorted:
         result = mixed_float_frame * 2
         for c, s in result.items():
             tm.assert_numpy_array_equal(s.values, mixed_float_frame[c].values * 2)
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
         result = DataFrame() * 2
         assert result.index.equals(DataFrame().index)
@@ -1284,7 +1355,7 @@ class TestFrameArithmeticUnsorted:
 
     def test_comparison_protected_from_errstate(self):
         missing_df = tm.makeDataFrame()
-        missing_df.iloc[0]["A"] = np.nan
+        missing_df.loc[missing_df.index[0], "A"] = np.nan
         with np.errstate(invalid="ignore"):
             expected = missing_df.values < 0
         with np.errstate(invalid="raise"):

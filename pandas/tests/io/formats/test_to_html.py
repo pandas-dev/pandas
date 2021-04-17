@@ -6,7 +6,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, option_context
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    option_context,
+)
 import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
@@ -152,8 +157,8 @@ def test_to_html_decimal(datapath):
 @pytest.mark.parametrize(
     "kwargs,string,expected",
     [
-        (dict(), "<type 'str'>", "escaped"),
-        (dict(escape=False), "<b>bold</b>", "escape_disabled"),
+        ({}, "<type 'str'>", "escaped"),
+        ({"escape": False}, "<b>bold</b>", "escape_disabled"),
     ],
 )
 def test_to_html_escaped(kwargs, string, expected, datapath):
@@ -246,6 +251,21 @@ def test_to_html_multiindex_odd_even_truncate(max_rows, expected, datapath):
             ),
             {"hod": lambda x: x.strftime("%H:%M")},
             "datetime64_hourformatter",
+        ),
+        (
+            DataFrame(
+                {
+                    "i": pd.Series([1, 2], dtype="int64"),
+                    "f": pd.Series([1, 2], dtype="float64"),
+                    "I": pd.Series([1, 2], dtype="Int64"),
+                    "s": pd.Series([1, 2], dtype="string"),
+                    "b": pd.Series([True, False], dtype="boolean"),
+                    "c": pd.Series(["a", "b"], dtype=pd.CategoricalDtype(["a", "b"])),
+                    "o": pd.Series([1, "2"], dtype=object),
+                }
+            ),
+            [lambda x: "formatted"] * 7,
+            "various_dtypes_formatted",
         ),
     ],
 )
@@ -743,7 +763,7 @@ def test_to_html_render_links(render_links, expected, datapath):
 def test_ignore_display_max_colwidth(method, expected, max_colwidth):
     # see gh-17004
     df = DataFrame([lorem_ipsum])
-    with pd.option_context("display.max_colwidth", max_colwidth):
+    with option_context("display.max_colwidth", max_colwidth):
         result = getattr(df, method)()
     expected = expected(max_colwidth)
     assert expected in result
@@ -762,7 +782,7 @@ def test_to_html_invalid_classes_type(classes):
 def test_to_html_round_column_headers():
     # GH 17280
     df = DataFrame([1], columns=[0.55555])
-    with pd.option_context("display.precision", 3):
+    with option_context("display.precision", 3):
         html = df.to_html(notebook=False)
         notebook = df.to_html(notebook=True)
     assert "0.55555" in html
@@ -831,7 +851,7 @@ def test_to_html_multilevel(multiindex_year_month_day_dataframe_random_data):
 
 
 @pytest.mark.parametrize("na_rep", ["NaN", "Ted"])
-def test_to_html_na_rep_and_float_format(na_rep):
+def test_to_html_na_rep_and_float_format(na_rep, datapath):
     # https://github.com/pandas-dev/pandas/issues/13828
     df = DataFrame(
         [
@@ -841,25 +861,14 @@ def test_to_html_na_rep_and_float_format(na_rep):
         columns=["Group", "Data"],
     )
     result = df.to_html(na_rep=na_rep, float_format="{:.2f}".format)
-    expected = f"""<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>Group</th>
-      <th>Data</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>A</td>
-      <td>1.22</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>A</td>
-      <td>{na_rep}</td>
-    </tr>
-  </tbody>
-</table>"""
+    expected = expected_html(datapath, "gh13828_expected_output")
+    expected = expected.format(na_rep=na_rep)
+    assert result == expected
+
+
+def test_to_html_float_format_object_col(datapath):
+    # GH#40024
+    df = DataFrame(data={"x": [1000.0, "test"]})
+    result = df.to_html(float_format=lambda x: f"{x:,.0f}")
+    expected = expected_html(datapath, "gh40024_expected_output")
     assert result == expected

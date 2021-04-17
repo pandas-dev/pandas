@@ -7,9 +7,9 @@ import pandas._testing as tm
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(start=0, periods=4),
-        dict(start=1, periods=5),
-        dict(start=5, end=10, closed="left"),
+        {"start": 0, "periods": 4},
+        {"start": 1, "periods": 5},
+        {"start": 5, "end": 10, "closed": "left"},
     ],
 )
 def test_interval_array_equal(kwargs):
@@ -18,7 +18,7 @@ def test_interval_array_equal(kwargs):
 
 
 def test_interval_array_equal_closed_mismatch():
-    kwargs = dict(start=0, periods=5)
+    kwargs = {"start": 0, "periods": 5}
     arr1 = interval_range(closed="left", **kwargs).values
     arr2 = interval_range(closed="right", **kwargs).values
 
@@ -34,7 +34,7 @@ Attribute "closed" are different
 
 
 def test_interval_array_equal_periods_mismatch():
-    kwargs = dict(start=0)
+    kwargs = {"start": 0}
     arr1 = interval_range(periods=5, **kwargs).values
     arr2 = interval_range(periods=6, **kwargs).values
 
@@ -50,7 +50,7 @@ IntervalArray.left shapes are different
 
 
 def test_interval_array_equal_end_mismatch():
-    kwargs = dict(start=0, periods=5)
+    kwargs = {"start": 0, "periods": 5}
     arr1 = interval_range(end=10, **kwargs).values
     arr2 = interval_range(end=20, **kwargs).values
 
@@ -66,7 +66,7 @@ IntervalArray.left values are different \\(80.0 %\\)
 
 
 def test_interval_array_equal_start_mismatch():
-    kwargs = dict(periods=4)
+    kwargs = {"periods": 4}
     arr1 = interval_range(start=0, **kwargs).values
     arr2 = interval_range(start=1, **kwargs).values
 

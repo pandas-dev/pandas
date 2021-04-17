@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Int64Index, TimedeltaIndex, timedelta_range
+from pandas import (
+    Int64Index,
+    TimedeltaIndex,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 from pandas.tseries.offsets import Hour
@@ -82,7 +86,7 @@ class TestTimedeltaIndex:
         # When taking the union of two TimedeltaIndexes, we infer
         #  a freq even if the arguments don't have freq.  This matches
         #  DatetimeIndex behavior.
-        tdi = pd.timedelta_range("1 Day", periods=5)
+        tdi = timedelta_range("1 Day", periods=5)
         left = tdi[[0, 1, 3, 4]]
         right = tdi[[2, 3, 1]]
 
@@ -112,7 +116,7 @@ class TestTimedeltaIndex:
 
     def test_intersection_equal(self, sort):
         # GH 24471 Test intersection outcome given the sort keyword
-        # for equal indicies intersection should return the original index
+        # for equal indices intersection should return the original index
         first = timedelta_range("1 day", periods=4, freq="h")
         second = timedelta_range("1 day", periods=4, freq="h")
         intersect = first.intersection(second, sort=sort)

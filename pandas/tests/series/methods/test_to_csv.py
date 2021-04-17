@@ -13,7 +13,7 @@ from pandas.io.common import get_handle
 
 class TestSeriesToCSV:
     def read_csv(self, path, **kwargs):
-        params = dict(squeeze=True, index_col=0, header=None, parse_dates=True)
+        params = {"squeeze": True, "index_col": 0, "header": None, "parse_dates": True}
         params.update(**kwargs)
 
         header = params.get("header")
@@ -25,7 +25,7 @@ class TestSeriesToCSV:
         return out
 
     def test_from_csv(self, datetime_series, string_series):
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         datetime_series.index = datetime_series.index._with_freq(None)
 
         with tm.ensure_clean() as path:
@@ -143,11 +143,11 @@ class TestSeriesToCSV:
             tm.assert_series_equal(s, result)
 
             # test the round trip using file handle - to_csv -> read_csv
-            handles = get_handle(
+            with get_handle(
                 filename, "w", compression=compression, encoding=encoding
-            )
-            s.to_csv(handles.handle, encoding=encoding, header=True)
-            handles.close()
+            ) as handles:
+                s.to_csv(handles.handle, encoding=encoding, header=True)
+
             result = pd.read_csv(
                 filename,
                 compression=compression,

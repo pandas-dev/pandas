@@ -1,6 +1,9 @@
 from functools import partial
 from importlib import reload
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import os
 from pathlib import Path
 import re
@@ -14,7 +17,15 @@ from pandas.compat import is_platform_windows
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, read_csv
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    read_csv,
+    to_datetime,
+)
 import pandas._testing as tm
 
 from pandas.io.common import file_path_to_url
@@ -58,6 +69,7 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
 
 
 @td.skip_if_no("bs4")
+@td.skip_if_no("html5lib")
 def test_bs4_version_fails(monkeypatch, datapath):
     import bs4
 
@@ -77,6 +89,7 @@ def test_invalid_flavor():
 
 @td.skip_if_no("bs4")
 @td.skip_if_no("lxml")
+@td.skip_if_no("html5lib")
 def test_same_ordering(datapath):
     filename = datapath("io", "data", "html", "valid_markup.html")
     dfs_lxml = read_html(filename, index_col=0, flavor=["lxml"])
@@ -87,7 +100,7 @@ def test_same_ordering(datapath):
 @pytest.mark.parametrize(
     "flavor",
     [
-        pytest.param("bs4", marks=td.skip_if_no("bs4")),
+        pytest.param("bs4", marks=[td.skip_if_no("bs4"), td.skip_if_no("html5lib")]),
         pytest.param("lxml", marks=td.skip_if_no("lxml")),
     ],
     scope="class",
@@ -121,9 +134,10 @@ class TestReadHtml:
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
+    @pytest.mark.xfail(reason="Html file was removed")
     @tm.network
     def test_banklist_url_positional_match(self):
-        url = "http://www.fdic.gov/bank/individual/failed/banklist.html"
+        url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
         # Passing match argument as positional should cause a FutureWarning.
         with tm.assert_produces_warning(FutureWarning):
             df1 = self.read_html(
@@ -134,9 +148,10 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
+    @pytest.mark.xfail(reason="Html file was removed")
     @tm.network
     def test_banklist_url(self):
-        url = "http://www.fdic.gov/bank/individual/failed/banklist.html"
+        url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
         df1 = self.read_html(
             url, match="First Federal Bank of Florida", attrs={"id": "table"}
         )
@@ -294,17 +309,18 @@ class TestReadHtml:
 
     @tm.network
     def test_bad_url_protocol(self):
-        with pytest.raises(URLError):
+        with pytest.raises(URLError, match="urlopen error unknown url type: git"):
             self.read_html("git://github.com", match=".*Water.*")
 
     @tm.network
     @pytest.mark.slow
     def test_invalid_url(self):
-        try:
-            with pytest.raises(URLError):
-                self.read_html("http://www.a23950sdfa908sd.com", match=".*Water.*")
-        except ValueError as e:
-            assert "No tables found" in str(e)
+        msg = (
+            "Name or service not known|Temporary failure in name resolution|"
+            "No tables found"
+        )
+        with pytest.raises((URLError, ValueError), match=msg):
+            self.read_html("http://www.a23950sdfa908sd.com", match=".*Water.*")
 
     @pytest.mark.slow
     def test_file_url(self):
@@ -610,7 +626,7 @@ class TestReadHtml:
         gtnew = ground_truth.applymap(try_remove_ws)
         converted = dfnew._convert(datetime=True, numeric=True)
         date_cols = ["Closing Date", "Updated Date"]
-        converted[date_cols] = converted[date_cols]._convert(datetime=True, coerce=True)
+        converted[date_cols] = converted[date_cols].apply(to_datetime)
         tm.assert_frame_equal(converted, gtnew)
 
     @pytest.mark.slow
@@ -941,8 +957,13 @@ class TestReadHtml:
 
     def test_bool_header_arg(self):
         # GH 6114
+        msg = re.escape(
+            "Passing a bool to header is invalid. Use header=None for no header or "
+            "header=int or list-like of ints to specify the row(s) making up the "
+            "column names"
+        )
         for arg in [True, False]:
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 self.read_html(self.spam_data, header=arg)
 
     def test_converters(self):

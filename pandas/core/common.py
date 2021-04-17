@@ -3,19 +3,37 @@ Misc tools for implementing data structures
 
 Note: pandas.core.common is *not* part of the public API.
 """
+from __future__ import annotations
 
-from collections import abc, defaultdict
+import builtins
+from collections import (
+    abc,
+    defaultdict,
+)
 import contextlib
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Iterator, List, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Collection,
+    Iterable,
+    Iterator,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import AnyArrayLike, Scalar, T
-from pandas.compat.numpy import np_version_under1p18
+from pandas._typing import (
+    AnyArrayLike,
+    NpDtype,
+    Scalar,
+    T,
+)
+from pandas.compat import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -27,11 +45,13 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
-    ABCIndexClass,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import iterable_not_string
-from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
+from pandas.core.dtypes.missing import isna
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 
 class SettingWithCopyError(ValueError):
@@ -42,13 +62,13 @@ class SettingWithCopyWarning(Warning):
     pass
 
 
-def flatten(l):
+def flatten(line):
     """
     Flatten an arbitrarily nested sequence.
 
     Parameters
     ----------
-    l : sequence
+    line : sequence
         The non string sequence to flatten
 
     Notes
@@ -59,11 +79,11 @@ def flatten(l):
     -------
     flattened : generator
     """
-    for el in l:
-        if iterable_not_string(el):
-            yield from flatten(el)
+    for element in line:
+        if iterable_not_string(element):
+            yield from flatten(element)
         else:
-            yield el
+            yield element
 
 
 def consensus_name_attr(objs):
@@ -131,7 +151,7 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val, warn_float=False):
+def cast_scalar_indexer(val, warn_float: bool = False):
     """
     To avoid numpy DeprecationWarnings, cast float to integer where valid.
 
@@ -200,14 +220,21 @@ def count_not_none(*args) -> int:
     return sum(x is not None for x in args)
 
 
-def asarray_tuplesafe(values, dtype=None):
+def asarray_tuplesafe(values, dtype: NpDtype | None = None) -> np.ndarray:
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
-    elif isinstance(values, ABCIndexClass):
-        return values._values
+    elif isinstance(values, ABCIndex):
+        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
+        # expected "ndarray")
+        return values._values  # type: ignore[return-value]
 
-    if isinstance(values, list) and dtype in [np.object_, object]:
+    # error: Non-overlapping container check (element type: "Union[str, dtype[Any],
+    # None]", container item type: "type")
+    if isinstance(values, list) and dtype in [  # type: ignore[comparison-overlap]
+        np.object_,
+        object,
+    ]:
         return construct_1d_object_array_from_listlike(values)
 
     result = np.asarray(values, dtype=dtype)
@@ -223,7 +250,7 @@ def asarray_tuplesafe(values, dtype=None):
     return result
 
 
-def index_labels_to_array(labels, dtype=None):
+def index_labels_to_array(labels, dtype: NpDtype | None = None) -> np.ndarray:
     """
     Transform label or iterable of labels to array, for use in Index.
 
@@ -256,16 +283,12 @@ def maybe_make_list(obj):
     return obj
 
 
-def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T]:
+def maybe_iterable_to_list(obj: Iterable[T] | T) -> Collection[T] | T:
     """
     If obj is Iterable but not list-like, consume into list.
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
-    # error: Incompatible return value type (got
-    # "Union[pandas.core.common.<subclass of "Iterable" and "Sized">,
-    # pandas.core.common.<subclass of "Iterable" and "Sized">1, T]", expected
-    # "Union[Collection[T], T]")  [return-value]
     obj = cast(Collection, obj)
     return obj
 
@@ -282,20 +305,23 @@ def is_null_slice(obj) -> bool:
     )
 
 
-def is_true_slices(l):
+def is_true_slices(line) -> list[bool]:
     """
-    Find non-trivial slices in "l": return a list of booleans with same length.
+    Find non-trivial slices in "line": return a list of booleans with same length.
     """
-    return [isinstance(k, slice) and not is_null_slice(k) for k in l]
+    return [isinstance(k, slice) and not is_null_slice(k) for k in line]
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, l) -> bool:
+def is_full_slice(obj, line: int) -> bool:
     """
     We have a full length slice.
     """
     return (
-        isinstance(obj, slice) and obj.start == 0 and obj.stop == l and obj.step is None
+        isinstance(obj, slice)
+        and obj.start == 0
+        and obj.stop == line
+        and obj.step is None
     )
 
 
@@ -307,7 +333,7 @@ def get_callable_name(obj):
     if isinstance(obj, partial):
         return get_callable_name(obj.func)
     # fall back to class name
-    if hasattr(obj, "__call__"):
+    if callable(obj):
         return type(obj).__name__
     # everything failed (probably because the argument
     # wasn't actually callable); we return None
@@ -407,7 +433,9 @@ def random_state(state=None):
         )
 
 
-def pipe(obj, func, *args, **kwargs):
+def pipe(
+    obj, func: Callable[..., T] | tuple[Callable[..., T], str], *args, **kwargs
+) -> T:
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
     first argument to the function or, in the case that the func is a tuple,
@@ -462,8 +490,8 @@ def get_rename_function(mapper):
 
 
 def convert_to_list_like(
-    values: Union[Scalar, Iterable, AnyArrayLike]
-) -> Union[List, AnyArrayLike]:
+    values: Scalar | Iterable | AnyArrayLike,
+) -> list | AnyArrayLike:
     """
     Convert list-like or scalar input to list-like. List, numpy and pandas array-like
     inputs are returned unmodified whereas others are converted to list.
@@ -492,3 +520,62 @@ def temp_setattr(obj, attr: str, value) -> Iterator[None]:
     setattr(obj, attr, value)
     yield obj
     setattr(obj, attr, old_value)
+
+
+def require_length_match(data, index: Index):
+    """
+    Check the length of data matches the length of the index.
+    """
+    if len(data) != len(index):
+        raise ValueError(
+            "Length of values "
+            f"({len(data)}) "
+            "does not match length of index "
+            f"({len(index)})"
+        )
+
+
+_builtin_table = {builtins.sum: np.sum, builtins.max: np.max, builtins.min: np.min}
+
+_cython_table = {
+    builtins.sum: "sum",
+    builtins.max: "max",
+    builtins.min: "min",
+    np.all: "all",
+    np.any: "any",
+    np.sum: "sum",
+    np.nansum: "sum",
+    np.mean: "mean",
+    np.nanmean: "mean",
+    np.prod: "prod",
+    np.nanprod: "prod",
+    np.std: "std",
+    np.nanstd: "std",
+    np.var: "var",
+    np.nanvar: "var",
+    np.median: "median",
+    np.nanmedian: "median",
+    np.max: "max",
+    np.nanmax: "max",
+    np.min: "min",
+    np.nanmin: "min",
+    np.cumprod: "cumprod",
+    np.nancumprod: "cumprod",
+    np.cumsum: "cumsum",
+    np.nancumsum: "cumsum",
+}
+
+
+def get_cython_func(arg: Callable) -> str | None:
+    """
+    if we define an internal function for this argument, return it
+    """
+    return _cython_table.get(arg)
+
+
+def is_builtin_func(arg):
+    """
+    if we define an builtin function for this argument, return it,
+    otherwise return the arg
+    """
+    return _builtin_table.get(arg, arg)

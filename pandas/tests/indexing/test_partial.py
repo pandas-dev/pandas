@@ -7,8 +7,18 @@ TODO: these should be split among the indexer tests
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas import DataFrame, Index, Period, Series, Timestamp, date_range, period_range
+from pandas import (
+    DataFrame,
+    Index,
+    Period,
+    Series,
+    Timestamp,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -138,6 +148,10 @@ class TestPartialSetting:
         df.at[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager)
+    # df.loc[0] = Series(1, index=range(4)) case creates float columns
+    # instead of object dtype
+    @td.skip_array_manager_not_yet_implemented
     def test_partial_setting_mixed_dtype(self):
 
         # in a mixed dtype environment, try to preserve dtypes
@@ -157,7 +171,8 @@ class TestPartialSetting:
         tm.assert_frame_equal(df, DataFrame(columns=["A", "B"], index=[0]))
 
         # columns will align
-        df = DataFrame(columns=["A", "B"])
+        # TODO: it isn't great that this behavior depends on consolidation
+        df = DataFrame(columns=["A", "B"])._consolidate()
         df.loc[0] = Series(1, index=["B"])
 
         exp = DataFrame([[np.nan, 1]], columns=["A", "B"], index=[0], dtype="float64")
@@ -208,7 +223,7 @@ class TestPartialSetting:
         result = ser.reindex([2, 2, "x", 1])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
-        # raises as nothing in in the index
+        # raises as nothing is in the index
         msg = (
             r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64'\)\] are "
             r"in the \[index\]\""
@@ -289,7 +304,7 @@ class TestPartialSetting:
         with pytest.raises(KeyError, match="with any missing labels"):
             ser.loc[[2, 2, "x", 1]]
 
-        # raises as nothing in in the index
+        # raises as nothing is in the index
         msg = (
             r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64', "
             r"name='idx'\)\] are in the \[index\]\""
@@ -326,22 +341,24 @@ class TestPartialSetting:
         result = ser.iloc[[1, 1, 0, 0]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
+    @pytest.mark.parametrize("key", [100, 100.0])
+    def test_setitem_with_expansion_numeric_into_datetimeindex(self, key):
+        # GH#4940 inserting non-strings
+        orig = tm.makeTimeDataFrame()
+        df = orig.copy()
+
+        df.loc[key, :] = df.iloc[0]
+        ex_index = Index(list(orig.index) + [key], dtype=object, name=orig.index.name)
+        ex_data = np.concatenate([orig.values, df.iloc[[0]].values], axis=0)
+        expected = DataFrame(ex_data, index=ex_index, columns=orig.columns)
+        tm.assert_frame_equal(df, expected)
+
     def test_partial_set_invalid(self):
 
         # GH 4940
         # allow only setting of 'valid' values
 
         orig = tm.makeTimeDataFrame()
-        df = orig.copy()
-
-        # don't allow not string inserts
-        msg = r"value should be a 'Timestamp' or 'NaT'\. Got '.*' instead\."
-
-        with pytest.raises(TypeError, match=msg):
-            df.loc[100.0, :] = df.iloc[0]
-
-        with pytest.raises(TypeError, match=msg):
-            df.loc[100, :] = df.iloc[0]
 
         # allow object conversion here
         df = orig.copy()
@@ -500,17 +517,17 @@ class TestPartialSetting:
         # consistency on empty frames
         df = DataFrame(columns=["x", "y"])
         df["x"] = [1, 2]
-        expected = DataFrame(dict(x=[1, 2], y=[np.nan, np.nan]))
+        expected = DataFrame({"x": [1, 2], "y": [np.nan, np.nan]})
         tm.assert_frame_equal(df, expected, check_dtype=False)
 
         df = DataFrame(columns=["x", "y"])
         df["x"] = ["1", "2"]
-        expected = DataFrame(dict(x=["1", "2"], y=[np.nan, np.nan]), dtype=object)
+        expected = DataFrame({"x": ["1", "2"], "y": [np.nan, np.nan]}, dtype=object)
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame(columns=["x", "y"])
         df.loc[0, "x"] = 1
-        expected = DataFrame(dict(x=[1], y=[np.nan]))
+        expected = DataFrame({"x": [1], "y": [np.nan]})
         tm.assert_frame_equal(df, expected, check_dtype=False)
 
     @pytest.mark.parametrize(

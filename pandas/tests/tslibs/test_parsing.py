@@ -75,7 +75,7 @@ def test_does_not_convert_mixed_integer(date_string, expected):
     [
         (
             "2013Q5",
-            dict(),
+            {},
             (
                 "Incorrect quarterly string is given, "
                 "quarter must be between 1 and 4: 2013Q5"
@@ -84,7 +84,7 @@ def test_does_not_convert_mixed_integer(date_string, expected):
         # see gh-5418
         (
             "2013Q1",
-            dict(freq="INVLD-L-DEC-SAT"),
+            {"freq": "INVLD-L-DEC-SAT"},
             (
                 "Unable to retrieve month information "
                 "from given freq: INVLD-L-DEC-SAT"

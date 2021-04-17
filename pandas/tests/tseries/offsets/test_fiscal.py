@@ -10,12 +10,18 @@ from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 
 from pandas import Timestamp
 import pandas._testing as tm
+from pandas.tests.tseries.offsets.common import (
+    Base,
+    WeekDay,
+    assert_is_on_offset,
+    assert_offset_equal,
+)
 
 from pandas.tseries.frequencies import get_offset
-from pandas.tseries.offsets import FY5253, FY5253Quarter
-
-from .common import assert_is_on_offset, assert_offset_equal
-from .test_offsets import Base, WeekDay
+from pandas.tseries.offsets import (
+    FY5253,
+    FY5253Quarter,
+)
 
 
 def makeFY5253LastOfMonthQuarter(*args, **kwds):

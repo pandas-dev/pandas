@@ -1,19 +1,20 @@
 """ orc compat """
+from __future__ import annotations
 
 import distutils
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from pandas._typing import FilePathOrBuffer
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
     from pandas import DataFrame
 
 
 def read_orc(
-    path: FilePathOrBuffer, columns: Optional[List[str]] = None, **kwargs
-) -> "DataFrame":
+    path: FilePathOrBuffer, columns: list[str] | None = None, **kwargs
+) -> DataFrame:
     """
     Load an ORC object from the file path, returning a DataFrame.
 
@@ -48,10 +49,6 @@ def read_orc(
     if distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0":
         raise ImportError("pyarrow must be >= 0.13.0 for read_orc")
 
-    import pyarrow.orc
-
-    ioargs = get_filepath_or_buffer(path)
-    orc_file = pyarrow.orc.ORCFile(ioargs.filepath_or_buffer)
-    result = orc_file.read(columns=columns, **kwargs).to_pandas()
-    ioargs.close()
-    return result
+    with get_handle(path, "rb", is_text=False) as handles:
+        orc_file = pyarrow.orc.ORCFile(handles.handle)
+        return orc_file.read(columns=columns, **kwargs).to_pandas()

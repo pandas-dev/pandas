@@ -1,41 +1,55 @@
 """ manage PyTables query interface via Expressions """
+from __future__ import annotations
 
 import ast
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
-from pandas._libs.tslibs import Timedelta, Timestamp
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
 from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
 
-import pandas as pd
 import pandas.core.common as com
-from pandas.core.computation import expr, ops, scope as _scope
+from pandas.core.computation import (
+    expr,
+    ops,
+    scope as _scope,
+)
 from pandas.core.computation.common import ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
-from pandas.core.computation.ops import UndefinedVariableError, is_term
+from pandas.core.computation.ops import (
+    UndefinedVariableError,
+    is_term,
+)
 from pandas.core.construction import extract_array
+from pandas.core.indexes.base import Index
 
-from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
+from pandas.io.formats.printing import (
+    pprint_thing,
+    pprint_thing_encoded,
+)
 
 
 class PyTablesScope(_scope.Scope):
     __slots__ = ("queryables",)
 
-    queryables: Dict[str, Any]
+    queryables: dict[str, Any]
 
     def __init__(
         self,
         level: int,
         global_dict=None,
         local_dict=None,
-        queryables: Optional[Dict[str, Any]] = None,
+        queryables: dict[str, Any] | None = None,
     ):
         super().__init__(level + 1, global_dict=global_dict, local_dict=local_dict)
-        self.queryables = queryables or dict()
+        self.queryables = queryables or {}
 
 
 class Term(ops.Term):
@@ -85,10 +99,10 @@ class BinOp(ops.BinOp):
     _max_selectors = 31
 
     op: str
-    queryables: Dict[str, Any]
-    condition: Optional[str]
+    queryables: dict[str, Any]
+    condition: str | None
 
-    def __init__(self, op: str, lhs, rhs, queryables: Dict[str, Any], encoding):
+    def __init__(self, op: str, lhs, rhs, queryables: dict[str, Any], encoding):
         super().__init__(op, lhs, rhs)
         self.queryables = queryables
         self.encoding = encoding
@@ -180,7 +194,7 @@ class BinOp(ops.BinOp):
         val = v.tostring(self.encoding)
         return f"({self.lhs} {self.op} {val})"
 
-    def convert_value(self, v) -> "TermValue":
+    def convert_value(self, v) -> TermValue:
         """
         convert the expression that is in the term to something that is
         accepted by pytables
@@ -209,12 +223,14 @@ class BinOp(ops.BinOp):
             return TermValue(int(v), v, kind)
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)
-            result = metadata.searchsorted(v, side="left")
-
-            # result returns 0 if v is first element or if v is not in metadata
-            # check that metadata contains v
-            if not result and v not in metadata:
+            if v not in metadata:
                 result = -1
+            else:
+                # error: Incompatible types in assignment (expression has type
+                # "Union[Any, ndarray]", variable has type "int")
+                result = metadata.searchsorted(  # type: ignore[assignment]
+                    v, side="left"
+                )
             return TermValue(result, result, "integer")
         elif kind == "integer":
             v = int(float(v))
@@ -249,7 +265,7 @@ class BinOp(ops.BinOp):
 
 
 class FilterBinOp(BinOp):
-    filter: Optional[Tuple[Any, Any, pd.Index]] = None
+    filter: tuple[Any, Any, Index] | None = None
 
     def __repr__(self) -> str:
         if self.filter is None:
@@ -284,7 +300,7 @@ class FilterBinOp(BinOp):
             if self.op in ["==", "!="] and len(values) > self._max_selectors:
 
                 filter_op = self.generate_filter_op()
-                self.filter = (self.lhs, filter_op, pd.Index(values))
+                self.filter = (self.lhs, filter_op, Index(values))
 
                 return self
             return None
@@ -293,7 +309,7 @@ class FilterBinOp(BinOp):
         if self.op in ["==", "!="]:
 
             filter_op = self.generate_filter_op()
-            self.filter = (self.lhs, filter_op, pd.Index(values))
+            self.filter = (self.lhs, filter_op, Index(values))
 
         else:
             raise TypeError(
@@ -430,6 +446,10 @@ class PyTablesExprVisitor(BaseExprVisitor):
         except AttributeError:
             pass
 
+        if isinstance(slobj, Term):
+            # In py39 np.ndarray lookups with Term containing int raise
+            slobj = slobj.value
+
         try:
             return self.const_type(value[slobj], self.env)
         except TypeError as err:
@@ -524,13 +544,13 @@ class PyTablesExpr(expr.Expr):
     "major_axis>=20130101"
     """
 
-    _visitor: Optional[PyTablesExprVisitor]
+    _visitor: PyTablesExprVisitor | None
     env: PyTablesScope
 
     def __init__(
         self,
         where,
-        queryables: Optional[Dict[str, Any]] = None,
+        queryables: dict[str, Any] | None = None,
         encoding=None,
         scope_level: int = 0,
     ):

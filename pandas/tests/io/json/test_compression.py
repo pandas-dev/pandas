@@ -1,9 +1,13 @@
+from io import BytesIO
+
 import pytest
 
 import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def test_compression_roundtrip(compression):
@@ -65,8 +69,10 @@ def test_chunksize_with_compression(compression):
         df = pd.read_json('{"a": ["foo", "bar", "baz"], "b": [4, 5, 6]}')
         df.to_json(path, orient="records", lines=True, compression=compression)
 
-        res = pd.read_json(path, lines=True, chunksize=1, compression=compression)
-        roundtripped_df = pd.concat(res)
+        with pd.read_json(
+            path, lines=True, chunksize=1, compression=compression
+        ) as res:
+            roundtripped_df = pd.concat(res)
         tm.assert_frame_equal(df, roundtripped_df)
 
 
@@ -113,3 +119,13 @@ def test_to_json_compression(compression_only, read_infer, to_infer):
         df.to_json(path, compression=to_compression)
         result = pd.read_json(path, compression=read_compression)
         tm.assert_frame_equal(result, df)
+
+
+def test_to_json_compression_mode(compression):
+    # GH 39985 (read_json does not support user-provided binary files)
+    expected = pd.DataFrame({"A": [1]})
+
+    with BytesIO() as buffer:
+        expected.to_json(buffer, compression=compression)
+        # df = pd.read_json(buffer, compression=compression)
+        # tm.assert_frame_equal(expected, df)

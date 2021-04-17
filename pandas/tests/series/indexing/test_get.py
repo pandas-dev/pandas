@@ -192,3 +192,23 @@ def test_get2(arr):
     ser = Series(arr)
     ser2 = ser[::2]
     assert ser2.get(1) is None
+
+
+def test_getitem_get(string_series, object_series):
+    for obj in [string_series, object_series]:
+        idx = obj.index[5]
+
+        assert obj[idx] == obj.get(idx)
+        assert obj[idx] == obj[5]
+
+    assert string_series.get(-1) == string_series.get(string_series.index[-1])
+    assert string_series[5] == string_series.get(string_series.index[5])
+
+
+def test_get_none():
+    # GH#5652
+    s1 = Series(dtype=object)
+    s2 = Series(dtype=object, index=list("abc"))
+    for s in [s1, s2]:
+        result = s.get(None)
+        assert result is None

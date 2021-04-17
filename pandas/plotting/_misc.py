@@ -530,8 +530,7 @@ class _Options(dict):
         -------
         None
         """
-        # pandas\plotting\_misc.py:533: error: Cannot access "__init__"
-        # directly  [misc]
+        # error: Cannot access "__init__" directly
         self.__init__()  # type: ignore[misc]
 
     def _get_canonical_key(self, key):

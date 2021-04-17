@@ -9,6 +9,7 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather than in the module.
 
 """
+import os
 import warnings
 
 import pandas._config.config as cf
@@ -484,9 +485,29 @@ with cf.config_prefix("mode"):
         "use_inf_as_null", False, use_inf_as_null_doc, cb=use_inf_as_na_cb
     )
 
+
 cf.deprecate_option(
     "mode.use_inf_as_null", msg=use_inf_as_null_doc, rkey="mode.use_inf_as_na"
 )
+
+
+data_manager_doc = """
+: string
+    Internal data manager type; can be "block" or "array". Defaults to "block",
+    unless overridden by the 'PANDAS_DATA_MANAGER' environment variable (needs
+    to be set before pandas is imported).
+"""
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "data_manager",
+        # Get the default from an environment variable, if set, otherwise defaults
+        # to "block". This environment variable can be set for testing.
+        os.environ.get("PANDAS_DATA_MANAGER", "block"),
+        data_manager_doc,
+        validator=is_one_of_factory(["block", "array"]),
+    )
 
 
 # user warnings
@@ -524,7 +545,7 @@ with cf.config_prefix("io.excel.xls"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
-        validator=str,
+        validator=is_one_of_factory(_xls_options + ["auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsm"):
@@ -532,7 +553,7 @@ with cf.config_prefix("io.excel.xlsm"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsm", others=", ".join(_xlsm_options)),
-        validator=str,
+        validator=is_one_of_factory(_xlsm_options + ["auto"]),
     )
 
 
@@ -541,7 +562,7 @@ with cf.config_prefix("io.excel.xlsx"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsx", others=", ".join(_xlsx_options)),
-        validator=str,
+        validator=is_one_of_factory(_xlsx_options + ["auto"]),
     )
 
 
@@ -550,7 +571,7 @@ with cf.config_prefix("io.excel.ods"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="ods", others=", ".join(_ods_options)),
-        validator=str,
+        validator=is_one_of_factory(_ods_options + ["auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsb"):
@@ -558,7 +579,7 @@ with cf.config_prefix("io.excel.xlsb"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsb", others=", ".join(_xlsb_options)),
-        validator=str,
+        validator=is_one_of_factory(_xlsb_options + ["auto"]),
     )
 
 # Set up the io.excel specific writer configuration.
@@ -581,6 +602,13 @@ with cf.config_prefix("io.excel.xls"):
         writer_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
         validator=str,
     )
+cf.deprecate_option(
+    "io.excel.xls.writer",
+    msg="As the xlwt package is no longer maintained, the xlwt engine will be "
+    "removed in a future version of pandas. This is the only engine in pandas that "
+    "supports writing in the xls format. Install openpyxl and write to an "
+    "xlsx file instead.",
+)
 
 with cf.config_prefix("io.excel.xlsm"):
     cf.register_option(

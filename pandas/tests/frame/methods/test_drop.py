@@ -6,7 +6,13 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -20,7 +26,7 @@ import pandas._testing as tm
 def test_drop_raise_exception_if_labels_not_in_level(msg, labels, level):
     # GH 8594
     mi = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
-    s = pd.Series([10, 20, 30], index=mi)
+    s = Series([10, 20, 30], index=mi)
     df = DataFrame([10, 20, 30], index=mi)
 
     with pytest.raises(KeyError, match=msg):
@@ -33,7 +39,7 @@ def test_drop_raise_exception_if_labels_not_in_level(msg, labels, level):
 def test_drop_errors_ignore(labels, level):
     # GH 8594
     mi = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
-    s = pd.Series([10, 20, 30], index=mi)
+    s = Series([10, 20, 30], index=mi)
     df = DataFrame([10, 20, 30], index=mi)
 
     expected_s = s.drop(labels, level=level, errors="ignore")
@@ -162,7 +168,7 @@ class TestDataFrameDrop:
             [("a", ""), ("b1", "c1"), ("b2", "c2")], names=["b", "c"]
         )
         lexsorted_df = DataFrame([[1, 3, 4]], columns=lexsorted_mi)
-        assert lexsorted_df.columns.is_lexsorted()
+        assert lexsorted_df.columns._is_lexsorted()
 
         # define the non-lexsorted version
         not_lexsorted_df = DataFrame(
@@ -172,7 +178,7 @@ class TestDataFrameDrop:
             index="a", columns=["b", "c"], values="d"
         )
         not_lexsorted_df = not_lexsorted_df.reset_index()
-        assert not not_lexsorted_df.columns.is_lexsorted()
+        assert not not_lexsorted_df.columns._is_lexsorted()
 
         # compare the results
         tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
@@ -441,3 +447,37 @@ class TestDataFrameDrop:
             # Perform operation and check result
             getattr(y, operation)(1)
             tm.assert_frame_equal(df, expected)
+
+    def test_drop_with_non_unique_multiindex(self):
+        # GH#36293
+        mi = MultiIndex.from_arrays([["x", "y", "x"], ["i", "j", "i"]])
+        df = DataFrame([1, 2, 3], index=mi)
+        result = df.drop(index="x")
+        expected = DataFrame([2], index=MultiIndex.from_arrays([["y"], ["j"]]))
+        tm.assert_frame_equal(result, expected)
+
+    def test_drop_with_duplicate_columns(self):
+        df = DataFrame(
+            [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
+        )
+        result = df.drop(["a"], axis=1)
+        expected = DataFrame([[1], [1], [1]], columns=["bar"])
+        tm.assert_frame_equal(result, expected)
+        result = df.drop("a", axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_drop_with_duplicate_columns2(self):
+        # drop buggy GH#6240
+        df = DataFrame(
+            {
+                "A": np.random.randn(5),
+                "B": np.random.randn(5),
+                "C": np.random.randn(5),
+                "D": ["a", "b", "c", "d", "e"],
+            }
+        )
+
+        expected = df.take([0, 1, 1], axis=1)
+        df2 = df.take([2, 0, 1, 2, 1], axis=1)
+        result = df2.drop("C", axis=1)
+        tm.assert_frame_equal(result, expected)

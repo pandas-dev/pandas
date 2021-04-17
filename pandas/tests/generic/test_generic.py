@@ -1,11 +1,17 @@
-from copy import copy, deepcopy
+from copy import (
+    copy,
+    deepcopy,
+)
 
 import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import is_scalar
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 # ----------------------------------------------------------------------
@@ -79,7 +85,7 @@ class Generic:
 
         # multiple axes at once
 
-    def test_get_numeric_data(self):
+    def test_get_numeric_data(self, using_array_manager):
 
         n = 4
         kwargs = {
@@ -94,6 +100,9 @@ class Generic:
         # non-inclusion
         result = o._get_bool_data()
         expected = self._construct(n, value="empty", **kwargs)
+        if using_array_manager and isinstance(o, DataFrame):
+            # INFO(ArrayManager) preserve the dtype of the columns Index
+            expected.columns = expected.columns.astype("int64")
         self._compare(result, expected)
 
         # get the bool data
@@ -305,14 +314,14 @@ class Generic:
         # GH11382
 
         # small
-        shape = [int(2e3)] + ([1] * (self._ndim - 1))
+        shape = [2000] + ([1] * (self._ndim - 1))
         small = self._construct(shape, dtype="int8", value=1)
         self._compare(small.truncate(), small)
         self._compare(small.truncate(before=0, after=3e3), small)
         self._compare(small.truncate(before=-1, after=2e3), small)
 
         # big
-        shape = [int(2e6)] + ([1] * (self._ndim - 1))
+        shape = [2_000_000] + ([1] * (self._ndim - 1))
         big = self._construct(shape, dtype="int8", value=1)
         self._compare(big.truncate(), big)
         self._compare(big.truncate(before=0, after=3e6), big)

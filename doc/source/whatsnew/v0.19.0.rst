@@ -135,7 +135,7 @@ Method ``.rolling()`` is now time-series aware
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``.rolling()`` objects are now time-series aware and can accept a time-series offset (or convertible) for the ``window`` argument (:issue:`13327`, :issue:`12995`).
-See the full documentation :ref:`here <stats.moments.ts>`.
+See the full documentation :ref:`here <window.generic>`.
 
 .. ipython:: python
 
