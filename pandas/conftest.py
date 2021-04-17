@@ -19,27 +19,52 @@ Instead of splitting it was decided to define sections here:
 """
 
 from collections import abc
-from datetime import date, time, timedelta, timezone
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+    timezone,
+)
 from decimal import Decimal
 import operator
 import os
 
-from dateutil.tz import tzlocal, tzutc
+from dateutil.tz import (
+    tzlocal,
+    tzutc,
+)
 import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import FixedOffset, utc
+from pytz import (
+    FixedOffset,
+    utc,
+)
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+)
 
 import pandas as pd
-from pandas import DataFrame, Interval, Period, Series, Timedelta, Timestamp
+from pandas import (
+    DataFrame,
+    Interval,
+    Period,
+    Series,
+    Timedelta,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 
 
 # ----------------------------------------------------------------
@@ -60,6 +85,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "arm_slow: mark a test as slow for arm64 architecture"
     )
+    config.addinivalue_line(
+        "markers", "arraymanager: mark a test to run with ArrayManager enabled"
+    )
 
 
 def pytest_addoption(parser):
@@ -75,19 +103,6 @@ def pytest_addoption(parser):
         action="store_true",
         help="Fail if a test is skipped for missing data file.",
     )
-    parser.addoption(
-        "--array-manager",
-        "--am",
-        action="store_true",
-        help="Use the experimental ArrayManager as default data manager.",
-    )
-
-
-def pytest_sessionstart(session):
-    # Note: we need to set the option here and not in pytest_runtest_setup below
-    # to ensure this is run before creating fixture data
-    if session.config.getoption("--array-manager"):
-        pd.options.mode.data_manager = "array"
 
 
 def pytest_runtest_setup(item):
@@ -107,6 +122,13 @@ def pytest_runtest_setup(item):
         "--run-high-memory"
     ):
         pytest.skip("skipping high memory test since --run-high-memory was not set")
+
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        # mark all tests in the pandas/tests/frame directory with "arraymanager"
+        if "/frame/" in item.nodeid:
+            item.add_marker(pytest.mark.arraymanager)
 
 
 # Hypothesis
@@ -178,7 +200,7 @@ def add_imports(doctest_namespace):
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis {repr(x)}")
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
 def axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
@@ -279,7 +301,7 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(params=tm.NULL_OBJECTS, ids=str)
+@pytest.fixture(params=tm.NULL_OBJECTS, ids=lambda x: type(x).__name__)
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
@@ -306,7 +328,7 @@ unique_nulls_fixture2 = unique_nulls_fixture
 # ----------------------------------------------------------------
 
 
-@pytest.fixture(params=[pd.DataFrame, pd.Series])
+@pytest.fixture(params=[DataFrame, Series])
 def frame_or_series(request):
     """
     Fixture to parametrize over DataFrame and Series.
@@ -314,8 +336,9 @@ def frame_or_series(request):
     return request.param
 
 
+# error: List item 0 has incompatible type "Type[Index]"; expected "Type[IndexOpsMixin]"
 @pytest.fixture(
-    params=[pd.Index, pd.Series], ids=["index", "series"]  # type: ignore[list-item]
+    params=[Index, Series], ids=["index", "series"]  # type: ignore[list-item]
 )
 def index_or_series(request):
     """
@@ -333,9 +356,7 @@ def index_or_series(request):
 index_or_series2 = index_or_series
 
 
-@pytest.fixture(
-    params=[pd.Index, pd.Series, pd.array], ids=["index", "series", "array"]
-)
+@pytest.fixture(params=[Index, Series, pd.array], ids=["index", "series", "array"])
 def index_or_series_or_array(request):
     """
     Fixture to parametrize over Index, Series, and ExtensionArray
@@ -480,13 +501,41 @@ def index(request):
 index_fixture2 = index
 
 
-@pytest.fixture(params=indices_dict.keys())
+@pytest.fixture(
+    params=[
+        key for key in indices_dict if not isinstance(indices_dict[key], MultiIndex)
+    ]
+)
+def index_flat(request):
+    """
+    index fixture, but excluding MultiIndex cases.
+    """
+    key = request.param
+    return indices_dict[key].copy()
+
+
+# Alias so we can test with cartesian product of index_flat
+index_flat2 = index_flat
+
+
+@pytest.fixture(
+    params=[
+        key
+        for key in indices_dict
+        if key not in ["int", "uint", "range", "empty", "repeats"]
+        and not isinstance(indices_dict[key], MultiIndex)
+    ]
+)
 def index_with_missing(request):
     """
-    Fixture for indices with missing values
+    Fixture for indices with missing values.
+
+    Integer-dtype and empty cases are excluded because they cannot hold missing
+    values.
+
+    MultiIndex is excluded because isna() is not defined for MultiIndex.
     """
-    if request.param in ["int", "uint", "range", "empty", "repeats"]:
-        pytest.skip("missing values not supported")
+
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
     # Azure pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
@@ -508,7 +557,7 @@ def index_with_missing(request):
 # ----------------------------------------------------------------
 @pytest.fixture
 def empty_series():
-    return pd.Series([], index=[], dtype=np.float64)
+    return Series([], index=[], dtype=np.float64)
 
 
 @pytest.fixture
@@ -545,7 +594,7 @@ def _create_series(index):
     """ Helper for the _series dict """
     size = len(index)
     data = np.random.randn(size)
-    return pd.Series(data, index=index, name="a")
+    return Series(data, index=index, name="a")
 
 
 _series = {
@@ -727,6 +776,27 @@ def mixed_type_frame():
         },
         index=np.arange(10),
     )
+
+
+@pytest.fixture
+def rand_series_with_duplicate_datetimeindex():
+    """
+    Fixture for Series with a DatetimeIndex that has duplicates.
+    """
+    dates = [
+        datetime(2000, 1, 2),
+        datetime(2000, 1, 2),
+        datetime(2000, 1, 2),
+        datetime(2000, 1, 3),
+        datetime(2000, 1, 3),
+        datetime(2000, 1, 3),
+        datetime(2000, 1, 4),
+        datetime(2000, 1, 4),
+        datetime(2000, 1, 4),
+        datetime(2000, 1, 5),
+    ]
+
+    return Series(np.random.randn(len(dates)), index=dates)
 
 
 # ----------------------------------------------------------------
@@ -1041,6 +1111,9 @@ def utc_fixture(request):
     return request.param
 
 
+utc_fixture2 = utc_fixture
+
+
 # ----------------------------------------------------------------
 # Dtypes
 # ----------------------------------------------------------------
@@ -1053,6 +1126,26 @@ def string_dtype(request):
     * 'str'
     * 'U'
     """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        "string",
+        pytest.param(
+            "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+        ),
+    ]
+)
+def nullable_string_dtype(request):
+    """
+    Parametrized fixture for string dtypes.
+
+    * 'string'
+    * 'arrow_string'
+    """
+    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
     return request.param
 
 
@@ -1211,6 +1304,32 @@ def any_nullable_int_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.ALL_INT_DTYPES + tm.ALL_EA_INT_DTYPES)
+def any_int_or_nullable_int_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype.
+
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
 def any_nullable_numeric_dtype(request):
     """
@@ -1318,7 +1437,7 @@ _any_skipna_inferred_dtype = [
     ("boolean", [True, np.nan, False]),
     ("boolean", [True, pd.NA, False]),
     ("datetime64", [np.datetime64("2013-01-01"), np.nan, np.datetime64("2018-01-01")]),
-    ("datetime", [pd.Timestamp("20130101"), np.nan, pd.Timestamp("20180101")]),
+    ("datetime", [Timestamp("20130101"), np.nan, Timestamp("20180101")]),
     ("date", [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
     # The following two dtypes are commented out due to GH 23554
     # ('complex', [1 + 1j, np.nan, 2 + 2j]),
@@ -1326,8 +1445,8 @@ _any_skipna_inferred_dtype = [
     #                  np.nan, np.timedelta64(2, 'D')]),
     ("timedelta", [timedelta(1), np.nan, timedelta(2)]),
     ("time", [time(1), np.nan, time(2)]),
-    ("period", [pd.Period(2013), pd.NaT, pd.Period(2018)]),
-    ("interval", [pd.Interval(0, 1), np.nan, pd.Interval(0, 2)]),
+    ("period", [Period(2013), pd.NaT, Period(2018)]),
+    ("interval", [Interval(0, 1), np.nan, Interval(0, 2)]),
 ]
 ids, _ = zip(*_any_skipna_inferred_dtype)  # use inferred type as fixture-id
 
@@ -1483,6 +1602,22 @@ def indexer_sli(request):
 def indexer_si(request):
     """
     Parametrize over __setitem__, iloc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.setitem, tm.loc])
+def indexer_sl(request):
+    """
+    Parametrize over __setitem__, loc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.at, tm.loc])
+def indexer_al(request):
+    """
+    Parametrize over at.__setitem__, loc.__setitem__
     """
     return request.param
 

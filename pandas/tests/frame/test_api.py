@@ -6,10 +6,18 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
-from pandas.util._test_decorators import async_mark, skip_if_no
+from pandas.util._test_decorators import (
+    async_mark,
+    skip_if_no,
+)
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range, timedelta_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 
@@ -65,7 +73,7 @@ class TestDataFrameMisc:
         df = DataFrame([list("abcd"), list("efgh")], columns=list("ABCD"))
         for key in list("ABCD"):
             assert key in dir(df)
-        assert isinstance(df.__getitem__("A"), pd.Series)
+        assert isinstance(df.__getitem__("A"), Series)
 
         # DataFrame whose first-level columns are identifiers shall have
         # them in __dir__.
@@ -77,7 +85,7 @@ class TestDataFrameMisc:
             assert key in dir(df)
         for key in list("EFGH"):
             assert key not in dir(df)
-        assert isinstance(df.__getitem__("A"), pd.DataFrame)
+        assert isinstance(df.__getitem__("A"), DataFrame)
 
     def test_not_hashable(self):
         empty_frame = DataFrame()
@@ -274,17 +282,9 @@ class TestDataFrameMisc:
 
         await ip.run_code(code)
 
-        # TODO: remove it when Ipython updates
-        # GH 33567, jedi version raises Deprecation warning in Ipython
-        import jedi
-
-        if jedi.__version__ < "0.17.0":
-            warning = tm.assert_produces_warning(None)
-        else:
-            warning = tm.assert_produces_warning(
-                DeprecationWarning, check_stacklevel=False
-            )
-        with warning:
+        # GH 31324 newer jedi version raises Deprecation warning;
+        #  appears resolved 2021-02-02
+        with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("obj.", 1))
 
@@ -296,6 +296,7 @@ class TestDataFrameMisc:
         result = df.rename(columns=str)
         assert result.attrs == {"version": 1}
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) setitem (no copy)
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(self, allows_duplicate_labels, frame_or_series):
         obj = DataFrame({"A": [1, 2]})
@@ -329,12 +330,14 @@ class TestDataFrameMisc:
         result.iloc[key] = 10
         assert obj.iloc[key] == 0
 
-    def test_constructor_expanddim_lookup(self):
-        # GH#33628 accessing _constructor_expanddim should not
-        #  raise NotImplementedError
+    def test_constructor_expanddim(self):
+        # GH#33628 accessing _constructor_expanddim should not raise NotImplementedError
+        # GH38782 pandas has no container higher than DataFrame (two-dim), so
+        # DataFrame._constructor_expand_dim, doesn't make sense, so is removed.
         df = DataFrame()
 
-        with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
+        msg = "'DataFrame' object has no attribute '_constructor_expanddim'"
+        with pytest.raises(AttributeError, match=msg):
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
 
     @skip_if_no("jinja2")

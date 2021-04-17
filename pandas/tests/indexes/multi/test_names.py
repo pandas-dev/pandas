@@ -31,7 +31,7 @@ def test_changing_names(idx):
 
     view = idx.view()
     copy = idx.copy()
-    shallow_copy = idx._shallow_copy()
+    shallow_copy = idx._view()
 
     # changing names should not change level names on object
     new_names = [name + "a" for name in idx.names]

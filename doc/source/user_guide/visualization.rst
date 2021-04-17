@@ -2,9 +2,12 @@
 
 {{ header }}
 
-*************
-Visualization
-*************
+*******************
+Chart Visualization
+*******************
+
+This section demonstrates visualization through charting. For information on
+visualization of tabular data please see the section on `Table Visualization <style.ipynb>`_.
 
 We use the standard convention for referencing the matplotlib API:
 
@@ -552,6 +555,9 @@ These can be specified by the ``x`` and ``y`` keywords.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.rand(50, 4), columns=["a", "b", "c", "d"])
+   df["species"] = pd.Categorical(
+       ["setosa"] * 20 + ["versicolor"] * 20 + ["virginica"] * 10
+   )
 
    @savefig scatter_plot.png
    df.plot.scatter(x="a", y="b");
@@ -577,6 +583,21 @@ each point:
 
    @savefig scatter_plot_colored.png
    df.plot.scatter(x="a", y="b", c="c", s=50);
+
+
+.. ipython:: python
+   :suppress:
+
+   plt.close("all")
+
+If a categorical column is passed to ``c``, then a discrete colorbar will be produced:
+
+.. versionadded:: 1.3.0
+
+.. ipython:: python
+
+   @savefig scatter_plot_categorical.png
+   df.plot.scatter(x="a", y="b", c="species", cmap="viridis", s=50);
 
 
 .. ipython:: python
@@ -647,7 +668,7 @@ given by column ``z``. The bins are aggregated with NumPy's ``max`` function.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(1000, 2), columns=["a", "b"])
-   df["b"] = df["b"] = df["b"] + np.arange(1000)
+   df["b"] = df["b"] + np.arange(1000)
    df["z"] = np.random.uniform(0, 3, 1000)
 
    @savefig hexbin_plot_agg.png

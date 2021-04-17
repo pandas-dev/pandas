@@ -19,9 +19,9 @@ dependencies:
   - matplotlib=2.2.3
   - nomkl
   - numexpr
-  - numpy=1.16.5
+  - numpy=1.17.3
   - openpyxl
-  - pyarrow>=0.15.0
+  - pyarrow=0.15.1
   - pytables
   - python-dateutil==2.7.3
   - pytz

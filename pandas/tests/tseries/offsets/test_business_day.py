@@ -1,15 +1,28 @@
 """
 Tests for offsets.BDay
 """
-from datetime import date, datetime, timedelta
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.offsets import ApplyTypeError, BDay, BMonthEnd, CDay
+from pandas._libs.tslibs.offsets import (
+    ApplyTypeError,
+    BDay,
+    BMonthEnd,
+    CDay,
+)
 from pandas.compat import np_datetime64_compat
 
-from pandas import DatetimeIndex, _testing as tm, read_pickle
+from pandas import (
+    DatetimeIndex,
+    _testing as tm,
+    read_pickle,
+)
 from pandas.tests.tseries.offsets.common import (
     Base,
     assert_is_on_offset,

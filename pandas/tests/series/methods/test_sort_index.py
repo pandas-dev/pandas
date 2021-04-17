@@ -3,7 +3,12 @@ import random
 import numpy as np
 import pytest
 
-from pandas import DatetimeIndex, IntervalIndex, MultiIndex, Series
+from pandas import (
+    DatetimeIndex,
+    IntervalIndex,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -197,6 +202,20 @@ class TestSeriesSortIndex:
         result = ser.sort_index(level=["third", "first"], ascending=[False, True])
         expected = ser.iloc[[0, 4, 1, 5, 2, 6, 3, 7]]
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "ascending",
+        [
+            None,
+            (True, None),
+            (False, "True"),
+        ],
+    )
+    def test_sort_index_ascending_bad_value_raises(self, ascending):
+        ser = Series(range(10), index=[0, 3, 2, 1, 4, 5, 7, 6, 8, 9])
+        match = 'For argument "ascending" expected type bool'
+        with pytest.raises(ValueError, match=match):
+            ser.sort_index(ascending=ascending)
 
 
 class TestSeriesSortIndexKey:

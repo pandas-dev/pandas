@@ -3,7 +3,13 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, concat, isna, notna
+from pandas import (
+    DataFrame,
+    Series,
+    concat,
+    isna,
+    notna,
+)
 import pandas._testing as tm
 
 import pandas.tseries.offsets as offsets

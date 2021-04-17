@@ -6,7 +6,15 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    StringDtype,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -499,6 +507,7 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+    def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
@@ -684,3 +693,39 @@ def test_where_try_cast_deprecated(frame_or_series):
     with tm.assert_produces_warning(FutureWarning):
         # try_cast keyword deprecated
         obj.where(mask, -1, try_cast=False)
+
+
+def test_where_copies_with_noop(frame_or_series):
+    # GH-39595
+    result = frame_or_series([1, 2, 3, 4])
+    expected = result.copy()
+    col = result[0] if frame_or_series is DataFrame else result
+
+    where_res = result.where(col < 5)
+    where_res *= 2
+
+    tm.assert_equal(result, expected)
+
+    where_res = result.where(col > 5, [1, 2, 3, 4])
+    where_res *= 2
+
+    tm.assert_equal(result, expected)
+
+
+def test_where_string_dtype(frame_or_series):
+    # GH40824
+    obj = frame_or_series(
+        ["a", "b", "c", "d"], index=["id1", "id2", "id3", "id4"], dtype=StringDtype()
+    )
+    filtered_obj = frame_or_series(
+        ["b", "c"], index=["id2", "id3"], dtype=StringDtype()
+    )
+    filter_ser = Series([False, True, True, False])
+
+    result = obj.where(filter_ser, filtered_obj)
+    expected = frame_or_series(
+        [pd.NA, "b", "c", pd.NA],
+        index=["id1", "id2", "id3", "id4"],
+        dtype=StringDtype(),
+    )
+    tm.assert_equal(result, expected)

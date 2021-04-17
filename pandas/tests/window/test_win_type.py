@@ -4,7 +4,13 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, Timedelta, concat, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    Timedelta,
+    concat,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
 

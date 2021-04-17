@@ -1,6 +1,12 @@
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series, _testing as tm
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    _testing as tm,
+)
 from pandas.core import strings as strings
 
 

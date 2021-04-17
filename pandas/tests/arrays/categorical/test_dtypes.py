@@ -3,7 +3,13 @@ import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-from pandas import Categorical, CategoricalIndex, Index, Series, Timestamp
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    Index,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -138,7 +144,7 @@ class TestCategoricalDtypes:
         tm.assert_numpy_array_equal(result, expected)
 
         result = cat.astype(int)
-        expected = np.array(cat, dtype="int64")
+        expected = np.array(cat, dtype="int")
         tm.assert_numpy_array_equal(result, expected)
 
         result = cat.astype(float)

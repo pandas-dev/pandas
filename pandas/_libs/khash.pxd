@@ -120,4 +120,7 @@ cdef extern from "khash_python.h":
 
     bint kh_exist_strbox(kh_strbox_t*, khiter_t) nogil
 
+    khuint_t kh_needed_n_buckets(khuint_t element_n) nogil
+
+
 include "khash_for_primitive_helper.pxi"

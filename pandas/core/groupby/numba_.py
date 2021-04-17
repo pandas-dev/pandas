@@ -1,6 +1,12 @@
 """Common utilities for Numba operations with groupby ops"""
 import inspect
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+)
 
 import numpy as np
 

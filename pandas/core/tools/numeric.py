@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 
 from pandas._libs import lib
@@ -13,7 +15,10 @@ from pandas.core.dtypes.common import (
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 
 import pandas as pd
 from pandas.core.arrays.numeric import NumericArray
@@ -161,11 +166,10 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
+    mask: Optional[np.ndarray] = None
     if isinstance(values, NumericArray):
         mask = values._mask
         values = values._data[~mask]
-    else:
-        mask = None
 
     values_dtype = getattr(values, "dtype", None)
     if is_numeric_dtype(values_dtype):
@@ -218,7 +222,10 @@ def to_numeric(arg, errors="raise", downcast=None):
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
 
-        from pandas.core.arrays import FloatingArray, IntegerArray
+        from pandas.core.arrays import (
+            FloatingArray,
+            IntegerArray,
+        )
 
         klass = IntegerArray if is_integer_dtype(data.dtype) else FloatingArray
         values = klass(data, mask.copy())

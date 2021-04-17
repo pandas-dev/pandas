@@ -11,7 +11,11 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Timestamp
+from pandas import (
+    Categorical,
+    DataFrame,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
