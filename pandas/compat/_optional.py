@@ -25,6 +25,7 @@ VERSIONS = {
     "s3fs": "0.4.0",
     "scipy": "1.2.0",
     "sqlalchemy": "1.2.8",
+    "sql_metadata": None,
     "tables": "3.5.1",
     "tabulate": "0.8.7",
     "xarray": "0.12.3",

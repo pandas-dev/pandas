@@ -437,6 +437,7 @@ ValueError: columns overlap but no suffix specified:
 3   bar      8
 """
 
+# DataFrame helper functions
 
 # -----------------------------------------------------------------------
 # DataFrame class
@@ -566,7 +567,6 @@ class DataFrame(NDFrame, OpsMixin):
         dtype: Dtype | None = None,
         copy: bool | None = None,
     ):
-
         if copy is None:
             if isinstance(data, dict) or data is None:
                 # retain pre-GH#38939 default behavior
@@ -669,6 +669,17 @@ class DataFrame(NDFrame, OpsMixin):
         # For data is list-like, or Iterable (will consume into list)
         elif is_list_like(data):
             if not isinstance(data, (abc.Sequence, ExtensionArray)):
+                # For data is a sqlalchemy query, extract column names
+                if str(type(data)) == "<class 'sqlalchemy.orm.query.Query'>":
+                    query = str(data)
+                    sql_mt = import_optional_dependency("sql_metadata")
+                    # Extract column names using sql_metadata
+                    columns = sql_mt.get_query_columns(str(data))
+                    # Sanitize column names
+                    for i in range(len(columns)):
+                        if columns[i].find('.') != -1:
+                            columns[i] = columns[i][columns[i].find('.')+1:]
+
                 data = list(data)
             if len(data) > 0:
                 if is_dataclass(data[0]):
