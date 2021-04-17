@@ -1743,7 +1743,7 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif lplane_indexer == 0:
+            elif lplane_indexer == 0 and not isinstance(pi, slice):
                 # We get here in one case via .loc with a all-False mask
                 pass
 
