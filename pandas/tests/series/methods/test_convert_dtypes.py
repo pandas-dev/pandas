@@ -225,3 +225,14 @@ class TestSeriesConvertDtypes:
         # GH32287
         df = pd.DataFrame({"A": pd.array([True])})
         tm.assert_frame_equal(df, df.convert_dtypes())
+
+    def test_convert_object_to_datetime_with_cache(self):
+        # GH#39882
+        ser = pd.Series(
+            [None] + [pd.NaT] * 50 + [pd.Timestamp("2012-07-26")], dtype="object"
+        )
+        result = pd.to_datetime(ser, errors="coerce")
+        expected = pd.Series(
+            [pd.NaT] * 51 + [pd.Timestamp("2012-07-26")], dtype="datetime64[ns]"
+        )
+        tm.assert_series_equal(result, expected)
