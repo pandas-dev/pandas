@@ -5,7 +5,6 @@ from typing import (
     Pattern,
     Set,
     Union,
-    cast,
 )
 import unicodedata
 import warnings
@@ -56,21 +55,17 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         dtype : Dtype, optional
             The dtype of the result array.
         """
-        arr = self
         if dtype is None:
             dtype = np.dtype("object")
         if na_value is None:
             na_value = self._str_na_value
 
-        if not len(arr):
+        if not len(self):
             # error: Argument 1 to "ndarray" has incompatible type "int";
             # expected "Sequence[int]"
             return np.ndarray(0, dtype=dtype)  # type: ignore[arg-type]
 
-        if not isinstance(arr, np.ndarray):
-            # error: Incompatible types in assignment (expression has type "ndarray",
-            # variable has type "ObjectStringArrayMixin")
-            arr = np.asarray(arr, dtype=object)  # type: ignore[assignment]
+        arr = np.asarray(self, dtype=object)
         mask = isna(arr)
         convert = not np.all(mask)
         try:
@@ -96,6 +91,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                     return na_value
 
             return self._str_map(g, na_value=na_value, dtype=dtype)
+        if not isinstance(result, np.ndarray):
+            return result
         if na_value is not np.nan:
             np.putmask(result, mask, na_value)
             if result.dtype == object:
@@ -373,9 +370,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         try:
             arr = sep + arr + sep
         except TypeError:
-            arr = cast(Series, arr)
             arr = sep + arr.astype(str) + sep
-        arr = cast(Series, arr)
 
         tags: Set[str] = set()
         for ts in Series(arr).str.split(sep):

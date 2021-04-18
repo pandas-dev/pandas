@@ -1,5 +1,6 @@
 from collections import abc
 from decimal import Decimal
+from enum import Enum
 import warnings
 
 import cython
@@ -632,7 +633,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_intsafe(ndarray[object] arr, new_dtype) -> ndarray:
+def astype_intsafe(ndarray[object] arr, cnp.dtype new_dtype) -> ndarray:
     cdef:
         Py_ssize_t i, n = len(arr)
         object val
@@ -660,7 +661,8 @@ cpdef ndarray[object] ensure_string_array(
         bint copy=True,
         bint skipna=True,
 ):
-    """Returns a new numpy array with object dtype and only strings and na values.
+    """
+    Returns a new numpy array with object dtype and only strings and na values.
 
     Parameters
     ----------
@@ -678,7 +680,7 @@ cpdef ndarray[object] ensure_string_array(
 
     Returns
     -------
-    ndarray
+    np.ndarray[object]
         An array with the input array's elements casted to str or nan-like.
     """
     cdef:
@@ -852,7 +854,7 @@ def get_level_sorter(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
-                   const int64_t[:] labels,
+                   const intp_t[:] labels,
                    Py_ssize_t max_bin,
                    int axis):
     cdef:
@@ -881,10 +883,10 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     return counts
 
 
-def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
+def generate_slices(const intp_t[:] labels, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, group_size, n, start
-        int64_t lab
+        intp_t lab
         object slobj
         ndarray[int64_t] starts, ends
 
@@ -910,12 +912,12 @@ def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def indices_fast(ndarray index, const int64_t[:] labels, list keys,
+def indices_fast(ndarray[intp_t] index, const int64_t[:] labels, list keys,
                  list sorted_labels) -> dict:
     """
     Parameters
     ----------
-    index : ndarray
+    index : ndarray[intp]
     labels : ndarray[int64]
     keys : list
     sorted_labels : list[ndarray[int64]]
@@ -1110,6 +1112,7 @@ _TYPE_MAP = {
     "complex128": "complex",
     "c": "complex",
     "string": "string",
+    str: "string",
     "S": "bytes",
     "U": "string",
     "bool": "boolean",
@@ -2433,14 +2436,25 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
     return objects
 
 
+class NoDefault(Enum):
+    # We make this an Enum
+    # 1) because it round-trips through pickle correctly (see GH#40397)
+    # 2) because mypy does not understand singletons
+    no_default = "NO_DEFAULT"
+
+    def __repr__(self) -> str:
+        return "<no_default>"
+
+
 # Note: no_default is exported to the public API in pandas.api.extensions
-no_default = object()  # Sentinel indicating the default value.
+no_default = NoDefault.no_default  # Sentinel indicating the default value.
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=True,
-                   object na_value=no_default, object dtype=object) -> "ArrayLike":
+                   object na_value=no_default, cnp.dtype dtype=np.dtype(object)
+                   ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2460,7 +2474,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 
     Returns
     -------
-    ndarray
+    np.ndarray or ExtensionArray
     """
     cdef:
         Py_ssize_t i, n

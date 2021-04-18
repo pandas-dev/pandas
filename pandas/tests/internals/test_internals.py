@@ -27,13 +27,20 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import SparseArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    SparseArray,
+    TimedeltaArray,
+)
 from pandas.core.internals import (
     BlockManager,
     SingleBlockManager,
     make_block,
 )
-from pandas.core.internals.blocks import new_block
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    new_block,
+)
 
 # this file contains BlockManager specific tests
 # TODO(ArrayManager) factor out interleave_dtype tests
@@ -134,6 +141,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
         tz = m.groups()[0]
         assert num_items == 1, "must have only 1 num items for a tz-aware"
         values = DatetimeIndex(np.arange(N) * 1e9, tz=tz)._data
+        values = ensure_block_shape(values, ndim=len(shape))
     elif typestr in ("timedelta", "td", "m8[ns]"):
         values = (mat * 1).astype("m8[ns]")
     elif typestr in ("category",):
@@ -297,6 +305,23 @@ class TestBlock:
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
 
+    def test_delete_datetimelike(self):
+        # dont use np.delete on values, as that will coerce from DTA/TDA to ndarray
+        arr = np.arange(20, dtype="i8").reshape(5, 4).view("m8[ns]")
+        df = DataFrame(arr)
+        blk = df._mgr.blocks[0]
+        assert isinstance(blk.values, TimedeltaArray)
+
+        blk.delete(1)
+        assert isinstance(blk.values, TimedeltaArray)
+
+        df = DataFrame(arr.view("M8[ns]"))
+        blk = df._mgr.blocks[0]
+        assert isinstance(blk.values, DatetimeArray)
+
+        blk.delete([1, 3])
+        assert isinstance(blk.values, DatetimeArray)
+
     def test_split(self):
         # GH#37799
         values = np.random.randn(3, 4)
@@ -438,13 +463,26 @@ class TestBlockManager:
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
 
+            bvals = blk.values
+            cpvals = cp_blk.values
+
+            tm.assert_equal(cpvals, bvals)
+
+            if isinstance(cpvals, np.ndarray):
+                lbase = cpvals.base
+                rbase = bvals.base
+            else:
+                lbase = cpvals._ndarray.base
+                rbase = bvals._ndarray.base
+
             # copy assertion we either have a None for a base or in case of
             # some blocks it is an array (e.g. datetimetz), but was copied
-            tm.assert_equal(cp_blk.values, blk.values)
-            if not isinstance(cp_blk.values, np.ndarray):
-                assert cp_blk.values._data.base is not blk.values._data.base
+            if isinstance(cpvals, DatetimeArray):
+                assert (lbase is None and rbase is None) or (lbase is not rbase)
+            elif not isinstance(cpvals, np.ndarray):
+                assert lbase is not rbase
             else:
-                assert cp_blk.values.base is None and blk.values.base is None
+                assert lbase is None and rbase is None
 
     def test_sparse(self):
         mgr = create_mgr("a: sparse-1; b: sparse-2")
