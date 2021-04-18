@@ -562,7 +562,7 @@ Performance improvements
 - Performance improvement in :class:`Styler` where render times are more than 50% reduced (:issue:`39972` :issue:`39952`)
 - Performance improvement in :meth:`core.window.ewm.ExponentialMovingWindow.mean` with ``times`` (:issue:`39784`)
 - Performance improvement in :meth:`.GroupBy.apply` when requiring the python fallback implementation (:issue:`40176`)
-- Performance improvement in :meth:`io.sql.SQLDatabase.execute` which streams results when chunking is enabled (:issue: `40847`)
+- Performance improvement in :meth:`io.sql.SQLDatabase.execute` which streams results when chunking is enabled (:issue:`40847`)
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_130.bug_fixes:
