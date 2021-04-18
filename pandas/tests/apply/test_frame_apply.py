@@ -1109,6 +1109,8 @@ def test_agg_multiple_mixed_no_warning():
     with tm.assert_produces_warning(None):
         result = mdf[["D", "C", "B", "A"]].agg(["sum", "min"])
 
+    # GH40420: the result of .agg should have an index that is sorted
+    # according to the arguments provided to agg.
     expected = expected[["D", "C", "B", "A"]].reindex(["sum", "min"])
     tm.assert_frame_equal(result, expected)
 
@@ -1518,6 +1520,8 @@ def test_apply_np_reducer(float_frame, op, how):
 
 
 def test_aggregation_func_column_order():
+    # GH40420: the result of .agg should have an index that is sorted
+    # according to the arguments provided to agg.
     df = DataFrame(
         [
             ("1", 1, 0, 0),
