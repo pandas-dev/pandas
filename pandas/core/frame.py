@@ -3733,6 +3733,13 @@ class DataFrame(NDFrame, OpsMixin):
                 if isinstance(existing_piece, DataFrame):
                     value = np.tile(value, (len(existing_piece.columns), 1)).T
 
+        if value.ndim == 2 and value.shape[1] > 1:
+            raise ValueError(
+                "Dataframe column is being assigned to a 2D array with "
+                "more than two columns. Column assignment accepts only "
+                "2D arrays with one column."
+            )
+
         self._set_item_mgr(key, value)
 
     def _set_value(
@@ -4458,16 +4465,6 @@ class DataFrame(NDFrame, OpsMixin):
                     value = maybe_convert_platform(value)
                 else:
                     value = com.asarray_tuplesafe(value)
-            elif value.ndim == 2:
-                value_cols = value.shape[1]
-                if value_cols > 1:
-                    raise ValueError(
-                        f"Dataframe column '{key}' is being "
-                        "assigned to a 2D array with more than "
-                        "two columns. Column assignment accepts "
-                        "only 2D arrays with one column."
-                    )
-                value = value.copy().T
             elif isinstance(value, Index):
                 value = value.copy(deep=True)._values
             else:
