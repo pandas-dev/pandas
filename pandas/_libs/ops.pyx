@@ -257,7 +257,8 @@ def vec_binop(object[:] left, object[:] right, object op) -> ndarray:
 def maybe_convert_bool(ndarray[object] arr,
                        true_values=None,
                        false_values=None,
-                       convert_to_nullable_boolean=False) -> "ArrayLike":
+                       convert_to_masked_nullable=False
+                       ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     cdef:
         Py_ssize_t i, n
         ndarray[uint8_t] result
@@ -291,7 +292,7 @@ def maybe_convert_bool(ndarray[object] arr,
             result[i] = 1
         elif val in false_vals:
             result[i] = 0
-        elif isinstance(val, float):
+        elif is_nan(val):
             mask[i] = 1
             result[i] = 0  # Value here doesn't matter, will be replaced w/ nan
             has_na = True
@@ -299,9 +300,8 @@ def maybe_convert_bool(ndarray[object] arr,
             return arr
 
     if has_na:
-        if convert_to_nullable_boolean:
-            from pandas.core.arrays import BooleanArray
-            return BooleanArray(result.view(np.bool_), mask.view(np.bool_))
+        if convert_to_masked_nullable:
+            return (result.view(np.bool_), mask.view(np.bool_))
         else:
             arr = result.view(np.bool_).astype(object)
             np.putmask(arr, mask, np.nan)
