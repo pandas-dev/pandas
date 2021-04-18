@@ -635,9 +635,8 @@ class BaseGrouper:
         mask = values._mask.copy()
         arr = values._data
 
-        if is_integer_dtype(arr.dtype) or is_bool_dtype(arr.dtype):
-            # IntegerArray or BooleanArray
-            arr = ensure_int_or_float(arr)
+        if is_bool_dtype(arr.dtype):
+            arr = arr.astype("int64")
 
         res_values = self._cython_operation(
             kind, arr, how, axis, min_count, mask=mask, **kwargs
