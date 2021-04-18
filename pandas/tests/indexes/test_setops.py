@@ -547,7 +547,7 @@ def test_union_with_duplicate_index_and_non_monotonic(cls):
     result = a.union(b)
     tm.assert_index_equal(result, expected)
 
-    result = a.union(b)
+    result = b.union(a)
     tm.assert_index_equal(result, expected)
 
 
@@ -576,6 +576,29 @@ def test_union_nan_in_both(dup):
     b = Index([np.nan, dup, 1, 2])
     result = a.union(b, sort=False)
     expected = Index([np.nan, dup, 1.0, 2.0, 2.0])
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        Int64Index,
+        Float64Index,
+        DatetimeIndex,
+        TimedeltaIndex,
+        lambda x: Index(x, dtype=object),
+    ],
+)
+def test_union_with_duplicate_index_not_subset_and_non_monotonic(cls):
+    # GH#36289
+    a = cls([1, 0, 2])
+    b = cls([0, 0, 1])
+    expected = cls([0, 0, 1, 2])
+
+    result = a.union(b)
+    tm.assert_index_equal(result, expected)
+
+    result = b.union(a)
     tm.assert_index_equal(result, expected)
 
 
