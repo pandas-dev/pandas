@@ -1325,10 +1325,12 @@ class SQLDatabase(PandasSQL):
     def execute(self, *args, **kwargs):
         """Simple passthrough to SQLAlchemy connectable"""
         if "chunksize" in kwargs:
-            return self.connectable.execution_options(stream_results=True).execute(*args, **kwargs)
+            # See: https://pythonspeed.com/articles/pandas-sql-chunking/
+            return self.connectable.execution_options(stream_results=True).execute(
+                *args, **kwargs
+            )
         else:
             return self.connectable.execution_options().execute(*args, **kwargs)
-
 
     def read_table(
         self,
