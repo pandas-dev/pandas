@@ -28,10 +28,7 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
 )
-from pandas._typing import (
-    ArrayLike,
-    Callable,
-)
+from pandas._typing import Callable
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -586,7 +583,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             freq = self.freq if self._can_fast_union(other) else None
         return freq
 
-    def _wrap_joined_index(self, joined: ArrayLike, other):
+    def _wrap_joined_index(self, joined, other):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
         result = super()._wrap_joined_index(joined, other)
         result._data._freq = self._get_join_freq(other)

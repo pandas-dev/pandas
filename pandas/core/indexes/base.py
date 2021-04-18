@@ -4112,8 +4112,8 @@ class Index(IndexOpsMixin, PandasObject):
         # We only get here if dtypes match
         assert self.dtype == other.dtype
 
-        lvalues = self._get_engine_target()
-        rvalues = other._get_engine_target()
+        lvalues = self._get_join_target()
+        rvalues = other._get_join_target()
 
         left_idx, right_idx = get_join_indexers(
             [lvalues], [rvalues], how=how, sort=True
@@ -4126,7 +4126,8 @@ class Index(IndexOpsMixin, PandasObject):
         mask = left_idx == -1
         np.putmask(join_array, mask, rvalues.take(right_idx))
 
-        join_index = self._wrap_joined_index(join_array, other)
+        join_arraylike = self._from_join_target(join_array)
+        join_index = self._wrap_joined_index(join_arraylike, other)
 
         return join_index, left_idx, right_idx
 

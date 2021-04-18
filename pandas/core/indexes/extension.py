@@ -468,18 +468,11 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
         return type(self)._simple_new(res_values, name=self.name)
 
-    def _wrap_joined_index(self: _T, joined: ArrayLike, other: _T) -> _T:
+    # error: Argument 1 of "_wrap_joined_index" is incompatible with supertype
+    # "Index"; supertype defines the argument type as "Union[ExtensionArray, ndarray]"
+    def _wrap_joined_index(  # type: ignore[override]
+        self: _T, joined: NDArrayBackedExtensionArray, other: _T
+    ) -> _T:
         name = get_op_result_name(self, other)
 
-        if isinstance(joined, np.ndarray):
-            # Reached from _join_non_unique, view back e.g. i8 to M8ns/m8ns
-            joined = joined.view(self._data._ndarray.dtype)
-            joined_ea = self._data._from_backing_data(joined)
-        else:
-            # error: Incompatible types in assignment (expression has type
-            # "ExtensionArray", variable has type "NDArrayBackedExtensionArray")
-            joined_ea = joined  # type: ignore[assignment]
-            assert type(joined) is type(self._data)  # noqa: E721
-            assert joined.dtype == self.dtype
-
-        return type(self)._simple_new(joined_ea, name=name)
+        return type(self)._simple_new(joined, name=name)
