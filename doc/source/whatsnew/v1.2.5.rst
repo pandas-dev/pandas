@@ -35,7 +35,7 @@ Bug fixes
 Other
 ~~~~~
 
--
+- :meth:`DataFrame.sum` now accepts a single column / string as ``subset`` instead of array-like
 -
 
 .. ---------------------------------------------------------------------------
