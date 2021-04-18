@@ -444,33 +444,25 @@ static int end_line(parser_t *self) {
         self->line_fields[self->lines] = 0;
         return 0;
     }
-    // Explanation of each condition:
-    // Cond1: !((self->skip_header_end
-    //           && (self->lines < self->allow_leading_cols))
-    //        || (!self->skip_header_end
-    //            && (self->lines <=
-    //            (self->header_end + self->allow_leading_cols))))
-    // Allow extra fields if there is no header, but there may be index columns
-    // in the first line or we are within the header and we may
-    // have index columns.
-    // Cond2: (ex_fields > 0) && (fields > ex_fields)
-    // We only throw an error if we know how many fields
-    // to expect and have encountered too many fields.
-    // Cond3: !(self->usecols)
-    // Ignore field parsing errors if we will use a subset of the columns.
-    // Cond4: !(((fields - 1) == ex_fields)
-    // && !self->stream[self->stream_len - 2])
-    // Ignore a trailing delimter (see gh-2442) by checking if
-    // the last field is empty. We determine this if the next
-    // to last character is null (last character must be null).
-    if (!((self->skip_header_end && (self->lines < self->allow_leading_cols))
+    if (
+        // Allow extra fields if there is no header, but there may be
+        // index columns in the first line or we are within the header
+        // and we may have index columns.
+        !((self->skip_header_end && (self->lines < self->allow_leading_cols))
             || (!self->skip_header_end
                 && (self->lines <=
                 (self->header_end + self->allow_leading_cols))))
+        // We only throw an error if we know how many fields
+        // to expect and have encountered too many fields.
         && (ex_fields > 0 && fields > ex_fields)
+        // Ignore field parsing errors if we will use a subset of the columns.
         && !(self->usecols)
+        // Ignore a trailing delimter (see gh-2442) by checking if
+        // the last field is empty. We determine this if the next
+        // to last character is null (last character must be null).
         && !(((fields - 1) == ex_fields) &&
-        !self->stream[self->stream_len - 2])) {
+        !self->stream[self->stream_len - 2])
+    ) {
         // increment file line count
         self->file_lines++;
 
