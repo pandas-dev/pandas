@@ -571,9 +571,9 @@ class BaseGrouper:
         if is_datetime64tz_dtype(values.dtype) or is_period_dtype(values.dtype):
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
-            values = values.view("M8[ns]")
+            npvalues = values.view("M8[ns]")
             res_values = self._cython_operation(
-                kind, values, how, axis, min_count, **kwargs
+                kind, npvalues, how, axis, min_count, **kwargs
             )
             if how in ["rank"]:
                 # i.e. how in WrappedCythonOp.cast_blocklist, since
@@ -597,7 +597,9 @@ class BaseGrouper:
                 return res_values
 
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
-            cls = dtype.construct_array_type()
+            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]"
+            # has no attribute "construct_array_type"
+            cls = dtype.construct_array_type()  # type: ignore[union-attr]
             return cls._from_sequence(res_values, dtype=dtype)
 
         elif is_float_dtype(values.dtype):
@@ -612,7 +614,9 @@ class BaseGrouper:
                 return res_values
 
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
-            cls = dtype.construct_array_type()
+            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]"
+            # has no attribute "construct_array_type"
+            cls = dtype.construct_array_type()  # type: ignore[union-attr]
             return cls._from_sequence(res_values, dtype=dtype)
 
         raise NotImplementedError(
