@@ -2068,6 +2068,7 @@ def maybe_convert_numeric(
         ndarray[uint8_t] bools = np.empty(n, dtype='u1')
         ndarray[uint8_t] mask = np.zeros(n, dtype="u1")
         float64_t fval
+        bint allow_null_in_int = convert_to_masked_nullable
 
     for i in range(n):
         val = values[i]
