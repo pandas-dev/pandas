@@ -76,7 +76,7 @@ def maybe_convert_numeric(
     convert_empty: bool = True,
     coerce_numeric: bool = False,
     convert_to_masked_nullable: bool = False,
-) -> np.ndarray | (np.ndarray,np.ndarray): ...
+) -> np.ndarray | tuple[np.ndarray,np.ndarray]: ...
 
 # TODO: restrict `arr`?
 def ensure_string_array(
