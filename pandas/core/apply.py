@@ -383,10 +383,18 @@ class Apply(metaclass=abc.ABCMeta):
 
         try:
             concatenated = concat(results, keys=keys, axis=1, sort=False)
-            indices = [result.index for result in results]
-            largest_index = max(indices, key=len)
-            if len(largest_index) != len(indices[0]):
-                concatenated = concatenated.reindex(largest_index, copy=True)
+            # Concat uses the first index to determine the final indexing order.
+            # The union with the other indices with a shorter first index causes
+            # the index sorting to be different from the order of the aggregating
+            # functions. Reindex if this is the case.
+            index_size = concatenated.index.size
+            if results[0].index.size != index_size:
+                good_index = next(
+                    result.index
+                    for result in results
+                    if result.index.size == index_size
+                )
+                concatenated = concatenated.reindex(good_index)
             return concatenated
         except TypeError as err:
 
