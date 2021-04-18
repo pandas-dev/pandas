@@ -47,9 +47,12 @@ class TestDataFrameSetItem:
         argnames="arr", argvalues=[(4, 2), (4, 3), (4, 4), (4, 10), (4, 20), (4, 30)]
     )
     def test_setitem_size_incompatible_ndarray(self, arr):
+        # GH#40827
+        # Assigning a dataframe column to an ndarray with more than one columns
+        # should raise an exception.
         data = DataFrame(np.zeros((4, 2)), columns=["A", "B"])
         msg = (
-            "Dataframe column 'A' is being assigned to a 2D "
+            "Dataframe column is being assigned to a 2D "
             "array with more than two columns. Column assignment "
             "accepts only 2D arrays with one column."
         )
