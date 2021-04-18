@@ -667,11 +667,10 @@ def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
 def test_no_header_two_extra_columns(all_parsers):
     # GH 26218
     column_names = ["one", "two", "three"]
-    ref = DataFrame([["foo", "bar", "baz"]], columns=column_names)
     stream = StringIO("foo,bar,baz,bam,blah")
     parser = all_parsers
-    df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
-    tm.assert_frame_equal(df, ref)
+    with pytest.raises(ParserError, match="Expected 3 fields in line 1, saw 5"):
+        parser.read_csv(stream, header=None, names=column_names, index_col=False)
 
 
 def test_read_csv_names_not_accepting_sets(all_parsers):

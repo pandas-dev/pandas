@@ -444,11 +444,26 @@ static int end_line(parser_t *self) {
         self->line_fields[self->lines] = 0;
         return 0;
     }
-    // Ignore any trailing delimters see gh-2442 by checking if
+    // Explanation of each condition:
+    // Cond1: (self->skip_header_end ||
+    // !(self->lines <= (self->header_end + self->allow_leading_cols)))
+    // We don't check the expected number of fields within the header
+    // lines and we are allowed to infer the index.
+    // We check for if Header=None is specified with self->skip_header_end.
+    // Cond2: (ex_fields > 0) && (fields > ex_fields)
+    // We only throw an error if we know how many fields
+    // to expect and have encountered too many fields.
+    // Cond3: !(self->usecols)
+    // Ignore field parsing errors if we will use a subset of the columns.
+    // Cond4: !(((fields - 1) == ex_fields)
+    // && !self->stream[self->stream_len - 2])
+    // Ignore a trailing delimter (see gh-2442) by checking if
     // the last field is empty. We determine this if the next
     // to last character is null (last character must be null).
-    if (!(self->lines <= self->header_end + self->allow_leading_cols) &&
-        (self->expected_fields < 0 && fields > ex_fields) && !(self->usecols)
+    if ((self->skip_header_end
+        || !(self->lines <= (self->header_end + self->allow_leading_cols)))
+        && (ex_fields > 0 && fields > ex_fields)
+        && !(self->usecols)
         && !(((fields - 1) == ex_fields) &&
         !self->stream[self->stream_len - 2])) {
         // increment file line count

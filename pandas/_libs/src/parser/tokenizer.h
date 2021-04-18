@@ -151,6 +151,10 @@ typedef struct parser_t {
     uint64_t header_end;   // header row end
 
     int allow_leading_cols;  // Boolean: 1: can infer index col, 0: no index col
+    int skip_header_end;     // Boolean: 1: Header=None, 0 Header is not None
+                             // This is used because header_end
+                             // is uint64_t so there is no valid NULL value
+                             // (i.e. header_end == -1).
 
     void *skipset;
     PyObject *skipfunc;

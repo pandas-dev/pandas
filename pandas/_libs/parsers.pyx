@@ -215,7 +215,12 @@ cdef extern from "parser/tokenizer.h":
         int64_t header_start        # header row start
         uint64_t header_end         # header row end
 
-        bint allow_leading_cols      # Boolean: 1: can infer index col, 0: no index col
+        bint allow_leading_cols     # Boolean: 1: can infer index col, 0: no index col
+        bint skip_header_end        # Boolean: 1: Header=None,
+                                    # 0 Header is not None
+                                    # This is used because header_end is
+                                    # uint64_t so there is no valid NULL
+                                    # value (i.e. header_end == -1).
 
         void *skipset
         PyObject *skipfunc
@@ -518,11 +523,13 @@ cdef class TextReader:
         if header is None:
             # sentinel value
             self.parser.header_start = -1
-            self.parser.header_end = -1
+            self.parser.skip_header_end = True
+            self.parser.header_end = 0
             self.parser.header = -1
             self.parser_start = 0
             self.header = []
         else:
+            self.parser.skip_header_end = False
             if isinstance(header, list):
                 if len(header) > 1:
                     # need to artificially skip the final line
