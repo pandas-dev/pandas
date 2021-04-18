@@ -10,22 +10,16 @@ from __future__ import annotations
 import collections
 import functools
 from typing import (
-    Dict,
     Generic,
     Hashable,
     Iterator,
-    List,
-    Optional,
     Sequence,
-    Tuple,
-    Type,
 )
 
 import numpy as np
 
 from pandas._libs import (
     NaT,
-    iNaT,
     lib,
 )
 import pandas._libs.groupby as libgroupby
@@ -73,7 +67,6 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core.arrays import ExtensionArray
-from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -294,14 +287,14 @@ class BaseGrouper:
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
-        indexer: Optional[np.ndarray] = None,
+        indexer: np.ndarray | None = None,
         dropna: bool = True,
     ):
         assert isinstance(axis, Index), axis
 
         self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
-        self._groupings: List[grouper.Grouping] = list(groupings)
+        self._groupings: list[grouper.Grouping] = list(groupings)
         self.sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
@@ -309,7 +302,7 @@ class BaseGrouper:
         self.dropna = dropna
 
     @property
-    def groupings(self) -> List[grouper.Grouping]:
+    def groupings(self) -> list[grouper.Grouping]:
         return self._groupings
 
     @property
@@ -325,7 +318,7 @@ class BaseGrouper:
 
     def get_iterator(
         self, data: FrameOrSeries, axis: int = 0
-    ) -> Iterator[Tuple[Hashable, FrameOrSeries]]:
+    ) -> Iterator[tuple[Hashable, FrameOrSeries]]:
         """
         Groupby iterator
 
@@ -455,15 +448,15 @@ class BaseGrouper:
         return get_indexer_dict(codes_list, keys)
 
     @property
-    def codes(self) -> List[np.ndarray]:
+    def codes(self) -> list[np.ndarray]:
         return [ping.codes for ping in self.groupings]
 
     @property
-    def levels(self) -> List[Index]:
+    def levels(self) -> list[Index]:
         return [ping.group_index for ping in self.groupings]
 
     @property
-    def names(self) -> List[Hashable]:
+    def names(self) -> list[Hashable]:
         return [ping.name for ping in self.groupings]
 
     @final
@@ -479,7 +472,7 @@ class BaseGrouper:
         return Series(out, index=self.result_index, dtype="int64")
 
     @cache_readonly
-    def groups(self) -> Dict[Hashable, np.ndarray]:
+    def groups(self) -> dict[Hashable, np.ndarray]:
         """ dict {group name -> group labels} """
         if len(self.groupings) == 1:
             return self.groupings[0].groups
@@ -513,7 +506,7 @@ class BaseGrouper:
         return codes
 
     @final
-    def _get_compressed_codes(self) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_compressed_codes(self) -> tuple[np.ndarray, np.ndarray]:
         all_codes = self.codes
         if len(all_codes) > 1:
             group_index = get_group_index(all_codes, self.shape, sort=True, xnull=True)
@@ -528,7 +521,7 @@ class BaseGrouper:
         return len(self.result_index)
 
     @property
-    def reconstructed_codes(self) -> List[np.ndarray]:
+    def reconstructed_codes(self) -> list[np.ndarray]:
         codes = self.codes
         comp_ids, obs_ids, _ = self.group_info
         return decons_obs_group_ids(comp_ids, obs_ids, self.shape, codes, xnull=True)
@@ -545,7 +538,7 @@ class BaseGrouper:
         )
 
     @final
-    def get_group_levels(self) -> List[Index]:
+    def get_group_levels(self) -> list[Index]:
         if not self.compressed and len(self.groupings) == 1:
             return [self.groupings[0].result_index]
 
@@ -560,14 +553,6 @@ class BaseGrouper:
 
     # ------------------------------------------------------------
     # Aggregation functions
-
-    @final
-    def _is_builtin_func(self, arg):
-        """
-        if we define a builtin function for this argument, return it,
-        otherwise return the arg
-        """
-        return SelectionMixin._builtin_table.get(arg, arg)
 
     @final
     def _ea_wrap_cython_operation(
@@ -677,12 +662,7 @@ class BaseGrouper:
         elif is_bool_dtype(dtype):
             values = ensure_int_or_float(values)
         elif is_integer_dtype(dtype):
-            # we use iNaT for the missing value on ints
-            # so pre-convert to guard this condition
-            if (values == iNaT).any():
-                values = ensure_float64(values)
-            else:
-                values = ensure_int_or_float(values)
+            values = ensure_int_or_float(values)
         elif is_numeric:
             if not is_complex_dtype(dtype):
                 values = ensure_float64(values)
@@ -700,20 +680,36 @@ class BaseGrouper:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            func(result, counts, values, comp_ids, min_count)
+            if how in ["min", "max"]:
+                func(
+                    result,
+                    counts,
+                    values,
+                    comp_ids,
+                    min_count,
+                    is_datetimelike=is_datetimelike,
+                )
+            else:
+                func(result, counts, values, comp_ids, min_count)
         elif kind == "transform":
             # TODO: min_count
             func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
-        if is_integer_dtype(result.dtype) and not is_datetimelike:
-            mask = result == iNaT
-            if mask.any():
-                result = result.astype("float64")
-                result[mask] = np.nan
+        if kind == "aggregate":
+            # i.e. counts is defined.  Locations where count<min_count
+            # need to have the result set to np.nan, which may require casting,
+            # see GH#40767
+            if is_integer_dtype(result.dtype) and not is_datetimelike:
+                cutoff = max(1, min_count)
+                empty_groups = counts < cutoff
+                if empty_groups.any():
+                    # Note: this conversion could be lossy, see GH#40767
+                    result = result.astype("float64")
+                    result[empty_groups] = np.nan
 
-        if kind == "aggregate" and self._filter_empty_groups and not counts.all():
-            assert result.ndim != 2
-            result = result[counts > 0]
+            if self._filter_empty_groups and not counts.all():
+                assert result.ndim != 2
+                result = result[counts > 0]
 
         result = result.T
 
@@ -763,7 +759,7 @@ class BaseGrouper:
         #  - obj is backed by an ndarray, not ExtensionArray
         #  - len(obj) > 0
         #  - ngroups != 0
-        func = self._is_builtin_func(func)
+        func = com.is_builtin_func(func)
 
         group_index, _, ngroups = self.group_info
 
@@ -801,7 +797,7 @@ class BaseGrouper:
             result[label] = res
 
         out = lib.maybe_convert_objects(result, try_float=False)
-        out = maybe_cast_result(out, obj, numeric_only=True)
+        out = maybe_cast_result(out, obj.dtype, numeric_only=True)
 
         return out, counts
 
@@ -935,7 +931,7 @@ class BinGrouper(BaseGrouper):
         )
 
     @cache_readonly
-    def reconstructed_codes(self) -> List[np.ndarray]:
+    def reconstructed_codes(self) -> list[np.ndarray]:
         # get unique result indices, and prepend 0 as groupby starts from the first
         return [np.r_[0, np.flatnonzero(self.bins[1:] != self.bins[:-1]) + 1]]
 
@@ -947,15 +943,15 @@ class BinGrouper(BaseGrouper):
         return self.binlabels
 
     @property
-    def levels(self) -> List[Index]:
+    def levels(self) -> list[Index]:
         return [self.binlabels]
 
     @property
-    def names(self) -> List[Hashable]:
+    def names(self) -> list[Hashable]:
         return [self.binlabels.name]
 
     @property
-    def groupings(self) -> List[grouper.Grouping]:
+    def groupings(self) -> list[grouper.Grouping]:
         return [
             grouper.Grouping(lvl, lvl, in_axis=False, level=None, name=name)
             for lvl, name in zip(self.levels, self.names)
@@ -1068,7 +1064,7 @@ def get_splitter(
     data: FrameOrSeries, labels: np.ndarray, ngroups: int, axis: int = 0
 ) -> DataSplitter:
     if isinstance(data, Series):
-        klass: Type[DataSplitter] = SeriesSplitter
+        klass: type[DataSplitter] = SeriesSplitter
     else:
         # i.e. DataFrame
         klass = FrameSplitter

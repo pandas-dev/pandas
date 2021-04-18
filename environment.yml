@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - numpy>=1.16.5
+  - numpy>=1.17.3
   - python=3
   - python-dateutil>=2.7.3
   - pytz
@@ -20,9 +20,9 @@ dependencies:
   # code checks
   - black=20.8b1
   - cpplint
-  - flake8
-  - flake8-bugbear>=21.3.2  # used by flake8, find likely bugs
-  - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
+  - flake8=3.9.0
+  - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
+  - flake8-comprehensions=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.812
   - pre-commit>=2.9.2
@@ -33,6 +33,7 @@ dependencies:
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
   - sphinx
+  - sphinx-panels
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
@@ -78,7 +79,6 @@ dependencies:
   - bottleneck>=1.2.1
   - ipykernel
   - ipython>=7.11.1
-  - decorator=4  # temporary pin (dependency of IPython), see GH-40768
   - jinja2  # pandas.Styler
   - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.6.8
@@ -117,3 +117,4 @@ dependencies:
   - pip:
     - git+https://github.com/pydata/pydata-sphinx-theme.git@master
     - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
+    - pandas-dev-flaker==0.2.0
