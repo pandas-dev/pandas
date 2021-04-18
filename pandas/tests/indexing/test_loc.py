@@ -2356,7 +2356,7 @@ class TestLocListlike:
 @pytest.mark.parametrize(
     argnames="arr", argvalues=[(4, 2), (4, 3), (4, 4), (4, 10), (4, 20), (4, 30)]
 )
-def test_loc_setitem_with_size_incompatible_ndarray(self, arr):
+def test_loc_setitem_with_size_incompatible_ndarray(arr):
     # GH#40827
     # Assigning a dataframe column to an ndarray with more than one columns
     # should raise an exception.
@@ -2368,7 +2368,7 @@ def test_loc_setitem_with_size_incompatible_ndarray(self, arr):
         data.iloc[:] = np.random.randn(arr[0], arr[1])
 
 
-def test_loc_setitem_with_size_compatible_ndarray(self):
+def test_loc_setitem_with_size_compatible_ndarray():
     data = DataFrame(np.zeros(4), columns=["A"])
 
     data_to_set = np.random.randn(4, 1)
