@@ -40,5 +40,5 @@ def maybe_convert_bool(
     arr: np.ndarray,  # np.ndarray[object]
     true_values=...,
     false_values=...,
-    convert_to_nullable_boolean: bool = True,
+    convert_to_masked_nullable: bool = True,
 ) -> np.ndarray: ...

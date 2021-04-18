@@ -2008,7 +2008,7 @@ def maybe_convert_numeric(
     bint convert_empty=True,
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
-) -> "ArrayLike":
+) -> np.ndarray:
     """
     Convert object array to a numeric array if possible.
 
