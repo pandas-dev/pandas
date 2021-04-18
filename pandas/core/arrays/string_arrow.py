@@ -39,6 +39,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
@@ -752,3 +753,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             #    or .findall returns a list).
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
+
+    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
+        if not regex and case:
+            result = pc.match_substring(self._data, pat)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_contains(pat, case, flags, na, regex)
