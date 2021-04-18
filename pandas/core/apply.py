@@ -382,12 +382,16 @@ class Apply(metaclass=abc.ABCMeta):
             raise ValueError("no results")
 
         try:
-            return concat(results, keys=keys, axis=1, sort=False)
+            concatenated = concat(results, keys=keys, axis=1, sort=False)
+            indices = [result.index for result in results]
+            largest_index = max(indices, key=len)
+            if len(largest_index) != len(indices[0]):
+                concatenated = concatenated.reindex(largest_index, copy=True)
+            return concatenated
         except TypeError as err:
 
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
-
             from pandas import Series
 
             result = Series(results, index=keys, name=obj.name)
