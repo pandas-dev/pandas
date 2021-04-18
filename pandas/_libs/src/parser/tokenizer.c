@@ -421,10 +421,10 @@ static int end_line(parser_t *self) {
 
     TRACE(("end_line: lines: %d\n", self->lines));
     if (self->lines > 0) {
-        if (self->expected_fields >= 0) {
-            ex_fields = self->expected_fields;
+        if (self->expected_fields > self->line_fields[self->lines - 1]) {
+             ex_fields = self->expected_fields;
         } else {
-            ex_fields = self->line_fields[self->lines - 1];
+             ex_fields = self->line_fields[self->lines - 1];
         }
     }
     TRACE(("end_line: ex_fields: %d\n", ex_fields));
@@ -445,11 +445,14 @@ static int end_line(parser_t *self) {
         return 0;
     }
     // Explanation of each condition:
-    // Cond1: (self->skip_header_end ||
-    // !(self->lines <= (self->header_end + self->allow_leading_cols)))
-    // We don't check the expected number of fields within the header
-    // lines and we are allowed to infer the index.
-    // We check for if Header=None is specified with self->skip_header_end.
+    // Cond1: !((self->skip_header_end
+    //           && (self->lines < self->allow_leading_cols))
+    //        || (!self->skip_header_end
+    //            && (self->lines <=
+    //            (self->header_end + self->allow_leading_cols))))
+    // Allow extra fields if there is no header, but there may be index columns
+    // in the first line or we are within the header and we may
+    // have index columns.
     // Cond2: (ex_fields > 0) && (fields > ex_fields)
     // We only throw an error if we know how many fields
     // to expect and have encountered too many fields.
@@ -460,8 +463,10 @@ static int end_line(parser_t *self) {
     // Ignore a trailing delimter (see gh-2442) by checking if
     // the last field is empty. We determine this if the next
     // to last character is null (last character must be null).
-    if ((self->skip_header_end
-        || !(self->lines <= (self->header_end + self->allow_leading_cols)))
+    if (!((self->skip_header_end && (self->lines < self->allow_leading_cols))
+            || (!self->skip_header_end
+                && (self->lines <=
+                (self->header_end + self->allow_leading_cols))))
         && (ex_fields > 0 && fields > ex_fields)
         && !(self->usecols)
         && !(((fields - 1) == ex_fields) &&
