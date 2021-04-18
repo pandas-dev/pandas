@@ -5,7 +5,6 @@ from typing import (
     Pattern,
     Set,
     Union,
-    cast,
 )
 import unicodedata
 import warnings
@@ -92,6 +91,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                     return na_value
 
             return self._str_map(g, na_value=na_value, dtype=dtype)
+        if not isinstance(result, np.ndarray):
+            return result
         if na_value is not np.nan:
             np.putmask(result, mask, na_value)
             if result.dtype == object:
@@ -369,9 +370,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         try:
             arr = sep + arr + sep
         except TypeError:
-            arr = cast(Series, arr)
             arr = sep + arr.astype(str) + sep
-        arr = cast(Series, arr)
 
         tags: Set[str] = set()
         for ts in Series(arr).str.split(sep):

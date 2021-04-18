@@ -4,11 +4,7 @@ from distutils.version import LooseVersion
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
     Sequence,
-    Tuple,
-    Type,
-    Union,
     cast,
 )
 
@@ -21,21 +17,25 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     NpDtype,
+    PositionalIndexer,
+    type_t,
 )
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.missing import isna
-
-from pandas.api.types import (
+from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_integer,
     is_integer_dtype,
+    is_object_dtype,
     is_scalar,
+    is_string_dtype,
 )
+from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.missing import isna
+
 from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
@@ -43,6 +43,7 @@ from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
 )
+from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 try:
     import pyarrow as pa
@@ -102,11 +103,11 @@ class ArrowStringDtype(ExtensionDtype):
     na_value = libmissing.NA
 
     @property
-    def type(self) -> Type[str]:
+    def type(self) -> type[str]:
         return str
 
     @classmethod
-    def construct_array_type(cls) -> Type[ArrowStringArray]:
+    def construct_array_type(cls) -> type_t[ArrowStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -122,9 +123,7 @@ class ArrowStringDtype(ExtensionDtype):
     def __repr__(self) -> str:
         return "ArrowStringDtype"
 
-    def __from_arrow__(
-        self, array: Union[pa.Array, pa.ChunkedArray]
-    ) -> ArrowStringArray:
+    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray) -> ArrowStringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
@@ -153,7 +152,12 @@ class ArrowStringDtype(ExtensionDtype):
             return False
 
 
-class ArrowStringArray(OpsMixin, ExtensionArray):
+# TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from
+# ObjectStringArrayMixin because we want to have the object-dtype based methods as
+# fallback for the ones that pyarrow doesn't yet support
+
+
+class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
@@ -222,7 +226,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             raise ImportError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype: Optional[Dtype] = None, copy: bool = False):
+    def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
         cls._chk_pyarrow_available()
         # convert non-na-likes to str, and nan-likes to ArrowStringDtype.na_value
         scalars = lib.ensure_string_array(scalars, copy=False)
@@ -230,7 +234,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, strings, dtype: Dtype | None = None, copy: bool = False
     ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -241,7 +245,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return self._dtype
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.to_numpy(dtype=dtype)
 
@@ -254,7 +258,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
     # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
     def to_numpy(  # type: ignore[override]
         self,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -280,7 +284,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         return len(self._data)
 
     @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         encoded = self._data.dictionary_encode()
         indices = pa.chunked_array(
             [c.indices for c in encoded.chunks], type=encoded.type.index_type
@@ -315,7 +319,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             )
         )
 
-    def __getitem__(self, item: Any) -> Any:
+    def __getitem__(self, item: PositionalIndexer) -> Any:
         """Select a subset of self.
 
         Parameters
@@ -486,7 +490,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
         return BooleanArray._from_sequence(result.to_pandas().values)
 
-    def __setitem__(self, key: Union[int, slice, np.ndarray], value: Any) -> None:
+    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
         """Set one or more values inplace.
 
         Parameters
@@ -680,3 +684,71 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             raise NotImplementedError("yo")
 
         return Series(counts, index=index).astype("Int64")
+
+    # ------------------------------------------------------------------------
+    # String methods interface
+
+    _str_na_value = ArrowStringDtype.na_value
+
+    def _str_map(self, f, na_value=None, dtype: Dtype | None = None):
+        # TODO: de-duplicate with StringArray method. This method is moreless copy and
+        # paste.
+
+        from pandas.arrays import (
+            BooleanArray,
+            IntegerArray,
+        )
+
+        if dtype is None:
+            dtype = self.dtype
+        if na_value is None:
+            na_value = self.dtype.na_value
+
+        mask = isna(self)
+        arr = np.asarray(self)
+
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            constructor: type[IntegerArray] | type[BooleanArray]
+            if is_integer_dtype(dtype):
+                constructor = IntegerArray
+            else:
+                constructor = BooleanArray
+
+            na_value_is_na = isna(na_value)
+            if na_value_is_na:
+                na_value = 1
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
+                # "object"
+                # error: Argument 1 to "dtype" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
+                # "Type[object]"
+                dtype=np.dtype(dtype),  # type: ignore[type-var,arg-type]
+            )
+
+            if not na_value_is_na:
+                mask[:] = False
+
+            # error: Argument 1 to "IntegerArray" has incompatible type
+            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+            # error: Argument 1 to "BooleanArray" has incompatible type
+            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+            return constructor(result, mask)  # type: ignore[arg-type]
+
+        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+            # i.e. StringDtype
+            result = lib.map_infer_mask(
+                arr, f, mask.view("uint8"), convert=False, na_value=na_value
+            )
+            return self._from_sequence(result)
+        else:
+            # This is when the result type is object. We reach this when
+            # -> We know the result type is truly object (e.g. .encode returns bytes
+            #    or .findall returns a list).
+            # -> We don't know the result type. E.g. `.get` can return anything.
+            return lib.map_infer_mask(arr, f, mask.view("uint8"))
