@@ -2007,8 +2007,7 @@ def maybe_convert_numeric(
     set na_values,
     bint convert_empty=True,
     bint coerce_numeric=False,
-    bint convert_to_nullable_integer=False,
-    bint convert_to_floating_array=False,
+    bint convert_to_masked_nullable=False,
 ) -> "ArrayLike":
     """
     Convert object array to a numeric array if possible.
@@ -2033,16 +2032,14 @@ def maybe_convert_numeric(
         numeric array has no suitable numerical dtype to return (i.e. uint64,
         int32, uint8). If set to False, the original object array will be
         returned. Otherwise, a ValueError will be raised.
-    convert_to_nullable_integer : bool, default False
-        If an array-like object contains only integer values (and NaN) is
-        encountered, whether to convert and return an IntegerArray.
-    convert_to_floating_array : bool, default False
-        If an array-like object contains only float values (and NaN) is
-        encountered, whether to convert and return an FloatingArray.
+    convert_to_masked_nullable : bool, default False
+        Whether to return a mask for the converted values. This also disables
+        upcasting for ints with nulls to float64.
     Returns
     -------
-    np.ndarray or ExtensionArray
+    np.ndarray or tuple of converted values and its mask
         Array of converted object values to numerical ones.
+        Also returns mask if convert_to_masked_nullable is True.
     """
     if len(values) == 0:
         return np.array([], dtype='i8')
@@ -2075,17 +2072,17 @@ def maybe_convert_numeric(
     for i in range(n):
         val = values[i]
         # We only want to disable NaNs showing as float if
-        # a) convert_to_nullable_integer = True
+        # a) convert_to_masked_nullable = True
         # b) no floats have been seen ( assuming an int shows up later )
         # However, if no ints present (all null array), we need to return floats
-        allow_null_in_int = convert_to_nullable_integer and not seen.float_
+        allow_null_in_int = convert_to_masked_nullable and not seen.float_
 
         if val.__hash__ is not None and val in na_values:
             if allow_null_in_int:
                 seen.null_ = True
                 mask[i] = 1
             else:
-                if convert_to_floating_array:
+                if convert_to_masked_nullable:
                     mask[i] = 1
                 seen.saw_null()
             floats[i] = complexes[i] = NaN
@@ -2096,7 +2093,7 @@ def maybe_convert_numeric(
                 if allow_null_in_int:
                     mask[i] = 1
                 else:
-                    if convert_to_floating_array:
+                    if convert_to_masked_nullable:
                         mask[i] = 1
                     seen.float_ = True
             else:
@@ -2128,7 +2125,7 @@ def maybe_convert_numeric(
                 seen.null_ = True
                 mask[i] = 1
             else:
-                if convert_to_floating_array:
+                if convert_to_masked_nullable:
                     mask[i] = 1
                 seen.saw_null()
             floats[i] = complexes[i] = NaN
@@ -2164,7 +2161,7 @@ def maybe_convert_numeric(
                     if as_int in na_values:
                         mask[i] = 1
                         seen.null_ = True
-                        if not convert_to_nullable_integer:
+                        if not allow_null_in_int:
                             seen.float_ = True
                     else:
                         seen.saw_int(as_int)
@@ -2197,23 +2194,21 @@ def maybe_convert_numeric(
 
     # This occurs since we disabled float nulls showing as null in anticipation
     # of seeing ints that were never seen. So then, we return float
-    if convert_to_nullable_integer and seen.null_ and not seen.int_:
+    if allow_null_in_int and seen.null_ and not seen.int_:
         seen.float_ = True
 
     if seen.complex_:
         return complexes
     elif seen.float_:
-        if seen.null_ and convert_to_floating_array:
-            from pandas.core.arrays import FloatingArray
-            return FloatingArray(floats, mask.view(np.bool_))
+        if seen.null_ and convert_to_masked_nullable:
+            return (floats, mask.view(np.bool_))
         return floats
     elif seen.int_:
-        if seen.null_ and convert_to_nullable_integer:
-            from pandas.core.arrays import IntegerArray
+        if seen.null_ and convert_to_masked_nullable:
             if seen.uint_:
-                return IntegerArray(uints, mask.view(np.bool_))
+                return (uints, mask.view(np.bool_))
             else:
-                return IntegerArray(ints, mask.view(np.bool_))
+                return (ints, mask.view(np.bool_))
         if seen.uint_:
             return uints
         else:
