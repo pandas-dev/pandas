@@ -230,6 +230,38 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
+``Categorical.unique`` now always maintains same dtype as original
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, when calling :meth:`~Categorical.unique` with categorical data, unused categories in the new array
+would be removed, meaning that the dtype of the new array would be different than the
+original, if some categories are not present in the unique array (:issue:`18291`)
+
+As an example of this, given:
+
+.. ipython:: python
+
+        dtype = pd.CategoricalDtype(['bad', 'neutral', 'good'], ordered=True)
+        cat = pd.Categorical(['good', 'good', 'bad', 'bad'], dtype=dtype)
+        original = pd.Series(cat)
+        unique = original.unique()
+
+*pandas < 1.3.0*:
+
+.. code-block:: ipython
+
+    In [1]: unique
+    ['good', 'bad']
+    Categories (2, object): ['bad' < 'good']
+    In [2]: original.dtype == unique.dtype
+    False
+
+*pandas >= 1.3.0*
+
+.. ipython:: python
+
+        unique
+        original.dtype == unique.dtype
 
 Preserve dtypes in  :meth:`~pandas.DataFrame.combine_first`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -790,6 +822,9 @@ Groupby/resample/rolling
 - Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would incorrectly raise a ``ValueError`` when providing ``times`` (:issue:`40164`)
 - Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would not retain ``com``, ``span``, ``alpha`` or ``halflife`` attributes  (:issue:`40164`)
 - :class:`core.window.ewm.ExponentialMovingWindow` now raises a ``NotImplementedError`` when specifying ``times`` with ``adjust=False`` due to an incorrect calculation (:issue:`40098`)
+- Bug in :meth:`core.window.ewm.ExponentialMovingWindowGroupby.mean` where the times argument was ignored when ``engine='numba'`` (:issue:`40951`)
+- Bug in :meth:`core.window.ewm.ExponentialMovingWindowGroupby.mean` where the wrong times were used in case of multiple groups (:issue:`40951`)
+- Bug in :class:`core.window.ewm.ExponentialMovingWindowGroupby` where the times vector and values became out of sync for non-trivial groups (:issue:`40951`)
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
 - Bug in aggregation functions for :class:`DataFrame` not respecting ``numeric_only`` argument when ``level`` keyword was given (:issue:`40660`)
 - Bug in :meth:`SeriesGroupBy.aggregate` where using a user-defined function to aggregate a ``Series`` with an object-typed :class:`Index` causes an incorrect :class:`Index` shape (issue:`40014`)
@@ -830,7 +865,7 @@ ExtensionArray
 - Bug in :meth:`DataFrame.where` when ``other`` is a :class:`Series` with :class:`ExtensionArray` dtype (:issue:`38729`)
 - Fixed bug where :meth:`Series.idxmax`, :meth:`Series.idxmin` and ``argmax/min`` fail when the underlying data is :class:`ExtensionArray` (:issue:`32749`, :issue:`33719`, :issue:`36566`)
 - Fixed a bug where some properties of subclasses of :class:`PandasExtensionDtype` where improperly cached (:issue:`40329`)
--
+- Bug in :meth:`DataFrame.mask` where masking a :class:`Dataframe` with an :class:`ExtensionArray` dtype raises ``ValueError`` (:issue:`40941`)
 
 Styler
 ^^^^^^

@@ -249,7 +249,7 @@ class RangeIndex(NumericIndex):
     )
 
     @property
-    def start(self):
+    def start(self) -> int:
         """
         The value of the `start` parameter (``0`` if this was not supplied).
         """
@@ -257,7 +257,7 @@ class RangeIndex(NumericIndex):
         return self._range.start
 
     @property
-    def _start(self):
+    def _start(self) -> int:
         """
         The value of the `start` parameter (``0`` if this was not supplied).
 
@@ -272,14 +272,14 @@ class RangeIndex(NumericIndex):
         return self.start
 
     @property
-    def stop(self):
+    def stop(self) -> int:
         """
         The value of the `stop` parameter.
         """
         return self._range.stop
 
     @property
-    def _stop(self):
+    def _stop(self) -> int:
         """
         The value of the `stop` parameter.
 
@@ -295,7 +295,7 @@ class RangeIndex(NumericIndex):
         return self.stop
 
     @property
-    def step(self):
+    def step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
         """
@@ -303,7 +303,7 @@ class RangeIndex(NumericIndex):
         return self._range.step
 
     @property
-    def _step(self):
+    def _step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
 
@@ -405,6 +405,7 @@ class RangeIndex(NumericIndex):
         limit: int | None = None,
         tolerance=None,
     ) -> np.ndarray:
+        # -> np.ndarray[np.intp]
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -522,7 +523,7 @@ class RangeIndex(NumericIndex):
 
         Returns
         -------
-        argsorted : numpy array
+        np.ndarray[np.intp]
 
         See Also
         --------
@@ -532,9 +533,9 @@ class RangeIndex(NumericIndex):
         nv.validate_argsort(args, kwargs)
 
         if self._range.step > 0:
-            result = np.arange(len(self))
+            result = np.arange(len(self), dtype=np.intp)
         else:
-            result = np.arange(len(self) - 1, -1, -1)
+            result = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
 
         if not ascending:
             result = result[::-1]
@@ -759,7 +760,7 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
-    def _concat(self, indexes, name: Hashable):
+    def _concat(self, indexes: list[Index], name: Hashable):
         """
         Overriding parent method for the case of all RangeIndex instances.
 
@@ -780,7 +781,8 @@ class RangeIndex(NumericIndex):
         non_empty_indexes = [obj for obj in indexes if len(obj)]
 
         for obj in non_empty_indexes:
-            rng: range = obj._range
+            # error: "Index" has no attribute "_range"
+            rng: range = obj._range  # type: ignore[attr-defined]
 
             if start is None:
                 # This is set by the first non-empty index
@@ -808,7 +810,12 @@ class RangeIndex(NumericIndex):
         if non_empty_indexes:
             # Get the stop value from "next" or alternatively
             # from the last non-empty index
-            stop = non_empty_indexes[-1].stop if next_ is None else next_
+            # error: "Index" has no attribute "stop"
+            stop = (
+                non_empty_indexes[-1].stop  # type: ignore[attr-defined]
+                if next_ is None
+                else next_
+            )
             return RangeIndex(start, stop, step).rename(name)
 
         # Here all "indexes" had 0 length, i.e. were empty.
