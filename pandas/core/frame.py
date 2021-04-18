@@ -5921,12 +5921,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         agg_obj = self
         if subset is not None:
-            if (
-                not np.iterable(subset)
-                or isinstance(subset, str)
-                or isinstance(subset, tuple)
-                and subset in self.columns
-            ):
+            if not is_list_like(subset):
                 # subset needs to be list like
                 subset = (subset,)
             ax = self._get_axis(agg_axis)
