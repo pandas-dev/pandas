@@ -59,7 +59,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCCategoricalIndex
 from pandas.core.dtypes.missing import (
     isna,
@@ -95,6 +94,10 @@ class WrappedCythonOp:
     """
     Dispatch logic for functions defined in _libs.groupby
     """
+
+    # Functions for which we do _not_ attempt to cast the cython result
+    #  back to the original dtype.
+    cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
     def __init__(self, kind: str, how: str):
         self.kind = kind
@@ -573,6 +576,8 @@ class BaseGrouper:
                 kind, values, how, axis, min_count, **kwargs
             )
             if how in ["rank"]:
+                # i.e. how in WrappedCythonOp.cast_blocklist, since
+                #  other cast_blocklist methods dont go through cython_operation
                 # preserve float64 dtype
                 return res_values
 
@@ -586,12 +591,14 @@ class BaseGrouper:
             res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
-            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
-            if isinstance(dtype, ExtensionDtype):
-                cls = dtype.construct_array_type()
-                return cls._from_sequence(res_values, dtype=dtype)
+            if how in ["rank"]:
+                # i.e. how in WrappedCythonOp.cast_blocklist, since
+                #  other cast_blocklist methods dont go through cython_operation
+                return res_values
 
-            return res_values
+            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(res_values, dtype=dtype)
 
         elif is_float_dtype(values.dtype):
             # FloatingArray
@@ -599,8 +606,14 @@ class BaseGrouper:
             res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
-            result = type(orig_values)._from_sequence(res_values)
-            return result
+            if how in ["rank"]:
+                # i.e. how in WrappedCythonOp.cast_blocklist, since
+                #  other cast_blocklist methods dont go through cython_operation
+                return res_values
+
+            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(res_values, dtype=dtype)
 
         raise NotImplementedError(
             f"function is not implemented for this dtype: {values.dtype}"
@@ -713,9 +726,9 @@ class BaseGrouper:
 
         result = result.T
 
-        if how not in base.cython_cast_blocklist:
+        if how not in cy_op.cast_blocklist:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
-            # "rank" is the only member of cython_cast_blocklist we get here
+            # "rank" is the only member of cast_blocklist we get here
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
             op_result = maybe_downcast_to_dtype(result, dtype)
         else:
