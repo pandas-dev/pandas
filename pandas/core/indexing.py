@@ -454,7 +454,8 @@ class IndexingMixin:
         8          4      10
         9          7      13
 
-        Assign partial column with labels in dataframe missing from Series
+        Assign partial column with certain aligned indexes in dataframe
+        missing from Series
 
         >>> df.loc[:, 'shield'] = pd.Series({8: 10})
         >>> df
