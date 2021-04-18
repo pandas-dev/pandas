@@ -243,10 +243,7 @@ class TestDataFrameMissingData:
 
     def test_single_column_not_present_in_axis(self):
         # GH 41021
-        """
-        Test if KeyError is raised when subset is not present in axis
-        """
-        df = DataFrame({"A": [1, 2, 3], "B": list("abc"), "C": [4, np.NaN, 5]})
+        df = DataFrame({"A": [1, 2, 3]})
 
         # Column not present
         with pytest.raises(KeyError, match="['D']"):
