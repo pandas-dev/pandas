@@ -448,7 +448,8 @@ static int end_line(parser_t *self) {
         // Allow extra fields if there is no header, but there may be
         // index columns in the first line or we are within the header
         // and we may have index columns.
-        !((self->skip_header_end && (self->lines < self->allow_leading_cols))
+        !((self->skip_header_end &&
+            (self->lines < (uint64_t) self->allow_leading_cols))
             || (!self->skip_header_end
                 && (self->lines <=
                 (self->header_end + self->allow_leading_cols))))
