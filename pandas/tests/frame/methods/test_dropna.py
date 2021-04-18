@@ -249,5 +249,5 @@ class TestDataFrameMissingData:
         df = DataFrame({"A": [1, 2, 3], "B": list("abc"), "C": [4, np.NaN, 5]})
 
         # Column not present
-        with pytest.raises(KeyError, match="Given column does not exist"):
+        with pytest.raises(KeyError, match="['D']"):
             df.dropna(subset="D", axis=0)

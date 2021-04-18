@@ -27,7 +27,9 @@ from typing import (
     Hashable,
     Iterable,
     Iterator,
+    Optional,
     Sequence,
+    Union,
     cast,
     overload,
 )
@@ -5803,7 +5805,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         how: str = "any",
         thresh=None,
-        subset=None,
+        subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
         inplace: bool = False,
     ):
         """
@@ -5919,9 +5921,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         agg_obj = self
         if subset is not None:
-            if isinstance(subset, str):
+            if (
+                not np.iterable(subset)
+                or isinstance(subset, str)
+                or isinstance(subset, tuple)
+                and subset in self.columns
+            ):
                 # subset needs to be list like
-                subset = [subset]
+                subset = (subset,)
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
