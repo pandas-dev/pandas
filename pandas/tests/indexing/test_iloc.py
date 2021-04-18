@@ -54,6 +54,16 @@ class TestiLoc(Base):
 class TestiLocBaseIndependent:
     """Tests Independent Of Base Class"""
 
+    def test_iloc_setitem_with_size_compatible_ndarray(self):
+        data = DataFrame(np.zeros(4), columns=["A"])
+
+        data_to_set = np.random.randn(4, 1)
+
+        expected = DataFrame(data=data_to_set, columns=["A"])
+
+        data.iloc[:] = data_to_set
+        tm.assert_frame_equal(data, expected)
+
     @pytest.mark.parametrize(
         "key",
         [
@@ -1112,6 +1122,21 @@ class TestiLocBaseIndependent:
 
 
 class TestILocErrors:
+    @pytest.mark.parametrize(
+        argnames="arr", argvalues=[(4, 2), (4, 3), (4, 4), (4, 10), (4, 20), (4, 30)]
+    )
+    def test_iloc_setitem_with_size_incompatible_ndarray(self, arr):
+        # GH#40827
+        # Assigning a dataframe column to an ndarray with more than one columns
+        # should raise an exception.
+        data = DataFrame(np.zeros(4), columns=["A"])
+        msg = re.escape(
+            f"could not broadcast input array from shape (4,{arr[1]}) "
+            "into shape (4,1)"
+        )
+        with pytest.raises(Exception, match=msg):
+            data.iloc[:] = np.random.randn(arr[0], arr[1])
+
     # NB: this test should work for _any_ Series we can pass as
     #  series_with_simple_index
     def test_iloc_float_raises(self, series_with_simple_index, frame_or_series):
