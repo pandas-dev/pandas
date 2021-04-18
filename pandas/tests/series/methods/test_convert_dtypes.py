@@ -13,6 +13,8 @@ import pandas._testing as tm
 # for most cases), and the specific cases where the result deviates from
 # this default. Those overrides are defined as a dict with (keyword, val) as
 # dictionary key. In case of multiple items, the last override takes precedence.
+from pandas.core.tools.datetimes import start_caching_at
+
 test_cases = [
     (
         # data
@@ -229,10 +231,12 @@ class TestSeriesConvertDtypes:
     def test_convert_object_to_datetime_with_cache(self):
         # GH#39882
         ser = pd.Series(
-            [None] + [pd.NaT] * 50 + [pd.Timestamp("2012-07-26")], dtype="object"
+            [None] + [pd.NaT] * start_caching_at + [pd.Timestamp("2012-07-26")],
+            dtype="object",
         )
         result = pd.to_datetime(ser, errors="coerce")
         expected = pd.Series(
-            [pd.NaT] * 51 + [pd.Timestamp("2012-07-26")], dtype="datetime64[ns]"
+            [pd.NaT] * (start_caching_at + 1) + [pd.Timestamp("2012-07-26")],
+            dtype="datetime64[ns]",
         )
         tm.assert_series_equal(result, expected)
