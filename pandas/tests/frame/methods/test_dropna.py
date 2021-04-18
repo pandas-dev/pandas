@@ -233,9 +233,21 @@ class TestDataFrameMissingData:
         tm.assert_frame_equal(result, expected)
 
     def test_set_single_column_subset(self):
+        # GH 41021
         df = DataFrame({"A": [1, 2, 3], "B": list("abc"), "C": [4, np.NaN, 5]})
         expected = DataFrame(
             {"A": [1, 3], "B": list("ac"), "C": [4.0, 5.0]}, index=[0, 2]
         )
         result = df.dropna(subset="C")
         tm.assert_frame_equal(result, expected)
+
+    def test_single_column_not_present_in_axis(self):
+        # GH 41021
+        """
+        Test if KeyError is raised when subset is not present in axis
+        """
+        df = DataFrame({"A": [1, 2, 3], "B": list("abc"), "C": [4, np.NaN, 5]})
+
+        # Column not present
+        with pytest.raises(KeyError):
+            df.dropna(subset="D", axis=0)
