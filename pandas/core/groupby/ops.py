@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import collections
 import functools
-from functools import partial
 from typing import (
     Generic,
     Hashable,
@@ -735,8 +734,6 @@ class BaseGrouper:
 
         out_shape = cy_op.get_output_shape(ngroups, values)
         func, values = cy_op.get_cython_func_and_vals(values, is_numeric)
-        if func_uses_mask:
-            func = partial(func, mask=mask)
         out_dtype = cy_op.get_out_dtype(values.dtype)
 
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
@@ -755,7 +752,18 @@ class BaseGrouper:
                 func(result, counts, values, comp_ids, min_count)
         elif kind == "transform":
             # TODO: min_count
-            func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
+            if func_uses_mask:
+                func(
+                    result,
+                    values,
+                    comp_ids,
+                    ngroups,
+                    is_datetimelike,
+                    mask=mask,
+                    **kwargs,
+                )
+            else:
+                func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
         if kind == "aggregate":
             # i.e. counts is defined.  Locations where count<min_count
