@@ -11,6 +11,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._typing import ArrayLike
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -300,6 +301,11 @@ class ExtensionIndex(Index):
     def _get_engine_target(self) -> np.ndarray:
         return np.asarray(self._data)
 
+    def _from_join_target(self, result: np.ndarray) -> ArrayLike:
+        # ATM this is only for IntervalIndex, implicit assumption
+        #  about _get_engine_target
+        return type(self._data)._from_sequence(result, dtype=self.dtype)
+
     def delete(self, loc):
         """
         Make new Index with passed location(-s) deleted
@@ -410,6 +416,10 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
     def _get_engine_target(self) -> np.ndarray:
         return self._data._ndarray
 
+    def _from_join_target(self, result: np.ndarray) -> ArrayLike:
+        assert result.dtype == self._data._ndarray.dtype
+        return self._data._from_backing_data(result)
+
     def insert(self: _T, loc: int, item) -> Index:
         """
         Make new Index inserting new item at location. Follows
@@ -458,7 +468,18 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
         return type(self)._simple_new(res_values, name=self.name)
 
-    def _wrap_joined_index(self: _T, joined: np.ndarray, other: _T) -> _T:
+    def _wrap_joined_index(self: _T, joined: ArrayLike, other: _T) -> _T:
         name = get_op_result_name(self, other)
-        arr = self._data._from_backing_data(joined)
-        return type(self)._simple_new(arr, name=name)
+
+        if isinstance(joined, np.ndarray):
+            # Reached from _join_non_unique, view back e.g. i8 to M8ns/m8ns
+            joined = joined.view(self._data._ndarray.dtype)
+            joined_ea = self._data._from_backing_data(joined)
+        else:
+            # error: Incompatible types in assignment (expression has type
+            # "ExtensionArray", variable has type "NDArrayBackedExtensionArray")
+            joined_ea = joined  # type: ignore[assignment]
+            assert type(joined) is type(self._data)  # noqa: E721
+            assert joined.dtype == self.dtype
+
+        return type(self)._simple_new(joined_ea, name=name)

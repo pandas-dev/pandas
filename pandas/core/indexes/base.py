@@ -302,23 +302,47 @@ class Index(IndexOpsMixin, PandasObject):
     #  for why we need to wrap these instead of making them class attributes
     # Moreover, cython will choose the appropriate-dtyped sub-function
     #  given the dtypes of the passed arguments
-    def _left_indexer_unique(self, left: np.ndarray, right: np.ndarray) -> np.ndarray:
-        return libjoin.left_join_indexer_unique(left, right)
 
+    @final
+    def _left_indexer_unique(self: _IndexT, other: _IndexT) -> np.ndarray:
+        # -> np.ndarray[np.intp]
+        # Caller is responsible for ensuring other.dtype == self.dtype
+        sv = self._get_join_target()
+        ov = other._get_join_target()
+        return libjoin.left_join_indexer_unique(sv, ov)
+
+    @final
     def _left_indexer(
-        self, left: np.ndarray, right: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        return libjoin.left_join_indexer(left, right)
+        self: _IndexT, other: _IndexT
+    ) -> tuple[ArrayLike, np.ndarray, np.ndarray]:
+        # Caller is responsible for ensuring other.dtype == self.dtype
+        sv = self._get_join_target()
+        ov = other._get_join_target()
+        joined_ndarray, lidx, ridx = libjoin.left_join_indexer(sv, ov)
+        joined = self._from_join_target(joined_ndarray)
+        return joined, lidx, ridx
 
+    @final
     def _inner_indexer(
-        self, left: np.ndarray, right: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        return libjoin.inner_join_indexer(left, right)
+        self: _IndexT, other: _IndexT
+    ) -> tuple[ArrayLike, np.ndarray, np.ndarray]:
+        # Caller is responsible for ensuring other.dtype == self.dtype
+        sv = self._get_join_target()
+        ov = other._get_join_target()
+        joined_ndarray, lidx, ridx = libjoin.inner_join_indexer(sv, ov)
+        joined = self._from_join_target(joined_ndarray)
+        return joined, lidx, ridx
 
+    @final
     def _outer_indexer(
-        self, left: np.ndarray, right: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        return libjoin.outer_join_indexer(left, right)
+        self: _IndexT, other: _IndexT
+    ) -> tuple[ArrayLike, np.ndarray, np.ndarray]:
+        # Caller is responsible for ensuring other.dtype == self.dtype
+        sv = self._get_join_target()
+        ov = other._get_join_target()
+        joined_ndarray, lidx, ridx = libjoin.outer_join_indexer(sv, ov)
+        joined = self._from_join_target(joined_ndarray)
+        return joined, lidx, ridx
 
     _typ = "index"
     _data: ExtensionArray | np.ndarray
@@ -2965,11 +2989,7 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # Both are unique and monotonic, so can use outer join
             try:
-                # error: Argument 1 to "_outer_indexer" of "Index" has incompatible type
-                # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-                # error: Argument 2 to "_outer_indexer" of "Index" has incompatible type
-                # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-                return self._outer_indexer(lvals, rvals)[0]  # type: ignore[arg-type]
+                return self._outer_indexer(other)[0]
             except (TypeError, IncompatibleFrequency):
                 # incomparable objects
                 value_list = list(lvals)
@@ -3090,13 +3110,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # TODO(EA): setops-refactor, clean all this up
         lvals = self._values
-        rvals = other._values
 
         if self.is_monotonic and other.is_monotonic:
             try:
-                # error: Argument 1 to "_inner_indexer" of "Index" has incompatible type
-                # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-                result = self._inner_indexer(lvals, rvals)[0]  # type: ignore[arg-type]
+                result = self._inner_indexer(other)[0]
             except TypeError:
                 pass
             else:
@@ -4267,9 +4284,6 @@ class Index(IndexOpsMixin, PandasObject):
             ret_index = other if how == "right" else self
             return ret_index, None, None
 
-        sv = self._get_engine_target()
-        ov = other._get_engine_target()
-
         ridx: np.ndarray | None
         lidx: np.ndarray | None
 
@@ -4278,26 +4292,26 @@ class Index(IndexOpsMixin, PandasObject):
             if how == "left":
                 join_index = self
                 lidx = None
-                ridx = self._left_indexer_unique(sv, ov)
+                ridx = self._left_indexer_unique(other)
             elif how == "right":
                 join_index = other
-                lidx = self._left_indexer_unique(ov, sv)
+                lidx = other._left_indexer_unique(self)
                 ridx = None
             elif how == "inner":
-                join_array, lidx, ridx = self._inner_indexer(sv, ov)
+                join_array, lidx, ridx = self._inner_indexer(other)
                 join_index = self._wrap_joined_index(join_array, other)
             elif how == "outer":
-                join_array, lidx, ridx = self._outer_indexer(sv, ov)
+                join_array, lidx, ridx = self._outer_indexer(other)
                 join_index = self._wrap_joined_index(join_array, other)
         else:
             if how == "left":
-                join_array, lidx, ridx = self._left_indexer(sv, ov)
+                join_array, lidx, ridx = self._left_indexer(other)
             elif how == "right":
-                join_array, ridx, lidx = self._left_indexer(ov, sv)
+                join_array, ridx, lidx = other._left_indexer(self)
             elif how == "inner":
-                join_array, lidx, ridx = self._inner_indexer(sv, ov)
+                join_array, lidx, ridx = self._inner_indexer(other)
             elif how == "outer":
-                join_array, lidx, ridx = self._outer_indexer(sv, ov)
+                join_array, lidx, ridx = self._outer_indexer(other)
 
             join_index = self._wrap_joined_index(join_array, other)
 
@@ -4305,9 +4319,7 @@ class Index(IndexOpsMixin, PandasObject):
         ridx = None if ridx is None else ensure_platform_int(ridx)
         return join_index, lidx, ridx
 
-    def _wrap_joined_index(
-        self: _IndexT, joined: np.ndarray, other: _IndexT
-    ) -> _IndexT:
+    def _wrap_joined_index(self: _IndexT, joined: ArrayLike, other: _IndexT) -> _IndexT:
         assert other.dtype == self.dtype
 
         if isinstance(self, ABCMultiIndex):
@@ -4384,6 +4396,19 @@ class Index(IndexOpsMixin, PandasObject):
         # error: Incompatible return value type (got "Union[ExtensionArray,
         # ndarray]", expected "ndarray")
         return self._values  # type: ignore[return-value]
+
+    def _get_join_target(self) -> np.ndarray:
+        """
+        Get the ndarray that we will pass to libjoin functions.
+        """
+        return self._get_engine_target()
+
+    def _from_join_target(self, result: np.ndarray) -> ArrayLike:
+        """
+        Cast the ndarray returned from one of the libjoin.foo_indexer functions
+        back to type(self)._data.
+        """
+        return result
 
     @doc(IndexOpsMixin._memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
