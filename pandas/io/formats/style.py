@@ -1558,55 +1558,10 @@ class Styler(StylerRenderer):
 
         .. figure:: ../../_static/style/hbetw_props.png
         """
-
-        def f(
-            data: FrameOrSeries,
-            props: str,
-            left: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
-            right: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
-            inclusive: bool | str = True,
-        ) -> np.ndarray:
-            if np.iterable(left) and not isinstance(left, str):
-                left = _validate_apply_axis_arg(
-                    left, "left", None, data  # type: ignore[arg-type]
-                )
-
-            if np.iterable(right) and not isinstance(right, str):
-                right = _validate_apply_axis_arg(
-                    right, "right", None, data  # type: ignore[arg-type]
-                )
-
-            # get ops with correct boundary attribution
-            if inclusive == "both":
-                ops = (operator.ge, operator.le)
-            elif inclusive == "neither":
-                ops = (operator.gt, operator.lt)
-            elif inclusive == "left":
-                ops = (operator.ge, operator.lt)
-            elif inclusive == "right":
-                ops = (operator.gt, operator.le)
-            else:
-                raise ValueError(
-                    f"'inclusive' values can be 'both', 'left', 'right', or 'neither' "
-                    f"got {inclusive}"
-                )
-
-            g_left = (
-                ops[0](data, left)
-                if left is not None
-                else np.full(data.shape, True, dtype=bool)
-            )
-            l_right = (
-                ops[1](data, right)
-                if right is not None
-                else np.full(data.shape, True, dtype=bool)
-            )
-            return np.where(g_left & l_right, props, "")
-
         if props is None:
             props = f"background-color: {color};"
         return self.apply(
-            f,  # type: ignore[arg-type]
+            _highlight_between,  # type: ignore[arg-type]
             axis=axis,
             subset=subset,
             props=props,
@@ -1831,3 +1786,51 @@ def _background_gradient(
                 index=data.index,
                 columns=data.columns,
             )
+
+
+def _highlight_between(
+    data: FrameOrSeries,
+    props: str,
+    left: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
+    right: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
+    inclusive: bool | str = True,
+) -> np.ndarray:
+    """
+    Return an array of css props based on condition of data values within given range.
+    """
+    if np.iterable(left) and not isinstance(left, str):
+        left = _validate_apply_axis_arg(
+            left, "left", None, data  # type: ignore[arg-type]
+        )
+
+    if np.iterable(right) and not isinstance(right, str):
+        right = _validate_apply_axis_arg(
+            right, "right", None, data  # type: ignore[arg-type]
+        )
+
+    # get ops with correct boundary attribution
+    if inclusive == "both":
+        ops = (operator.ge, operator.le)
+    elif inclusive == "neither":
+        ops = (operator.gt, operator.lt)
+    elif inclusive == "left":
+        ops = (operator.ge, operator.lt)
+    elif inclusive == "right":
+        ops = (operator.gt, operator.le)
+    else:
+        raise ValueError(
+            f"'inclusive' values can be 'both', 'left', 'right', or 'neither' "
+            f"got {inclusive}"
+        )
+
+    g_left = (
+        ops[0](data, left)
+        if left is not None
+        else np.full(data.shape, True, dtype=bool)
+    )
+    l_right = (
+        ops[1](data, right)
+        if right is not None
+        else np.full(data.shape, True, dtype=bool)
+    )
+    return np.where(g_left & l_right, props, "")
