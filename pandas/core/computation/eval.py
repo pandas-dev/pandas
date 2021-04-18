@@ -310,6 +310,7 @@ def eval(
             stacklevel=2,
         )
 
+    exprs: list[str | BinOp]
     if isinstance(expr, str):
         _check_expression(expr)
         exprs = [e.strip() for e in expr.splitlines() if e.strip() != ""]
