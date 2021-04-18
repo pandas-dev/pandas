@@ -3733,7 +3733,12 @@ class DataFrame(NDFrame, OpsMixin):
                 if isinstance(existing_piece, DataFrame):
                     value = np.tile(value, (len(existing_piece.columns), 1)).T
 
-        if value.ndim == 2 and value.shape[1] > 1:
+        if (
+            value.ndim == 2
+            and value.shape[1] > 1
+            and not isinstance(self.columns, MultiIndex)
+            and len(self.columns) == len(set(self.columns))
+        ):
             raise ValueError(
                 "Dataframe column is being assigned to a 2D array with "
                 "more than two columns. Column assignment accepts only "
