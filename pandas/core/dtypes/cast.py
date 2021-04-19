@@ -55,7 +55,6 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex,
     is_complex_dtype,
     is_datetime64_dtype,
@@ -79,6 +78,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
@@ -359,15 +359,15 @@ def maybe_downcast_numeric(
     return result
 
 
-def maybe_cast_result(
+def maybe_cast_pointwise_result(
     result: ArrayLike,
     dtype: DtypeObj,
     numeric_only: bool = False,
-    how: str = "",
     same_dtype: bool = True,
 ) -> ArrayLike:
     """
-    Try casting result to a different type if appropriate
+    Try casting result of a pointwise operation back to the original dtype if
+    appropriate.
 
     Parameters
     ----------
@@ -377,8 +377,6 @@ def maybe_cast_result(
         Input Series from which result was calculated.
     numeric_only : bool, default False
         Whether to cast only numerics or datetimes as well.
-    how : str, default ""
-        How the result was computed.
     same_dtype : bool, default True
         Specify dtype when calling _from_sequence
 
@@ -387,12 +385,12 @@ def maybe_cast_result(
     result : array-like
         result maybe casted to the dtype.
     """
-    dtype = maybe_cast_result_dtype(dtype, how)
 
     assert not is_scalar(result)
 
     if isinstance(dtype, ExtensionDtype):
-        if not is_categorical_dtype(dtype) and dtype.kind != "M":
+        if not isinstance(dtype, (CategoricalDtype, DatetimeTZDtype)):
+            # TODO: avoid this special-casing
             # We have to special case categorical so as not to upcast
             # things like counts back to categorical
 

@@ -11,7 +11,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex
-from pandas._libs.lib import no_default
 from pandas._typing import (
     ArrayLike,
     Dtype,
@@ -234,22 +233,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
-    @doc(Index._shallow_copy)
-    def _shallow_copy(
-        self,
-        values: Categorical,
-        name: Hashable = no_default,
-    ) -> CategoricalIndex:
-        name = self._name if name is no_default else name
-
-        if values is not None:
-            # In tests we only get here with Categorical objects that
-            #  have matching .ordered, and values.categories a subset of
-            #  our own.  However we do _not_ have a dtype match in general.
-            values = Categorical(values, dtype=self.dtype)
-
-        return super()._shallow_copy(values=values, name=name)
-
     def _is_dtype_compat(self, other) -> Categorical:
         """
         *this is an internal non-public method*
@@ -385,15 +368,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             return self.astype(object).fillna(value, downcast=downcast)
 
         return type(self)._simple_new(cat, name=self.name)
-
-    @doc(Index.unique)
-    def unique(self, level=None):
-        if level is not None:
-            self._validate_index_level(level)
-        result = self._values.unique()
-        # Use _simple_new instead of _shallow_copy to ensure we keep dtype
-        #  of result, not self.
-        return type(self)._simple_new(result, name=self.name)
 
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
