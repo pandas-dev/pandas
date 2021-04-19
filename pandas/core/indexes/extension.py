@@ -331,7 +331,7 @@ class ExtensionIndex(Index):
             return self
 
         result = self._data.unique()
-        return self._shallow_copy(result)
+        return type(self)._simple_new(result, name=self.name)
 
     @doc(Index.map)
     def map(self, mapper, na_action=None):
