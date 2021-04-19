@@ -926,3 +926,63 @@ class TestEWM:
 
         expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
         tm.assert_frame_equal(result, expected)
+
+    def test_times(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        expected = DataFrame(
+            {
+                "B": [
+                    0.0,
+                    0.507534,
+                    1.020088,
+                    1.537661,
+                    0.0,
+                    0.567395,
+                    1.221209,
+                    0.0,
+                    0.653141,
+                    1.195003,
+                ]
+            },
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", 0),
+                    ("a", 3),
+                    ("a", 6),
+                    ("a", 9),
+                    ("b", 1),
+                    ("b", 4),
+                    ("b", 7),
+                    ("c", 2),
+                    ("c", 5),
+                    ("c", 8),
+                ],
+                names=["A", None],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_times_vs_apply(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        expected = (
+            times_frame.groupby("A")
+            .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
+            .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
+            .reset_index(drop=True)
+        )
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    def test_times_array(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        expected = (
+            times_frame.groupby("A")
+            .ewm(halflife=halflife, times=times_frame["C"].values)
+            .mean()
+        )
+        tm.assert_frame_equal(result, expected)
