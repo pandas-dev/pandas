@@ -64,27 +64,6 @@ fi
 ### PATTERNS ###
 if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
-    MSG='Check for use of exec' ; echo $MSG
-    invgrep -R --include="*.py*" -E "[^a-zA-Z0-9_]exec\(" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for pytest warns' ; echo $MSG
-    invgrep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for pytest raises without context' ; echo $MSG
-    invgrep -r -E --include '*.py' "[[:space:]] pytest.raises" pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of builtin filter function' ; echo $MSG
-    invgrep -R --include="*.py" -P '(?<!def)[\(\s]filter\(' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # Check for the following code in testing: `np.testing` and `np.array_equal`
-    MSG='Check for invalid testing' ; echo $MSG
-    invgrep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     # Check for the following code in the extension array base tests: `tm.assert_frame_equal` and `tm.assert_series_equal`
     MSG='Check for invalid EA testing' ; echo $MSG
     invgrep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
@@ -98,15 +77,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`
-    MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instead)' ; echo $MSG
-    invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of {foo!r} instead of {repr(foo)}' ; echo $MSG
-    invgrep -R --include=*.{py,pyx} '!r}' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    echo $MSG "DONE"
 fi
 
 ### CODE ###
