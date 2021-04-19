@@ -536,7 +536,7 @@ cdef class _Timestamp(ABCTimestamp):
             int64_t normalized
 
         normalized = normalize_i8_stamp(local_val)
-        return Timestamp(normalized).tz_localize(self.tzinfo)
+        return Timestamp(normalized, tzinfo=self.tzinfo)
 
     # -----------------------------------------------------------------
     # Pickle Methods
