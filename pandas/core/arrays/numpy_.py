@@ -358,7 +358,7 @@ class PandasArray(
         temp = self
 
         if na_value is not lib.no_default:
-            temp.fillna(method='bfill')
+            temp.fillna(method="bfill")
 
         result = np.asarray(temp._ndarray, dtype=dtype)
 
