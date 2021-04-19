@@ -365,6 +365,9 @@ class PandasArray(
         if (copy or na_value is not lib.no_default) and result is temp._ndarray:
             result = result.copy()
 
+        if na_value is not lib.no_default:
+            result[self.isna()] = na_value
+
         return result
 
     # ------------------------------------------------------------------------
