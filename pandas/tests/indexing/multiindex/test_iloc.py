@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     DataFrame,
     MultiIndex,
@@ -71,6 +72,24 @@ def test_iloc_getitem_multiple_items():
     result = df.iloc[[2, 3]]
     expected = df.xs("b", drop_level=False)
     tm.assert_frame_equal(result, expected)
+
+
+def test_iloc_np_and_pd():
+    # test if iloc returns the same output for numpy array input and integer array input
+    df = DataFrame(
+        data={
+            "col1": [1, 2, 3, 4],
+            "col2": [3, 4, 5, 6],
+            "col3": [6, 7, 8, 9],
+        }
+    )
+    df_np = df
+    df_pd = df
+    np_arr = np.array([1, 2, 3])
+    pd_arr = pd.array([1, 2, 3])
+    df_np.iloc[[1, 2, 3]] = np_arr
+    df_pd.iloc[[1, 2, 3]] = pd_arr
+    tm.assert_frame_equal(df_np, df_pd)
 
 
 def test_iloc_getitem_labels():
