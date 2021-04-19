@@ -60,7 +60,7 @@ from pandas.util._validators import (
 from pandas.core.dtypes.cast import (
     convert_dtypes,
     maybe_box_native,
-    maybe_cast_result,
+    maybe_cast_pointwise_result,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -3070,22 +3070,26 @@ Keep all original rows and also all original values
             # so do this element by element
             new_index = self.index.union(other.index)
             new_name = ops.get_op_result_name(self, other)
-            new_values = []
-            for idx in new_index:
+            new_values = np.empty(len(new_index), dtype=object)
+            for i, idx in enumerate(new_index):
                 lv = self.get(idx, fill_value)
                 rv = other.get(idx, fill_value)
                 with np.errstate(all="ignore"):
-                    new_values.append(func(lv, rv))
+                    new_values[i] = func(lv, rv)
         else:
             # Assume that other is a scalar, so apply the function for
             # each element in the Series
             new_index = self.index
+            new_values = np.empty(len(new_index), dtype=object)
             with np.errstate(all="ignore"):
-                new_values = [func(lv, other) for lv in self._values]
+                new_values[:] = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        res_values = sanitize_array(new_values, None)
-        res_values = maybe_cast_result(res_values, self.dtype, same_dtype=False)
+        # try_float=False is to match _aggregate_series_pure_python
+        res_values = lib.maybe_convert_objects(new_values, try_float=False)
+        res_values = maybe_cast_pointwise_result(
+            res_values, self.dtype, same_dtype=False
+        )
         return self._constructor(res_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> Series:
