@@ -721,6 +721,7 @@ class IntervalIndex(ExtensionIndex):
         limit: int | None = None,
         tolerance: Any | None = None,
     ) -> np.ndarray:
+        # returned ndarray is np.intp
 
         if isinstance(target, IntervalIndex):
             # equal indexes -> 1:1 positional match
@@ -753,6 +754,7 @@ class IntervalIndex(ExtensionIndex):
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target: Index) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
         target = ensure_index(target)
 
         if isinstance(target, IntervalIndex) and not self._should_compare(target):
@@ -772,6 +774,7 @@ class IntervalIndex(ExtensionIndex):
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     def _get_indexer_pointwise(self, target: Index) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
         """
         pointwise implementation for get_indexer and get_indexer_non_unique.
         """
