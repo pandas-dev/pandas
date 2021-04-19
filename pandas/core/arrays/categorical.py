@@ -243,9 +243,7 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-class Categorical(
-    NDArrayBacked, NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin
-):
+class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
@@ -377,7 +375,7 @@ class Categorical(
         if fastpath:
             codes = coerce_indexer_dtype(values, dtype.categories)
             dtype = CategoricalDtype(ordered=False).update_dtype(dtype)
-            NDArrayBacked.__init__(self, codes, dtype)
+            super().__init__(codes, dtype)
             return
 
         if not is_list_like(values):
@@ -468,7 +466,7 @@ class Categorical(
 
         dtype = CategoricalDtype(ordered=False).update_dtype(dtype)
         arr = coerce_indexer_dtype(codes, dtype.categories)
-        NDArrayBacked.__init__(self, arr, dtype)
+        super().__init__(arr, dtype)
 
     @property
     def dtype(self) -> CategoricalDtype:
@@ -749,7 +747,7 @@ class Categorical(
                 "new categories need to have the same number of "
                 "items as the old categories!"
             )
-        NDArrayBacked.__init__(self, self._ndarray, new_dtype)
+        super().__init__(self._ndarray, new_dtype)
 
     @property
     def ordered(self) -> Ordered:
@@ -813,7 +811,7 @@ class Categorical(
                 "items than the old categories!"
             )
 
-        NDArrayBacked.__init__(self, self._ndarray, new_dtype)
+        super().__init__(self._ndarray, new_dtype)
 
     def _set_dtype(self, dtype: CategoricalDtype) -> Categorical:
         """
@@ -1438,7 +1436,7 @@ class Categorical(
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if not isinstance(state, dict):
-            return NDArrayBacked.__setstate__(self, state)
+            return super().__setstate__(state)
 
         if "_dtype" not in state:
             state["_dtype"] = CategoricalDtype(state["_categories"], state["_ordered"])
@@ -1447,7 +1445,7 @@ class Categorical(
             # backward compat, changed what is property vs attribute
             state["_ndarray"] = state.pop("_codes")
 
-        NDArrayBacked.__setstate__(self, state)
+        super().__setstate__(state)
 
     @property
     def nbytes(self) -> int:

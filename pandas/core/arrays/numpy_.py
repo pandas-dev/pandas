@@ -6,7 +6,6 @@ import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
-from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     Dtype,
     NpDtype,
@@ -30,7 +29,6 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 class PandasArray(
     OpsMixin,
-    NDArrayBacked,
     NDArrayBackedExtensionArray,
     NDArrayOperatorsMixin,
     ObjectStringArrayMixin,
@@ -86,7 +84,7 @@ class PandasArray(
             values = values.copy()
 
         dtype = PandasDtype(values.dtype)
-        NDArrayBacked.__init__(self, values, dtype)
+        super().__init__(values, dtype)
 
     @classmethod
     def _from_sequence(

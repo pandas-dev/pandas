@@ -23,7 +23,6 @@ from pandas._libs import (
     algos,
     lib,
 )
-from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
     IncompatibleFrequency,
@@ -142,7 +141,7 @@ class InvalidComparison(Exception):
     pass
 
 
-class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArray):
+class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -1690,7 +1689,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     """
 
     def copy(self: TimelikeOps) -> TimelikeOps:
-        result = NDArrayBacked.copy(self)
+        result = super().copy()
         result._freq = self._freq
         return result
 
