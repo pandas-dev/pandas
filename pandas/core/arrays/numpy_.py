@@ -355,19 +355,15 @@ class PandasArray(
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
-
         temp = self
 
         if na_value is not lib.no_default:
-            temp = self.fillna(None)
-
-
+            temp.fillna(method='bfill')
 
         result = np.asarray(temp._ndarray, dtype=dtype)
 
         if (copy or na_value is not lib.no_default) and result is temp._ndarray:
             result = result.copy()
-
 
         return result
 
