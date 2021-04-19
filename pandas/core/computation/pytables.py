@@ -546,6 +546,7 @@ class PyTablesExpr(expr.Expr):
 
     _visitor: PyTablesExprVisitor | None
     env: PyTablesScope
+    expr: str
 
     def __init__(
         self,
@@ -570,7 +571,7 @@ class PyTablesExpr(expr.Expr):
             local_dict = where.env.scope
             _where = where.expr
 
-        elif isinstance(where, (list, tuple)):
+        elif is_list_like(where):
             where = list(where)
             for idx, w in enumerate(where):
                 if isinstance(w, PyTablesExpr):
@@ -580,6 +581,7 @@ class PyTablesExpr(expr.Expr):
                     where[idx] = w
             _where = " & ".join(f"({w})" for w in com.flatten(where))
         else:
+            # _validate_where ensures we otherwise have a string
             _where = where
 
         self.expr = _where
