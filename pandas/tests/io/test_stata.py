@@ -29,6 +29,7 @@ from pandas.io.stata import (
     PossiblePrecisionLoss,
     StataMissingValue,
     StataReader,
+    StataWriter,
     StataWriterUTF8,
     ValueLabelTypeMismatch,
     read_stata,
@@ -2048,3 +2049,38 @@ def test_stata_compression(compression_only, read_infer, to_infer):
         df.to_stata(path, compression=to_compression)
         result = read_stata(path, compression=read_compression, index_col="index")
         tm.assert_frame_equal(result, df)
+
+
+def test_non_categorical_value_labels():
+    data = DataFrame(
+        {
+            "X": [1, 2, 3, 4, 1],
+            "Y": [7, 7, 9, 8, 10],
+            "Z": pd.Categorical(["j", "k", "l", "k", "j"]),
+        }
+    )
+
+    with tm.ensure_clean() as path:
+        value_labels = {"X": {1: "one", 2: "two", 4: "four"}}
+        expected = {**value_labels, "Z": {0: "j", 1: "k", 2: "l"}}
+
+        writer = StataWriter(path, data, value_labels=value_labels)
+        writer.write_file()
+
+        reader = StataReader(path)
+        reader_value_labels = reader.value_labels()
+        assert reader_value_labels == expected
+
+        msg = "Can't create value labels for notY, it wasn't found in the dataset."
+        with pytest.raises(ValueError, match=msg):
+            value_labels = {"notY": {7: "label1", 8: "label2"}}
+            writer = StataWriter(path, data, value_labels=value_labels)
+
+        msg = (
+            "Can't create value labels for Z, a categorical "
+            "column. Value labels are created automatically before "
+            "writing categorical columns."
+        )
+        with pytest.raises(ValueError, match=msg):
+            value_labels = {"Z": {1: "a", 2: "k", 3: "j", 4: "i"}}
+            writer = StataWriter(path, data, value_labels=value_labels)
