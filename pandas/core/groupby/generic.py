@@ -1193,7 +1193,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 result = py_fallback(values)
 
-            return cast_agg_result(result, values, how)
+                return cast_agg_result(result, values, how)
+            return result
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
