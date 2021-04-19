@@ -180,7 +180,6 @@ def __internal_pivot_table(
                     # TODO: why does test_pivot_table_doctest_case fail if
                     # we don't do this apparently-unnecessary setitem?
                     agged[v] = agged[v]
-                    pass
                 else:
                     agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
