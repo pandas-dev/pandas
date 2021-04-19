@@ -135,22 +135,16 @@ class BaseBlockManager(DataManager):
     This is *not* a public API class
     """
 
-    __slots__ = [
-        "axes",
-        "blocks",
-        "_known_consolidated",
-        "_is_consolidated",
-        "_blknos",
-        "_blklocs",
-    ]
+    __slots__ = ()
 
     _blknos: np.ndarray
     _blklocs: np.ndarray
     blocks: tuple[Block, ...]
     axes: list[Index]
 
-    # Non-trivially faster than a property
     ndim: int
+    _known_consolidated: bool
+    _is_consolidated: bool
 
     def __init__(self, blocks, axes, verify_integrity=True):
         raise NotImplementedError
@@ -275,57 +269,6 @@ class BaseBlockManager(DataManager):
         ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
         """
         return [blk.values for blk in self.blocks]
-
-    def __getstate__(self):
-        block_values = [b.values for b in self.blocks]
-        block_items = [self.items[b.mgr_locs.indexer] for b in self.blocks]
-        axes_array = list(self.axes)
-
-        extra_state = {
-            "0.14.1": {
-                "axes": axes_array,
-                "blocks": [
-                    {"values": b.values, "mgr_locs": b.mgr_locs.indexer}
-                    for b in self.blocks
-                ],
-            }
-        }
-
-        # First three elements of the state are to maintain forward
-        # compatibility with 0.13.1.
-        return axes_array, block_values, block_items, extra_state
-
-    def __setstate__(self, state):
-        def unpickle_block(values, mgr_locs, ndim: int) -> Block:
-            # TODO(EA2D): ndim would be unnecessary with 2D EAs
-            # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
-            values = extract_array(values, extract_numpy=True)
-            return new_block(values, placement=mgr_locs, ndim=ndim)
-
-        if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
-            state = state[3]["0.14.1"]
-            self.axes = [ensure_index(ax) for ax in state["axes"]]
-            ndim = len(self.axes)
-
-            for blk in state["blocks"]:
-                vals = blk["values"]
-                # older versions may hold e.g. DatetimeIndex instead of DTA
-                vals = extract_array(vals, extract_numpy=True)
-                blk["values"] = ensure_block_shape(vals, ndim=ndim)
-
-            self.blocks = tuple(
-                unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)
-                for b in state["blocks"]
-            )
-        else:
-            raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
-
-        self._post_setstate()
-
-    def _post_setstate(self) -> None:
-        self._is_consolidated = False
-        self._known_consolidated = False
-        self._rebuild_blknos_and_blklocs()
 
     def __repr__(self) -> str:
         output = type(self).__name__
@@ -823,7 +766,7 @@ class BaseBlockManager(DataManager):
         if self.is_consolidated():
             return self
 
-        bm = type(self)(self.blocks, self.axes)
+        bm = type(self)(self.blocks, self.axes, verify_integrity=False)
         bm._is_consolidated = False
         bm._consolidate_inplace()
         return bm
@@ -1079,7 +1022,7 @@ class BaseBlockManager(DataManager):
         )
 
 
-class BlockManager(BaseBlockManager):
+class BlockManager(libinternals.BlockManager, BaseBlockManager):
     """
     BaseBlockManager that holds 2D blocks.
     """
@@ -1095,27 +1038,18 @@ class BlockManager(BaseBlockManager):
         axes: Sequence[Index],
         verify_integrity: bool = True,
     ):
-        self.axes = [ensure_index(ax) for ax in axes]
-        self.blocks: tuple[Block, ...] = tuple(blocks)
-
-        for block in blocks:
-            if self.ndim != block.ndim:
-                raise AssertionError(
-                    f"Number of Block dimensions ({block.ndim}) must equal "
-                    f"number of axes ({self.ndim})"
-                )
 
         if verify_integrity:
-            self._verify_integrity()
+            assert all(isinstance(x, Index) for x in axes)
 
-        # Populate known_consolidate, blknos, and blklocs lazily
-        self._known_consolidated = False
-        # error: Incompatible types in assignment (expression has type "None",
-        # variable has type "ndarray")
-        self._blknos = None  # type: ignore[assignment]
-        # error: Incompatible types in assignment (expression has type "None",
-        # variable has type "ndarray")
-        self._blklocs = None  # type: ignore[assignment]
+            for block in blocks:
+                if self.ndim != block.ndim:
+                    raise AssertionError(
+                        f"Number of Block dimensions ({block.ndim}) must equal "
+                        f"number of axes ({self.ndim})"
+                    )
+
+            self._verify_integrity()
 
     def _verify_integrity(self) -> None:
         mgr_shape = self.shape
@@ -1129,21 +1063,6 @@ class BlockManager(BaseBlockManager):
                 f"block items\n# manager items: {len(self.items)}, # "
                 f"tot_items: {tot_items}"
             )
-
-    @classmethod
-    def _simple_new(cls, blocks: tuple[Block, ...], axes: list[Index]):
-        """
-        Fastpath constructor; does NO validation.
-        """
-        obj = cls.__new__(cls)
-        obj.axes = axes
-        obj.blocks = blocks
-
-        # Populate known_consolidate, blknos, and blklocs lazily
-        obj._known_consolidated = False
-        obj._blknos = None
-        obj._blklocs = None
-        return obj
 
     @classmethod
     def from_blocks(cls, blocks: list[Block], axes: list[Index]) -> BlockManager:
@@ -1210,7 +1129,7 @@ class BlockManager(BaseBlockManager):
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
-        return type(self)._simple_new(tuple(new_blocks), new_axes)
+        return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)
 
     def iget(self, i: int) -> SingleBlockManager:
         """
@@ -1418,7 +1337,7 @@ class BlockManager(BaseBlockManager):
         nbs = self._slice_take_blocks_ax0(taker, only_slice=True)
         new_columns = self.items[~is_deleted]
         axes = [new_columns, self.axes[1]]
-        return type(self)._simple_new(tuple(nbs), axes)
+        return type(self)(tuple(nbs), axes)
 
     # ----------------------------------------------------------------
     # Block-wise Operation
@@ -1601,6 +1520,45 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         block = new_block(array, placement=slice(0, len(index)), ndim=1)
         return cls(block, index)
+
+    def __getstate__(self):
+        block_values = [b.values for b in self.blocks]
+        block_items = [self.items[b.mgr_locs.indexer] for b in self.blocks]
+        axes_array = list(self.axes)
+
+        extra_state = {
+            "0.14.1": {
+                "axes": axes_array,
+                "blocks": [
+                    {"values": b.values, "mgr_locs": b.mgr_locs.indexer}
+                    for b in self.blocks
+                ],
+            }
+        }
+
+        # First three elements of the state are to maintain forward
+        # compatibility with 0.13.1.
+        return axes_array, block_values, block_items, extra_state
+
+    def __setstate__(self, state):
+        def unpickle_block(values, mgr_locs, ndim: int) -> Block:
+            # TODO(EA2D): ndim would be unnecessary with 2D EAs
+            # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
+            values = extract_array(values, extract_numpy=True)
+            return new_block(values, placement=mgr_locs, ndim=ndim)
+
+        if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
+            state = state[3]["0.14.1"]
+            self.axes = [ensure_index(ax) for ax in state["axes"]]
+            ndim = len(self.axes)
+            self.blocks = tuple(
+                unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)
+                for b in state["blocks"]
+            )
+        else:
+            raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
+
+        self._post_setstate()
 
     def _post_setstate(self):
         pass
