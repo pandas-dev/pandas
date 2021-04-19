@@ -383,8 +383,20 @@ class Apply(metaclass=abc.ABCMeta):
 
         try:
             concatenated = concat(results, keys=keys, axis=1, sort=False)
+        except TypeError as err:
+            # we are concatting non-NDFrame objects,
+            # e.g. a list of scalars
+            from pandas import Series
+
+            result = Series(results, index=keys, name=obj.name)
+            if is_nested_object(result):
+                raise ValueError(
+                    "cannot combine transform and aggregation operations"
+                ) from err
+            return result
+        else:
             # Concat uses the first index to determine the final indexing order.
-            # The union with the other indices with a shorter first index causes
+            # The union of a shorter first index with the other indices causes
             # the index sorting to be different from the order of the aggregating
             # functions. Reindex if this is the case.
             index_size = concatenated.index.size
@@ -396,18 +408,6 @@ class Apply(metaclass=abc.ABCMeta):
                 )
                 concatenated = concatenated.reindex(good_index)
             return concatenated
-        except TypeError as err:
-
-            # we are concatting non-NDFrame objects,
-            # e.g. a list of scalars
-            from pandas import Series
-
-            result = Series(results, index=keys, name=obj.name)
-            if is_nested_object(result):
-                raise ValueError(
-                    "cannot combine transform and aggregation operations"
-                ) from err
-            return result
 
     def agg_dict_like(self) -> FrameOrSeriesUnion:
         """
