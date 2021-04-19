@@ -35,7 +35,7 @@ repos:
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
 -   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.9.0
+    rev: 3.9.1
     hooks:
     -   id: flake8
         additional_dependencies:
