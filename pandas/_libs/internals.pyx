@@ -515,7 +515,7 @@ cdef class NumpyBlock(SharedBlock):
         self.values = values
 
     # @final  # not useful in cython, but we _would_ annotate with @final
-    def getitem_block_index(self, slicer: slice) -> NumpyBlock:
+    cpdef NumpyBlock getitem_block_index(self, slice slicer):
         """
         Perform __getitem__-like specialized to slicing along index.
 
@@ -610,3 +610,30 @@ cdef class BlockManager:
         self._rebuild_blknos_and_blklocs()
 
     # -------------------------------------------------------------------
+    # Indexing
+
+    cdef BlockManager _get_index_slice(self, slobj):
+        cdef:
+            SharedBlock blk, nb
+
+        nbs = []
+        for blk in self.blocks:
+            nb = blk.getitem_block_index(slobj)
+            nbs.append(nb)
+
+        new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
+        return type(self)(tuple(nbs), new_axes, verify_integrity=False)
+
+    def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
+
+        if axis == 0:
+            new_blocks = self._slice_take_blocks_ax0(slobj)
+        elif axis == 1:
+            return self._get_index_slice(slobj)
+        else:
+            raise IndexError("Requested axis not found in manager")
+
+        new_axes = list(self.axes)
+        new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
+
+        return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)
