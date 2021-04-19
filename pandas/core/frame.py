@@ -27,9 +27,7 @@ from typing import (
     Hashable,
     Iterable,
     Iterator,
-    Optional,
     Sequence,
-    Union,
     cast,
     overload,
 )
@@ -5805,7 +5803,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         how: str = "any",
         thresh=None,
-        subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        subset: Hashable | Sequence[Hashable] | None = None,
         inplace: bool = False,
     ):
         """
