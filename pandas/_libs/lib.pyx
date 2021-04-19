@@ -2457,7 +2457,9 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                                 result = ints
                 elif seen.is_bool and not seen.nan_:
                     result = bools.view(np.bool_)
+
         if result is uints or result is ints or result is floats or result is complexes:
+            # cast to the largest itemsize when all values are NumPy scalars
             if itemsize_max > 0 and itemsize_max != result.dtype.itemsize:
                 result = result.astype(result.dtype.kind + str(itemsize_max))
             return result
