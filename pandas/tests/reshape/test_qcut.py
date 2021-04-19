@@ -293,8 +293,8 @@ def test_qcut_bool_coercion_to_int(bins, box, compare):
 
 
 @pytest.mark.parametrize("q", [2, 5, 10])
-def test_qcut_nullable_integer(q, any_nullable_int_dtype):
-    arr = pd.array(np.arange(100), dtype=any_nullable_int_dtype)
+def test_qcut_nullable_integer(q, any_nullable_numeric_dtype):
+    arr = pd.array(np.arange(100), dtype=any_nullable_numeric_dtype)
     arr[::2] = pd.NA
 
     result = qcut(arr, q)
@@ -302,21 +302,4 @@ def test_qcut_nullable_integer(q, any_nullable_int_dtype):
 
     tm.assert_categorical_equal(result, expected)
     
-
-@pytest.mark.parametrize(
-    "Data_type,Data_type_string",
-    [
-        (pd.Float64Dtype(),"Float64Dtype"),    
-        (pd.Int64Dtype(),"Int64Dtype") 
-    ]
-)
-def test_qcut_numeric_dtype(Data_type,Data_type_string):
-    series = pd.Series([1.0, 2.0, 3.0, 4.0], dtype=Data_type)
-
-    try:
-        pd.qcut(series,2)
-    except:
-        Fail_string = Data_type_string + " is not supported"
-        pytest.fail( msg = Fail_string )
-        
-        
+               
