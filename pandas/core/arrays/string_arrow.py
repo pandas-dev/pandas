@@ -675,13 +675,18 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
         vc = self._data.value_counts()
 
-        # Index cannot hold ExtensionArrays yet
-        index = Index(type(self)(vc.field(0)).astype(object))
-        # No missing values so we can adhere to the interface and return a numpy array.
-        counts = np.array(vc.field(1))
-
+        values = vc.field(0)
+        counts = vc.field(1)
         if dropna and self._data.null_count > 0:
-            raise NotImplementedError("yo")
+            mask = values.is_valid()
+            values = values.filter(mask)
+            counts = counts.filter(mask)
+
+        # No missing values so we can adhere to the interface and return a numpy array.
+        counts = np.array(counts)
+
+        # Index cannot hold ExtensionArrays yet
+        index = Index(type(self)(values)).astype(object)
 
         return Series(counts, index=index).astype("Int64")
 
