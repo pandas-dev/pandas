@@ -46,6 +46,7 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_categorical_dtype,
     is_datetime64_dtype,
+    is_numeric_dtype,
 )
 
 from pandas import (
@@ -774,7 +775,7 @@ class StataNonCatValueLabel(StataValueLabel):
 
         self.labname = labname
         self._encoding = encoding
-        self.value_labels = [(val, lab) for val, lab in value_labels.items()]
+        self.value_labels = list(value_labels.items())
         self.value_labels.sort(key=lambda x: x[0])
 
         self.text_len = 0
@@ -2347,13 +2348,12 @@ class StataWriter(StataParser):
                     f"Can't create value labels for {labname}, it wasn't "
                     "found in the dataset."
                 )
-            if is_categorical_dtype(data[labname].dtype):
+            if not is_numeric_dtype(data[labname].dtype):
                 # Labels should not be passed explicitly for categorical
                 # columns that will be converted to int
                 raise ValueError(
-                    f"Can't create value labels for {labname}, a categorical "
-                    "column. Value labels are created automatically before "
-                    "writing categorical columns."
+                    f"Can't create value labels for {labname}, value labels "
+                    "can only be applied to numeric columns."
                 )
             svl = StataNonCatValueLabel(labname, labels)
             self._value_labels.append(svl)

@@ -2077,9 +2077,8 @@ def test_non_categorical_value_labels():
             writer = StataWriter(path, data, value_labels=value_labels)
 
         msg = (
-            "Can't create value labels for Z, a categorical "
-            "column. Value labels are created automatically before "
-            "writing categorical columns."
+            "Can't create value labels for Z, value labels "
+            "can only be applied to numeric columns."
         )
         with pytest.raises(ValueError, match=msg):
             value_labels = {"Z": {1: "a", 2: "k", 3: "j", 4: "i"}}
