@@ -5803,7 +5803,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         how: str = "any",
         thresh=None,
-        subset: Hashable | Sequence[Hashable] | None = None,
+        subset: IndexLabel = None,
         inplace: bool = False,
     ):
         """
