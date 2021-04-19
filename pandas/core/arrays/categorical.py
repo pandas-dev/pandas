@@ -1141,7 +1141,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
            Whether or not to remove the categories inplace or return a copy of
            this categorical with removed categories.
 
-           .. deprecated:: 1.2.0
+           .. deprecated:: 1.3.0
 
         Returns
         -------
