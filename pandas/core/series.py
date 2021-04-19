@@ -4319,8 +4319,9 @@ Keep all original rows and also all original values
         """
         return False
 
+    # error: Cannot determine type of 'align'
     @doc(
-        NDFrame.align,
+        NDFrame.align,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
         axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
     )
@@ -4472,8 +4473,9 @@ Keep all original rows and also all original values
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
+    # error: Cannot determine type of 'reindex'
     @doc(
-        NDFrame.reindex,
+        NDFrame.reindex,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
         axes=_shared_doc_kwargs["axes"],
         optional_labels=_shared_doc_kwargs["optional_labels"],
@@ -4703,7 +4705,8 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
-    @doc(NDFrame.fillna, **_shared_doc_kwargs)
+    # error: Cannot determine type of 'fillna'
+    @doc(NDFrame.fillna, **_shared_doc_kwargs)  # type: ignore[has-type]
     def fillna(
         self,
         value=None,
@@ -4749,8 +4752,9 @@ Keep all original rows and also all original values
         """
         return super().pop(item=item)
 
+    # error: Cannot determine type of 'replace'
     @doc(
-        NDFrame.replace,
+        NDFrame.replace,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
         inplace=_shared_doc_kwargs["inplace"],
         replace_iloc=_shared_doc_kwargs["replace_iloc"],
@@ -4798,7 +4802,8 @@ Keep all original rows and also all original values
 
         return result
 
-    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'shift'
+    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> Series:
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
@@ -5033,19 +5038,23 @@ Keep all original rows and also all original values
             result = input_series.copy()
         return result
 
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'isna'
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isna(self) -> Series:
         return generic.NDFrame.isna(self)
 
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'isna'
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isnull(self) -> Series:
         return super().isnull()
 
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'notna'
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def notna(self) -> Series:
         return super().notna()
 
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'notna'
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def notnull(self) -> Series:
         return super().notnull()
 
@@ -5140,7 +5149,8 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Time series-oriented methods
 
-    @doc(NDFrame.asfreq, **_shared_doc_kwargs)
+    # error: Cannot determine type of 'asfreq'
+    @doc(NDFrame.asfreq, **_shared_doc_kwargs)  # type: ignore[has-type]
     def asfreq(
         self,
         freq,
@@ -5157,7 +5167,8 @@ Keep all original rows and also all original values
             fill_value=fill_value,
         )
 
-    @doc(NDFrame.resample, **_shared_doc_kwargs)
+    # error: Cannot determine type of 'resample'
+    @doc(NDFrame.resample, **_shared_doc_kwargs)  # type: ignore[has-type]
     def resample(
         self,
         rule,

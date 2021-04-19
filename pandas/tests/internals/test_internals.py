@@ -234,9 +234,10 @@ def create_mgr(descr, item_shape=None):
         )
         num_offset += len(placement)
 
+    sblocks = sorted(blocks, key=lambda b: b.mgr_locs[0])
     return BlockManager(
-        sorted(blocks, key=lambda b: b.mgr_locs[0]),
-        [mgr_items] + [np.arange(n) for n in item_shape],
+        tuple(sblocks),
+        [mgr_items] + [Index(np.arange(n)) for n in item_shape],
     )
 
 
@@ -409,7 +410,7 @@ class TestBlockManager:
         block = new_block(
             values=values.copy(), placement=np.arange(3), ndim=values.ndim
         )
-        mgr = BlockManager(blocks=[block], axes=[cols, np.arange(3)])
+        mgr = BlockManager(blocks=(block,), axes=[cols, Index(np.arange(3))])
 
         tm.assert_almost_equal(mgr.iget(0).internal_values(), values[0])
         tm.assert_almost_equal(mgr.iget(1).internal_values(), values[1])
@@ -816,7 +817,7 @@ class TestBlockManager:
         bm = create_mgr(mgr_string)
         block_perms = itertools.permutations(bm.blocks)
         for bm_perm in block_perms:
-            bm_this = BlockManager(bm_perm, bm.axes)
+            bm_this = BlockManager(tuple(bm_perm), bm.axes)
             assert bm.equals(bm_this)
             assert bm_this.equals(bm)
 

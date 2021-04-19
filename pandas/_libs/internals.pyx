@@ -533,3 +533,80 @@ cdef class Block(SharedBlock):
         # set values here the (implicit) call to SharedBlock.__cinit__ will
         #  set placement and ndim
         self.values = values
+
+
+@cython.freelist(64)
+cdef class BlockManager:
+    cdef:
+        public tuple blocks
+        public list axes
+        public bint _known_consolidated, _is_consolidated
+        public ndarray _blknos, _blklocs
+
+    def __cinit__(self, blocks, axes, verify_integrity=True):
+        if isinstance(blocks, list):
+            # Backward compat for e.g. pyarrow
+            blocks = tuple(blocks)
+
+        self.blocks = blocks
+        self.axes = axes.copy()  # copy to make sure we are not remotely-mutable
+
+        # Populate known_consolidate, blknos, and blklocs lazily
+        self._known_consolidated = False
+        self._is_consolidated = False
+        # error: Incompatible types in assignment (expression has type "None",
+        # variable has type "ndarray")
+        self._blknos = None  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "None",
+        # variable has type "ndarray")
+        self._blklocs = None  # type: ignore[assignment]
+
+    # -------------------------------------------------------------------
+    # Pickle
+
+    cpdef __reduce__(self):
+        if len(self.axes) == 1:
+            # SingleBlockManager, __init__ expects Block, axis
+            args = (self.blocks[0], self.axes[0])
+        else:
+            args = (self.blocks, self.axes)
+        return type(self), args
+
+    cpdef __setstate__(self, state):
+        from pandas.core.construction import extract_array
+        from pandas.core.internals.blocks import (
+            ensure_block_shape,
+            new_block,
+        )
+        from pandas.core.internals.managers import ensure_index
+
+        if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
+            state = state[3]["0.14.1"]
+            axes = [ensure_index(ax) for ax in state["axes"]]
+            ndim = len(axes)
+
+            for blk in state["blocks"]:
+                vals = blk["values"]
+                # older versions may hold e.g. DatetimeIndex instead of DTA
+                vals = extract_array(vals, extract_numpy=True)
+                blk["values"] = ensure_block_shape(vals, ndim=ndim)
+
+            nbs = [
+                new_block(blk["values"], blk["mgr_locs"], ndim=ndim)
+                for blk in state["blocks"]
+            ]
+            blocks = tuple(nbs)
+            self.blocks = blocks
+            self.axes = axes
+
+        else:
+            raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
+
+        self._post_setstate()
+
+    def _post_setstate(self) -> None:
+        self._is_consolidated = False
+        self._known_consolidated = False
+        self._rebuild_blknos_and_blklocs()
+
+    # -------------------------------------------------------------------
