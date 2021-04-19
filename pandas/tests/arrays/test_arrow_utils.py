@@ -6,7 +6,7 @@ import pandas._testing as tm
 
 
 @td.skip_if_no("pyarrow")
-def test_pyarrow_array_to_numpy_and_mask(dtype, pa_array, np_expected, mask_expected):
+def test_pyarrow_array_to_numpy_and_mask():
     """
     Test conversion from pyarrow array to numpy array.
 

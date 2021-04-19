@@ -27,13 +27,16 @@ def pyarrow_array_to_numpy_and_mask(arr, dtype):
         Tuple of two numpy arrays with the raw data (with specified dtype) and
         a boolean mask (validity mask, so False means missing)
     """
+    dtype = np.dtype(dtype)
 
     buflist = arr.buffers()
     # Since Arrow buffers might contain padding and the data might be offset,
     # the buffer gets sliced here before handing it to numpy.
     # See also https://github.com/pandas-dev/pandas/issues/40896
-    offset = arr.offset * arr.type.bit_width // 8
-    length = len(arr) * arr.type.bit_width // 8
+    # offset = arr.offset * arr.type.bit_width // 8
+    # length = len(arr) * arr.type.bit_width // 8
+    offset = arr.offset * dtype.itemsize
+    length = len(arr) * dtype.itemsize
     data_buf = buflist[1][offset : offset + length]
     data = np.frombuffer(data_buf, dtype=dtype)
     bitmask = buflist[0]
