@@ -136,14 +136,8 @@ def test_repeat():
     tm.assert_series_equal(rs, xp)
 
 
-def test_repeat_with_null(nullable_string_dtype, request):
+def test_repeat_with_null(nullable_string_dtype):
     # GH: 31632
-
-    if nullable_string_dtype == "arrow_string":
-        reason = 'Attribute "dtype" are different'
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
-
     ser = Series(["a", None], dtype=nullable_string_dtype)
     result = ser.str.repeat([3, 4])
     expected = Series(["aaa", None], dtype=nullable_string_dtype)
