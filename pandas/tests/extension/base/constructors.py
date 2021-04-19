@@ -122,3 +122,10 @@ class BaseConstructorsTests(BaseExtensionTests):
             {"a": pd.array([], dtype=dtype)}, index=pd.Index([], dtype="object")
         )
         self.assert_frame_equal(result, expected)
+
+    def test_empty(self, dtype):
+        cls = dtype.construct_array_type()
+        result = cls._empty((4,), dtype=dtype)
+
+        assert isinstance(result, cls)
+        assert result.dtype == dtype
