@@ -1,14 +1,12 @@
 """ orc compat """
 from __future__ import annotations
 
-import distutils
 from typing import TYPE_CHECKING
 
 from pandas._typing import FilePathOrBuffer
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.common import get_handle
-
-from pandas.compat._optional import import_optional_dependency
 
 if TYPE_CHECKING:
     from pandas import DataFrame

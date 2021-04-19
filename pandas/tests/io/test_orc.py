@@ -10,6 +10,7 @@ from pandas import read_orc
 import pandas._testing as tm
 
 pytest.importorskip("pyarrow.orc")
+
 pytestmark = pytest.mark.filterwarnings(
     "ignore:RangeIndex.* is deprecated:DeprecationWarning"
 )
