@@ -27,6 +27,7 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as htable,
 )
+from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import no_default
 from pandas._typing import (
     ArrayLike,
@@ -242,7 +243,9 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
+class Categorical(
+    NDArrayBacked, NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin
+):
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
@@ -349,7 +352,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise
     __array_priority__ = 1000
-    _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
     _hidden_attrs = PandasObject._hidden_attrs | frozenset(["tolist"])
     _typ = "categorical"
@@ -373,8 +375,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # infer categories in a factorization step further below
 
         if fastpath:
-            self._ndarray = coerce_indexer_dtype(values, dtype.categories)
-            self._dtype = self._dtype.update_dtype(dtype)
+            codes = coerce_indexer_dtype(values, dtype.categories)
+            dtype = CategoricalDtype(ordered=False).update_dtype(dtype)
+            NDArrayBacked.__init__(self, codes, dtype)
             return
 
         if not is_list_like(values):
@@ -463,8 +466,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             full_codes[~null_mask] = codes
             codes = full_codes
 
-        self._dtype = self._dtype.update_dtype(dtype)
-        self._ndarray = coerce_indexer_dtype(codes, dtype.categories)
+        dtype = CategoricalDtype(ordered=False).update_dtype(dtype)
+        arr = coerce_indexer_dtype(codes, dtype.categories)
+        NDArrayBacked.__init__(self, arr, dtype)
 
     @property
     def dtype(self) -> CategoricalDtype:
@@ -745,7 +749,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "new categories need to have the same number of "
                 "items as the old categories!"
             )
-        self._dtype = new_dtype
+        NDArrayBacked.__init__(self, self._ndarray, new_dtype)
 
     @property
     def ordered(self) -> Ordered:
@@ -809,7 +813,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "items than the old categories!"
             )
 
-        self._dtype = new_dtype
+        NDArrayBacked.__init__(self, self._ndarray, new_dtype)
 
     def _set_dtype(self, dtype: CategoricalDtype) -> Categorical:
         """
@@ -842,7 +846,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace = validate_bool_kwarg(inplace, "inplace")
         new_dtype = CategoricalDtype(self.categories, ordered=value)
         cat = self if inplace else self.copy()
-        cat._dtype = new_dtype
+        NDArrayBacked.__init__(cat, cat._ndarray, new_dtype)
         if not inplace:
             return cat
 
@@ -945,12 +949,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             ):
                 # remove all _codes which are larger and set to -1/NaN
                 cat._codes[cat._codes >= len(new_dtype.categories)] = -1
+            codes = cat._codes
         else:
             codes = recode_for_categories(
                 cat.codes, cat.categories, new_dtype.categories
             )
-            cat._ndarray = codes
-        cat._dtype = new_dtype
+        NDArrayBacked.__init__(cat, codes, new_dtype)
 
         if not inplace:
             return cat
@@ -1135,8 +1139,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         new_dtype = CategoricalDtype(new_categories, self.ordered)
 
         cat = self if inplace else self.copy()
-        cat._dtype = new_dtype
-        cat._ndarray = coerce_indexer_dtype(cat._ndarray, new_dtype.categories)
+        codes = coerce_indexer_dtype(cat._ndarray, new_dtype.categories)
+        NDArrayBacked.__init__(cat, codes, new_dtype)
         if not inplace:
             return cat
 
@@ -1254,9 +1258,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         new_dtype = CategoricalDtype._from_fastpath(
             new_categories, ordered=self.ordered
         )
-        cat._dtype = new_dtype
-        cat._ndarray = coerce_indexer_dtype(inv, new_dtype.categories)
-
+        new_codes = coerce_indexer_dtype(inv, new_dtype.categories)
+        NDArrayBacked.__init__(cat, new_codes, new_dtype)
         if not inplace:
             return cat
 
@@ -1435,7 +1438,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if not isinstance(state, dict):
-            raise Exception("invalid pickle state")
+            return NDArrayBacked.__setstate__(self, state)
 
         if "_dtype" not in state:
             state["_dtype"] = CategoricalDtype(state["_categories"], state["_ordered"])
@@ -1444,8 +1447,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # backward compat, changed what is property vs attribute
             state["_ndarray"] = state.pop("_codes")
 
-        for k, v in state.items():
-            setattr(self, k, v)
+        NDArrayBacked.__setstate__(self, state)
 
     @property
     def nbytes(self) -> int:
@@ -1814,16 +1816,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @_codes.setter
     def _codes(self, value: np.ndarray):
-        self._ndarray = value
-
-    def _from_backing_data(self, arr: np.ndarray) -> Categorical:
-        assert isinstance(arr, np.ndarray)
-        assert arr.dtype == self._ndarray.dtype
-
-        res = object.__new__(type(self))
-        res._ndarray = arr
-        res._dtype = self.dtype
-        return res
+        NDArrayBacked.__init__(self, value, self.dtype)
 
     def _box_func(self, i: int):
         if i == -1:
