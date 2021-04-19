@@ -8,6 +8,8 @@ from pandas._typing import FilePathOrBuffer
 
 from pandas.io.common import get_handle
 
+from pandas.compat._optional import import_optional_dependency
+
 if TYPE_CHECKING:
     from pandas import DataFrame
 
@@ -44,13 +46,9 @@ def read_orc(
     DataFrame
     """
     # we require a newer version of pyarrow than we support for parquet
-    import pyarrow
 
-    if distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0":
-        raise ImportError("pyarrow must be >= 0.13.0 for read_orc")
-
-    import pyarrow.orc
+    orc = import_optional_dependency("pyarrow.orc")
 
     with get_handle(path, "rb", is_text=False) as handles:
-        orc_file = pyarrow.orc.ORCFile(handles.handle)
+        orc_file = orc.ORCFile(handles.handle)
         return orc_file.read(columns=columns, **kwargs).to_pandas()
