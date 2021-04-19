@@ -2982,12 +2982,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not other.is_unique:
             # other has duplicates
-
-            # error: Argument 1 to "union_with_duplicates" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            # error: Argument 2 to "union_with_duplicates" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            result = algos.union_with_duplicates(lvals, rvals)  # type: ignore[arg-type]
+            result = algos.union_with_duplicates(lvals, rvals)
             return _maybe_try_sort(result, sort)
 
         # Self may have duplicates
@@ -3002,9 +2997,7 @@ class Index(IndexOpsMixin, PandasObject):
             other_diff = rvals.take(missing)
             result = concat_compat((lvals, other_diff))
         else:
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
-            result = lvals  # type: ignore[assignment]
+            result = lvals
 
         if not self.is_monotonic or not other.is_monotonic:
             result = _maybe_try_sort(result, sort)
