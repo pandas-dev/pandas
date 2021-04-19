@@ -863,7 +863,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = self._constructor(new_values, index=new_index, fastpath=True)
         return result.__finalize__(self, method="take")
 
-    def _take_with_is_copy(self, indices, axis=0):
+    def _take_with_is_copy(self, indices, axis=0) -> Series:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
