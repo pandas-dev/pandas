@@ -106,9 +106,9 @@ class RangeIndex(NumericIndex):
         stop=None,
         step=None,
         dtype: Dtype | None = None,
-        copy=False,
-        name=None,
-    ):
+        copy: bool = False,
+        name: Hashable = None,
+    ) -> RangeIndex:
 
         # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
         # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
@@ -249,7 +249,7 @@ class RangeIndex(NumericIndex):
     )
 
     @property
-    def start(self):
+    def start(self) -> int:
         """
         The value of the `start` parameter (``0`` if this was not supplied).
         """
@@ -257,7 +257,7 @@ class RangeIndex(NumericIndex):
         return self._range.start
 
     @property
-    def _start(self):
+    def _start(self) -> int:
         """
         The value of the `start` parameter (``0`` if this was not supplied).
 
@@ -272,14 +272,14 @@ class RangeIndex(NumericIndex):
         return self.start
 
     @property
-    def stop(self):
+    def stop(self) -> int:
         """
         The value of the `stop` parameter.
         """
         return self._range.stop
 
     @property
-    def _stop(self):
+    def _stop(self) -> int:
         """
         The value of the `stop` parameter.
 
@@ -295,7 +295,7 @@ class RangeIndex(NumericIndex):
         return self.stop
 
     @property
-    def step(self):
+    def step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
         """
@@ -303,7 +303,7 @@ class RangeIndex(NumericIndex):
         return self._range.step
 
     @property
-    def _step(self):
+    def _step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
 
@@ -405,6 +405,7 @@ class RangeIndex(NumericIndex):
         limit: int | None = None,
         tolerance=None,
     ) -> np.ndarray:
+        # -> np.ndarray[np.intp]
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -522,7 +523,7 @@ class RangeIndex(NumericIndex):
 
         Returns
         -------
-        argsorted : numpy array
+        np.ndarray[np.intp]
 
         See Also
         --------
@@ -532,9 +533,9 @@ class RangeIndex(NumericIndex):
         nv.validate_argsort(args, kwargs)
 
         if self._range.step > 0:
-            result = np.arange(len(self))
+            result = np.arange(len(self), dtype=np.intp)
         else:
-            result = np.arange(len(self) - 1, -1, -1)
+            result = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
 
         if not ascending:
             result = result[::-1]
@@ -584,7 +585,7 @@ class RangeIndex(NumericIndex):
         # solve intersection problem
         # performance hint: for identical step sizes, could use
         # cheaper alternative
-        gcd, s, t = self._extended_gcd(first.step, second.step)
+        gcd, s, _ = self._extended_gcd(first.step, second.step)
 
         # check whether element sets intersect
         if (first.start - second.start) % gcd:
@@ -619,7 +620,7 @@ class RangeIndex(NumericIndex):
         no_steps = (upper_limit - self.start) // abs(self.step)
         return self.start + abs(self.step) * no_steps
 
-    def _extended_gcd(self, a, b):
+    def _extended_gcd(self, a: int, b: int) -> tuple[int, int, int]:
         """
         Extended Euclidean algorithms to solve Bezout's identity:
            a*x + b*y = gcd(x, y)
@@ -745,7 +746,7 @@ class RangeIndex(NumericIndex):
             new_index = new_index[::-1]
         return new_index
 
-    def symmetric_difference(self, other, result_name=None, sort=None):
+    def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
         if not isinstance(other, RangeIndex) or sort is not None:
             return super().symmetric_difference(other, result_name, sort)
 
@@ -759,7 +760,7 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
-    def _concat(self, indexes, name):
+    def _concat(self, indexes: list[Index], name: Hashable):
         """
         Overriding parent method for the case of all RangeIndex instances.
 
@@ -780,7 +781,8 @@ class RangeIndex(NumericIndex):
         non_empty_indexes = [obj for obj in indexes if len(obj)]
 
         for obj in non_empty_indexes:
-            rng: range = obj._range
+            # error: "Index" has no attribute "_range"
+            rng: range = obj._range  # type: ignore[attr-defined]
 
             if start is None:
                 # This is set by the first non-empty index
@@ -808,7 +810,12 @@ class RangeIndex(NumericIndex):
         if non_empty_indexes:
             # Get the stop value from "next" or alternatively
             # from the last non-empty index
-            stop = non_empty_indexes[-1].stop if next_ is None else next_
+            # error: "Index" has no attribute "stop"
+            stop = (
+                non_empty_indexes[-1].stop  # type: ignore[attr-defined]
+                if next_ is None
+                else next_
+            )
             return RangeIndex(start, stop, step).rename(name)
 
         # Here all "indexes" had 0 length, i.e. were empty.

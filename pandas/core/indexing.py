@@ -48,6 +48,7 @@ import pandas.core.common as com
 from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
     check_array_indexer,
+    is_empty_indexer,
     is_exact_shape_match,
     is_list_like_indexer,
     length_of_indexer,
@@ -703,6 +704,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
+            key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
             key = com.apply_if_callable(key, self.obj)
@@ -911,6 +913,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     def __getitem__(self, key):
         if type(key) is tuple:
+            key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
                 with suppress(KeyError, IndexError, AttributeError):
@@ -1066,7 +1069,7 @@ class _LocIndexer(_LocationIndexer):
         ----------
         key : iterable
             Targeted labels.
-        axis: int
+        axis : int
             Dimension on which the indexing is being made.
 
         Raises
@@ -1242,6 +1245,9 @@ class _LocIndexer(_LocationIndexer):
 
         elif is_list_like_indexer(key):
 
+            if is_iterator(key):
+                key = list(key)
+
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(labels, key)
                 (inds,) = key.nonzero()
@@ -1266,7 +1272,7 @@ class _LocIndexer(_LocationIndexer):
         ----------
         key : list-like
             Targeted labels.
-        axis: int
+        axis:  int
             Dimension on which the indexing is being made.
         raise_missing: bool, default False
             Whether to raise a KeyError if some labels were not found.
@@ -1321,7 +1327,7 @@ class _LocIndexer(_LocationIndexer):
         indexer: array-like of booleans
             Indices corresponding to the key,
             (with -1 indicating not found).
-        axis: int
+        axis : int
             Dimension on which the indexing is being made.
         raise_missing: bool
             Whether to raise a KeyError if some labels are not found. Will be
@@ -1530,6 +1536,9 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
 
+        if is_iterator(key):
+            key = list(key)
+
         if isinstance(key, list):
             key = np.asarray(key)
 
@@ -1571,6 +1580,8 @@ class _iLocIndexer(_LocationIndexer):
 
     def _get_setitem_indexer(self, key):
         # GH#32257 Fall through to let numpy do validation
+        if is_iterator(key):
+            return list(key)
         return key
 
     # -------------------------------------------------------------------
@@ -1872,8 +1883,16 @@ class _iLocIndexer(_LocationIndexer):
         # GH#6149 (null slice), GH#10408 (full bounds)
         if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
             ser = value
-        elif is_array_like(value) and is_exact_shape_match(ser, value):
-            ser = value
+        elif (
+            is_array_like(value)
+            and is_exact_shape_match(ser, value)
+            and not is_empty_indexer(pi, value)
+        ):
+            if is_list_like(pi):
+                ser = value[np.argsort(pi)]
+            else:
+                # in case of slice
+                ser = value[pi]
         else:
             # set the item, possibly having a dtype change
             ser = ser.copy()

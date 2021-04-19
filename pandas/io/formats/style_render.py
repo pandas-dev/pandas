@@ -58,7 +58,7 @@ class StylerRenderer:
 
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
     env = jinja2.Environment(loader=loader, trim_blocks=True)
-    template = env.get_template("html.tpl")
+    template_html = env.get_template("html.tpl")
 
     def __init__(
         self,
@@ -143,7 +143,7 @@ class StylerRenderer:
         # TODO: namespace all the pandas keys
         d = self._translate()
         d.update(kwargs)
-        return self.template.render(**d)
+        return self.template_html.render(**d)
 
     def _compute(self):
         """
@@ -173,15 +173,6 @@ class StylerRenderer:
         BLANK_CLASS = "blank"
         BLANK_VALUE = "&nbsp;"
 
-        # mapping variables
-        ctx = self.ctx  # td css styles from apply() and applymap()
-        cell_context = self.cell_context  # td css classes from set_td_classes()
-        cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(list)
-
-        # copied attributes
-        hidden_index = self.hidden_index
-        hidden_columns = self.hidden_columns
-
         # construct render dict
         d = {
             "uuid": self.uuid,
@@ -189,148 +180,20 @@ class StylerRenderer:
             "caption": self.caption,
         }
 
-        # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(self.index)
-        col_lengths = _get_level_lengths(self.columns, hidden_columns)
-
-        n_rlvls = self.data.index.nlevels
-        n_clvls = self.data.columns.nlevels
-        rlabels = self.data.index.tolist()
-        clabels = self.data.columns.tolist()
-
-        if n_rlvls == 1:
-            rlabels = [[x] for x in rlabels]
-        if n_clvls == 1:
-            clabels = [[x] for x in clabels]
-        clabels = list(zip(*clabels))
-
-        head = []
-        for r in range(n_clvls):
-            # Blank for Index columns...
-            row_es = [
-                {
-                    "type": "th",
-                    "value": BLANK_VALUE,
-                    "display_value": BLANK_VALUE,
-                    "is_visible": not hidden_index,
-                    "class": " ".join([BLANK_CLASS]),
-                }
-            ] * (n_rlvls - 1)
-
-            # ... except maybe the last for columns.names
-            name = self.data.columns.names[r]
-            cs = [
-                BLANK_CLASS if name is None else INDEX_NAME_CLASS,
-                f"level{r}",
-            ]
-            name = BLANK_VALUE if name is None else name
-            row_es.append(
-                {
-                    "type": "th",
-                    "value": name,
-                    "display_value": name,
-                    "class": " ".join(cs),
-                    "is_visible": not hidden_index,
-                }
-            )
-
-            if clabels:
-                for c, value in enumerate(clabels[r]):
-                    es = {
-                        "type": "th",
-                        "value": value,
-                        "display_value": value,
-                        "class": f"{COL_HEADING_CLASS} level{r} col{c}",
-                        "is_visible": _is_visible(c, r, col_lengths),
-                    }
-                    colspan = col_lengths.get((r, c), 0)
-                    if colspan > 1:
-                        es["attributes"] = f'colspan="{colspan}"'
-                    row_es.append(es)
-                head.append(row_es)
-
-        if (
-            self.data.index.names
-            and com.any_not_none(*self.data.index.names)
-            and not hidden_index
-        ):
-            index_header_row = []
-
-            for c, name in enumerate(self.data.index.names):
-                cs = [INDEX_NAME_CLASS, f"level{c}"]
-                name = "" if name is None else name
-                index_header_row.append(
-                    {"type": "th", "value": name, "class": " ".join(cs)}
-                )
-
-            index_header_row.extend(
-                [
-                    {
-                        "type": "th",
-                        "value": BLANK_VALUE,
-                        "class": " ".join([BLANK_CLASS, f"col{c}"]),
-                    }
-                    for c in range(len(clabels[0]))
-                    if c not in hidden_columns
-                ]
-            )
-
-            head.append(index_header_row)
+        head = self._translate_header(
+            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS
+        )
         d.update({"head": head})
 
-        body = []
-        for r, row_tup in enumerate(self.data.itertuples()):
-            row_es = []
-            for c, value in enumerate(rlabels[r]):
-                rid = [
-                    ROW_HEADING_CLASS,
-                    f"level{c}",
-                    f"row{r}",
-                ]
-                es = {
-                    "type": "th",
-                    "is_visible": (_is_visible(r, c, idx_lengths) and not hidden_index),
-                    "value": value,
-                    "display_value": value,
-                    "id": "_".join(rid[1:]),
-                    "class": " ".join(rid),
-                }
-                rowspan = idx_lengths.get((c, r), 0)
-                if rowspan > 1:
-                    es["attributes"] = f'rowspan="{rowspan}"'
-                row_es.append(es)
-
-            for c, value in enumerate(row_tup[1:]):
-                formatter = self._display_funcs[(r, c)]
-                row_dict = {
-                    "type": "td",
-                    "value": value,
-                    "display_value": formatter(value),
-                    "is_visible": (c not in hidden_columns),
-                    "attributes": "",
-                }
-
-                # only add an id if the cell has a style
-                props: CSSList = []
-                if self.cell_ids or (r, c) in ctx:
-                    row_dict["id"] = f"row{r}_col{c}"
-                    props.extend(ctx[r, c])
-
-                # add custom classes from cell context
-                cls = ""
-                if (r, c) in cell_context:
-                    cls = " " + cell_context[r, c]
-                row_dict["class"] = f"{DATA_CLASS} row{r} col{c}{cls}"
-
-                row_es.append(row_dict)
-                if props:  # (), [] won't be in cellstyle_map, cellstyle respectively
-                    cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
-            body.append(row_es)
+        self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
+            list
+        )
+        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS)
         d.update({"body": body})
 
         cellstyle: list[dict[str, CSSList | list[str]]] = [
             {"props": list(props), "selectors": selectors}
-            for props, selectors in cellstyle_map.items()
+            for props, selectors in self.cellstyle_map.items()
         ]
         d.update({"cellstyle": cellstyle})
 
@@ -348,6 +211,154 @@ class StylerRenderer:
             d = self.tooltips._translate(self.data, self.uuid, d)
 
         return d
+
+    def _translate_header(
+        self, blank_class, blank_value, index_name_class, col_heading_class
+    ):
+        """
+        Build each <tr> within table <head>, using the structure:
+             +----------------------------+---------------+---------------------------+
+             |  index_blanks ...          | column_name_0 |  column_headers (level_0) |
+          1) |       ..                   |       ..      |             ..            |
+             |  index_blanks ...          | column_name_n |  column_headers (level_n) |
+             +----------------------------+---------------+---------------------------+
+          2) |  index_names (level_0 to level_n) ...      | column_blanks ...         |
+             +----------------------------+---------------+---------------------------+
+        """
+        # for sparsifying a MultiIndex
+        col_lengths = _get_level_lengths(self.columns, self.hidden_columns)
+
+        clabels = self.data.columns.tolist()
+        if self.data.columns.nlevels == 1:
+            clabels = [[x] for x in clabels]
+        clabels = list(zip(*clabels))
+
+        head = []
+        # 1) column headers
+        for r in range(self.data.columns.nlevels):
+            index_blanks = [
+                _element("th", blank_class, blank_value, not self.hidden_index)
+            ] * (self.data.index.nlevels - 1)
+
+            name = self.data.columns.names[r]
+            column_name = [
+                _element(
+                    "th",
+                    f"{blank_class if name is None else index_name_class} level{r}",
+                    name if name is not None else blank_value,
+                    not self.hidden_index,
+                )
+            ]
+
+            if clabels:
+                column_headers = [
+                    _element(
+                        "th",
+                        f"{col_heading_class} level{r} col{c}",
+                        value,
+                        _is_visible(c, r, col_lengths),
+                        attributes=(
+                            f'colspan="{col_lengths.get((r, c), 0)}"'
+                            if col_lengths.get((r, c), 0) > 1
+                            else ""
+                        ),
+                    )
+                    for c, value in enumerate(clabels[r])
+                ]
+                head.append(index_blanks + column_name + column_headers)
+
+        # 2) index names
+        if (
+            self.data.index.names
+            and com.any_not_none(*self.data.index.names)
+            and not self.hidden_index
+        ):
+            index_names = [
+                _element(
+                    "th",
+                    f"{index_name_class} level{c}",
+                    blank_value if name is None else name,
+                    True,
+                )
+                for c, name in enumerate(self.data.index.names)
+            ]
+
+            column_blanks = [
+                _element(
+                    "th",
+                    f"{blank_class} col{c}",
+                    blank_value,
+                    c not in self.hidden_columns,
+                )
+                for c in range(len(clabels[0]))
+            ]
+            head.append(index_names + column_blanks)
+
+        return head
+
+    def _translate_body(self, data_class, row_heading_class):
+        """
+        Build each <tr> in table <body> in the following format:
+          +--------------------------------------------+---------------------------+
+          |  index_header_0    ...    index_header_n   |  data_by_column           |
+          +--------------------------------------------+---------------------------+
+
+        Also add elements to the cellstyle_map for more efficient grouped elements in
+        <style></style> block
+        """
+        # for sparsifying a MultiIndex
+        idx_lengths = _get_level_lengths(self.index)
+
+        rlabels = self.data.index.tolist()
+        if self.data.index.nlevels == 1:
+            rlabels = [[x] for x in rlabels]
+
+        body = []
+        for r, row_tup in enumerate(self.data.itertuples()):
+            index_headers = [
+                _element(
+                    "th",
+                    f"{row_heading_class} level{c} row{r}",
+                    value,
+                    (_is_visible(r, c, idx_lengths) and not self.hidden_index),
+                    id=f"level{c}_row{r}",
+                    attributes=(
+                        f'rowspan="{idx_lengths.get((c, r), 0)}"'
+                        if idx_lengths.get((c, r), 0) > 1
+                        else ""
+                    ),
+                )
+                for c, value in enumerate(rlabels[r])
+            ]
+
+            data = []
+            for c, value in enumerate(row_tup[1:]):
+                # add custom classes from cell context
+                cls = ""
+                if (r, c) in self.cell_context:
+                    cls = " " + self.cell_context[r, c]
+
+                data_element = _element(
+                    "td",
+                    f"{data_class} row{r} col{c}{cls}",
+                    value,
+                    (c not in self.hidden_columns),
+                    attributes="",
+                    display_value=self._display_funcs[(r, c)](value),
+                )
+
+                # only add an id if the cell has a style
+                if self.cell_ids or (r, c) in self.ctx:
+                    data_element["id"] = f"row{r}_col{c}"
+                    if (r, c) in self.ctx and self.ctx[r, c]:  # only add  if non-empty
+                        self.cellstyle_map[tuple(self.ctx[r, c])].append(
+                            f"row{r}_col{c}"
+                        )
+
+                data.append(data_element)
+
+            body.append(index_headers + data)
+        return body
 
     def format(
         self,
@@ -500,6 +511,27 @@ class StylerRenderer:
                 self._display_funcs[(i, j)] = format_func
 
         return self
+
+
+def _element(
+    html_element: str,
+    html_class: str,
+    value: Any,
+    is_visible: bool,
+    **kwargs,
+) -> dict:
+    """
+    Template to return container with information for a <td></td> or <th></th> element.
+    """
+    if "display_value" not in kwargs:
+        kwargs["display_value"] = value
+    return {
+        "type": html_element,
+        "value": value,
+        "class": html_class,
+        "is_visible": is_visible,
+        **kwargs,
+    }
 
 
 def _get_level_lengths(index, hidden_elements=None):

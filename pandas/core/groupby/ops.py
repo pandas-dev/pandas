@@ -20,7 +20,6 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
-    iNaT,
     lib,
 )
 import pandas._libs.groupby as libgroupby
@@ -37,14 +36,13 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
-    maybe_cast_result,
+    maybe_cast_pointwise_result,
     maybe_cast_result_dtype,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
-    ensure_int_or_float,
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
@@ -67,7 +65,6 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
-from pandas.core import algorithms
 from pandas.core.arrays import ExtensionArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -584,7 +581,7 @@ class BaseGrouper:
 
         elif is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
             # IntegerArray or BooleanArray
-            values = ensure_int_or_float(values)
+            values = values.to_numpy("float64", na_value=np.nan)
             res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
@@ -662,14 +659,11 @@ class BaseGrouper:
             values = values.view("int64")
             is_numeric = True
         elif is_bool_dtype(dtype):
-            values = ensure_int_or_float(values)
+            values = values.astype("int64")
         elif is_integer_dtype(dtype):
-            # we use iNaT for the missing value on ints
-            # so pre-convert to guard this condition
-            if (values == iNaT).any():
-                values = ensure_float64(values)
-            else:
-                values = ensure_int_or_float(values)
+            # e.g. uint8 -> uint64, int16 -> int64
+            dtype = dtype.kind + "8"
+            values = values.astype(dtype, copy=False)
         elif is_numeric:
             if not is_complex_dtype(dtype):
                 values = ensure_float64(values)
@@ -687,20 +681,36 @@ class BaseGrouper:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            func(result, counts, values, comp_ids, min_count)
+            if how in ["min", "max"]:
+                func(
+                    result,
+                    counts,
+                    values,
+                    comp_ids,
+                    min_count,
+                    is_datetimelike=is_datetimelike,
+                )
+            else:
+                func(result, counts, values, comp_ids, min_count)
         elif kind == "transform":
             # TODO: min_count
             func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
 
-        if is_integer_dtype(result.dtype) and not is_datetimelike:
-            mask = result == iNaT
-            if mask.any():
-                result = result.astype("float64")
-                result[mask] = np.nan
+        if kind == "aggregate":
+            # i.e. counts is defined.  Locations where count<min_count
+            # need to have the result set to np.nan, which may require casting,
+            # see GH#40767
+            if is_integer_dtype(result.dtype) and not is_datetimelike:
+                cutoff = max(1, min_count)
+                empty_groups = counts < cutoff
+                if empty_groups.any():
+                    # Note: this conversion could be lossy, see GH#40767
+                    result = result.astype("float64")
+                    result[empty_groups] = np.nan
 
-        if kind == "aggregate" and self._filter_empty_groups and not counts.all():
-            assert result.ndim != 2
-            result = result[counts > 0]
+            if self._filter_empty_groups and not counts.all():
+                assert result.ndim != 2
+                result = result[counts > 0]
 
         result = result.T
 
@@ -757,7 +767,7 @@ class BaseGrouper:
         # avoids object / Series creation overhead
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
-        group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
+        group_index = group_index.take(indexer)
         grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups)
         result, counts = grouper.get_result()
         return result, counts
@@ -788,7 +798,7 @@ class BaseGrouper:
             result[label] = res
 
         out = lib.maybe_convert_objects(result, try_float=False)
-        out = maybe_cast_result(out, obj, numeric_only=True)
+        out = maybe_cast_pointwise_result(out, obj.dtype, numeric_only=True)
 
         return out, counts
 
@@ -988,7 +998,7 @@ class DataSplitter(Generic[FrameOrSeries]):
     @cache_readonly
     def slabels(self) -> np.ndarray:  # np.ndarray[np.intp]
         # Sorted labels
-        return algorithms.take_nd(self.labels, self._sort_idx, allow_fill=False)
+        return self.labels.take(self._sort_idx)
 
     @cache_readonly
     def _sort_idx(self) -> np.ndarray:  # np.ndarray[np.intp]

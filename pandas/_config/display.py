@@ -2,15 +2,16 @@
 Unopinionated display configuration.
 """
 
+from __future__ import annotations
+
 import locale
 import sys
-from typing import Optional
 
 from pandas._config import config as cf
 
 # -----------------------------------------------------------------------------
 # Global formatting options
-_initial_defencoding: Optional[str] = None
+_initial_defencoding: str | None = None
 
 
 def detect_console_encoding() -> str:
