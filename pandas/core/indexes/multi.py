@@ -3613,14 +3613,12 @@ class MultiIndex(Index):
 
     def _intersection(self, other, sort=False) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
-
-        lvals = self._values
-        rvals = other._values.astype(object, copy=False)
+        other = other.astype(object, copy=False)
 
         uniq_tuples = None  # flag whether _inner_indexer was successful
         if self.is_monotonic and other.is_monotonic:
             try:
-                inner_tuples = self._inner_indexer(lvals, rvals)[0]
+                inner_tuples = self._inner_indexer(other)[0]
                 sort = False  # inner_tuples is already sorted
             except TypeError:
                 pass
