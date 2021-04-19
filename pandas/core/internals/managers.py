@@ -1116,21 +1116,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         return result
 
-    def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
-        assert isinstance(slobj, slice), type(slobj)
-
-        if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(slobj)
-        elif axis == 1:
-            new_blocks = [blk.getitem_block_index(slobj) for blk in self.blocks]
-        else:
-            raise IndexError("Requested axis not found in manager")
-
-        new_axes = list(self.axes)
-        new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
-
-        return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)
-
     def iget(self, i: int) -> SingleBlockManager:
         """
         Return the data as a SingleBlockManager.
