@@ -399,12 +399,12 @@ def unique(values):
 
     >>> pd.unique(pd.Series(pd.Categorical(list('baabc'))))
     ['b', 'a', 'c']
-    Categories (3, object): ['b', 'a', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
     >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
     ...                                    categories=list('abc'))))
     ['b', 'a', 'c']
-    Categories (3, object): ['b', 'a', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
     An ordered Categorical preserves the category ordering.
 
