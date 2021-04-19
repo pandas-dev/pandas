@@ -11,6 +11,9 @@ from pandas._typing import (
     T,
 )
 
+from pandas import Index
+from pandas.core.internals.blocks import Block as B
+
 def slice_len(slc: slice, objlen: int = ...) -> int: ...
 
 
@@ -66,3 +69,13 @@ class NumpyBlock(SharedBlock):
 
 class Block(SharedBlock):
     ...
+
+class BlockManager:
+    blocks: tuple[B, ...]
+    axes: list[Index]
+    _known_consolidated: bool
+    _is_consolidated: bool
+    _blknos: np.ndarray
+    _blklocs: np.ndarray
+
+    def __init__(self, blocks: tuple[B, ...], axes: list[Index], verify_integrity=True): ...
