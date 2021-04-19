@@ -14,8 +14,6 @@ from typing import (
     ContextManager,
     Counter,
     Iterable,
-    List,
-    Type,
 )
 import warnings
 
@@ -102,6 +100,7 @@ from pandas._testing.contexts import (  # noqa:F401
 )
 from pandas.core.arrays import (
     DatetimeArray,
+    PandasArray,
     PeriodArray,
     TimedeltaArray,
     period_array,
@@ -116,24 +115,24 @@ if TYPE_CHECKING:
 _N = 30
 _K = 4
 
-UNSIGNED_INT_DTYPES: List[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
-UNSIGNED_EA_INT_DTYPES: List[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
-SIGNED_INT_DTYPES: List[Dtype] = [int, "int8", "int16", "int32", "int64"]
-SIGNED_EA_INT_DTYPES: List[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
+UNSIGNED_INT_DTYPES: list[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_EA_INT_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
+SIGNED_INT_DTYPES: list[Dtype] = [int, "int8", "int16", "int32", "int64"]
+SIGNED_EA_INT_DTYPES: list[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
 ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
 ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
 
-FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
-FLOAT_EA_DTYPES: List[Dtype] = ["Float32", "Float64"]
-COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
-STRING_DTYPES: List[Dtype] = [str, "str", "U"]
+FLOAT_DTYPES: list[Dtype] = [float, "float32", "float64"]
+FLOAT_EA_DTYPES: list[Dtype] = ["Float32", "Float64"]
+COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
+STRING_DTYPES: list[Dtype] = [str, "str", "U"]
 
-DATETIME64_DTYPES: List[Dtype] = ["datetime64[ns]", "M8[ns]"]
-TIMEDELTA64_DTYPES: List[Dtype] = ["timedelta64[ns]", "m8[ns]"]
+DATETIME64_DTYPES: list[Dtype] = ["datetime64[ns]", "M8[ns]"]
+TIMEDELTA64_DTYPES: list[Dtype] = ["timedelta64[ns]", "m8[ns]"]
 
-BOOL_DTYPES: List[Dtype] = [bool, "bool"]
-BYTES_DTYPES: List[Dtype] = [bytes, "bytes"]
-OBJECT_DTYPES: List[Dtype] = [object, "object"]
+BOOL_DTYPES: list[Dtype] = [bool, "bool"]
+BYTES_DTYPES: list[Dtype] = [bytes, "bytes"]
+OBJECT_DTYPES: list[Dtype] = [object, "object"]
 
 ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
 ALL_NUMPY_DTYPES = (
@@ -206,7 +205,11 @@ def box_expected(expected, box_cls, transpose=True):
     subclass of box_cls
     """
     if box_cls is pd.array:
-        expected = pd.array(expected)
+        if isinstance(expected, RangeIndex):
+            # pd.array would return an IntegerArray
+            expected = PandasArray(np.asarray(expected._values))
+        else:
+            expected = pd.array(expected)
     elif box_cls is Index:
         expected = Index(expected)
     elif box_cls is Series:
@@ -428,7 +431,7 @@ def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
     ----------
     k: length of each of the index instances
     """
-    make_index_funcs: List[Callable[..., Index]] = [
+    make_index_funcs: list[Callable[..., Index]] = [
         makeDateIndex,
         makePeriodIndex,
         makeTimedeltaIndex,
@@ -876,7 +879,7 @@ def _make_skipna_wrapper(alternative, skipna_alternative=None):
     return skipna_wrapper
 
 
-def convert_rows_list_to_csv_str(rows_list: List[str]):
+def convert_rows_list_to_csv_str(rows_list: list[str]):
     """
     Convert list of CSV rows to single CSV-formatted string for current OS.
 
@@ -896,7 +899,7 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
     return sep.join(rows_list) + sep
 
 
-def external_error_raised(expected_exception: Type[Exception]) -> ContextManager:
+def external_error_raised(expected_exception: type[Exception]) -> ContextManager:
     """
     Helper function to mark pytest.raises that have an external error message.
 
@@ -912,15 +915,15 @@ def external_error_raised(expected_exception: Type[Exception]) -> ContextManager
     """
     import pytest
 
-    return pytest.raises(expected_exception, match=None)
+    return pytest.raises(expected_exception, match=None)  # noqa: PDF010
 
 
-cython_table = pd.core.base.SelectionMixin._cython_table.items()
+cython_table = pd.core.common._cython_table.items()
 
 
 def get_cython_table_params(ndframe, func_names_and_expected):
     """
-    Combine frame, functions from SelectionMixin._cython_table
+    Combine frame, functions from com._cython_table
     keys and expected result.
 
     Parameters

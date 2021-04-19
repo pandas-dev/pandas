@@ -1,13 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import (
-    TYPE_CHECKING,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -15,6 +9,7 @@ from pandas._libs import (
     lib,
     tslibs,
 )
+from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -138,12 +133,12 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     __array_priority__ = 1000
     # define my properties & methods for delegation
-    _other_ops: List[str] = []
-    _bool_ops: List[str] = []
-    _object_ops = ["freq"]
-    _field_ops = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops = _field_ops + _object_ops + _bool_ops
-    _datetimelike_methods = [
+    _other_ops: list[str] = []
+    _bool_ops: list[str] = []
+    _object_ops: list[str] = ["freq"]
+    _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
         "round",
@@ -154,7 +149,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     # Note: ndim must be defined to ensure NaT.__richcmp__(TimedeltaArray)
     #  operates pointwise.
 
-    def _box_func(self, x) -> Union[Timedelta, NaTType]:
+    def _box_func(self, x) -> Timedelta | NaTType:
         return Timedelta(x, unit="ns")
 
     @property
@@ -233,8 +228,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if freq:
             freq = to_offset(freq)
 
-        self._ndarray = values
-        self._dtype = dtype
+        NDArrayBacked.__init__(self, values=values, dtype=dtype)
         self._freq = freq
 
         if inferred_freq is None and freq is not None:
@@ -242,16 +236,14 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @classmethod
     def _simple_new(
-        cls, values: np.ndarray, freq: Optional[BaseOffset] = None, dtype=TD64NS_DTYPE
+        cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=TD64NS_DTYPE
     ) -> TimedeltaArray:
         assert dtype == TD64NS_DTYPE, dtype
         assert isinstance(values, np.ndarray), type(values)
         assert values.dtype == TD64NS_DTYPE
 
-        result = object.__new__(cls)
-        result._ndarray = values
+        result = super()._simple_new(values=values, dtype=TD64NS_DTYPE)
         result._freq = freq
-        result._dtype = TD64NS_DTYPE
         return result
 
     @classmethod
@@ -343,7 +335,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         self._check_compatible_with(value, setitem=setitem)
         return np.timedelta64(value.value, "ns")
 
-    def _scalar_from_string(self, value) -> Union[Timedelta, NaTType]:
+    def _scalar_from_string(self, value) -> Timedelta | NaTType:
         return Timedelta(value)
 
     def _check_compatible_with(self, other, setitem: bool = False) -> None:
@@ -387,8 +379,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     def sum(
         self,
         *,
-        axis: Optional[int] = None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
         initial=None,
@@ -407,8 +399,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     def std(
         self,
         *,
-        axis: Optional[int] = None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
         ddof: int = 1,
         keepdims: bool = False,
@@ -934,7 +926,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
 def sequence_to_td64ns(
     data, copy: bool = False, unit=None, errors="raise"
-) -> Tuple[np.ndarray, Optional[Tick]]:
+) -> tuple[np.ndarray, Tick | None]:
     """
     Parameters
     ----------

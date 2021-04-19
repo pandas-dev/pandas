@@ -19,7 +19,7 @@ dependencies:
   - matplotlib=2.2.3
   - nomkl
   - numexpr
-  - numpy=1.16.5
+  - numpy=1.17.3
   - openpyxl
   - pyarrow=0.15.1
   - pytables

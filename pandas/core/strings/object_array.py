@@ -5,7 +5,6 @@ from typing import (
     Pattern,
     Set,
     Union,
-    cast,
 )
 import unicodedata
 import warnings
@@ -92,6 +91,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                     return na_value
 
             return self._str_map(g, na_value=na_value, dtype=dtype)
+        if not isinstance(result, np.ndarray):
+            return result
         if na_value is not np.nan:
             np.putmask(result, mask, na_value)
             if result.dtype == object:
@@ -197,6 +198,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             return self._str_map(scalar_rep, dtype=str)
         else:
             from pandas.core.arrays.string_ import StringArray
+            from pandas.core.arrays.string_arrow import ArrowStringArray
 
             def rep(x, r):
                 if x is libmissing.NA:
@@ -208,9 +210,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
             repeats = np.asarray(repeats, dtype=object)
             result = libops.vec_binop(np.asarray(self), repeats, rep)
-            if isinstance(self, StringArray):
+            if isinstance(self, (StringArray, ArrowStringArray)):
                 # Not going through map, so we have to do this here.
-                result = StringArray._from_sequence(result)
+                result = type(self)._from_sequence(result)
             return result
 
     def _str_match(
@@ -369,9 +371,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         try:
             arr = sep + arr + sep
         except TypeError:
-            arr = cast(Series, arr)
             arr = sep + arr.astype(str) + sep
-        arr = cast(Series, arr)
 
         tags: Set[str] = set()
         for ts in Series(arr).str.split(sep):
