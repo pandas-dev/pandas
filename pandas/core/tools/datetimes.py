@@ -84,6 +84,7 @@ ArrayConvertible = Union[List, Tuple, AnyArrayLike, "Series"]
 Scalar = Union[int, float, str]
 DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
+start_caching_at = 50
 
 
 # ---------------------------------------------------------------------
@@ -130,7 +131,7 @@ def should_cache(
     # default realization
     if check_count is None:
         # in this case, the gain from caching is negligible
-        if len(arg) <= 50:
+        if len(arg) <= start_caching_at:
             return False
 
         if len(arg) <= 5000:
@@ -193,6 +194,9 @@ def _maybe_cache(
         if len(unique_dates) < len(arg):
             cache_dates = convert_listlike(unique_dates, format)
             cache_array = Series(cache_dates, index=unique_dates)
+            if not cache_array.is_unique:
+                # GH#39882 in case of None and NaT we get duplicates
+                cache_array = cache_array.drop_duplicates()
     return cache_array
 
 

@@ -43,6 +43,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
+from pandas.core.tools.datetimes import start_caching_at
 
 
 class TestTimeConversionFormats:
@@ -955,6 +956,19 @@ class TestToDatetime:
         result = to_datetime(date, cache=True)
         expected = Timestamp("20130101 00:00:00")
         assert result == expected
+
+    def test_convert_object_to_datetime_with_cache(self):
+        # GH#39882
+        ser = Series(
+            [None] + [NaT] * start_caching_at + [Timestamp("2012-07-26")],
+            dtype="object",
+        )
+        result = to_datetime(ser, errors="coerce")
+        expected = Series(
+            [NaT] * (start_caching_at + 1) + [Timestamp("2012-07-26")],
+            dtype="datetime64[ns]",
+        )
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "date, format",
