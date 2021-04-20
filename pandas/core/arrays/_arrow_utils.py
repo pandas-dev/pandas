@@ -33,8 +33,6 @@ def pyarrow_array_to_numpy_and_mask(arr, dtype):
     # Since Arrow buffers might contain padding and the data might be offset,
     # the buffer gets sliced here before handing it to numpy.
     # See also https://github.com/pandas-dev/pandas/issues/40896
-    # offset = arr.offset * arr.type.bit_width // 8
-    # length = len(arr) * arr.type.bit_width // 8
     offset = arr.offset * dtype.itemsize
     length = len(arr) * dtype.itemsize
     data_buf = buflist[1][offset : offset + length]
