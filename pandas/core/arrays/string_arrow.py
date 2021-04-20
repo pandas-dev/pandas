@@ -757,3 +757,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             #    or .findall returns a list).
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
+
+    def _str_lower(self):
+        return type(self)(pc.utf8_lower(self._data))
+
+    def _str_upper(self):
+        return type(self)(pc.utf8_upper(self._data))
