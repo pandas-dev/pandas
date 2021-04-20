@@ -338,14 +338,14 @@ class TestDataFrameJoin:
         # merge
         columns = ["a", "b", ("c", "c1")]
         expected = DataFrame(columns=columns, data=[[1, 11, 33], [0, 22, 44]])
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning):
             result = pd.merge(df1, df2, on="a")
         tm.assert_frame_equal(result, expected)
 
         # join, see discussion in GH#12219
         columns = ["a", "b", ("a", ""), ("c", "c1")]
         expected = DataFrame(columns=columns, data=[[1, 11, 0, 44], [0, 22, 1, 33]])
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = df1.join(df2, on="a")
         tm.assert_frame_equal(result, expected)
 
