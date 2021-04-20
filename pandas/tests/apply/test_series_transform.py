@@ -8,7 +8,6 @@ from pandas import (
     concat,
 )
 import pandas._testing as tm
-from pandas.core.base import SpecificationError
 from pandas.core.groupby.base import transformation_kernels
 
 # tshift only works on time index and is deprecated
@@ -66,30 +65,3 @@ def test_transform_dictlike_mixed():
         columns=MultiIndex([("b", "c"), ("sqrt", "abs")], [(0, 0, 1), (0, 1, 0)]),
     )
     tm.assert_frame_equal(result, expected)
-
-
-def test_transform_wont_agg(string_series):
-    # GH 35964
-    # we are trying to transform with an aggregator
-    msg = "Function did not transform"
-    with pytest.raises(ValueError, match=msg):
-        string_series.transform(["min", "max"])
-
-    msg = "Function did not transform"
-    with pytest.raises(ValueError, match=msg):
-        with np.errstate(all="ignore"):
-            string_series.transform(["sqrt", "max"])
-
-
-def test_transform_axis_1_raises():
-    # GH 35964
-    msg = "No axis named 1 for object type Series"
-    with pytest.raises(ValueError, match=msg):
-        Series([1]).transform("sum", axis=1)
-
-
-def test_transform_nested_renamer():
-    # GH 35964
-    match = "nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=match):
-        Series([1]).transform({"A": {"B": ["sum"]}})

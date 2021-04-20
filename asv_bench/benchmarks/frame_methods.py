@@ -11,6 +11,7 @@ from pandas import (
     date_range,
     isnull,
     period_range,
+    timedelta_range,
 )
 
 from .pandas_vb_common import tm
@@ -52,6 +53,7 @@ class Reindex:
         N = 10 ** 3
         self.df = DataFrame(np.random.randn(N * 10, N))
         self.idx = np.arange(4 * N, 7 * N)
+        self.idx_cols = np.random.randint(0, N, N)
         self.df2 = DataFrame(
             {
                 c: {
@@ -68,6 +70,9 @@ class Reindex:
         self.df.reindex(self.idx)
 
     def time_reindex_axis1(self):
+        self.df.reindex(columns=self.idx_cols)
+
+    def time_reindex_axis1_missing(self):
         self.df.reindex(columns=self.idx)
 
     def time_reindex_both_axes(self):
@@ -351,15 +356,42 @@ class Isnull:
 
 class Fillna:
 
-    params = ([True, False], ["pad", "bfill"])
-    param_names = ["inplace", "method"]
+    params = (
+        [True, False],
+        ["pad", "bfill"],
+        [
+            "float64",
+            "float32",
+            "object",
+            "Int64",
+            "Float64",
+            "datetime64[ns]",
+            "datetime64[ns, tz]",
+            "timedelta64[ns]",
+        ],
+    )
+    param_names = ["inplace", "method", "dtype"]
 
-    def setup(self, inplace, method):
-        values = np.random.randn(10000, 100)
-        values[::2] = np.nan
-        self.df = DataFrame(values)
+    def setup(self, inplace, method, dtype):
+        N, M = 10000, 100
+        if dtype in ("datetime64[ns]", "datetime64[ns, tz]", "timedelta64[ns]"):
+            data = {
+                "datetime64[ns]": date_range("2011-01-01", freq="H", periods=N),
+                "datetime64[ns, tz]": date_range(
+                    "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
+                ),
+                "timedelta64[ns]": timedelta_range(start="1 day", periods=N, freq="1D"),
+            }
+            self.df = DataFrame({f"col_{i}": data[dtype] for i in range(M)})
+            self.df[::2] = None
+        else:
+            values = np.random.randn(N, M)
+            values[::2] = np.nan
+            if dtype == "Int64":
+                values = values.round()
+            self.df = DataFrame(values, dtype=dtype)
 
-    def time_frame_fillna(self, inplace, method):
+    def time_frame_fillna(self, inplace, method, dtype):
         self.df.fillna(inplace=inplace, method=method)
 
 

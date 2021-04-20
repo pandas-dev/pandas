@@ -4,6 +4,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import iNaT
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -14,7 +15,6 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
-    isna,
 )
 import pandas._testing as tm
 import pandas.core.nanops as nanops
@@ -39,41 +39,6 @@ def numpy_dtypes_for_minmax(request):
     )
 
     return (dtype, min_val, max_val)
-
-
-@pytest.mark.parametrize("agg_func", ["any", "all"])
-@pytest.mark.parametrize("skipna", [True, False])
-@pytest.mark.parametrize(
-    "vals",
-    [
-        ["foo", "bar", "baz"],
-        ["foo", "", ""],
-        ["", "", ""],
-        [1, 2, 3],
-        [1, 0, 0],
-        [0, 0, 0],
-        [1.0, 2.0, 3.0],
-        [1.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0],
-        [True, True, True],
-        [True, False, False],
-        [False, False, False],
-        [np.nan, np.nan, np.nan],
-    ],
-)
-def test_groupby_bool_aggs(agg_func, skipna, vals):
-    df = DataFrame({"key": ["a"] * 3 + ["b"] * 3, "val": vals * 2})
-
-    # Figure out expectation using Python builtin
-    exp = getattr(builtins, agg_func)(vals)
-
-    # edge case for missing data with skipna and 'any'
-    if skipna and all(isna(vals)) and agg_func == "any":
-        exp = False
-
-    exp_df = DataFrame([exp] * 2, columns=["val"], index=Index(["a", "b"], name="key"))
-    result = getattr(df.groupby("key"), agg_func)(skipna=skipna)
-    tm.assert_frame_equal(result, exp_df)
 
 
 def test_max_min_non_numeric():
@@ -120,10 +85,6 @@ def test_intercept_builtin_sum():
     expected = grouped.sum()
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
-
-
-# @pytest.mark.parametrize("f", [max, min, sum])
-# def test_builtins_apply(f):
 
 
 @pytest.mark.parametrize("f", [max, min, sum])
@@ -348,14 +309,6 @@ class TestGroupByNonCythonPaths:
         result = gb.idxmin()
         tm.assert_frame_equal(result, expected)
 
-    def test_any(self, gb):
-        expected = DataFrame(
-            [[True, True], [False, True]], columns=["B", "C"], index=[1, 3]
-        )
-        expected.index.name = "A"
-        result = gb.any()
-        tm.assert_frame_equal(result, expected)
-
     def test_mad(self, gb, gni):
         # mad
         expected = DataFrame([[0], [np.nan]], columns=["B"], index=[1, 3])
@@ -367,7 +320,6 @@ class TestGroupByNonCythonPaths:
         result = gni.mad()
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
     def test_describe(self, df, gb, gni):
         # describe
         expected_index = Index([1, 3], name="A")
@@ -640,6 +592,38 @@ def test_max_nan_bug():
     assert not r["File"].isna().any()
 
 
+def test_max_inat():
+    # GH#40767 dont interpret iNaT as NaN
+    ser = Series([1, iNaT])
+    gb = ser.groupby([1, 1])
+
+    result = gb.max(min_count=2)
+    expected = Series({1: 1}, dtype=np.int64)
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+    result = gb.min(min_count=2)
+    expected = Series({1: iNaT}, dtype=np.int64)
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+    # not enough entries -> gets masked to NaN
+    result = gb.min(min_count=3)
+    expected = Series({1: np.nan})
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+
+def test_max_inat_not_all_na():
+    # GH#40767 dont interpret iNaT as NaN
+
+    # make sure we dont round iNaT+1 to iNaT
+    ser = Series([1, iNaT, 2, iNaT + 1])
+    gb = ser.groupby([1, 2, 3, 3])
+    result = gb.min(min_count=2)
+
+    # Note: in converting to float64, the iNaT + 1 maps to iNaT, i.e. is lossy
+    expected = Series({1: np.nan, 2: np.nan, 3: iNaT + 1})
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+
 def test_nlargest():
     a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])
     b = Series(list("a" * 5 + "b" * 5))
@@ -757,11 +741,13 @@ def test_cummin(numpy_dtypes_for_minmax):
 
     # Test w/ min value for dtype
     df.loc[[2, 6], "B"] = min_val
+    df.loc[[1, 5], "B"] = min_val + 1
     expected.loc[[2, 3, 6, 7], "B"] = min_val
+    expected.loc[[1, 5], "B"] = min_val + 1  # should not be rounded to min_val
     result = df.groupby("A").cummin()
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_exact=True)
     expected = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_exact=True)
 
     # Test nan in some values
     base_df.loc[[0, 2, 4, 6], "B"] = np.nan
@@ -924,13 +910,11 @@ def test_is_monotonic_decreasing(in_vals, out_vals):
 # --------------------------------
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_apply_describe_bug(mframe):
     grouped = mframe.groupby(level="first")
     grouped.describe()  # it works!
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_series_describe_multikey():
     ts = tm.makeTimeSeries()
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
@@ -940,7 +924,6 @@ def test_series_describe_multikey():
     tm.assert_series_equal(result["min"], grouped.min(), check_names=False)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_series_describe_single():
     ts = tm.makeTimeSeries()
     grouped = ts.groupby(lambda x: x.month)
@@ -955,7 +938,6 @@ def test_series_index_name(df):
     assert result.index.name == "A"
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_frame_describe_multikey(tsframe):
     grouped = tsframe.groupby([lambda x: x.year, lambda x: x.month])
     result = grouped.describe()
@@ -978,7 +960,6 @@ def test_frame_describe_multikey(tsframe):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_frame_describe_tupleindex():
 
     # GH 14848 - regression from 0.19.0 to 0.19.1
@@ -998,7 +979,6 @@ def test_frame_describe_tupleindex():
         df2.groupby("key").describe()
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_frame_describe_unstacked_format():
     # GH 4792
     prices = {
@@ -1025,7 +1005,6 @@ def test_frame_describe_unstacked_format():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 @pytest.mark.filterwarnings(
     "ignore:"
     "indexing past lexsort depth may impact performance:"

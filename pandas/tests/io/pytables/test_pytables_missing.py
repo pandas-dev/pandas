@@ -5,6 +5,8 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
+pytestmark = td.skip_array_manager_not_yet_implemented
+
 
 @td.skip_if_installed("tables")
 def test_pytables_raises():

@@ -83,7 +83,6 @@ def test_apply_use_categorical_name(df):
     assert result.index.names[0] == "C"
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_basic():
 
     cats = Categorical(
@@ -240,6 +239,28 @@ def test_level_get_group(observed):
     result = g.get_group("a")
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_sorting_with_different_categoricals():
+    # GH 24271
+    df = DataFrame(
+        {
+            "group": ["A"] * 6 + ["B"] * 6,
+            "dose": ["high", "med", "low"] * 4,
+            "outcomes": np.arange(12.0),
+        }
+    )
+
+    df.dose = Categorical(df.dose, categories=["low", "med", "high"], ordered=True)
+
+    result = df.groupby("group")["dose"].value_counts()
+    result = result.sort_index(level=0, sort_remaining=True)
+    index = ["low", "med", "high", "low", "med", "high"]
+    index = Categorical(index, categories=["low", "med", "high"], ordered=True)
+    index = [["A", "A", "A", "B", "B", "B"], CategoricalIndex(index)]
+    index = MultiIndex.from_arrays(index, names=["group", None])
+    expected = Series([2] * 6, index=index, name="dose")
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("ordered", [True, False])
@@ -540,7 +561,6 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
         assert False, msg
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_datetime():
     # GH9049: ensure backward compatibility
     levels = pd.date_range("2014-01-01", periods=4)
@@ -606,7 +626,6 @@ def test_categorical_index():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_describe_categorical_columns():
     # GH 11558
     cats = CategoricalIndex(
@@ -621,7 +640,6 @@ def test_describe_categorical_columns():
     tm.assert_categorical_equal(result.stack().columns.values, cats.values)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_unstack_categorical():
     # GH11558 (example is taken from the original issue)
     df = DataFrame(
@@ -1699,9 +1717,9 @@ def test_groupby_categorical_indices_unused_categories():
     grouped = df.groupby("key", sort=False)
     result = grouped.indices
     expected = {
-        "b": np.array([0, 1], dtype="int64"),
-        "a": np.array([2], dtype="int64"),
-        "c": np.array([], dtype="int64"),
+        "b": np.array([0, 1], dtype="intp"),
+        "a": np.array([2], dtype="intp"),
+        "c": np.array([], dtype="intp"),
     }
     assert result.keys() == expected.keys()
     for key in result.keys():

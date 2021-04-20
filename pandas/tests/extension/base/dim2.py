@@ -4,24 +4,8 @@ Tests for 2D compatibility.
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p17
-
 import pandas as pd
-from pandas.core.arrays import (
-    FloatingArray,
-    IntegerArray,
-)
 from pandas.tests.extension.base.base import BaseExtensionTests
-
-
-def maybe_xfail_masked_reductions(arr, request):
-    if (
-        isinstance(arr, (FloatingArray, IntegerArray))
-        and np_version_under1p17
-        and arr.ndim == 2
-    ):
-        mark = pytest.mark.xfail(reason="masked_reductions does not implement")
-        request.node.add_marker(mark)
 
 
 class Dim2CompatTests(BaseExtensionTests):
@@ -131,13 +115,23 @@ class Dim2CompatTests(BaseExtensionTests):
         with pytest.raises(ValueError):
             left._concat_same_type([left, right], axis=2)
 
+    @pytest.mark.parametrize("method", ["backfill", "pad"])
+    def test_fillna_2d_method(self, data_missing, method):
+        arr = data_missing.repeat(2).reshape(2, 2)
+        assert arr[0].isna().all()
+        assert not arr[1].isna().any()
+
+        result = arr.fillna(method=method)
+
+        expected = data_missing.fillna(method=method).repeat(2).reshape(2, 2)
+        self.assert_extension_array_equal(result, expected)
+
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
     def test_reductions_2d_axis_none(self, data, method, request):
         if not hasattr(data, method):
             pytest.skip("test is not applicable for this type/dtype")
 
         arr2d = data.reshape(1, -1)
-        maybe_xfail_masked_reductions(arr2d, request)
 
         err_expected = None
         err_result = None
@@ -166,7 +160,6 @@ class Dim2CompatTests(BaseExtensionTests):
             pytest.skip("test is not applicable for this type/dtype")
 
         arr2d = data.reshape(1, -1)
-        maybe_xfail_masked_reductions(arr2d, request)
 
         kwargs = {}
         if method == "std":
@@ -214,7 +207,6 @@ class Dim2CompatTests(BaseExtensionTests):
             pytest.skip("test is not applicable for this type/dtype")
 
         arr2d = data.reshape(1, -1)
-        maybe_xfail_masked_reductions(arr2d, request)
 
         try:
             result = getattr(arr2d, method)(axis=1)
@@ -227,7 +219,7 @@ class Dim2CompatTests(BaseExtensionTests):
             else:
                 raise AssertionError("Both reductions should raise or neither")
 
-        # not necesarrily type/dtype-preserving, so weaker assertions
+        # not necessarily type/dtype-preserving, so weaker assertions
         assert result.shape == (1,)
         expected_scalar = getattr(data, method)()
         if pd.isna(result[0]):

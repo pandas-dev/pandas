@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import distutils.version
 import importlib
 import sys
 import types
-from typing import Optional
 import warnings
 
 # Update install.rst when updating versions!
@@ -11,7 +12,7 @@ VERSIONS = {
     "bs4": "4.6.0",
     "bottleneck": "1.2.1",
     "fsspec": "0.7.4",
-    "fastparquet": "0.3.2",
+    "fastparquet": "0.4.0",
     "gcsfs": "0.6.0",
     "lxml.etree": "4.3.0",
     "matplotlib": "2.2.3",
@@ -63,7 +64,7 @@ def import_optional_dependency(
     name: str,
     extra: str = "",
     errors: str = "raise",
-    min_version: Optional[str] = None,
+    min_version: str | None = None,
 ):
     """
     Import an optional dependency.

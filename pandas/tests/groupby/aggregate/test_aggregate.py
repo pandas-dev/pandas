@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -46,7 +45,6 @@ def test_agg_regression1(tsframe):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile/describe
 def test_agg_must_agg(df):
     grouped = df.groupby("A")["C"]
 
@@ -136,7 +134,6 @@ def test_groupby_aggregation_multi_level_column():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) non-cython agg
 def test_agg_apply_corner(ts, tsframe):
     # nothing to group, all NA
     grouped = ts.groupby(ts * np.nan)
@@ -215,7 +212,6 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) non-cython agg
 def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
     gb = df.groupby(level=0)
     if reduction_func in ("idxmax", "idxmin"):
@@ -762,7 +758,7 @@ def test_agg_relabel_multiindex_column(
 
 
 def test_agg_relabel_multiindex_raises_not_exist():
-    # GH 29422, add test for raises senario when aggregate column does not exist
+    # GH 29422, add test for raises scenario when aggregate column does not exist
     df = DataFrame(
         {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
     )
@@ -773,7 +769,7 @@ def test_agg_relabel_multiindex_raises_not_exist():
 
 
 def test_agg_relabel_multiindex_duplicates():
-    # GH29422, add test for raises senario when getting duplicates
+    # GH29422, add test for raises scenario when getting duplicates
     # GH28426, after this change, duplicates should also work if the relabelling is
     # different
     df = DataFrame(
@@ -1225,3 +1221,18 @@ def test_aggregate_numeric_object_dtype():
         {"key": ["A", "B"], "col1": ["a", "c"], "col2": [0, 2]}
     ).set_index("key")
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_index_object_dtype():
+    # GH 40014
+    df = DataFrame({"c0": ["x", "x", "x"], "c1": ["x", "x", "y"], "p": [0, 1, 2]})
+    df.index = df.index.astype("O")
+    grouped = df.groupby(["c0", "c1"])
+    res = grouped.p.agg(lambda x: all(x > 0))
+    # Check that providing a user-defined function in agg()
+    # produces the correct index shape when using an object-typed index.
+    expected_index = MultiIndex.from_tuples(
+        [("x", "x"), ("x", "y")], names=("c0", "c1")
+    )
+    expected = Series([False, True], index=expected_index, name="p")
+    tm.assert_series_equal(res, expected)

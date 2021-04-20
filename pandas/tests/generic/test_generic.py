@@ -85,7 +85,7 @@ class Generic:
 
         # multiple axes at once
 
-    def test_get_numeric_data(self):
+    def test_get_numeric_data(self, using_array_manager):
 
         n = 4
         kwargs = {
@@ -100,6 +100,9 @@ class Generic:
         # non-inclusion
         result = o._get_bool_data()
         expected = self._construct(n, value="empty", **kwargs)
+        if using_array_manager and isinstance(o, DataFrame):
+            # INFO(ArrayManager) preserve the dtype of the columns Index
+            expected.columns = expected.columns.astype("int64")
         self._compare(result, expected)
 
         # get the bool data

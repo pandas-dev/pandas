@@ -113,7 +113,7 @@ def test_fast_apply():
 
     splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
     group_keys = grouper._get_group_keys()
-    sdata = splitter._get_sorted_data()
+    sdata = splitter.sorted_data
 
     values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
@@ -318,7 +318,6 @@ def test_groupby_as_index_apply(df):
     tm.assert_index_equal(res, ind)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_apply_concat_preserve_names(three_group):
     grouped = three_group.groupby(["A", "B"])
 
@@ -1009,11 +1008,8 @@ def test_apply_function_with_indexing_return_column():
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_with_timezones_aware(using_array_manager, request):
+def test_apply_with_timezones_aware():
     # GH: 27212
-    if not using_array_manager:
-        request.node.add_marker(pytest.mark.xfail(reason="GH-34998"))
-
     dates = ["2001-01-01"] * 2 + ["2001-01-02"] * 2 + ["2001-01-03"] * 2
     index_no_tz = pd.DatetimeIndex(dates)
     index_tz = pd.DatetimeIndex(dates, tz="UTC")

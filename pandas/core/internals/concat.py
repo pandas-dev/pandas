@@ -4,8 +4,6 @@ import copy
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    List,
     Sequence,
 )
 
@@ -30,7 +28,11 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_sparse,
 )
-from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.concat import (
+    cast_to_common_type,
+    concat_compat,
+)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna_all,
@@ -38,19 +40,27 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
+    Categorical,
     DatetimeArray,
     ExtensionArray,
 )
-from pandas.core.internals.array_manager import ArrayManager
-from pandas.core.internals.blocks import make_block
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.internals.array_manager import (
+    ArrayManager,
+    NullArrayProxy,
+)
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    new_block,
+)
 from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
     from pandas import Index
 
 
-def concatenate_array_managers(
-    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+def _concatenate_array_managers(
+    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
     Concatenate array managers into one.
@@ -70,14 +80,16 @@ def concatenate_array_managers(
     mgrs = []
     for mgr, indexers in mgrs_indexers:
         for ax, indexer in indexers.items():
-            mgr = mgr.reindex_indexer(axes[ax], indexer, axis=ax, allow_dups=True)
+            mgr = mgr.reindex_indexer(
+                axes[ax], indexer, axis=ax, allow_dups=True, use_na_proxy=True
+            )
         mgrs.append(mgr)
 
     if concat_axis == 1:
         # concatting along the rows -> concat the reindexed arrays
         # TODO(ArrayManager) doesn't yet preserve the correct dtype
         arrays = [
-            concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))])
+            concat_arrays([mgrs[i].arrays[j] for i in range(len(mgrs))])
             for j in range(len(mgrs[0].arrays))
         ]
         return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
@@ -88,8 +100,70 @@ def concatenate_array_managers(
         return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
 
 
+def concat_arrays(to_concat: list) -> ArrayLike:
+    """
+    Alternative for concat_compat but specialized for use in the ArrayManager.
+
+    Differences: only deals with 1D arrays (no axis keyword), assumes
+    ensure_wrapped_if_datetimelike and does not skip empty arrays to determine
+    the dtype.
+    In addition ensures that all NullArrayProxies get replaced with actual
+    arrays.
+
+    Parameters
+    ----------
+    to_concat : list of arrays
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+    """
+    # ignore the all-NA proxies to determine the resulting dtype
+    to_concat_no_proxy = [x for x in to_concat if not isinstance(x, NullArrayProxy)]
+
+    single_dtype = len({x.dtype for x in to_concat_no_proxy}) == 1
+
+    if not single_dtype:
+        target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
+    else:
+        target_dtype = to_concat_no_proxy[0].dtype
+
+    if target_dtype.kind in ["m", "M"]:
+        # for datetimelike use DatetimeArray/TimedeltaArray concatenation
+        # don't use arr.astype(target_dtype, copy=False), because that doesn't
+        # work for DatetimeArray/TimedeltaArray (returns ndarray)
+        to_concat = [
+            arr.to_array(target_dtype) if isinstance(arr, NullArrayProxy) else arr
+            for arr in to_concat
+        ]
+        return type(to_concat_no_proxy[0])._concat_same_type(to_concat, axis=0)
+
+    to_concat = [
+        arr.to_array(target_dtype)
+        if isinstance(arr, NullArrayProxy)
+        else cast_to_common_type(arr, target_dtype)
+        for arr in to_concat
+    ]
+
+    if isinstance(to_concat[0], ExtensionArray):
+        cls = type(to_concat[0])
+        return cls._concat_same_type(to_concat)
+
+    result = np.concatenate(to_concat)
+
+    # TODO decide on exact behaviour (we shouldn't do this only for empty result)
+    # see https://github.com/pandas-dev/pandas/issues/39817
+    if len(result) == 0:
+        # all empties -> check for bool to not coerce to float
+        kinds = {obj.dtype.kind for obj in to_concat_no_proxy}
+        if len(kinds) != 1:
+            if "b" in kinds:
+                result = result.astype(object)
+    return result
+
+
 def concatenate_managers(
-    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
     Concatenate block managers into one.
@@ -107,7 +181,7 @@ def concatenate_managers(
     """
     # TODO(ArrayManager) this assumes that all managers are of the same type
     if isinstance(mgrs_indexers[0][0], ArrayManager):
-        return concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
+        return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
@@ -137,23 +211,24 @@ def concatenate_managers(
             else:
                 # TODO(EA2D): special-casing not needed with 2D EAs
                 values = concat_compat(vals)
-                if not isinstance(values, ExtensionArray):
-                    values = values.reshape(1, len(values))
+                values = ensure_block_shape(values, ndim=2)
+
+            values = ensure_wrapped_if_datetimelike(values)
 
             if blk.values.dtype == values.dtype:
                 # Fast-path
                 b = blk.make_block_same_class(values, placement=placement)
             else:
-                b = make_block(values, placement=placement, ndim=blk.ndim)
+                b = new_block(values, placement=placement, ndim=blk.ndim)
         else:
             new_values = _concatenate_join_units(join_units, concat_axis, copy=copy)
-            b = make_block(new_values, placement=placement, ndim=len(axes))
+            b = new_block(new_values, placement=placement, ndim=len(axes))
         blocks.append(b)
 
-    return BlockManager(blocks, axes)
+    return BlockManager(tuple(blocks), axes)
 
 
-def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarray]):
+def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarray]):
     """
     Construct concatenation plan for given block manager and indexers.
 
@@ -184,7 +259,9 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarra
             blk = mgr.blocks[0]
             return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
 
-        ax0_indexer = None
+        # error: Incompatible types in assignment (expression has type "None", variable
+        # has type "ndarray")
+        ax0_indexer = None  # type: ignore[assignment]
         blknos = mgr.blknos
         blklocs = mgr.blklocs
 
@@ -326,7 +403,7 @@ class JoinUnit:
             if self.is_valid_na_for(empty_dtype):
                 blk_dtype = getattr(self.block, "dtype", None)
 
-                if blk_dtype == np.dtype(object):
+                if blk_dtype == np.dtype("object"):
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
@@ -340,7 +417,7 @@ class JoinUnit:
                     return DatetimeArray(i8values, dtype=empty_dtype)
                 elif is_extension_array_dtype(blk_dtype):
                     pass
-                elif is_extension_array_dtype(empty_dtype):
+                elif isinstance(empty_dtype, ExtensionDtype):
                     cls = empty_dtype.construct_array_type()
                     missing_arr = cls._from_sequence([], dtype=empty_dtype)
                     ncols, nrows = self.shape
@@ -352,6 +429,7 @@ class JoinUnit:
                 else:
                     # NB: we should never get here with empty_dtype integer or bool;
                     #  if we did, the missing_arr.fill would cast to gibberish
+
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
                     return missing_arr
@@ -360,7 +438,7 @@ class JoinUnit:
                 # preserve these for validation in concat_compat
                 return self.block.values
 
-            if self.block.is_bool and not self.block.is_categorical:
+            if self.block.is_bool and not isinstance(self.block.values, Categorical):
                 # External code requested filling/upcasting, bool values must
                 # be upcasted to object to avoid being upcasted to numeric.
                 values = self.block.astype(np.object_).values
@@ -385,7 +463,7 @@ class JoinUnit:
 
 
 def _concatenate_join_units(
-    join_units: List[JoinUnit], concat_axis: int, copy: bool
+    join_units: list[JoinUnit], concat_axis: int, copy: bool
 ) -> ArrayLike:
     """
     Concatenate values from several join units along selected axis.
@@ -415,17 +493,20 @@ def _concatenate_join_units(
                     concat_values = concat_values.copy()
             else:
                 concat_values = concat_values.copy()
-    elif any(isinstance(t, ExtensionArray) for t in to_concat):
+    elif any(isinstance(t, ExtensionArray) and t.ndim == 1 for t in to_concat):
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
-        to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
+        # error: Invalid index type "Tuple[int, slice]" for
+        # "Union[ExtensionArray, ndarray]"; expected type "Union[int, slice, ndarray]"
+        to_concat = [
+            t
+            if (isinstance(t, ExtensionArray) and t.ndim == 1)
+            else t[0, :]  # type: ignore[index]
+            for t in to_concat
+        ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
-        if not is_extension_array_dtype(concat_values.dtype):
-            # if the result of concat is not an EA but an ndarray, reshape to
-            # 2D to put it a non-EA Block
-            # special case DatetimeArray/TimedeltaArray, which *is* an EA, but
-            # is put in a consolidated 2D block
-            concat_values = np.atleast_2d(concat_values)
+        concat_values = ensure_block_shape(concat_values, 2)
+
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
 
@@ -436,7 +517,7 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     """
     Find the NA value to go with this dtype.
     """
-    if is_extension_array_dtype(dtype):
+    if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
     elif dtype.kind in ["m", "M"]:
         return dtype.type("NaT")
@@ -487,18 +568,22 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
     return dtype
 
 
-def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
+def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic
     _concatenate_join_units (which uses `concat_compat`).
 
     """
-    # TODO: require dtype match in addition to same type?  e.g. DatetimeTZBlock
-    #  cannot necessarily join
     return (
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units)  # noqa
+        and
+        # e.g. DatetimeLikeBlock can be dt64 or td64, but these are not uniform
+        all(
+            is_dtype_equal(ju.block.dtype, join_units[0].block.dtype)
+            for ju in join_units
+        )
         and
         # no blocks that would get missing values (can lead to type upcasts)
         # unless we're an extension dtype.

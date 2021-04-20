@@ -616,9 +616,9 @@ class TestInference:
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
-        array = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
-        result = lib.maybe_convert_objects(array, convert_datetime=True)
-        tm.assert_numpy_array_equal(result, array)
+        arr = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
+        result = lib.maybe_convert_objects(arr, convert_datetime=True)
+        tm.assert_numpy_array_equal(result, arr)
 
 
 class TestTypeInference:
@@ -1267,9 +1267,9 @@ class TestTypeInference:
     @pytest.mark.parametrize("klass", [pd.array, Series])
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
-    def test_string_dtype(self, data, skipna, klass):
+    def test_string_dtype(self, data, skipna, klass, nullable_string_dtype):
         # StringArray
-        val = klass(data, dtype="string")
+        val = klass(data, dtype=nullable_string_dtype)
         inferred = lib.infer_dtype(val, skipna=skipna)
         assert inferred == "string"
 

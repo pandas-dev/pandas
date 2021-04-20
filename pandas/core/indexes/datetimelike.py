@@ -5,11 +5,10 @@ from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
     List,
     Optional,
+    Sequence,
     Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -21,11 +20,11 @@ from pandas._libs import (
     NaT,
     Timedelta,
     iNaT,
-    join as libjoin,
     lib,
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    NaTType,
     Resolution,
     Tick,
 )
@@ -44,7 +43,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
     is_period_dtype,
-    is_scalar,
 )
 from pandas.core.dtypes.concat import concat_compat
 
@@ -76,36 +74,6 @@ _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _T = TypeVar("_T", bound="DatetimeIndexOpsMixin")
 
 
-def _join_i8_wrapper(joinf, with_indexers: bool = True):
-    """
-    Create the join wrapper methods.
-    """
-
-    # error: 'staticmethod' used with a non-method
-    @staticmethod  # type: ignore[misc]
-    def wrapper(left, right):
-        # Note: these only get called with left.dtype == right.dtype
-        orig_left = left
-
-        left = left.view("i8")
-        right = right.view("i8")
-
-        results = joinf(left, right)
-        if with_indexers:
-
-            join_index, left_indexer, right_indexer = results
-            if not isinstance(orig_left, np.ndarray):
-                # When called from Index._intersection/_union, we have the EA
-                join_index = join_index.view(orig_left._ndarray.dtype)
-                join_index = orig_left._from_backing_data(join_index)
-
-            return join_index, left_indexer, right_indexer
-
-        return results
-
-    return wrapper
-
-
 @inherit_names(
     ["inferred_freq", "_resolution_obj", "resolution"],
     DatetimeLikeArrayMixin,
@@ -119,7 +87,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_strings = False
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
-    _data_cls: Union[Type[DatetimeArray], Type[TimedeltaArray], Type[PeriodArray]]
     freq: Optional[BaseOffset]
     freqstr: Optional[str]
     _resolution_obj: Resolution
@@ -131,25 +98,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
     )
     _hasnans = hasnans  # for index / array -agnostic code
-
-    @classmethod
-    def _simple_new(
-        cls,
-        values: Union[DatetimeArray, TimedeltaArray, PeriodArray],
-        name: Optional[Hashable] = None,
-    ):
-        assert isinstance(values, cls._data_cls), type(values)
-
-        result = object.__new__(cls)
-        result._data = values
-        result._name = name
-        result._cache = {}
-
-        # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._ndarray
-
-        result._reset_identity()
-        return result
 
     @property
     def _is_all_dates(self) -> bool:
@@ -219,12 +167,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
-            res = self.get_loc(key)
+            self.get_loc(key)
         except (KeyError, TypeError, ValueError):
             return False
-        return bool(
-            is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
-        )
+        return True
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
@@ -243,7 +189,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_na = True
 
-    _na_value = NaT
+    _na_value: NaTType = NaT
     """The expected NA value to use with this index."""
 
     def _convert_tolerance(self, tolerance, target):
@@ -560,7 +506,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # List-like Methods
 
-    def _get_delete_freq(self, loc: int):
+    def _get_delete_freq(self, loc: Union[int, slice, Sequence[int]]):
         """
         Find the `freq` for self.delete(loc).
         """
@@ -573,7 +519,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                     freq = self.freq
             else:
                 if is_list_like(loc):
-                    loc = lib.maybe_indices_to_slice(
+                    # error: Incompatible types in assignment (expression has
+                    # type "Union[slice, ndarray]", variable has type
+                    # "Union[int, slice, Sequence[int]]")
+                    loc = lib.maybe_indices_to_slice(  # type: ignore[assignment]
                         np.asarray(loc, dtype=np.intp), len(self)
                     )
                 if isinstance(loc, slice) and loc.step in (1, None):
@@ -614,24 +563,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     @doc(NDArrayBackedExtensionIndex.insert)
     def insert(self, loc: int, item):
-        try:
-            result = super().insert(loc, item)
-        except (ValueError, TypeError):
-            # i.e. self._data._validate_scalar raised
-            return self.astype(object).insert(loc, item)
-
-        result._data._freq = self._get_insert_freq(loc, item)
+        result = super().insert(loc, item)
+        if isinstance(result, type(self)):
+            # i.e. parent class method did not cast
+            result._data._freq = self._get_insert_freq(loc, item)
         return result
 
     # --------------------------------------------------------------------
     # Join/Set Methods
-
-    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
-    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
-    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer)
-    _left_indexer_unique = _join_i8_wrapper(
-        libjoin.left_join_indexer_unique, with_indexers=False
-    )
 
     def _get_join_freq(self, other):
         """
@@ -644,13 +583,21 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             freq = self.freq if self._can_fast_union(other) else None
         return freq
 
-    def _wrap_joined_index(self, joined: np.ndarray, other):
+    def _wrap_joined_index(self, joined, other):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        assert joined.dtype == "i8" or joined.dtype == self.dtype, joined.dtype
-        joined = joined.view(self._data._ndarray.dtype)
         result = super()._wrap_joined_index(joined, other)
         result._data._freq = self._get_join_freq(other)
         return result
+
+    def _get_join_target(self) -> np.ndarray:
+        return self._data._ndarray.view("i8")
+
+    def _from_join_target(self, result: np.ndarray):
+        # view e.g. i8 back to M8[ns]
+        result = result.view(self._data._ndarray.dtype)
+        return self._data._from_backing_data(result)
+
+    # --------------------------------------------------------------------
 
     @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr):
@@ -673,7 +620,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
-        return type(self)._simple_new(arr, name=self.name)
+        return type(self)._simple_new(arr, name=self._name)
 
     @property
     def _has_complex_internals(self) -> bool:
@@ -800,7 +747,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            right_chunk = right._values[:loc]
+            # error: Slice index must be an integer or None
+            right_chunk = right._values[:loc]  # type: ignore[misc]
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
@@ -816,7 +764,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            right_chunk = right._values[loc:]
+            # error: Slice index must be an integer or None
+            right_chunk = right._values[loc:]  # type: ignore[misc]
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
@@ -853,7 +802,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     _join_precedence = 10
 
     def join(
-        self, other, how: str = "left", level=None, return_indexers=False, sort=False
+        self,
+        other,
+        how: str = "left",
+        level=None,
+        return_indexers: bool = False,
+        sort: bool = False,
     ):
         """
         See Index.join

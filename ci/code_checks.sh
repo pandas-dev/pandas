@@ -59,39 +59,10 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     # runtime/int: Warnings about using C number types instead of C++ ones
     # build/include_subdir: Warnings about prefacing included header files with directory
 
-    # We don't lint all C files because we don't want to lint any that are built
-    # from Cython files nor do we want to lint C files that we didn't modify for
-    # this particular codebase (e.g. src/headers, src/klib). However,
-    # we can lint all header files since they aren't "generated" like C files are.
-    MSG='Linting .c and .h' ; echo $MSG
-    cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/src/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
 fi
 
 ### PATTERNS ###
 if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
-
-    MSG='Check for use of exec' ; echo $MSG
-    invgrep -R --include="*.py*" -E "[^a-zA-Z0-9_]exec\(" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for pytest warns' ; echo $MSG
-    invgrep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for pytest raises without context' ; echo $MSG
-    invgrep -r -E --include '*.py' "[[:space:]] pytest.raises" pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of builtin filter function' ; echo $MSG
-    invgrep -R --include="*.py" -P '(?<!def)[\(\s]filter\(' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # Check for the following code in testing: `np.testing` and `np.array_equal`
-    MSG='Check for invalid testing' ; echo $MSG
-    invgrep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check for the following code in the extension array base tests: `tm.assert_frame_equal` and `tm.assert_series_equal`
     MSG='Check for invalid EA testing' ; echo $MSG
@@ -106,15 +77,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`
-    MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instead)' ; echo $MSG
-    invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of {foo!r} instead of {repr(foo)}' ; echo $MSG
-    invgrep -R --include=*.{py,pyx} '!r}' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    echo $MSG "DONE"
 fi
 
 ### CODE ###
@@ -126,7 +88,7 @@ import sys
 import pandas
 
 blocklist = {'bs4', 'gcsfs', 'html5lib', 'http', 'ipython', 'jinja2', 'hypothesis',
-             'lxml', 'matplotlib', 'numexpr', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
+             'lxml', 'matplotlib', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
              'tables', 'urllib.request', 'xlrd', 'xlsxwriter', 'xlwt'}
 
 # GH#28227 for some of these check for top-level modules, while others are
