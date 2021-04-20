@@ -1732,6 +1732,8 @@ def test_pivot_table_values_key_error():
         [to_datetime(0)],
         [date_range(0, 1, 1, tz="US/Eastern")],
         [pd.array([0], dtype="Int64")],
+        [pd.array([0], dtype="Float64")],
+        [pd.array([False], dtype="boolean")],
     ],
 )
 @pytest.mark.parametrize("method", ["attr", "agg", "apply"])
