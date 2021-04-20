@@ -102,6 +102,16 @@ class Styler(StylerRenderer):
 
         .. versionadded:: 1.2.0
 
+    decimal : str, default "."
+        Character used as decimal separator for floats, complex and integers
+
+        .. versionadded:: 1.3.0
+
+    thousands : str, optional, default None
+        Character used as thousands separator for floats, complex and integers
+
+        .. versionadded:: 1.3.0
+
     escape : bool, default False
         Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
         strings with HTML-safe sequences.
@@ -160,6 +170,8 @@ class Styler(StylerRenderer):
         cell_ids: bool = True,
         na_rep: str | None = None,
         uuid_len: int = 5,
+        decimal: str = ".",
+        thousands: str | None = None,
         escape: bool = False,
     ):
         super().__init__(
@@ -175,7 +187,14 @@ class Styler(StylerRenderer):
         # validate ordered args
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
-        self.format(formatter=None, precision=precision, na_rep=na_rep, escape=escape)
+        self.format(
+            formatter=None,
+            precision=precision,
+            na_rep=na_rep,
+            escape=escape,
+            decimal=decimal,
+            thousands=thousands,
+        )
 
     def _repr_html_(self) -> str:
         """

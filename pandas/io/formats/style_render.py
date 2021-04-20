@@ -38,7 +38,7 @@ from pandas.api.types import is_list_like
 import pandas.core.common as com
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-from markupsafe import escape as escape_func  # markupsafe is jinja2 dependency
+from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
@@ -366,6 +366,8 @@ class StylerRenderer:
         subset: slice | Sequence[Any] | None = None,
         na_rep: str | None = None,
         precision: int | None = None,
+        decimal: str = ".",
+        thousands: str | None = None,
         escape: bool = False,
     ) -> StylerRenderer:
         """
@@ -387,6 +389,16 @@ class StylerRenderer:
         precision : int, optional
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
+
+            .. versionadded:: 1.3.0
+
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers
+
+            .. versionadded:: 1.3.0
+
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers
 
             .. versionadded:: 1.3.0
 
@@ -482,6 +494,8 @@ class StylerRenderer:
                 formatter is None,
                 subset is None,
                 precision is None,
+                decimal == ".",
+                thousands is None,
                 na_rep is None,
                 escape is False,
             )
@@ -502,8 +516,14 @@ class StylerRenderer:
                 format_func = formatter[col]
             except KeyError:
                 format_func = None
+
             format_func = _maybe_wrap_formatter(
-                format_func, na_rep=na_rep, precision=precision, escape=escape
+                format_func,
+                na_rep=na_rep,
+                precision=precision,
+                decimal=decimal,
+                thousands=thousands,
+                escape=escape,
             )
 
             for row, value in data[[col]].itertuples():
@@ -607,7 +627,7 @@ def _format_table_styles(styles: CSSStyles) -> CSSStyles:
     ]
 
 
-def _default_formatter(x: Any, precision: int) -> Any:
+def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     """
     Format the display of a value
 
@@ -617,14 +637,54 @@ def _default_formatter(x: Any, precision: int) -> Any:
         Input variable to be formatted
     precision : Int
         Floating point precision used if ``x`` is float or complex.
+    thousands : bool, default False
+        Whether to group digits with thousands separated with ",".
 
     Returns
     -------
     value : Any
-        Matches input type, or string if input is float or complex.
+        Matches input type, or string if input is float or complex or int with sep.
     """
     if isinstance(x, (float, complex)):
+        if thousands:
+            return f"{x:,.{precision}f}"
         return f"{x:.{precision}f}"
+    elif isinstance(x, int) and thousands:
+        return f"{x:,.0f}"
+    return x
+
+
+def _wrap_decimal_thousands(
+    formatter: Callable, decimal: str, thousands: str | None
+) -> Callable:
+    """
+    Takes a string formatting function and wraps logic to deal with thousands and
+    decimal parameters, in the case that they are non-standard and that the input
+    is a (float, complex, int).
+    """
+
+    def wrapper(x):
+        if isinstance(x, (float, complex, int)):
+            if decimal != "." and thousands is not None and thousands != ",":
+                return (
+                    formatter(x)
+                    .replace(",", "§_§-")  # rare string to avoid "," <-> "." clash.
+                    .replace(".", decimal)
+                    .replace("§_§-", thousands)
+                )
+            elif decimal != "." and (thousands is None or thousands == ","):
+                return formatter(x).replace(".", decimal)
+            elif decimal == "." and thousands is not None and thousands != ",":
+                return formatter(x).replace(",", thousands)
+        return formatter(x)
+
+    return wrapper
+
+
+def _str_escape_html(x):
+    """if escaping html: only use on str, else return input"""
+    if isinstance(x, str):
+        return escape_html(x)
     return x
 
 
@@ -632,6 +692,8 @@ def _maybe_wrap_formatter(
     formatter: BaseFormatter | None = None,
     na_rep: str | None = None,
     precision: int | None = None,
+    decimal: str = ".",
+    thousands: str | None = None,
     escape: bool = False,
 ) -> Callable:
     """
@@ -639,29 +701,36 @@ def _maybe_wrap_formatter(
     a default formatting function. wraps with na_rep, and precision where they are
     available.
     """
+    # Get initial func from input string, input callable, or from default factory
     if isinstance(formatter, str):
-        formatter_func = lambda x: formatter.format(x)
+        func_0 = lambda x: formatter.format(x)
     elif callable(formatter):
-        formatter_func = formatter
+        func_0 = formatter
     elif formatter is None:
         precision = get_option("display.precision") if precision is None else precision
-        formatter_func = partial(_default_formatter, precision=precision)
+        func_0 = partial(
+            _default_formatter, precision=precision, thousands=(thousands is not None)
+        )
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
-    def _str_escape(x, escape: bool):
-        """if escaping: only use on str, else return input"""
-        if escape and isinstance(x, str):
-            return escape_func(x)
-        else:
-            return x
-
-    display_func = lambda x: formatter_func(partial(_str_escape, escape=escape)(x))
-
-    if na_rep is None:
-        return display_func
+    # Replace HTML chars if escaping
+    if escape:
+        func_1 = lambda x: func_0(_str_escape_html(x))
     else:
-        return lambda x: na_rep if isna(x) else display_func(x)
+        func_1 = func_0
+
+    # Replace decimals and thousands if non-standard inputs detected
+    if decimal != "." or (thousands is not None and thousands != ","):
+        func_2 = _wrap_decimal_thousands(func_1, decimal=decimal, thousands=thousands)
+    else:
+        func_2 = func_1
+
+    # Replace missing values if na_rep
+    if na_rep is None:
+        return func_2
+    else:
+        return lambda x: na_rep if isna(x) else func_2(x)
 
 
 def non_reducing_slice(slice_):
