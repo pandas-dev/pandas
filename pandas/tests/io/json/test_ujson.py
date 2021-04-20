@@ -14,7 +14,6 @@ import pytest
 import pytz
 
 import pandas._libs.json as ujson
-from pandas._libs.tslib import Timestamp
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -28,6 +27,7 @@ from pandas import (
     NaT,
     Series,
     Timedelta,
+    Timestamp,
     date_range,
 )
 import pandas._testing as tm

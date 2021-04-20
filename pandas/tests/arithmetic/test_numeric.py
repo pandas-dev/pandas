@@ -311,6 +311,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
                 "Concatenation operation is not implemented for NumPy arrays",
                 # pd.array vs np.datetime64 case
                 r"operand type\(s\) all returned NotImplemented from __array_ufunc__",
+                "can only perform ops with numeric values",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -538,7 +539,6 @@ class TestDivisionByZero:
     def test_df_mod_zero_df(self, using_array_manager):
         # GH#3590, modulo as ints
         df = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]})
-
         # this is technically wrong, as the integer portion is coerced to float
         first = Series([0, 0, 0, 0])
         if not using_array_manager:
@@ -546,6 +546,15 @@ class TestDivisionByZero:
             # while ArrayManager performs op column-wisedoes and thus preserves
             # dtype if possible
             first = first.astype("float64")
+        second = Series([np.nan, np.nan, np.nan, 0])
+        expected = pd.DataFrame({"first": first, "second": second})
+        result = df % df
+        tm.assert_frame_equal(result, expected)
+
+        # GH#38939 If we dont pass copy=False, df is consolidated and
+        #  result["first"] is float64 instead of int64
+        df = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]}, copy=False)
+        first = Series([0, 0, 0, 0], dtype="int64")
         second = Series([np.nan, np.nan, np.nan, 0])
         expected = pd.DataFrame({"first": first, "second": second})
         result = df % df

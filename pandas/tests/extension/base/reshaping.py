@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.api.extensions import ExtensionArray
 from pandas.core.internals import ExtensionBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
 
@@ -26,7 +27,9 @@ class BaseReshapingTests(BaseExtensionTests):
             dtype = result.dtype
 
         assert dtype == data.dtype
-        assert isinstance(result._mgr.blocks[0], ExtensionBlock)
+        if hasattr(result._mgr, "blocks"):
+            assert isinstance(result._mgr.blocks[0], ExtensionBlock)
+        assert isinstance(result._mgr.arrays[0], ExtensionArray)
 
     @pytest.mark.parametrize("in_frame", [True, False])
     def test_concat_all_na_block(self, data_missing, in_frame):

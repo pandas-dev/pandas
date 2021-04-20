@@ -1,5 +1,6 @@
 from collections import abc
 from decimal import Decimal
+from enum import Enum
 import warnings
 
 import cython
@@ -451,7 +452,7 @@ def fast_zip(list ndarrays) -> ndarray[object]:
     return result
 
 
-def get_reverse_indexer(const int64_t[:] indexer, Py_ssize_t length):
+def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
     """
     Reverse indexing operation.
 
@@ -459,14 +460,25 @@ def get_reverse_indexer(const int64_t[:] indexer, Py_ssize_t length):
 
         indexer_inv[indexer[x]] = x
 
-    .. note:: If indexer is not unique, only first occurrence is accounted.
+    Parameters
+    ----------
+    indexer : np.ndarray[np.intp]
+    length : int
+
+    Returns
+    -------
+    np.ndarray[np.intp]
+
+    Notes
+    -----
+    If indexer is not unique, only first occurrence is accounted.
     """
     cdef:
         Py_ssize_t i, n = len(indexer)
-        ndarray[int64_t] rev_indexer
-        int64_t idx
+        ndarray[intp_t] rev_indexer
+        intp_t idx
 
-    rev_indexer = np.empty(length, dtype=np.int64)
+    rev_indexer = np.empty(length, dtype=np.intp)
     rev_indexer[:] = -1
     for i in range(n):
         idx = indexer[i]
@@ -621,7 +633,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_intsafe(ndarray[object] arr, new_dtype) -> ndarray:
+def astype_intsafe(ndarray[object] arr, cnp.dtype new_dtype) -> ndarray:
     cdef:
         Py_ssize_t i, n = len(arr)
         object val
@@ -649,7 +661,8 @@ cpdef ndarray[object] ensure_string_array(
         bint copy=True,
         bint skipna=True,
 ):
-    """Returns a new numpy array with object dtype and only strings and na values.
+    """
+    Returns a new numpy array with object dtype and only strings and na values.
 
     Parameters
     ----------
@@ -667,7 +680,7 @@ cpdef ndarray[object] ensure_string_array(
 
     Returns
     -------
-    ndarray
+    np.ndarray[object]
         An array with the input array's elements casted to str or nan-like.
     """
     cdef:
@@ -808,23 +821,32 @@ def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_level_sorter(const int64_t[:] label, const int64_t[:] starts):
+def get_level_sorter(
+    ndarray[int64_t, ndim=1] codes, const intp_t[:] starts
+) -> ndarray:
     """
     Argsort for a single level of a multi-index, keeping the order of higher
     levels unchanged. `starts` points to starts of same-key indices w.r.t
     to leading levels; equivalent to:
-        np.hstack([label[starts[i]:starts[i+1]].argsort(kind='mergesort')
+        np.hstack([codes[starts[i]:starts[i+1]].argsort(kind='mergesort')
             + starts[i] for i in range(len(starts) - 1)])
+
+    Parameters
+    ----------
+    codes : np.ndarray[int64_t, ndim=1]
+    starts : np.ndarray[intp, ndim=1]
+
+    Returns
+    -------
+    np.ndarray[np.int, ndim=1]
     """
     cdef:
-        int64_t l, r
-        Py_ssize_t i
-        ndarray[int64_t, ndim=1] out = np.empty(len(label), dtype=np.int64)
-        ndarray[int64_t, ndim=1] label_arr = np.asarray(label)
+        Py_ssize_t i, l, r
+        ndarray[intp_t, ndim=1] out = np.empty(len(codes), dtype=np.intp)
 
     for i in range(len(starts) - 1):
         l, r = starts[i], starts[i + 1]
-        out[l:r] = l + label_arr[l:r].argsort(kind='mergesort')
+        out[l:r] = l + codes[l:r].argsort(kind='mergesort')
 
     return out
 
@@ -832,7 +854,7 @@ def get_level_sorter(const int64_t[:] label, const int64_t[:] starts):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
-                   const int64_t[:] labels,
+                   const intp_t[:] labels,
                    Py_ssize_t max_bin,
                    int axis):
     cdef:
@@ -861,10 +883,10 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     return counts
 
 
-def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
+def generate_slices(const intp_t[:] labels, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, group_size, n, start
-        int64_t lab
+        intp_t lab
         object slobj
         ndarray[int64_t] starts, ends
 
@@ -890,12 +912,12 @@ def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def indices_fast(ndarray index, const int64_t[:] labels, list keys,
+def indices_fast(ndarray[intp_t] index, const int64_t[:] labels, list keys,
                  list sorted_labels) -> dict:
     """
     Parameters
     ----------
-    index : ndarray
+    index : ndarray[intp]
     labels : ndarray[int64]
     keys : list
     sorted_labels : list[ndarray[int64]]
@@ -1090,6 +1112,7 @@ _TYPE_MAP = {
     "complex128": "complex",
     "c": "complex",
     "string": "string",
+    str: "string",
     "S": "bytes",
     "U": "string",
     "bool": "boolean",
@@ -1120,6 +1143,7 @@ except AttributeError:
     pass
 
 
+@cython.internal
 cdef class Seen:
     """
     Class for keeping track of the types of elements
@@ -2412,14 +2436,25 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
     return objects
 
 
+class NoDefault(Enum):
+    # We make this an Enum
+    # 1) because it round-trips through pickle correctly (see GH#40397)
+    # 2) because mypy does not understand singletons
+    no_default = "NO_DEFAULT"
+
+    def __repr__(self) -> str:
+        return "<no_default>"
+
+
 # Note: no_default is exported to the public API in pandas.api.extensions
-no_default = object()  # Sentinel indicating the default value.
+no_default = NoDefault.no_default  # Sentinel indicating the default value.
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=True,
-                   object na_value=no_default, object dtype=object) -> "ArrayLike":
+                   object na_value=no_default, cnp.dtype dtype=np.dtype(object)
+                   ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2439,7 +2474,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 
     Returns
     -------
-    ndarray
+    np.ndarray or ExtensionArray
     """
     cdef:
         Py_ssize_t i, n
@@ -2580,7 +2615,7 @@ def tuples_to_object_array(ndarray[object] tuples):
     return result
 
 
-def to_object_array_tuples(rows: object):
+def to_object_array_tuples(rows: object) -> np.ndarray:
     """
     Convert a list of tuples into an object array. Any subclass of
     tuple in `rows` will be casted to tuple.
@@ -2592,7 +2627,7 @@ def to_object_array_tuples(rows: object):
 
     Returns
     -------
-    numpy array of the object dtype.
+    np.ndarray[object, ndim=2]
     """
     cdef:
         Py_ssize_t i, j, n, k, tmp

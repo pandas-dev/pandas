@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 from typing import (
     TYPE_CHECKING,
-    Optional,
+    cast,
     overload,
 )
 
@@ -16,15 +16,13 @@ from pandas._libs import (
 from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_platform_int,
-)
+from pandas.core.dtypes.common import ensure_platform_int
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
     from pandas.core.arrays.base import ExtensionArray
 
 
@@ -33,7 +31,6 @@ def take_nd(
     arr: np.ndarray,
     indexer,
     axis: int = ...,
-    out: Optional[np.ndarray] = ...,
     fill_value=...,
     allow_fill: bool = ...,
 ) -> np.ndarray:
@@ -45,7 +42,6 @@ def take_nd(
     arr: ExtensionArray,
     indexer,
     axis: int = ...,
-    out: Optional[np.ndarray] = ...,
     fill_value=...,
     allow_fill: bool = ...,
 ) -> ArrayLike:
@@ -56,7 +52,6 @@ def take_nd(
     arr: ArrayLike,
     indexer,
     axis: int = 0,
-    out: Optional[np.ndarray] = None,
     fill_value=lib.no_default,
     allow_fill: bool = True,
 ) -> ArrayLike:
@@ -79,13 +74,9 @@ def take_nd(
         indices are filed with fill_value
     axis : int, default 0
         Axis to take from
-    out : ndarray or None, default None
-        Optional output array, must be appropriate type to hold input and
-        fill_value together, if indexer has any -1 value entries; call
-        maybe_promote to determine this type for any fill_value
     fill_value : any, default np.nan
         Fill value to replace -1 values with
-    allow_fill : boolean, default True
+    allow_fill : bool, default True
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
         undefined if allow_fill == False and -1 is present in indexer.
@@ -100,27 +91,33 @@ def take_nd(
 
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
-        # includes for EA to catch DatetimeArray, TimedeltaArray
+        if arr.ndim == 2:
+            # e.g. DatetimeArray, TimedeltArray
+            arr = cast("NDArrayBackedExtensionArray", arr)
+            return arr.take(
+                indexer, fill_value=fill_value, allow_fill=allow_fill, axis=axis
+            )
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = np.asarray(arr)
-    return _take_nd_ndarray(arr, indexer, axis, out, fill_value, allow_fill)
+    return _take_nd_ndarray(arr, indexer, axis, None, fill_value, allow_fill)
 
 
 def _take_nd_ndarray(
     arr: np.ndarray,
     indexer,
     axis: int,
-    out: Optional[np.ndarray],
+    out: np.ndarray | None,
     fill_value,
     allow_fill: bool,
 ) -> np.ndarray:
 
     if indexer is None:
-        indexer = np.arange(arr.shape[axis], dtype=np.int64)
+        indexer = np.arange(arr.shape[axis], dtype=np.intp)
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
-        indexer = ensure_int64(indexer, copy=False)
+        indexer = ensure_platform_int(indexer)
+
     indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
         arr, indexer, out, fill_value, allow_fill
     )
@@ -177,9 +174,6 @@ def take_1d(
 
     Note: similarly to `take_nd`, this function assumes that the indexer is
     a valid(ated) indexer with no out of bound indices.
-
-    TODO(ArrayManager): mainly useful for ArrayManager, otherwise can potentially
-    be removed again if we don't end up with ArrayManager.
     """
     if not isinstance(arr, np.ndarray):
         # ExtensionArray -> dispatch to their method
@@ -196,7 +190,7 @@ def take_1d(
         return arr.take(indexer)
 
     indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
-        arr, indexer, None, fill_value, allow_fill
+        arr, indexer, None, fill_value, True
     )
 
     # at this point, it's guaranteed that dtype can hold both the arr values
@@ -212,7 +206,7 @@ def take_1d(
 
 
 def take_2d_multi(
-    arr: np.ndarray, indexer: np.ndarray, fill_value=np.nan
+    arr: np.ndarray, indexer: tuple[np.ndarray, np.ndarray], fill_value=np.nan
 ) -> np.ndarray:
     """
     Specialized Cython take which sets NaN values in one pass.
@@ -225,11 +219,9 @@ def take_2d_multi(
 
     row_idx, col_idx = indexer
 
-    row_idx = ensure_int64(row_idx)
-    col_idx = ensure_int64(col_idx)
-    # error: Incompatible types in assignment (expression has type "Tuple[Any, Any]",
-    # variable has type "ndarray")
-    indexer = row_idx, col_idx  # type: ignore[assignment]
+    row_idx = ensure_platform_int(row_idx)
+    col_idx = ensure_platform_int(col_idx)
+    indexer = row_idx, col_idx
     mask_info = None
 
     # check for promotion based on types only (do this first because
@@ -271,7 +263,9 @@ def take_2d_multi(
 
 
 @functools.lru_cache(maxsize=128)
-def _get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis):
+def _get_take_nd_function_cached(
+    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: int
+):
     """
     Part of _get_take_nd_function below that doesn't need `mask_info` and thus
     can be cached (mask_info potentially contains a numpy ndarray which is not
@@ -304,7 +298,7 @@ def _get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis):
 
 
 def _get_take_nd_function(
-    ndim: int, arr_dtype, out_dtype, axis: int = 0, mask_info=None
+    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: int = 0, mask_info=None
 ):
     """
     Get the appropriate "take" implementation for the given dimension, axis
@@ -318,7 +312,7 @@ def _get_take_nd_function(
     if func is None:
 
         def func(arr, indexer, out, fill_value=np.nan):
-            indexer = ensure_int64(indexer)
+            indexer = ensure_platform_int(indexer)
             _take_nd_object(
                 arr, indexer, out, axis=axis, fill_value=fill_value, mask_info=mask_info
             )
@@ -469,7 +463,7 @@ _take_2d_multi_dict = {
 
 def _take_nd_object(
     arr: np.ndarray,
-    indexer: np.ndarray,
+    indexer: np.ndarray,  # np.ndarray[np.intp]
     out: np.ndarray,
     axis: int,
     fill_value,
@@ -483,7 +477,7 @@ def _take_nd_object(
     if arr.dtype != out.dtype:
         arr = arr.astype(out.dtype)
     if arr.shape[axis] > 0:
-        arr.take(ensure_platform_int(indexer), axis=axis, out=out)
+        arr.take(indexer, axis=axis, out=out)
     if needs_masking:
         outindexer = [slice(None)] * arr.ndim
         outindexer[axis] = mask
@@ -491,11 +485,15 @@ def _take_nd_object(
 
 
 def _take_2d_multi_object(
-    arr: np.ndarray, indexer: np.ndarray, out: np.ndarray, fill_value, mask_info
+    arr: np.ndarray,
+    indexer: tuple[np.ndarray, np.ndarray],
+    out: np.ndarray,
+    fill_value,
+    mask_info,
 ) -> None:
     # this is not ideal, performance-wise, but it's better than raising
     # an exception (best to optimize in Cython to avoid getting here)
-    row_idx, col_idx = indexer
+    row_idx, col_idx = indexer  # both np.intp
     if mask_info is not None:
         (row_mask, col_mask), (row_needs, col_needs) = mask_info
     else:
@@ -518,7 +516,7 @@ def _take_2d_multi_object(
 def _take_preprocess_indexer_and_fill_value(
     arr: np.ndarray,
     indexer: np.ndarray,
-    out: Optional[np.ndarray],
+    out: np.ndarray | None,
     fill_value,
     allow_fill: bool,
 ):
@@ -531,7 +529,7 @@ def _take_preprocess_indexer_and_fill_value(
         # check for promotion based on types only (do this first because
         # it's faster than computing a mask)
         dtype, fill_value = maybe_promote(arr.dtype, fill_value)
-        if dtype != arr.dtype and (out is None or out.dtype != dtype):
+        if dtype != arr.dtype:
             # check if promotion is actually required based on indexer
             mask = indexer == -1
             needs_masking = mask.any()
@@ -545,4 +543,5 @@ def _take_preprocess_indexer_and_fill_value(
                 # to crash when trying to cast it to dtype)
                 dtype, fill_value = arr.dtype, arr.dtype.type()
 
+    indexer = ensure_platform_int(indexer)
     return indexer, dtype, fill_value, mask_info
