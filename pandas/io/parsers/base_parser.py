@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 import csv
 import datetime
@@ -5,15 +7,9 @@ import itertools
 from typing import (
     Any,
     DefaultDict,
-    Dict,
     Hashable,
     Iterable,
-    List,
-    Optional,
     Sequence,
-    Set,
-    Tuple,
-    Union,
     cast,
 )
 import warnings
@@ -123,12 +119,12 @@ class ParserBase:
     def __init__(self, kwds):
 
         self.names = kwds.get("names")
-        self.orig_names: Optional[List] = None
+        self.orig_names: list | None = None
         self.prefix = kwds.pop("prefix", None)
 
         self.index_col = kwds.get("index_col", None)
-        self.unnamed_cols: Set = set()
-        self.index_names: Optional[list[Hashable]] = None
+        self.unnamed_cols: set = set()
+        self.index_names: list[Hashable] | None = None
         self.col_names = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
@@ -212,9 +208,9 @@ class ParserBase:
 
         self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
 
-        self.handles: Optional[IOHandles] = None
+        self.handles: IOHandles | None = None
 
-    def _open_handles(self, src: FilePathOrBuffer, kwds: Dict[str, Any]) -> None:
+    def _open_handles(self, src: FilePathOrBuffer, kwds: dict[str, Any]) -> None:
         """
         Let the readers open IOHanldes after they are done with their potential raises.
         """
@@ -228,7 +224,7 @@ class ParserBase:
             errors=kwds.get("encoding_errors", "strict"),
         )
 
-    def _validate_parse_dates_presence(self, columns: List[str]) -> None:
+    def _validate_parse_dates_presence(self, columns: list[str]) -> None:
         """
         Check if parse_dates are in columns.
 
@@ -382,7 +378,7 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts: DefaultDict[Union[int, str, Tuple], int] = defaultdict(int)
+            counts: DefaultDict[int | str | tuple, int] = defaultdict(int)
             # error: Argument 2 to "_is_potential_multi_index" has incompatible
             # type "Union[int, Sequence[int], None]"; expected
             # "Union[bool, Sequence[int], None]"
@@ -607,8 +603,8 @@ class ParserBase:
         return result
 
     def _set_noconvert_dtype_columns(
-        self, col_indices: List[int], names: List[Union[int, str, Tuple]]
-    ) -> Set[int]:
+        self, col_indices: list[int], names: list[int | str | tuple]
+    ) -> set[int]:
         """
         Set the columns that should not undergo dtype conversions.
 
@@ -626,7 +622,7 @@ class ParserBase:
         -------
         A set of integers containing the positions of the columns not to convert.
         """
-        usecols: Optional[Union[List[int], List[str]]]
+        usecols: list[int] | list[str] | None
         noconvert_columns = set()
         if self.usecols_dtype == "integer":
             # A set of integers will be converted to a list in
@@ -913,7 +909,7 @@ class ParserBase:
             return [None] * len(index_col), columns, index_col
 
         cp_cols = list(columns)
-        index_names: List[Optional[Union[int, str]]] = []
+        index_names: list[int | str | None] = []
 
         # don't mutate
         index_col = list(index_col)
@@ -939,7 +935,7 @@ class ParserBase:
         return index_names, columns, index_col
 
     def _get_empty_meta(
-        self, columns, index_col, index_names, dtype: Optional[DtypeArg] = None
+        self, columns, index_col, index_names, dtype: DtypeArg | None = None
     ):
         columns = list(columns)
 
@@ -1174,9 +1170,7 @@ def _get_col_names(colspec, columns):
     return colnames
 
 
-def _is_potential_multi_index(
-    columns, index_col: Optional[Union[bool, Sequence[int]]] = None
-):
+def _is_potential_multi_index(columns, index_col: bool | Sequence[int] | None = None):
     """
     Check whether or not the `columns` parameter
     could be converted into a MultiIndex.
