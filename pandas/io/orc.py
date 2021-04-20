@@ -45,7 +45,7 @@ def read_orc(
 
     Notes
     -------
-    Before using this function you should read the :ref:`user guide about ORC <orc>`.
+    Before using this function you should read the :ref:`user guide about ORC <io.orc>`.
     """
     # we require a newer version of pyarrow than we support for parquet
 
