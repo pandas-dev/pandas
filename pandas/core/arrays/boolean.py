@@ -122,8 +122,19 @@ class BooleanDtype(BaseMaskedDtype):
 
         results = []
         for arr in chunks:
-            # TODO should optimize this without going through object array
-            bool_arr = BooleanArray._from_sequence(np.array(arr))
+            buflist = arr.buffers()
+            data = pyarrow.BooleanArray.from_buffers(
+                arr.type, len(arr), [None, buflist[1]], offset=arr.offset
+            ).to_numpy(zero_copy_only=False)
+            if arr.null_count != 0:
+                mask = pyarrow.BooleanArray.from_buffers(
+                    arr.type, len(arr), [None, buflist[0]], offset=arr.offset
+                ).to_numpy(zero_copy_only=False)
+                mask = ~mask
+            else:
+                mask = np.zeros(len(arr), dtype=bool)
+
+            bool_arr = BooleanArray(data, mask)
             results.append(bool_arr)
 
         return BooleanArray._concat_same_type(results)
