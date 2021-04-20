@@ -118,7 +118,7 @@ class StringDtype(ExtensionDtype):
             str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
-        if len(results) > 0:
+        if results:
             return StringArray._concat_same_type(results)
         else:
             return StringArray(np.array([], dtype="object"))

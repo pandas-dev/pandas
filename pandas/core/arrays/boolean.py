@@ -126,7 +126,7 @@ class BooleanDtype(BaseMaskedDtype):
             bool_arr = BooleanArray._from_sequence(np.array(arr))
             results.append(bool_arr)
 
-        if len(results) == 0:
+        if not results:
             return BooleanArray(
                 np.array([], dtype=np.bool_), np.array([], dtype=np.bool_)
             )
