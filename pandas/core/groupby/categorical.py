@@ -41,7 +41,7 @@ def recode_for_groupby(
 
     Returns
     -------
-    New Categorical
+    Categorical
         If sort=False, the new categories are set to the order of
         appearance in codes (unless ordered=True, in which case the
         original order is preserved), followed by any unrepresented
@@ -75,6 +75,13 @@ def recode_for_groupby(
 
     # sort=False should order groups in as-encountered order (GH-8868)
     cat = c.unique()
+
+    # See GH-38140 for block below
+    # exclude nan from indexer for categories
+    take_codes = cat.codes[cat.codes != -1]
+    if cat.ordered:
+        take_codes = np.sort(take_codes)
+    cat = cat.set_categories(cat.categories.take(take_codes))
 
     # But for groupby to work, all categories should be present,
     # including those missing from the data (GH-13179), which .unique()

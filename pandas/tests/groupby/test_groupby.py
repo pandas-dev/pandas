@@ -980,7 +980,8 @@ def test_groupby_complex():
     result = a.groupby(level=0).sum()
     tm.assert_series_equal(result, expected)
 
-    result = a.sum(level=0)
+    with tm.assert_produces_warning(FutureWarning):
+        result = a.sum(level=0)
     tm.assert_series_equal(result, expected)
 
 
@@ -1976,17 +1977,6 @@ def test_groupby_duplicate_index():
     result = gb.mean()
     expected = Series([2, 5.5, 8], index=[2.0, 4.0, 5.0])
     tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-def test_bool_aggs_dup_column_labels(bool_agg_func):
-    # 21668
-    df = DataFrame([[True, True]], columns=["a", "a"])
-    grp_by = df.groupby([0])
-    result = getattr(grp_by, bool_agg_func)()
-
-    expected = df
-    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
