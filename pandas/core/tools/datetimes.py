@@ -862,7 +862,7 @@ dtype='datetime64[ns]', freq=None)
     timezones, return will have object type Index if utc parameter is not
     passed in as True.
 
-    >>> pd.to_datetime(["2018-10-26 12:00 -0530", "2018-10-26 12:00 -0500"])
+    >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'])
     Index([2018-10-26 12:00:00-05:30, 2018-10-26 12:00:00-05:00], dtype='object')
     """
     if arg is None:
