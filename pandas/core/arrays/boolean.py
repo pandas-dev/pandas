@@ -114,6 +114,9 @@ class BooleanDtype(BaseMaskedDtype):
         """
         import pyarrow
 
+        if array.type != pyarrow.bool_():
+            raise TypeError(f"Expected array of boolean type, got {array.type} instead")
+
         if isinstance(array, pyarrow.Array):
             chunks = [array]
         else:

@@ -71,3 +71,23 @@ def test_arrow_sliced(data):
     result = table.slice(2, None).to_pandas()
     expected = df2.iloc[2:].reset_index(drop=True)
     tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow", min_version="0.16.0")
+def test_from_arrow_type_error(request, data):
+    # ensure that __from_arrow__ returns a TypeError when getting a wrong
+    # array type
+    import pyarrow as pa
+
+    if data.dtype != "boolean":
+        # TODO numeric dtypes cast any incoming array to the correct dtype
+        # instead of erroring
+        request.node.add_marker(
+            pytest.mark.xfail(reason="numeric dtypes don't error but cast")
+        )
+
+    arr = pa.array(data).cast("string")
+    with pytest.raises(TypeError, match=None):
+        # we don't test the exact error message, only the fact that it raises
+        # a TypeError is relevant
+        data.dtype.__from_arrow__(arr)
