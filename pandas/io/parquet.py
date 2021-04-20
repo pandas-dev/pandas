@@ -233,7 +233,7 @@ class PyArrowImpl(BaseImpl):
                 )
         manager = get_option("mode.data_manager")
         if manager == "array":
-            to_pandas_kwargs["split_blocks"] = True
+            to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
 
         path_or_handle, handles, kwargs["filesystem"] = _get_path_or_handle(
             path,
