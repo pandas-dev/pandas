@@ -669,11 +669,11 @@ class _MergeOperation:
         # warn user when merging between different levels
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
-                "merging between different levels can give an unintended "
-                f"result ({left.columns.nlevels} levels on the left,"
+                "merging between different levels is deprecated and will be removed "
+                f"in a future version. ({left.columns.nlevels} levels on the left,"
                 f"{right.columns.nlevels} on the right)"
             )
-            warnings.warn(msg, UserWarning)
+            warnings.warn(msg, FutureWarning, stacklevel=3)
 
         self._validate_specification()
 
