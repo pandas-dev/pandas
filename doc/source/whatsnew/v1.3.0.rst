@@ -119,7 +119,9 @@ to accept more universal CSS language for arguments, such as ``'color:red;'`` in
 to allow custom CSS highlighting instead of default background coloring (:issue:`40242`).
 Enhancements to other built-in methods include extending the :meth:`.Styler.background_gradient`
 method to shade elements based on a given gradient map and not be restricted only to
-values in the DataFrame (:issue:`39930` :issue:`22727` :issue:`28901`).
+values in the DataFrame (:issue:`39930` :issue:`22727` :issue:`28901`). Additional
+built-in methods such as :meth:`.Styler.highlight_between` and :meth:`.Styler.highlight_quantile`
+have been added (:issue:`39821` and :issue:`40926`).
 
 The :meth:`.Styler.apply` now consistently allows functions with ``ndarray`` output to
 allow more flexible development of UDFs when ``axis`` is ``None`` ``0`` or ``1`` (:issue:`39393`).
@@ -220,6 +222,8 @@ Other enhancements
 - :meth:`.GroupBy.any` and :meth:`.GroupBy.all` use Kleene logic with nullable data types (:issue:`37506`)
 - :meth:`.GroupBy.any` and :meth:`.GroupBy.all` return a ``BooleanDtype`` for columns with nullable data types (:issue:`33449`)
 - Constructing a :class:`DataFrame` or :class:`Series` with the ``data`` argument being a Python iterable that is *not* a NumPy ``ndarray`` consisting of NumPy scalars will now result in a dtype with a precision the maximum of the NumPy scalars; this was already the case when ``data`` is a NumPy ``ndarray`` (:issue:`40908`)
+- Add keyword ``sort`` to :func:`pivot_table` to allow non-sorting of the result (:issue:`39143`)
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -230,6 +234,38 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
+``Categorical.unique`` now always maintains same dtype as original
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, when calling :meth:`~Categorical.unique` with categorical data, unused categories in the new array
+would be removed, meaning that the dtype of the new array would be different than the
+original, if some categories are not present in the unique array (:issue:`18291`)
+
+As an example of this, given:
+
+.. ipython:: python
+
+        dtype = pd.CategoricalDtype(['bad', 'neutral', 'good'], ordered=True)
+        cat = pd.Categorical(['good', 'good', 'bad', 'bad'], dtype=dtype)
+        original = pd.Series(cat)
+        unique = original.unique()
+
+*pandas < 1.3.0*:
+
+.. code-block:: ipython
+
+    In [1]: unique
+    ['good', 'bad']
+    Categories (2, object): ['bad' < 'good']
+    In [2]: original.dtype == unique.dtype
+    False
+
+*pandas >= 1.3.0*
+
+.. ipython:: python
+
+        unique
+        original.dtype == unique.dtype
 
 Preserve dtypes in  :meth:`~pandas.DataFrame.combine_first`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -569,8 +605,10 @@ Deprecations
 - Deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` in favour of :meth:`.Styler.format` with ``na_rep`` and ``precision`` as existing and new input arguments respectively (:issue:`40134`, :issue:`40425`)
 - Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like and raises anything but ``TypeError``; ``func`` raising anything but a ``TypeError`` will raise in a future version (:issue:`40211`)
 - Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
+- Deprecated using :func:`merge` or :func:`join` on a different number of levels (:issue:`34862`)
 - Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
 - Deprecated the ``level`` keyword for :class:`DataFrame` and :class:`Series` aggregations; use groupby instead (:issue:`39983`)
+- Deprecated :func:`merge` producing duplicated columns through the ``suffixes`` keyword  and already existing columns (:issue:`22818`)
 
 .. ---------------------------------------------------------------------------
 
@@ -681,7 +719,7 @@ Interval
 Indexing
 ^^^^^^^^
 
-- Bug in :meth:`Index.union` dropping duplicate ``Index`` values when ``Index`` was not monotonic or ``sort`` was set to ``False`` (:issue:`36289`, :issue:`31326`)
+- Bug in :meth:`Index.union` dropping duplicate ``Index`` values when ``Index`` was not monotonic or ``sort`` was set to ``False`` (:issue:`36289`, :issue:`31326`, :issue:`40862`)
 - Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
 - Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` when setting multiple values to duplicate columns (:issue:`15695`)
@@ -691,6 +729,8 @@ Indexing
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` with empty :class:`DataFrame` and specified columns for string indexer and non empty :class:`DataFrame` to set (:issue:`38831`)
 - Bug in :meth:`DataFrame.loc.__setitem__` raising ValueError when expanding unique column for :class:`DataFrame` with duplicate columns (:issue:`38521`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` and :meth:`DataFrame.loc.__setitem__` with mixed dtypes when setting with a dictionary value (:issue:`38335`)
+- Bug in :meth:`Series.loc.__setitem__` and :meth:`DataFrame.loc.__setitem__` raising ``KeyError`` for boolean Iterator indexer (:issue:`39614`)
+- Bug in :meth:`Series.iloc` and :meth:`DataFrame.iloc` raising ``KeyError`` for Iterator indexer (:issue:`39614`)
 - Bug in :meth:`DataFrame.__setitem__` not raising ``ValueError`` when right hand side is a :class:`DataFrame` with wrong number of columns (:issue:`38604`)
 - Bug in :meth:`Series.__setitem__` raising ``ValueError`` when setting a :class:`Series` with a scalar indexer (:issue:`38303`)
 - Bug in :meth:`DataFrame.loc` dropping levels of :class:`MultiIndex` when :class:`DataFrame` used as input has only one row (:issue:`10521`)
@@ -715,6 +755,7 @@ Missing
 - Bug in :class:`Grouper` now correctly propagates ``dropna`` argument and :meth:`DataFrameGroupBy.transform` now correctly handles missing values for ``dropna=True`` (:issue:`35612`)
 - Bug in :func:`isna`, and :meth:`Series.isna`, :meth:`Index.isna`, :meth:`DataFrame.isna` (and the corresponding ``notna`` functions) not recognizing ``Decimal("NaN")`` objects (:issue:`39409`)
 - Bug in :meth:`DataFrame.fillna` not accepting dictionary for ``downcast`` keyword (:issue:`40809`)
+- Bug in :func:`isna` not returning a copy of the mask for nullable types, causing any subsequent mask modification to change the original array (:issue:`40935`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -748,6 +789,7 @@ I/O
 - Bug in :func:`read_hdf` returning unexpected records when filtering on categorical string columns using ``where`` parameter (:issue:`39189`)
 - Bug in :func:`read_sas` raising ``ValueError`` when ``datetimes`` were null (:issue:`39725`)
 - Bug in :func:`read_excel` dropping empty values from single-column spreadsheets (:issue:`39808`)
+- Bug in :meth:`DataFrame.to_string` misplacing the truncation column when ``index=False`` (:issue:`40907`)
 
 Period
 ^^^^^^
@@ -787,11 +829,16 @@ Groupby/resample/rolling
 - Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would incorrectly raise a ``ValueError`` when providing ``times`` (:issue:`40164`)
 - Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would not retain ``com``, ``span``, ``alpha`` or ``halflife`` attributes  (:issue:`40164`)
 - :class:`core.window.ewm.ExponentialMovingWindow` now raises a ``NotImplementedError`` when specifying ``times`` with ``adjust=False`` due to an incorrect calculation (:issue:`40098`)
+- Bug in :meth:`core.window.ewm.ExponentialMovingWindowGroupby.mean` where the times argument was ignored when ``engine='numba'`` (:issue:`40951`)
+- Bug in :meth:`core.window.ewm.ExponentialMovingWindowGroupby.mean` where the wrong times were used in case of multiple groups (:issue:`40951`)
+- Bug in :class:`core.window.ewm.ExponentialMovingWindowGroupby` where the times vector and values became out of sync for non-trivial groups (:issue:`40951`)
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
 - Bug in aggregation functions for :class:`DataFrame` not respecting ``numeric_only`` argument when ``level`` keyword was given (:issue:`40660`)
+- Bug in :meth:`SeriesGroupBy.aggregate` where using a user-defined function to aggregate a ``Series`` with an object-typed :class:`Index` causes an incorrect :class:`Index` shape (issue:`40014`)
 - Bug in :class:`core.window.RollingGroupby` where ``as_index=False`` argument in ``groupby`` was ignored (:issue:`39433`)
 - Bug in :meth:`.GroupBy.any` and :meth:`.GroupBy.all` raising ``ValueError`` when using with nullable type columns holding ``NA`` even with ``skipna=True`` (:issue:`40585`)
-
+- Bug in :meth:`GroupBy.cummin` and :meth:`GroupBy.cummax` incorrectly rounding integer values near the ``int64`` implementations bounds (:issue:`40767`)
+- Bug in :meth:`.GroupBy.rank` with nullable dtypes incorrectly raising ``TypeError`` (:issue:`41010`)
 
 Reshaping
 ^^^^^^^^^
@@ -812,6 +859,7 @@ Reshaping
 - Bug in :meth:`DataFrame.stack` not preserving ``CategoricalDtype`` in a ``MultiIndex`` (:issue:`36991`)
 - Bug in :func:`to_datetime` raising error when input sequence contains unhashable items (:issue:`39756`)
 - Bug in :meth:`Series.explode` preserving index when ``ignore_index`` was ``True`` and values were scalars (:issue:`40487`)
+- Bug in :func:`to_datetime` raising ``ValueError`` when :class:`Series` contains ``None`` and ``NaT`` and has more than 50 elements (:issue:`39882`)
 
 Sparse
 ^^^^^^
@@ -826,7 +874,7 @@ ExtensionArray
 - Bug in :meth:`DataFrame.where` when ``other`` is a :class:`Series` with :class:`ExtensionArray` dtype (:issue:`38729`)
 - Fixed bug where :meth:`Series.idxmax`, :meth:`Series.idxmin` and ``argmax/min`` fail when the underlying data is :class:`ExtensionArray` (:issue:`32749`, :issue:`33719`, :issue:`36566`)
 - Fixed a bug where some properties of subclasses of :class:`PandasExtensionDtype` where improperly cached (:issue:`40329`)
--
+- Bug in :meth:`DataFrame.mask` where masking a :class:`Dataframe` with an :class:`ExtensionArray` dtype raises ``ValueError`` (:issue:`40941`)
 
 Styler
 ^^^^^^
