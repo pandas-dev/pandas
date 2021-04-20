@@ -4749,7 +4749,8 @@ class DataFrame(NDFrame, OpsMixin):
         Remove rows or columns by specifying label names and corresponding
         axis, or by specifying directly index or column names. When using a
         multi-index, labels on different levels can be removed by specifying
-        the level.
+        the level. See the `user guide <advanced.shown_levels>`
+        for more information about the now unused levels.
 
         Parameters
         ----------
