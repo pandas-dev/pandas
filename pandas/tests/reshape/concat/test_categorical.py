@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -202,3 +204,19 @@ class TestCategoricalConcat:
 
         dfa = df1.append(df2)
         tm.assert_index_equal(df["grade"].cat.categories, dfa["grade"].cat.categories)
+
+    def test_categorical_datetime_concat(self):
+        # GH 39443
+        df1 = DataFrame(
+            {"x": Series(datetime(2021, 1, 1), index=[0], dtype="category")}
+        )
+        df2 = DataFrame(
+            {"x": Series(datetime(2021, 1, 2), index=[1], dtype="category")}
+        )
+
+        result = pd.concat([df1, df2])
+        expected = DataFrame(
+            {"x": Series([datetime(2021, 1, 1), datetime(2021, 1, 2)])}
+        )
+
+        tm.assert_equal(result, expected)
