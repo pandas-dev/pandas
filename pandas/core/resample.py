@@ -23,6 +23,7 @@ from pandas._typing import (
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
+    final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -39,15 +40,14 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import DataError
+from pandas.core.base import (
+    DataError,
+    PandasObject,
+)
 import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
     _shared_docs,
-)
-from pandas.core.groupby.base import (
-    GotItemMixin,
-    ShallowMixin,
 )
 from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
@@ -86,7 +86,7 @@ from pandas.tseries.offsets import (
 _shared_docs_kwargs: dict[str, str] = {}
 
 
-class Resampler(BaseGroupBy, ShallowMixin):
+class Resampler(BaseGroupBy, PandasObject):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -140,6 +140,18 @@ class Resampler(BaseGroupBy, ShallowMixin):
 
         if self.groupby is not None:
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
+
+    @final
+    def _shallow_copy(self, obj, **kwargs):
+        """
+        return a new object with the replacement attributes
+        """
+        if isinstance(obj, self._constructor):
+            obj = obj.obj
+        for attr in self._attributes:
+            if attr not in kwargs:
+                kwargs[attr] = getattr(self, attr)
+        return self._constructor(obj, **kwargs)
 
     def __str__(self) -> str:
         """
@@ -1018,10 +1030,12 @@ for method in ["nunique"]:
     setattr(Resampler, method, h)
 
 
-class _GroupByMixin(GotItemMixin):
+class _GroupByMixin(PandasObject):
     """
     Provide the groupby facilities.
     """
+
+    _attributes: list[str]
 
     def __init__(self, obj, *args, **kwargs):
 
@@ -1063,6 +1077,42 @@ class _GroupByMixin(GotItemMixin):
     _upsample = _apply
     _downsample = _apply
     _groupby_and_aggregate = _apply
+
+    @final
+    def _gotitem(self, key, ndim, subset=None):
+        """
+        Sub-classes to define. Return a sliced object.
+
+        Parameters
+        ----------
+        key : string / list of selections
+        ndim : {1, 2}
+            requested ndim of result
+        subset : object, default None
+            subset to act on
+        """
+        # create a new object to prevent aliasing
+        if subset is None:
+            # error: "GotItemMixin" has no attribute "obj"
+            subset = self.obj  # type: ignore[attr-defined]
+
+        # we need to make a shallow copy of ourselves
+        # with the same groupby
+        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+
+        # Try to select from a DataFrame, falling back to a Series
+        try:
+            groupby = self._groupby[key]
+        except IndexError:
+            groupby = self._groupby
+
+        self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
+        self._reset_cache()
+        if subset.ndim == 2 and (
+            lib.is_scalar(key) and key in subset or lib.is_list_like(key)
+        ):
+            self._selection = key
+        return self
 
 
 class DatetimeIndexResampler(Resampler):
