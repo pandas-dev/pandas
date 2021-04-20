@@ -19,7 +19,6 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslib import Timestamp
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
 from pandas.compat import (
@@ -34,6 +33,7 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    Timestamp,
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range

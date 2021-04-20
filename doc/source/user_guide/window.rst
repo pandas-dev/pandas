@@ -101,7 +101,7 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
 
 All windowing operations support a ``min_periods`` argument that dictates the minimum amount of
 non-``np.nan`` values a window must have; otherwise, the resulting value is ``np.nan``.
-``min_peridos`` defaults to 1 for time-based windows and ``window`` for fixed windows
+``min_periods`` defaults to 1 for time-based windows and ``window`` for fixed windows
 
 .. ipython:: python
 
@@ -155,6 +155,20 @@ By default the labels are set to the right edge of the window, but a
    s = pd.Series(range(10))
    s.rolling(window=5).mean()
    s.rolling(window=5, center=True).mean()
+
+
+This can also be applied to datetime-like indices.
+
+.. versionadded:: 1.3
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {"A": [0, 1, 2, 3, 4]}, index=pd.date_range("2020", periods=5, freq="1D")
+    )
+    df
+    df.rolling("2D", center=False).mean()
+    df.rolling("2D", center=True).mean()
 
 
 .. _window.endpoints:

@@ -573,6 +573,7 @@ class TestBasic(Base):
         self.check_error_on_write(df, engine, ValueError, msg)
 
 
+@pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
 
@@ -834,6 +835,14 @@ class TestParquetPyArrow(Base):
             # if missing values in integer, currently de-serialized as float
             expected = df.assign(a=df.a.astype("float64"))
         check_round_trip(df, pa, expected=expected)
+
+    @td.skip_if_no("pyarrow", min_version="1.0.0")
+    def test_pyarrow_backed_string_array(self, pa):
+        # test ArrowStringArray supported through the __arrow_array__ protocol
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+        df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="arrow_string")})
+        check_round_trip(df, pa, expected=df)
 
     @td.skip_if_no("pyarrow", min_version="0.16.0")
     def test_additional_extension_types(self, pa):

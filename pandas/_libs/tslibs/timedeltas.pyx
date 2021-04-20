@@ -311,10 +311,16 @@ cdef convert_to_timedelta64(object ts, str unit):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def array_to_timedelta64(ndarray[object] values, str unit=None, str errors="raise"):
+def array_to_timedelta64(
+    ndarray[object] values, str unit=None, str errors="raise"
+) -> ndarray:
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
+
+    Returns
+    -------
+    np.ndarray[timedelta64ns]
     """
 
     cdef:
@@ -540,7 +546,7 @@ cdef inline int64_t timedelta_as_neg(int64_t value, bint neg):
     Parameters
     ----------
     value : int64_t of the timedelta value
-    neg : boolean if the a negative value
+    neg : bool if the a negative value
     """
     if neg:
         return -value

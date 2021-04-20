@@ -3,10 +3,6 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import (
-    Optional,
-    Union,
-)
 import warnings
 
 import numpy as np
@@ -25,7 +21,7 @@ from pandas.util._decorators import doc
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.common as common
+import pandas.core.common as common  # noqa: PDF018
 from pandas.core.util.numba_ import maybe_use_numba
 from pandas.core.window.common import zsqrt
 from pandas.core.window.doc import (
@@ -50,10 +46,10 @@ from pandas.core.window.rolling import (
 
 
 def get_center_of_mass(
-    comass: Optional[float],
-    span: Optional[float],
-    halflife: Optional[float],
-    alpha: Optional[float],
+    comass: float | None,
+    span: float | None,
+    halflife: float | None,
+    alpha: float | None,
 ) -> float:
     valid_count = common.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
@@ -80,6 +76,38 @@ def get_center_of_mass(
         raise ValueError("Must pass one of comass, span, halflife, or alpha")
 
     return float(comass)
+
+
+def _calculate_deltas(
+    times: str | np.ndarray | FrameOrSeries | None,
+    halflife: float | TimedeltaConvertibleTypes | None,
+) -> np.ndarray:
+    """
+    Return the diff of the times divided by the half-life. These values are used in
+    the calculation of the ewm mean.
+
+    Parameters
+    ----------
+    times : str, np.ndarray, Series, default None
+        Times corresponding to the observations. Must be monotonically increasing
+        and ``datetime64[ns]`` dtype.
+    halflife : float, str, timedelta, optional
+        Half-life specifying the decay
+
+    Returns
+    -------
+    np.ndarray
+        Diff of the times divided by the half-life
+    """
+    # error: Item "str" of "Union[str, ndarray, FrameOrSeries, None]" has no
+    # attribute "view"
+    # error: Item "None" of "Union[str, ndarray, FrameOrSeries, None]" has no
+    # attribute "view"
+    _times = np.asarray(
+        times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
+    )
+    _halflife = float(Timedelta(halflife).value)
+    return np.diff(_times) / _halflife
 
 
 class ExponentialMovingWindow(BaseWindow):
@@ -229,15 +257,15 @@ class ExponentialMovingWindow(BaseWindow):
     def __init__(
         self,
         obj: FrameOrSeries,
-        com: Optional[float] = None,
-        span: Optional[float] = None,
-        halflife: Optional[Union[float, TimedeltaConvertibleTypes]] = None,
-        alpha: Optional[float] = None,
+        com: float | None = None,
+        span: float | None = None,
+        halflife: float | TimedeltaConvertibleTypes | None = None,
+        alpha: float | None = None,
         min_periods: int = 0,
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
+        times: str | np.ndarray | FrameOrSeries | None = None,
     ):
         super().__init__(
             obj=obj,
@@ -272,15 +300,7 @@ class ExponentialMovingWindow(BaseWindow):
                 )
             if isna(self.times).any():
                 raise ValueError("Cannot convert NaT values to integer")
-            # error: Item "str" of "Union[str, ndarray, FrameOrSeries, None]" has no
-            # attribute "view"
-            # error: Item "None" of "Union[str, ndarray, FrameOrSeries, None]" has no
-            # attribute "view"
-            _times = np.asarray(
-                self.times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
-            )
-            _halflife = float(Timedelta(self.halflife).value)
-            self._deltas = np.diff(_times) / _halflife
+            self._deltas = _calculate_deltas(self.times, self.halflife)
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
             if common.count_not_none(self.com, self.span, self.alpha) > 0:
@@ -472,8 +492,8 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def cov(
         self,
-        other: Optional[FrameOrSeriesUnion] = None,
-        pairwise: Optional[bool] = None,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
         bias: bool = False,
         **kwargs,
     ):
@@ -537,8 +557,8 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def corr(
         self,
-        other: Optional[FrameOrSeriesUnion] = None,
-        pairwise: Optional[bool] = None,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
         **kwargs,
     ):
         from pandas import Series
@@ -589,6 +609,17 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
 
     _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
 
+    def __init__(self, obj, *args, _grouper=None, **kwargs):
+        super().__init__(obj, *args, _grouper=_grouper, **kwargs)
+
+        if not obj.empty and self.times is not None:
+            # sort the times and recalculate the deltas according to the groups
+            groupby_order = np.concatenate(list(self._grouper.indices.values()))
+            self._deltas = _calculate_deltas(
+                self.times.take(groupby_order),  # type: ignore[union-attr]
+                self.halflife,
+            )
+
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -632,10 +663,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         """
         if maybe_use_numba(engine):
             groupby_ewma_func = generate_numba_groupby_ewma_func(
-                engine_kwargs,
-                self._com,
-                self.adjust,
-                self.ignore_na,
+                engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
             )
             return self._apply(
                 groupby_ewma_func,

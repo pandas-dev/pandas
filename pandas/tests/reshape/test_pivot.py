@@ -1197,7 +1197,7 @@ class TestPivotTable:
                 margins_name=margin_name,
             )
 
-    def test_pivot_timegrouper(self):
+    def test_pivot_timegrouper(self, using_array_manager):
         df = DataFrame(
             {
                 "Branch": "A A A A A A A B".split(),
@@ -1251,6 +1251,9 @@ class TestPivotTable:
         )
         expected.index.name = "Date"
         expected.columns.name = "Buyer"
+        if using_array_manager:
+            # INFO(ArrayManager) column without NaNs can preserve int dtype
+            expected["Carl"] = expected["Carl"].astype("int64")
 
         result = pivot_table(
             df,
