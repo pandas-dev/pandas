@@ -5443,6 +5443,11 @@ Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.
 for data frames. It is designed to make reading data frames efficient. pandas provides *only* a reader for the
 ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
 
+Several caveats.
+
+* It is *highly recommended* to install pyarrow using conda due to some issues occurred by pyarrow.
+* :func:`~pandas.read_orc` is not supported on Windows yet.
+
 .. _io.sql:
 
 SQL queries

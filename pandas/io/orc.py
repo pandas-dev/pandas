@@ -42,6 +42,10 @@ def read_orc(
     Returns
     -------
     DataFrame
+
+    Notes
+    -------
+    Before using this function you should read the :ref:`user guide about ORC <orc>`.
     """
     # we require a newer version of pyarrow than we support for parquet
 
