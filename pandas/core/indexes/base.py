@@ -3005,7 +3005,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not other.is_unique:
             # other has duplicates
-
             result = algos.union_with_duplicates(lvals, rvals)
             return _maybe_try_sort(result, sort)
 
