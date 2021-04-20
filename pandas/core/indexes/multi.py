@@ -2503,7 +2503,9 @@ class MultiIndex(Index):
 
         return new_index, indexer
 
-    def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
+    def reindex(
+        self, target, method=None, level=None, limit=None, tolerance=None
+    ) -> tuple[MultiIndex, np.ndarray | None]:
         """
         Create index with target's values (move/add/delete values as necessary)
 
@@ -2511,7 +2513,7 @@ class MultiIndex(Index):
         -------
         new_index : pd.MultiIndex
             Resulting index
-        indexer : np.ndarray or None
+        indexer : np.ndarray[np.intp] or None
             Indices of output values in original index.
 
         """
@@ -2671,6 +2673,7 @@ class MultiIndex(Index):
         limit: int | None = None,
         tolerance=None,
     ) -> np.ndarray:
+        # returned ndarray is np.intp
 
         # empty indexer
         if not len(target):
@@ -3610,14 +3613,12 @@ class MultiIndex(Index):
 
     def _intersection(self, other, sort=False) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
-
-        lvals = self._values
-        rvals = other._values.astype(object, copy=False)
+        other = other.astype(object, copy=False)
 
         uniq_tuples = None  # flag whether _inner_indexer was successful
         if self.is_monotonic and other.is_monotonic:
             try:
-                inner_tuples = self._inner_indexer(lvals, rvals)[0]
+                inner_tuples = self._inner_indexer(other)[0]
                 sort = False  # inner_tuples is already sorted
             except TypeError:
                 pass
