@@ -786,6 +786,10 @@ def to_datetime(
         return will have datetime.datetime type (or corresponding
         array/Series).
 
+        In case input is list-like and the elements of input are of mixed
+        timezones, return will have object type Index if utc parameter is not 
+        passed in as True.
+
     See Also
     --------
     DataFrame.astype : Cast argument to a specified dtype.
