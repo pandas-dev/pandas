@@ -12,6 +12,7 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    cast,
 )
 from uuid import uuid4
 
@@ -20,10 +21,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import (
-    FrameOrSeriesUnion,
-    TypedDict,
-)
+from pandas._typing import FrameOrSeriesUnion
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.generic import ABCSeries
@@ -47,14 +45,10 @@ ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
 CSSPair = Tuple[str, Union[str, int, float]]
 CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
-
-
-class CSSDict(TypedDict):
-    selector: str
-    props: CSSProperties
-
-
-CSSStyles = List[CSSDict]
+CSSStyles = List[Dict[str, CSSProperties]]  # = List[CSSDict]
+# class CSSDict(TypedDict):  # available when TypedDict is valid in pandas
+#     selector: str
+#     props: CSSProperties
 
 
 class StylerRenderer:
@@ -108,10 +102,42 @@ class StylerRenderer:
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
 
-    def _render_html(self, **kwargs) -> str:
+    def render(self, **kwargs) -> str:
         """
-        Renders the ``Styler`` including all applied styles to HTML.
-        Generates a dict with necessary kwargs passed to jinja2 template.
+        Render the ``Styler`` including all applied styles to HTML.
+
+        Parameters
+        ----------
+        **kwargs
+            Any additional keyword arguments are passed
+            through to ``self.template.render``.
+            This is useful when you need to provide
+            additional variables for a custom template.
+
+        Returns
+        -------
+        rendered : str
+            The rendered HTML.
+
+        Notes
+        -----
+        Styler objects have defined the ``_repr_html_`` method
+        which automatically calls ``self.render()`` when it's the
+        last item in a Notebook cell. When calling ``Styler.render()``
+        directly, wrap the result in ``IPython.display.HTML`` to view
+        the rendered HTML in the notebook.
+
+        Pandas uses the following keys in render. Arguments passed
+        in ``**kwargs`` take precedence, so think carefully if you want
+        to override them:
+
+        * head
+        * cellstyle
+        * body
+        * uuid
+        * table_styles
+        * caption
+        * table_attributes
         """
         self._compute()
         # TODO: namespace all the pandas keys
@@ -486,8 +512,13 @@ class StylerRenderer:
             formatter = {col: formatter for col in columns}
 
         for col in columns:
+            try:
+                format_func = formatter[col]
+            except KeyError:
+                format_func = None
+
             format_func = _maybe_wrap_formatter(
-                formatter.get(col),
+                format_func,
                 na_rep=na_rep,
                 precision=precision,
                 decimal=decimal,
@@ -584,9 +615,15 @@ def _format_table_styles(styles: CSSStyles) -> CSSStyles:
               {'selector': 'th', 'props': 'a:v;'}]
     """
     return [
-        {"selector": selector, "props": css_dict["props"]}
-        for css_dict in styles
-        for selector in css_dict["selector"].split(",")
+        item
+        for sublist in [
+            [  # this is a CSSDict when TypedDict is available to avoid cast.
+                {"selector": x, "props": style["props"]}
+                for x in cast(str, style["selector"]).split(",")
+            ]
+            for style in styles
+        ]
+        for item in sublist
     ]
 
 
