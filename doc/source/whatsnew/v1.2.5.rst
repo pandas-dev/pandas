@@ -35,7 +35,6 @@ Bug fixes
 Other
 ~~~~~
 
-- :meth:`DataFrame.dropna` now accepts a single label as ``subset`` along with of array-like.
 -
 
 .. ---------------------------------------------------------------------------
