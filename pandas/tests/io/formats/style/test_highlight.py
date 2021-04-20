@@ -142,3 +142,54 @@ def test_highlight_between_inclusive(styler, inclusive, expected):
     kwargs = {"left": 0, "right": 1, "subset": IndexSlice[[0, 1], :]}
     result = styler.highlight_between(**kwargs, inclusive=inclusive)._compute()
     assert result.ctx == expected
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"q_left": 0.5, "q_right": 1, "axis": 0},  # base case
+        {"q_left": 0.5, "q_right": 1, "axis": None},  # test axis
+        {"q_left": 0, "q_right": 1, "subset": IndexSlice[2, :]},  # test subset
+        {"q_left": 0.5, "axis": 0},  # test no high
+        {"q_right": 1, "subset": IndexSlice[2, :], "axis": 1},  # test no low
+        {"q_left": 0.5, "axis": 0, "props": "background-color: yellow"},  # tst prop
+    ],
+)
+def test_highlight_quantile(styler, kwargs):
+    expected = {
+        (2, 0): [("background-color", "yellow")],
+        (2, 1): [("background-color", "yellow")],
+    }
+    result = styler.highlight_quantile(**kwargs)._compute().ctx
+    assert result == expected
+
+
+@pytest.mark.skipif(np.__version__[:4] in ["1.16", "1.17"], reason="Numpy Issue #14831")
+@pytest.mark.parametrize(
+    "f,kwargs",
+    [
+        ("highlight_min", {"axis": 1, "subset": IndexSlice[1, :]}),
+        ("highlight_max", {"axis": 0, "subset": [0]}),
+        ("highlight_quantile", {"axis": None, "q_left": 0.6, "q_right": 0.8}),
+        ("highlight_between", {"subset": [0]}),
+    ],
+)
+@pytest.mark.parametrize(
+    "df",
+    [
+        DataFrame([[0, 10], [20, 30]], dtype=int),
+        DataFrame([[0, 10], [20, 30]], dtype=float),
+        DataFrame([[0, 10], [20, 30]], dtype="datetime64[ns]"),
+        DataFrame([[0, 10], [20, 30]], dtype=str),
+        DataFrame([[0, 10], [20, 30]], dtype="timedelta64[ns]"),
+    ],
+)
+def test_all_highlight_dtypes(f, kwargs, df):
+    if f == "highlight_quantile" and isinstance(df.iloc[0, 0], (str)):
+        return None  # quantile incompatible with str
+    if f == "highlight_between":
+        kwargs["left"] = df.iloc[1, 0]  # set the range low for testing
+
+    expected = {(1, 0): [("background-color", "yellow")]}
+    result = getattr(df.style, f)(**kwargs)._compute().ctx
+    assert result == expected

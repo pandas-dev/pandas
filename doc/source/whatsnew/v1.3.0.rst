@@ -119,7 +119,9 @@ to accept more universal CSS language for arguments, such as ``'color:red;'`` in
 to allow custom CSS highlighting instead of default background coloring (:issue:`40242`).
 Enhancements to other built-in methods include extending the :meth:`.Styler.background_gradient`
 method to shade elements based on a given gradient map and not be restricted only to
-values in the DataFrame (:issue:`39930` :issue:`22727` :issue:`28901`).
+values in the DataFrame (:issue:`39930` :issue:`22727` :issue:`28901`). Additional
+built-in methods such as :meth:`.Styler.highlight_between` and :meth:`.Styler.highlight_quantile`
+have been added (:issue:`39821` and :issue:`40926`).
 
 The :meth:`.Styler.apply` now consistently allows functions with ``ndarray`` output to
 allow more flexible development of UDFs when ``axis`` is ``None`` ``0`` or ``1`` (:issue:`39393`).
