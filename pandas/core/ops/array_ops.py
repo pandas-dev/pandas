@@ -259,8 +259,9 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
                 "Lengths must match to compare", lvalues.shape, rvalues.shape
             )
 
-    if should_extension_dispatch(lvalues, rvalues) or isinstance(
-        rvalues, (Timedelta, BaseOffset, Timestamp, NaTType)
+    if should_extension_dispatch(lvalues, rvalues) or (
+        isinstance(rvalues, (Timedelta, BaseOffset, Timestamp, NaTType))
+        and not is_object_dtype(lvalues.dtype)
     ):
         # Call the method on lvalues
         res_values = op(lvalues, rvalues)
