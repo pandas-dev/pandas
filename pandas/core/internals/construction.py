@@ -306,6 +306,8 @@ def ndarray_to_mgr(
         values.shape[0], values.shape[1], index=index, columns=columns
     )
 
+    _check_values_indices_shape_match(values, index, columns)
+
     if typ == "array":
 
         values = sanitize_to_nanoseconds(values)
@@ -322,8 +324,6 @@ def ndarray_to_mgr(
         return ArrayManager(arrays, [index, columns], verify_integrity=False)
 
     values = values.T
-
-    _check_values_indices_shape_match(values, index, columns)
 
     # if we don't have a dtype specified, then try to convert objects
     # on the entire block; this is to convert if we have datetimelike's
@@ -366,13 +366,13 @@ def _check_values_indices_shape_match(
     Check that the shape implied by our axes matches the actual shape of the
     data.
     """
-    if values.shape[0] != len(columns):
+    if values.shape[1] != len(columns) or values.shape[0] != len(index):
         # Could let this raise in Block constructor, but we get a more
         #  helpful exception message this way.
-        if values.shape[1] == 0:
+        if values.shape[0] == 0:
             raise ValueError("Empty data passed with indices specified.")
 
-        passed = values.T.shape
+        passed = values.shape
         implied = (len(index), len(columns))
         raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
