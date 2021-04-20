@@ -787,7 +787,7 @@ def to_datetime(
         array/Series).
 
         In case input is list-like and the elements of input are of mixed
-        timezones, return will have object type Index if utc parameter is not 
+        timezones, return will have object type Index if utc parameter is not
         passed in as True.
 
     See Also
