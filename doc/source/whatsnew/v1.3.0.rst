@@ -221,6 +221,7 @@ Other enhancements
 - :meth:`pandas.read_csv` and :meth:`pandas.read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
 - :meth:`.GroupBy.any` and :meth:`.GroupBy.all` use Kleene logic with nullable data types (:issue:`37506`)
 - :meth:`.GroupBy.any` and :meth:`.GroupBy.all` return a ``BooleanDtype`` for columns with nullable data types (:issue:`33449`)
+- Add keyword ``sort`` to :func:`pivot_table` to allow non-sorting of the result (:issue:`39143`)
 -
 
 .. ---------------------------------------------------------------------------
