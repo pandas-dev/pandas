@@ -36,14 +36,13 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
-    maybe_cast_result,
+    maybe_cast_pointwise_result,
     maybe_cast_result_dtype,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
-    ensure_int_or_float,
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
@@ -582,7 +581,7 @@ class BaseGrouper:
 
         elif is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
             # IntegerArray or BooleanArray
-            values = ensure_int_or_float(values)
+            values = values.to_numpy("float64", na_value=np.nan)
             res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
@@ -660,9 +659,11 @@ class BaseGrouper:
             values = values.view("int64")
             is_numeric = True
         elif is_bool_dtype(dtype):
-            values = ensure_int_or_float(values)
+            values = values.astype("int64")
         elif is_integer_dtype(dtype):
-            values = ensure_int_or_float(values)
+            # e.g. uint8 -> uint64, int16 -> int64
+            dtype = dtype.kind + "8"
+            values = values.astype(dtype, copy=False)
         elif is_numeric:
             if not is_complex_dtype(dtype):
                 values = ensure_float64(values)
@@ -797,7 +798,7 @@ class BaseGrouper:
             result[label] = res
 
         out = lib.maybe_convert_objects(result, try_float=False)
-        out = maybe_cast_result(out, obj.dtype, numeric_only=True)
+        out = maybe_cast_pointwise_result(out, obj.dtype, numeric_only=True)
 
         return out, counts
 
