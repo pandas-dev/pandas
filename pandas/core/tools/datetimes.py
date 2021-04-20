@@ -787,8 +787,7 @@ def to_datetime(
         array/Series).
 
         In case input is list-like and the elements of input are of mixed
-        timezones, return will have object type Index if utc parameter is not
-        passed in as True.
+        timezones, return will have object type Index if utc=False.
 
     See Also
     --------
@@ -859,11 +858,15 @@ def to_datetime(
 dtype='datetime64[ns]', freq=None)
 
     In case input is list-like and the elements of input are of mixed
-    timezones, return will have object type Index if utc parameter is not
-    passed in as True.
+    timezones, return will have object type Index if utc=False.
 
     >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'])
     Index([2018-10-26 12:00:00-05:30, 2018-10-26 12:00:00-05:00], dtype='object')
+
+    >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'],
+    ...                utc=True)
+    DatetimeIndex(['2018-10-26 17:30:00+00:00', '2018-10-26 17:00:00+00:00'], \
+dtype='datetime64[ns, UTC]', freq=None)
     """
     if arg is None:
         return None
