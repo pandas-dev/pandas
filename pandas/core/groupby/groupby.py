@@ -1033,7 +1033,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
                 result = self.grouper._cython_operation(
                     "transform", obj._values, how, axis, **kwargs
                 )
-            except NotImplementedError:
+            except (NotImplementedError, TypeError):
                 continue
 
             key = base.OutputKey(label=name, position=idx)

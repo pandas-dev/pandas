@@ -136,23 +136,17 @@ class WrappedCythonOp:
 
         # see if there is a fused-type version of function
         # only valid for numeric
-        f = getattr(libgroupby, ftype, None)
-        if f is not None:
-            if is_numeric:
-                return f
-            elif dtype == object:
-                if "object" not in f.__signatures__:
-                    # raise NotImplementedError here rather than TypeError later
-                    raise NotImplementedError(
-                        f"function is not implemented for this dtype: "
-                        f"[how->{how},dtype->{dtype_str}]"
-                    )
-                return f
-
-        raise NotImplementedError(
-            f"function is not implemented for this dtype: "
-            f"[how->{how},dtype->{dtype_str}]"
-        )
+        f = getattr(libgroupby, ftype)
+        if is_numeric:
+            return f
+        elif dtype == object:
+            if "object" not in f.__signatures__:
+                # raise NotImplementedError here rather than TypeError later
+                raise NotImplementedError(
+                    f"function is not implemented for this dtype: "
+                    f"[how->{how},dtype->{dtype_str}]"
+                )
+            return f
 
     def get_cython_func_and_vals(self, values: np.ndarray, is_numeric: bool):
         """
@@ -208,7 +202,14 @@ class WrappedCythonOp:
             # never an invalid op for those dtypes, so return early as fastpath
             return
 
-        if is_categorical_dtype(dtype) or is_sparse(dtype):
+        if is_categorical_dtype(dtype):
+            # NotImplementedError for methods that can fall back to a
+            #  non-cython implementation.
+            if how in ["add", "prod", "cumsum", "cumprod"]:
+                raise TypeError(f"{dtype} type does not support {how} operations")
+            raise NotImplementedError(f"{dtype} dtype not supported")
+
+        elif is_sparse(dtype):
             # categoricals are only 1d, so we
             #  are not setup for dim transforming
             raise NotImplementedError(f"{dtype} dtype not supported")
@@ -216,14 +217,10 @@ class WrappedCythonOp:
             # we raise NotImplemented if this is an invalid operation
             #  entirely, e.g. adding datetimes
             if how in ["add", "prod", "cumsum", "cumprod"]:
-                raise NotImplementedError(
-                    f"datetime64 type does not support {how} operations"
-                )
+                raise TypeError(f"datetime64 type does not support {how} operations")
         elif is_timedelta64_dtype(dtype):
             if how in ["prod", "cumprod"]:
-                raise NotImplementedError(
-                    f"timedelta64 type does not support {how} operations"
-                )
+                raise TypeError(f"timedelta64 type does not support {how} operations")
 
     def get_output_shape(self, ngroups: int, values: np.ndarray) -> Shape:
         how = self.how
