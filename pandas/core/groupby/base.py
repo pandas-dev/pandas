@@ -47,8 +47,6 @@ dataframe_apply_allowlist: frozenset[str] = common_apply_allowlist | frozenset(
 # require postprocessing of the result by transform.
 cythonized_kernels = frozenset(["cumprod", "cumsum", "shift", "cummin", "cummax"])
 
-cython_cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
-
 # List of aggregation/reduction functions.
 # These map each group to a single numeric value
 reduction_kernels = frozenset(

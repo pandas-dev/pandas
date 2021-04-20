@@ -495,6 +495,8 @@ def test_idxmin_idxmax_returns_int_types(func, values):
     df["c_date_tz"] = df["c_date"].dt.tz_localize("US/Pacific")
     df["c_timedelta"] = df["c_date"] - df["c_date"].iloc[0]
     df["c_period"] = df["c_date"].dt.to_period("W")
+    df["c_Integer"] = df["c_int"].astype("Int64")
+    df["c_Floating"] = df["c_float"].astype("Float64")
 
     result = getattr(df.groupby("name"), func)()
 
@@ -502,6 +504,8 @@ def test_idxmin_idxmax_returns_int_types(func, values):
     expected["c_date_tz"] = expected["c_date"]
     expected["c_timedelta"] = expected["c_date"]
     expected["c_period"] = expected["c_date"]
+    expected["c_Integer"] = expected["c_int"]
+    expected["c_Floating"] = expected["c_float"]
 
     tm.assert_frame_equal(result, expected)
 
