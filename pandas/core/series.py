@@ -60,7 +60,7 @@ from pandas.util._validators import (
 from pandas.core.dtypes.cast import (
     convert_dtypes,
     maybe_box_native,
-    maybe_cast_result,
+    maybe_cast_pointwise_result,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -863,7 +863,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = self._constructor(new_values, index=new_index, fastpath=True)
         return result.__finalize__(self, method="take")
 
-    def _take_with_is_copy(self, indices, axis=0):
+    def _take_with_is_copy(self, indices, axis=0) -> Series:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
@@ -3070,22 +3070,26 @@ Keep all original rows and also all original values
             # so do this element by element
             new_index = self.index.union(other.index)
             new_name = ops.get_op_result_name(self, other)
-            new_values = []
-            for idx in new_index:
+            new_values = np.empty(len(new_index), dtype=object)
+            for i, idx in enumerate(new_index):
                 lv = self.get(idx, fill_value)
                 rv = other.get(idx, fill_value)
                 with np.errstate(all="ignore"):
-                    new_values.append(func(lv, rv))
+                    new_values[i] = func(lv, rv)
         else:
             # Assume that other is a scalar, so apply the function for
             # each element in the Series
             new_index = self.index
+            new_values = np.empty(len(new_index), dtype=object)
             with np.errstate(all="ignore"):
-                new_values = [func(lv, other) for lv in self._values]
+                new_values[:] = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        res_values = sanitize_array(new_values, None)
-        res_values = maybe_cast_result(res_values, self.dtype, same_dtype=False)
+        # try_float=False is to match _aggregate_series_pure_python
+        res_values = lib.maybe_convert_objects(new_values, try_float=False)
+        res_values = maybe_cast_pointwise_result(
+            res_values, self.dtype, same_dtype=False
+        )
         return self._constructor(res_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> Series:
@@ -4315,8 +4319,9 @@ Keep all original rows and also all original values
         """
         return False
 
+    # error: Cannot determine type of 'align'
     @doc(
-        NDFrame.align,
+        NDFrame.align,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
         axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
     )
@@ -4468,8 +4473,9 @@ Keep all original rows and also all original values
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
+    # error: Cannot determine type of 'reindex'
     @doc(
-        NDFrame.reindex,
+        NDFrame.reindex,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
         axes=_shared_doc_kwargs["axes"],
         optional_labels=_shared_doc_kwargs["optional_labels"],
@@ -4699,7 +4705,8 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
-    @doc(NDFrame.fillna, **_shared_doc_kwargs)
+    # error: Cannot determine type of 'fillna'
+    @doc(NDFrame.fillna, **_shared_doc_kwargs)  # type: ignore[has-type]
     def fillna(
         self,
         value=None,
@@ -4745,8 +4752,9 @@ Keep all original rows and also all original values
         """
         return super().pop(item=item)
 
+    # error: Cannot determine type of 'replace'
     @doc(
-        NDFrame.replace,
+        NDFrame.replace,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
         inplace=_shared_doc_kwargs["inplace"],
         replace_iloc=_shared_doc_kwargs["replace_iloc"],
@@ -4794,7 +4802,8 @@ Keep all original rows and also all original values
 
         return result
 
-    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'shift'
+    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> Series:
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
@@ -5029,19 +5038,23 @@ Keep all original rows and also all original values
             result = input_series.copy()
         return result
 
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'isna'
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isna(self) -> Series:
         return generic.NDFrame.isna(self)
 
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'isna'
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isnull(self) -> Series:
         return super().isnull()
 
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'notna'
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def notna(self) -> Series:
         return super().notna()
 
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'notna'
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def notnull(self) -> Series:
         return super().notnull()
 
@@ -5136,7 +5149,8 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Time series-oriented methods
 
-    @doc(NDFrame.asfreq, **_shared_doc_kwargs)
+    # error: Cannot determine type of 'asfreq'
+    @doc(NDFrame.asfreq, **_shared_doc_kwargs)  # type: ignore[has-type]
     def asfreq(
         self,
         freq,
@@ -5153,7 +5167,8 @@ Keep all original rows and also all original values
             fill_value=fill_value,
         )
 
-    @doc(NDFrame.resample, **_shared_doc_kwargs)
+    # error: Cannot determine type of 'resample'
+    @doc(NDFrame.resample, **_shared_doc_kwargs)  # type: ignore[has-type]
     def resample(
         self,
         rule,

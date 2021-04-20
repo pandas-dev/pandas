@@ -476,12 +476,7 @@ def test_arrow_roundtrip(dtype, dtype_object):
     assert result.loc[2, "a"] is pd.NA
 
 
-def test_value_counts_na(dtype, request):
-    if dtype == "arrow_string":
-        reason = "TypeError: boolean value of NA is ambiguous"
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
-
+def test_value_counts_na(dtype):
     arr = pd.array(["a", "b", "a", pd.NA], dtype=dtype)
     result = arr.value_counts(dropna=False)
     expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA], dtype="Int64")
@@ -492,12 +487,7 @@ def test_value_counts_na(dtype, request):
     tm.assert_series_equal(result, expected)
 
 
-def test_value_counts_with_normalize(dtype, request):
-    if dtype == "arrow_string":
-        reason = "TypeError: boolean value of NA is ambiguous"
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
-
+def test_value_counts_with_normalize(dtype):
     s = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
     result = s.value_counts(normalize=True)
     expected = pd.Series([2, 1], index=["a", "b"], dtype="Float64") / 3
