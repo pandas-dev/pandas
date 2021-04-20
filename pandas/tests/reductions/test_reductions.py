@@ -677,17 +677,20 @@ class TestSeriesReductions:
             index=pd.MultiIndex.from_product([("a", "b"), (0, 1)]),
         )
         # 1 / 0 by default
-        result = getattr(s, method)(level=0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(s, method)(level=0)
         expected = Series([1, unit], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
         # min_count=0
-        result = getattr(s, method)(level=0, min_count=0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(s, method)(level=0, min_count=0)
         expected = Series([1, unit], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
         # min_count=1
-        result = getattr(s, method)(level=0, min_count=1)
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(s, method)(level=0, min_count=1)
         expected = Series([1, np.nan], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
@@ -915,14 +918,18 @@ class TestSeriesReductions:
 
         # Check level.
         s = Series([False, False, True, True, False, True], index=[0, 0, 1, 1, 2, 2])
-        tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
-        tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
 
         msg = "Option bool_only is not implemented with option level"
         with pytest.raises(NotImplementedError, match=msg):
-            s.any(bool_only=True, level=0)
+            with tm.assert_produces_warning(FutureWarning):
+                s.any(bool_only=True, level=0)
         with pytest.raises(NotImplementedError, match=msg):
-            s.all(bool_only=True, level=0)
+            with tm.assert_produces_warning(FutureWarning):
+                s.all(bool_only=True, level=0)
 
         # bool_only is not implemented alone.
         # TODO GH38810 change this error message to:
@@ -934,29 +941,45 @@ class TestSeriesReductions:
         with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True)
 
-    def test_all_any_boolean(self):
-        # Check skipna, with boolean type
-        s1 = Series([pd.NA, True], dtype="boolean")
-        s2 = Series([pd.NA, False], dtype="boolean")
-        assert s1.all(skipna=False) is pd.NA  # NA && True => NA
-        assert s1.all(skipna=True)
-        assert s2.any(skipna=False) is pd.NA  # NA || False => NA
-        assert not s2.any(skipna=True)
+    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize(
+        # expected_data indexed as [[skipna=False/any, skipna=False/all],
+        #                           [skipna=True/any, skipna=True/all]]
+        "data,expected_data",
+        [
+            ([False, False, False], [[False, False], [False, False]]),
+            ([True, True, True], [[True, True], [True, True]]),
+            ([pd.NA, pd.NA, pd.NA], [[pd.NA, pd.NA], [False, True]]),
+            ([False, pd.NA, False], [[pd.NA, False], [False, False]]),
+            ([True, pd.NA, True], [[True, pd.NA], [True, True]]),
+            ([True, pd.NA, False], [[True, False], [True, False]]),
+        ],
+    )
+    def test_any_all_boolean_kleene_logic(
+        self, bool_agg_func, skipna, data, expected_data
+    ):
+        ser = Series(data, dtype="boolean")
+        expected = expected_data[skipna][bool_agg_func == "all"]
 
-        # GH-33253: all True / all False values buggy with skipna=False
-        s3 = Series([True, True], dtype="boolean")
-        s4 = Series([False, False], dtype="boolean")
-        assert s3.all(skipna=False)
-        assert not s4.any(skipna=False)
+        result = getattr(ser, bool_agg_func)(skipna=skipna)
+        assert (result is pd.NA and expected is pd.NA) or result == expected
 
-        # Check level TODO(GH-33449) result should also be boolean
-        s = Series(
+    @pytest.mark.parametrize(
+        "bool_agg_func,expected",
+        [("all", [False, True, False]), ("any", [False, True, True])],
+    )
+    def test_any_all_boolean_level(self, bool_agg_func, expected):
+        # GH#33449
+        ser = Series(
             [False, False, True, True, False, True],
             index=[0, 0, 1, 1, 2, 2],
             dtype="boolean",
         )
-        tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
-        tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(ser, bool_agg_func)(level=0)
+        expected = Series(expected, dtype="boolean")
+        tm.assert_series_equal(result, expected)
 
     def test_any_axis1_bool_only(self):
         # GH#32432

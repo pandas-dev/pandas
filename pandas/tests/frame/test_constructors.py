@@ -1236,14 +1236,14 @@ class TestDataFrameConstructors:
     def test_constructor_stdlib_array(self):
         # GH 4297
         # support Array
-        from array import array as stdlib_array
+        import array
 
-        result = DataFrame({"A": stdlib_array("i", range(10))})
+        result = DataFrame({"A": array.array("i", range(10))})
         expected = DataFrame({"A": list(range(10))})
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
         expected = DataFrame([list(range(10)), list(range(10))])
-        result = DataFrame([stdlib_array("i", range(10)), stdlib_array("i", range(10))])
+        result = DataFrame([array.array("i", range(10)), array.array("i", range(10))])
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_range(self):
@@ -1654,10 +1654,10 @@ class TestDataFrameConstructors:
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype="U5")
         tm.assert_frame_equal(df, expected)
 
-    def test_constructor_empty_with_string_extension(self):
+    def test_constructor_empty_with_string_extension(self, nullable_string_dtype):
         # GH 34915
-        expected = DataFrame(index=[], columns=["c1"], dtype="string")
-        df = DataFrame(columns=["c1"], dtype="string")
+        expected = DataFrame(index=[], columns=["c1"], dtype=nullable_string_dtype)
+        df = DataFrame(columns=["c1"], dtype=nullable_string_dtype)
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_single_value(self):

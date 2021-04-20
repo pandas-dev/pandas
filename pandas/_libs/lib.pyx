@@ -633,7 +633,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_intsafe(ndarray[object] arr, new_dtype) -> ndarray:
+def astype_intsafe(ndarray[object] arr, cnp.dtype new_dtype) -> ndarray:
     cdef:
         Py_ssize_t i, n = len(arr)
         object val
@@ -661,7 +661,8 @@ cpdef ndarray[object] ensure_string_array(
         bint copy=True,
         bint skipna=True,
 ):
-    """Returns a new numpy array with object dtype and only strings and na values.
+    """
+    Returns a new numpy array with object dtype and only strings and na values.
 
     Parameters
     ----------
@@ -679,7 +680,7 @@ cpdef ndarray[object] ensure_string_array(
 
     Returns
     -------
-    ndarray
+    np.ndarray[object]
         An array with the input array's elements casted to str or nan-like.
     """
     cdef:
@@ -916,7 +917,7 @@ def indices_fast(ndarray[intp_t] index, const int64_t[:] labels, list keys,
     """
     Parameters
     ----------
-    index : ndarray
+    index : ndarray[intp]
     labels : ndarray[int64]
     keys : list
     sorted_labels : list[ndarray[int64]]
@@ -1111,6 +1112,7 @@ _TYPE_MAP = {
     "complex128": "complex",
     "c": "complex",
     "string": "string",
+    str: "string",
     "S": "bytes",
     "U": "string",
     "bool": "boolean",
@@ -2440,6 +2442,9 @@ class NoDefault(Enum):
     # 2) because mypy does not understand singletons
     no_default = "NO_DEFAULT"
 
+    def __repr__(self) -> str:
+        return "<no_default>"
+
 
 # Note: no_default is exported to the public API in pandas.api.extensions
 no_default = NoDefault.no_default  # Sentinel indicating the default value.
@@ -2448,7 +2453,8 @@ no_default = NoDefault.no_default  # Sentinel indicating the default value.
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=True,
-                   object na_value=no_default, object dtype=object) -> "ArrayLike":
+                   object na_value=no_default, cnp.dtype dtype=np.dtype(object)
+                   ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2468,7 +2474,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 
     Returns
     -------
-    ndarray
+    np.ndarray or ExtensionArray
     """
     cdef:
         Py_ssize_t i, n

@@ -25,7 +25,6 @@ from pandas._typing import (
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     find_common_type,
-    maybe_upcast_putmask,
 )
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -131,7 +130,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
         if mask.any():
             result[mask] = op(xrav[mask], y)
 
-    result = maybe_upcast_putmask(result, ~mask)
+    np.putmask(result, ~mask, np.nan)
     result = result.reshape(x.shape)  # 2D compat
     return result
 
@@ -166,12 +165,14 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     try:
         result = func(left, right)
     except TypeError:
-        if is_cmp:
-            # numexpr failed on comparison op, e.g. ndarray[float] > datetime
-            #  In this case we do not fall back to the masked op, as that
-            #  will handle complex numbers incorrectly, see GH#32047
+        if is_object_dtype(left) or is_object_dtype(right) and not is_cmp:
+            # For object dtype, fallback to a masked operation (only operating
+            #  on the non-missing values)
+            # Don't do this for comparisons, as that will handle complex numbers
+            #  incorrectly, see GH#32047
+            result = _masked_arith_op(left, right, op)
+        else:
             raise
-        result = _masked_arith_op(left, right, op)
 
     if is_cmp and (is_scalar(result) or result is NotImplemented):
         # numpy returned a scalar instead of operating element-wise
