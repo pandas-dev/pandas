@@ -34,6 +34,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
+    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_integer_dtype,
@@ -59,6 +60,7 @@ from pandas.core.arrays import (
     DatetimeArray,
 )
 from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
 )
@@ -316,7 +318,14 @@ def ndarray_to_mgr(
 
         if dtype is None and is_object_dtype(values.dtype):
             arrays = [
-                maybe_infer_to_datetimelike(values[:, i].copy())
+                ensure_wrapped_if_datetimelike(
+                    maybe_infer_to_datetimelike(values[:, i].copy())
+                )
+                for i in range(values.shape[1])
+            ]
+        elif is_datetime_or_timedelta_dtype(values.dtype):
+            arrays = [
+                ensure_wrapped_if_datetimelike(values[:, i].copy())
                 for i in range(values.shape[1])
             ]
         else:
