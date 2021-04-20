@@ -2311,4 +2311,22 @@ def _items_overlap_with_suffix(
     lrenamer = partial(renamer, suffix=lsuffix)
     rrenamer = partial(renamer, suffix=rsuffix)
 
-    return (left._transform_index(lrenamer), right._transform_index(rrenamer))
+    llabels = left._transform_index(lrenamer)
+    rlabels = right._transform_index(rrenamer)
+
+    dups = []
+    if not llabels.is_unique:
+        # Only warn when duplicates are caused because of suffixes, already duplicated
+        # columns in origin should not warn
+        dups = llabels[(llabels.duplicated()) & (~left.duplicated())].tolist()
+    if not rlabels.is_unique:
+        dups.extend(rlabels[(rlabels.duplicated()) & (~right.duplicated())].tolist())
+    if dups:
+        warnings.warn(
+            f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
+            f"result is deprecated and will raise a MergeError in a future version.",
+            FutureWarning,
+            stacklevel=4,
+        )
+
+    return llabels, rlabels

@@ -603,6 +603,7 @@ Deprecations
 - Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
 - Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
 - Deprecated the ``level`` keyword for :class:`DataFrame` and :class:`Series` aggregations; use groupby instead (:issue:`39983`)
+- Deprecated :func:`merge` producing duplicated columns through the ``suffixes`` keyword  and already existing columns (:issue:`22818`)
 
 .. ---------------------------------------------------------------------------
 
