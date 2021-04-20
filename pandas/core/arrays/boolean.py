@@ -126,7 +126,12 @@ class BooleanDtype(BaseMaskedDtype):
             bool_arr = BooleanArray._from_sequence(np.array(arr))
             results.append(bool_arr)
 
-        return BooleanArray._concat_same_type(results)
+        if len(results) == 0:
+            return BooleanArray(
+                np.array([], dtype=np.bool_), np.array([], dtype=np.bool_)
+            )
+        else:
+            return BooleanArray._concat_same_type(results)
 
 
 def coerce_to_array(
