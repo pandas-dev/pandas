@@ -25,6 +25,7 @@ import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas._typing import (
+    ArrayLike,
     DtypeArg,
     FilePathOrBuffer,
 )
@@ -778,7 +779,7 @@ class ParserBase:
 
         return names, data
 
-    def _check_data_length(self, columns: List[str], data: List[np.ndarray]):
+    def _check_data_length(self, columns: List[str], data: List[ArrayLike]):
         """Checks if length of data is equal to length of column names. One set of
         trailing commas is allowed.
         Parameters
