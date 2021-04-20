@@ -1125,7 +1125,8 @@ class IndexOpsMixin(OpsMixin):
         return v
 
     @doc(
-        algorithms.factorize,
+        # error: Cannot determine type of 'factorize'
+        algorithms.factorize,  # type: ignore[has-type]
         values="",
         order="",
         size_hint="",

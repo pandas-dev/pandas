@@ -268,7 +268,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # methods that dispatch to DatetimeArray and wrap result
 
-    @doc(DatetimeArray.strftime)
+    # error: Cannot determine type of 'strftime'
+    @doc(DatetimeArray.strftime)  # type: ignore[has-type]
     def strftime(self, date_format) -> Index:
         arr = self._data.strftime(date_format)
         return Index(arr, name=self.name)
@@ -278,12 +279,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         arr = self._data.tz_convert(tz)
         return type(self)._simple_new(arr, name=self.name)
 
-    @doc(DatetimeArray.tz_localize)
+    # error: Cannot determine type of 'tz_localize'
+    @doc(DatetimeArray.tz_localize)  # type: ignore[has-type]
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise") -> DatetimeIndex:
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
         return type(self)._simple_new(arr, name=self.name)
 
-    @doc(DatetimeArray.to_period)
+    # error: Cannot determine type of 'to_period'
+    @doc(DatetimeArray.to_period)  # type: ignore[has-type]
     def to_period(self, freq=None) -> PeriodIndex:
         from pandas.core.indexes.api import PeriodIndex
 

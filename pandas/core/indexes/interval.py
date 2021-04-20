@@ -263,6 +263,8 @@ class IntervalIndex(ExtensionIndex):
     is_non_overlapping_monotonic: bool
     closed_left: bool
     closed_right: bool
+    open_left: bool
+    open_right: bool
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
@@ -442,7 +444,8 @@ class IntervalIndex(ExtensionIndex):
         """Return a string of the type inferred from the values"""
         return "interval"
 
-    @Appender(Index.memory_usage.__doc__)
+    # error: Cannot determine type of 'memory_usage'
+    @Appender(Index.memory_usage.__doc__)  # type: ignore[has-type]
     def memory_usage(self, deep: bool = False) -> int:
         # we don't use an explicit engine
         # so return the bytes here
@@ -587,8 +590,9 @@ class IntervalIndex(ExtensionIndex):
             # convert left/right and reconstruct
             left = self._maybe_convert_i8(key.left)
             right = self._maybe_convert_i8(key.right)
-            constructor = Interval if scalar else IntervalIndex.from_arrays
-            return constructor(left, right, closed=self.closed)
+            if scalar:
+                return Interval(left, right, closed=self.closed)
+            return IntervalIndex.from_arrays(left, right, closed=self.closed)
 
         if scalar:
             # Timestamp/Timedelta

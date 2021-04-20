@@ -461,7 +461,8 @@ class RangeIndex(NumericIndex):
     def __iter__(self):
         yield from self._range
 
-    @doc(Int64Index._shallow_copy)
+    # error: Cannot determine type of '_shallow_copy'
+    @doc(Int64Index._shallow_copy)  # type: ignore[has-type]
     def _shallow_copy(self, values, name: Hashable = no_default):
         name = self.name if name is no_default else name
 

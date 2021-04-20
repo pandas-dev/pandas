@@ -2752,7 +2752,8 @@ Name: Max Speed, dtype: float64
         """
         return self.dot(np.transpose(other))
 
-    @doc(base.IndexOpsMixin.searchsorted, klass="Series")
+    # error: Cannot determine type of 'searchsorted'
+    @doc(base.IndexOpsMixin.searchsorted, klass="Series")  # type: ignore[has-type]
     def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 

@@ -124,7 +124,6 @@ class PythonParser(ParserBase):
         # The original set is stored in self.original_columns.
         if len(self.columns) > 1:
             # we are processing a multi index column
-            # error: Cannot determine type of 'index_names'
             # error: Cannot determine type of 'col_names'
             (
                 self.columns,
@@ -133,7 +132,7 @@ class PythonParser(ParserBase):
                 _,
             ) = self._extract_multi_indexer_columns(
                 self.columns,
-                self.index_names,  # type: ignore[has-type]
+                self.index_names,
                 self.col_names,  # type: ignore[has-type]
             )
             # Update list of original names to include all indices.
@@ -250,8 +249,7 @@ class PythonParser(ParserBase):
         try:
             content = self._get_lines(rows)
         except StopIteration:
-            # error: Cannot determine type of '_first_chunk'
-            if self._first_chunk:  # type: ignore[has-type]
+            if self._first_chunk:
                 content = []
             else:
                 self.close()
@@ -264,10 +262,9 @@ class PythonParser(ParserBase):
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             names = self._maybe_dedup_names(self.orig_names)
-            # error: Cannot determine type of 'index_col'
             index, columns, col_dict = self._get_empty_meta(
                 names,
-                self.index_col,  # type: ignore[has-type]
+                self.index_col,
                 self.index_names,
                 self.dtype,
             )
@@ -296,8 +293,9 @@ class PythonParser(ParserBase):
 
         offset = 0
         if self._implicit_index:
-            # error: Cannot determine type of 'index_col'
-            offset = len(self.index_col)  # type: ignore[has-type]
+            # error: Argument 1 to "len" has incompatible type
+            # "Union[int, Sequence[int], None]"; expected "Sized"
+            offset = len(self.index_col)  # type: ignore[arg-type]
 
         if self._col_indices is not None and len(names) != len(self._col_indices):
             names = [names[i] for i in sorted(self._col_indices)]
@@ -438,9 +436,12 @@ class PythonParser(ParserBase):
                     # line for the rest of the parsing code
                     if hr == header[-1]:
                         lc = len(this_columns)
-                        # error: Cannot determine type of 'index_col'
-                        sic = self.index_col  # type: ignore[has-type]
-                        ic = len(sic) if sic is not None else 0
+                        sic = self.index_col
+                        # error: Argument 1 to "len" has incompatible type
+                        # "Union[int, Sequence[int]]"; expected "Sized"
+                        ic = (
+                            len(sic) if sic is not None else 0  # type: ignore[arg-type]
+                        )
                         unnamed_count = len(this_unnamed_cols)
 
                         if lc != unnamed_count and lc - ic > unnamed_count:
@@ -850,8 +851,7 @@ class PythonParser(ParserBase):
         if line is not None:
             # leave it 0, #2442
             # Case 1
-            # error: Cannot determine type of 'index_col'
-            index_col = self.index_col  # type: ignore[has-type]
+            index_col = self.index_col
             if index_col is not False:
                 implicit_first_cols = len(line) - self.num_original_columns
 
@@ -890,20 +890,16 @@ class PythonParser(ParserBase):
         col_len = self.num_original_columns
 
         if self._implicit_index:
-            col_len += len(self.index_col)
+            # error: Argument 1 to "len" has incompatible type
+            # "Union[int, Sequence[int]]"; expected "Sized"
+            col_len += len(self.index_col)  # type: ignore[arg-type]
 
         max_len = max(len(row) for row in content)
 
         # Check that there are no rows with too many
         # elements in their row (rows with too few
         # elements are padded with NaN).
-        # error: Non-overlapping identity check (left operand type: "List[int]",
-        # right operand type: "Literal[False]")
-        if (
-            max_len > col_len
-            and self.index_col is not False  # type: ignore[comparison-overlap]
-            and self.usecols is None
-        ):
+        if max_len > col_len and self.index_col is not False and self.usecols is None:
 
             footers = self.skipfooter if self.skipfooter else 0
             bad_lines = []
@@ -952,13 +948,13 @@ class PythonParser(ParserBase):
             col_indices = self._col_indices
 
             if self._implicit_index:
+                # error: Argument 1 to "len" has incompatible type
+                # "Union[int, Sequence[int]]"; expected "Sized"
+                lic = len(self.index_col)  # type: ignore[arg-type]
                 zipped_content = [
                     a
                     for i, a in enumerate(zipped_content)
-                    if (
-                        i < len(self.index_col)
-                        or i - len(self.index_col) in col_indices
-                    )
+                    if (i < lic or i - lic in col_indices)
                 ]
             else:
                 zipped_content = [

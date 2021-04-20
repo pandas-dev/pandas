@@ -286,7 +286,9 @@ class ExtensionIndex(Index):
                 return type(self)(result, name=self._name)
             # Unpack to ndarray for MPL compat
 
-            result = result._ndarray
+            # error: Item "IntervalArray" of "Union[Any, IntervalArray,
+            # NDArrayBackedExtensionArray]" has no attribute "_ndarray"
+            result = result._ndarray  # type: ignore[union-attr]
 
         # Includes cases where we get a 2D ndarray back for MPL compat
         deprecate_ndim_indexing(result)
@@ -400,8 +402,11 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
     _data: NDArrayBackedExtensionArray
 
+    # Argument 1 of "_simple_new" is incompatible with supertype "ExtensionIndex";
+    # supertype defines the argument type as
+    # "Union[IntervalArray, NDArrayBackedExtensionArray]"
     @classmethod
-    def _simple_new(
+    def _simple_new(  # type: ignore[override]
         cls,
         values: NDArrayBackedExtensionArray,
         name: Hashable = None,

@@ -605,6 +605,12 @@ class PyTablesExpr(expr.Expr):
 
     def evaluate(self):
         """ create and return the numexpr condition and filter """
+        if self.terms is None:
+            raise ValueError(
+                f"cannot process expression [{self.expr}], [{self}] "
+                "is not a valid condition"
+            )
+
         try:
             self.condition = self.terms.prune(ConditionBinOp)
         except AttributeError as err:

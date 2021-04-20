@@ -1,7 +1,12 @@
 
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
+
+from pandas._libs.tslibs.period import Period
 
 NaT: NaTType
 iNaT: int
@@ -133,3 +138,10 @@ class NaTType(datetime):
     # inject Period properties
     @property
     def qyear(self) -> float: ...
+
+    def __eq__(self, other: NaTType | datetime | timedelta | Period) -> bool: ...
+    def __ne__(self, other: NaTType | datetime | timedelta | Period) -> bool: ...
+    def __lt__(self, other: NaTType | datetime | timedelta | Period) -> bool: ...
+    def __le__(self, other: NaTType | datetime | timedelta | Period) -> bool: ...
+    def __gt__(self, other: NaTType | datetime | timedelta | Period) -> bool: ...
+    def __ge__(self, other: NaTType | datetime | timedelta | Period) -> bool: ...

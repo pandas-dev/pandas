@@ -127,7 +127,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         unit=None,
         freq=lib.no_default,
         closed=None,
-        dtype=TD64NS_DTYPE,
+        # error: Cannot determine type of 'TD64NS_DTYPE'
+        dtype=TD64NS_DTYPE,  # type: ignore[has-type]
         copy=False,
         name=None,
     ):

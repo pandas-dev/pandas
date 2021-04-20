@@ -173,8 +173,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
 
+    # error: Cannot determine type of 'asfreq'
     @doc(
-        PeriodArray.asfreq,
+        PeriodArray.asfreq,  # type: ignore[has-type]
         other="pandas.arrays.PeriodArray",
         other_name="PeriodArray",
         **_shared_doc_kwargs,
@@ -191,21 +192,24 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # https://github.com/python/mypy/issues/1362
     # error: Decorated property not supported
     @property  # type:ignore[misc]
-    @doc(PeriodArray.hour.fget)
+    # error: Cannot determine type of 'hour'
+    @doc(PeriodArray.hour.fget)  # type: ignore[has-type]
     def hour(self) -> Int64Index:
         return Int64Index(self._data.hour, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
     # error: Decorated property not supported
     @property  # type:ignore[misc]
-    @doc(PeriodArray.minute.fget)
+    # error: Cannot determine type of 'minute'
+    @doc(PeriodArray.minute.fget)  # type: ignore[has-type]
     def minute(self) -> Int64Index:
         return Int64Index(self._data.minute, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
     # error: Decorated property not supported
     @property  # type:ignore[misc]
-    @doc(PeriodArray.second.fget)
+    # error: Cannot determine type of 'second'
+    @doc(PeriodArray.second.fget)  # type: ignore[has-type]
     def second(self) -> Int64Index:
         return Int64Index(self._data.second, name=self.name)
 

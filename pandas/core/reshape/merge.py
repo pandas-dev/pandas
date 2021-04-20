@@ -1681,9 +1681,12 @@ def _asof_by_function(direction: str):
 
 
 _type_casters = {
-    "int64_t": ensure_int64,
-    "double": ensure_float64,
-    "object": ensure_object,
+    # error: Cannot determine type of 'ensure_int64'
+    "int64_t": ensure_int64,  # type: ignore[has-type]
+    # error: Cannot determine type of 'ensure_float64'
+    "double": ensure_float64,  # type: ignore[has-type]
+    # error: Cannot determine type of 'ensure_object'
+    "object": ensure_object,  # type: ignore[has-type]
 }
 
 
@@ -1947,12 +1950,11 @@ class _AsOfMerge(_OrderedMerge):
                 right_by_values = flip(right_by_values)
 
             # upcast 'by' parameter because HashTable is limited
+            # TODO: HashTable not so limited anymore?
             by_type = _get_cython_type_upcast(left_by_values.dtype)
             by_type_caster = _type_casters[by_type]
-            # error: Cannot call function of unknown type
-            left_by_values = by_type_caster(left_by_values)  # type: ignore[operator]
-            # error: Cannot call function of unknown type
-            right_by_values = by_type_caster(right_by_values)  # type: ignore[operator]
+            left_by_values = by_type_caster(left_by_values)
+            right_by_values = by_type_caster(right_by_values)
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
