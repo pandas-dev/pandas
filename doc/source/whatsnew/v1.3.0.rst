@@ -700,7 +700,7 @@ Conversion
 Strings
 ^^^^^^^
 
--
+- Bug in the conversion from ``pyarrow.ChunkedArray`` to :class:`StringArray` when the original had zero chunks (:issue:`41040`)
 -
 
 Interval
