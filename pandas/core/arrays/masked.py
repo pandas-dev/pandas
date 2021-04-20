@@ -352,7 +352,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._mask.any()  # type: ignore[return-value]
 
     def isna(self) -> np.ndarray:
-        return self._mask
+        return self._mask.copy()
 
     @property
     def _na_value(self):
