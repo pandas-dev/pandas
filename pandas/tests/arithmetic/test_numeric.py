@@ -128,12 +128,7 @@ class TestNumericComparisons:
         result = obj != "a"
         tm.assert_equal(result, ~expected)
 
-        msg = "|".join(
-            [
-                "Invalid comparison between dtype=float64 and str",
-                "'<' not supported between instances of 'numpy.ndarray' and 'str'",
-            ]
-        )
+        msg = "Invalid comparison between dtype=float64 and str"
         with pytest.raises(TypeError, match=msg):
             obj < "a"
 
