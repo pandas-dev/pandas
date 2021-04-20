@@ -69,10 +69,7 @@ def test_div(left_array, right_array):
 @pytest.mark.parametrize(
     "opname",
     [
-        pytest.param(
-            "floordiv",
-            marks=pytest.mark.xfail(reason="NumpyDev GH#40874", strict=False),
-        ),
+        "floordiv",
         "mod",
         pytest.param(
             "pow", marks=pytest.mark.xfail(reason="TODO follow int8 behaviour? GH34686")
