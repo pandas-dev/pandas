@@ -134,9 +134,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self.as_index = True
         self.exclusions = set()
         self.binner = None
-        # error: Incompatible types in assignment (expression has type "None", variable
-        # has type "BaseGrouper")
-        self.grouper = None  # type: ignore[assignment]
+        self.grouper = None
 
         if self.groupby is not None:
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
@@ -1150,10 +1148,10 @@ class DatetimeIndexResampler(Resampler):
 
         # do we have a regular frequency
 
-        # error: "BaseGrouper" has no attribute "binlabels"
+        # error: Item "None" of "Optional[Any]" has no attribute "binlabels"
         if (
             (ax.freq is not None or ax.inferred_freq is not None)
-            and len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]
+            and len(self.grouper.binlabels) > len(ax)  # type: ignore[union-attr]
             and how is None
         ):
 
