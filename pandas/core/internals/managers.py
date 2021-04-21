@@ -1139,7 +1139,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
     @property
     def column_arrays(self) -> list[ArrayLike]:
-        return [self.iget_values(i) for i in range(len(self.items))]
+        arrays = [np.asarray(arr) for arr in self.arrays]
+        result = []
+        for i in range(len(self.items)):
+            arr = arrays[self.blknos[i]]
+            if arr.ndim == 2:
+                values = arr[self.blklocs[i]]
+            else:
+                values = arr
+            result.append(values)
+        return result
 
     def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
         """
