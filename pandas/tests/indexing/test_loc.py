@@ -2700,3 +2700,13 @@ class TestLocSeries:
         string_series.loc[d2] = 6
         assert string_series[d1] == 4
         assert string_series[d2] == 6
+
+    def test_loc_dict_assign(self):
+        # GH41044
+        dfo = DataFrame({"A": ["abc", "def"], "B": ["ghi", "jkl"]}, dtype="object")
+        dfs = DataFrame({"A": ["abc", "def"], "B": ["ghi", "jkl"]}, dtype="string")
+
+        dfo.loc[0, :] = {"A": "newA", "B": "newB"}
+        dfs.loc[0, :] = {"A": "newA", "B": "newB"}
+
+        tm.assert_frame_equal(dfo, dfs, check_dtype=False)
