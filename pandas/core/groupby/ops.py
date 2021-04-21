@@ -262,12 +262,12 @@ class WrappedCythonOp:
 
         Parameters
         ----------
-        dtype : DtypeObj
+        dtype : np.dtype or ExtensionDtype
             Input dtype.
 
         Returns
         -------
-        DtypeObj
+        np.dtype or ExtensionDtype
             The desired dtype of the result.
         """
         from pandas.core.arrays.boolean import BooleanDtype
