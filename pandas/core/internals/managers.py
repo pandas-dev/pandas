@@ -1138,8 +1138,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         return values
 
     @property
-    def column_arrays(self) -> list[ArrayLike]:
-        arrays = [np.asarray(arr) for arr in self.arrays]
+    def column_arrays(self) -> list[np.ndarray]:
+        """
+        Used in the JSON C code to access column arrays.
+        This optimizes compared to using `iget_values` by converting each
+        block.values to a np.ndarray only once up front
+        """
+        arrays = [np.asarray(blk.values) for blk in self.blocks]
         result = []
         for i in range(len(self.items)):
             arr = arrays[self.blknos[i]]

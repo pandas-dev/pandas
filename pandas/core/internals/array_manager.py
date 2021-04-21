@@ -921,6 +921,9 @@ class ArrayManager(BaseArrayManager):
 
     @property
     def column_arrays(self) -> list[ArrayLike]:
+        """
+        Used in the JSON C code to access column arrays.
+        """
         return self.arrays
 
     def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
