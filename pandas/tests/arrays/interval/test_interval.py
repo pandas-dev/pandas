@@ -271,6 +271,13 @@ def test_arrow_table_roundtrip(breaks):
     expected = pd.concat([df, df], ignore_index=True)
     tm.assert_frame_equal(result, expected)
 
+    # GH-41040
+    table = pa.table(
+        [pa.chunked_array([], type=table.column(0).type)], schema=table.schema
+    )
+    result = table.to_pandas()
+    tm.assert_frame_equal(result, expected[0:0])
+
 
 @pyarrow_skip
 @pytest.mark.parametrize(
