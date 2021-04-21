@@ -1,10 +1,15 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
+from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 import pandas._testing as tm
+
+try:
+    pa = import_optional_dependency("pyarrow", min_version="0.16.0")
+except ImportError:
+    pytestmark = pytest.mark.skip(reason="Pyarrow not available")
 
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES]
 arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]
@@ -16,10 +21,8 @@ def data(request):
     return request.param
 
 
-@td.skip_if_no("pyarrow", min_version="0.15.0")
 def test_arrow_array(data):
     # protocol added in 0.15.0
-    import pyarrow as pa
 
     arr = pa.array(data)
     expected = pa.array(
@@ -29,10 +32,8 @@ def test_arrow_array(data):
     assert arr.equals(expected)
 
 
-@td.skip_if_no("pyarrow", min_version="0.16.0")
 def test_arrow_roundtrip(data):
     # roundtrip possible from arrow 0.16.0
-    import pyarrow as pa
 
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
@@ -42,11 +43,9 @@ def test_arrow_roundtrip(data):
     tm.assert_frame_equal(result, df)
 
 
-@td.skip_if_no("pyarrow", min_version="0.16.0")
 def test_arrow_from_arrow_uint():
     # https://github.com/pandas-dev/pandas/issues/31896
     # possible mismatch in types
-    import pyarrow as pa
 
     dtype = pd.UInt32Dtype()
     result = dtype.__from_arrow__(pa.array([1, 2, 3, 4, None], type="int64"))
@@ -55,10 +54,8 @@ def test_arrow_from_arrow_uint():
     tm.assert_extension_array_equal(result, expected)
 
 
-@td.skip_if_no("pyarrow", min_version="0.16.0")
 def test_arrow_sliced():
     # https://github.com/pandas-dev/pandas/issues/38525
-    import pyarrow as pa
 
     df = pd.DataFrame({"a": pd.array([0, None, 2, 3, None], dtype="Int64")})
     table = pa.table(df)
@@ -68,10 +65,8 @@ def test_arrow_sliced():
 
 
 @pytest.fixture
-def np_dtype_to_arrays(request):
-    import pyarrow as pa
-
-    np_dtype = request.param
+def np_dtype_to_arrays(any_real_dtype):
+    np_dtype = np.dtype(any_real_dtype)
     pa_type = pa.from_numpy_dtype(np_dtype)
 
     pa_array = pa.array([0, 1, 2], type=pa_type)
@@ -80,25 +75,6 @@ def np_dtype_to_arrays(request):
     return np_dtype, pa_array, np_expected, mask_expected
 
 
-@td.skip_if_no("pyarrow")
-@pytest.mark.parametrize(
-    "np_dtype_to_arrays",
-    (
-        [
-            np.int8(),
-            np.int16(),
-            np.int32(),
-            np.int64(),
-            np.uint8(),
-            np.uint16(),
-            np.uint32(),
-            np.uint64(),
-            np.float32(),
-            np.float64(),
-        ]
-    ),
-    indirect=True,
-)
 def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     """
     Test conversion from pyarrow array to numpy array.
@@ -109,8 +85,6 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     Also tests empty pyarrow arrays with non empty buffers.
     See https://github.com/pandas-dev/pandas/issues/40896
     """
-    import pyarrow as pa
-
     from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
     np_dtype, pa_array, np_expected, mask_expected = np_dtype_to_arrays
