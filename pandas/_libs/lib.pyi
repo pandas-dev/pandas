@@ -5,6 +5,8 @@ from typing import (
     Any,
     Callable,
     Generator,
+    Literal,
+    overload,
 )
 
 import numpy as np
@@ -70,13 +72,23 @@ def maybe_convert_objects(
     convert_to_nullable_integer: bool = False,
 ) -> ArrayLike: ...
 
+@overload
 def maybe_convert_numeric(
     values: np.ndarray,  # np.ndarray[object]
     na_values: set,
     convert_empty: bool = True,
     coerce_numeric: bool = False,
-    convert_to_masked_nullable: bool = False,
-) -> np.ndarray | tuple[np.ndarray,np.ndarray]: ...
+    convert_to_masked_nullable: Literal[False] = False,
+) -> np.ndarray: ...
+
+@overload
+def maybe_convert_numeric(
+    values: np.ndarray,  # np.ndarray[object]
+    na_values: set,
+    convert_empty: bool = True,
+    coerce_numeric: bool = False,
+    convert_to_masked_nullable: Literal[True] = False,
+) -> tuple[np.ndarray,np.ndarray]: ...
 
 # TODO: restrict `arr`?
 def ensure_string_array(
