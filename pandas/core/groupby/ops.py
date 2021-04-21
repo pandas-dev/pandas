@@ -672,6 +672,7 @@ class BaseGrouper:
     @final
     def _masked_ea_wrap_cython_operation(
         self,
+        cy_op: WrappedCythonOp,
         kind: str,
         values: BaseMaskedArray,
         how: str,
@@ -692,7 +693,7 @@ class BaseGrouper:
         res_values = self._cython_operation(
             kind, arr, how, axis, min_count, mask=mask, **kwargs
         )
-        dtype = self.get_result_dtype(orig_values.dtype)
+        dtype = cy_op.get_result_dtype(orig_values.dtype)
         assert isinstance(dtype, BaseMaskedDtype)
         cls = dtype.construct_array_type()
 
