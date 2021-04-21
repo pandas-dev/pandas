@@ -2701,12 +2701,12 @@ class TestLocSeries:
         assert string_series[d1] == 4
         assert string_series[d2] == 6
 
-    def test_loc_dict_assign(self):
+    @pytest.mark.parametrize("dtype", ["object", "string"])
+    def test_loc_assign_dict_to_row(self, dtype):
         # GH41044
-        dfo = DataFrame({"A": ["abc", "def"], "B": ["ghi", "jkl"]}, dtype="object")
-        dfs = DataFrame({"A": ["abc", "def"], "B": ["ghi", "jkl"]}, dtype="string")
+        df = DataFrame({"A": ["abc", "def"], "B": ["ghi", "jkl"]}, dtype=dtype)
+        df.loc[0, :] = {"A": "newA", "B": "newB"}
 
-        dfo.loc[0, :] = {"A": "newA", "B": "newB"}
-        dfs.loc[0, :] = {"A": "newA", "B": "newB"}
+        expected = DataFrame({"A": ["newA", "def"], "B": ["newB", "jkl"]})
 
-        tm.assert_frame_equal(dfo, dfs, check_dtype=False)
+        tm.assert_frame_equal(df, expected, check_dtype=False)
