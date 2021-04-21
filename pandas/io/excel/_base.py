@@ -914,7 +914,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             )
         if if_sheet_exists and "r+" not in mode:
             raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
-        if if_sheet_exists is None and "r+" in mode:
+        if if_sheet_exists is None:
             if_sheet_exists = "error"
         self.if_sheet_exists = if_sheet_exists
 
