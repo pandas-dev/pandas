@@ -87,7 +87,8 @@ def maybe_convert_numeric(
     na_values: set,
     convert_empty: bool = True,
     coerce_numeric: bool = False,
-    convert_to_masked_nullable: Literal[True] = False,
+    *
+    convert_to_masked_nullable: Literal[True],
 ) -> tuple[np.ndarray,np.ndarray]: ...
 
 # TODO: restrict `arr`?
