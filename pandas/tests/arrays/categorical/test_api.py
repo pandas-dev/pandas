@@ -354,7 +354,10 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(res, new)
 
         # inplace == True
-        res = cat.remove_categories("c", inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            # issue #37643 inplace kwarg deprecated
+            res = cat.remove_categories("c", inplace=True)
+
         tm.assert_categorical_equal(cat, new)
         assert res is None
 

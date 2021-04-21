@@ -12,7 +12,11 @@ from typing import (
     Union,
     cast,
 )
-from warnings import warn
+from warnings import (
+    catch_warnings,
+    simplefilter,
+    warn,
+)
 
 import numpy as np
 
@@ -1122,7 +1126,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if not inplace:
             return cat
 
-    def remove_categories(self, removals, inplace=False):
+    def remove_categories(self, removals, inplace=no_default):
         """
         Remove the specified categories.
 
@@ -1136,6 +1140,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace : bool, default False
            Whether or not to remove the categories inplace or return a copy of
            this categorical with removed categories.
+
+           .. deprecated:: 1.3.0
 
         Returns
         -------
@@ -1155,6 +1161,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
         """
+        if inplace is not no_default:
+            warn(
+                "The `inplace` parameter in pandas.Categorical."
+                "remove_categories is deprecated and will be removed in "
+                "a future version. Removing unused categories will always "
+                "return a new Categorical object.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_list_like(removals):
             removals = [removals]
@@ -2355,14 +2373,20 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 continue
             if replace_value in cat.categories:
                 if isna(new_value):
-                    cat.remove_categories(replace_value, inplace=True)
+                    with catch_warnings():
+                        simplefilter("ignore")
+                        cat.remove_categories(replace_value, inplace=True)
                     continue
+
                 categories = cat.categories.tolist()
                 index = categories.index(replace_value)
+
                 if new_value in cat.categories:
                     value_index = categories.index(new_value)
                     cat._codes[cat._codes == index] = value_index
-                    cat.remove_categories(replace_value, inplace=True)
+                    with catch_warnings():
+                        simplefilter("ignore")
+                        cat.remove_categories(replace_value, inplace=True)
                 else:
                     categories[index] = new_value
                     cat.rename_categories(categories, inplace=True)
