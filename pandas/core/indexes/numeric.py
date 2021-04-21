@@ -47,8 +47,8 @@ class NumericIndex(Index):
 
     This is an abstract class.
     """
-    _values: np.ndarray
 
+    _values: np.ndarray
     _default_dtype: np.dtype
 
     _is_numeric_dtype = True
