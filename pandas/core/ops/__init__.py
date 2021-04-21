@@ -29,7 +29,6 @@ from pandas.core import (
     algorithms,
     roperator,
 )
-from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.ops.array_ops import (  # noqa:F401
     arithmetic_op,
     comp_method_OBJECT_ARRAY,
@@ -141,8 +140,6 @@ def fill_binop(left, right, fill_value):
             right = right.copy()
             right[right_mask & mask] = fill_value
 
-    left = ensure_wrapped_if_datetimelike(left)
-    right = ensure_wrapped_if_datetimelike(right)
     return left, right
 
 
