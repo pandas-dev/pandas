@@ -443,38 +443,56 @@ class TestInference:
         else:
             tm.assert_numpy_array_equal(result, exp)
 
+    @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
     @pytest.mark.parametrize("coerce_numeric", [True, False])
     @pytest.mark.parametrize(
         "infinity", ["inf", "inF", "iNf", "Inf", "iNF", "InF", "INf", "INF"]
     )
     @pytest.mark.parametrize("prefix", ["", "-", "+"])
-    def test_maybe_convert_numeric_infinities(self, coerce_numeric, infinity, prefix):
+    def test_maybe_convert_numeric_infinities(
+        self, coerce_numeric, infinity, prefix, convert_to_masked_nullable
+    ):
         # see gh-13274
         result = lib.maybe_convert_numeric(
             np.array([prefix + infinity], dtype=object),
             na_values={"", "NULL", "nan"},
             coerce_numeric=coerce_numeric,
+            convert_to_masked_nullable=convert_to_masked_nullable,
         )
         expected = np.array([np.inf if prefix in ["", "+"] else -np.inf])
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_maybe_convert_numeric_infinities_raises(self):
+    @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
+    def test_maybe_convert_numeric_infinities_raises(self, convert_to_masked_nullable):
         msg = "Unable to parse string"
         with pytest.raises(ValueError, match=msg):
             lib.maybe_convert_numeric(
                 np.array(["foo_inf"], dtype=object),
                 na_values={"", "NULL", "nan"},
                 coerce_numeric=False,
+                convert_to_masked_nullable=convert_to_masked_nullable,
             )
 
-    def test_maybe_convert_numeric_post_floatify_nan(self, coerce):
+    @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
+    def test_maybe_convert_numeric_post_floatify_nan(
+        self, coerce, convert_to_masked_nullable
+    ):
         # see gh-13314
         data = np.array(["1.200", "-999.000", "4.500"], dtype=object)
         expected = np.array([1.2, np.nan, 4.5], dtype=np.float64)
         nan_values = {-999, -999.0}
 
-        out = lib.maybe_convert_numeric(data, nan_values, coerce)
-        tm.assert_numpy_array_equal(out, expected)
+        out = lib.maybe_convert_numeric(
+            data,
+            nan_values,
+            coerce,
+            convert_to_masked_nullable=convert_to_masked_nullable,
+        )
+        if convert_to_masked_nullable:
+            expected = FloatingArray(expected, np.isnan(expected))
+            tm.assert_extension_array_equal(expected, FloatingArray(*out))
+        else:
+            tm.assert_numpy_array_equal(out, expected)
 
     def test_convert_infs(self):
         arr = np.array(["inf", "inf", "inf"], dtype="O")
@@ -525,14 +543,28 @@ class TestInference:
         result = lib.maybe_convert_numeric(arr, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
-    def test_convert_numeric_uint64_nan_values(self, coerce):
+    @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
+    def test_convert_numeric_uint64_nan_values(
+        self, coerce, convert_to_masked_nullable
+    ):
         arr = np.array([2 ** 63, 2 ** 63 + 1], dtype=object)
         na_values = {2 ** 63}
 
         expected = (
             np.array([np.nan, 2 ** 63 + 1], dtype=float) if coerce else arr.copy()
         )
-        result = lib.maybe_convert_numeric(arr, na_values, coerce_numeric=coerce)
+        result = lib.maybe_convert_numeric(
+            arr,
+            na_values,
+            coerce_numeric=coerce,
+            convert_to_masked_nullable=convert_to_masked_nullable,
+        )
+        if convert_to_masked_nullable and coerce:
+            expected = IntegerArray(
+                np.array([0, 2 ** 63 + 1], dtype="u8"),
+                np.array([True, False], dtype="bool"),
+            )
+            result = IntegerArray(*result)
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize(

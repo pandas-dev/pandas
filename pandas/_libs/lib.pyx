@@ -2150,6 +2150,7 @@ def maybe_convert_numeric(
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = complexes[i] = NaN
+                    mask[i] = 1
                 else:
                     if fval != fval:
                         seen.null_ = True
