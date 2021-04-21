@@ -658,37 +658,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             return self.obj[self._selection]
 
     @final
-    def _set_result_index_ordered(
-        self, result: OutputFrameOrSeries
-    ) -> OutputFrameOrSeries:
-        # set the result index on the passed values object and
-        # return the new object, xref 8046
-
-        if self.grouper.is_monotonic:
-            # shortcut if we have an already ordered grouper
-            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
-            return result
-
-        # row order is scrambled => sort the rows by position in original index
-        original_positions = Index(
-            np.concatenate(self._get_indices(self.grouper.result_index))
-        )
-        result.set_axis(original_positions, axis=self.axis, inplace=True)
-        result = result.sort_index(axis=self.axis)
-
-        dropped_rows = len(result.index) < len(self.obj.index)
-
-        if dropped_rows:
-            # get index by slicing original index according to original positions
-            # slice drops attrs => use set_axis when no rows were dropped
-            sorted_indexer = result.index
-            result.index = self._selected_obj.index[sorted_indexer]
-        else:
-            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
-
-        return result
-
-    @final
     def _dir_additions(self) -> set[str]:
         return self.obj._dir_additions() | self._apply_allowlist
 
@@ -762,214 +731,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         for each group
         """
         return self.grouper.get_iterator(self.obj, axis=self.axis)
-
-    def _iterate_slices(self) -> Iterable[Series]:
-        raise AbstractMethodError(self)
-
-    def transform(self, func, *args, **kwargs):
-        raise AbstractMethodError(self)
-
-    @final
-    def _cumcount_array(self, ascending: bool = True):
-        """
-        Parameters
-        ----------
-        ascending : bool, default True
-            If False, number in reverse, from length of group - 1 to 0.
-
-        Notes
-        -----
-        this is currently implementing sort=False
-        (though the default is sort=True) for groupby in general
-        """
-        ids, _, ngroups = self.grouper.group_info
-        sorter = get_group_index_sorter(ids, ngroups)
-        ids, count = ids[sorter], len(ids)
-
-        if count == 0:
-            return np.empty(0, dtype=np.int64)
-
-        run = np.r_[True, ids[:-1] != ids[1:]]
-        rep = np.diff(np.r_[np.nonzero(run)[0], count])
-        out = (~run).cumsum()
-
-        if ascending:
-            out -= np.repeat(out[run], rep)
-        else:
-            out = np.repeat(out[np.r_[run[1:], True]], rep) - out
-
-        rev = np.empty(count, dtype=np.intp)
-        rev[sorter] = np.arange(count, dtype=np.intp)
-        return out[rev].astype(np.int64, copy=False)
-
-    @final
-    def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
-    ):
-        output: dict[base.OutputKey, ArrayLike] = {}
-
-        for idx, obj in enumerate(self._iterate_slices()):
-            name = obj.name
-            is_numeric = is_numeric_dtype(obj.dtype)
-            if numeric_only and not is_numeric:
-                continue
-
-            try:
-                result = self.grouper._cython_operation(
-                    "transform", obj._values, how, axis, **kwargs
-                )
-            except (NotImplementedError, TypeError):
-                continue
-
-            key = base.OutputKey(label=name, position=idx)
-            output[key] = result
-
-        if not output:
-            raise DataError("No numeric types to aggregate")
-
-        return self._wrap_transformed_output(output)
-
-    def _wrap_aggregated_output(
-        self, output: Mapping[base.OutputKey, np.ndarray], index: Index | None
-    ):
-        raise AbstractMethodError(self)
-
-    def _wrap_transformed_output(self, output: Mapping[base.OutputKey, ArrayLike]):
-        raise AbstractMethodError(self)
-
-    def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
-        raise AbstractMethodError(self)
-
-    def _cython_agg_general(
-        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ):
-        output: dict[base.OutputKey, ArrayLike] = {}
-        # Ideally we would be able to enumerate self._iterate_slices and use
-        # the index from enumeration as the key of output, but ohlc in particular
-        # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
-        # need to slice that up into 1D arrays
-        idx = 0
-        for obj in self._iterate_slices():
-            name = obj.name
-            is_numeric = is_numeric_dtype(obj.dtype)
-            if numeric_only and not is_numeric:
-                continue
-
-            result = self.grouper._cython_operation(
-                "aggregate", obj._values, how, axis=0, min_count=min_count
-            )
-
-            if how == "ohlc":
-                # e.g. ohlc
-                agg_names = ["open", "high", "low", "close"]
-                assert len(agg_names) == result.shape[1]
-                for result_column, result_name in zip(result.T, agg_names):
-                    key = base.OutputKey(label=result_name, position=idx)
-                    output[key] = result_column
-                    idx += 1
-            else:
-                assert result.ndim == 1
-                key = base.OutputKey(label=name, position=idx)
-                output[key] = result
-                idx += 1
-
-        if not output:
-            raise DataError("No numeric types to aggregate")
-
-        # error: Argument 1 to "_wrap_aggregated_output" of "BaseGroupBy" has
-        # incompatible type "Dict[OutputKey, Union[ndarray, DatetimeArray]]";
-        # expected "Mapping[OutputKey, ndarray]"
-        return self._wrap_aggregated_output(
-            output, index=self.grouper.result_index  # type: ignore[arg-type]
-        )
-
-    @final
-    def _numba_prep(self, func, data):
-        if not callable(func):
-            raise NotImplementedError(
-                "Numba engine can only be used with a single function."
-            )
-        labels, _, n_groups = self.grouper.group_info
-        sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
-
-        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
-
-        starts, ends = lib.generate_slices(sorted_labels, n_groups)
-        return starts, ends, sorted_index, sorted_data
-
-    @final
-    def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
-        """
-        Perform groupby transform routine with the numba engine.
-
-        This routine mimics the data splitting routine of the DataSplitter class
-        to generate the indices of each group in the sorted data and then passes the
-        data and indices into a Numba jitted function.
-        """
-        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
-        group_keys = self.grouper._get_group_keys()
-
-        numba_transform_func = numba_.generate_numba_transform_func(
-            tuple(args), kwargs, func, engine_kwargs
-        )
-        result = numba_transform_func(
-            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
-        )
-
-        cache_key = (func, "groupby_transform")
-        if cache_key not in NUMBA_FUNC_CACHE:
-            NUMBA_FUNC_CACHE[cache_key] = numba_transform_func
-
-        # result values needs to be resorted to their original positions since we
-        # evaluated the data sorted by group
-        return result.take(np.argsort(sorted_index), axis=0)
-
-    @final
-    def _aggregate_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
-        """
-        Perform groupby aggregation routine with the numba engine.
-
-        This routine mimics the data splitting routine of the DataSplitter class
-        to generate the indices of each group in the sorted data and then passes the
-        data and indices into a Numba jitted function.
-        """
-        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
-        group_keys = self.grouper._get_group_keys()
-
-        numba_agg_func = numba_.generate_numba_agg_func(
-            tuple(args), kwargs, func, engine_kwargs
-        )
-        result = numba_agg_func(
-            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
-        )
-
-        cache_key = (func, "groupby_agg")
-        if cache_key not in NUMBA_FUNC_CACHE:
-            NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
-
-        if self.grouper.nkeys > 1:
-            index = MultiIndex.from_tuples(group_keys, names=self.grouper.names)
-        else:
-            index = Index(group_keys, name=self.grouper.names[0])
-        return result, index
-
-    @final
-    def _apply_filter(self, indices, dropna):
-        if len(indices) == 0:
-            indices = np.array([], dtype="int64")
-        else:
-            indices = np.sort(np.concatenate(indices))
-        if dropna:
-            filtered = self._selected_obj.take(indices, axis=self.axis)
-        else:
-            mask = np.empty(len(self._selected_obj.index), dtype=bool)
-            mask.fill(False)
-            mask[indices.astype(int)] = True
-            # mask fails to broadcast when passed to where; broadcast manually.
-            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
-            filtered = self._selected_obj.where(mask)  # Fill with NaNs.
-        return filtered
 
 
 # To track operations that expand dimensions, like ohlc
@@ -1196,6 +957,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             self._group_selection = None
             self._reset_cache("_selected_obj")
 
+    def _iterate_slices(self) -> Iterable[Series]:
+        raise AbstractMethodError(self)
+
     # -----------------------------------------------------------------
     # Dispatch/Wrapping
 
@@ -1261,7 +1025,124 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         return result
 
+    @final
+    def _set_result_index_ordered(
+        self, result: OutputFrameOrSeries
+    ) -> OutputFrameOrSeries:
+        # set the result index on the passed values object and
+        # return the new object, xref 8046
+
+        if self.grouper.is_monotonic:
+            # shortcut if we have an already ordered grouper
+            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+            return result
+
+        # row order is scrambled => sort the rows by position in original index
+        original_positions = Index(
+            np.concatenate(self._get_indices(self.grouper.result_index))
+        )
+        result.set_axis(original_positions, axis=self.axis, inplace=True)
+        result = result.sort_index(axis=self.axis)
+
+        dropped_rows = len(result.index) < len(self.obj.index)
+
+        if dropped_rows:
+            # get index by slicing original index according to original positions
+            # slice drops attrs => use set_axis when no rows were dropped
+            sorted_indexer = result.index
+            result.index = self._selected_obj.index[sorted_indexer]
+        else:
+            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+
+        return result
+
+    def _wrap_aggregated_output(
+        self, output: Mapping[base.OutputKey, np.ndarray], index: Index | None
+    ):
+        raise AbstractMethodError(self)
+
+    def _wrap_transformed_output(self, output: Mapping[base.OutputKey, ArrayLike]):
+        raise AbstractMethodError(self)
+
+    def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
+        raise AbstractMethodError(self)
+
     # -----------------------------------------------------------------
+    # numba
+
+    @final
+    def _numba_prep(self, func, data):
+        if not callable(func):
+            raise NotImplementedError(
+                "Numba engine can only be used with a single function."
+            )
+        labels, _, n_groups = self.grouper.group_info
+        sorted_index = get_group_index_sorter(labels, n_groups)
+        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
+
+        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
+
+        starts, ends = lib.generate_slices(sorted_labels, n_groups)
+        return starts, ends, sorted_index, sorted_data
+
+    @final
+    def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
+        """
+        Perform groupby transform routine with the numba engine.
+
+        This routine mimics the data splitting routine of the DataSplitter class
+        to generate the indices of each group in the sorted data and then passes the
+        data and indices into a Numba jitted function.
+        """
+        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
+        group_keys = self.grouper._get_group_keys()
+
+        numba_transform_func = numba_.generate_numba_transform_func(
+            tuple(args), kwargs, func, engine_kwargs
+        )
+        result = numba_transform_func(
+            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
+        )
+
+        cache_key = (func, "groupby_transform")
+        if cache_key not in NUMBA_FUNC_CACHE:
+            NUMBA_FUNC_CACHE[cache_key] = numba_transform_func
+
+        # result values needs to be resorted to their original positions since we
+        # evaluated the data sorted by group
+        return result.take(np.argsort(sorted_index), axis=0)
+
+    @final
+    def _aggregate_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
+        """
+        Perform groupby aggregation routine with the numba engine.
+
+        This routine mimics the data splitting routine of the DataSplitter class
+        to generate the indices of each group in the sorted data and then passes the
+        data and indices into a Numba jitted function.
+        """
+        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
+        group_keys = self.grouper._get_group_keys()
+
+        numba_agg_func = numba_.generate_numba_agg_func(
+            tuple(args), kwargs, func, engine_kwargs
+        )
+        result = numba_agg_func(
+            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
+        )
+
+        cache_key = (func, "groupby_agg")
+        if cache_key not in NUMBA_FUNC_CACHE:
+            NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
+
+        if self.grouper.nkeys > 1:
+            index = MultiIndex.from_tuples(group_keys, names=self.grouper.names)
+        else:
+            index = Index(group_keys, name=self.grouper.names[0])
+        return result, index
+
+    # -----------------------------------------------------------------
+    # apply/agg/transform
 
     @Appender(
         _apply_docs["template"].format(
@@ -1415,6 +1296,132 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if result is None:
                 result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
             return result.__finalize__(self.obj, method="groupby")
+
+    def _cython_agg_general(
+        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+    ):
+        output: dict[base.OutputKey, ArrayLike] = {}
+        # Ideally we would be able to enumerate self._iterate_slices and use
+        # the index from enumeration as the key of output, but ohlc in particular
+        # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
+        # need to slice that up into 1D arrays
+        idx = 0
+        for obj in self._iterate_slices():
+            name = obj.name
+            is_numeric = is_numeric_dtype(obj.dtype)
+            if numeric_only and not is_numeric:
+                continue
+
+            result = self.grouper._cython_operation(
+                "aggregate", obj._values, how, axis=0, min_count=min_count
+            )
+
+            if how == "ohlc":
+                # e.g. ohlc
+                agg_names = ["open", "high", "low", "close"]
+                assert len(agg_names) == result.shape[1]
+                for result_column, result_name in zip(result.T, agg_names):
+                    key = base.OutputKey(label=result_name, position=idx)
+                    output[key] = result_column
+                    idx += 1
+            else:
+                assert result.ndim == 1
+                key = base.OutputKey(label=name, position=idx)
+                output[key] = result
+                idx += 1
+
+        if not output:
+            raise DataError("No numeric types to aggregate")
+
+        # error: Argument 1 to "_wrap_aggregated_output" of "BaseGroupBy" has
+        # incompatible type "Dict[OutputKey, Union[ndarray, DatetimeArray]]";
+        # expected "Mapping[OutputKey, ndarray]"
+        return self._wrap_aggregated_output(
+            output, index=self.grouper.result_index  # type: ignore[arg-type]
+        )
+
+    @final
+    def _cython_transform(
+        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+    ):
+        output: dict[base.OutputKey, ArrayLike] = {}
+
+        for idx, obj in enumerate(self._iterate_slices()):
+            name = obj.name
+            is_numeric = is_numeric_dtype(obj.dtype)
+            if numeric_only and not is_numeric:
+                continue
+
+            try:
+                result = self.grouper._cython_operation(
+                    "transform", obj._values, how, axis, **kwargs
+                )
+            except (NotImplementedError, TypeError):
+                continue
+
+            key = base.OutputKey(label=name, position=idx)
+            output[key] = result
+
+        if not output:
+            raise DataError("No numeric types to aggregate")
+
+        return self._wrap_transformed_output(output)
+
+    def transform(self, func, *args, **kwargs):
+        raise AbstractMethodError(self)
+
+    # -----------------------------------------------------------------
+    # Utilities
+
+    @final
+    def _apply_filter(self, indices, dropna):
+        if len(indices) == 0:
+            indices = np.array([], dtype="int64")
+        else:
+            indices = np.sort(np.concatenate(indices))
+        if dropna:
+            filtered = self._selected_obj.take(indices, axis=self.axis)
+        else:
+            mask = np.empty(len(self._selected_obj.index), dtype=bool)
+            mask.fill(False)
+            mask[indices.astype(int)] = True
+            # mask fails to broadcast when passed to where; broadcast manually.
+            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
+            filtered = self._selected_obj.where(mask)  # Fill with NaNs.
+        return filtered
+
+    @final
+    def _cumcount_array(self, ascending: bool = True):
+        """
+        Parameters
+        ----------
+        ascending : bool, default True
+            If False, number in reverse, from length of group - 1 to 0.
+
+        Notes
+        -----
+        this is currently implementing sort=False
+        (though the default is sort=True) for groupby in general
+        """
+        ids, _, ngroups = self.grouper.group_info
+        sorter = get_group_index_sorter(ids, ngroups)
+        ids, count = ids[sorter], len(ids)
+
+        if count == 0:
+            return np.empty(0, dtype=np.int64)
+
+        run = np.r_[True, ids[:-1] != ids[1:]]
+        rep = np.diff(np.r_[np.nonzero(run)[0], count])
+        out = (~run).cumsum()
+
+        if ascending:
+            out -= np.repeat(out[run], rep)
+        else:
+            out = np.repeat(out[np.r_[run[1:], True]], rep) - out
+
+        rev = np.empty(count, dtype=np.intp)
+        rev[sorter] = np.arange(count, dtype=np.intp)
+        return out[rev].astype(np.int64, copy=False)
 
     # -----------------------------------------------------------------
 
