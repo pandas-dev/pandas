@@ -2707,6 +2707,6 @@ class TestLocSeries:
         df = DataFrame({"A": ["abc", "def"], "B": ["ghi", "jkl"]}, dtype=dtype)
         df.loc[0, :] = {"A": "newA", "B": "newB"}
 
-        expected = DataFrame({"A": ["newA", "def"], "B": ["newB", "jkl"]})
+        expected = DataFrame({"A": ["newA", "def"], "B": ["newB", "jkl"]}, dtype=dtype)
 
-        tm.assert_frame_equal(df, expected, check_dtype=False)
+        tm.assert_frame_equal(df, expected)
