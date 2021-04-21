@@ -50,6 +50,7 @@ class NumericIndex(Index):
     This is an abstract class.
     """
 
+    _values: np.ndarray
     _default_dtype: np.dtype
     _dtype_validation_metadata: tuple[Callable[..., bool], str]
 
@@ -250,9 +251,7 @@ class IntegerIndex(NumericIndex):
             FutureWarning,
             stacklevel=2,
         )
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ndarray")
-        return self._values.view(self._default_dtype)  # type: ignore[return-value]
+        return self._values.view(self._default_dtype)
 
 
 class Int64Index(IntegerIndex):
@@ -330,10 +329,7 @@ class Float64Index(NumericIndex):
         elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
-
-            # error: Argument 1 to "astype_nansafe" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            arr = astype_nansafe(self._values, dtype=dtype)  # type: ignore[arg-type]
+            arr = astype_nansafe(self._values, dtype=dtype)
             return Int64Index(arr, name=self.name)
         return super().astype(dtype, copy=copy)
 
