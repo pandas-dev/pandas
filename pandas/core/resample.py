@@ -110,6 +110,11 @@ class Resampler(BaseGroupBy, PandasObject):
     After resampling, see aggregate, apply, and transform functions.
     """
 
+    # error: Incompatible types in assignment (expression has type
+    # "Optional[BinGrouper]", base class "BaseGroupBy" defined the type as
+    # "BaseGrouper")
+    grouper: BinGrouper | None  # type: ignore[assignment]
+
     # to the groupby descriptor
     _attributes = [
         "freq",

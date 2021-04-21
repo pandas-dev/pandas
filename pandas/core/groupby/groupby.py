@@ -504,7 +504,7 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def group_selection_context(groupby: BaseGroupBy) -> Iterator[BaseGroupBy]:
+def group_selection_context(groupby: GroupBy) -> Iterator[GroupBy]:
     """
     Set / reset the group_selection_context.
     """
@@ -542,6 +542,10 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         "sort",
         "squeeze",
     }
+
+    axis: int
+    grouper: ops.BaseGrouper
+    obj: FrameOrSeries
 
     @final
     def __len__(self) -> int:
@@ -654,45 +658,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             return self.obj[self._selection]
 
     @final
-    def _reset_group_selection(self) -> None:
-        """
-        Clear group based selection.
-
-        Used for methods needing to return info on each group regardless of
-        whether a group selection was previously set.
-        """
-        if self._group_selection is not None:
-            # GH12839 clear cached selection too when changing group selection
-            self._group_selection = None
-            self._reset_cache("_selected_obj")
-
-    @final
-    def _set_group_selection(self) -> None:
-        """
-        Create group based selection.
-
-        Used when selection is not passed directly but instead via a grouper.
-
-        NOTE: this should be paired with a call to _reset_group_selection
-        """
-        grp = self.grouper
-        if not (
-            self.as_index
-            and getattr(grp, "groupings", None) is not None
-            and self.obj.ndim > 1
-            and self._group_selection is None
-        ):
-            return
-
-        groupers = [g.name for g in grp.groupings if g.level is None and g.in_axis]
-
-        if len(groupers):
-            # GH12839 clear selected obj cache when group selection changes
-            ax = self.obj._info_axis
-            self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
-            self._reset_cache("_selected_obj")
-
-    @final
     def _set_result_index_ordered(
         self, result: OutputFrameOrSeries
     ) -> OutputFrameOrSeries:
@@ -727,16 +692,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def _dir_additions(self) -> set[str]:
         return self.obj._dir_additions() | self._apply_allowlist
 
-    def __getattr__(self, attr: str):
-        if attr in self._internal_names_set:
-            return object.__getattribute__(self, attr)
-        if attr in self.obj:
-            return self[attr]
-
-        raise AttributeError(
-            f"'{type(self).__name__}' object has no attribute '{attr}'"
-        )
-
     @Substitution(
         klass="GroupBy",
         examples=dedent(
@@ -769,44 +724,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         return com.pipe(self, func, *args, **kwargs)
 
     plot = property(GroupByPlot)
-
-    @final
-    def _make_wrapper(self, name: str) -> Callable:
-        assert name in self._apply_allowlist
-
-        with group_selection_context(self):
-            # need to setup the selection
-            # as are not passed directly but in the grouper
-            f = getattr(self._obj_with_exclusions, name)
-            if not isinstance(f, types.MethodType):
-                return self.apply(lambda self: getattr(self, name))
-
-        f = getattr(type(self._obj_with_exclusions), name)
-        sig = inspect.signature(f)
-
-        def wrapper(*args, **kwargs):
-            # a little trickery for aggregation functions that need an axis
-            # argument
-            if "axis" in sig.parameters:
-                if kwargs.get("axis", None) is None:
-                    kwargs["axis"] = self.axis
-
-            def curried(x):
-                return f(x, *args, **kwargs)
-
-            # preserve the name so we can detect it when calling plot methods,
-            # to avoid duplicates
-            curried.__name__ = name
-
-            # special case otherwise extra plots are created when catching the
-            # exception below
-            if name in base.plotting_methods:
-                return self.apply(curried)
-
-            return self._python_apply_general(curried, self._obj_with_exclusions)
-
-        wrapper.__name__ = name
-        return wrapper
 
     @final
     def get_group(self, name, obj=None):
@@ -845,80 +762,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         for each group
         """
         return self.grouper.get_iterator(self.obj, axis=self.axis)
-
-    @Appender(
-        _apply_docs["template"].format(
-            input="dataframe", examples=_apply_docs["dataframe_examples"]
-        )
-    )
-    def apply(self, func, *args, **kwargs):
-
-        func = com.is_builtin_func(func)
-
-        # this is needed so we don't try and wrap strings. If we could
-        # resolve functions to their callable functions prior, this
-        # wouldn't be needed
-        if args or kwargs:
-            if callable(func):
-
-                @wraps(func)
-                def f(g):
-                    with np.errstate(all="ignore"):
-                        return func(g, *args, **kwargs)
-
-            elif hasattr(nanops, "nan" + func):
-                # TODO: should we wrap this in to e.g. _is_builtin_func?
-                f = getattr(nanops, "nan" + func)
-
-            else:
-                raise ValueError(
-                    "func must be a callable if args or kwargs are supplied"
-                )
-        else:
-            f = func
-
-        # ignore SettingWithCopy here in case the user mutates
-        with option_context("mode.chained_assignment", None):
-            try:
-                result = self._python_apply_general(f, self._selected_obj)
-            except TypeError:
-                # gh-20949
-                # try again, with .apply acting as a filtering
-                # operation, by excluding the grouping column
-                # This would normally not be triggered
-                # except if the udf is trying an operation that
-                # fails on *some* columns, e.g. a numeric operation
-                # on a string grouper column
-
-                with group_selection_context(self):
-                    return self._python_apply_general(f, self._selected_obj)
-
-        return result
-
-    @final
-    def _python_apply_general(
-        self, f: F, data: FrameOrSeriesUnion
-    ) -> FrameOrSeriesUnion:
-        """
-        Apply function f in python space
-
-        Parameters
-        ----------
-        f : callable
-            Function to apply
-        data : Series or DataFrame
-            Data to apply f to
-
-        Returns
-        -------
-        Series or DataFrame
-            data after applying f
-        """
-        keys, values, mutated = self.grouper.apply(f, data, self.axis)
-
-        return self._wrap_applied_output(
-            data, keys, values, not_indexed_same=mutated or self.mutated
-        )
 
     def _iterate_slices(self) -> Iterable[Series]:
         raise AbstractMethodError(self)
@@ -996,42 +839,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
-
-    @final
-    def _agg_general(
-        self,
-        numeric_only: bool = True,
-        min_count: int = -1,
-        *,
-        alias: str,
-        npfunc: Callable,
-    ):
-        with group_selection_context(self):
-            # try a cython aggregation if we can
-            result = None
-            try:
-                result = self._cython_agg_general(
-                    how=alias,
-                    alt=npfunc,
-                    numeric_only=numeric_only,
-                    min_count=min_count,
-                )
-            except DataError:
-                pass
-            except NotImplementedError as err:
-                if "function is not implemented for this dtype" in str(
-                    err
-                ) or "category dtype not supported" in str(err):
-                    # raised in _get_cython_function, in some cases can
-                    #  be trimmed by implementing cython funcs for more dtypes
-                    pass
-                else:
-                    raise
-
-            # apply a non-cython aggregation
-            if result is None:
-                result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-            return result.__finalize__(self.obj, method="groupby")
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1148,111 +955,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         return result, index
 
     @final
-    def _python_agg_general(self, func, *args, **kwargs):
-        func = com.is_builtin_func(func)
-        f = lambda x: func(x, *args, **kwargs)
-
-        # iterate through "columns" ex exclusions to populate output dict
-        output: dict[base.OutputKey, np.ndarray] = {}
-
-        for idx, obj in enumerate(self._iterate_slices()):
-            name = obj.name
-            if self.grouper.ngroups == 0:
-                # agg_series below assumes ngroups > 0
-                continue
-
-            try:
-                # if this function is invalid for this dtype, we will ignore it.
-                result, counts = self.grouper.agg_series(obj, f)
-            except TypeError:
-                continue
-
-            assert result is not None
-            key = base.OutputKey(label=name, position=idx)
-
-            if is_numeric_dtype(obj.dtype):
-                result = maybe_downcast_numeric(result, obj.dtype)
-
-            if self.grouper._filter_empty_groups:
-                mask = counts.ravel() > 0
-
-                # since we are masking, make sure that we have a float object
-                values = result
-                if is_numeric_dtype(values.dtype):
-                    values = ensure_float(values)
-
-                    result = maybe_downcast_numeric(values[mask], result.dtype)
-
-            output[key] = result
-
-        if not output:
-            return self._python_apply_general(f, self._selected_obj)
-
-        return self._wrap_aggregated_output(output, index=self.grouper.result_index)
-
-    @final
-    def _concat_objects(self, keys, values, not_indexed_same: bool = False):
-        from pandas.core.reshape.concat import concat
-
-        def reset_identity(values):
-            # reset the identities of the components
-            # of the values to prevent aliasing
-            for v in com.not_none(*values):
-                ax = v._get_axis(self.axis)
-                ax._reset_identity()
-            return values
-
-        if not not_indexed_same:
-            result = concat(values, axis=self.axis)
-            ax = self.filter(lambda x: True).axes[self.axis]
-
-            # this is a very unfortunate situation
-            # we can't use reindex to restore the original order
-            # when the ax has duplicates
-            # so we resort to this
-            # GH 14776, 30667
-            if ax.has_duplicates and not result.axes[self.axis].equals(ax):
-                indexer, _ = result.index.get_indexer_non_unique(ax._values)
-                indexer = algorithms.unique1d(indexer)
-                result = result.take(indexer, axis=self.axis)
-            else:
-                result = result.reindex(ax, axis=self.axis, copy=False)
-
-        elif self.group_keys:
-
-            values = reset_identity(values)
-            if self.as_index:
-
-                # possible MI return case
-                group_keys = keys
-                group_levels = self.grouper.levels
-                group_names = self.grouper.names
-
-                result = concat(
-                    values,
-                    axis=self.axis,
-                    keys=group_keys,
-                    levels=group_levels,
-                    names=group_names,
-                    sort=False,
-                )
-            else:
-
-                # GH5610, returns a MI, with the first level being a
-                # range index
-                keys = list(range(len(values)))
-                result = concat(values, axis=self.axis, keys=keys)
-        else:
-            values = reset_identity(values)
-            result = concat(values, axis=self.axis)
-
-        if isinstance(result, Series) and self._selection_name is not None:
-
-            result.name = self._selection_name
-
-        return result
-
-    @final
     def _apply_filter(self, indices, dropna):
         if len(indices) == 0:
             indices = np.array([], dtype="int64")
@@ -1342,6 +1044,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     more
     """
 
+    obj: FrameOrSeries
+    grouper: ops.BaseGrouper
+    as_index: bool
+
     def __init__(
         self,
         obj: FrameOrSeries,
@@ -1399,6 +1105,318 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
         self.exclusions = exclusions or set()
+
+    def __getattr__(self, attr: str):
+        if attr in self._internal_names_set:
+            return object.__getattribute__(self, attr)
+        if attr in self.obj:
+            return self[attr]
+
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{attr}'"
+        )
+
+    @final
+    def _make_wrapper(self, name: str) -> Callable:
+        assert name in self._apply_allowlist
+
+        with group_selection_context(self):
+            # need to setup the selection
+            # as are not passed directly but in the grouper
+            f = getattr(self._obj_with_exclusions, name)
+            if not isinstance(f, types.MethodType):
+                return self.apply(lambda self: getattr(self, name))
+
+        f = getattr(type(self._obj_with_exclusions), name)
+        sig = inspect.signature(f)
+
+        def wrapper(*args, **kwargs):
+            # a little trickery for aggregation functions that need an axis
+            # argument
+            if "axis" in sig.parameters:
+                if kwargs.get("axis", None) is None:
+                    kwargs["axis"] = self.axis
+
+            def curried(x):
+                return f(x, *args, **kwargs)
+
+            # preserve the name so we can detect it when calling plot methods,
+            # to avoid duplicates
+            curried.__name__ = name
+
+            # special case otherwise extra plots are created when catching the
+            # exception below
+            if name in base.plotting_methods:
+                return self.apply(curried)
+
+            return self._python_apply_general(curried, self._obj_with_exclusions)
+
+        wrapper.__name__ = name
+        return wrapper
+
+    # -----------------------------------------------------------------
+    # Selection
+
+    @final
+    def _set_group_selection(self) -> None:
+        """
+        Create group based selection.
+
+        Used when selection is not passed directly but instead via a grouper.
+
+        NOTE: this should be paired with a call to _reset_group_selection
+        """
+        grp = self.grouper
+        if not (
+            self.as_index
+            and getattr(grp, "groupings", None) is not None
+            and self.obj.ndim > 1
+            and self._group_selection is None
+        ):
+            return
+
+        groupers = [g.name for g in grp.groupings if g.level is None and g.in_axis]
+
+        if len(groupers):
+            # GH12839 clear selected obj cache when group selection changes
+            ax = self.obj._info_axis
+            self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
+            self._reset_cache("_selected_obj")
+
+    @final
+    def _reset_group_selection(self) -> None:
+        """
+        Clear group based selection.
+
+        Used for methods needing to return info on each group regardless of
+        whether a group selection was previously set.
+        """
+        if self._group_selection is not None:
+            # GH12839 clear cached selection too when changing group selection
+            self._group_selection = None
+            self._reset_cache("_selected_obj")
+
+    # -----------------------------------------------------------------
+    # Dispatch/Wrapping
+
+    @final
+    def _concat_objects(self, keys, values, not_indexed_same: bool = False):
+        from pandas.core.reshape.concat import concat
+
+        def reset_identity(values):
+            # reset the identities of the components
+            # of the values to prevent aliasing
+            for v in com.not_none(*values):
+                ax = v._get_axis(self.axis)
+                ax._reset_identity()
+            return values
+
+        if not not_indexed_same:
+            result = concat(values, axis=self.axis)
+            ax = self.filter(lambda x: True).axes[self.axis]
+
+            # this is a very unfortunate situation
+            # we can't use reindex to restore the original order
+            # when the ax has duplicates
+            # so we resort to this
+            # GH 14776, 30667
+            if ax.has_duplicates and not result.axes[self.axis].equals(ax):
+                indexer, _ = result.index.get_indexer_non_unique(ax._values)
+                indexer = algorithms.unique1d(indexer)
+                result = result.take(indexer, axis=self.axis)
+            else:
+                result = result.reindex(ax, axis=self.axis, copy=False)
+
+        elif self.group_keys:
+
+            values = reset_identity(values)
+            if self.as_index:
+
+                # possible MI return case
+                group_keys = keys
+                group_levels = self.grouper.levels
+                group_names = self.grouper.names
+
+                result = concat(
+                    values,
+                    axis=self.axis,
+                    keys=group_keys,
+                    levels=group_levels,
+                    names=group_names,
+                    sort=False,
+                )
+            else:
+
+                # GH5610, returns a MI, with the first level being a
+                # range index
+                keys = list(range(len(values)))
+                result = concat(values, axis=self.axis, keys=keys)
+        else:
+            values = reset_identity(values)
+            result = concat(values, axis=self.axis)
+
+        if isinstance(result, Series) and self._selection_name is not None:
+
+            result.name = self._selection_name
+
+        return result
+
+    # -----------------------------------------------------------------
+
+    @Appender(
+        _apply_docs["template"].format(
+            input="dataframe", examples=_apply_docs["dataframe_examples"]
+        )
+    )
+    def apply(self, func, *args, **kwargs):
+
+        func = com.is_builtin_func(func)
+
+        # this is needed so we don't try and wrap strings. If we could
+        # resolve functions to their callable functions prior, this
+        # wouldn't be needed
+        if args or kwargs:
+            if callable(func):
+
+                @wraps(func)
+                def f(g):
+                    with np.errstate(all="ignore"):
+                        return func(g, *args, **kwargs)
+
+            elif hasattr(nanops, "nan" + func):
+                # TODO: should we wrap this in to e.g. _is_builtin_func?
+                f = getattr(nanops, "nan" + func)
+
+            else:
+                raise ValueError(
+                    "func must be a callable if args or kwargs are supplied"
+                )
+        else:
+            f = func
+
+        # ignore SettingWithCopy here in case the user mutates
+        with option_context("mode.chained_assignment", None):
+            try:
+                result = self._python_apply_general(f, self._selected_obj)
+            except TypeError:
+                # gh-20949
+                # try again, with .apply acting as a filtering
+                # operation, by excluding the grouping column
+                # This would normally not be triggered
+                # except if the udf is trying an operation that
+                # fails on *some* columns, e.g. a numeric operation
+                # on a string grouper column
+
+                with group_selection_context(self):
+                    return self._python_apply_general(f, self._selected_obj)
+
+        return result
+
+    @final
+    def _python_apply_general(
+        self, f: F, data: FrameOrSeriesUnion
+    ) -> FrameOrSeriesUnion:
+        """
+        Apply function f in python space
+
+        Parameters
+        ----------
+        f : callable
+            Function to apply
+        data : Series or DataFrame
+            Data to apply f to
+
+        Returns
+        -------
+        Series or DataFrame
+            data after applying f
+        """
+        keys, values, mutated = self.grouper.apply(f, data, self.axis)
+
+        return self._wrap_applied_output(
+            data, keys, values, not_indexed_same=mutated or self.mutated
+        )
+
+    @final
+    def _python_agg_general(self, func, *args, **kwargs):
+        func = com.is_builtin_func(func)
+        f = lambda x: func(x, *args, **kwargs)
+
+        # iterate through "columns" ex exclusions to populate output dict
+        output: dict[base.OutputKey, np.ndarray] = {}
+
+        for idx, obj in enumerate(self._iterate_slices()):
+            name = obj.name
+            if self.grouper.ngroups == 0:
+                # agg_series below assumes ngroups > 0
+                continue
+
+            try:
+                # if this function is invalid for this dtype, we will ignore it.
+                result, counts = self.grouper.agg_series(obj, f)
+            except TypeError:
+                continue
+
+            assert result is not None
+            key = base.OutputKey(label=name, position=idx)
+
+            if is_numeric_dtype(obj.dtype):
+                result = maybe_downcast_numeric(result, obj.dtype)
+
+            if self.grouper._filter_empty_groups:
+                mask = counts.ravel() > 0
+
+                # since we are masking, make sure that we have a float object
+                values = result
+                if is_numeric_dtype(values.dtype):
+                    values = ensure_float(values)
+
+                    result = maybe_downcast_numeric(values[mask], result.dtype)
+
+            output[key] = result
+
+        if not output:
+            return self._python_apply_general(f, self._selected_obj)
+
+        return self._wrap_aggregated_output(output, index=self.grouper.result_index)
+
+    @final
+    def _agg_general(
+        self,
+        numeric_only: bool = True,
+        min_count: int = -1,
+        *,
+        alias: str,
+        npfunc: Callable,
+    ):
+        with group_selection_context(self):
+            # try a cython aggregation if we can
+            result = None
+            try:
+                result = self._cython_agg_general(
+                    how=alias,
+                    alt=npfunc,
+                    numeric_only=numeric_only,
+                    min_count=min_count,
+                )
+            except DataError:
+                pass
+            except NotImplementedError as err:
+                if "function is not implemented for this dtype" in str(
+                    err
+                ) or "category dtype not supported" in str(err):
+                    # raised in _get_cython_function, in some cases can
+                    #  be trimmed by implementing cython funcs for more dtypes
+                    pass
+                else:
+                    raise
+
+            # apply a non-cython aggregation
+            if result is None:
+                result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+            return result.__finalize__(self.obj, method="groupby")
+
+    # -----------------------------------------------------------------
 
     @final
     @property
