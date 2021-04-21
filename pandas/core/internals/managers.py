@@ -1137,6 +1137,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         values = block.iget(self.blklocs[i])
         return values
 
+    @property
+    def column_arrays(self) -> list[ArrayLike]:
+        return [self.iget_values(i) for i in range(len(self.items))]
+
     def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not

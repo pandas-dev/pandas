@@ -225,14 +225,6 @@ class Block(PandasObject):
         return self.values  # type: ignore[return-value]
 
     @final
-    def get_block_values_for_json(self) -> np.ndarray:
-        """
-        This is used in the JSON C code.
-        """
-        # TODO(EA2D): reshape will be unnecessary with 2D EAs
-        return np.asarray(self.values).reshape(self.shape)
-
-    @final
     @cache_readonly
     def fill_value(self):
         # Used in reindex_indexer

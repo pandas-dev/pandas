@@ -919,6 +919,10 @@ class ArrayManager(BaseArrayManager):
         """
         return self.arrays[i]
 
+    @property
+    def column_arrays(self) -> list[ArrayLike]:
+        return self.arrays
+
     def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
         """
         Set new column(s).

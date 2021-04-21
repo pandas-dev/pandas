@@ -294,7 +294,12 @@ static int is_simple_frame(PyObject *obj) {
     if (!mgr) {
         return 0;
     }
-    int ret = (get_attr_length(mgr, "blocks") <= 1);
+    int ret;
+    if (PyObject_HasAttrString(mgr, "blocks")) {
+        ret = (get_attr_length(mgr, "blocks") <= 1);
+    } else {
+        ret = 0;
+    }
 
     Py_DECREF(mgr);
     return ret;
@@ -656,16 +661,10 @@ void PdBlockPassThru_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 }
 
 void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
-    PyObject *obj, *blocks, *block, *values, *tmp;
-    PyArrayObject *locs;
+    PyObject *obj, *values, *arrays, *array;
     PdBlockContext *blkCtxt;
     NpyArrContext *npyarr;
     Py_ssize_t i;
-    NpyIter *iter;
-    NpyIter_IterNextFunc *iternext;
-    npy_int64 **dataptr;
-    npy_int64 colIdx;
-    npy_intp idx;
 
     obj = (PyObject *)_obj;
 
@@ -708,97 +707,45 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     }
 
-    blocks = get_sub_attr(obj, "_mgr", "blocks");
-    if (!blocks) {
+    arrays = get_sub_attr(obj, "_mgr", "column_arrays");
+    if (!arrays) {
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
         return;
-    } else if (!PyTuple_Check(blocks)) {
-        PyErr_SetString(PyExc_TypeError, "blocks must be a tuple!");
-        goto BLKRET;
     }
 
-    // force transpose so each NpyArrContext strides down its column
-    GET_TC(tc)->transpose = 1;
-
-    for (i = 0; i < PyObject_Length(blocks); i++) {
-        block = PyTuple_GET_ITEM(blocks, i);
-        if (!block) {
+    for (i = 0; i < PyObject_Length(arrays); i++) {
+        array = PyList_GET_ITEM(arrays, i);
+        if (!array) {
             GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            goto BLKRET;
+            goto ARR_RET;
         }
 
-        tmp = PyObject_CallMethod(block, "get_block_values_for_json", NULL);
-        if (!tmp) {
+        // ensure we have a numpy array (i.e. np.asarray)
+        values = PyObject_CallMethod(array, "__array__", NULL);
+        if ((!values) || (!PyArray_CheckExact(values))) {
+            // Didn't get a numpy array
             ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
             GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            goto BLKRET;
+            goto ARR_RET;
         }
 
-        values = PyArray_Transpose((PyArrayObject *)tmp, NULL);
-        Py_DECREF(tmp);
-        if (!values) {
-            GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            goto BLKRET;
-        }
+        GET_TC(tc)->newObj = values;
 
-        locs = (PyArrayObject *)get_sub_attr(block, "mgr_locs", "as_array");
-        if (!locs) {
-            Py_DECREF(values);
-            GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            goto BLKRET;
-        }
+        // init a dedicated context for this column
+        NpyArr_iterBegin(obj, tc);
+        npyarr = GET_TC(tc)->npyarr;
 
-        iter = NpyIter_New(locs, NPY_ITER_READONLY, NPY_KEEPORDER,
-                           NPY_NO_CASTING, NULL);
-        if (!iter) {
-            Py_DECREF(values);
-            Py_DECREF(locs);
-            GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            goto BLKRET;
-        }
-        iternext = NpyIter_GetIterNext(iter, NULL);
-        if (!iternext) {
-            NpyIter_Deallocate(iter);
-            Py_DECREF(values);
-            Py_DECREF(locs);
-            GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            goto BLKRET;
-        }
-        dataptr = (npy_int64 **)NpyIter_GetDataPtrArray(iter);
-        do {
-            colIdx = **dataptr;
-            idx = NpyIter_GetIterIndex(iter);
+        GET_TC(tc)->itemValue = NULL;
+        ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = NULL;
 
-            blkCtxt->cindices[colIdx] = idx;
-
-            // Reference freed in Pdblock_iterend
-            Py_INCREF(values);
-            GET_TC(tc)->newObj = values;
-
-            // init a dedicated context for this column
-            NpyArr_iterBegin(obj, tc);
-            npyarr = GET_TC(tc)->npyarr;
-
-            // set the dataptr to our desired column and initialise
-            if (npyarr != NULL) {
-                npyarr->dataptr += npyarr->stride * idx;
-                NpyArr_iterNext(obj, tc);
-            }
-            GET_TC(tc)->itemValue = NULL;
-            ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = NULL;
-
-            blkCtxt->npyCtxts[colIdx] = npyarr;
-            GET_TC(tc)->newObj = NULL;
-        } while (iternext(iter));
-
-        NpyIter_Deallocate(iter);
-        Py_DECREF(values);
-        Py_DECREF(locs);
+        blkCtxt->npyCtxts[i] = npyarr;
+        GET_TC(tc)->newObj = NULL;
     }
     GET_TC(tc)->npyarr = blkCtxt->npyCtxts[0];
+    goto ARR_RET;
 
-BLKRET:
-    Py_DECREF(blocks);
+ARR_RET:
+    Py_DECREF(arrays);
 }
 
 void PdBlock_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
