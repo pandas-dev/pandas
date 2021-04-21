@@ -97,7 +97,6 @@ from pandas.core.indexes.api import (
     all_indexes_same,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.internals import ArrayManager
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 
@@ -1100,8 +1099,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
-        using_array_manager = isinstance(data, ArrayManager)
-
         def cast_agg_result(
             result: ArrayLike, values: ArrayLike, how: str
         ) -> ArrayLike:
@@ -1114,11 +1111,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = type(values)._from_sequence(result.ravel(), dtype=values.dtype)
                 # Note this will have result.dtype == dtype from above
 
-            elif (
-                not using_array_manager
-                and isinstance(result, np.ndarray)
-                and result.ndim == 1
-            ):
+            elif isinstance(result, np.ndarray) and result.ndim == 1:
                 # We went through a SeriesGroupByPath and need to reshape
                 # GH#32223 includes case with IntegerArray values
                 # We only get here with values.dtype == object
@@ -1822,8 +1815,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        using_array_manager = isinstance(data, ArrayManager)
-
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
             # TODO(2DEA): reshape would not be necessary with 2D EAs
             if bvalues.ndim == 1:
@@ -1833,10 +1824,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 masked = mask & ~isna(bvalues)
 
             counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
-            if using_array_manager:
-                # count_level_2d return (1, N) array for single column
-                # -> extract 1D array
-                counted = counted[0, :]
             return counted
 
         new_mgr = data.grouped_reduce(hfunc)
