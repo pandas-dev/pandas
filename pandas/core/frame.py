@@ -4790,7 +4790,8 @@ class DataFrame(NDFrame, OpsMixin):
         Remove rows or columns by specifying label names and corresponding
         axis, or by specifying directly index or column names. When using a
         multi-index, labels on different levels can be removed by specifying
-        the level.
+        the level. See the `user guide <advanced.shown_levels>`
+        for more information about the now unused levels.
 
         Parameters
         ----------
@@ -7821,6 +7822,11 @@ NaN 12.3   33.0
 
             .. versionchanged:: 0.25.0
 
+        sort : bool, default True
+            Specifies if the result should be sorted.
+
+            .. versionadded:: 1.3.0
+
         Returns
         -------
         DataFrame
@@ -7924,6 +7930,7 @@ NaN 12.3   33.0
         dropna=True,
         margins_name="All",
         observed=False,
+        sort=True,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
 
@@ -7938,6 +7945,7 @@ NaN 12.3   33.0
             dropna=dropna,
             margins_name=margins_name,
             observed=observed,
+            sort=sort,
         )
 
     def stack(self, level: Level = -1, dropna: bool = True):
