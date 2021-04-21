@@ -862,8 +862,8 @@ dtype='datetime64[ns]', freq=None)
 
     >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'],
     ...                utc=True)
-    DatetimeIndex(['2018-10-26 17:30:00+00:00', '2018-10-26 17:00:00+00:00'], \
-dtype='datetime64[ns, UTC]', freq=None)
+    DatetimeIndex(['2018-10-26 17:30:00+00:00', '2018-10-26 17:00:00+00:00'],
+                  dtype='datetime64[ns, UTC]', freq=None)
     """
     if arg is None:
         return None
