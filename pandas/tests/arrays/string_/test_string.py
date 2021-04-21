@@ -476,6 +476,22 @@ def test_arrow_roundtrip(dtype, dtype_object):
     assert result.loc[2, "a"] is pd.NA
 
 
+@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+def test_arrow_load_from_zero_chunks(dtype, dtype_object):
+    # GH-41040
+    import pyarrow as pa
+
+    data = pd.array([], dtype=dtype)
+    df = pd.DataFrame({"a": data})
+    table = pa.table(df)
+    assert table.field("a").type == "string"
+    # Instantiate the same table with no chunks at all
+    table = pa.table([pa.chunked_array([], type=pa.string())], schema=table.schema)
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, dtype_object)
+    tm.assert_frame_equal(result, df)
+
+
 def test_value_counts_na(dtype):
     arr = pd.array(["a", "b", "a", pd.NA], dtype=dtype)
     result = arr.value_counts(dropna=False)
