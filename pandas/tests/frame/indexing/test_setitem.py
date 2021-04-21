@@ -52,9 +52,9 @@ class TestDataFrameSetItem:
         # should raise an exception.
         data = DataFrame(np.zeros((4, 2)), columns=["A", "B"])
         msg = (
-            "Dataframe column is being assigned to a 2D "
-            "array with more than two columns. Column assignment "
-            "accepts only 2D arrays with one column."
+            "Dataframe column is being assigned to a 2D array with "
+            "different number of columns. Column assignment accepts only "
+            "2D arrays with same number of columns."
         )
         with pytest.raises(Exception, match=msg):
             data["A"] = np.random.randn(arr[0], arr[1])

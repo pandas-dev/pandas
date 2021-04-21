@@ -3734,15 +3734,24 @@ class DataFrame(NDFrame, OpsMixin):
                     value = np.tile(value, (len(existing_piece.columns), 1)).T
 
         if (
+            # prevent setting a column to an ndarray with a different number
+            # of columns
             value.ndim == 2
-            and value.shape[1] > 1
-            and not isinstance(self.columns, MultiIndex)
-            and len(self.columns) == len(set(self.columns))
+            # If there are duplicates, make sure the number of columns
+            # match the ndarray
+            and len(self.columns.get_indexer_for([key])) != value.shape[1]
+            # Handle The index inside the multiindex should have the same
+            # number of columns as the ndarray
+            and (
+                key in self.columns
+                and isinstance(self[key], DataFrame)
+                and len(self[key].columns) != value.shape[1]
+            )
         ):
             raise ValueError(
                 "Dataframe column is being assigned to a 2D array with "
-                "more than two columns. Column assignment accepts only "
-                "2D arrays with one column."
+                "different number of columns. Column assignment accepts only "
+                "2D arrays with same number of columns."
             )
 
         self._set_item_mgr(key, value)
