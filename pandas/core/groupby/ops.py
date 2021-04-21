@@ -58,7 +58,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCCategoricalIndex
 from pandas.core.dtypes.missing import (
     isna,
@@ -94,6 +93,10 @@ class WrappedCythonOp:
     """
     Dispatch logic for functions defined in _libs.groupby
     """
+
+    # Functions for which we do _not_ attempt to cast the cython result
+    #  back to the original dtype.
+    cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
     def __init__(self, kind: str, how: str):
         self.kind = kind
@@ -136,23 +139,17 @@ class WrappedCythonOp:
 
         # see if there is a fused-type version of function
         # only valid for numeric
-        f = getattr(libgroupby, ftype, None)
-        if f is not None:
-            if is_numeric:
-                return f
-            elif dtype == object:
-                if "object" not in f.__signatures__:
-                    # raise NotImplementedError here rather than TypeError later
-                    raise NotImplementedError(
-                        f"function is not implemented for this dtype: "
-                        f"[how->{how},dtype->{dtype_str}]"
-                    )
-                return f
-
-        raise NotImplementedError(
-            f"function is not implemented for this dtype: "
-            f"[how->{how},dtype->{dtype_str}]"
-        )
+        f = getattr(libgroupby, ftype)
+        if is_numeric:
+            return f
+        elif dtype == object:
+            if "object" not in f.__signatures__:
+                # raise NotImplementedError here rather than TypeError later
+                raise NotImplementedError(
+                    f"function is not implemented for this dtype: "
+                    f"[how->{how},dtype->{dtype_str}]"
+                )
+            return f
 
     def get_cython_func_and_vals(self, values: np.ndarray, is_numeric: bool):
         """
@@ -208,7 +205,14 @@ class WrappedCythonOp:
             # never an invalid op for those dtypes, so return early as fastpath
             return
 
-        if is_categorical_dtype(dtype) or is_sparse(dtype):
+        if is_categorical_dtype(dtype):
+            # NotImplementedError for methods that can fall back to a
+            #  non-cython implementation.
+            if how in ["add", "prod", "cumsum", "cumprod"]:
+                raise TypeError(f"{dtype} type does not support {how} operations")
+            raise NotImplementedError(f"{dtype} dtype not supported")
+
+        elif is_sparse(dtype):
             # categoricals are only 1d, so we
             #  are not setup for dim transforming
             raise NotImplementedError(f"{dtype} dtype not supported")
@@ -216,14 +220,10 @@ class WrappedCythonOp:
             # we raise NotImplemented if this is an invalid operation
             #  entirely, e.g. adding datetimes
             if how in ["add", "prod", "cumsum", "cumprod"]:
-                raise NotImplementedError(
-                    f"datetime64 type does not support {how} operations"
-                )
+                raise TypeError(f"datetime64 type does not support {how} operations")
         elif is_timedelta64_dtype(dtype):
             if how in ["prod", "cumprod"]:
-                raise NotImplementedError(
-                    f"timedelta64 type does not support {how} operations"
-                )
+                raise TypeError(f"timedelta64 type does not support {how} operations")
 
     def get_output_shape(self, ngroups: int, values: np.ndarray) -> Shape:
         how = self.how
@@ -567,11 +567,13 @@ class BaseGrouper:
         if is_datetime64tz_dtype(values.dtype) or is_period_dtype(values.dtype):
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
-            values = values.view("M8[ns]")
+            npvalues = values.view("M8[ns]")
             res_values = self._cython_operation(
-                kind, values, how, axis, min_count, **kwargs
+                kind, npvalues, how, axis, min_count, **kwargs
             )
             if how in ["rank"]:
+                # i.e. how in WrappedCythonOp.cast_blocklist, since
+                #  other cast_blocklist methods dont go through cython_operation
                 # preserve float64 dtype
                 return res_values
 
@@ -585,12 +587,16 @@ class BaseGrouper:
             res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
-            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
-            if isinstance(dtype, ExtensionDtype):
-                cls = dtype.construct_array_type()
-                return cls._from_sequence(res_values, dtype=dtype)
+            if how in ["rank"]:
+                # i.e. how in WrappedCythonOp.cast_blocklist, since
+                #  other cast_blocklist methods dont go through cython_operation
+                return res_values
 
-            return res_values
+            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]"
+            # has no attribute "construct_array_type"
+            cls = dtype.construct_array_type()  # type: ignore[union-attr]
+            return cls._from_sequence(res_values, dtype=dtype)
 
         elif is_float_dtype(values.dtype):
             # FloatingArray
@@ -598,8 +604,16 @@ class BaseGrouper:
             res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
-            result = type(orig_values)._from_sequence(res_values)
-            return result
+            if how in ["rank"]:
+                # i.e. how in WrappedCythonOp.cast_blocklist, since
+                #  other cast_blocklist methods dont go through cython_operation
+                return res_values
+
+            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]"
+            # has no attribute "construct_array_type"
+            cls = dtype.construct_array_type()  # type: ignore[union-attr]
+            return cls._from_sequence(res_values, dtype=dtype)
 
         raise NotImplementedError(
             f"function is not implemented for this dtype: {values.dtype}"
@@ -714,9 +728,9 @@ class BaseGrouper:
 
         result = result.T
 
-        if how not in base.cython_cast_blocklist:
+        if how not in cy_op.cast_blocklist:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
-            # "rank" is the only member of cython_cast_blocklist we get here
+            # "rank" is the only member of cast_blocklist we get here
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
             op_result = maybe_downcast_to_dtype(result, dtype)
         else:
