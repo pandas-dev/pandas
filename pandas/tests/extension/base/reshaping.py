@@ -3,8 +3,6 @@ import itertools
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas.api.extensions import ExtensionArray
 from pandas.core.internals import ExtensionBlock
@@ -111,7 +109,6 @@ class BaseReshapingTests(BaseExtensionTests):
         result = pd.concat([df1, df2], axis=1, copy=False)
         self.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) concat reindex
     def test_concat_with_reindex(self, data):
         # GH-33027
         a = pd.DataFrame({"a": data[:5]})

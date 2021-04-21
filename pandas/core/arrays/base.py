@@ -609,7 +609,7 @@ class ExtensionArray:
 
         Returns
         -------
-        ndarray
+        np.ndarray[np.intp]
             Array of indices that sort ``self``. If NaN values are contained,
             NaN values are placed at the end.
 
@@ -1303,6 +1303,21 @@ class ExtensionArray:
     def delete(self: ExtensionArrayT, loc) -> ExtensionArrayT:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
+
+    @classmethod
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype):
+        """
+        Create an ExtensionArray with the given shape and dtype.
+        """
+        obj = cls._from_sequence([], dtype=dtype)
+
+        taker = np.broadcast_to(np.intp(-1), shape)
+        result = obj.take(taker, allow_fill=True)
+        if not isinstance(result, cls) or dtype != result.dtype:
+            raise NotImplementedError(
+                f"Default 'empty' implementation is invalid for dtype='{dtype}'"
+            )
+        return result
 
 
 class ExtensionOpsMixin:

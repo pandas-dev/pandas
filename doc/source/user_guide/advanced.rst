@@ -498,7 +498,7 @@ values across a level. For instance:
    )
    df = pd.DataFrame(np.random.randn(4, 2), index=midx)
    df
-   df2 = df.mean(level=0)
+   df2 = df.groupby(level=0).mean()
    df2
    df2.reindex(df.index, level=0)
 

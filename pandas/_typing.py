@@ -185,8 +185,11 @@ ColspaceArgType = Union[
 ]
 
 # internals
-Manager = Union["ArrayManager", "BlockManager", "SingleBlockManager"]
+Manager = Union[
+    "ArrayManager", "SingleArrayManager", "BlockManager", "SingleBlockManager"
+]
 SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
+Manager2D = Union["ArrayManager", "BlockManager"]
 
 # indexing
 # PositionalIndexer -> valid 1D positional indexer, e.g. can pass

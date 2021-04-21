@@ -915,7 +915,7 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     """
     import pytest
 
-    return pytest.raises(expected_exception, match=None)
+    return pytest.raises(expected_exception, match=None)  # noqa: PDF010
 
 
 cython_table = pd.core.common._cython_table.items()
