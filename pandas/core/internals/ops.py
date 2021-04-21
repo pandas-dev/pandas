@@ -8,8 +8,6 @@ from typing import (
 
 from pandas._typing import ArrayLike
 
-from pandas.core.construction import ensure_wrapped_if_datetimelike
-
 if TYPE_CHECKING:
     from pandas.core.internals.blocks import Block
     from pandas.core.internals.managers import BlockManager
@@ -56,8 +54,6 @@ def operate_blockwise(
 
     res_blks: list[Block] = []
     for lvals, rvals, locs, left_ea, right_ea, rblk in _iter_block_pairs(left, right):
-        lvals = ensure_wrapped_if_datetimelike(lvals)
-        rvals = ensure_wrapped_if_datetimelike(rvals)
         res_values = array_op(lvals, rvals)
         if left_ea and not right_ea and hasattr(res_values, "reshape"):
             res_values = res_values.reshape(1, -1)
