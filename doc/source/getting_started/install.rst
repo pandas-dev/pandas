@@ -362,6 +362,8 @@ pyarrow                   0.15.0             Parquet, ORC, and feather reading /
 pyreadstat                                   SPSS files (.sav) reading
 ========================= ================== =============================================================
 
+.. _install.warn_orc:
+
 .. warning::
 
     * If you want to use :func:`~pandas.read_orc`, it is highly recommended to install pyarrow using conda.
@@ -370,7 +372,7 @@ pyreadstat                                   SPSS files (.sav) reading
       ========================= ================== =============================================================
       System                    Conda              PyPI
       ========================= ================== =============================================================
-      Linux                     Successful         Failed(pyarrow==3.0 excepted)
+      Linux                     Successful         Failed(pyarrow==3.0 Successful)
       macOS                     Successful         Failed
       Windows                   Failed             Failed
       ========================= ================== =============================================================
