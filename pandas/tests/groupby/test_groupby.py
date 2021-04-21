@@ -99,10 +99,7 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
 
     applied = df.groupby("A").apply(max_value)
     result = applied.dtypes
-    expected = Series(
-        [np.dtype("object")] * 2 + [np.dtype("float64")] * 2 + [np.dtype("int64")],
-        index=["A", "B", "C", "D", "value"],
-    )
+    expected = df.dtypes
     tm.assert_series_equal(result, expected)
 
 
