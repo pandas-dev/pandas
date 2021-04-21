@@ -83,7 +83,6 @@ typedef struct __PdBlockContext {
     int ncols;
     int transpose;
 
-    int *cindices;             // frame column -> block column map
     NpyArrContext **npyCtxts;  // NpyArrContext for each column
 } PdBlockContext;
 
@@ -686,7 +685,6 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
 
     if (blkCtxt->ncols == 0) {
         blkCtxt->npyCtxts = NULL;
-        blkCtxt->cindices = NULL;
 
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
         return;
@@ -695,13 +693,6 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     blkCtxt->npyCtxts =
         PyObject_Malloc(sizeof(NpyArrContext *) * blkCtxt->ncols);
     if (!blkCtxt->npyCtxts) {
-        PyErr_NoMemory();
-        GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-        return;
-    }
-
-    blkCtxt->cindices = PyObject_Malloc(sizeof(int) * blkCtxt->ncols);
-    if (!blkCtxt->cindices) {
         PyErr_NoMemory();
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
         return;
@@ -776,9 +767,6 @@ void PdBlock_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
 
         if (blkCtxt->npyCtxts) {
             PyObject_Free(blkCtxt->npyCtxts);
-        }
-        if (blkCtxt->cindices) {
-            PyObject_Free(blkCtxt->cindices);
         }
         PyObject_Free(blkCtxt);
     }
