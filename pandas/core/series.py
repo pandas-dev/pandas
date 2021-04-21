@@ -1891,7 +1891,7 @@ Name: Max Speed, dtype: float64
         2
         """
         if level is None:
-            return notna(self._values).sum()
+            return notna(self._values).sum().astype("int64")
         else:
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "

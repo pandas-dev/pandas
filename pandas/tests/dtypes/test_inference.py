@@ -31,6 +31,7 @@ from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
     ensure_int32,
     is_bool,
+    is_complex,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
@@ -613,6 +614,69 @@ class TestInference:
         exp = np.array([True, False, np.nan], dtype=object)
         out = lib.maybe_convert_objects(ind.values, safe=1)
         tm.assert_numpy_array_equal(out, exp)
+
+    @pytest.mark.parametrize(
+        "data0",
+        [
+            True,
+            1,
+            1.0,
+            1.0 + 1.0j,
+            np.int8(1),
+            np.int16(1),
+            np.int32(1),
+            np.int64(1),
+            np.float16(1),
+            np.float32(1),
+            np.float64(1),
+            np.complex64(1),
+            np.complex128(1),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "data1",
+        [
+            True,
+            1,
+            1.0,
+            1.0 + 1.0j,
+            np.int8(1),
+            np.int16(1),
+            np.int32(1),
+            np.int64(1),
+            np.float16(1),
+            np.float32(1),
+            np.float64(1),
+            np.complex64(1),
+            np.complex128(1),
+        ],
+    )
+    def test_maybe_convert_objects_itemsize(self, data0, data1):
+        # GH 40908
+        data = [data0, data1]
+        arr = np.array(data, dtype="object")
+
+        common_kind = np.find_common_type(
+            [type(data0), type(data1)], scalar_types=[]
+        ).kind
+        kind0 = "python" if not hasattr(data0, "dtype") else data0.dtype.kind
+        kind1 = "python" if not hasattr(data1, "dtype") else data1.dtype.kind
+        if kind0 != "python" and kind1 != "python":
+            kind = common_kind
+            itemsize = max(data0.dtype.itemsize, data1.dtype.itemsize)
+        elif is_bool(data0) or is_bool(data1):
+            kind = "bool" if (is_bool(data0) and is_bool(data1)) else "object"
+            itemsize = ""
+        elif is_complex(data0) or is_complex(data1):
+            kind = common_kind
+            itemsize = 16
+        else:
+            kind = common_kind
+            itemsize = 8
+
+        expected = np.array(data, dtype=f"{kind}{itemsize}")
+        result = lib.maybe_convert_objects(arr)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956

@@ -641,7 +641,7 @@ class TestWhereCoercion(CoercionBase):
             values = klass([True, False, True, True])
         else:
             values = klass(x * fill_val for x in [5, 6, 7, 8])
-        exp = klass([1 + 1j, values[1], 3 + 3j, values[3]])
+        exp = klass([1 + 1j, values[1], 3 + 3j, values[3]], dtype=exp_dtype)
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
     @pytest.mark.parametrize(
