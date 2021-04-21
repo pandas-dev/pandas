@@ -763,3 +763,35 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
     def _str_upper(self):
         return type(self)(pc.utf8_upper(self._data))
+
+    def _str_split(self, pat=None, n=-1, expand=False):
+        if pat is None:
+            if hasattr(pc, "utf8_split_whitespace"):
+                if n is None or n == 0:
+                    n = -1
+                result = pc.utf8_split_whitespace(self._data, max_splits=n)
+            else:
+                return super()._str_split(pat=pat, n=n, expand=expand)
+        else:
+            if len(pat) == 1 and hasattr(pc, "split_pattern"):
+                if n is None or n == 0:
+                    n = -1
+                result = pc.split_pattern(self._data, pattern=pat, max_splits=n)
+            else:
+                return super()._str_split(pat=pat, n=n, expand=expand)
+
+        if result.null_count:
+            is_valid = np.array(result.is_valid())
+            result = np.array(result)
+            result[~is_valid] = self.dtype.na_value
+            valid = result[is_valid]
+            # we need to loop through to avoid numpy indexing assignment errors when
+            # the result is not a ragged array and interpreted as a 2 dimensional
+            # array
+            for i, val in enumerate(valid):
+                valid[i] = val.tolist()
+        else:
+            result = np.array(result)
+            for i, val in enumerate(result):
+                result[i] = val.tolist()
+        return result
