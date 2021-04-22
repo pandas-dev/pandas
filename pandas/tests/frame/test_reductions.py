@@ -1072,12 +1072,12 @@ class TestDataFrameAnalytics:
             opname, bool_frame_with_na, float_string_frame, has_bool_only=True
         )
 
-    @pytest.mark.xfail(reason="GH12863: numpy result won't match for object type")
     @pytest.mark.parametrize("opname", ["any", "all"])
-    def test_any_all_matches_numpy(self, opname, bool_frame_with_na):
-        assert_bool_op_calc(
-            opname, getattr(np, opname), bool_frame_with_na, has_skipna=True
-        )
+    def test_any_all_bool_frame(self, opname, bool_frame_with_na):
+        # GH#12863: numpy gives back NaN object data so fill NaNs
+        # to compare with pandas behavior
+        df = bool_frame_with_na.fillna(True)
+        assert_bool_op_calc(opname, getattr(np, opname), df, has_skipna=True)
 
     def test_any_all_extra(self):
         df = DataFrame(
@@ -1114,18 +1114,19 @@ class TestDataFrameAnalytics:
 
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-    def test_any_all_object_dtype(self, axis, bool_agg_func):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_any_all_object_dtype(self, axis, bool_agg_func, skipna):
         # GH#35450
         df = DataFrame(
             data=[
                 [1, np.nan, np.nan, True],
                 [np.nan, 2, np.nan, True],
                 [np.nan, np.nan, np.nan, True],
-                [np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, "5", np.nan],
             ]
         )
 
-        result = getattr(df, bool_agg_func)(axis=axis, skipna=False)
+        result = getattr(df, bool_agg_func)(axis=axis, skipna=skipna)
         expected = Series([True, True, True, True])
         tm.assert_series_equal(result, expected)
 
