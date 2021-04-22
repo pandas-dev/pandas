@@ -248,20 +248,6 @@ class TestPutmask:
             index.putmask("foo", fill)
 
 
-class TestCasting:
-    def test_maybe_cast_with_dtype(self):
-        # https://github.com/pandas-dev/pandas/issues/32413
-        index = Index([1, np.nan])
-
-        cond = index.notna()
-        other = "a" + Index(range(2)).astype(str)
-
-        fixed_index = index.where(cond, other)
-
-        tm.assert_index_equal(other, Index(["a0", "a1"]))
-        tm.assert_index_equal(fixed_index, Index([1.0, "a1"]))
-
-
 @pytest.mark.parametrize(
     "idx", [Index([1, 2, 3]), Index([0.1, 0.2, 0.3]), Index(["a", "b", "c"])]
 )

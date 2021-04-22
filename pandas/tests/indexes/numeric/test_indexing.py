@@ -376,6 +376,18 @@ class TestWhere:
         result = index.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
+    def test_maybe_cast_with_dtype(self):
+        # https://github.com/pandas-dev/pandas/issues/32413
+        index = Index([1, np.nan])
+
+        cond = index.notna()
+        other = "a" + Index(range(2)).astype(str)
+
+        fixed_index = index.where(cond, other)
+
+        tm.assert_index_equal(other, Index(["a0", "a1"]))
+        tm.assert_index_equal(fixed_index, Index([1.0, "a1"]))
+
 
 class TestTake:
     @pytest.mark.parametrize("klass", [Float64Index, Int64Index, UInt64Index])
