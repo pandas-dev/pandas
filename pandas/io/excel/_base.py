@@ -664,6 +664,15 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
         .. versionadded:: 1.2.0
+    if_sheet_exists : {'error', 'new', 'replace'}, default 'error'
+        How to behave when trying to write to a sheet that already
+        exists (append mode only).
+
+        * error: raise a ValueError.
+        * new: Create a new sheet, with a name determined by the engine.
+        * replace: Delete the contents of the sheet before writing to it.
+
+        .. versionadded:: 1.3.0
     engine_kwargs : dict, optional
         Keyword arguments to be passed into the engine.
 
@@ -760,6 +769,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
+        if_sheet_exists: str | None = None,
         engine_kwargs: dict | None = None,
         **kwargs,
     ):
@@ -861,6 +871,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
+        if_sheet_exists: str | None = None,
         engine_kwargs: dict | None = None,
         **kwargs,
     ):
@@ -895,6 +906,17 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             self.datetime_format = datetime_format
 
         self.mode = mode
+
+        if if_sheet_exists not in [None, "error", "new", "replace"]:
+            raise ValueError(
+                f"'{if_sheet_exists}' is not valid for if_sheet_exists. "
+                "Valid options are 'error', 'new' and 'replace'."
+            )
+        if if_sheet_exists and "r+" not in mode:
+            raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
+        if if_sheet_exists is None:
+            if_sheet_exists = "error"
+        self.if_sheet_exists = if_sheet_exists
 
     def __fspath__(self):
         return getattr(self.handles.handle, "name", "")
