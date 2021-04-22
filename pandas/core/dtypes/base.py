@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    TypeVar,
 )
 
 import numpy as np
@@ -25,6 +26,9 @@ from pandas.core.dtypes.generic import (
 
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
+
+    # To parameterize on same ExtensionDtype
+    E = TypeVar("E", bound="ExtensionDtype")
 
 
 class ExtensionDtype:
@@ -151,7 +155,7 @@ class ExtensionDtype:
         return np.nan
 
     @property
-    def type(self) -> type[Any]:
+    def type(self) -> type_t[Any]:
         """
         The scalar type for the array, e.g. ``int``
 
@@ -209,7 +213,7 @@ class ExtensionDtype:
         raise NotImplementedError
 
     @classmethod
-    def construct_from_string(cls, string: str):
+    def construct_from_string(cls, string: str) -> ExtensionDtype:
         r"""
         Construct this type from a string.
 
@@ -364,7 +368,7 @@ class ExtensionDtype:
             return None
 
 
-def register_extension_dtype(cls: type[ExtensionDtype]) -> type[ExtensionDtype]:
+def register_extension_dtype(cls: type[E]) -> type[E]:
     """
     Register an ExtensionType with pandas as class decorator.
 
@@ -420,7 +424,7 @@ class Registry:
 
         self.dtypes.append(dtype)
 
-    def find(self, dtype: type[ExtensionDtype] | str) -> type[ExtensionDtype] | None:
+    def find(self, dtype: type[E] | E | str) -> type[E] | E | ExtensionDtype | None:
         """
         Parameters
         ----------
@@ -431,8 +435,9 @@ class Registry:
         return the first matching dtype, otherwise return None
         """
         if not isinstance(dtype, str):
-            dtype_type = dtype
-            if not isinstance(dtype, type):
+            if isinstance(dtype, type):
+                dtype_type = dtype
+            else:
                 dtype_type = type(dtype)
             if issubclass(dtype_type, ExtensionDtype):
                 return dtype
