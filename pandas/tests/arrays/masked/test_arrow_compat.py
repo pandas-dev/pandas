@@ -69,9 +69,12 @@ def np_dtype_to_arrays(any_real_dtype):
     np_dtype = np.dtype(any_real_dtype)
     pa_type = pa.from_numpy_dtype(np_dtype)
 
-    pa_array = pa.array([0, 1, 2], type=pa_type)
+    # None ensures the creation of a bitmask buffer.
+    pa_array = pa.array([0, 1, 2, None], type=pa_type)
+    # Since masked Arrow buffer slots are not required to contain a specific
+    # value, assert only the first three values of the created np.array
     np_expected = np.array([0, 1, 2], dtype=np_dtype)
-    mask_expected = np.array([True, True, True])
+    mask_expected = np.array([True, True, True, False])
     return np_dtype, pa_array, np_expected, mask_expected
 
 
@@ -89,7 +92,7 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
 
     np_dtype, pa_array, np_expected, mask_expected = np_dtype_to_arrays
     data, mask = pyarrow_array_to_numpy_and_mask(pa_array, np_dtype)
-    tm.assert_numpy_array_equal(data, np_expected)
+    tm.assert_numpy_array_equal(data[:3], np_expected)
     tm.assert_numpy_array_equal(mask, mask_expected)
 
     mask_buffer = pa_array.buffers()[0]
@@ -106,13 +109,13 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     )
     pa_array_trail.validate()
     data, mask = pyarrow_array_to_numpy_and_mask(pa_array_trail, np_dtype)
-    tm.assert_numpy_array_equal(data, np_expected)
+    tm.assert_numpy_array_equal(data[:3], np_expected)
     tm.assert_numpy_array_equal(mask, mask_expected)
 
     # Add offset to the buffer.
     offset = b"\x00" * (pa_array.type.bit_width // 8)
     data_buffer_offset = pa.py_buffer(offset + data_buffer_bytes)
-    mask_buffer_offset = pa.py_buffer(b"\x0F")
+    mask_buffer_offset = pa.py_buffer(b"\x0E")
     pa_array_offset = pa.Array.from_buffers(
         type=pa_array.type,
         length=len(pa_array),
@@ -121,7 +124,7 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     )
     pa_array_offset.validate()
     data, mask = pyarrow_array_to_numpy_and_mask(pa_array_offset, np_dtype)
-    tm.assert_numpy_array_equal(data, np_expected)
+    tm.assert_numpy_array_equal(data[:3], np_expected)
     tm.assert_numpy_array_equal(mask, mask_expected)
 
     # Empty array
@@ -136,5 +139,5 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     )
     pa_array_offset.validate()
     data, mask = pyarrow_array_to_numpy_and_mask(pa_array_offset, np_dtype)
-    tm.assert_numpy_array_equal(data, np_expected_empty)
+    tm.assert_numpy_array_equal(data[:3], np_expected_empty)
     tm.assert_numpy_array_equal(mask, mask_expected_empty)
