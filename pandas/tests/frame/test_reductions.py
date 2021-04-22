@@ -1068,11 +1068,15 @@ class TestDataFrameAnalytics:
 
     @pytest.mark.parametrize("opname", ["any", "all"])
     def test_any_all(self, opname, bool_frame_with_na, float_string_frame):
-        assert_bool_op_calc(
-            opname, getattr(np, opname), bool_frame_with_na, has_skipna=True
-        )
         assert_bool_op_api(
             opname, bool_frame_with_na, float_string_frame, has_bool_only=True
+        )
+
+    @pytest.mark.xfail(reason="GH12863: numpy result won't match for object type")
+    @pytest.mark.parametrize("opname", ["any", "all"])
+    def test_any_all_matches_numpy(self, opname, bool_frame_with_na):
+        assert_bool_op_calc(
+            opname, getattr(np, opname), bool_frame_with_na, has_skipna=True
         )
 
     def test_any_all_extra(self):
@@ -1107,6 +1111,23 @@ class TestDataFrameAnalytics:
 
         result = df[["C"]].all(axis=None).item()
         assert result is True
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+    def test_any_all_object_dtype(self, axis, bool_agg_func):
+        # GH#35450
+        df = DataFrame(
+            data=[
+                [1, np.nan, np.nan, True],
+                [np.nan, 2, np.nan, True],
+                [np.nan, np.nan, np.nan, True],
+                [np.nan, np.nan, np.nan, np.nan],
+            ]
+        )
+
+        result = getattr(df, bool_agg_func)(axis=axis, skipna=False)
+        expected = Series([True, True, True, True])
+        tm.assert_series_equal(result, expected)
 
     def test_any_datetime(self):
 
