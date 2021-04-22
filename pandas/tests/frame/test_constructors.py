@@ -2397,17 +2397,18 @@ class TestDataFrameConstructors:
             assert df.iloc[0, 2] == 0
 
     def test_consistency_of_string_columns_with_none(self):
-        # df created from list, None is casted to str
+        # https://github.com/pandas-dev/pandas/issues/32218
+
         df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
 
-        assert isinstance(df.loc[0].values[0], str)
-        assert df.loc[2].values[0] is None
+        assert isinstance(df.loc[0, "a"], str)
+        assert df.loc[2, "a"] is None
 
         # Equivalent df created from dict, None remains NoneType
         df = DataFrame({"a": ["1", "2", None]}, dtype="str")
 
-        assert isinstance(df.loc[0].values[0], str)
-        assert df.loc[2].values[0] is None
+        assert isinstance(df.loc[0, "a"], str)
+        assert df.loc[2, "a"] is None
 
 
 class TestDataFrameConstructorWithDatetimeTZ:
