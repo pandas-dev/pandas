@@ -170,7 +170,7 @@ cdef inline float64_t calc_mean(int64_t minp, Py_ssize_t nobs,
     cdef:
         float64_t result
 
-    if nobs >= minp:
+    if nobs >= minp and nobs > 0:
         result = sum_x / <float64_t>nobs
         if neg_ct == 0 and result < 0:
             # all positive
