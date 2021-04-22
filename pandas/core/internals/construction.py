@@ -321,13 +321,11 @@ def ndarray_to_mgr(
                 )
                 for i in range(values.shape[1])
             ]
-        elif is_datetime_or_timedelta_dtype(values.dtype):
-            arrays = [
-                ensure_wrapped_if_datetimelike(values[:, i].copy())
-                for i in range(values.shape[1])
-            ]
         else:
+            if is_datetime_or_timedelta_dtype(values.dtype):
+                values = ensure_wrapped_if_datetimelike(values)
             arrays = [values[:, i].copy() for i in range(values.shape[1])]
+
         return ArrayManager(arrays, [index, columns], verify_integrity=False)
 
     values = values.T
