@@ -430,7 +430,9 @@ class TestAstype:
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
         msg = "|".join(
             [
+                # BlockManager path
                 fr"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]",
+                # ArrayManager path
                 "cannot astype a datetimelike from "
                 fr"\[datetime64\[ns\]\] to \[timedelta64\[{unit}\]\]",
             ]
@@ -440,7 +442,9 @@ class TestAstype:
 
         msg = "|".join(
             [
+                # BlockManager path
                 fr"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]",
+                # ArrayManager path
                 "cannot astype a timedelta from "
                 fr"\[timedelta64\[ns\]\] to \[datetime64\[{unit}\]\]",
             ]
