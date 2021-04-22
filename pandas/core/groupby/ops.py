@@ -281,7 +281,7 @@ class BaseGrouper:
         whether this grouper will give sorted result or not
     group_keys : bool, default True
     mutated : bool, default False
-    indexer : intp array, optional
+    indexer : np.ndarray[np.intp], optional
         the indexer created by Grouper
         some groupers (TimeGrouper) will sort its axis and its
         group_info is also sorted, so need the indexer to reorder
