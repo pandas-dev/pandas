@@ -213,7 +213,7 @@ class ExtensionDtype:
         raise NotImplementedError
 
     @classmethod
-    def construct_from_string(cls, string: str) -> ExtensionDtype:
+    def construct_from_string(cls, string: str):
         r"""
         Construct this type from a string.
 
@@ -424,7 +424,7 @@ class Registry:
 
         self.dtypes.append(dtype)
 
-    def find(self, dtype: type[E] | E | str) -> type[E] | E | ExtensionDtype | None:
+    def find(self, dtype: type[ExtensionDtype] | str) -> type[ExtensionDtype] | None:
         """
         Parameters
         ----------
@@ -435,9 +435,8 @@ class Registry:
         return the first matching dtype, otherwise return None
         """
         if not isinstance(dtype, str):
-            if isinstance(dtype, type):
-                dtype_type = dtype
-            else:
+            dtype_type = dtype
+            if not isinstance(dtype, type):
                 dtype_type = type(dtype)
             if issubclass(dtype_type, ExtensionDtype):
                 return dtype
