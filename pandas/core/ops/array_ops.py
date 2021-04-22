@@ -460,6 +460,7 @@ def _maybe_upcast_for_op(obj, shape: Shape):
         # raises TypeError
         return Timedelta(obj)
     elif type(obj) is datetime.datetime:
+        # cast up to Timestamp to rely on Timestamp implementation, see Timedelta above
         return Timestamp(obj)
     elif isinstance(obj, np.datetime64):
         # GH#28080 numpy casts integer-dtype to datetime64 when doing
