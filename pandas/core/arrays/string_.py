@@ -118,7 +118,10 @@ class StringDtype(ExtensionDtype):
             str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
-        return StringArray._concat_same_type(results)
+        if results:
+            return StringArray._concat_same_type(results)
+        else:
+            return StringArray(np.array([], dtype="object"))
 
 
 class StringArray(PandasArray):
@@ -253,6 +256,12 @@ class StringArray(PandasArray):
         cls, strings, *, dtype: Dtype | None = None, copy=False
     ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _empty(cls, shape, dtype) -> StringArray:
+        values = np.empty(shape, dtype=object)
+        values[:] = libmissing.NA
+        return cls(values).astype(dtype, copy=False)
 
     def __arrow_array__(self, type=None):
         """

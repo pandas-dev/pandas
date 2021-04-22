@@ -4,7 +4,6 @@ Routines for casting.
 
 from __future__ import annotations
 
-from contextlib import suppress
 from datetime import (
     date,
     datetime,
@@ -29,7 +28,6 @@ from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
-    Period,
     Timedelta,
     Timestamp,
     conversion,
@@ -57,7 +55,6 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex,
     is_complex_dtype,
     is_datetime64_dtype,
@@ -81,13 +78,13 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
-    ABCDataFrame,
     ABCExtensionArray,
     ABCSeries,
 )
@@ -102,7 +99,6 @@ from pandas.core.dtypes.missing import (
 if TYPE_CHECKING:
     from typing import Literal
 
-    from pandas import Series
     from pandas.core.arrays import (
         DatetimeArray,
         ExtensionArray,
@@ -192,9 +188,15 @@ def maybe_box_native(value: Scalar) -> Scalar:
     if is_datetime_or_timedelta_dtype(value):
         value = maybe_box_datetimelike(value)
     elif is_float(value):
-        value = float(value)
+        # error: Argument 1 to "float" has incompatible type
+        # "Union[Union[str, int, float, bool], Union[Any, Any, Timedelta, Any]]";
+        # expected "Union[SupportsFloat, _SupportsIndex, str]"
+        value = float(value)  # type: ignore[arg-type]
     elif is_integer(value):
-        value = int(value)
+        # error: Argument 1 to "int" has incompatible type
+        # "Union[Union[str, int, float, bool], Union[Any, Any, Timedelta, Any]]";
+        # pected "Union[str, SupportsInt, _SupportsIndex, _SupportsTrunc]"
+        value = int(value)  # type: ignore[arg-type]
     elif is_bool(value):
         value = bool(value)
     return value
@@ -244,9 +246,6 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
     """
-    if isinstance(result, ABCDataFrame):
-        # see test_pivot_table_doctest_case
-        return result
     do_round = False
 
     if isinstance(dtype, str):
@@ -273,15 +272,9 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
 
         dtype = np.dtype(dtype)
 
-    elif dtype.type is Period:
-        from pandas.core.arrays import PeriodArray
-
-        with suppress(TypeError):
-            # e.g. TypeError: int() argument must be a string, a
-            #  bytes-like object or a number, not 'Period
-
-            # error: "dtype[Any]" has no attribute "freq"
-            return PeriodArray(result, freq=dtype.freq)  # type: ignore[attr-defined]
+    if not isinstance(dtype, np.dtype):
+        # enforce our signature annotation
+        raise TypeError(dtype)  # pragma: no cover
 
     converted = maybe_downcast_numeric(result, dtype, do_round)
     if converted is not result:
@@ -290,21 +283,13 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     # a datetimelike
     # GH12821, iNaT is cast to float
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
-        if isinstance(dtype, DatetimeTZDtype):
-            # convert to datetime and change timezone
-            i8values = result.astype("i8", copy=False)
-            cls = dtype.construct_array_type()
-            # equiv: DatetimeArray(i8values).tz_localize("UTC").tz_convert(dtype.tz)
-            dt64values = i8values.view("M8[ns]")
-            result = cls._simple_new(dt64values, dtype=dtype)
-        else:
-            result = result.astype(dtype)
+        result = result.astype(dtype)
 
     return result
 
 
 def maybe_downcast_numeric(
-    result: ArrayLike, dtype: DtypeObj, do_round: bool = False, same_kind: bool = False
+    result: ArrayLike, dtype: DtypeObj, do_round: bool = False
 ) -> ArrayLike:
     """
     Subset of maybe_downcast_to_dtype restricted to numeric dtypes.
@@ -314,9 +299,6 @@ def maybe_downcast_numeric(
     result : ndarray or ExtensionArray
     dtype : np.dtype or ExtensionDtype
     do_round : bool
-    same_kind: bool
-        Whether to only possibly downcast when result.dtype is the same kind
-        as dtype.
 
     Returns
     -------
@@ -335,8 +317,6 @@ def maybe_downcast_numeric(
         # don't allow upcasts here (except if empty)
         if result.dtype.itemsize <= dtype.itemsize and result.size:
             return result
-    elif same_kind:
-        return result
 
     if is_bool_dtype(dtype) or is_integer_dtype(dtype):
 
@@ -379,40 +359,46 @@ def maybe_downcast_numeric(
     return result
 
 
-def maybe_cast_result(
-    result: ArrayLike, obj: Series, numeric_only: bool = False, how: str = ""
+def maybe_cast_pointwise_result(
+    result: ArrayLike,
+    dtype: DtypeObj,
+    numeric_only: bool = False,
+    same_dtype: bool = True,
 ) -> ArrayLike:
     """
-    Try casting result to a different type if appropriate
+    Try casting result of a pointwise operation back to the original dtype if
+    appropriate.
 
     Parameters
     ----------
     result : array-like
         Result to cast.
-    obj : Series
+    dtype : np.dtype or ExtensionDtype
         Input Series from which result was calculated.
     numeric_only : bool, default False
         Whether to cast only numerics or datetimes as well.
-    how : str, default ""
-        How the result was computed.
+    same_dtype : bool, default True
+        Specify dtype when calling _from_sequence
 
     Returns
     -------
     result : array-like
         result maybe casted to the dtype.
     """
-    dtype = obj.dtype
-    dtype = maybe_cast_result_dtype(dtype, how)
 
     assert not is_scalar(result)
 
     if isinstance(dtype, ExtensionDtype):
-        if not is_categorical_dtype(dtype) and dtype.kind != "M":
+        if not isinstance(dtype, (CategoricalDtype, DatetimeTZDtype)):
+            # TODO: avoid this special-casing
             # We have to special case categorical so as not to upcast
             # things like counts back to categorical
 
             cls = dtype.construct_array_type()
-            result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
+            if same_dtype:
+                result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
+            else:
+                result = maybe_cast_to_extension_array(cls, result)
 
     elif (numeric_only and is_numeric_dtype(dtype)) or not numeric_only:
         result = maybe_downcast_to_dtype(result, dtype)
@@ -2105,10 +2091,15 @@ def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
     ------
     ValueError
     """
+    # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+    # "Union[Union[str, int, float, bool], Union[Any, Any, Timedelta, Any]]";
+    # expected "Union[Union[int, float, complex, str, bytes, generic],
+    # Sequence[Union[int, float, complex, str, bytes, generic]],
+    # Sequence[Sequence[Any]], _SupportsArray]"
     if (
         issubclass(dtype.type, (np.integer, np.bool_))
         and is_float(value)
-        and np.isnan(value)
+        and np.isnan(value)  # type: ignore[arg-type]
     ):
         raise ValueError("Cannot assign nan to integer series")
 
