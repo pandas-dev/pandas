@@ -796,6 +796,7 @@ I/O
 - Bug in :func:`read_excel` dropping empty values from single-column spreadsheets (:issue:`39808`)
 - Bug in :meth:`DataFrame.to_string` misplacing the truncation column when ``index=False`` (:issue:`40907`)
 - Bug in :func:`read_orc` always raising ``AttributeError`` (:issue:`40918`)
+- Bug in :func:`read_csv` and :func:`read_table` misinterpreting arguments when ``sys.setprofile`` had been previously called (:issue:`41069`)
 
 Period
 ^^^^^^
