@@ -435,6 +435,7 @@ class Index(IndexOpsMixin, PandasObject):
                     return result.astype(dtype, copy=False)
                 return result
 
+            data = extract_array(data)
             disallow_kwargs(kwargs)
             return Index._simple_new(data, name=name)
 
@@ -2570,7 +2571,7 @@ class Index(IndexOpsMixin, PandasObject):
         Series.fillna : Fill NaN Values of a Series.
         """
         value = self._require_scalar(value)
-        if is_extension_array_dtype(self.dtype):
+        if is_extension_array_dtype(self.dtype) and type(self) is Index:
             return self._shallow_copy(self._values.fillna(value))
 
         if self.hasnans:
@@ -4404,6 +4405,9 @@ class Index(IndexOpsMixin, PandasObject):
         Cast the ndarray returned from one of the libjoin.foo_indexer functions
         back to type(self)._data.
         """
+        if is_extension_array_dtype(self.dtype):
+            # TODO use helper method / strict version
+            return self._values._from_sequence(result, dtype=self.dtype)
         return result
 
     @doc(IndexOpsMixin._memory_usage)

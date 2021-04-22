@@ -1512,7 +1512,10 @@ def take(
         )
     else:
         # NumPy style
-        result = arr.take(indices, axis=axis)
+        if arr.ndim == 1:
+            result = arr.take(indices)
+        else:
+            result = arr.take(indices, axis=axis)
     return result
 
 
