@@ -220,6 +220,21 @@ class TestClipboard:
         # excel data is parsed correctly
         assert df.iloc[1][1] == "Harry Carney"
 
+        # a null on the first column works
+        text = dedent(
+            """
+            John James	Charlie Mingus
+            1	2
+            	Harry Carney
+            7	Carl Miney
+            """.strip()
+        )
+        mock_clipboard[request.node.name] = text
+        df = read_clipboard(**clip_kwargs)
+
+        # excel data is parsed correctly
+        assert df.iloc[1][1] == "Harry Carney"
+
         # having diff tab counts doesn't trigger it
         text = dedent(
             """
