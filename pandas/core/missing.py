@@ -26,9 +26,17 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.cast import infer_dtype_from
+from pandas.core.dtypes.cast import (
+    astype_array_safe,
+    can_hold_element,
+    find_common_type,
+    infer_dtype_from,
+    maybe_downcast_to_dtype,
+    soft_convert_objects,
+)
 from pandas.core.dtypes.common import (
     is_array_like,
+    is_categorical_dtype,
     is_numeric_v_string_like,
     needs_i8_conversion,
 )
@@ -37,6 +45,8 @@ from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
 )
+
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -964,3 +974,107 @@ def _rolling_window(a: np.ndarray, window: int):
     shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
     strides = a.strides + (a.strides[-1],)
     return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+
+
+def _can_hold_element(values, element: Any) -> bool:
+    """
+    Expanded version of core.dtypes.cast.can_hold_element
+    """
+    from pandas.core.arrays import (
+        ExtensionArray,
+        FloatingArray,
+        IntegerArray,
+    )
+
+    if isinstance(values, ExtensionArray):
+        if hasattr(values, "_validate_setitem_value"):
+            # NDArrayBackedExtensionArray
+            try:
+                # error: "Callable[..., Any]" has no attribute "_validate_setitem_value"
+                values._validate_setitem_value(element)  # type: ignore[attr-defined]
+                return True
+            except (ValueError, TypeError):
+                return False
+        else:
+            # other ExtensionArrays
+            return True
+    else:
+        element = extract_array(element, extract_numpy=True)
+        if isinstance(element, (IntegerArray, FloatingArray)):
+            if element._mask.any():
+                return False
+        return can_hold_element(values, element)
+
+
+def coerce_to_target_dtype(values, other):
+    """
+    Coerce the values to a dtype compat for other. This will always
+    return values, possibly object dtype, and not raise.
+    """
+    dtype, _ = infer_dtype_from(other, pandas_dtype=True)
+    new_dtype = find_common_type([values.dtype, dtype])
+
+    return astype_array_safe(values, new_dtype, copy=False)
+
+
+def fillna_array(values, value, limit=None, inplace: bool = False, downcast=None):
+    from pandas.core.array_algos.putmask import (
+        putmask_inplace,
+        validate_putmask,
+    )
+    from pandas.core.arrays import ExtensionArray
+
+    # inplace = validate_bool_kwarg(inplace, "inplace")
+
+    if isinstance(values, ExtensionArray):
+        if (
+            not _can_hold_element(values, value)
+            and values.dtype.kind != "m"
+            and not is_categorical_dtype(values.dtype)
+        ):
+            # We support filling a DatetimeTZ with a `value` whose timezone
+            #  is different by coercing to object.
+            # TODO: don't special-case td64
+            values = values.astype(object)
+            return fillna_array(
+                values, value, limit=limit, inplace=True, downcast=downcast
+            )
+
+        values = values if inplace else values.copy()
+        return values.fillna(value, limit=limit)
+
+    mask = isna(values)
+    mask, noop = validate_putmask(values, mask)
+
+    if limit is not None:
+        limit = algos.validate_limit(None, limit=limit)
+        mask[mask.cumsum(values.ndim - 1) > limit] = False
+
+    if values.dtype.kind in ["b", "i", "u"]:
+        # those dtypes can never hold NAs
+        if inplace:
+            return values
+        else:
+            return values.copy()
+
+    if _can_hold_element(values, value):
+        values = values if inplace else values.copy()
+        putmask_inplace(values, mask, value)
+
+        if values.dtype == np.dtype(object):
+            if downcast is None:
+                values = soft_convert_objects(values, datetime=True, numeric=False)
+
+        if downcast is None and values.dtype.kind not in ["f", "m", "M"]:
+            downcast = "infer"
+        if downcast:
+            values = maybe_downcast_to_dtype(values, downcast)
+        return values
+
+    if noop:
+        # we can't process the value, but nothing to do
+        return values if inplace else values.copy()
+    else:
+        values = coerce_to_target_dtype(values, value)
+        # bc we have already cast, inplace=True may avoid an extra copy
+        return fillna_array(values, value, limit=limit, inplace=True, downcast=None)

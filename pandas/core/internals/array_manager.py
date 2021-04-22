@@ -88,6 +88,7 @@ from pandas.core.internals.blocks import (
     new_block,
     to_native_types,
 )
+from pandas.core.missing import fillna_array
 
 if TYPE_CHECKING:
     from pandas import Float64Index
@@ -462,8 +463,8 @@ class BaseArrayManager(DataManager):
         )
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
-        return self.apply_with_block(
-            "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
+        return self.apply(
+            fillna_array, value=value, limit=limit, inplace=inplace, downcast=downcast
         )
 
     def downcast(self: T) -> T:
