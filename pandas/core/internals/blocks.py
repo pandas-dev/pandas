@@ -457,16 +457,9 @@ class Block(PandasObject):
             # we can't process the value, but nothing to do
             return [self] if inplace else [self.copy()]
 
-        elif self.ndim == 1 or self.shape[0] == 1:
-            blk = self.coerce_to_target_dtype(value)
-            # bc we have already cast, inplace=True may avoid an extra copy
-            return blk.fillna(value, limit=limit, inplace=True, downcast=None)
-
-        else:
-            # operate column-by-column
-            return self.split_and_operate(
-                type(self).fillna, value, limit=limit, inplace=inplace, downcast=None
-            )
+        blk = self.coerce_to_target_dtype(value)
+        # bc we have already cast, inplace=True may avoid an extra copy
+        return blk.fillna(value, limit=limit, inplace=True, downcast=None)
 
     @final
     def _split(self) -> list[Block]:
