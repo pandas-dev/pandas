@@ -1074,8 +1074,8 @@ class TestDataFrameAnalytics:
 
     @pytest.mark.parametrize("opname", ["any", "all"])
     def test_any_all_bool_frame(self, opname, bool_frame_with_na):
-        # GH#12863: numpy gives back NaN object data so fill NaNs
-        # to compare with pandas behavior
+        # GH#12863: numpy gives back non-boolean data for object type
+        # so fill NaNs to compare with pandas behavior
         df = bool_frame_with_na.fillna(True)
         assert_bool_op_calc(opname, getattr(np, opname), df, has_skipna=True)
 
