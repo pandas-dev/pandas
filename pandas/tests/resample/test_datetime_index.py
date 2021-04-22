@@ -1205,7 +1205,7 @@ def test_resample_median_bug_1688():
         result = df.resample("T").apply(lambda x: x.mean())
         exp = df.asfreq("T")
         if dtype == "float32":
-            # Empty groups cause x.mean() to return float64
+            # TODO: Empty groups cause x.mean() to return float64
             exp = exp.astype("float64")
         tm.assert_frame_equal(result, exp)
 
@@ -1687,7 +1687,7 @@ def test_resample_apply_with_additional_args(series):
     df = DataFrame({"A": 1, "B": 2}, index=date_range("2017", periods=10))
     result = df.groupby("A").resample("D").agg(f, multiplier)
     expected = df.groupby("A").resample("D").mean().multiply(multiplier)
-    # TODO: resample(...).mean should be a float64
+    # TODO: resample(...).mean should be a float instead of int
     expected = expected.astype("float64")
     tm.assert_frame_equal(result, expected)
 

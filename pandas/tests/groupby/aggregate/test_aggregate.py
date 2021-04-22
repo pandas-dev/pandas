@@ -234,7 +234,6 @@ def test_aggregate_item_by_item(df):
     K = len(result.columns)
 
     # GH5782
-    # odd comparisons can result here, so cast to make easy
     exp = Series(np.array([foo] * K), index=list("BCD"), name="foo")
     tm.assert_series_equal(result.xs("foo"), exp)
 
