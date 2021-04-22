@@ -114,6 +114,9 @@ class BooleanDtype(BaseMaskedDtype):
         """
         import pyarrow
 
+        if array.type != pyarrow.bool_():
+            raise TypeError(f"Expected array of boolean type, got {array.type} instead")
+
         if isinstance(array, pyarrow.Array):
             chunks = [array]
         else:
@@ -137,7 +140,12 @@ class BooleanDtype(BaseMaskedDtype):
             bool_arr = BooleanArray(data, mask)
             results.append(bool_arr)
 
-        return BooleanArray._concat_same_type(results)
+        if not results:
+            return BooleanArray(
+                np.array([], dtype=np.bool_), np.array([], dtype=np.bool_)
+            )
+        else:
+            return BooleanArray._concat_same_type(results)
 
 
 def coerce_to_array(

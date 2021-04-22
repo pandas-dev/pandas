@@ -3626,7 +3626,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         return self._constructor(new_data).__finalize__(self, method="take")
 
-    @final
     def _take_with_is_copy(self: FrameOrSeries, indices, axis=0) -> FrameOrSeries:
         """
         Internal version of the `take` method that sets the `_is_copy`
