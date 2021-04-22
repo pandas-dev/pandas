@@ -37,10 +37,14 @@ Exceptions and warnings
 
    errors.AccessorRegistrationWarning
    errors.DtypeWarning
+   errors.DuplicateLabelError
    errors.EmptyDataError
-   errors.OutOfBoundsDatetime
+   errors.InvalidIndexError
    errors.MergeError
+   errors.NullFrequencyError
    errors.NumbaUtilError
+   errors.OutOfBoundsDatetime
+   errors.OutOfBoundsTimedelta
    errors.ParserError
    errors.ParserWarning
    errors.PerformanceWarning
@@ -118,4 +122,3 @@ Bug report function
    :toctree: api/
 
    show_versions
-

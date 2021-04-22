@@ -1,11 +1,52 @@
-from collections import OrderedDict
-
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.dtypes import ExtensionDtype
+
 import pandas as pd
-from pandas import DataFrame, Timestamp
+from pandas import (
+    DataFrame,
+    Timestamp,
+)
 import pandas._testing as tm
+from pandas.core.arrays import ExtensionArray
+
+
+class DummyDtype(ExtensionDtype):
+    type = int
+
+    def __init__(self, numeric):
+        self._numeric = numeric
+
+    @property
+    def name(self):
+        return "Dummy"
+
+    @property
+    def _is_numeric(self):
+        return self._numeric
+
+
+class DummyArray(ExtensionArray):
+    def __init__(self, data, dtype):
+        self.data = data
+        self._dtype = dtype
+
+    def __array__(self, dtype):
+        return self.data
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __getitem__(self, item):
+        pass
+
+    def copy(self):
+        return self
 
 
 class TestSelectDtypes:
@@ -72,7 +113,7 @@ class TestSelectDtypes:
             {
                 "a": list("abc"),
                 "b": list(range(1, 4)),
-                "c": np.arange(3, 6).astype("u1"),
+                "c": np.arange(3, 6, dtype="u1"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
                 "e": [True, False, True],
                 "f": pd.date_range("now", periods=3).values,
@@ -89,6 +130,26 @@ class TestSelectDtypes:
         r = df.select_dtypes(include=include, exclude=exclude)
         e = df[["b", "e"]]
         tm.assert_frame_equal(r, e)
+
+    @pytest.mark.parametrize(
+        "include", [(np.bool_, "int"), (np.bool_, "integer"), ("bool", int)]
+    )
+    def test_select_dtypes_exclude_include_int(self, include):
+        # Fix select_dtypes(include='int') for Windows, FYI #36596
+        df = DataFrame(
+            {
+                "a": list("abc"),
+                "b": list(range(1, 4)),
+                "c": np.arange(3, 6, dtype="int32"),
+                "d": np.arange(4.0, 7.0, dtype="float64"),
+                "e": [True, False, True],
+                "f": pd.date_range("now", periods=3).values,
+            }
+        )
+        exclude = (np.datetime64,)
+        result = df.select_dtypes(include=include, exclude=exclude)
+        expected = df[["b", "c", "e"]]
+        tm.assert_frame_equal(result, expected)
 
     def test_select_dtypes_include_using_scalars(self):
         df = DataFrame(
@@ -202,18 +263,15 @@ class TestSelectDtypes:
 
     def test_select_dtypes_duplicate_columns(self):
         # GH20839
-        odict = OrderedDict
         df = DataFrame(
-            odict(
-                [
-                    ("a", list("abc")),
-                    ("b", list(range(1, 4))),
-                    ("c", np.arange(3, 6).astype("u1")),
-                    ("d", np.arange(4.0, 7.0, dtype="float64")),
-                    ("e", [True, False, True]),
-                    ("f", pd.date_range("now", periods=3).values),
-                ]
-            )
+            {
+                "a": ["a", "b", "c"],
+                "b": [1, 2, 3],
+                "c": np.arange(3, 6).astype("u1"),
+                "d": np.arange(4.0, 7.0, dtype="float64"),
+                "e": [True, False, True],
+                "f": pd.date_range("now", periods=3).values,
+            }
         )
         df.columns = ["a", "a", "b", "b", "b", "c"]
 
@@ -271,10 +329,10 @@ class TestSelectDtypes:
     def test_select_dtypes_datetime_with_tz(self):
 
         df2 = DataFrame(
-            dict(
-                A=Timestamp("20130102", tz="US/Eastern"),
-                B=Timestamp("20130603", tz="CET"),
-            ),
+            {
+                "A": Timestamp("20130102", tz="US/Eastern"),
+                "B": Timestamp("20130603", tz="CET"),
+            },
             index=range(5),
         )
         df3 = pd.concat([df2.A.to_frame(), df2.B.to_frame()], axis=1)
@@ -327,3 +385,25 @@ class TestSelectDtypes:
         expected = df
         FLOAT_TYPES = list(np.typecodes["AllFloat"])
         tm.assert_frame_equal(df.select_dtypes(FLOAT_TYPES), expected)
+
+    @pytest.mark.parametrize(
+        "arr,expected",
+        (
+            (np.array([1, 2], dtype=np.int32), True),
+            (pd.array([1, 2], dtype="Int32"), True),
+            (DummyArray([1, 2], dtype=DummyDtype(numeric=True)), True),
+            (DummyArray([1, 2], dtype=DummyDtype(numeric=False)), False),
+        ),
+    )
+    def test_select_dtypes_numeric(self, arr, expected):
+        # GH 35340
+
+        df = DataFrame(arr)
+        is_selected = df.select_dtypes(np.number).shape == df.shape
+        assert is_selected == expected
+
+    def test_select_dtypes_numeric_nullable_string(self, nullable_string_dtype):
+        arr = pd.array(["a", "b"], dtype=nullable_string_dtype)
+        df = DataFrame(arr)
+        is_selected = df.select_dtypes(np.number).shape == df.shape
+        assert not is_selected

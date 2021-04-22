@@ -1,25 +1,35 @@
 from typing import List
 
-from pandas._typing import FilePathOrBuffer, Scalar
+from pandas._typing import (
+    FilePathOrBuffer,
+    Scalar,
+    StorageOptions,
+)
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.io.excel._base import _BaseExcelReader
+from pandas.io.excel._base import BaseExcelReader
 
 
-class _PyxlsbReader(_BaseExcelReader):
-    def __init__(self, filepath_or_buffer: FilePathOrBuffer):
+class PyxlsbReader(BaseExcelReader):
+    def __init__(
+        self,
+        filepath_or_buffer: FilePathOrBuffer,
+        storage_options: StorageOptions = None,
+    ):
         """
         Reader using pyxlsb engine.
 
         Parameters
         ----------
-        filepath_or_buffer: str, path object, or Workbook
+        filepath_or_buffer : str, path object, or Workbook
             Object to be parsed.
+        storage_options : dict, optional
+            passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
         """
         import_optional_dependency("pyxlsb")
         # This will call load_workbook on the filepath or buffer
         # And set the result to the book-attribute
-        super().__init__(filepath_or_buffer)
+        super().__init__(filepath_or_buffer, storage_options=storage_options)
 
     @property
     def _workbook_class(self):
@@ -41,9 +51,11 @@ class _PyxlsbReader(_BaseExcelReader):
         return self.book.sheets
 
     def get_sheet_by_name(self, name: str):
+        self.raise_if_bad_sheet_by_name(name)
         return self.book.get_sheet(name)
 
     def get_sheet_by_index(self, index: int):
+        self.raise_if_bad_sheet_by_index(index)
         # pyxlsb sheets are indexed from 1 onwards
         # There's a fix for this in the source, but the pypi package doesn't have it
         return self.book.get_sheet(index + 1)

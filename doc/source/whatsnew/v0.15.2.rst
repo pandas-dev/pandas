@@ -136,8 +136,8 @@ Enhancements
 
 - Added ability to export Categorical data to Stata (:issue:`8633`).  See :ref:`here <io.stata-categorical>` for limitations of categorical variables exported to Stata data files.
 - Added flag ``order_categoricals`` to ``StataReader`` and ``read_stata`` to select whether to order imported categorical data (:issue:`8836`).  See :ref:`here <io.stata-categorical>` for more information on importing categorical variables from Stata data files.
-- Added ability to export Categorical data to to/from HDF5 (:issue:`7621`). Queries work the same as if it was an object array. However, the ``category`` dtyped data is stored in a more efficient manner. See :ref:`here <io.hdf5-categorical>` for an example and caveats w.r.t. prior versions of pandas.
-- Added support for ``searchsorted()`` on `Categorical` class (:issue:`8420`).
+- Added ability to export Categorical data to/from HDF5 (:issue:`7621`). Queries work the same as if it was an object array. However, the ``category`` dtyped data is stored in a more efficient manner. See :ref:`here <io.hdf5-categorical>` for an example and caveats w.r.t. prior versions of pandas.
+- Added support for ``searchsorted()`` on ``Categorical`` class (:issue:`8420`).
 
 Other enhancements:
 
@@ -154,6 +154,7 @@ Other enhancements:
 - ``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters (:issue:`8302`):
 
   .. ipython:: python
+     :okwarning:
 
      s = pd.Series([False, True, False], index=[0, 0, 1])
      s.any(level=0)
@@ -171,7 +172,7 @@ Other enhancements:
      3  False   True  False  True
      4   True   True   True  True
 
-- Added support for ``utcfromtimestamp()``, ``fromtimestamp()``, and ``combine()`` on `Timestamp` class (:issue:`5351`).
+- Added support for ``utcfromtimestamp()``, ``fromtimestamp()``, and ``combine()`` on ``Timestamp`` class (:issue:`5351`).
 - Added Google Analytics (`pandas.io.ga`) basic documentation (:issue:`8835`). See `here <https://pandas.pydata.org/pandas-docs/version/0.15.2/remote_data.html#remote-data-ga>`__.
 - ``Timedelta`` arithmetic returns ``NotImplemented`` in unknown cases, allowing extensions by custom classes (:issue:`8813`).
 - ``Timedelta`` now supports arithmetic with ``numpy.ndarray`` objects of the appropriate dtype (numpy 1.8 or newer only) (:issue:`8884`).
@@ -241,7 +242,7 @@ Bug fixes
 - Bug in ``MultiIndex`` where ``__contains__`` returns wrong result if index is not lexically sorted or unique (:issue:`7724`)
 - BUG CSV: fix problem with trailing white space in skipped rows, (:issue:`8679`), (:issue:`8661`), (:issue:`8983`)
 - Regression in ``Timestamp`` does not parse 'Z' zone designator for UTC (:issue:`8771`)
-- Bug in `StataWriter` the produces writes strings with 244 characters irrespective of actual size (:issue:`8969`)
+- Bug in ``StataWriter`` the produces writes strings with 244 characters irrespective of actual size (:issue:`8969`)
 - Fixed ValueError raised by cummin/cummax when datetime64 Series contains NaT. (:issue:`8965`)
 - Bug in DataReader returns object dtype if there are missing values (:issue:`8980`)
 - Bug in plotting if sharex was enabled and index was a timeseries, would show labels on multiple axes (:issue:`3964`).

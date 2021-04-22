@@ -5,7 +5,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, NaT, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    NaT,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -25,7 +32,10 @@ def test_series_groupby_nunique(n, m, sort, dropna):
         if not as_index:
             right = right.reset_index(drop=True)
 
-        tm.assert_series_equal(left, right, check_names=False)
+        if as_index:
+            tm.assert_series_equal(left, right, check_names=False)
+        else:
+            tm.assert_frame_equal(left, right, check_names=False)
         tm.assert_frame_equal(df, original_df)
 
     days = date_range("2015-08-23", periods=10)
@@ -56,13 +66,14 @@ def test_series_groupby_nunique(n, m, sort, dropna):
 def test_nunique():
     df = DataFrame({"A": list("abbacc"), "B": list("abxacc"), "C": list("abbacx")})
 
-    expected = DataFrame({"A": [1] * 3, "B": [1, 2, 1], "C": [1, 1, 2]})
+    expected = DataFrame({"A": list("abc"), "B": [1, 2, 1], "C": [1, 1, 2]})
     result = df.groupby("A", as_index=False).nunique()
     tm.assert_frame_equal(result, expected)
 
     # as_index
     expected.index = list("abc")
     expected.index.name = "A"
+    expected = expected.drop(columns="A")
     result = df.groupby("A").nunique()
     tm.assert_frame_equal(result, expected)
 
@@ -71,7 +82,7 @@ def test_nunique():
     tm.assert_frame_equal(result, expected)
 
     # dropna
-    expected = DataFrame({"A": [1] * 3, "B": [1] * 3, "C": [1] * 3}, index=list("abc"))
+    expected = DataFrame({"B": [1] * 3, "C": [1] * 3}, index=list("abc"))
     expected.index.name = "A"
     result = df.replace({"x": None}).groupby("A").nunique()
     tm.assert_frame_equal(result, expected)
@@ -79,7 +90,7 @@ def test_nunique():
 
 def test_nunique_with_object():
     # GH 11077
-    data = pd.DataFrame(
+    data = DataFrame(
         [
             [100, 1, "Alice"],
             [200, 2, "Bob"],
@@ -92,21 +103,21 @@ def test_nunique_with_object():
 
     result = data.groupby(["id", "amount"])["name"].nunique()
     index = MultiIndex.from_arrays([data.id, data.amount])
-    expected = pd.Series([1] * 5, name="name", index=index)
+    expected = Series([1] * 5, name="name", index=index)
     tm.assert_series_equal(result, expected)
 
 
 def test_nunique_with_empty_series():
     # GH 12553
-    data = pd.Series(name="name", dtype=object)
+    data = Series(name="name", dtype=object)
     result = data.groupby(level=0).nunique()
-    expected = pd.Series(name="name", dtype="int64")
+    expected = Series(name="name", dtype="int64")
     tm.assert_series_equal(result, expected)
 
 
 def test_nunique_with_timegrouper():
     # GH 13453
-    test = pd.DataFrame(
+    test = DataFrame(
         {
             "time": [
                 Timestamp("2016-06-28 09:35:35"),
@@ -117,7 +128,7 @@ def test_nunique_with_timegrouper():
         }
     ).set_index("time")
     result = test.groupby(pd.Grouper(freq="h"))["data"].nunique()
-    expected = test.groupby(pd.Grouper(freq="h"))["data"].apply(pd.Series.nunique)
+    expected = test.groupby(pd.Grouper(freq="h"))["data"].apply(Series.nunique)
     tm.assert_series_equal(result, expected)
 
 
@@ -152,14 +163,22 @@ def test_nunique_with_timegrouper():
 )
 def test_nunique_with_NaT(key, data, dropna, expected):
     # GH 27951
-    df = pd.DataFrame({"key": key, "data": data})
+    df = DataFrame({"key": key, "data": data})
     result = df.groupby(["key"])["data"].nunique(dropna=dropna)
     tm.assert_series_equal(result, expected)
 
 
 def test_nunique_preserves_column_level_names():
     # GH 23222
-    test = pd.DataFrame([1, 2, 2], columns=pd.Index(["A"], name="level_0"))
+    test = DataFrame([1, 2, 2], columns=pd.Index(["A"], name="level_0"))
     result = test.groupby([0, 0, 0]).nunique()
-    expected = pd.DataFrame([2], columns=test.columns)
+    expected = DataFrame([2], columns=test.columns)
     tm.assert_frame_equal(result, expected)
+
+
+def test_nunique_transform_with_datetime():
+    # GH 35109 - transform with nunique on datetimes results in integers
+    df = DataFrame(date_range("2008-12-31", "2009-01-02"), columns=["date"])
+    result = df.groupby([0, 0, 1])["date"].transform("nunique")
+    expected = Series([2, 2, 1], name="date")
+    tm.assert_series_equal(result, expected)

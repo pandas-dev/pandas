@@ -1,8 +1,20 @@
+import sys
+
 import numpy as np
 
-from pandas import DataFrame, concat, date_range, read_json, timedelta_range
+from pandas import (
+    DataFrame,
+    concat,
+    date_range,
+    json_normalize,
+    read_json,
+    timedelta_range,
+)
 
-from ..pandas_vb_common import BaseIO, tm
+from ..pandas_vb_common import (
+    BaseIO,
+    tm,
+)
 
 
 class ReadJSON(BaseIO):
@@ -53,11 +65,38 @@ class ReadJSONLines(BaseIO):
     def time_read_json_lines_concat(self, index):
         concat(read_json(self.fname, orient="records", lines=True, chunksize=25000))
 
+    def time_read_json_lines_nrows(self, index):
+        read_json(self.fname, orient="records", lines=True, nrows=25000)
+
     def peakmem_read_json_lines(self, index):
         read_json(self.fname, orient="records", lines=True)
 
     def peakmem_read_json_lines_concat(self, index):
         concat(read_json(self.fname, orient="records", lines=True, chunksize=25000))
+
+    def peakmem_read_json_lines_nrows(self, index):
+        read_json(self.fname, orient="records", lines=True, nrows=15000)
+
+
+class NormalizeJSON(BaseIO):
+    fname = "__test__.json"
+    params = [
+        ["split", "columns", "index", "values", "records"],
+        ["df", "df_date_idx", "df_td_int_ts", "df_int_floats", "df_int_float_str"],
+    ]
+    param_names = ["orient", "frame"]
+
+    def setup(self, orient, frame):
+        data = {
+            "hello": ["thisisatest", 999898, "mixed types"],
+            "nest1": {"nest2": {"nest3": "nest3_value", "nest3_int": 3445}},
+            "nest1_list": {"nest2": ["blah", 32423, 546456.876, 92030234]},
+            "hello2": "string",
+        }
+        self.data = [data for i in range(10000)]
+
+    def time_normalize_json(self, orient, frame):
+        json_normalize(self.data)
 
 
 class ToJSON(BaseIO):
@@ -76,6 +115,7 @@ class ToJSON(BaseIO):
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
         ints = np.random.randint(100000000, size=N)
+        longints = sys.maxsize * np.random.randint(100000000, size=N)
         floats = np.random.randn(N)
         strings = tm.makeStringIndex(N)
         self.df = DataFrame(np.random.randn(N, ncols), index=np.arange(N))
@@ -106,6 +146,18 @@ class ToJSON(BaseIO):
             {
                 "int_1": ints,
                 "int_2": ints,
+                "float_1": floats,
+                "float_2": floats,
+                "str_1": strings,
+                "str_2": strings,
+            },
+            index=index,
+        )
+
+        self.df_longint_float_str = DataFrame(
+            {
+                "longint_1": longints,
+                "longint_2": longints,
                 "float_1": floats,
                 "float_2": floats,
                 "str_1": strings,
@@ -166,6 +218,7 @@ class ToJSONLines(BaseIO):
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
         ints = np.random.randint(100000000, size=N)
+        longints = sys.maxsize * np.random.randint(100000000, size=N)
         floats = np.random.randn(N)
         strings = tm.makeStringIndex(N)
         self.df = DataFrame(np.random.randn(N, ncols), index=np.arange(N))
@@ -203,6 +256,17 @@ class ToJSONLines(BaseIO):
             },
             index=index,
         )
+        self.df_longint_float_str = DataFrame(
+            {
+                "longint_1": longints,
+                "longint_2": longints,
+                "float_1": floats,
+                "float_2": floats,
+                "str_1": strings,
+                "str_2": strings,
+            },
+            index=index,
+        )
 
     def time_floats_with_int_idex_lines(self):
         self.df.to_json(self.fname, orient="records", lines=True)
@@ -218,6 +282,9 @@ class ToJSONLines(BaseIO):
 
     def time_float_int_str_lines(self):
         self.df_int_float_str.to_json(self.fname, orient="records", lines=True)
+
+    def time_float_longint_str_lines(self):
+        self.df_longint_float_str.to_json(self.fname, orient="records", lines=True)
 
 
 class ToJSONMem:

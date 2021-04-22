@@ -1,8 +1,15 @@
 import numpy as np
 
-from pandas import DataFrame, date_range, read_pickle
+from pandas import (
+    DataFrame,
+    date_range,
+    read_pickle,
+)
 
-from ..pandas_vb_common import BaseIO, tm
+from ..pandas_vb_common import (
+    BaseIO,
+    tm,
+)
 
 
 class Pickle(BaseIO):
@@ -22,6 +29,12 @@ class Pickle(BaseIO):
         read_pickle(self.fname)
 
     def time_write_pickle(self):
+        self.df.to_pickle(self.fname)
+
+    def peakmem_read_pickle(self):
+        read_pickle(self.fname)
+
+    def peakmem_write_pickle(self):
         self.df.to_pickle(self.fname)
 
 

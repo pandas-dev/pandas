@@ -4,7 +4,12 @@ import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -69,12 +74,12 @@ class TestMultiIndexBasic:
         # GH#30892
 
         dti = pd.to_datetime(["20190101", "20190101", "20190102"])
-        idx = pd.Index(["a", "a", "c"])
-        mi = pd.MultiIndex.from_arrays([dti, idx], names=["index1", "index2"])
+        idx = Index(["a", "a", "c"])
+        mi = MultiIndex.from_arrays([dti, idx], names=["index1", "index2"])
 
-        df = pd.DataFrame({"c1": [1, 2, 3], "c2": [np.nan, np.nan, np.nan]}, index=mi)
+        df = DataFrame({"c1": [1, 2, 3], "c2": [np.nan, np.nan, np.nan]}, index=mi)
 
-        expected = pd.DataFrame({"c1": df["c1"], "c2": [1.0, 1.0, np.nan]}, index=mi)
+        expected = DataFrame({"c1": df["c1"], "c2": [1.0, 1.0, np.nan]}, index=mi)
 
         df2 = df.copy(deep=True)
         df2.loc[(dti[0], "a"), "c2"] = 1.0
@@ -83,3 +88,13 @@ class TestMultiIndexBasic:
         df3 = df.copy(deep=True)
         df3.loc[[(dti[0], "a")], "c2"] = 1.0
         tm.assert_frame_equal(df3, expected)
+
+    def test_multiindex_with_datatime_level_preserves_freq(self):
+        # https://github.com/pandas-dev/pandas/issues/35563
+        idx = Index(range(2), name="A")
+        dti = pd.date_range("2020-01-01", periods=7, freq="D", name="B")
+        mi = MultiIndex.from_product([idx, dti])
+        df = DataFrame(np.random.randn(14, 2), index=mi)
+        result = df.loc[0].index
+        tm.assert_index_equal(result, dti)
+        assert result.freq == dti.freq

@@ -1,7 +1,15 @@
+from datetime import date
+
 import numpy as np
 import pytest
 
-from pandas import Categorical, CategoricalDtype, CategoricalIndex, Index, IntervalIndex
+from pandas import (
+    Categorical,
+    CategoricalDtype,
+    CategoricalIndex,
+    Index,
+    IntervalIndex,
+)
 import pandas._testing as tm
 
 
@@ -25,7 +33,7 @@ class TestAstype:
         )
 
         result = ci.astype("interval")
-        expected = ii.take([0, 1, -1])
+        expected = ii.take([0, 1, -1], allow_fill=True, fill_value=np.nan)
         tm.assert_index_equal(result, expected)
 
         result = IntervalIndex(result.values)
@@ -64,3 +72,16 @@ class TestAstype:
             result = index.astype("category")
             expected = index
             tm.assert_index_equal(result, expected)
+
+    def test_categorical_date_roundtrip(self):
+        # astype to categorical and back should preserve date objects
+        v = date.today()
+
+        obj = Index([v, v])
+        assert obj.dtype == object
+
+        cat = obj.astype("category")
+
+        rtrip = cat.astype(object)
+        assert rtrip.dtype == object
+        assert type(rtrip[0]) is date

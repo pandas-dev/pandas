@@ -20,7 +20,7 @@ New features
   ``DataFrame.append`` (:issue:`468`, :issue:`479`, :issue:`273`)
 
 - :ref:`Can <merging.concatenation>` pass multiple DataFrames to
-  `DataFrame.append` to concatenate (stack) and multiple Series to
+  ``DataFrame.append`` to concatenate (stack) and multiple Series to
   ``Series.append`` too
 
 - :ref:`Can<basics.dataframe.from_list_of_dicts>` pass list of dicts (e.g., a
@@ -282,7 +282,7 @@ Performance improvements
 - Substantially improve performance of multi-GroupBy aggregation when a
   Python function is passed, reuse ndarray object in Cython (:issue:`496`)
 - Can store objects indexed by tuples and floats in HDFStore (:issue:`492`)
-- Don't print length by default in Series.to_string, add `length` option (:issue:`489`)
+- Don't print length by default in Series.to_string, add ``length`` option (:issue:`489`)
 - Improve Cython code for multi-groupby to aggregate without having to sort
   the data (:issue:`93`)
 - Improve MultiIndex reindexing speed by storing tuples in the MultiIndex,

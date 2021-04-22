@@ -19,11 +19,13 @@ import glob
 import importlib
 import json
 import os
+import subprocess
 import sys
 import tempfile
-from typing import List, Optional
-
-import flake8.main.application
+from typing import (
+    List,
+    Optional,
+)
 
 try:
     from io import StringIO
@@ -35,19 +37,19 @@ except ImportError:
 # script. Setting here before matplotlib is loaded.
 # We don't warn for the number of open plots, as none is actually being opened
 os.environ["MPLBACKEND"] = "Template"
-import matplotlib  # noqa: E402 isort:skip
+import matplotlib  # isort:skip
 
 matplotlib.rc("figure", max_open_warning=10000)
 
-import numpy  # noqa: E402 isort:skip
+import numpy  # isort:skip
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.insert(0, os.path.join(BASE_PATH))
-import pandas  # noqa: E402 isort:skip
+import pandas  # isort:skip
 
 sys.path.insert(1, os.path.join(BASE_PATH, "doc", "sphinxext"))
-from numpydoc.validate import validate, Docstring  # noqa: E402 isort:skip
+from numpydoc.validate import validate, Docstring  # isort:skip
 
 
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
@@ -180,20 +182,21 @@ class PandasDocstring(Docstring):
             )
         )
 
-        application = flake8.main.application.Application()
-        application.initialize(["--quiet"])
-
+        error_messages = []
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as file:
             file.write(content)
             file.flush()
-            application.run_checks([file.name])
+            cmd = ["python", "-m", "flake8", "--quiet", "--statistics", file.name]
+            response = subprocess.run(cmd, capture_output=True, text=True)
+            stdout = response.stdout
+            stdout = stdout.replace(file.name, "")
+            messages = stdout.strip("\n")
+            if messages:
+                error_messages.append(messages)
 
-        # We need this to avoid flake8 printing the names of the files to
-        # the standard output
-        application.formatter.write = lambda line, source: None
-        application.report()
-
-        yield from application.guide.stats.statistics_for("")
+        for error_message in error_messages:
+            error_count, error_code, message = error_message.split(maxsplit=2)
+            yield error_code, message, int(error_count)
 
 
 def pandas_validate(func_name: str):
@@ -220,7 +223,7 @@ def pandas_validate(func_name: str):
         )
 
     if doc.see_also:
-        for rel_name, rel_desc in doc.see_also.items():
+        for rel_name in doc.see_also:
             if rel_name.startswith("pandas."):
                 result["errors"].append(
                     pandas_error(
@@ -237,13 +240,15 @@ def pandas_validate(func_name: str):
             result["errors"].append(
                 pandas_error("EX02", doctest_log=result["examples_errs"])
             )
-        for err in doc.validate_pep8():
+
+        for error_code, error_message, error_count in doc.validate_pep8():
+            times_happening = f" ({error_count} times)" if error_count > 1 else ""
             result["errors"].append(
                 pandas_error(
                     "EX03",
-                    error_code=err.error_code,
-                    error_message=err.message,
-                    times_happening=f" ({err.count} times)" if err.count > 1 else "",
+                    error_code=error_code,
+                    error_message=error_message,
+                    times_happening=times_happening,
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
@@ -360,7 +365,7 @@ def print_validate_one_results(func_name: str):
                 sys.stderr.write("\tExamples do not pass tests\n")
                 continue
             sys.stderr.write(f"\t{err_desc}\n")
-    elif result["errors"]:
+    else:
         sys.stderr.write(f'Docstring for "{func_name}" correct. :)\n')
 
     if result["examples_errs"]:

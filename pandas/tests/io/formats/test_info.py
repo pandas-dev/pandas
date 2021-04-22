@@ -7,7 +7,10 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
+from pandas.compat import (
+    IS64,
+    PYPY,
+)
 
 from pandas import (
     CategoricalIndex,
@@ -16,44 +19,30 @@ from pandas import (
     Series,
     date_range,
     option_context,
-    reset_option,
-    set_option,
 )
-import pandas._testing as tm
 
 
 @pytest.fixture
-def datetime_frame():
-    """
-    Fixture for DataFrame of floats with DatetimeIndex
-
-    Columns are ['A', 'B', 'C', 'D']
-
-                       A         B         C         D
-    2000-01-03 -1.122153  0.468535  0.122226  1.693711
-    2000-01-04  0.189378  0.486100  0.007864 -1.216052
-    2000-01-05  0.041401 -0.835752 -0.035279 -0.414357
-    2000-01-06  0.430050  0.894352  0.090719  0.036939
-    2000-01-07 -0.620982 -0.668211 -0.706153  1.466335
-    2000-01-10 -0.752633  0.328434 -0.815325  0.699674
-    2000-01-11 -2.236969  0.615737 -0.829076 -1.196106
-    ...              ...       ...       ...       ...
-    2000-02-03  1.642618 -0.579288  0.046005  1.385249
-    2000-02-04 -0.544873 -1.160962 -0.284071 -1.418351
-    2000-02-07 -2.656149 -0.601387  1.410148  0.444150
-    2000-02-08 -1.201881 -1.289040  0.772992 -1.445300
-    2000-02-09  1.377373  0.398619  1.008453 -0.928207
-    2000-02-10  0.473194 -0.636677  0.984058  0.511519
-    2000-02-11 -0.965556  0.408313 -1.312844 -0.381948
-
-    [30 rows x 4 columns]
-    """
-    return DataFrame(tm.getTimeSeriesData())
+def duplicate_columns_frame():
+    """Dataframe with duplicate column names."""
+    return DataFrame(np.random.randn(1500, 4), columns=["a", "a", "b", "b"])
 
 
-def test_info_categorical_column():
+def test_info_empty():
+    df = DataFrame()
+    buf = StringIO()
+    df.info(buf=buf)
+    result = buf.getvalue()
+    expected = textwrap.dedent(
+        """\
+        <class 'pandas.core.frame.DataFrame'>
+        Index: 0 entries
+        Empty DataFrame"""
+    )
+    assert result == expected
 
-    # make sure it works
+
+def test_info_categorical_column_smoke_test():
     n = 2500
     df = DataFrame({"int64": np.random.randint(100, size=n)})
     df["category"] = Series(
@@ -68,18 +57,48 @@ def test_info_categorical_column():
     df2.info(buf=buf)
 
 
-def test_info(float_frame, datetime_frame):
-    io = StringIO()
-    float_frame.info(buf=io)
-    datetime_frame.info(buf=io)
+@pytest.mark.parametrize(
+    "fixture_func_name",
+    [
+        "int_frame",
+        "float_frame",
+        "datetime_frame",
+        "duplicate_columns_frame",
+    ],
+)
+def test_info_smoke_test(fixture_func_name, request):
+    frame = request.getfixturevalue(fixture_func_name)
+    buf = StringIO()
+    frame.info(buf=buf)
+    result = buf.getvalue().splitlines()
+    assert len(result) > 10
 
-    frame = DataFrame(np.random.randn(5, 3))
 
-    frame.info()
-    frame.info(verbose=False)
+@pytest.mark.parametrize(
+    "num_columns, max_info_columns, verbose",
+    [
+        (10, 100, True),
+        (10, 11, True),
+        (10, 10, True),
+        (10, 9, False),
+        (10, 1, False),
+    ],
+)
+def test_info_default_verbose_selection(num_columns, max_info_columns, verbose):
+    frame = DataFrame(np.random.randn(5, num_columns))
+    with option_context("display.max_info_columns", max_info_columns):
+        io_default = StringIO()
+        frame.info(buf=io_default)
+        result = io_default.getvalue()
+
+        io_explicit = StringIO()
+        frame.info(buf=io_explicit, verbose=verbose)
+        expected = io_explicit.getvalue()
+
+        assert result == expected
 
 
-def test_info_verbose():
+def test_info_verbose_check_header_separator_body():
     buf = StringIO()
     size = 1001
     start = 5
@@ -87,7 +106,7 @@ def test_info_verbose():
     frame.info(verbose=True, buf=buf)
 
     res = buf.getvalue()
-    header = " #    Column  Dtype  \n---   ------  -----  "
+    header = " #     Column  Dtype  \n---    ------  -----  "
     assert header in res
 
     frame.info(verbose=True, buf=buf)
@@ -99,6 +118,64 @@ def test_info_verbose():
         if i >= start and i < start + size:
             line_nr = f" {i - start} "
             assert line.startswith(line_nr)
+
+
+@pytest.mark.parametrize(
+    "size, header_exp, separator_exp, first_line_exp, last_line_exp",
+    [
+        (
+            4,
+            " #   Column  Non-Null Count  Dtype  ",
+            "---  ------  --------------  -----  ",
+            " 0   0       3 non-null      float64",
+            " 3   3       3 non-null      float64",
+        ),
+        (
+            11,
+            " #   Column  Non-Null Count  Dtype  ",
+            "---  ------  --------------  -----  ",
+            " 0   0       3 non-null      float64",
+            " 10  10      3 non-null      float64",
+        ),
+        (
+            101,
+            " #    Column  Non-Null Count  Dtype  ",
+            "---   ------  --------------  -----  ",
+            " 0    0       3 non-null      float64",
+            " 100  100     3 non-null      float64",
+        ),
+        (
+            1001,
+            " #     Column  Non-Null Count  Dtype  ",
+            "---    ------  --------------  -----  ",
+            " 0     0       3 non-null      float64",
+            " 1000  1000    3 non-null      float64",
+        ),
+        (
+            10001,
+            " #      Column  Non-Null Count  Dtype  ",
+            "---     ------  --------------  -----  ",
+            " 0      0       3 non-null      float64",
+            " 10000  10000   3 non-null      float64",
+        ),
+    ],
+)
+def test_info_verbose_with_counts_spacing(
+    size, header_exp, separator_exp, first_line_exp, last_line_exp
+):
+    """Test header column, spacer, first line and last line in verbose mode."""
+    frame = DataFrame(np.random.randn(3, size))
+    with StringIO() as buf:
+        frame.info(verbose=True, show_counts=True, buf=buf)
+        all_lines = buf.getvalue().splitlines()
+    # Here table would contain only header, separator and table lines
+    # dframe repr, index summary, memory usage and dtypes are excluded
+    table = all_lines[3:-2]
+    header, separator, first_line, *rest, last_line = table
+    assert header == header_exp
+    assert separator == separator_exp
+    assert first_line == first_line_exp
+    assert last_line == last_line_exp
 
 
 def test_info_memory():
@@ -130,33 +207,23 @@ def test_info_wide():
 
     io = StringIO()
     df.info(buf=io, max_cols=101)
-    rs = io.getvalue()
-    assert len(rs.splitlines()) > 100
-    xp = rs
+    result = io.getvalue()
+    assert len(result.splitlines()) > 100
 
-    set_option("display.max_info_columns", 101)
-    io = StringIO()
-    df.info(buf=io)
-    assert rs == xp
-    reset_option("display.max_info_columns")
-
-
-def test_info_duplicate_columns():
-    io = StringIO()
-
-    # it works!
-    frame = DataFrame(np.random.randn(1500, 4), columns=["a", "a", "b", "b"])
-    frame.info(buf=io)
+    expected = result
+    with option_context("display.max_info_columns", 101):
+        io = StringIO()
+        df.info(buf=io)
+        result = io.getvalue()
+        assert result == expected
 
 
 def test_info_duplicate_columns_shows_correct_dtypes():
     # GH11761
     io = StringIO()
-
     frame = DataFrame([[1, 2.0]], columns=["a", "a"])
     frame.info(buf=io)
-    io.seek(0)
-    lines = io.readlines()
+    lines = io.getvalue().splitlines(True)
     assert " 0   a       1 non-null      int64  \n" == lines[5]
     assert " 1   a       1 non-null      float64\n" == lines[6]
 
@@ -200,7 +267,6 @@ def test_info_max_cols():
             assert len(res.strip().split("\n")) == len_
 
     for len_, verbose in [(12, None), (5, False), (12, True)]:
-
         # max_cols not exceeded
         with option_context("max_info_columns", 5):
             buf = StringIO()
@@ -299,7 +365,7 @@ def test_info_memory_usage():
     DataFrame(1, index=["a"], columns=["A"]).memory_usage(index=True)
     DataFrame(1, index=["a"], columns=["A"]).index.nbytes
     df = DataFrame(
-        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"],
+        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
     )
     df.index.nbytes
     df.memory_usage(index=True)
@@ -336,7 +402,7 @@ def test_info_memory_usage_deep_pypy():
 @pytest.mark.skipif(PYPY, reason="PyPy getsizeof() fails by design")
 def test_usage_via_getsizeof():
     df = DataFrame(
-        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"],
+        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
     )
     mem = df.memory_usage(deep=True).sum()
     # sys.getsizeof will call the .memory_usage with
@@ -346,7 +412,6 @@ def test_usage_via_getsizeof():
 
 
 def test_info_memory_usage_qualified():
-
     buf = StringIO()
     df = DataFrame(1, columns=list("ab"), index=[1, 2, 3])
     df.info(buf=buf)
@@ -359,16 +424,14 @@ def test_info_memory_usage_qualified():
 
     buf = StringIO()
     df = DataFrame(
-        1, columns=list("ab"), index=MultiIndex.from_product([range(3), range(3)]),
+        1, columns=list("ab"), index=MultiIndex.from_product([range(3), range(3)])
     )
     df.info(buf=buf)
     assert "+" not in buf.getvalue()
 
     buf = StringIO()
     df = DataFrame(
-        1,
-        columns=list("ab"),
-        index=MultiIndex.from_product([range(3), ["foo", "bar"]]),
+        1, columns=list("ab"), index=MultiIndex.from_product([range(3), ["foo", "bar"]])
     )
     df.info(buf=buf)
     assert "+" in buf.getvalue()
@@ -384,7 +447,8 @@ def test_info_memory_usage_bug_on_multiindex():
     N = 100
     M = len(uppercase)
     index = MultiIndex.from_product(
-        [list(uppercase), date_range("20160101", periods=N)], names=["id", "date"],
+        [list(uppercase), date_range("20160101", periods=N)],
+        names=["id", "date"],
     )
     df = DataFrame({"value": np.random.randn(N * M)}, index=index)
 
@@ -403,3 +467,26 @@ def test_info_categorical():
 
     buf = StringIO()
     df.info(buf=buf)
+
+
+@pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
+def test_info_int_columns():
+    # GH#37245
+    df = DataFrame({1: [1, 2], 2: [2, 3]}, index=["A", "B"])
+    buf = StringIO()
+    df.info(show_counts=True, buf=buf)
+    result = buf.getvalue()
+    expected = textwrap.dedent(
+        """\
+        <class 'pandas.core.frame.DataFrame'>
+        Index: 2 entries, A to B
+        Data columns (total 2 columns):
+         #   Column  Non-Null Count  Dtype
+        ---  ------  --------------  -----
+         0   1       2 non-null      int64
+         1   2       2 non-null      int64
+        dtypes: int64(2)
+        memory usage: 48.0+ bytes
+        """
+    )
+    assert result == expected

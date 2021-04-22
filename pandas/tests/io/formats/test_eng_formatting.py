@@ -1,6 +1,5 @@
 import numpy as np
 
-import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -214,7 +213,7 @@ class TestEngFormatter:
         result = formatter(np.nan)
         assert result == "NaN"
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "a": [1.5, 10.3, 20.5],
                 "b": [50.3, 60.67, 70.12],

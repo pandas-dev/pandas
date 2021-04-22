@@ -1,17 +1,23 @@
 """ Test cases for misc plot functions """
 
 import numpy as np
-from numpy import random
-from numpy.random import randn
 import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+    _check_plot_works,
+)
 
 import pandas.plotting as plotting
+
+pytestmark = pytest.mark.slow
 
 
 @td.skip_if_mpl
@@ -54,7 +60,7 @@ def test_get_accessor_args():
     assert x is None
     assert y is None
     assert kind == "line"
-    assert len(kwargs) == 22
+    assert len(kwargs) == 24
 
 
 @td.skip_if_no_mpl
@@ -68,24 +74,23 @@ class TestSeriesPlots(TestPlotBase):
         self.ts = tm.makeTimeSeries()
         self.ts.name = "ts"
 
-    @pytest.mark.slow
     def test_autocorrelation_plot(self):
         from pandas.plotting import autocorrelation_plot
 
-        _check_plot_works(autocorrelation_plot, series=self.ts)
-        _check_plot_works(autocorrelation_plot, series=self.ts.values)
+        # Ensure no UserWarning when making plot
+        with tm.assert_produces_warning(None):
+            _check_plot_works(autocorrelation_plot, series=self.ts)
+            _check_plot_works(autocorrelation_plot, series=self.ts.values)
 
-        ax = autocorrelation_plot(self.ts, label="Test")
+            ax = autocorrelation_plot(self.ts, label="Test")
         self._check_legend_labels(ax, labels=["Test"])
 
-    @pytest.mark.slow
     def test_lag_plot(self):
         from pandas.plotting import lag_plot
 
         _check_plot_works(lag_plot, series=self.ts)
         _check_plot_works(lag_plot, series=self.ts, lag=5)
 
-    @pytest.mark.slow
     def test_bootstrap_plot(self):
         from pandas.plotting import bootstrap_plot
 
@@ -95,16 +100,29 @@ class TestSeriesPlots(TestPlotBase):
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
-    def test_scatter_matrix_axis(self):
+    @pytest.mark.parametrize("pass_axis", [False, True])
+    def test_scatter_matrix_axis(self, pass_axis):
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
+
         scatter_matrix = plotting.scatter_matrix
 
+        ax = None
+        if pass_axis:
+            _, ax = self.plt.subplots(3, 3)
+
         with tm.RNGContext(42):
-            df = DataFrame(randn(100, 3))
+            df = DataFrame(np.random.randn(100, 3))
 
         # we are plotting multiples on a sub-plot
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(
+            UserWarning, raise_on_extra_warnings=mpl_ge_3_0_0()
+        ):
             axes = _check_plot_works(
-                scatter_matrix, filterwarnings="always", frame=df, range_padding=0.1
+                scatter_matrix,
+                filterwarnings="always",
+                frame=df,
+                range_padding=0.1,
+                ax=ax,
             )
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
 
@@ -118,21 +136,26 @@ class TestDataFramePlots(TestPlotBase):
         # we are plotting multiples on a sub-plot
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(
-                scatter_matrix, filterwarnings="always", frame=df, range_padding=0.1
+                scatter_matrix,
+                filterwarnings="always",
+                frame=df,
+                range_padding=0.1,
+                ax=ax,
             )
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
         expected = ["-1.0", "-0.5", "0.0"]
         self._check_text_labels(axes0_labels, expected)
         self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
-    @pytest.mark.slow
     def test_andrews_curves(self, iris):
-        from pandas.plotting import andrews_curves
         from matplotlib import cm
 
-        df = iris
+        from pandas.plotting import andrews_curves
 
-        _check_plot_works(andrews_curves, frame=df, class_column="Name")
+        df = iris
+        # Ensure no UserWarning when making plot
+        with tm.assert_produces_warning(None):
+            _check_plot_works(andrews_curves, frame=df, class_column="Name")
 
         rgba = ("#556270", "#4ECDC4", "#C7F464")
         ax = _check_plot_works(
@@ -161,9 +184,9 @@ class TestDataFramePlots(TestPlotBase):
         length = 10
         df = DataFrame(
             {
-                "A": random.rand(length),
-                "B": random.rand(length),
-                "C": random.rand(length),
+                "A": np.random.rand(length),
+                "B": np.random.rand(length),
+                "C": np.random.rand(length),
                 "Name": ["A"] * length,
             }
         )
@@ -200,10 +223,10 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
 
-    @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
-        from pandas.plotting import parallel_coordinates
         from matplotlib import cm
+
+        from pandas.plotting import parallel_coordinates
 
         df = iris
 
@@ -273,13 +296,15 @@ class TestDataFramePlots(TestPlotBase):
             # labels and colors are ordered strictly increasing
             assert prev[1] < nxt[1] and prev[0] < nxt[0]
 
-    @pytest.mark.slow
     def test_radviz(self, iris):
-        from pandas.plotting import radviz
         from matplotlib import cm
 
+        from pandas.plotting import radviz
+
         df = iris
-        _check_plot_works(radviz, frame=df, class_column="Name")
+        # Ensure no UserWarning when making plot
+        with tm.assert_produces_warning(None):
+            _check_plot_works(radviz, frame=df, class_column="Name")
 
         rgba = ("#556270", "#4ECDC4", "#C7F464")
         ax = _check_plot_works(radviz, frame=df, class_column="Name", color=rgba)
@@ -305,7 +330,6 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, facecolors=colors)
 
-    @pytest.mark.slow
     def test_subplot_titles(self, iris):
         df = iris.drop("Name", axis=1).head()
         # Use the column names as the subplot titles
@@ -346,27 +370,27 @@ class TestDataFramePlots(TestPlotBase):
         # GH17525
         df = DataFrame(np.zeros((10, 10)))
 
-        # Make sure that the random seed isn't reset by _get_standard_colors
+        # Make sure that the np.random.seed isn't reset by get_standard_colors
         plotting.parallel_coordinates(df, 0)
-        rand1 = random.random()
+        rand1 = np.random.random()
         plotting.parallel_coordinates(df, 0)
-        rand2 = random.random()
+        rand2 = np.random.random()
         assert rand1 != rand2
 
         # Make sure it produces the same colors every time it's called
-        from pandas.plotting._matplotlib.style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import get_standard_colors
 
-        color1 = _get_standard_colors(1, color_type="random")
-        color2 = _get_standard_colors(1, color_type="random")
+        color1 = get_standard_colors(1, color_type="random")
+        color2 = get_standard_colors(1, color_type="random")
         assert color1 == color2
 
     def test_get_standard_colors_default_num_colors(self):
-        from pandas.plotting._matplotlib.style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import get_standard_colors
 
         # Make sure the default color_types returns the specified amount
-        color1 = _get_standard_colors(1, color_type="default")
-        color2 = _get_standard_colors(9, color_type="default")
-        color3 = _get_standard_colors(20, color_type="default")
+        color1 = get_standard_colors(1, color_type="default")
+        color2 = get_standard_colors(9, color_type="default")
+        color3 = get_standard_colors(20, color_type="default")
         assert len(color1) == 1
         assert len(color2) == 9
         assert len(color3) == 20
@@ -393,10 +417,11 @@ class TestDataFramePlots(TestPlotBase):
         # Make sure not to add more colors so that matplotlib can cycle
         # correctly.
         from matplotlib import cm
-        from pandas.plotting._matplotlib.style import _get_standard_colors
+
+        from pandas.plotting._matplotlib.style import get_standard_colors
 
         color_before = cm.gnuplot(range(5))
-        color_after = _get_standard_colors(1, color=color_before)
+        color_after = get_standard_colors(1, color=color_before)
         assert len(color_after) == len(color_before)
 
         df = DataFrame(np.random.randn(48, 4), columns=list("ABCD"))
@@ -405,7 +430,6 @@ class TestDataFramePlots(TestPlotBase):
         p = df.A.plot.bar(figsize=(16, 7), color=color_list)
         assert p.patches[1].get_facecolor() == p.patches[17].get_facecolor()
 
-    @pytest.mark.slow
     def test_dictionary_color(self):
         # issue-8193
         # Test plot color dictionary format
@@ -425,3 +449,113 @@ class TestDataFramePlots(TestPlotBase):
         ax = df1.plot(kind="line", color=dic_color)
         colors = [rect.get_color() for rect in ax.get_lines()[0:2]]
         assert all(color == expected[index] for index, color in enumerate(colors))
+
+    def test_has_externally_shared_axis_x_axis(self):
+        # GH33819
+        # Test _has_externally_shared_axis() works for x-axis
+        func = plotting._matplotlib.tools._has_externally_shared_axis
+
+        fig = self.plt.figure()
+        plots = fig.subplots(2, 4)
+
+        # Create *externally* shared axes for first and third columns
+        plots[0][0] = fig.add_subplot(231, sharex=plots[1][0])
+        plots[0][2] = fig.add_subplot(233, sharex=plots[1][2])
+
+        # Create *internally* shared axes for second and third columns
+        plots[0][1].twinx()
+        plots[0][2].twinx()
+
+        # First  column is only externally shared
+        # Second column is only internally shared
+        # Third  column is both
+        # Fourth column is neither
+        assert func(plots[0][0], "x")
+        assert not func(plots[0][1], "x")
+        assert func(plots[0][2], "x")
+        assert not func(plots[0][3], "x")
+
+    def test_has_externally_shared_axis_y_axis(self):
+        # GH33819
+        # Test _has_externally_shared_axis() works for y-axis
+        func = plotting._matplotlib.tools._has_externally_shared_axis
+
+        fig = self.plt.figure()
+        plots = fig.subplots(4, 2)
+
+        # Create *externally* shared axes for first and third rows
+        plots[0][0] = fig.add_subplot(321, sharey=plots[0][1])
+        plots[2][0] = fig.add_subplot(325, sharey=plots[2][1])
+
+        # Create *internally* shared axes for second and third rows
+        plots[1][0].twiny()
+        plots[2][0].twiny()
+
+        # First  row is only externally shared
+        # Second row is only internally shared
+        # Third  row is both
+        # Fourth row is neither
+        assert func(plots[0][0], "y")
+        assert not func(plots[1][0], "y")
+        assert func(plots[2][0], "y")
+        assert not func(plots[3][0], "y")
+
+    def test_has_externally_shared_axis_invalid_compare_axis(self):
+        # GH33819
+        # Test _has_externally_shared_axis() raises an exception when
+        # passed an invalid value as compare_axis parameter
+        func = plotting._matplotlib.tools._has_externally_shared_axis
+
+        fig = self.plt.figure()
+        plots = fig.subplots(4, 2)
+
+        # Create arbitrary axes
+        plots[0][0] = fig.add_subplot(321, sharey=plots[0][1])
+
+        # Check that an invalid compare_axis value triggers the expected exception
+        msg = "needs 'x' or 'y' as a second parameter"
+        with pytest.raises(ValueError, match=msg):
+            func(plots[0][0], "z")
+
+    def test_externally_shared_axes(self):
+        # Example from GH33819
+        # Create data
+        df = DataFrame({"a": np.random.randn(1000), "b": np.random.randn(1000)})
+
+        # Create figure
+        fig = self.plt.figure()
+        plots = fig.subplots(2, 3)
+
+        # Create *externally* shared axes
+        plots[0][0] = fig.add_subplot(231, sharex=plots[1][0])
+        # note: no plots[0][1] that's the twin only case
+        plots[0][2] = fig.add_subplot(233, sharex=plots[1][2])
+
+        # Create *internally* shared axes
+        # note: no plots[0][0] that's the external only case
+        twin_ax1 = plots[0][1].twinx()
+        twin_ax2 = plots[0][2].twinx()
+
+        # Plot data to primary axes
+        df["a"].plot(ax=plots[0][0], title="External share only").set_xlabel(
+            "this label should never be visible"
+        )
+        df["a"].plot(ax=plots[1][0])
+
+        df["a"].plot(ax=plots[0][1], title="Internal share (twin) only").set_xlabel(
+            "this label should always be visible"
+        )
+        df["a"].plot(ax=plots[1][1])
+
+        df["a"].plot(ax=plots[0][2], title="Both").set_xlabel(
+            "this label should never be visible"
+        )
+        df["a"].plot(ax=plots[1][2])
+
+        # Plot data to twinned axes
+        df["b"].plot(ax=twin_ax1, color="green")
+        df["b"].plot(ax=twin_ax2, color="yellow")
+
+        assert not plots[0][0].xaxis.get_label().get_visible()
+        assert plots[0][1].xaxis.get_label().get_visible()
+        assert not plots[0][2].xaxis.get_label().get_visible()

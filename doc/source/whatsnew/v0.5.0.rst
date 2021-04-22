@@ -9,7 +9,7 @@ Version 0.5.0 (October 24, 2011)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *  # noqa F401, F403
 
 
 New features

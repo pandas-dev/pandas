@@ -4,7 +4,7 @@ import json
 import numpy as np
 import pyarrow
 
-from pandas.core.arrays.interval import _VALID_CLOSED
+from pandas.core.arrays.interval import VALID_CLOSED
 
 _pyarrow_version_ge_015 = LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")
 
@@ -30,7 +30,7 @@ def pyarrow_array_to_numpy_and_mask(arr, dtype):
     bitmask = buflist[0]
     if bitmask is not None:
         mask = pyarrow.BooleanArray.from_buffers(
-            pyarrow.bool_(), len(arr), [None, bitmask]
+            pyarrow.bool_(), len(arr), [None, bitmask], offset=arr.offset
         )
         mask = np.asarray(mask)
     else:
@@ -70,6 +70,11 @@ if _pyarrow_version_ge_015:
         def __hash__(self):
             return hash((str(self), self.freq))
 
+        def to_pandas_dtype(self):
+            import pandas as pd
+
+            return pd.PeriodDtype(freq=self.freq)
+
     # register the type with a dummy instance
     _period_type = ArrowPeriodType("D")
     pyarrow.register_extension_type(_period_type)
@@ -78,7 +83,7 @@ if _pyarrow_version_ge_015:
         def __init__(self, subtype, closed):
             # attributes need to be set first before calling
             # super init (as that calls serialize)
-            assert closed in _VALID_CLOSED
+            assert closed in VALID_CLOSED
             self._closed = closed
             if not isinstance(subtype, pyarrow.DataType):
                 subtype = pyarrow.type_for_alias(str(subtype))
@@ -118,6 +123,11 @@ if _pyarrow_version_ge_015:
 
         def __hash__(self):
             return hash((str(self), str(self.subtype), self.closed))
+
+        def to_pandas_dtype(self):
+            import pandas as pd
+
+            return pd.IntervalDtype(self.subtype.to_pandas_dtype(), self.closed)
 
     # register the type with a dummy instance
     _interval_type = ArrowIntervalType(pyarrow.int64(), "left")

@@ -1,7 +1,10 @@
 """
 datetimelike delegation
 """
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
@@ -16,18 +19,33 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
-from pandas.core.base import NoNewAttributesMixin, PandasObject
+from pandas.core.accessor import (
+    PandasDelegate,
+    delegate_names,
+)
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
+from pandas.core.base import (
+    NoNewAttributesMixin,
+    PandasObject,
+)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 if TYPE_CHECKING:
-    from pandas import Series  # noqa:F401
+    from pandas import Series
 
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
-    def __init__(self, data: "Series", orig):
+    _hidden_attrs = PandasObject._hidden_attrs | {
+        "orig",
+        "name",
+    }
+
+    def __init__(self, data: Series, orig):
         if not isinstance(data, ABCSeries):
             raise TypeError(
                 f"cannot convert an object of type {type(data)} to a datetimelike index"
@@ -77,7 +95,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         else:
             index = self._parent.index
         # return the result as a Series, which is by definition a copy
-        result = Series(result, index=index, name=self.name)
+        result = Series(result, index=index, name=self.name).__finalize__(self._parent)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (
@@ -105,7 +123,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_list_like(result):
             return result
 
-        result = Series(result, index=self._parent.index, name=self.name)
+        result = Series(result, index=self._parent.index, name=self.name).__finalize__(
+            self._parent
+        )
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (
@@ -233,8 +253,10 @@ class DatetimeProperties(Properties):
 
         See Also
         --------
-        Timestamp.isocalendar
-        datetime.date.isocalendar
+        Timestamp.isocalendar : Function return a 3-tuple containing ISO year,
+            week number, and weekday for the given Timestamp object.
+        datetime.date.isocalendar : Return a named tuple object with
+            three components: year, week and weekday.
 
         Examples
         --------
@@ -249,6 +271,30 @@ class DatetimeProperties(Properties):
         Name: week, dtype: UInt32
         """
         return self._get_values().isocalendar().set_index(self._parent.index)
+
+    @property
+    def weekofyear(self):
+        """
+        The week ordinal of the year.
+
+        .. deprecated:: 1.1.0
+
+        Series.dt.weekofyear and Series.dt.week have been deprecated.
+        Please use Series.dt.isocalendar().week instead.
+        """
+        warnings.warn(
+            "Series.dt.weekofyear and Series.dt.week have been deprecated.  "
+            "Please use Series.dt.isocalendar().week instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        week_series = self.isocalendar().week
+        week_series.name = self.name
+        if week_series.hasnans:
+            return week_series.astype("float64")
+        return week_series.astype("int64")
+
+    week = weekofyear
 
 
 @delegate_names(
@@ -299,7 +345,8 @@ class TimedeltaProperties(Properties):
 
         See Also
         --------
-        datetime.timedelta
+        datetime.timedelta : A duration expressing the difference
+            between two date, time, or datetime.
 
         Examples
         --------
@@ -346,7 +393,11 @@ class TimedeltaProperties(Properties):
         3     0      0        0        3             0             0            0
         4     0      0        0        4             0             0            0
         """
-        return self._get_values().components.set_index(self._parent.index)
+        return (
+            self._get_values()
+            .components.set_index(self._parent.index)
+            .__finalize__(self._parent)
+        )
 
     @property
     def freq(self):
@@ -423,7 +474,7 @@ class PeriodProperties(Properties):
 class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
-    def __new__(cls, data: "Series"):
+    def __new__(cls, data: Series):
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is
         # appropriate. Since we're checking the dtypes anyway, we'll just

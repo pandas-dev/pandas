@@ -2,7 +2,7 @@
 
 ## Contributors
 
-_pandas_ is made with love by more than [1,500 volunteer contributors](https://github.com/pandas-dev/pandas/graphs/contributors).
+_pandas_ is made with love by more than [2,000 volunteer contributors](https://github.com/pandas-dev/pandas/graphs/contributors).
 
 If you want to support pandas development, you can find information in the [donations page](../donate.html).
 
@@ -42,7 +42,7 @@ If you want to support pandas development, you can find information in the [dona
 > or anyone willing to increase the diversity of our team.
 > We have identified visible gaps and obstacles in sustaining diversity and inclusion in the open-source communities and we are proactive in increasing
 > the diversity of our team.
-> We have a [code of conduct]({base_url}/community/coc.html) to ensure a friendly and welcoming environment.
+> We have a [code of conduct](../community/coc.html) to ensure a friendly and welcoming environment.
 > Please send an email to [pandas-code-of-conduct-committee](mailto:pandas-coc@googlegroups.com), if you think we can do a
 > better job at achieving this goal.
 

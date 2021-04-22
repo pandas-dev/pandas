@@ -17,7 +17,9 @@
 		"python.linting.pylintEnabled": false,
 		"python.linting.mypyEnabled": true,
 		"python.testing.pytestEnabled": true,
-		"python.testing.cwd": "pandas/tests"
+		"python.testing.pytestArgs": [
+			"pandas"
+		]
 	},
 
 	// Add the IDs of extensions you want installed when the container is created in the array below.

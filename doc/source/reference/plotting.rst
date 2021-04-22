@@ -7,7 +7,7 @@ Plotting
 ========
 .. currentmodule:: pandas.plotting
 
-The following functions are contained in the `pandas.plotting` module.
+The following functions are contained in the ``pandas.plotting`` module.
 
 .. autosummary::
    :toctree: api/

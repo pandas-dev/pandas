@@ -1,10 +1,24 @@
 """
 Read SAS sas7bdat or xport files.
 """
+from __future__ import annotations
 
-from abc import ABCMeta, abstractmethod
+from abc import (
+    ABCMeta,
+    abstractmethod,
+)
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+    overload,
+)
+
+from pandas._typing import FilePathOrBuffer
 
 from pandas.io.common import stringify_path
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 # TODO(PY38): replace with Protocol in Python 3.8
@@ -21,15 +35,45 @@ class ReaderBase(metaclass=ABCMeta):
     def close(self):
         pass
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+
+@overload
+def read_sas(
+    filepath_or_buffer: FilePathOrBuffer,
+    format: str | None = ...,
+    index: Hashable | None = ...,
+    encoding: str | None = ...,
+    chunksize: int = ...,
+    iterator: bool = ...,
+) -> ReaderBase:
+    ...
+
+
+@overload
+def read_sas(
+    filepath_or_buffer: FilePathOrBuffer,
+    format: str | None = ...,
+    index: Hashable | None = ...,
+    encoding: str | None = ...,
+    chunksize: None = ...,
+    iterator: bool = ...,
+) -> DataFrame | ReaderBase:
+    ...
+
 
 def read_sas(
-    filepath_or_buffer,
-    format=None,
-    index=None,
-    encoding=None,
-    chunksize=None,
-    iterator=False,
-):
+    filepath_or_buffer: FilePathOrBuffer,
+    format: str | None = None,
+    index: Hashable | None = None,
+    encoding: str | None = None,
+    chunksize: int | None = None,
+    iterator: bool = False,
+) -> DataFrame | ReaderBase:
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 
@@ -45,7 +89,7 @@ def read_sas(
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     format : str {'xport', 'sas7bdat'} or None
         If None, file format is inferred from file extension. If 'xport' or
@@ -56,8 +100,16 @@ def read_sas(
         Encoding for text data.  If None, text data are stored as raw bytes.
     chunksize : int
         Read file `chunksize` lines at a time, returns iterator.
+
+        .. versionchanged:: 1.2
+
+            ``TextFileReader`` is a context manager.
     iterator : bool, defaults to False
         If True, returns an iterator for reading the file incrementally.
+
+        .. versionchanged:: 1.2
+
+            ``TextFileReader`` is a context manager.
 
     Returns
     -------
@@ -85,13 +137,19 @@ def read_sas(
         from pandas.io.sas.sas_xport import XportReader
 
         reader = XportReader(
-            filepath_or_buffer, index=index, encoding=encoding, chunksize=chunksize
+            filepath_or_buffer,
+            index=index,
+            encoding=encoding,
+            chunksize=chunksize,
         )
     elif format.lower() == "sas7bdat":
         from pandas.io.sas.sas7bdat import SAS7BDATReader
 
         reader = SAS7BDATReader(
-            filepath_or_buffer, index=index, encoding=encoding, chunksize=chunksize
+            filepath_or_buffer,
+            index=index,
+            encoding=encoding,
+            chunksize=chunksize,
         )
     else:
         raise ValueError("unknown SAS format")
@@ -99,6 +157,5 @@ def read_sas(
     if iterator or chunksize:
         return reader
 
-    data = reader.read()
-    reader.close()
-    return data
+    with reader:
+        return reader.read()

@@ -1,0 +1,33 @@
+name: "Update pre-commit config"
+
+on:
+  schedule:
+    - cron: "0 7 * * 1" # At 07:00 on each Monday.
+  workflow_dispatch:
+
+jobs:
+  update-pre-commit:
+    if: github.repository_owner == 'pandas-dev'
+    name: Autoupdate pre-commit config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Cache multiple paths
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/pre-commit
+            ~/.cache/pip
+          key: pre-commit-autoupdate-${{ runner.os }}-build
+      - name: Update pre-commit config packages
+        uses: technote-space/create-pr-action@v2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXECUTE_COMMANDS: |
+            pip install pre-commit
+            pre-commit autoupdate || (exit 0);
+            pre-commit run -a || (exit 0);
+          COMMIT_MESSAGE: "⬆️ UPGRADE: Autoupdate pre-commit config"
+          PR_BRANCH_NAME: "pre-commit-config-update-${PR_ID}"
+          PR_TITLE: "⬆️ UPGRADE: Autoupdate pre-commit config"

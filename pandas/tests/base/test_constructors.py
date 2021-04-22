@@ -7,10 +7,30 @@ import pytest
 from pandas.compat import PYPY
 
 import pandas as pd
-from pandas import DataFrame, Index, Series
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.accessor import PandasDelegate
-from pandas.core.base import NoNewAttributesMixin, PandasObject
+from pandas.core.base import (
+    NoNewAttributesMixin,
+    PandasObject,
+)
+
+
+@pytest.fixture(
+    params=[
+        Series,
+        lambda x, **kwargs: DataFrame({"a": x}, **kwargs)["a"],
+        lambda x, **kwargs: DataFrame(x, **kwargs)[0],
+        Index,
+    ],
+    ids=["Series", "DataFrame-dict", "DataFrame-array", "Index"],
+)
+def constructor(request):
+    return request.param
 
 
 class TestPandasDelegate:
@@ -104,9 +124,7 @@ class TestConstruction:
         [
             Series,
             lambda x, **kwargs: DataFrame({"a": x}, **kwargs)["a"],
-            pytest.param(
-                lambda x, **kwargs: DataFrame(x, **kwargs)[0], marks=pytest.mark.xfail
-            ),
+            lambda x, **kwargs: DataFrame(x, **kwargs)[0],
             Index,
         ],
     )
@@ -145,3 +163,14 @@ class TestConstruction:
         msg = "Out of bounds"
         with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
             klass(a, dtype="datetime64[ns]")
+
+    def test_constructor_datetime_nonns(self, constructor):
+        arr = np.array(["2020-01-01T00:00:00.000000"], dtype="datetime64[us]")
+        expected = constructor(pd.to_datetime(["2020-01-01"]))
+        result = constructor(arr)
+        tm.assert_equal(result, expected)
+
+        # https://github.com/pandas-dev/pandas/issues/34843
+        arr.flags.writeable = False
+        result = constructor(arr)
+        tm.assert_equal(result, expected)

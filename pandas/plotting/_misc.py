@@ -160,7 +160,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     Parameters
     ----------
     frame : `DataFrame`
-        pandas object holding the data.
+        Object holding the data.
     class_column : str
         Column name containing the name of the data point category.
     ax : :class:`matplotlib.axes.Axes`, optional
@@ -263,7 +263,7 @@ def andrews_curves(
 
         >>> df = pd.read_csv(
         ...     'https://raw.github.com/pandas-dev/'
-        ...     'pandas/master/pandas/tests/data/iris.csv'
+        ...     'pandas/master/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.andrews_curves(df, 'Name')
     """
@@ -294,13 +294,13 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     Parameters
     ----------
     series : pandas.Series
-        pandas Series from where to get the samplings for the bootstrapping.
+        Series from where to get the samplings for the bootstrapping.
     fig : matplotlib.figure.Figure, default None
         If given, it will use the `fig` reference for plotting instead of
         creating a new one with default parameters.
     size : int, default 50
         Number of data points to consider during each sampling. It must be
-        greater or equal than the length of the `series`.
+        less than or equal to the length of the `series`.
     samples : int, default 500
         Number of times the bootstrap procedure is performed.
     **kwds
@@ -318,7 +318,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     Examples
     --------
-    This example draws a basic bootstap plot for a Series.
+    This example draws a basic bootstrap plot for a Series.
 
     .. plot::
         :context: close-figs
@@ -387,7 +387,7 @@ def parallel_coordinates(
 
         >>> df = pd.read_csv(
         ...     'https://raw.github.com/pandas-dev/'
-        ...     'pandas/master/pandas/tests/data/iris.csv'
+        ...     'pandas/master/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.parallel_coordinates(
         ...     df, 'Name', color=('#556270', '#4ECDC4', '#C7F464')
@@ -530,7 +530,8 @@ class _Options(dict):
         -------
         None
         """
-        self.__init__()
+        # error: Cannot access "__init__" directly
+        self.__init__()  # type: ignore[misc]
 
     def _get_canonical_key(self, key):
         return self._ALIASES.get(key, key)

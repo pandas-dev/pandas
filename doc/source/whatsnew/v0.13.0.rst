@@ -214,7 +214,7 @@ These were announced changes in 0.12 or prior that are taking effect as of 0.13.
 - Remove deprecated ``read_clipboard/to_clipboard/ExcelFile/ExcelWriter`` from ``pandas.io.parsers`` (:issue:`3717`)
   These are available as functions in the main pandas namespace (e.g. ``pd.read_clipboard``)
 - default for ``tupleize_cols`` is now ``False`` for both ``to_csv`` and ``read_csv``. Fair warning in 0.12 (:issue:`3604`)
-- default for `display.max_seq_len` is now 100 rather than `None`. This activates
+- default for ``display.max_seq_len`` is now 100 rather than ``None``. This activates
   truncated display ("...") of long sequences in various places. (:issue:`3391`)
 
 Deprecations
@@ -498,7 +498,7 @@ Enhancements
 - ``to_dict`` now takes ``records`` as a possible out type.  Returns an array
   of column-keyed dictionaries. (:issue:`4936`)
 
-- ``NaN`` handing in get_dummies (:issue:`4446`) with `dummy_na`
+- ``NaN`` handing in get_dummies (:issue:`4446`) with ``dummy_na``
 
   .. ipython:: python
 
@@ -668,7 +668,7 @@ Enhancements
 
 - ``Series`` now supports a ``to_frame`` method to convert it to a single-column DataFrame (:issue:`5164`)
 
-- All R datasets listed here http://stat.ethz.ch/R-manual/R-devel/library/datasets/html/00Index.html can now be loaded into Pandas objects
+- All R datasets listed here http://stat.ethz.ch/R-manual/R-devel/library/datasets/html/00Index.html can now be loaded into pandas objects
 
   .. code-block:: python
 
@@ -1071,7 +1071,7 @@ Bug fixes
   as the docstring says (:issue:`4362`).
 - ``as_index`` is no longer ignored when doing groupby apply (:issue:`4648`,
   :issue:`3417`)
-- JSON NaT handling fixed, NaTs are now serialized to `null` (:issue:`4498`)
+- JSON NaT handling fixed, NaTs are now serialized to ``null`` (:issue:`4498`)
 - Fixed JSON handling of escapable characters in JSON object keys
   (:issue:`4593`)
 - Fixed passing ``keep_default_na=False`` when ``na_values=None``
@@ -1188,7 +1188,7 @@ Bug fixes
   single column and passing a list for ``ascending``, the argument for
   ``ascending`` was being interpreted as ``True`` (:issue:`4839`,
   :issue:`4846`)
-- Fixed ``Panel.tshift`` not working. Added `freq` support to ``Panel.shift``
+- Fixed ``Panel.tshift`` not working. Added ``freq`` support to ``Panel.shift``
   (:issue:`4853`)
 - Fix an issue in TextFileReader w/ Python engine (i.e. PythonParser)
   with thousands != "," (:issue:`4596`)

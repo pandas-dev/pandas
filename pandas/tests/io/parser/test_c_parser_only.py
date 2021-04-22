@@ -5,7 +5,11 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
-from io import BytesIO, StringIO, TextIOWrapper
+from io import (
+    BytesIO,
+    StringIO,
+    TextIOWrapper,
+)
 import mmap
 import os
 import tarfile
@@ -13,10 +17,14 @@ import tarfile
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, concat
+from pandas import (
+    DataFrame,
+    concat,
+)
 import pandas._testing as tm
 
 
@@ -48,11 +56,15 @@ def test_buffer_rd_bytes(c_parser_only):
     )
     parser = c_parser_only
 
-    for _ in range(100):
-        try:
-            parser.read_csv(StringIO(data), compression="gzip", delim_whitespace=True)
-        except Exception:
-            pass
+    with tm.assert_produces_warning(RuntimeWarning):
+        # compression has no effect when passing a non-binary object as input
+        for _ in range(100):
+            try:
+                parser.read_csv(
+                    StringIO(data), compression="gzip", delim_whitespace=True
+                )
+            except Exception:
+                pass
 
 
 def test_delim_whitespace_custom_terminator(c_parser_only):
@@ -116,20 +128,20 @@ nan 2
                 "the dtype datetime64 is not supported for parsing, "
                 "pass this column using parse_dates instead"
             ),
-            dict(dtype={"A": "datetime64", "B": "float64"}),
+            {"dtype": {"A": "datetime64", "B": "float64"}},
         ),
         (
             (
                 "the dtype datetime64 is not supported for parsing, "
                 "pass this column using parse_dates instead"
             ),
-            dict(dtype={"A": "datetime64", "B": "float64"}, parse_dates=["B"]),
+            {"dtype": {"A": "datetime64", "B": "float64"}, "parse_dates": ["B"]},
         ),
         (
             "the dtype timedelta64 is not supported for parsing",
-            dict(dtype={"A": "timedelta64", "B": "float64"}),
+            {"dtype": {"A": "timedelta64", "B": "float64"}},
         ),
-        ("the dtype <U8 is not supported for parsing", dict(dtype={"A": "U8"})),
+        ("the dtype <U8 is not supported for parsing", {"dtype": {"A": "U8"}}),
     ],
     ids=["dt64-0", "dt64-1", "td64", "<U8"],
 )
@@ -160,7 +172,9 @@ def test_precise_conversion(c_parser_only):
         # 25 decimal digits of precision
         text = f"a\n{num:.25}"
 
-        normal_val = float(parser.read_csv(StringIO(text))["a"][0])
+        normal_val = float(
+            parser.read_csv(StringIO(text), float_precision="legacy")["a"][0]
+        )
         precise_val = float(
             parser.read_csv(StringIO(text), float_precision="high")["a"][0]
         )
@@ -207,8 +221,8 @@ def test_usecols_dtypes(c_parser_only):
         dtype={"b": int, "c": float},
     )
 
-    assert (result.dtypes == [object, np.int, np.float]).all()
-    assert (result2.dtypes == [object, np.float]).all()
+    assert (result.dtypes == [object, int, float]).all()
+    assert (result2.dtypes == [object, float]).all()
 
 
 def test_disable_bool_parsing(c_parser_only):
@@ -298,9 +312,9 @@ def test_grow_boundary_at_cap(c_parser_only):
     parser = c_parser_only
 
     def test_empty_header_read(count):
-        s = StringIO("," * count)
-        expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
-        df = parser.read_csv(s)
+        with StringIO("," * count) as s:
+            expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
+            df = parser.read_csv(s)
         tm.assert_frame_equal(df, expected)
 
     for cnt in range(1, 101):
@@ -373,10 +387,10 @@ def test_parse_trim_buffers(c_parser_only):
     )
 
     # Iterate over the CSV file in chunks of `chunksize` lines
-    chunks_ = parser.read_csv(
+    with parser.read_csv(
         StringIO(csv_data), header=None, dtype=object, chunksize=chunksize
-    )
-    result = concat(chunks_, axis=0, ignore_index=True)
+    ) as chunks_:
+        result = concat(chunks_, axis=0, ignore_index=True)
 
     # Check for data corruption if there was no segfault
     tm.assert_frame_equal(result, expected)
@@ -384,14 +398,14 @@ def test_parse_trim_buffers(c_parser_only):
     # This extra test was added to replicate the fault in gh-5291.
     # Force 'utf-8' encoding, so that `_string_convert` would take
     # a different execution branch.
-    chunks_ = parser.read_csv(
+    with parser.read_csv(
         StringIO(csv_data),
         header=None,
         dtype=object,
         chunksize=chunksize,
         encoding="utf_8",
-    )
-    result = concat(chunks_, axis=0, ignore_index=True)
+    ) as chunks_:
+        result = concat(chunks_, axis=0, ignore_index=True)
     tm.assert_frame_equal(result, expected)
 
 
@@ -575,7 +589,7 @@ def test_file_handles_mmap(c_parser_only, csv1):
     # Don't close user provided file handles.
     parser = c_parser_only
 
-    with open(csv1, "r") as f:
+    with open(csv1) as f:
         m = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
         parser.read_csv(m)
 
@@ -606,3 +620,63 @@ def test_unix_style_breaks(c_parser_only):
         result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
     expected = DataFrame(columns=["col_1", "col_2", "col_3"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("float_precision", [None, "legacy", "high", "round_trip"])
+@pytest.mark.parametrize(
+    "data,thousands,decimal",
+    [
+        (
+            """A|B|C
+1|2,334.01|5
+10|13|10.
+""",
+            ",",
+            ".",
+        ),
+        (
+            """A|B|C
+1|2.334,01|5
+10|13|10,
+""",
+            ".",
+            ",",
+        ),
+    ],
+)
+def test_1000_sep_with_decimal(
+    c_parser_only, data, thousands, decimal, float_precision
+):
+    parser = c_parser_only
+    expected = DataFrame({"A": [1, 10], "B": [2334.01, 13], "C": [5, 10.0]})
+
+    result = parser.read_csv(
+        StringIO(data),
+        sep="|",
+        thousands=thousands,
+        decimal=decimal,
+        float_precision=float_precision,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_float_precision_options(c_parser_only):
+    # GH 17154, 36228
+    parser = c_parser_only
+    s = "foo\n243.164\n"
+    df = parser.read_csv(StringIO(s))
+    df2 = parser.read_csv(StringIO(s), float_precision="high")
+
+    tm.assert_frame_equal(df, df2)
+
+    df3 = parser.read_csv(StringIO(s), float_precision="legacy")
+
+    if IS64:
+        assert not df.iloc[0, 0] == df3.iloc[0, 0]
+    else:
+        assert df.iloc[0, 0] == df3.iloc[0, 0]
+
+    msg = "Unrecognized float_precision option: junk"
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(s), float_precision="junk")

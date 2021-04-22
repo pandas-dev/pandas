@@ -1,0 +1,55 @@
+.. _whatsnew_114:
+
+What's new in 1.1.4 (October 30, 2020)
+--------------------------------------
+
+These are the changes in pandas 1.1.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_114.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :func:`read_csv` raising a ``ValueError`` when ``names`` was of type ``dict_keys`` (:issue:`36928`)
+- Fixed regression in :func:`read_csv` with more than 1M rows and specifying a ``index_col`` argument (:issue:`37094`)
+- Fixed regression where attempting to mutate a :class:`DateOffset` object would no longer raise an ``AttributeError`` (:issue:`36940`)
+- Fixed regression where :meth:`DataFrame.agg` would fail with :exc:`TypeError` when passed positional arguments to be passed on to the aggregation function (:issue:`36948`).
+- Fixed regression in :class:`RollingGroupby` with ``sort=False`` not being respected (:issue:`36889`)
+- Fixed regression in :meth:`Series.astype` converting ``None`` to ``"nan"`` when casting to string (:issue:`36904`)
+- Fixed regression in :meth:`Series.rank` method failing for read-only data (:issue:`37290`)
+- Fixed regression in :class:`RollingGroupby` causing a segmentation fault with Index of dtype object (:issue:`36727`)
+- Fixed regression in :meth:`DataFrame.resample(...).apply(...)` raised ``AttributeError`` when input was a :class:`DataFrame` and only a :class:`Series` was evaluated (:issue:`36951`)
+- Fixed regression in ``DataFrame.groupby(..).std()`` with nullable integer dtype (:issue:`37415`)
+- Fixed regression in :class:`PeriodDtype` comparing both equal and unequal to its string representation (:issue:`37265`)
+- Fixed regression where slicing :class:`DatetimeIndex` raised :exc:`AssertionError` on irregular time series with ``pd.NaT`` or on unsorted indices (:issue:`36953` and :issue:`35509`)
+- Fixed regression in certain offsets (:meth:`pd.offsets.Day() <pandas.tseries.offsets.Day>` and below) no longer being hashable (:issue:`37267`)
+- Fixed regression in :class:`StataReader` which required ``chunksize`` to be manually set when using an iterator to read a dataset (:issue:`37280`)
+- Fixed regression in setitem with :meth:`DataFrame.iloc` which raised error when trying to set a value while filtering with a boolean list (:issue:`36741`)
+- Fixed regression in setitem with a Series getting aligned before setting the values (:issue:`37427`)
+- Fixed regression in :attr:`MultiIndex.is_monotonic_increasing` returning wrong results with ``NaN`` in at least one of the levels (:issue:`37220`)
+- Fixed regression in inplace arithmetic operation on a Series not updating the parent DataFrame (:issue:`36373`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_114.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug causing ``groupby(...).sum()`` and similar to not preserve metadata (:issue:`29442`)
+- Bug in :meth:`Series.isin` and :meth:`DataFrame.isin` raising a ``ValueError`` when the target was read-only (:issue:`37174`)
+- Bug in :meth:`GroupBy.fillna` that introduced a performance regression after 1.0.5 (:issue:`36757`)
+- Bug in :meth:`DataFrame.info` was raising a ``KeyError`` when the DataFrame has integer column names (:issue:`37245`)
+- Bug in :meth:`DataFrameGroupby.apply` would drop a :class:`CategoricalIndex` when grouped on (:issue:`35792`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_114.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.3..v1.1.4

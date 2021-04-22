@@ -1,59 +1,19 @@
 """
 Provide basic components for groupby. These definitions
-hold the whitelist of methods that are exposed on the
+hold the allowlist of methods that are exposed on the
 SeriesGroupBy and the DataFrameGroupBy objects.
 """
+from __future__ import annotations
+
 import collections
 
-from pandas.core.dtypes.common import is_list_like, is_scalar
-
 OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
-
-
-class GroupByMixin:
-    """
-    Provide the groupby facilities to the mixed object.
-    """
-
-    def _gotitem(self, key, ndim, subset=None):
-        """
-        Sub-classes to define. Return a sliced object.
-
-        Parameters
-        ----------
-        key : string / list of selections
-        ndim : 1,2
-            requested ndim of result
-        subset : object, default None
-            subset to act on
-        """
-        # create a new object to prevent aliasing
-        if subset is None:
-            subset = self.obj
-
-        # we need to make a shallow copy of ourselves
-        # with the same groupby
-        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
-
-        # Try to select from a DataFrame, falling back to a Series
-        try:
-            groupby = self._groupby[key]
-        except IndexError:
-            groupby = self._groupby
-
-        self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
-        self._reset_cache()
-        if subset.ndim == 2:
-            if is_scalar(key) and key in subset or is_list_like(key):
-                self._selection = key
-        return self
-
 
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames
 plotting_methods = frozenset(["plot", "hist"])
 
-common_apply_whitelist = (
+common_apply_allowlist = (
     frozenset(
         [
             "quantile",
@@ -72,25 +32,20 @@ common_apply_whitelist = (
     | plotting_methods
 )
 
-series_apply_whitelist = (
-    (
-        common_apply_whitelist
-        | {
-            "nlargest",
-            "nsmallest",
-            "is_monotonic_increasing",
-            "is_monotonic_decreasing",
-        }
+series_apply_allowlist: frozenset[str] = (
+    common_apply_allowlist
+    | frozenset(
+        {"nlargest", "nsmallest", "is_monotonic_increasing", "is_monotonic_decreasing"}
     )
 ) | frozenset(["dtype", "unique"])
 
-dataframe_apply_whitelist = common_apply_whitelist | frozenset(["dtypes", "corrwith"])
+dataframe_apply_allowlist: frozenset[str] = common_apply_allowlist | frozenset(
+    ["dtypes", "corrwith"]
+)
 
 # cythonized transformations or canned "agg+broadcast", which do not
 # require postprocessing of the result by transform.
 cythonized_kernels = frozenset(["cumprod", "cumsum", "shift", "cummin", "cummax"])
-
-cython_cast_blacklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
 # List of aggregation/reduction functions.
 # These map each group to a single numeric value
@@ -164,6 +119,7 @@ groupby_other_methods = frozenset(
         "describe",
         "dtypes",
         "expanding",
+        "ewm",
         "filter",
         "get_group",
         "groups",
@@ -180,9 +136,10 @@ groupby_other_methods = frozenset(
         "tail",
         "take",
         "transform",
+        "sample",
     ]
 )
 # Valid values  of `name` for `groupby.transform(name)`
 # NOTE: do NOT edit this directly. New additions should be inserted
 # into the appropriate list above.
-transform_kernel_whitelist = reduction_kernels | transformation_kernels
+transform_kernel_allowlist = reduction_kernels | transformation_kernels

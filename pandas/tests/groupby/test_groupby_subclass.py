@@ -3,7 +3,10 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -14,6 +17,7 @@ import pandas._testing as tm
         tm.SubclassedSeries(np.arange(0, 10), name="A"),
     ],
 )
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_groupby_preserves_subclass(obj, groupby_func):
     # GH28330 -- preserve subclass through groupby operations
 
@@ -50,9 +54,16 @@ def test_groupby_preserves_subclass(obj, groupby_func):
         tm.assert_series_equal(result1, result2)
 
 
-@pytest.mark.parametrize(
-    "obj", [DataFrame, tm.SubclassedDataFrame],
-)
+def test_groupby_preserves_metadata():
+    # GH-37343
+    custom_df = tm.SubclassedDataFrame({"a": [1, 2, 3], "b": [1, 1, 2], "c": [7, 8, 9]})
+    assert "testattr" in custom_df._metadata
+    custom_df.testattr = "hello"
+    for _, group_df in custom_df.groupby("c"):
+        assert group_df.testattr == "hello"
+
+
+@pytest.mark.parametrize("obj", [DataFrame, tm.SubclassedDataFrame])
 def test_groupby_resample_preserves_subclass(obj):
     # GH28330 -- preserve subclass through groupby.resample()
 

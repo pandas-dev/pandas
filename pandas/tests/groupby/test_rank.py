@@ -1,8 +1,15 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, concat
+from pandas import (
+    DataFrame,
+    NaT,
+    Series,
+    concat,
+)
 import pandas._testing as tm
 from pandas.core.base import DataError
 
@@ -42,7 +49,10 @@ def test_rank_apply():
 @pytest.mark.parametrize(
     "vals",
     [
-        [2, 2, 8, 2, 6],
+        np.array([2, 2, 8, 2, 6], dtype=dtype)
+        for dtype in ["i8", "i4", "i2", "i1", "u8", "u4", "u2", "u1", "f8", "f4", "f2"]
+    ]
+    + [
         [
             pd.Timestamp("2018-01-02"),
             pd.Timestamp("2018-01-02"),
@@ -50,7 +60,29 @@ def test_rank_apply():
             pd.Timestamp("2018-01-02"),
             pd.Timestamp("2018-01-06"),
         ],
+        [
+            pd.Timestamp("2018-01-02", tz="US/Pacific"),
+            pd.Timestamp("2018-01-02", tz="US/Pacific"),
+            pd.Timestamp("2018-01-08", tz="US/Pacific"),
+            pd.Timestamp("2018-01-02", tz="US/Pacific"),
+            pd.Timestamp("2018-01-06", tz="US/Pacific"),
+        ],
+        [
+            pd.Timestamp("2018-01-02") - pd.Timestamp(0),
+            pd.Timestamp("2018-01-02") - pd.Timestamp(0),
+            pd.Timestamp("2018-01-08") - pd.Timestamp(0),
+            pd.Timestamp("2018-01-02") - pd.Timestamp(0),
+            pd.Timestamp("2018-01-06") - pd.Timestamp(0),
+        ],
+        [
+            pd.Timestamp("2018-01-02").to_period("D"),
+            pd.Timestamp("2018-01-02").to_period("D"),
+            pd.Timestamp("2018-01-08").to_period("D"),
+            pd.Timestamp("2018-01-02").to_period("D"),
+            pd.Timestamp("2018-01-06").to_period("D"),
+        ],
     ],
+    ids=lambda x: type(x[0]),
 )
 @pytest.mark.parametrize(
     "ties_method,ascending,pct,exp",
@@ -79,7 +111,12 @@ def test_rank_apply():
 )
 def test_rank_args(grps, vals, ties_method, ascending, pct, exp):
     key = np.repeat(grps, len(vals))
-    vals = vals * len(grps)
+
+    orig_vals = vals
+    vals = list(vals) * len(grps)
+    if isinstance(orig_vals, np.ndarray):
+        vals = np.array(vals, dtype=orig_vals.dtype)
+
     df = DataFrame({"key": key, "val": vals})
     result = df.groupby("key").rank(method=ties_method, ascending=ascending, pct=pct)
 
@@ -142,7 +179,10 @@ def test_infs_n_nans(grps, vals, ties_method, ascending, na_option, exp):
 @pytest.mark.parametrize(
     "vals",
     [
-        [2, 2, np.nan, 8, 2, 6, np.nan, np.nan],
+        np.array([2, 2, np.nan, 8, 2, 6, np.nan, np.nan], dtype=dtype)
+        for dtype in ["f8", "f4", "f2"]
+    ]
+    + [
         [
             pd.Timestamp("2018-01-02"),
             pd.Timestamp("2018-01-02"),
@@ -153,7 +193,38 @@ def test_infs_n_nans(grps, vals, ties_method, ascending, na_option, exp):
             np.nan,
             np.nan,
         ],
+        [
+            pd.Timestamp("2018-01-02", tz="US/Pacific"),
+            pd.Timestamp("2018-01-02", tz="US/Pacific"),
+            np.nan,
+            pd.Timestamp("2018-01-08", tz="US/Pacific"),
+            pd.Timestamp("2018-01-02", tz="US/Pacific"),
+            pd.Timestamp("2018-01-06", tz="US/Pacific"),
+            np.nan,
+            np.nan,
+        ],
+        [
+            pd.Timestamp("2018-01-02") - pd.Timestamp(0),
+            pd.Timestamp("2018-01-02") - pd.Timestamp(0),
+            np.nan,
+            pd.Timestamp("2018-01-08") - pd.Timestamp(0),
+            pd.Timestamp("2018-01-02") - pd.Timestamp(0),
+            pd.Timestamp("2018-01-06") - pd.Timestamp(0),
+            np.nan,
+            np.nan,
+        ],
+        [
+            pd.Timestamp("2018-01-02").to_period("D"),
+            pd.Timestamp("2018-01-02").to_period("D"),
+            np.nan,
+            pd.Timestamp("2018-01-08").to_period("D"),
+            pd.Timestamp("2018-01-02").to_period("D"),
+            pd.Timestamp("2018-01-06").to_period("D"),
+            np.nan,
+            np.nan,
+        ],
     ],
+    ids=lambda x: type(x[0]),
 )
 @pytest.mark.parametrize(
     "ties_method,ascending,na_option,pct,exp",
@@ -346,7 +417,12 @@ def test_infs_n_nans(grps, vals, ties_method, ascending, na_option, exp):
 )
 def test_rank_args_missing(grps, vals, ties_method, ascending, na_option, pct, exp):
     key = np.repeat(grps, len(vals))
-    vals = vals * len(grps)
+
+    orig_vals = vals
+    vals = list(vals) * len(grps)
+    if isinstance(orig_vals, np.ndarray):
+        vals = np.array(vals, dtype=orig_vals.dtype)
+
     df = DataFrame({"key": key, "val": vals})
     result = df.groupby("key").rank(
         method=ties_method, ascending=ascending, na_option=na_option, pct=pct
@@ -368,13 +444,25 @@ def test_rank_resets_each_group(pct, exp):
     tm.assert_frame_equal(result, exp_df)
 
 
-def test_rank_avg_even_vals():
+@pytest.mark.parametrize(
+    "dtype", ["int64", "int32", "uint64", "uint32", "float64", "float32"]
+)
+@pytest.mark.parametrize("upper", [True, False])
+def test_rank_avg_even_vals(dtype, upper):
+    if upper:
+        # use IntegerDtype/FloatingDtype
+        dtype = dtype[0].upper() + dtype[1:]
+        dtype = dtype.replace("Ui", "UI")
     df = DataFrame({"key": ["a"] * 4, "val": [1] * 4})
+    df["val"] = df["val"].astype(dtype)
+    assert df["val"].dtype == dtype
+
     result = df.groupby("key").rank()
     exp_df = DataFrame([2.5, 2.5, 2.5, 2.5], columns=["val"])
     tm.assert_frame_equal(result, exp_df)
 
 
+@pytest.mark.xfail(reason="Works now, needs tests")
 @pytest.mark.parametrize("ties_method", ["average", "min", "max", "first", "dense"])
 @pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
@@ -442,4 +530,73 @@ def test_rank_zero_div(input_key, input_value, output_value):
 
     result = df.groupby("A").rank(method="dense", pct=True)
     expected = DataFrame({"B": output_value})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_rank_min_int():
+    # GH-32859
+    df = DataFrame(
+        {
+            "grp": [1, 1, 2],
+            "int_col": [
+                np.iinfo(np.int64).min,
+                np.iinfo(np.int64).max,
+                np.iinfo(np.int64).min,
+            ],
+            "datetimelike": [NaT, datetime(2001, 1, 1), NaT],
+        }
+    )
+
+    result = df.groupby("grp").rank()
+    expected = DataFrame(
+        {"int_col": [1.0, 2.0, 1.0], "datetimelike": [np.NaN, 1.0, np.NaN]}
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("use_nan", [True, False])
+def test_rank_pct_equal_values_on_group_transition(use_nan):
+    # GH#40518
+    fill_value = np.nan if use_nan else 3
+    df = DataFrame(
+        [
+            [-1, 1],
+            [-1, 2],
+            [1, fill_value],
+            [-1, fill_value],
+        ],
+        columns=["group", "val"],
+    )
+    result = df.groupby(["group"])["val"].rank(
+        method="dense",
+        pct=True,
+    )
+    if use_nan:
+        expected = Series([0.5, 1, np.nan, np.nan], name="val")
+    else:
+        expected = Series([1 / 3, 2 / 3, 1, 1], name="val")
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_rank_multiindex():
+    # GH27721
+    df = concat(
+        {
+            "a": DataFrame({"col1": [1, 2], "col2": [3, 4]}),
+            "b": DataFrame({"col3": [5, 6], "col4": [7, 8]}),
+        },
+        axis=1,
+    )
+
+    result = df.groupby(level=0, axis=1).rank(axis=1, ascending=False, method="first")
+    expected = concat(
+        {
+            "a": DataFrame({"col1": [2.0, 2.0], "col2": [1.0, 1.0]}),
+            "b": DataFrame({"col3": [2.0, 2.0], "col4": [1.0, 1.0]}),
+        },
+        axis=1,
+    )
+
     tm.assert_frame_equal(result, expected)

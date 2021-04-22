@@ -1,7 +1,14 @@
+from __future__ import annotations
+
 from functools import wraps
 import inspect
 from textwrap import dedent
-from typing import Any, Callable, List, Mapping, Optional, Tuple, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    cast,
+)
 import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa
@@ -12,10 +19,10 @@ def deprecate(
     name: str,
     alternative: Callable[..., Any],
     version: str,
-    alt_name: Optional[str] = None,
-    klass: Optional[Type[Warning]] = None,
+    alt_name: str | None = None,
+    klass: type[Warning] | None = None,
     stacklevel: int = 2,
-    msg: Optional[str] = None,
+    msg: str | None = None,
 ) -> Callable[[F], F]:
     """
     Return a new function that emits a deprecation warning on use.
@@ -78,14 +85,15 @@ def deprecate(
 
         {dedent(doc)}"""
         )
-
-    return wrapper
+    # error: Incompatible return value type (got "Callable[[VarArg(Any), KwArg(Any)],
+    # Callable[...,Any]]", expected "Callable[[F], F]")
+    return wrapper  # type: ignore[return-value]
 
 
 def deprecate_kwarg(
     old_arg_name: str,
-    new_arg_name: Optional[str],
-    mapping: Optional[Union[Mapping[Any, Any], Callable[[Any], Any]]] = None,
+    new_arg_name: str | None,
+    mapping: Mapping[Any, Any] | Callable[[Any], Any] | None = None,
     stacklevel: int = 2,
 ) -> Callable[[F], F]:
     """
@@ -203,7 +211,7 @@ def deprecate_kwarg(
     return _deprecate_kwarg
 
 
-def _format_argument_list(allow_args: Union[List[str], int]):
+def _format_argument_list(allow_args: list[str] | int):
     """
     Convert the allow_args argument (either string or integer) of
     `deprecate_nonkeyword_arguments` function to a string describing
@@ -248,7 +256,7 @@ def _format_argument_list(allow_args: Union[List[str], int]):
 
 def deprecate_nonkeyword_arguments(
     version: str,
-    allowed_args: Optional[Union[List[str], int]] = None,
+    allowed_args: list[str] | int | None = None,
     stacklevel: int = 2,
 ) -> Callable:
     """
@@ -278,6 +286,9 @@ def deprecate_nonkeyword_arguments(
             allow_args = allowed_args
         else:
             spec = inspect.getfullargspec(func)
+
+            # We must have some defaults if we are deprecating default-less
+            assert spec.defaults is not None  # for mypy
             allow_args = spec.args[: -len(spec.defaults)]
 
         @wraps(func)
@@ -301,7 +312,7 @@ def deprecate_nonkeyword_arguments(
 
 
 def rewrite_axis_style_signature(
-    name: str, extra_params: List[Tuple[str, Any]]
+    name: str, extra_params: list[tuple[str, Any]]
 ) -> Callable[..., Any]:
     def decorate(func: F) -> F:
         @wraps(func)
@@ -323,61 +334,66 @@ def rewrite_axis_style_signature(
         sig = inspect.Signature(params)
 
         # https://github.com/python/typing/issues/598
-        func.__signature__ = sig  # type: ignore
+        # error: "F" has no attribute "__signature__"
+        func.__signature__ = sig  # type: ignore[attr-defined]
         return cast(F, wrapper)
 
     return decorate
 
 
-def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
+def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
     """
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
 
     This decorator will add a variable "_docstring_components" to the wrapped
-    function to keep track the original docstring template for potential usage.
+    callable to keep track the original docstring template for potential usage.
     If it should be consider as a template, it will be saved as a string.
     Otherwise, it will be saved as callable, and later user __doc__ and dedent
     to get docstring.
 
     Parameters
     ----------
-    *args : str or callable
+    *docstrings : str or callable
         The string / docstring / docstring template to be appended in order
-        after default docstring under function.
-    **kwargs : str
+        after default docstring under callable.
+    **params
         The string which would be used to format docstring template.
     """
 
-    def decorator(func: F) -> F:
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> Callable:
-            return func(*args, **kwargs)
-
+    def decorator(decorated: F) -> F:
         # collecting docstring and docstring templates
-        docstring_components: List[Union[str, Callable]] = []
-        if func.__doc__:
-            docstring_components.append(dedent(func.__doc__))
+        docstring_components: list[str | Callable] = []
+        if decorated.__doc__:
+            docstring_components.append(dedent(decorated.__doc__))
 
-        for arg in args:
-            if hasattr(arg, "_docstring_components"):
-                docstring_components.extend(arg._docstring_components)  # type: ignore
-            elif isinstance(arg, str) or arg.__doc__:
-                docstring_components.append(arg)
+        for docstring in docstrings:
+            if hasattr(docstring, "_docstring_components"):
+                # error: Item "str" of "Union[str, Callable[..., Any]]" has no attribute
+                # "_docstring_components"
+                # error: Item "function" of "Union[str, Callable[..., Any]]" has no
+                # attribute "_docstring_components"
+                docstring_components.extend(
+                    docstring._docstring_components  # type: ignore[union-attr]
+                )
+            elif isinstance(docstring, str) or docstring.__doc__:
+                docstring_components.append(docstring)
 
         # formatting templates and concatenating docstring
-        wrapper.__doc__ = "".join(
+        decorated.__doc__ = "".join(
             [
-                arg.format(**kwargs)
-                if isinstance(arg, str)
-                else dedent(arg.__doc__ or "")
-                for arg in docstring_components
+                component.format(**params)
+                if isinstance(component, str)
+                else dedent(component.__doc__ or "")
+                for component in docstring_components
             ]
         )
 
-        wrapper._docstring_components = docstring_components  # type: ignore
-
-        return cast(F, wrapper)
+        # error: "F" has no attribute "_docstring_components"
+        decorated._docstring_components = (  # type: ignore[attr-defined]
+            docstring_components
+        )
+        return decorated
 
     return decorator
 
@@ -453,9 +469,9 @@ class Appender:
         pass
     """
 
-    addendum: Optional[str]
+    addendum: str | None
 
-    def __init__(self, addendum: Optional[str], join: str = "", indents: int = 0):
+    def __init__(self, addendum: str | None, join: str = "", indents: int = 0):
         if indents > 0:
             self.addendum = indent(addendum, indents=indents)
         else:
@@ -470,7 +486,7 @@ class Appender:
         return func
 
 
-def indent(text: Optional[str], indents: int = 1) -> str:
+def indent(text: str | None, indents: int = 1) -> str:
     if not text or not isinstance(text, str):
         return ""
     jointext = "".join(["\n"] + ["    "] * indents)
