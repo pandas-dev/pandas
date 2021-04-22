@@ -1277,6 +1277,7 @@ def group_min(groupby_t[:, ::1] out,
 @cython.wraparound(False)
 cdef group_cummin_max(groupby_t[:, ::1] out,
                       ndarray[groupby_t, ndim=2] values,
+                      uint8_t[:, ::1] mask,
                       const intp_t[:] labels,
                       int ngroups,
                       bint is_datetimelike,
@@ -1290,6 +1291,9 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
         Array to store cummin/max in.
     values : np.ndarray[groupby_t, ndim=2]
         Values to take cummin/max of.
+    mask : np.ndarray[bool] or None
+        If not None, indices represent missing values,
+        otherwise the mask will not be used
     labels : np.ndarray[np.intp]
         Labels to group by.
     ngroups : int
@@ -1307,11 +1311,14 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
     cdef:
         Py_ssize_t i, j, N, K, size
         groupby_t val, mval
-        ndarray[groupby_t, ndim=2] accum
+        groupby_t[:, ::1] accum
         intp_t lab
+        bint val_is_nan, use_mask
+
+    use_mask = mask is not None
 
     N, K = (<object>values).shape
-    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
+    accum = np.empty((ngroups, K), dtype=values.dtype)
     if groupby_t is int64_t:
         accum[:] = -_int64_max if compute_max else _int64_max
     elif groupby_t is uint64_t:
@@ -1326,11 +1333,29 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
             if lab < 0:
                 continue
             for j in range(K):
-                val = values[i, j]
+                val_is_nan = False
 
-                if _treat_as_na(val, is_datetimelike):
-                    out[i, j] = val
+                if use_mask:
+                    if mask[i, j]:
+
+                        # `out` does not need to be set since it
+                        # will be masked anyway
+                        val_is_nan = True
+                    else:
+
+                        # If using the mask, we can avoid grabbing the
+                        # value unless necessary
+                        val = values[i, j]
+
+                # Otherwise, `out` must be set accordingly if the
+                # value is missing
                 else:
+                    val = values[i, j]
+                    if _treat_as_na(val, is_datetimelike):
+                        val_is_nan = True
+                        out[i, j] = val
+
+                if not val_is_nan:
                     mval = accum[lab, j]
                     if compute_max:
                         if val > mval:
@@ -1347,9 +1372,18 @@ def group_cummin(groupby_t[:, ::1] out,
                  ndarray[groupby_t, ndim=2] values,
                  const intp_t[:] labels,
                  int ngroups,
-                 bint is_datetimelike) -> None:
+                 bint is_datetimelike,
+                 uint8_t[:, ::1] mask=None) -> None:
     """See group_cummin_max.__doc__"""
-    group_cummin_max(out, values, labels, ngroups, is_datetimelike, compute_max=False)
+    group_cummin_max(
+        out,
+        values,
+        mask,
+        labels,
+        ngroups,
+        is_datetimelike,
+        compute_max=False
+    )
 
 
 @cython.boundscheck(False)
@@ -1358,6 +1392,15 @@ def group_cummax(groupby_t[:, ::1] out,
                  ndarray[groupby_t, ndim=2] values,
                  const intp_t[:] labels,
                  int ngroups,
-                 bint is_datetimelike) -> None:
+                 bint is_datetimelike,
+                 uint8_t[:, ::1] mask=None) -> None:
     """See group_cummin_max.__doc__"""
-    group_cummin_max(out, values, labels, ngroups, is_datetimelike, compute_max=True)
+    group_cummin_max(
+        out,
+        values,
+        mask,
+        labels,
+        ngroups,
+        is_datetimelike,
+        compute_max=True
+    )

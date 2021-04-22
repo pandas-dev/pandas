@@ -1,15 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas.compat._optional import import_optional_dependency
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
 
 try:
-    pa = import_optional_dependency("pyarrow", min_version="0.16.0")
+    import pyarrow as pa
 except ImportError:
-    pytestmark = pytest.mark.skip(reason="Pyarrow not available")
+    pa = None
 
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES]
 arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]
@@ -21,6 +21,7 @@ def data(request):
     return request.param
 
 
+@td.skip_if_no("pyarrow", min_version="0.15.0")
 def test_arrow_array(data):
     # protocol added in 0.15.0
 
@@ -32,6 +33,7 @@ def test_arrow_array(data):
     assert arr.equals(expected)
 
 
+@td.skip_if_no("pyarrow", min_version="0.16.0")
 def test_arrow_roundtrip(data):
     # roundtrip possible from arrow 0.16.0
 
@@ -43,6 +45,22 @@ def test_arrow_roundtrip(data):
     tm.assert_frame_equal(result, df)
 
 
+@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+def test_arrow_load_from_zero_chunks(data):
+    # GH-41040
+
+    df = pd.DataFrame({"a": data[0:0]})
+    table = pa.table(df)
+    assert table.field("a").type == str(data.dtype.numpy_dtype)
+    table = pa.table(
+        [pa.chunked_array([], type=table.field("a").type)], schema=table.schema
+    )
+    result = table.to_pandas()
+    assert result["a"].dtype == data.dtype
+    tm.assert_frame_equal(result, df)
+
+
+@td.skip_if_no("pyarrow", min_version="0.16.0")
 def test_arrow_from_arrow_uint():
     # https://github.com/pandas-dev/pandas/issues/31896
     # possible mismatch in types
@@ -54,13 +72,21 @@ def test_arrow_from_arrow_uint():
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_arrow_sliced():
+@td.skip_if_no("pyarrow", min_version="0.16.0")
+def test_arrow_sliced(data):
     # https://github.com/pandas-dev/pandas/issues/38525
 
-    df = pd.DataFrame({"a": pd.array([0, None, 2, 3, None], dtype="Int64")})
+    df = pd.DataFrame({"a": data})
     table = pa.table(df)
     result = table.slice(2, None).to_pandas()
     expected = df.iloc[2:].reset_index(drop=True)
+    tm.assert_frame_equal(result, expected)
+
+    # no missing values
+    df2 = df.fillna(data[0])
+    table = pa.table(df2)
+    result = table.slice(2, None).to_pandas()
+    expected = df2.iloc[2:].reset_index(drop=True)
     tm.assert_frame_equal(result, expected)
 
 
@@ -78,6 +104,7 @@ def np_dtype_to_arrays(any_real_dtype):
     return np_dtype, pa_array, np_expected, mask_expected
 
 
+@td.skip_if_no("pyarrow")
 def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     """
     Test conversion from pyarrow array to numpy array.
@@ -141,3 +168,21 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     data, mask = pyarrow_array_to_numpy_and_mask(pa_array_offset, np_dtype)
     tm.assert_numpy_array_equal(data[:3], np_expected_empty)
     tm.assert_numpy_array_equal(mask, mask_expected_empty)
+
+
+@td.skip_if_no("pyarrow", min_version="0.16.0")
+def test_from_arrow_type_error(request, data):
+    # ensure that __from_arrow__ returns a TypeError when getting a wrong
+    # array type
+    if data.dtype != "boolean":
+        # TODO numeric dtypes cast any incoming array to the correct dtype
+        # instead of erroring
+        request.node.add_marker(
+            pytest.mark.xfail(reason="numeric dtypes don't error but cast")
+        )
+
+    arr = pa.array(data).cast("string")
+    with pytest.raises(TypeError, match=None):
+        # we don't test the exact error message, only the fact that it raises
+        # a TypeError is relevant
+        data.dtype.__from_arrow__(arr)

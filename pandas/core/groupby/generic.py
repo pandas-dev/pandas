@@ -46,7 +46,6 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import (
     find_common_type,
-    maybe_cast_result_dtype,
     maybe_downcast_numeric,
 )
 from pandas.core.dtypes.common import (
@@ -58,7 +57,6 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_numeric_dtype,
     is_scalar,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -1104,13 +1102,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         using_array_manager = isinstance(data, ArrayManager)
 
-        def cast_agg_result(result, values: ArrayLike, how: str) -> ArrayLike:
+        def cast_agg_result(
+            result: ArrayLike, values: ArrayLike, how: str
+        ) -> ArrayLike:
             # see if we can cast the values to the desired dtype
             # this may not be the original dtype
-            assert not isinstance(result, DataFrame)
-
-            dtype = maybe_cast_result_dtype(values.dtype, how)
-            result = maybe_downcast_numeric(result, dtype)
 
             if isinstance(values, Categorical) and isinstance(result, np.ndarray):
                 # If the Categorical op didn't raise, it is dtype-preserving
@@ -1125,6 +1121,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             ):
                 # We went through a SeriesGroupByPath and need to reshape
                 # GH#32223 includes case with IntegerArray values
+                # We only get here with values.dtype == object
                 result = result.reshape(1, -1)
                 # test_groupby_duplicate_columns gets here with
                 #  result.dtype == int64, values.dtype=object, how="min"
@@ -1140,8 +1137,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             # call our grouper again with only this block
             if values.ndim == 1:
+                # We only get here with ExtensionArray
+
                 obj = Series(values)
             else:
+                # We only get here with values.dtype == object
                 # TODO special case not needed with ArrayManager
                 obj = DataFrame(values.T)
                 if obj.shape[1] == 1:
@@ -1193,7 +1193,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 result = py_fallback(values)
 
-            return cast_agg_result(result, values, how)
+                return cast_agg_result(result, values, how)
+            return result
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
@@ -1366,11 +1367,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         # if we have date/time like in the original, then coerce dates
         # as we are stacking can easily have object dtypes here
-        so = self._selected_obj
-        if so.ndim == 2 and so.dtypes.apply(needs_i8_conversion).any():
-            result = result._convert(datetime=True)
-        else:
-            result = result._convert(datetime=True)
+        result = result._convert(datetime=True)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -1507,7 +1504,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         try:
             res_fast = fast_path(group)
         except AssertionError:
-            raise
+            raise  # pragma: no cover
         except Exception:
             # GH#29631 For user-defined function, we can't predict what may be
             #  raised; see test_transform.test_transform_fastpath_raises

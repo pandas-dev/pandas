@@ -18,7 +18,6 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -31,8 +30,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def _clean_dict(d):
