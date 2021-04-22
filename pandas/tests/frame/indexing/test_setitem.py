@@ -44,7 +44,8 @@ from pandas.tseries.offsets import BDay
 
 class TestDataFrameSetItem:
     @pytest.mark.parametrize(
-        argnames="arr", argvalues=[(4, 2), (4, 3), (4, 4), (4, 10), (4, 20), (4, 30)]
+        argnames="arr",
+        argvalues=[(4, 3), (4, 4), (4, 10), (4, 20), (4, 30)],
     )
     def test_setitem_size_incompatible_ndarray(self, arr):
         # GH#40827
@@ -56,7 +57,7 @@ class TestDataFrameSetItem:
             "different number of columns. Column assignment accepts only "
             "2D arrays with same number of columns."
         )
-        with pytest.raises(Exception, match=msg):
+        with pytest.raises(ValueError, match=msg):
             data["A"] = np.random.randn(arr[0], arr[1])
 
     def test_setitem_size_compatible_ndarray(self):
