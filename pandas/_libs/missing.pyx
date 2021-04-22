@@ -104,6 +104,7 @@ cpdef bint checknull(object val):
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
      - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -143,6 +144,8 @@ cpdef bint checknull_old(object val):
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -175,6 +178,8 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr):
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -211,6 +216,7 @@ def isnaobj_old(arr: ndarray) -> ndarray:
      - NEGINF
      - NaT
      - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -249,6 +255,8 @@ def isnaobj2d(arr: ndarray) -> ndarray:
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -293,6 +301,8 @@ def isnaobj2d_old(arr: ndarray) -> ndarray:
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------

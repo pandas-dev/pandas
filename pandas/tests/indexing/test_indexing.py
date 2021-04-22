@@ -7,6 +7,8 @@ import weakref
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -67,7 +69,9 @@ class TestFancy:
         with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
-    def test_getitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
+    def test_getitem_ndarray_3d(
+        self, index, frame_or_series, indexer_sli, using_array_manager
+    ):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = indexer_sli(obj)
@@ -76,8 +80,12 @@ class TestFancy:
         msgs = []
         if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
             msgs.append(r"Wrong number of dimensions. values.ndim > ndim \[3 > 1\]")
+            if using_array_manager:
+                msgs.append("Passed array should be 1-dimensional")
         if frame_or_series is Series or indexer_sli is tm.iloc:
             msgs.append(r"Buffer has wrong number of dimensions \(expected 1, got 3\)")
+            if using_array_manager:
+                msgs.append("indexer should be 1-dimensional")
         if indexer_sli is tm.loc or (
             frame_or_series is Series and indexer_sli is tm.setitem
         ):
@@ -92,8 +100,7 @@ class TestFancy:
 
         potential_errors = (IndexError, ValueError, NotImplementedError)
         with pytest.raises(potential_errors, match=msg):
-            with tm.assert_produces_warning(DeprecationWarning):
-                idxr[nd3]
+            idxr[nd3]
 
     def test_setitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
         # GH 25567
@@ -115,7 +122,14 @@ class TestFancy:
             )
         else:
             err = ValueError
-            msg = r"Buffer has wrong number of dimensions \(expected 1, got 3\)|"
+            msg = "|".join(
+                [
+                    r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
+                    "Cannot set values with ndim > 1",
+                    "Index data must be 1-dimensional",
+                    "Array conditional must be same shape as self",
+                ]
+            )
 
         with pytest.raises(err, match=msg):
             idxr[nd3] = 0
@@ -474,6 +488,9 @@ class TestFancy:
         df.loc[df["A"] == 0, ["A", "B"]] = df["D"]
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager) setting single item with an iterable doesn't work yet
+    # in the "split" path
+    @td.skip_array_manager_not_yet_implemented
     def test_setitem_list(self):
 
         # GH 6043

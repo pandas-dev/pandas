@@ -7,13 +7,7 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    List,
     MutableMapping,
-    Optional,
-    Tuple,
-    Type,
-    Union,
     cast,
 )
 
@@ -21,6 +15,7 @@ import numpy as np
 import pytz
 
 from pandas._libs.interval import Interval
+from pandas._libs.properties import cache_readonly
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -36,6 +31,7 @@ from pandas._typing import (
     DtypeObj,
     NpDtype,
     Ordered,
+    type_t,
 )
 
 from pandas.core.dtypes.base import (
@@ -81,12 +77,12 @@ class PandasExtensionDtype(ExtensionDtype):
     subdtype = None
     str: str_type
     num = 100
-    shape: Tuple[int, ...] = ()
+    shape: tuple[int, ...] = ()
     itemsize = 8
-    base = None
+    base: DtypeObj | None = None
     isbuiltin = 0
     isnative = 0
-    _cache: Dict[str_type, PandasExtensionDtype] = {}
+    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
     def __str__(self) -> str_type:
         """
@@ -103,14 +99,14 @@ class PandasExtensionDtype(ExtensionDtype):
     def __hash__(self) -> int:
         raise NotImplementedError("sub-classes should implement an __hash__ method")
 
-    def __getstate__(self) -> Dict[str_type, Any]:
+    def __getstate__(self) -> dict[str_type, Any]:
         # pickle support; we don't want to pickle the cache
         return {k: getattr(self, k, None) for k in self._metadata}
 
     @classmethod
     def reset_cache(cls) -> None:
         """ clear the cache """
-        cls._cache = {}
+        cls._cache_dtypes = {}
 
 
 class CategoricalDtypeType(type):
@@ -177,21 +173,19 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     # TODO: Document public vs. private API
     name = "category"
-    type: Type[CategoricalDtypeType] = CategoricalDtypeType
+    type: type[CategoricalDtypeType] = CategoricalDtypeType
     kind: str_type = "O"
     str = "|O08"
-    # error: Incompatible types in assignment (expression has type "dtype",
-    # base class "PandasExtensionDtype" defined the type as "None")
-    base = np.dtype("O")  # type: ignore[assignment]
+    base = np.dtype("O")
     _metadata = ("categories", "ordered")
-    _cache: Dict[str_type, PandasExtensionDtype] = {}
+    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
     def __init__(self, categories=None, ordered: Ordered = False):
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
     def _from_fastpath(
-        cls, categories=None, ordered: Optional[bool] = None
+        cls, categories=None, ordered: bool | None = None
     ) -> CategoricalDtype:
         self = cls.__new__(cls)
         self._finalize(categories, ordered, fastpath=True)
@@ -214,8 +208,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         cls,
         values=None,
         categories=None,
-        ordered: Optional[bool] = None,
-        dtype: Optional[Dtype] = None,
+        ordered: bool | None = None,
+        dtype: Dtype | None = None,
     ) -> CategoricalDtype:
         """
         Construct dtype from the input parameters used in :class:`Categorical`.
@@ -362,7 +356,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             else:
                 return -2
         # We *do* want to include the real self.ordered here
-        return int(self._hash_categories(self.categories, self.ordered))
+        return int(self._hash_categories)
 
     def __eq__(self, other: Any) -> bool:
         """
@@ -436,13 +430,16 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             data = data.rstrip(", ")
         return f"CategoricalDtype(categories={data}, ordered={self.ordered})"
 
-    @staticmethod
-    def _hash_categories(categories, ordered: Ordered = True) -> int:
+    @cache_readonly
+    def _hash_categories(self) -> int:
         from pandas.core.util.hashing import (
             combine_hash_arrays,
             hash_array,
             hash_tuples,
         )
+
+        categories = self.categories
+        ordered = self.ordered
 
         if len(categories) and isinstance(categories[0], tuple):
             # assumes if any individual category is a tuple, then all our. ATM
@@ -480,7 +477,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return np.bitwise_xor.reduce(hashed)
 
     @classmethod
-    def construct_array_type(cls) -> Type[Categorical]:
+    def construct_array_type(cls) -> type_t[Categorical]:
         """
         Return the array type associated with this dtype.
 
@@ -548,9 +545,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return categories
 
-    def update_dtype(
-        self, dtype: Union[str_type, CategoricalDtype]
-    ) -> CategoricalDtype:
+    def update_dtype(self, dtype: str_type | CategoricalDtype) -> CategoricalDtype:
         """
         Returns a CategoricalDtype with categories and ordered taken from dtype
         if specified, otherwise falling back to self if unspecified
@@ -603,7 +598,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return is_bool_dtype(self.categories)
 
-    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         from pandas.core.arrays.sparse import SparseDtype
 
         # check if we have all categorical dtype with identical categories
@@ -672,19 +667,17 @@ class DatetimeTZDtype(PandasExtensionDtype):
     datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
     """
 
-    type: Type[Timestamp] = Timestamp
+    type: type[Timestamp] = Timestamp
     kind: str_type = "M"
     str = "|M8[ns]"
     num = 101
-    # error: Incompatible types in assignment (expression has type "dtype",
-    # base class "PandasExtensionDtype" defined the type as "None")
-    base = np.dtype("M8[ns]")  # type: ignore[assignment]
+    base = np.dtype("M8[ns]")
     na_value = NaT
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
-    _cache: Dict[str_type, PandasExtensionDtype] = {}
+    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __init__(self, unit: Union[str_type, DatetimeTZDtype] = "ns", tz=None):
+    def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None):
         if isinstance(unit, DatetimeTZDtype):
             # error: "str" has no attribute "tz"
             unit, tz = unit.unit, unit.tz  # type: ignore[attr-defined]
@@ -731,7 +724,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return self._tz
 
     @classmethod
-    def construct_array_type(cls) -> Type[DatetimeArray]:
+    def construct_array_type(cls) -> type_t[DatetimeArray]:
         """
         Return the array type associated with this dtype.
 
@@ -841,16 +834,14 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
     period[M]
     """
 
-    type: Type[Period] = Period
+    type: type[Period] = Period
     kind: str_type = "O"
     str = "|O08"
-    # error: Incompatible types in assignment (expression has type "dtype",
-    # base class "PandasExtensionDtype" defined the type as "None")
-    base = np.dtype("O")  # type: ignore[assignment]
+    base = np.dtype("O")
     num = 102
     _metadata = ("freq",)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
-    _cache: Dict[str_type, PandasExtensionDtype] = {}
+    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
     def __new__(cls, freq=None):
         """
@@ -872,12 +863,12 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
             freq = cls._parse_dtype_strict(freq)
 
         try:
-            return cls._cache[freq.freqstr]
+            return cls._cache_dtypes[freq.freqstr]
         except KeyError:
             dtype_code = freq._period_dtype_code
             u = dtypes.PeriodDtypeBase.__new__(cls, dtype_code)
             u._freq = freq
-            cls._cache[freq.freqstr] = u
+            cls._cache_dtypes[freq.freqstr] = u
             return u
 
     def __reduce__(self):
@@ -979,7 +970,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         return super().is_dtype(dtype)
 
     @classmethod
-    def construct_array_type(cls) -> Type[PeriodArray]:
+    def construct_array_type(cls) -> type_t[PeriodArray]:
         """
         Return the array type associated with this dtype.
 
@@ -992,7 +983,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         return PeriodArray
 
     def __from_arrow__(
-        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> PeriodArray:
         """
         Construct PeriodArray from pyarrow Array/ChunkedArray.
@@ -1014,6 +1005,8 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
             parr[~mask] = NaT
             results.append(parr)
 
+        if not results:
+            return PeriodArray(np.array([], dtype="int64"), freq=self.freq, copy=False)
         return PeriodArray._concat_same_type(results)
 
 
@@ -1046,9 +1039,7 @@ class IntervalDtype(PandasExtensionDtype):
     name = "interval"
     kind: str_type = "O"
     str = "|O08"
-    # error: Incompatible types in assignment (expression has type "dtype",
-    # base class "PandasExtensionDtype" defined the type as "None")
-    base = np.dtype("O")  # type: ignore[assignment]
+    base = np.dtype("O")
     num = 103
     _metadata = (
         "subtype",
@@ -1057,9 +1048,9 @@ class IntervalDtype(PandasExtensionDtype):
     _match = re.compile(
         r"(I|i)nterval\[(?P<subtype>[^,]+)(, (?P<closed>(right|left|both|neither)))?\]"
     )
-    _cache: Dict[str_type, PandasExtensionDtype] = {}
+    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __new__(cls, subtype=None, closed: Optional[str_type] = None):
+    def __new__(cls, subtype=None, closed: str_type | None = None):
         from pandas.core.dtypes.common import (
             is_string_dtype,
             pandas_dtype,
@@ -1114,12 +1105,12 @@ class IntervalDtype(PandasExtensionDtype):
 
         key = str(subtype) + str(closed)
         try:
-            return cls._cache[key]
+            return cls._cache_dtypes[key]
         except KeyError:
             u = object.__new__(cls)
             u._subtype = subtype
             u._closed = closed
-            cls._cache[key] = u
+            cls._cache_dtypes[key] = u
             return u
 
     @property
@@ -1134,7 +1125,7 @@ class IntervalDtype(PandasExtensionDtype):
         return self._subtype
 
     @classmethod
-    def construct_array_type(cls) -> Type[IntervalArray]:
+    def construct_array_type(cls) -> type[IntervalArray]:
         """
         Return the array type associated with this dtype.
 
@@ -1228,7 +1219,7 @@ class IntervalDtype(PandasExtensionDtype):
         return super().is_dtype(dtype)
 
     def __from_arrow__(
-        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> IntervalArray:
         """
         Construct IntervalArray from pyarrow Array/ChunkedArray.
@@ -1249,9 +1240,15 @@ class IntervalDtype(PandasExtensionDtype):
             iarr = IntervalArray.from_arrays(left, right, closed=array.type.closed)
             results.append(iarr)
 
+        if not results:
+            return IntervalArray.from_arrays(
+                np.array([], dtype=self.subtype),
+                np.array([], dtype=self.subtype),
+                closed=array.type.closed,
+            )
         return IntervalArray._concat_same_type(results)
 
-    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # NB: this doesn't handle checking for closed match
         if not all(isinstance(x, IntervalDtype) for x in dtypes):
             return None
@@ -1289,7 +1286,7 @@ class PandasDtype(ExtensionDtype):
 
     _metadata = ("_dtype",)
 
-    def __init__(self, dtype: Optional[Union[NpDtype, PandasDtype]]):
+    def __init__(self, dtype: NpDtype | PandasDtype | None):
         if isinstance(dtype, PandasDtype):
             # make constructor univalent
             dtype = dtype.numpy_dtype
@@ -1313,7 +1310,7 @@ class PandasDtype(ExtensionDtype):
         return self._dtype.name
 
     @property
-    def type(self) -> Type[np.generic]:
+    def type(self) -> type[np.generic]:
         """
         The type object used to instantiate a scalar of this NumPy data-type.
         """
@@ -1341,7 +1338,7 @@ class PandasDtype(ExtensionDtype):
         return cls(dtype)
 
     @classmethod
-    def construct_array_type(cls) -> Type[PandasArray]:
+    def construct_array_type(cls) -> type_t[PandasArray]:
         """
         Return the array type associated with this dtype.
 

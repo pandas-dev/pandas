@@ -245,6 +245,26 @@ class BaseGetitemTests(BaseExtensionTests):
         result = data[slice(1)]  # scalar
         assert isinstance(result, type(data))
 
+    def test_getitem_ellipsis_and_slice(self, data):
+        # GH#40353 this is called from getitem_block_index
+        result = data[..., :]
+        self.assert_extension_array_equal(result, data)
+
+        result = data[:, ...]
+        self.assert_extension_array_equal(result, data)
+
+        result = data[..., :3]
+        self.assert_extension_array_equal(result, data[:3])
+
+        result = data[:3, ...]
+        self.assert_extension_array_equal(result, data[:3])
+
+        result = data[..., ::2]
+        self.assert_extension_array_equal(result, data[::2])
+
+        result = data[::2, ...]
+        self.assert_extension_array_equal(result, data[::2])
+
     def test_get(self, data):
         # GH 20882
         s = pd.Series(data, index=[2 * i for i in range(len(data))])
@@ -388,7 +408,10 @@ class BaseGetitemTests(BaseExtensionTests):
         # see GH-27785 take_nd with indexer of len 1 resulting in wrong ndim
         df = pd.DataFrame({"A": data})
         res = df.loc[[0], "A"]
-        assert res._mgr._block.ndim == 1
+        assert res.ndim == 1
+        assert res._mgr.arrays[0].ndim == 1
+        if hasattr(res._mgr, "blocks"):
+            assert res._mgr._block.ndim == 1
 
     def test_item(self, data):
         # https://github.com/pandas-dev/pandas/pull/30175

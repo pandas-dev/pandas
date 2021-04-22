@@ -306,8 +306,8 @@ class TestSetitemViewCopySemantics:
         ser = Series(dti)
         assert ser._values is not dti
         assert ser._values._data.base is not dti._data._data.base
-        assert ser._mgr.blocks[0].values is not dti
-        assert ser._mgr.blocks[0].values._data.base is not dti._data._data.base
+        assert ser._mgr.arrays[0] is not dti
+        assert ser._mgr.arrays[0]._data.base is not dti._data._data.base
 
         ser[::3] = NaT
         assert ser[0] is NaT
@@ -556,6 +556,9 @@ class SetitemCastingEquivalents:
         indkey = np.array(ilkey)
         self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
 
+        genkey = (x for x in [key])
+        self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
+
     def test_slice_key(self, obj, key, expected, val, indexer_sli, is_inplace):
         if not isinstance(key, slice):
             return
@@ -569,6 +572,9 @@ class SetitemCastingEquivalents:
 
         indkey = np.array(ilkey)
         self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
+
+        genkey = (x for x in indkey)
+        self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
 
     def test_mask_key(self, obj, key, expected, val, indexer_sli):
         # setitem with boolean mask

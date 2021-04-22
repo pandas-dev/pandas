@@ -16,6 +16,9 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
+from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
@@ -25,8 +28,14 @@ from pandas.core.dtypes.generic import ABCPandasArray
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray
-from pandas.core.internals import managers
+from pandas.core.internals import (
+    blocks,
+    managers,
+)
 from pandas.tests.extension import base
+
+# TODO(ArrayManager) PandasArray
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def _extract_array_patched(obj):
@@ -38,6 +47,12 @@ def _extract_array_patched(obj):
         obj = obj.to_numpy()
 
     return obj
+
+
+def _can_hold_element_patched(obj, element) -> bool:
+    if isinstance(element, PandasArray):
+        element = element.to_numpy()
+    return can_hold_element(obj, element)
 
 
 @pytest.fixture(params=["float", "object"])
@@ -65,6 +80,7 @@ def allow_in_pandas(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(PandasArray, "_typ", "extension")
         m.setattr(managers, "_extract_array", _extract_array_patched)
+        m.setattr(blocks, "can_hold_element", _can_hold_element_patched)
         yield
 
 
@@ -305,16 +321,6 @@ class TestBooleanReduce(BaseNumPyTests, base.BaseBooleanReduceTests):
 
 class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     @skip_nested
-    def test_fillna_scalar(self, data_missing):
-        # Non-scalar "scalar" values.
-        super().test_fillna_scalar(data_missing)
-
-    @skip_nested
-    def test_fillna_no_op_returns_copy(self, data):
-        # Non-scalar "scalar" values.
-        super().test_fillna_no_op_returns_copy(data)
-
-    @skip_nested
     def test_fillna_series(self, data_missing):
         # Non-scalar "scalar" values.
         super().test_fillna_series(data_missing)
@@ -323,17 +329,6 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     def test_fillna_frame(self, data_missing):
         # Non-scalar "scalar" values.
         super().test_fillna_frame(data_missing)
-
-    def test_fillna_fill_other(self, data_missing):
-        # Same as the parent class test, but with PandasDtype for expected["B"]
-        #  instead of equivalent numpy dtype
-        data = data_missing
-        result = pd.DataFrame({"A": data, "B": [np.nan] * len(data)}).fillna({"B": 0.0})
-
-        expected = pd.DataFrame({"A": data, "B": [0.0] * len(result)})
-        expected["B"] = expected["B"].astype(PandasDtype(expected["B"].dtype))
-
-        self.assert_frame_equal(result, expected)
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
