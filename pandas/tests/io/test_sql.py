@@ -302,7 +302,7 @@ class PandasSQLTest:
         self.drop_table("iris")
         self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
 
-        with open(iris_csv_file, mode="r", newline=None) as iris_csv:
+        with open(iris_csv_file, newline=None) as iris_csv:
             r = csv.reader(iris_csv)
             next(r)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]
@@ -1991,8 +1991,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         def main(connectable):
             with connectable.connect() as conn:
                 with conn.begin():
-                    foo_data = conn.run_callable(foo)
-                    conn.run_callable(bar, foo_data)
+                    if _gt14():
+                        # https://github.com/sqlalchemy/sqlalchemy/commit/
+                        #  00b5c10846e800304caa86549ab9da373b42fa5d#r48323973
+                        foo_data = foo(conn)
+                        bar(conn, foo_data)
+                    else:
+                        foo_data = conn.run_callable(foo)
+                        conn.run_callable(bar, foo_data)
 
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
@@ -2001,12 +2007,22 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         "input",
         [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
     )
-    def test_to_sql_with_negative_npinf(self, input):
+    def test_to_sql_with_negative_npinf(self, input, request):
         # GH 34431
 
         df = DataFrame(input)
 
         if self.flavor == "mysql":
+            # GH 36465
+            # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
+            # for pymysql version >= 0.10
+            # TODO: remove this version check after GH 36465 is fixed
+            import pymysql
+
+            if pymysql.VERSION[0:3] >= (0, 10, 0) and "infe0" in df.columns:
+                mark = pytest.mark.xfail(reason="GH 36465")
+                request.node.add_marker(mark)
+
             msg = "inf cannot be used with MySQL"
             with pytest.raises(ValueError, match=msg):
                 df.to_sql("foobar", self.conn, index=False)

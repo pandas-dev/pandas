@@ -5,7 +5,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.base import registry as ea_registry
+from pandas.core.dtypes.base import _registry as ea_registry
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_interval_dtype,
@@ -610,6 +610,21 @@ class TestDataFrameSetItem:
         expected = Series(tuples, index=float_frame.index, name="tuples")
         tm.assert_series_equal(result, expected)
 
+    def test_setitem_iloc_generator(self):
+        # GH#39614
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        indexer = (x for x in [1, 2])
+        df.iloc[indexer] = 1
+        expected = DataFrame({"a": [1, 1, 1], "b": [4, 1, 1]})
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_iloc_two_dimensional_generator(self):
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        indexer = (x for x in [1, 2])
+        df.iloc[indexer, 1] = 1
+        expected = DataFrame({"a": [1, 2, 3], "b": [4, 1, 1]})
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -888,6 +903,14 @@ class TestDataFrameSetItemBooleanMask:
         with pytest.raises(ValueError, match="Item wrong length"):
             df1[df1.index[:-1] > 2] = -1
 
+    def test_loc_setitem_all_false_boolean_two_blocks(self):
+        # GH#40885
+        df = DataFrame({"a": [1, 2], "b": [3, 4], "c": "a"})
+        expected = df.copy()
+        indexer = Series([False, False], name="c")
+        df.loc[indexer, ["b"]] = DataFrame({"b": [5, 6]}, index=[0, 1])
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetitemCopyViewSemantics:
     def test_setitem_always_copy(self, float_frame):
@@ -926,7 +949,9 @@ class TestDataFrameSetitemCopyViewSemantics:
         tm.assert_frame_equal(df_view, df_copy)
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("value", [1, np.array([[1], [1]]), [[1], [1]]])
+    @pytest.mark.parametrize(
+        "value", [1, np.array([[1], [1]], dtype="int64"), [[1], [1]]]
+    )
     def test_setitem_same_dtype_not_inplace(self, value, using_array_manager, request):
         # GH#39510
         if not using_array_manager:

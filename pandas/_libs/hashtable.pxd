@@ -134,6 +134,6 @@ cdef class Int64Vector:
     cdef bint external_view_exists
 
     cdef resize(self)
-    cpdef to_array(self)
+    cpdef ndarray to_array(self)
     cdef inline void append(self, int64_t x)
     cdef extend(self, int64_t[:] x)

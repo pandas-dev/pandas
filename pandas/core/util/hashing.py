@@ -9,9 +9,6 @@ from typing import (
     Hashable,
     Iterable,
     Iterator,
-    Optional,
-    Tuple,
-    Union,
     cast,
 )
 
@@ -56,7 +53,7 @@ def combine_hash_arrays(arrays: Iterator[np.ndarray], num_items: int) -> np.ndar
 
     Returns
     -------
-    np.ndarray[int64]
+    np.ndarray[uint64]
 
     Should be the same as CPython's tupleobject.c
     """
@@ -80,10 +77,10 @@ def combine_hash_arrays(arrays: Iterator[np.ndarray], num_items: int) -> np.ndar
 
 
 def hash_pandas_object(
-    obj: Union[Index, FrameOrSeriesUnion],
+    obj: Index | FrameOrSeriesUnion,
     index: bool = True,
     encoding: str = "utf8",
-    hash_key: Optional[str] = _default_hash_key,
+    hash_key: str | None = _default_hash_key,
     categorize: bool = True,
 ) -> Series:
     """
@@ -169,7 +166,7 @@ def hash_pandas_object(
 
 
 def hash_tuples(
-    vals: Union[MultiIndex, Iterable[Tuple[Hashable, ...]]],
+    vals: MultiIndex | Iterable[tuple[Hashable, ...]],
     encoding: str = "utf8",
     hash_key: str = _default_hash_key,
 ) -> np.ndarray:
@@ -184,7 +181,7 @@ def hash_tuples(
 
     Returns
     -------
-    ndarray of hashed values array
+    ndarray[np.uint64] of hashed values
     """
     if not is_list_like(vals):
         raise TypeError("must be convertible to a list-of-tuples")
@@ -227,7 +224,7 @@ def _hash_categorical(cat: Categorical, encoding: str, hash_key: str) -> np.ndar
 
     Returns
     -------
-    ndarray of hashed values array, same size as len(c)
+    ndarray[np.uint64] of hashed values, same size as len(c)
     """
     # Convert ExtensionArrays to ndarrays
     values = np.asarray(cat.categories._values)
@@ -274,7 +271,8 @@ def hash_array(
 
     Returns
     -------
-    1d uint64 numpy array of hash values, same length as the vals
+    ndarray[np.uint64, ndim=1]
+        Hashed values, same length as the vals.
     """
     if not hasattr(vals, "dtype"):
         raise TypeError("must pass a ndarray-like")

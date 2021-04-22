@@ -5,10 +5,6 @@ from datetime import timedelta
 from textwrap import dedent
 from typing import (
     Callable,
-    Dict,
-    Optional,
-    Tuple,
-    Union,
     no_type_check,
 )
 
@@ -27,6 +23,7 @@ from pandas._typing import (
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
+    final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -43,14 +40,14 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import DataError
+from pandas.core.base import (
+    DataError,
+    PandasObject,
+)
+import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
     _shared_docs,
-)
-from pandas.core.groupby.base import (
-    GotItemMixin,
-    ShallowMixin,
 )
 from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
@@ -86,10 +83,10 @@ from pandas.tseries.offsets import (
     Tick,
 )
 
-_shared_docs_kwargs: Dict[str, str] = {}
+_shared_docs_kwargs: dict[str, str] = {}
 
 
-class Resampler(BaseGroupBy, ShallowMixin):
+class Resampler(BaseGroupBy, PandasObject):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -143,6 +140,18 @@ class Resampler(BaseGroupBy, ShallowMixin):
 
         if self.groupby is not None:
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
+
+    @final
+    def _shallow_copy(self, obj, **kwargs):
+        """
+        return a new object with the replacement attributes
+        """
+        if isinstance(obj, self._constructor):
+            obj = obj.obj
+        for attr in self._attributes:
+            if attr not in kwargs:
+                kwargs[attr] = getattr(self, attr)
+        return self._constructor(obj, **kwargs)
 
     def __str__(self) -> str:
         """
@@ -274,7 +283,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
     @Appender(_pipe_template)
     def pipe(
         self,
-        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        func: Callable[..., T] | tuple[Callable[..., T], str],
         *args,
         **kwargs,
     ) -> T:
@@ -1021,10 +1030,12 @@ for method in ["nunique"]:
     setattr(Resampler, method, h)
 
 
-class _GroupByMixin(GotItemMixin):
+class _GroupByMixin(PandasObject):
     """
     Provide the groupby facilities.
     """
+
+    _attributes: list[str]
 
     def __init__(self, obj, *args, **kwargs):
 
@@ -1067,6 +1078,42 @@ class _GroupByMixin(GotItemMixin):
     _downsample = _apply
     _groupby_and_aggregate = _apply
 
+    @final
+    def _gotitem(self, key, ndim, subset=None):
+        """
+        Sub-classes to define. Return a sliced object.
+
+        Parameters
+        ----------
+        key : string / list of selections
+        ndim : {1, 2}
+            requested ndim of result
+        subset : object, default None
+            subset to act on
+        """
+        # create a new object to prevent aliasing
+        if subset is None:
+            # error: "GotItemMixin" has no attribute "obj"
+            subset = self.obj  # type: ignore[attr-defined]
+
+        # we need to make a shallow copy of ourselves
+        # with the same groupby
+        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+
+        # Try to select from a DataFrame, falling back to a Series
+        try:
+            groupby = self._groupby[key]
+        except IndexError:
+            groupby = self._groupby
+
+        self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
+        self._reset_cache()
+        if subset.ndim == 2 and (
+            lib.is_scalar(key) and key in subset or lib.is_list_like(key)
+        ):
+            self._selection = key
+        return self
+
 
 class DatetimeIndexResampler(Resampler):
     @property
@@ -1090,7 +1137,7 @@ class DatetimeIndexResampler(Resampler):
         **kwargs : kw args passed to how function
         """
         self._set_binner()
-        how = self._get_cython_func(how) or how
+        how = com.get_cython_func(how) or how
         ax = self.ax
         obj = self._selected_obj
 
@@ -1245,7 +1292,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self.kind == "timestamp":
             return super()._downsample(how, **kwargs)
 
-        how = self._get_cython_func(how) or how
+        how = com.get_cython_func(how) or how
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
@@ -1272,7 +1319,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         """
         Parameters
         ----------
-        method : string {'backfill', 'bfill', 'pad', 'ffill'}
+        method : {'backfill', 'bfill', 'pad', 'ffill'}
             Method for upsampling.
         limit : int, default None
             Maximum size gap to fill when reindexing.
@@ -1393,18 +1440,18 @@ class TimeGrouper(Grouper):
     def __init__(
         self,
         freq="Min",
-        closed: Optional[str] = None,
-        label: Optional[str] = None,
+        closed: str | None = None,
+        label: str | None = None,
         how="mean",
         axis=0,
         fill_method=None,
         limit=None,
         loffset=None,
-        kind: Optional[str] = None,
-        convention: Optional[str] = None,
-        base: Optional[int] = None,
-        origin: Union[str, TimestampConvertibleTypes] = "start_day",
-        offset: Optional[TimedeltaConvertibleTypes] = None,
+        kind: str | None = None,
+        convention: str | None = None,
+        base: int | None = None,
+        origin: str | TimestampConvertibleTypes = "start_day",
+        offset: TimedeltaConvertibleTypes | None = None,
         **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
@@ -1883,7 +1930,7 @@ def _get_period_range_edges(
 
 def _insert_nat_bin(
     binner: PeriodIndex, bins: np.ndarray, labels: PeriodIndex, nat_count: int
-) -> Tuple[PeriodIndex, np.ndarray, PeriodIndex]:
+) -> tuple[PeriodIndex, np.ndarray, PeriodIndex]:
     # NaT handling as in pandas._lib.lib.generate_bins_dt64()
     # shift bins by the number of NaT
     assert nat_count > 0
@@ -1986,7 +2033,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
 
         new_obj.index = _asfreq_compat(obj.index, freq)
     else:
-        dti = date_range(obj.index[0], obj.index[-1], freq=freq)
+        dti = date_range(obj.index.min(), obj.index.max(), freq=freq)
         dti.name = obj.index.name
         new_obj = obj.reindex(dti, method=method, fill_value=fill_value)
         if normalize:
