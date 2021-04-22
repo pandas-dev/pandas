@@ -3029,9 +3029,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _wrap_setop_result(self, other: Index, result) -> Index:
-        if is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
-            result = Categorical(result, dtype=self.dtype)
-
         name = get_op_result_name(self, other)
         if isinstance(result, Index):
             if result.name != name:
@@ -4028,7 +4025,7 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, lindexer, rindexer
 
     @final
-    def _join_multi(self, other, how):
+    def _join_multi(self, other: Index, how: str_t):
         from pandas.core.indexes.multi import MultiIndex
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
@@ -4273,7 +4270,7 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, left_indexer, right_indexer
 
     @final
-    def _join_monotonic(self, other: Index, how="left"):
+    def _join_monotonic(self, other: Index, how: str_t = "left"):
         # We only get here with matching dtypes
         assert other.dtype == self.dtype
 
@@ -5527,7 +5524,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        is_contained : ndarray[bool]
+        np.ndarray[bool]
             NumPy array of boolean values.
 
         See Also

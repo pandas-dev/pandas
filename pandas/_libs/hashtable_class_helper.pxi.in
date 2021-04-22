@@ -687,7 +687,10 @@ cdef class {{name}}HashTable(HashTable):
 
     {{if dtype == 'int64'}}
     @cython.boundscheck(False)
-    def get_labels_groupby(self, const {{dtype}}_t[:] values):
+    def get_labels_groupby(
+        self, const {{dtype}}_t[:] values
+    ) -> tuple[ndarray, ndarray]:
+        # tuple[np.ndarray[np.intp], np.ndarray[{{dtype}}]]
         cdef:
             Py_ssize_t i, n = len(values)
             intp_t[:] labels

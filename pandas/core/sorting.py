@@ -182,7 +182,7 @@ def get_group_index(labels, shape, sort: bool, xnull: bool):
     return out
 
 
-def get_compressed_ids(labels, sizes):
+def get_compressed_ids(labels, sizes) -> tuple[np.ndarray, np.ndarray]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
@@ -195,7 +195,10 @@ def get_compressed_ids(labels, sizes):
 
     Returns
     -------
-    tuple of (comp_ids, obs_group_ids)
+    np.ndarray[np.intp]
+        comp_ids
+    np.ndarray[np.int64]
+        obs_group_ids
     """
     ids = get_group_index(labels, sizes, sort=True, xnull=False)
     return compress_group_index(ids, sort=True)
@@ -254,7 +257,8 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
     return [i8copy(lab[i]) for lab in labels]
 
 
-def indexer_from_factorized(labels, shape, compress: bool = True):
+def indexer_from_factorized(labels, shape, compress: bool = True) -> np.ndarray:
+    # returned ndarray is np.intp
     ids = get_group_index(labels, shape, sort=True, xnull=False)
 
     if not compress:
@@ -268,7 +272,7 @@ def indexer_from_factorized(labels, shape, compress: bool = True):
 
 def lexsort_indexer(
     keys, orders=None, na_position: str = "last", key: Callable | None = None
-):
+) -> np.ndarray:
     """
     Performs lexical sorting on a set of keys
 
@@ -288,6 +292,10 @@ def lexsort_indexer(
         Callable key function applied to every element in keys before sorting
 
         .. versionadded:: 1.0.0
+
+    Returns
+    -------
+    np.ndarray[np.intp]
     """
     from pandas.core.arrays import Categorical
 
@@ -656,7 +664,20 @@ def compress_group_index(group_index, sort: bool = True):
     return ensure_int64(comp_ids), ensure_int64(obs_group_ids)
 
 
-def _reorder_by_uniques(uniques, labels):
+def _reorder_by_uniques(
+    uniques: np.ndarray, labels: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Parameters
+    ----------
+    uniques : np.ndarray[np.int64]
+    labels : np.ndarray[np.intp]
+
+    Returns
+    -------
+    np.ndarray[np.int64]
+    np.ndarray[np.intp]
+    """
     # sorter is index where elements ought to go
     sorter = uniques.argsort()
 
