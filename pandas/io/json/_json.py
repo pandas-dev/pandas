@@ -947,12 +947,17 @@ class Parser:
                 return new_data, True
 
         if data.dtype == "object":
-
-            # try float
-            try:
+            if len(data) == 0:
                 data = data.astype("float64")
-            except (TypeError, ValueError):
-                pass
+            else:
+                try:
+                    data = data.astype("int64")
+                except (TypeError, ValueError, OverflowError):
+                    try:
+                        # Maybe out of integer range, try float
+                        data = data.astype("float64")
+                    except (TypeError, ValueError, OverflowError):
+                        pass
 
         if data.dtype.kind == "f":
 
@@ -965,7 +970,7 @@ class Parser:
                     pass
 
         # don't coerce 0-len data
-        if len(data) and (data.dtype == "float" or data.dtype == "object"):
+        if len(data) and data.dtype == "float":
 
             # coerce ints if we can
             try:

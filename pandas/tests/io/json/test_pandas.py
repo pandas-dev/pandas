@@ -1300,6 +1300,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame(1.404366e21, index=["articleId"], columns=[0])
         tm.assert_frame_equal(result, expected)
 
+    def test_large_ints_from_json_strings(self, orient):
+        # GH 20608
+        expected = DataFrame([9999999999999999, 10000000000000001])
+        df_temp = expected.copy().astype(str)
+        result = read_json(df_temp.to_json(orient=orient), orient=orient)
+        tm.assert_frame_equal(result, expected)
+
     def test_to_jsonl(self):
         # GH9180
         df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])

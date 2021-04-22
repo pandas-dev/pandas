@@ -784,6 +784,7 @@ I/O
 - Bug in :func:`read_sas` raising ``ValueError`` when ``datetimes`` were null (:issue:`39725`)
 - Bug in :func:`read_excel` dropping empty values from single-column spreadsheets (:issue:`39808`)
 - Bug in :meth:`DataFrame.to_string` misplacing the truncation column when ``index=False`` (:issue:`40907`)
+- Bug in :func:`read_json` reading large integers incorrectly if dtype is not specified (:issue:`20608`)
 
 Period
 ^^^^^^
