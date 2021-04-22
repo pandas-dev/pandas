@@ -6,8 +6,8 @@ from datetime import datetime
 from inspect import signature
 from io import StringIO
 import os
-import sys
 from pathlib import Path
+import sys
 
 import numpy as np
 import pytest
