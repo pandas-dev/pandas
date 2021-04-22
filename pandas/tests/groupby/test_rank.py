@@ -578,3 +578,25 @@ def test_rank_pct_equal_values_on_group_transition(use_nan):
         expected = Series([1 / 3, 2 / 3, 1, 1], name="val")
 
     tm.assert_series_equal(result, expected)
+
+
+def test_rank_multiindex():
+    # GH27721
+    df = concat(
+        {
+            "a": DataFrame({"col1": [1, 2], "col2": [3, 4]}),
+            "b": DataFrame({"col3": [5, 6], "col4": [7, 8]}),
+        },
+        axis=1,
+    )
+
+    result = df.groupby(level=0, axis=1).rank(axis=1, ascending=False, method="first")
+    expected = concat(
+        {
+            "a": DataFrame({"col1": [2.0, 2.0], "col2": [1.0, 1.0]}),
+            "b": DataFrame({"col3": [2.0, 2.0], "col4": [1.0, 1.0]}),
+        },
+        axis=1,
+    )
+
+    tm.assert_frame_equal(result, expected)
