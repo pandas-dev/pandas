@@ -944,6 +944,7 @@ class TestSeriesReductions:
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])
     def test_any_all_object_dtype(self, bool_agg_func, skipna):
+        # GH#12863
         ser = Series(["a", "b", "c", "d", "e"], dtype=object)
         result = getattr(ser, bool_agg_func)(skipna=skipna)
         expected = True
