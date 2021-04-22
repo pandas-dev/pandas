@@ -896,7 +896,13 @@ class TestAdditionSubtraction:
 
         # really raise this time
         now = pd.Timestamp.now().to_pydatetime()
-        msg = "unsupported operand type"
+        msg = "|".join(
+            [
+                "unsupported operand type",
+                # wrong error message, see https://github.com/numpy/numpy/issues/18832
+                "Concatenation operation",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             now + ts
 
