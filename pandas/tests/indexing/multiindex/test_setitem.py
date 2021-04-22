@@ -311,6 +311,47 @@ class TestMultiIndexSetItem:
         df.loc[:, :] = 10
         tm.assert_frame_equal(df, result)
 
+    def test_frame_setitem_multi_column_incompatible_column_length(self):
+        df = DataFrame(
+            np.random.randn(10, 5), columns=[["a", "a", "a", "b", "b"], [0, 1, 2, 0, 1]]
+        )
+
+        cp = df.copy()
+        msg = (
+            "Dataframe column is being assigned to a 2D array with "
+            "different number of columns. Column assignment accepts only "
+            "2D arrays with same number of columns."
+        )
+        with pytest.raises(ValueError, match=msg):
+            cp["a"] = cp["b"]
+
+        # set with ndarray
+        cp = df.copy()
+        msg = (
+            "Dataframe column is being assigned to a 2D array with "
+            "different number of columns. Column assignment accepts only "
+            "2D arrays with same number of columns."
+        )
+        with pytest.raises(ValueError, match=msg):
+            cp["a"] = cp["b"].values
+
+    def test_frame_setitem_multi_column_incompatible_column_length2(self):
+        df = DataFrame(np.random.randn(10, 3), columns=[["a", "a", "b"], [0, 1, 0]])
+
+        cp = df.copy()
+        msg = (
+            "Dataframe column is being assigned to a 2D array with "
+            "different number of columns. Column assignment accepts only "
+            "2D arrays with same number of columns."
+        )
+        with pytest.raises(ValueError, match=msg):
+            cp["a"] = cp["b"]
+
+        # set with ndarray
+        cp = df.copy()
+        # Works
+        cp["a"] = cp["b"].values
+
     def test_frame_setitem_multi_column(self):
         df = DataFrame(
             np.random.randn(10, 4), columns=[["a", "a", "b", "b"], [0, 1, 0, 1]]

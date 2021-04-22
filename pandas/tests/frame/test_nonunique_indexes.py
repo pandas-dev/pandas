@@ -125,6 +125,25 @@ class TestDataFrameNonuniqueIndexes:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_dup_with_mismatched_column_lengths(self):
+        # dup across dtypes
+        df = DataFrame(
+            np.random.randn(3, 4),
+            columns=["foo", "bar", "foo", "hello"],
+        )
+        check(df)
+
+        msg = (
+            "Dataframe column is being assigned to a 2D array with "
+            "different number of columns. Column assignment accepts only "
+            "2D arrays with same number of columns."
+        )
+        with pytest.raises(ValueError, match=msg):
+            df["foo"] = np.random.randn(3, 3)
+
+        df["foo"] = np.random.randn(3, 2)
+        df["foo"] = np.random.randn(3, 1)
+
     def test_dup_across_dtypes(self):
         # dup across dtypes
         df = DataFrame(
