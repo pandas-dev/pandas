@@ -3682,6 +3682,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _iset_item_mgr(self, loc: int | slice | np.ndarray, value) -> None:
         # when called from _set_item_mgr loc can be anything returned from get_loc
+        print(type(self._mgr))
         self._mgr.iset(loc, value)
         self._clear_item_cache()
 
@@ -3692,6 +3693,7 @@ class DataFrame(NDFrame, OpsMixin):
             # This item wasn't present, just insert at end
             self._mgr.insert(len(self._info_axis), key, value)
         else:
+            print("path1")
             self._iset_item_mgr(loc, value)
 
         # check if we are modifying a copy
@@ -3734,25 +3736,34 @@ class DataFrame(NDFrame, OpsMixin):
                     value = np.tile(value, (len(existing_piece.columns), 1)).T
 
         if (
-            # prevent setting a column to an ndarray with a different number
-            # of columns
             value.ndim == 2
-            # If there are duplicates, make sure the number of columns
-            # match the ndarray
-            and len(self.columns.get_indexer_for([key])) != value.shape[1]
-            # Handle The index inside the multiindex should have the same
-            # number of columns as the ndarray
+            and value.shape[1] > 1
+            and not isinstance(value, list)
+            and key in self.columns
             and (
-                key in self.columns
-                and isinstance(self[key], DataFrame)
-                and len(self[key].columns) != value.shape[1]
+                # Second part is for duplicates
+                isinstance(self[key], Series)
+                or len(self.columns.get_indexer_for([key])) != value.shape[1]
             )
         ):
-            raise ValueError(
-                "Dataframe column is being assigned to a 2D array with "
-                "different number of columns. Column assignment accepts only "
-                "2D arrays with same number of columns."
-            )
+            # Prevents assignment of a single column to multiple column array.
+            if len(self.columns.get_indexer_for([key])) == 1:
+                raise ValueError(
+                    "Dataframe column is being assigned to a 2D array with "
+                    "different number of columns. Column assignment accepts only "
+                    "2D arrays with same number of columns."
+                )
+            elif len(self.columns.get_indexer_for([key])) != value.shape[1]:
+                raise ValueError(
+                    "Dataframe column is being assigned to a 2D array with "
+                    "different number of columns. Column assignment accepts only "
+                    "2D arrays with same number of columns."
+                )
+                # Need a test for multiindexer being
+                # applied to a different multiindexer length
+                # NEed a test for duplicate applied to diff count
+                # Assignment to a column that doesn't exist?
+                # Should be series only as well.
 
         self._set_item_mgr(key, value)
 
