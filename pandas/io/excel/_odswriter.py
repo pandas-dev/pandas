@@ -30,6 +30,7 @@ class ODSWriter(ExcelWriter):
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
+        if_sheet_exists: Optional[str] = None,
         engine_kwargs: Optional[Dict[str, Any]] = None,
     ):
         from odf.opendocument import OpenDocumentSpreadsheet
@@ -41,6 +42,7 @@ class ODSWriter(ExcelWriter):
             path,
             mode=mode,
             storage_options=storage_options,
+            if_sheet_exists=if_sheet_exists,
             engine_kwargs=engine_kwargs,
         )
 
