@@ -23,6 +23,7 @@ from pandas.core import (
 )
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
@@ -395,6 +396,7 @@ class PandasArray(
             other = other._ndarray
 
         pd_op = ops.get_array_op(op)
+        other = ensure_wrapped_if_datetimelike(other)
         with np.errstate(all="ignore"):
             result = pd_op(self._ndarray, other)
 
