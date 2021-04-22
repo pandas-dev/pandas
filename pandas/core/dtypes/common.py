@@ -1413,6 +1413,33 @@ def is_extension_type(arr) -> bool:
     return False
 
 
+def is_1d_only_ea_obj(obj: Any) -> bool:
+    """
+    ExtensionArray that does not support 2D, or more specifically that does
+    not use HybridBlock.
+    """
+    from pandas.core.arrays import (
+        DatetimeArray,
+        ExtensionArray,
+        TimedeltaArray,
+    )
+
+    return isinstance(obj, ExtensionArray) and not isinstance(
+        obj, (DatetimeArray, TimedeltaArray)
+    )
+
+
+def is_1d_only_ea_dtype(dtype: Optional[DtypeObj]) -> bool:
+    """
+    Analogue to is_extension_array_dtype but excluding DatetimeTZDtype.
+    """
+    # Note: if other EA dtypes are ever held in HybridBlock, exclude those
+    #  here too.
+    # NB: need to check DatetimeTZDtype and not is_datetime64tz_dtype
+    #  to exclude ArrowTimestampUSDtype
+    return isinstance(dtype, ExtensionDtype) and not isinstance(dtype, DatetimeTZDtype)
+
+
 def is_extension_array_dtype(arr_or_dtype) -> bool:
     """
     Check if an object is a pandas extension array type.

@@ -96,15 +96,18 @@ class TestSetIndex:
         idf = df.set_index("A")
         assert isinstance(idf.index, DatetimeIndex)
 
-    def test_set_index_dst(self):
+    def test_set_index_dst(self, using_array_manager):
         di = date_range("2006-10-29 00:00:00", periods=3, freq="H", tz="US/Pacific")
 
         df = DataFrame(data={"a": [0, 1, 2], "b": [3, 4, 5]}, index=di).reset_index()
         # single level
         res = df.set_index("index")
         exp = DataFrame(
-            data={"a": [0, 1, 2], "b": [3, 4, 5]}, index=Index(di, name="index")
+            data={"a": [0, 1, 2], "b": [3, 4, 5]},
+            index=Index(di, name="index"),
         )
+        if not using_array_manager:
+            exp.index = exp.index._with_freq(None)
         tm.assert_frame_equal(res, exp)
 
         # GH#12920
