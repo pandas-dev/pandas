@@ -674,7 +674,7 @@ class DataFrame(NDFrame, OpsMixin):
                     query = str(data)
                     sql_mt = import_optional_dependency("sql_metadata")
                     # Extract column names using sql_metadata
-                    columns = sql_mt.get_query_columns(str(data))
+                    columns = list(sql_mt.get_query_columns(str(data)))
                     # Sanitize column names
                     for i in range(len(columns)):
                         if columns[i].find('.') != -1:
