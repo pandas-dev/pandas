@@ -17,13 +17,8 @@ def tpl_style():
 
 
 @pytest.fixture
-def tpl_body_exc():
-    return env.get_template("html_body_exc.tpl")
-
-
-@pytest.fixture
-def tpl_body_inc():
-    return env.get_template("html_body_inc.tpl")
+def tpl_table():
+    return env.get_template("html_table.tpl")
 
 
 def test_html_template_extends_options():
@@ -31,9 +26,8 @@ def test_html_template_extends_options():
     # to understand the dependency
     with open("pandas/io/formats/templates/html.tpl") as file:
         result = file.read()
-    assert '{% include "html_body_exc.tpl" %}' in result
     assert '{% include "html_style.tpl" %}' in result
-    assert '{% include "html_body_inc.tpl" %}' in result
+    assert '{% include "html_table.tpl" %}' in result
 
 
 def test_exclude_styles():
@@ -178,7 +172,7 @@ def test_styles():
     assert result == expected
 
 
-def test_block_names(tpl_style, tpl_body_inc, tpl_body_exc):
+def test_block_names(tpl_style, tpl_table):
     # catch accidental removal of a block
     expected_style = {
         "before_style",
@@ -187,7 +181,7 @@ def test_block_names(tpl_style, tpl_body_inc, tpl_body_exc):
         "before_cellstyle",
         "cellstyle",
     }
-    expected_body = {
+    expected_table = {
         "before_table",
         "table",
         "caption",
@@ -204,11 +198,8 @@ def test_block_names(tpl_style, tpl_body_inc, tpl_body_exc):
     result1 = set(tpl_style.blocks)
     assert result1 == expected_style
 
-    result2 = set(tpl_body_exc.blocks)
-    assert result2 == expected_body
-
-    result3 = set(tpl_body_inc.blocks)
-    assert result3 == expected_body
+    result2 = set(tpl_table.blocks)
+    assert result2 == expected_table
 
 
 def test_from_custom_template(tmpdir):
