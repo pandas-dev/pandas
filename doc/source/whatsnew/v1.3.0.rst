@@ -145,6 +145,7 @@ Other enhancements
 - :class:`RangeIndex` can now be constructed by passing a ``range`` object directly e.g. ``pd.RangeIndex(range(3))`` (:issue:`12067`)
 - :meth:`round` being enabled for the nullable integer and floating dtypes (:issue:`38844`)
 - :meth:`pandas.read_csv` and :meth:`pandas.read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
+- Date offset :class:`MonthBegin` can now be used as a period (:issue:`38859`)
 
 .. ---------------------------------------------------------------------------
 
@@ -632,7 +633,7 @@ I/O
 Period
 ^^^^^^
 - Comparisons of :class:`Period` objects or :class:`Index`, :class:`Series`, or :class:`DataFrame` with mismatched ``PeriodDtype`` now behave like other mismatched-type comparisons, returning ``False`` for equals, ``True`` for not-equal, and raising ``TypeError`` for inequality checks (:issue:`39274`)
--
+- Timestamp.to_period() fails for freq="MS" (:issue:`38914`)
 -
 
 Plotting
