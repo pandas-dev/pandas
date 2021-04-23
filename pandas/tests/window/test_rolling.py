@@ -1359,7 +1359,14 @@ def test_rolling_std_small_values():
     tm.assert_series_equal(result, expected, atol=1.0e-15, rtol=1.0e-15)
 
 
-def test_rolling_mean_all_nan_window_floating_artifacts():
+@pytest.mark.parametrize(
+    "start, exp_values",
+    [
+        (1, [0.03, 0.0155, 0.0155, 0.011, 0.01025]),
+        (2, [0.001, 0.001, 0.0015, 0.00366666]),
+    ],
+)
+def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
     # GH#41053
     df = DataFrame(
         [
@@ -1380,44 +1387,19 @@ def test_rolling_mean_all_nan_window_floating_artifacts():
         ]
     )
 
+    values = exp_values + [
+        0.00366666,
+        0.005,
+        0.005,
+        0.008,
+        np.NaN,
+        np.NaN,
+        0.005,
+        0.102500,
+    ]
     expected = DataFrame(
-        [
-            0.03,
-            0.0155,
-            0.0155,
-            0.011,
-            0.01025,
-            0.00366666,
-            0.005,
-            0.005,
-            0.008,
-            np.NaN,
-            np.NaN,
-            0.005,
-            0.102500,
-        ],
-        index=list(range(1, 14)),
+        values,
+        index=list(range(start, len(values) + start)),
     )
-    result = (
-        df.iloc[1:].rolling(5, min_periods=0).mean()
-    )  # Returns 0 at indexes 10 and 11
-    tm.assert_frame_equal(result, expected)
-    expected = DataFrame(
-        [
-            0.001,
-            0.001,
-            0.0015,
-            0.00366666,
-            0.00366666,
-            0.005,
-            0.005,
-            0.008,
-            np.NaN,
-            np.NaN,
-            0.005,
-            0.102500,
-        ],
-        index=list(range(2, 14)),
-    )
-    result = df.iloc[2:].rolling(5, min_periods=0).mean()
+    result = df.iloc[start:].rolling(5, min_periods=0).mean()
     tm.assert_frame_equal(result, expected)
