@@ -12,6 +12,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
+    BaseOffset,
     IncompatibleFrequency,
     NaT,
     Period,
@@ -489,11 +490,11 @@ class Resampler(BaseGroupBy, PandasObject):
         self.loffset = None
         return result
 
-    def _get_resampler_for_grouping(self, groupby, **kwargs):
+    def _get_resampler_for_grouping(self, groupby):
         """
         Return the correct class for resampling with groupby.
         """
-        return self._resampler_for_grouping(self, groupby=groupby, **kwargs)
+        return self._resampler_for_grouping(self, groupby=groupby)
 
     def _wrap_result(self, result):
         """
@@ -1039,9 +1040,10 @@ class _GroupByMixin(PandasObject):
     Provide the groupby facilities.
     """
 
-    _attributes: list[str]
+    _attributes: list[str]  # in practice the same as Resampler._attributes
 
-    def __init__(self, obj, *args, **kwargs):
+    def __init__(self, obj, **kwargs):
+        # reached via ._gotitem and _get_resampler_for_grouping
 
         parent = kwargs.pop("parent", None)
         groupby = kwargs.pop("groupby", None)
@@ -1053,8 +1055,7 @@ class _GroupByMixin(PandasObject):
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
 
-        # error: Too many arguments for "__init__" of "object"
-        super().__init__(None)  # type: ignore[call-arg]
+        self.binner = kwargs.get("binner", getattr(parent, "binner"))
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
@@ -1822,8 +1823,13 @@ def _take_new_index(
 
 
 def _get_timestamp_range_edges(
-    first, last, freq, closed="left", origin="start_day", offset=None
-):
+    first: Timestamp,
+    last: Timestamp,
+    freq: BaseOffset,
+    closed: str = "left",
+    origin="start_day",
+    offset=None,
+) -> tuple[Timestamp, Timestamp]:
     """
     Adjust the `first` Timestamp to the preceding Timestamp that resides on
     the provided offset. Adjust the `last` Timestamp to the following
@@ -1895,8 +1901,13 @@ def _get_timestamp_range_edges(
 
 
 def _get_period_range_edges(
-    first, last, freq, closed="left", origin="start_day", offset=None
-):
+    first: Period,
+    last: Period,
+    freq: BaseOffset,
+    closed: str = "left",
+    origin="start_day",
+    offset=None,
+) -> tuple[Period, Period]:
     """
     Adjust the provided `first` and `last` Periods to the respective Period of
     the given offset that encompasses them.
@@ -2029,7 +2040,14 @@ def _adjust_dates_anchored(
     return fresult, lresult
 
 
-def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
+def asfreq(
+    obj: FrameOrSeries,
+    freq,
+    method=None,
+    how=None,
+    normalize: bool = False,
+    fill_value=None,
+) -> FrameOrSeries:
     """
     Utility frequency conversion method for Series/DataFrame.
 
