@@ -538,7 +538,7 @@ class PythonParser(ParserBase):
                         col_indices.append(col)
             else:
                 missing_usecols = [
-                    col for col in self.usecols if col > len(usecols_key)
+                    col for col in self.usecols if col >= len(usecols_key)
                 ]
                 if missing_usecols:
                     raise ParserError(
