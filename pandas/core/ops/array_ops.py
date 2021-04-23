@@ -194,21 +194,17 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     ndarray or ExtensionArray
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
-
-    # NB: We assume that extract_array has already been called
-    #  on `left` and `right`,
+    # NB: We assume that extract_array and ensure_wrapped_if_datetimelike
+    #  have already been called on `left` and `right`,
     #  and `prepare_scalar_for_op` has already been called on `right`
     # We need to special-case datetime64/timedelta64 dtypes (e.g. because numpy
     # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
-    lvalues = ensure_wrapped_if_datetimelike(left)
-    rvalues = ensure_wrapped_if_datetimelike(right)
 
-    if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
+    if should_extension_dispatch(left, right) or isinstance(right, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
-        res_values = op(lvalues, rvalues)
-
+        res_values = op(left, right)
     else:
-        res_values = _na_arithmetic_op(lvalues, rvalues, op)
+        res_values = _na_arithmetic_op(left, right, op)
 
     return res_values
 
