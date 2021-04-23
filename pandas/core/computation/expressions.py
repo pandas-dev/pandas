@@ -93,6 +93,9 @@ def can_use_numexpr(op, size=None, dtypes=None, scalar=None):
     -------
     bool
     """
+    if not USE_NUMEXPR:
+        return False
+
     if size is not None:
         if size < _MIN_ELEMENTS:
             return False

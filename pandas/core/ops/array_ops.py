@@ -83,7 +83,6 @@ def _masked_arith_op(x: np.ndarray, y, op):
     y : np.ndarray, Series, Index
     op : binary operator
     """
-    print("n\n!!!!!!!!!! ", op, x.dtype, type(y), getattr(y, "dtype", ""))
     # For Series `x` is 1D so ravel() is a no-op; calling it anyway makes
     # the logic valid for both Series and DataFrame ops.
     xrav = x.ravel()

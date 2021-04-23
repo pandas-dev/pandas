@@ -6836,13 +6836,11 @@ class DataFrame(NDFrame, OpsMixin):
         if not is_list_like(right):
 
             if isinstance(self._mgr, ArrayManager):
-                use_numexpr = expressions.USE_NUMEXPR and expressions.can_use_numexpr(
+                use_numexpr = expressions.can_use_numexpr(
                     func, self.shape[0], None, right
                 )
             else:
-                use_numexpr = expressions.USE_NUMEXPR and expressions.can_use_numexpr(
-                    func, None, None, right
-                )
+                use_numexpr = expressions.can_use_numexpr(func, None, None, right)
 
             array_op = ops.get_array_op(func, use_numexpr=use_numexpr)
 
@@ -6859,7 +6857,7 @@ class DataFrame(NDFrame, OpsMixin):
             #  _frame_arith_method_with_reindex
 
             if isinstance(self._mgr, ArrayManager):
-                use_numexpr = expressions.USE_NUMEXPR and expressions.can_use_numexpr(
+                use_numexpr = expressions.can_use_numexpr(
                     func, self.shape[0], None, None
                 )
             else:
