@@ -762,7 +762,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
         if not regex and case:
             result = pc.match_substring(self._data, pat)
-            return BooleanDtype().__from_arrow__(result)
+            result = BooleanDtype().__from_arrow__(result)
+            if not isna(na):
+                result[isna(result)] = bool(na)
+            return result
         else:
             return super()._str_contains(pat, case, flags, na, regex)
 
