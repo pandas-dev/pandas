@@ -1162,7 +1162,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         # special casing datetimetz to avoid conversion through object dtype
         arrays = [
-            blk._ndarray if isinstance(blk, DatetimeTZBlock) else np.asarray(blk.values)
+            blk.values._ndarray
+            if isinstance(blk, DatetimeTZBlock)
+            else np.asarray(blk.values)
             for blk in self.blocks
         ]
         result = []
