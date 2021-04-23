@@ -32,6 +32,7 @@ from pandas.core.dtypes.cast import (
     maybe_upcast,
 )
 from pandas.core.dtypes.common import (
+    is_1d_only_ea_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -55,7 +56,8 @@ from pandas.core import (
 )
 from pandas.core.arrays import (
     Categorical,
-    DatetimeArray,
+    ExtensionArray,
+    TimedeltaArray,
 )
 from pandas.core.construction import (
     extract_array,
@@ -259,7 +261,8 @@ def ndarray_to_mgr(
         if not len(values) and columns is not None and len(columns):
             values = np.empty((0, 1), dtype=object)
 
-    if is_extension_array_dtype(values) or isinstance(dtype, ExtensionDtype):
+    vdtype = getattr(values, "dtype", None)
+    if is_1d_only_ea_dtype(vdtype) or isinstance(dtype, ExtensionDtype):
         # GH#19157
 
         if isinstance(values, np.ndarray) and values.ndim > 1:
@@ -274,9 +277,18 @@ def ndarray_to_mgr(
 
         return arrays_to_mgr(values, columns, index, columns, dtype=dtype, typ=typ)
 
-    # by definition an array here
-    # the dtypes will be coerced to a single dtype
-    values = _prep_ndarray(values, copy=copy)
+    if is_extension_array_dtype(vdtype) and not is_1d_only_ea_dtype(vdtype):
+        # i.e. Datetime64TZ
+        values = extract_array(values, extract_numpy=True)
+        if copy:
+            values = values.copy()
+        if values.ndim == 1:
+            values = values.reshape(-1, 1)
+
+    else:
+        # by definition an array here
+        # the dtypes will be coerced to a single dtype
+        values = _prep_ndarray(values, copy=copy)
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         shape = values.shape
@@ -320,7 +332,6 @@ def ndarray_to_mgr(
             dvals_list = [ensure_block_shape(dval, 2) for dval in dvals_list]
 
             # TODO: What about re-joining object columns?
-            dvals_list = [maybe_squeeze_dt64tz(x) for x in dvals_list]
             block_values = [
                 new_block(dvals_list[n], placement=n, ndim=2)
                 for n in range(len(dvals_list))
@@ -328,12 +339,10 @@ def ndarray_to_mgr(
 
         else:
             datelike_vals = maybe_infer_to_datetimelike(values)
-            datelike_vals = maybe_squeeze_dt64tz(datelike_vals)
             nb = new_block(datelike_vals, placement=slice(len(columns)), ndim=2)
             block_values = [nb]
     else:
-        new_values = maybe_squeeze_dt64tz(values)
-        nb = new_block(new_values, placement=slice(len(columns)), ndim=2)
+        nb = new_block(values, placement=slice(len(columns)), ndim=2)
         block_values = [nb]
 
     if len(columns) == 0:
@@ -360,20 +369,6 @@ def _check_values_indices_shape_match(
         raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
 
-def maybe_squeeze_dt64tz(dta: ArrayLike) -> ArrayLike:
-    """
-    If we have a tzaware DatetimeArray with shape (1, N), squeeze to (N,)
-    """
-    # TODO(EA2D): kludge not needed with 2D EAs
-    if isinstance(dta, DatetimeArray) and dta.ndim == 2 and dta.tz is not None:
-        assert dta.shape[0] == 1
-        # error: Incompatible types in assignment (expression has type
-        # "Union[DatetimeLikeArrayMixin, Union[Any, NaTType]]", variable has
-        # type "Union[ExtensionArray, ndarray]")
-        dta = dta[0]  # type: ignore[assignment]
-    return dta
-
-
 def dict_to_mgr(
     data: dict,
     index,
@@ -396,7 +391,6 @@ def dict_to_mgr(
 
         arrays = Series(data, index=columns, dtype=object)
         data_names = arrays.index
-
         missing = arrays.isna()
         if index is None:
             # GH10856
@@ -481,13 +475,23 @@ def treat_as_nested(data) -> bool:
     """
     Check if we should use nested_data_to_arrays.
     """
-    return len(data) > 0 and is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1
+    return (
+        len(data) > 0
+        and is_list_like(data[0])
+        and getattr(data[0], "ndim", 1) == 1
+        and not (isinstance(data, ExtensionArray) and data.ndim == 2)
+    )
 
 
 # ---------------------------------------------------------------------
 
 
 def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
+    if isinstance(values, TimedeltaArray):
+        # On older numpy, np.asarray below apparently does not call __array__,
+        #  so nanoseconds get dropped.
+        values = values._ndarray
+
     if not isinstance(values, (np.ndarray, ABCSeries, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
