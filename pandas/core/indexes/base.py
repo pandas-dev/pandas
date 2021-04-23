@@ -5962,11 +5962,10 @@ class Index(IndexOpsMixin, PandasObject):
         # Use Index constructor to ensure we get tuples cast correctly.
         item = Index([item], dtype=self.dtype)._values
 
+        arr = self._values
         if is_extension_array_dtype(self.dtype):
-            arr = self._values
             idx = arr._concat_same_type([arr[:loc], item, arr[loc:]])
         else:
-            arr = np.asarray(self)
             idx = np.concatenate((arr[:loc], item, arr[loc:]))
 
         return Index(idx, name=self.name)
