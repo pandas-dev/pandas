@@ -545,7 +545,7 @@ class TestBlockManager:
         mgr = create_mgr("a,b: object; c: bool; d: datetime; e: f4; f: f2; g: f8")
 
         t = np.dtype(t)
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
             tmgr = mgr.astype(t, errors="ignore")
         assert tmgr.iget(2).dtype.type == t
         assert tmgr.iget(4).dtype.type == t
@@ -618,10 +618,10 @@ class TestBlockManager:
         assert new_mgr.iget(8).dtype == np.float16
 
     def test_invalid_ea_block(self):
-        with pytest.raises(AssertionError, match="block.size != values.size"):
+        with pytest.raises(ValueError, match="need to split"):
             create_mgr("a: category; b: category")
 
-        with pytest.raises(AssertionError, match="block.size != values.size"):
+        with pytest.raises(ValueError, match="need to split"):
             create_mgr("a: category2; b: category2")
 
     def test_interleave(self):

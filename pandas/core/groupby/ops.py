@@ -37,7 +37,6 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
-    maybe_cast_result_dtype,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -262,6 +261,41 @@ class WrappedCythonOp:
                 out_dtype = "object"
         return np.dtype(out_dtype)
 
+    def get_result_dtype(self, dtype: DtypeObj) -> DtypeObj:
+        """
+        Get the desired dtype of a result based on the
+        input dtype and how it was computed.
+
+        Parameters
+        ----------
+        dtype : np.dtype or ExtensionDtype
+            Input dtype.
+
+        Returns
+        -------
+        np.dtype or ExtensionDtype
+            The desired dtype of the result.
+        """
+        from pandas.core.arrays.boolean import BooleanDtype
+        from pandas.core.arrays.floating import Float64Dtype
+        from pandas.core.arrays.integer import (
+            Int64Dtype,
+            _IntegerDtype,
+        )
+
+        how = self.how
+
+        if how in ["add", "cumsum", "sum", "prod"]:
+            if dtype == np.dtype(bool):
+                return np.dtype(np.int64)
+            elif isinstance(dtype, (BooleanDtype, _IntegerDtype)):
+                return Int64Dtype()
+        elif how in ["mean", "median", "var"] and isinstance(
+            dtype, (BooleanDtype, _IntegerDtype)
+        ):
+            return Float64Dtype()
+        return dtype
+
     def uses_mask(self) -> bool:
         return self.how in self._MASKED_CYTHON_FUNCTIONS
 
@@ -281,7 +315,7 @@ class BaseGrouper:
         whether this grouper will give sorted result or not
     group_keys : bool, default True
     mutated : bool, default False
-    indexer : intp array, optional
+    indexer : np.ndarray[np.intp], optional
         the indexer created by Grouper
         some groupers (TimeGrouper) will sort its axis and its
         group_info is also sorted, so need the indexer to reorder
@@ -564,7 +598,14 @@ class BaseGrouper:
 
     @final
     def _ea_wrap_cython_operation(
-        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
+        self,
+        cy_op: WrappedCythonOp,
+        kind: str,
+        values,
+        how: str,
+        axis: int,
+        min_count: int = -1,
+        **kwargs,
     ) -> ArrayLike:
         """
         If we have an ExtensionArray, unwrap, call _cython_operation, and
@@ -601,7 +642,7 @@ class BaseGrouper:
                 #  other cast_blocklist methods dont go through cython_operation
                 return res_values
 
-            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            dtype = cy_op.get_result_dtype(orig_values.dtype)
             # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]"
             # has no attribute "construct_array_type"
             cls = dtype.construct_array_type()  # type: ignore[union-attr]
@@ -618,7 +659,7 @@ class BaseGrouper:
                 #  other cast_blocklist methods dont go through cython_operation
                 return res_values
 
-            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            dtype = cy_op.get_result_dtype(orig_values.dtype)
             # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]"
             # has no attribute "construct_array_type"
             cls = dtype.construct_array_type()  # type: ignore[union-attr]
@@ -631,6 +672,7 @@ class BaseGrouper:
     @final
     def _masked_ea_wrap_cython_operation(
         self,
+        cy_op: WrappedCythonOp,
         kind: str,
         values: BaseMaskedArray,
         how: str,
@@ -651,7 +693,7 @@ class BaseGrouper:
         res_values = self._cython_operation(
             kind, arr, how, axis, min_count, mask=mask, **kwargs
         )
-        dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+        dtype = cy_op.get_result_dtype(orig_values.dtype)
         assert isinstance(dtype, BaseMaskedDtype)
         cls = dtype.construct_array_type()
 
@@ -694,11 +736,11 @@ class BaseGrouper:
         if is_extension_array_dtype(dtype):
             if isinstance(values, BaseMaskedArray) and func_uses_mask:
                 return self._masked_ea_wrap_cython_operation(
-                    kind, values, how, axis, min_count, **kwargs
+                    cy_op, kind, values, how, axis, min_count, **kwargs
                 )
             else:
                 return self._ea_wrap_cython_operation(
-                    kind, values, how, axis, min_count, **kwargs
+                    cy_op, kind, values, how, axis, min_count, **kwargs
                 )
 
         elif values.ndim == 1:
@@ -797,7 +839,7 @@ class BaseGrouper:
         if how not in cy_op.cast_blocklist:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cast_blocklist we get here
-            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            dtype = cy_op.get_result_dtype(orig_values.dtype)
             op_result = maybe_downcast_to_dtype(result, dtype)
         else:
             op_result = result

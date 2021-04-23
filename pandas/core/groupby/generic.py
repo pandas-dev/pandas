@@ -345,6 +345,39 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return self.obj._constructor_expanddim(output, columns=columns)
 
+    def _cython_agg_general(
+        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+    ):
+        output: dict[base.OutputKey, ArrayLike] = {}
+        # Ideally we would be able to enumerate self._iterate_slices and use
+        # the index from enumeration as the key of output, but ohlc in particular
+        # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
+        # need to slice that up into 1D arrays
+        idx = 0
+        for obj in self._iterate_slices():
+            name = obj.name
+            is_numeric = is_numeric_dtype(obj.dtype)
+            if numeric_only and not is_numeric:
+                continue
+
+            result = self.grouper._cython_operation(
+                "aggregate", obj._values, how, axis=0, min_count=min_count
+            )
+            assert result.ndim == 1
+            key = base.OutputKey(label=name, position=idx)
+            output[key] = result
+            idx += 1
+
+        if not output:
+            raise DataError("No numeric types to aggregate")
+
+        # error: Argument 1 to "_wrap_aggregated_output" of "BaseGroupBy" has
+        # incompatible type "Dict[OutputKey, Union[ndarray, DatetimeArray]]";
+        # expected "Mapping[OutputKey, ndarray]"
+        return self._wrap_aggregated_output(
+            output, index=self.grouper.result_index  # type: ignore[arg-type]
+        )
+
     # TODO: index should not be Optional - see GH 35490
     def _wrap_series_output(
         self,
@@ -899,10 +932,6 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return self._reindex_output(result, fill_value=0)
 
-    def _apply_to_column_groupbys(self, func):
-        """ return a pass thru """
-        return func(self)
-
     def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None):
         """Calculate pct_change of each value to previous entry in group"""
         # TODO: Remove this conditional when #23918 is fixed
@@ -1094,6 +1123,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _cython_agg_manager(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ) -> Manager2D:
+        # Note: we never get here with how="ohlc"; that goes through SeriesGroupBy
 
         data: Manager2D = self._get_data_to_aggregate()
 
@@ -1184,13 +1214,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # generally if we have numeric_only=False
                 # and non-applicable functions
                 # try to python agg
-
-                if alt is None:
-                    # we cannot perform the operation
-                    # in an alternate way, exclude the block
-                    assert how == "ohlc"
-                    raise
-
                 result = py_fallback(values)
 
                 return cast_agg_result(result, values, how)
@@ -1198,7 +1221,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
-        # NotImplementedError -> "ohlc" with wrong dtype
         new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
         if not len(new_mgr):
