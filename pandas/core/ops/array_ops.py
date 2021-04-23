@@ -23,7 +23,6 @@ from pandas._typing import (
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     find_common_type,
-    maybe_upcast_putmask,
 )
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -130,7 +129,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
         if mask.any():
             result[mask] = op(xrav[mask], y)
 
-    result = maybe_upcast_putmask(result, ~mask)
+    np.putmask(result, ~mask, np.nan)
     result = result.reshape(x.shape)  # 2D compat
     return result
 
@@ -159,13 +158,11 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False, use_numexpr=True):
     try:
         result = expressions.evaluate(op, left, right, use_numexpr=use_numexpr)
     except TypeError:
-        if is_cmp:
-            # numexpr failed on comparison op, e.g. ndarray[float] > datetime
-            #  In this case we do not fall back to the masked op, as that
-            #  will handle complex numbers incorrectly, see GH#32047
-            raise
-        # breakpoint()
-        if is_object_dtype(left) or is_object_dtype(right):
+        if is_object_dtype(left) or is_object_dtype(right) and not is_cmp:
+            # For object dtype, fallback to a masked operation (only operating
+            #  on the non-missing values)
+            # Don't do this for comparisons, as that will handle complex numbers
+            #  incorrectly, see GH#32047
             result = _masked_arith_op(left, right, op)
         else:
             raise
@@ -199,20 +196,17 @@ def arithmetic_op(left: ArrayLike, right: Any, op, use_numexpr=True):
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
 
-    # NB: We assume that extract_array has already been called
-    #  on `left` and `right`.
+    # NB: We assume that extract_array and ensure_wrapped_if_datetimelike
+    #  has already been called on `left` and `right`.
     # We need to special-case datetime64/timedelta64 dtypes (e.g. because numpy
     # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
-    lvalues = ensure_wrapped_if_datetimelike(left)
-    rvalues = ensure_wrapped_if_datetimelike(right)
-    rvalues = _maybe_upcast_for_op(rvalues, lvalues.shape)
+    right = _maybe_upcast_for_op(right, left.shape)
 
-    if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
+    if should_extension_dispatch(left, right) or isinstance(right, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
-        res_values = op(lvalues, rvalues)
-
+        res_values = op(left, right)
     else:
-        res_values = _na_arithmetic_op(lvalues, rvalues, op)
+        res_values = _na_arithmetic_op(left, right, op)
 
     return res_values
 

@@ -10,8 +10,7 @@ from datetime import (
 import operator
 from typing import (
     TYPE_CHECKING,
-    Optional,
-    Tuple,
+    Hashable,
 )
 import warnings
 
@@ -263,8 +262,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _is_numeric_dtype = False
 
     _data: DatetimeArray
-    inferred_freq: Optional[str]
-    tz: Optional[tzinfo]
+    inferred_freq: str | None
+    tz: tzinfo | None
 
     # --------------------------------------------------------------------
     # methods that dispatch to DatetimeArray and wrap result
@@ -318,15 +317,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         data=None,
         freq=lib.no_default,
         tz=None,
-        normalize=False,
+        normalize: bool = False,
         closed=None,
         ambiguous="raise",
-        dayfirst=False,
-        yearfirst=False,
-        dtype: Optional[Dtype] = None,
-        copy=False,
-        name=None,
-    ):
+        dayfirst: bool = False,
+        yearfirst: bool = False,
+        dtype: Dtype | None = None,
+        copy: bool = False,
+        name: Hashable = None,
+    ) -> DatetimeIndex:
 
         if is_scalar(data):
             raise TypeError(
@@ -392,7 +391,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _mpl_repr(self):
+    def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
         return ints_to_pydatetime(self.asi8, self.tz)
 
@@ -435,7 +434,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return this.rename(res_name)
         return this
 
-    def _maybe_utc_convert(self, other: Index) -> Tuple[DatetimeIndex, Index]:
+    def _maybe_utc_convert(self, other: Index) -> tuple[DatetimeIndex, Index]:
         this = self
 
         if isinstance(other, DatetimeIndex):
@@ -449,7 +448,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
 
-    def _get_time_micros(self):
+    def _get_time_micros(self) -> np.ndarray:
         """
         Return the number of microseconds since midnight.
 
@@ -542,7 +541,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         return Series(values, index=index, name=name)
 
-    def snap(self, freq="S"):
+    def snap(self, freq="S") -> DatetimeIndex:
         """
         Snap time stamps to nearest occurring frequency.
 
@@ -641,7 +640,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # _parsed_string_to_bounds allows it.
             raise KeyError
 
-    def _deprecate_mismatched_indexing(self, key):
+    def _deprecate_mismatched_indexing(self, key) -> None:
         # GH#36148
         # we get here with isinstance(key, self._data._recognized_scalars)
         try:
@@ -855,7 +854,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # sure we can't have ambiguous indexing
         return "datetime64"
 
-    def indexer_at_time(self, time, asof=False):
+    def indexer_at_time(self, time, asof: bool = False) -> np.ndarray:
         """
         Return index locations of values at particular time of day
         (e.g. 9:30AM).
@@ -869,7 +868,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Returns
         -------
-        values_at_time : array of integers
+        np.ndarray[np.intp]
 
         See Also
         --------
@@ -892,11 +891,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         else:
             time_micros = self._get_time_micros()
         micros = _time_to_micros(time)
-        return (micros == time_micros).nonzero()[0]
+        return (time_micros == micros).nonzero()[0]
 
     def indexer_between_time(
-        self, start_time, end_time, include_start=True, include_end=True
-    ):
+        self, start_time, end_time, include_start: bool = True, include_end: bool = True
+    ) -> np.ndarray:
         """
         Return index locations of values between particular times of day
         (e.g., 9:00-9:30AM).
@@ -912,7 +911,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Returns
         -------
-        values_between_time : array of integers
+        np.ndarray[np.intp]
 
         See Also
         --------
@@ -952,8 +951,8 @@ def date_range(
     periods=None,
     freq=None,
     tz=None,
-    normalize=False,
-    name=None,
+    normalize: bool = False,
+    name: Hashable = None,
     closed=None,
     **kwargs,
 ) -> DatetimeIndex:
@@ -1121,11 +1120,11 @@ def date_range(
 def bdate_range(
     start=None,
     end=None,
-    periods: Optional[int] = None,
+    periods: int | None = None,
     freq="B",
     tz=None,
-    normalize=True,
-    name=None,
+    normalize: bool = True,
+    name: Hashable = None,
     weekmask=None,
     holidays=None,
     closed=None,
