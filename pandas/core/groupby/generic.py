@@ -372,49 +372,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
         return self._wrap_aggregated_output(output)
 
-    def _wrap_series_output(
-        self,
-        output: Mapping[base.OutputKey, Series | ArrayLike],
-    ) -> FrameOrSeriesUnion:
-        """
-        Wraps the output of a SeriesGroupBy operation into the expected result.
-
-        Parameters
-        ----------
-        output : Mapping[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
-            Data to wrap.
-
-        Returns
-        -------
-        Series or DataFrame
-
-        Notes
-        -----
-        In the vast majority of cases output and columns will only contain one
-        element. The exception is operations that expand dimensions, like ohlc.
-        """
-        index = self.grouper.result_index
-
-        indexed_output = {key.position: val for key, val in output.items()}
-        columns = Index(key.label for key in output)
-
-        result: FrameOrSeriesUnion
-        if len(output) > 1:
-            result = self.obj._constructor_expanddim(indexed_output, index=index)
-            result.columns = columns
-        elif not columns.empty:
-            result = self.obj._constructor(
-                indexed_output[0], index=index, name=columns[0]
-            )
-        else:
-            result = self.obj._constructor_expanddim()
-
-        return result
-
     def _wrap_aggregated_output(
         self,
         output: Mapping[base.OutputKey, Series | ArrayLike],
-    ) -> FrameOrSeriesUnion:
+    ) -> Series:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
 
@@ -425,15 +386,21 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Returns
         -------
-        Series or DataFrame
+        Series
 
         Notes
         -----
         In the vast majority of cases output will only contain one element.
         The exception is operations that expand dimensions, like ohlc.
         """
+
         assert len(output) == 1
-        result = self._wrap_series_output(output=output)
+
+        name = self.obj.name
+        index = self.grouper.result_index
+        values = list(output.values())[0]
+
+        result = self.obj._constructor(values, index=index, name=name)
         return self._reindex_output(result)
 
     def _wrap_transformed_output(
