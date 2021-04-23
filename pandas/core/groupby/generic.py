@@ -336,14 +336,13 @@ class SeriesGroupBy(GroupBy[Series]):
             # let higher level handle
             return results
 
-        # Argument 1 to "_wrap_aggregated_output" of "SeriesGroupBy" has
-        # incompatible type "Dict[OutputKey, Union[DataFrame,
-        #  Series]]";
-        # expected "Mapping[OutputKey, Union[Series, ndarray]]"
-        output = self._wrap_aggregated_output(
-            results, index=None  # type: ignore[arg-type]
-        )
-        return self.obj._constructor_expanddim(output, columns=columns)
+        # Otherwise, the user-provided functions were not all reducing, see GH#35490
+        indexed_output = {key.position: val for key, val in results.items()}
+        output = self.obj._constructor_expanddim(indexed_output, index=None)
+        output.columns = Index(key.label for key in results)
+
+        output = self._reindex_output(output)
+        return output
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -371,18 +370,11 @@ class SeriesGroupBy(GroupBy[Series]):
         if not output:
             raise DataError("No numeric types to aggregate")
 
-        # error: Argument 1 to "_wrap_aggregated_output" of "BaseGroupBy" has
-        # incompatible type "Dict[OutputKey, Union[ndarray, DatetimeArray]]";
-        # expected "Mapping[OutputKey, ndarray]"
-        return self._wrap_aggregated_output(
-            output, index=self.grouper.result_index  # type: ignore[arg-type]
-        )
+        return self._wrap_aggregated_output(output)
 
-    # TODO: index should not be Optional - see GH 35490
     def _wrap_series_output(
         self,
         output: Mapping[base.OutputKey, Series | ArrayLike],
-        index: Index | None,
     ) -> FrameOrSeriesUnion:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
@@ -391,8 +383,6 @@ class SeriesGroupBy(GroupBy[Series]):
         ----------
         output : Mapping[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
             Data to wrap.
-        index : pd.Index or None
-            Index to apply to the output.
 
         Returns
         -------
@@ -403,6 +393,8 @@ class SeriesGroupBy(GroupBy[Series]):
         In the vast majority of cases output and columns will only contain one
         element. The exception is operations that expand dimensions, like ohlc.
         """
+        index = self.grouper.result_index
+
         indexed_output = {key.position: val for key, val in output.items()}
         columns = Index(key.label for key in output)
 
@@ -419,18 +411,16 @@ class SeriesGroupBy(GroupBy[Series]):
 
         return result
 
-    # TODO: Remove index argument, use self.grouper.result_index, see GH 35490
     def _wrap_aggregated_output(
         self,
-        output: Mapping[base.OutputKey, Series | np.ndarray],
-        index: Index | None,
+        output: Mapping[base.OutputKey, Series | ArrayLike],
     ) -> FrameOrSeriesUnion:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
 
         Parameters
         ----------
-        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        output : Mapping[base.OutputKey, Union[Series, ArrayLike]]
             Data to wrap.
 
         Returns
@@ -442,7 +432,8 @@ class SeriesGroupBy(GroupBy[Series]):
         In the vast majority of cases output will only contain one element.
         The exception is operations that expand dimensions, like ohlc.
         """
-        result = self._wrap_series_output(output=output, index=index)
+        assert len(output) == 1
+        result = self._wrap_series_output(output=output)
         return self._reindex_output(result)
 
     def _wrap_transformed_output(
@@ -466,7 +457,10 @@ class SeriesGroupBy(GroupBy[Series]):
         for consistency with DataFrame methods and _wrap_aggregated_output.
         """
         assert len(output) == 1
-        result = self._wrap_series_output(output=output, index=self.obj.index)
+
+        name = self.obj.name
+        values = list(output.values())[0]
+        result = self.obj._constructor(values, index=self.obj.index, name=name)
 
         # No transformations increase the ndim of the result
         assert isinstance(result, Series)
@@ -1186,11 +1180,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             sgb = get_groupby(obj, self.grouper, observed=True)
             result = sgb.aggregate(lambda x: alt(x, axis=self.axis))
 
-            assert isinstance(result, (Series, DataFrame))  # for mypy
             # In the case of object dtype block, it may have been split
             #  in the operation.  We un-split here.
             result = result._consolidate()
-            assert isinstance(result, (Series, DataFrame))  # for mypy
             # unwrap DataFrame/Series to get array
             mgr = result._mgr
             arrays = mgr.arrays
@@ -1733,7 +1725,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_aggregated_output(
         self,
         output: Mapping[base.OutputKey, Series | np.ndarray],
-        index: Index | None,
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy aggregations into the expected result.
