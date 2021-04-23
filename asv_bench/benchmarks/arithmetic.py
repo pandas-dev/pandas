@@ -140,9 +140,7 @@ class FrameWithFrameWide:
         # construct dataframe with 2 blocks
         arr1 = np.random.randn(n_rows, n_cols // 2).astype("f8")
         arr2 = np.random.randn(n_rows, n_cols // 2).astype("f4")
-        df = pd.concat(
-            [pd.DataFrame(arr1), pd.DataFrame(arr2)], axis=1, ignore_index=True
-        )
+        df = pd.concat([DataFrame(arr1), DataFrame(arr2)], axis=1, ignore_index=True)
         # should already be the case, but just to be sure
         df._consolidate_inplace()
 
@@ -151,7 +149,7 @@ class FrameWithFrameWide:
         arr2 = np.random.randn(n_rows, n_cols // 2).astype("i8")
         arr3 = np.random.randn(n_rows, n_cols // 4).astype("f8")
         df2 = pd.concat(
-            [pd.DataFrame(arr1), pd.DataFrame(arr2), pd.DataFrame(arr3)],
+            [DataFrame(arr1), DataFrame(arr2), DataFrame(arr3)],
             axis=1,
             ignore_index=True,
         )
@@ -459,9 +457,9 @@ class OffsetArrayArithmetic:
 
     def setup(self, offset):
         N = 10000
-        rng = pd.date_range(start="1/1/2000", periods=N, freq="T")
+        rng = date_range(start="1/1/2000", periods=N, freq="T")
         self.rng = rng
-        self.ser = pd.Series(rng)
+        self.ser = Series(rng)
 
     def time_add_series_offset(self, offset):
         with warnings.catch_warnings(record=True):
@@ -478,7 +476,7 @@ class ApplyIndex:
 
     def setup(self, offset):
         N = 10000
-        rng = pd.date_range(start="1/1/2000", periods=N, freq="T")
+        rng = date_range(start="1/1/2000", periods=N, freq="T")
         self.rng = rng
 
     def time_apply_index(self, offset):
@@ -490,17 +488,17 @@ class BinaryOpsMultiIndex:
     param_names = ["func"]
 
     def setup(self, func):
-        date_range = pd.date_range("20200101 00:00", "20200102 0:00", freq="S")
+        array = date_range("20200101 00:00", "20200102 0:00", freq="S")
         level_0_names = [str(i) for i in range(30)]
 
-        index = pd.MultiIndex.from_product([level_0_names, date_range])
+        index = pd.MultiIndex.from_product([level_0_names, array])
         column_names = ["col_1", "col_2"]
 
-        self.df = pd.DataFrame(
+        self.df = DataFrame(
             np.random.rand(len(index), 2), index=index, columns=column_names
         )
 
-        self.arg_df = pd.DataFrame(
+        self.arg_df = DataFrame(
             np.random.randint(1, 10, (len(level_0_names), 2)),
             index=level_0_names,
             columns=column_names,

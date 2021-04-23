@@ -226,6 +226,16 @@ class TestDatetimeArray:
         res4 = dta2.fillna(method="backfill")
         tm.assert_extension_array_equal(res4, expected2)
 
+        # test the DataFrame method while we're here
+        df = pd.DataFrame(dta)
+        res = df.fillna(method="pad")
+        expected = pd.DataFrame(expected1)
+        tm.assert_frame_equal(res, expected)
+
+        res = df.fillna(method="backfill")
+        expected = pd.DataFrame(expected2)
+        tm.assert_frame_equal(res, expected)
+
     def test_array_interface_tz(self):
         tz = "US/Central"
         data = DatetimeArray(pd.date_range("2017", periods=2, tz=tz))
