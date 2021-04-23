@@ -400,14 +400,10 @@ class Apply(metaclass=abc.ABCMeta):
             # the index sorting to be different from the order of the aggregating
             # functions. Reindex if this is the case.
             index_size = concatenated.index.size
-            if results[0].index.size != index_size:
-                good_index = next(
-                    result.index
-                    for result in results
-                    if result.index.size == index_size
-                )
-                concatenated = concatenated.reindex(good_index)
-            return concatenated
+            good_index = next(
+                result.index for result in results if result.index.size == index_size
+            )
+            return concatenated.reindex(good_index, copy=False)
 
     def agg_dict_like(self) -> FrameOrSeriesUnion:
         """
