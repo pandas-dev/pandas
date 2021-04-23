@@ -312,3 +312,15 @@ footer
     msg = "Expected 3 fields in line 4, saw 5"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
+
+
+def test_usecols_indices_out_of_bounds(python_parser_only):
+    # GH#25623
+    parser = python_parser_only
+    data = """
+    a,b
+    1,2
+    """
+    msg = r"Usecols indices \[10\] are out of bounds!"
+    with pytest.raises(ParserError, match=msg):
+        parser.read_csv(StringIO(data), usecols=[0, 10])

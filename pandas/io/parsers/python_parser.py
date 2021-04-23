@@ -537,6 +537,13 @@ class PythonParser(ParserBase):
                     else:
                         col_indices.append(col)
             else:
+                missing_usecols = [
+                    col for col in self.usecols if col > len(usecols_key)
+                ]
+                if missing_usecols:
+                    raise ParserError(
+                        f"Usecols indices {missing_usecols} are out of bounds!"
+                    )
                 col_indices = self.usecols
 
             columns = [
