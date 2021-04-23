@@ -1160,7 +1160,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         This optimizes compared to using `iget_values` by converting each
         block.values to a np.ndarray only once up front
         """
-        arrays = [np.asarray(blk.values) for blk in self.blocks]
+        arrays = [
+            blk._ndarray if blk.is_datetimetz else np.asarray(blk.values)
+            for blk in self.blocks
+        ]
         result = []
         for i in range(len(self.items)):
             arr = arrays[self.blknos[i]]
