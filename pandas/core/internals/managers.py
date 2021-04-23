@@ -1160,8 +1160,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         This optimizes compared to using `iget_values` by converting each
         block.values to a np.ndarray only once up front
         """
+        # special casing datetimetz to avoid conversion through object dtype
         arrays = [
-            blk._ndarray if blk.is_datetimetz else np.asarray(blk.values)
+            blk._ndarray if isinstance(blk, DatetimeTZBlock) else np.asarray(blk.values)
             for blk in self.blocks
         ]
         result = []
