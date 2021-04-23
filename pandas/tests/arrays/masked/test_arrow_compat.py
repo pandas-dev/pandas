@@ -6,10 +6,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
-try:
-    import pyarrow as pa
-except ImportError:
-    pa = None
+pa = pytest.importorskip("pyarrow", minversion="0.15.0")
 
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES]
 arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]
@@ -21,7 +18,6 @@ def data(request):
     return request.param
 
 
-@td.skip_if_no("pyarrow", min_version="0.15.0")
 def test_arrow_array(data):
     # protocol added in 0.15.0
 
@@ -104,7 +100,6 @@ def np_dtype_to_arrays(any_real_dtype):
     return np_dtype, pa_array, np_expected, mask_expected
 
 
-@td.skip_if_no("pyarrow")
 def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     """
     Test conversion from pyarrow array to numpy array.
