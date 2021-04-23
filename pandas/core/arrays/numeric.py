@@ -66,7 +66,11 @@ class NumericDtype(BaseMaskedDtype):
             num_arr = array_class(data.copy(), ~mask, copy=False)
             results.append(num_arr)
 
-        if len(results) == 1:
+        if not results:
+            return array_class(
+                np.array([], dtype=self.numpy_dtype), np.array([], dtype=np.bool_)
+            )
+        elif len(results) == 1:
             # avoid additional copy in _concat_same_type
             return results[0]
         else:

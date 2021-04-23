@@ -6,6 +6,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import copy
 from functools import partial
+import operator
 from typing import (
     Any,
     Callable,
@@ -21,6 +22,7 @@ from pandas._typing import (
     FrameOrSeries,
     FrameOrSeriesUnion,
     IndexLabel,
+    Scalar,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
@@ -100,6 +102,16 @@ class Styler(StylerRenderer):
 
         .. versionadded:: 1.2.0
 
+    decimal : str, default "."
+        Character used as decimal separator for floats, complex and integers
+
+        .. versionadded:: 1.3.0
+
+    thousands : str, optional, default None
+        Character used as thousands separator for floats, complex and integers
+
+        .. versionadded:: 1.3.0
+
     escape : bool, default False
         Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
         strings with HTML-safe sequences.
@@ -158,6 +170,8 @@ class Styler(StylerRenderer):
         cell_ids: bool = True,
         na_rep: str | None = None,
         uuid_len: int = 5,
+        decimal: str = ".",
+        thousands: str | None = None,
         escape: bool = False,
     ):
         super().__init__(
@@ -173,7 +187,14 @@ class Styler(StylerRenderer):
         # validate ordered args
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
-        self.format(formatter=None, precision=precision, na_rep=na_rep, escape=escape)
+        self.format(
+            formatter=None,
+            precision=precision,
+            na_rep=na_rep,
+            escape=escape,
+            decimal=decimal,
+            thousands=thousands,
+        )
 
     def _repr_html_(self) -> str:
         """
@@ -1352,6 +1373,8 @@ class Styler(StylerRenderer):
         --------
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_between: Highlight a defined range with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
         def f(data: DataFrame, props: str) -> np.ndarray:
@@ -1399,6 +1422,8 @@ class Styler(StylerRenderer):
         --------
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_between: Highlight a defined range with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
@@ -1446,6 +1471,8 @@ class Styler(StylerRenderer):
         --------
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_between: Highlight a defined range with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
@@ -1457,6 +1484,217 @@ class Styler(StylerRenderer):
         # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
         return self.apply(
             f, axis=axis, subset=subset, props=props  # type: ignore[arg-type]
+        )
+
+    def highlight_between(
+        self,
+        subset: IndexLabel | None = None,
+        color: str = "yellow",
+        axis: Axis | None = 0,
+        left: Scalar | Sequence | None = None,
+        right: Scalar | Sequence | None = None,
+        inclusive: str = "both",
+        props: str | None = None,
+    ) -> Styler:
+        """
+        Highlight a defined range with a style.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        subset : IndexSlice, default None
+            A valid slice for ``data`` to limit the style application to.
+        color : str, default 'yellow'
+            Background color to use for highlighting.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            If ``left`` or ``right`` given as sequence, axis along which to apply those
+            boundaries. See examples.
+        left : scalar or datetime-like, or sequence or array-like, default None
+            Left bound for defining the range.
+        right : scalar or datetime-like, or sequence or array-like, default None
+            Right bound for defining the range.
+        inclusive : {'both', 'neither', 'left', 'right'}
+            Identify whether bounds are closed or open.
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
+
+        Notes
+        -----
+        If ``left`` is ``None`` only the right bound is applied.
+        If ``right`` is ``None`` only the left bound is applied. If both are ``None``
+        all values are highlighted.
+
+        ``axis`` is only needed if ``left`` or ``right`` are provided as a sequence or
+        an array-like object for aligning the shapes. If ``left`` and ``right`` are
+        both scalars then all ``axis`` inputs will give the same result.
+
+        This function only works with compatible ``dtypes``. For example a datetime-like
+        region can only use equivalent datetime-like ``left`` and ``right`` arguments.
+        Use ``subset`` to control regions which have multiple ``dtypes``.
+
+        Examples
+        --------
+        Basic usage
+
+        >>> df = pd.DataFrame({
+        ...     'One': [1.2, 1.6, 1.5],
+        ...     'Two': [2.9, 2.1, 2.5],
+        ...     'Three': [3.1, 3.2, 3.8],
+        ... })
+        >>> df.style.highlight_between(left=2.1, right=2.9)
+
+        .. figure:: ../../_static/style/hbetw_basic.png
+
+        Using a range input sequnce along an ``axis``, in this case setting a ``left``
+        and ``right`` for each column individually
+
+        >>> df.style.highlight_between(left=[1.4, 2.4, 3.4], right=[1.6, 2.6, 3.6],
+        ...     axis=1, color="#fffd75")
+
+        .. figure:: ../../_static/style/hbetw_seq.png
+
+        Using ``axis=None`` and providing the ``left`` argument as an array that
+        matches the input DataFrame, with a constant ``right``
+
+        >>> df.style.highlight_between(left=[[2,2,3],[2,2,3],[3,3,3]], right=3.5,
+        ...     axis=None, color="#fffd75")
+
+        .. figure:: ../../_static/style/hbetw_axNone.png
+
+        Using ``props`` instead of default background coloring
+
+        >>> df.style.highlight_between(left=1.5, right=3.5,
+        ...     props='font-weight:bold;color:#e83e8c')
+
+        .. figure:: ../../_static/style/hbetw_props.png
+        """
+        if props is None:
+            props = f"background-color: {color};"
+        return self.apply(
+            _highlight_between,  # type: ignore[arg-type]
+            axis=axis,
+            subset=subset,
+            props=props,
+            left=left,
+            right=right,
+            inclusive=inclusive,
+        )
+
+    def highlight_quantile(
+        self,
+        subset: IndexLabel | None = None,
+        color: str = "yellow",
+        axis: Axis | None = 0,
+        q_left: float = 0.0,
+        q_right: float = 1.0,
+        interpolation: str = "linear",
+        inclusive: str = "both",
+        props: str | None = None,
+    ) -> Styler:
+        """
+        Highlight values defined by a quantile with a style.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        subset : IndexSlice, default None
+            A valid slice for ``data`` to limit the style application to.
+        color : str, default 'yellow'
+            Background color to use for highlighting
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Axis along which to determine and highlight quantiles. If ``None`` quantiles
+            are measured over the entire DataFrame. See examples.
+        q_left : float, default 0
+            Left bound, in [0, q_right), for the target quantile range.
+        q_right : float, default 1
+            Right bound, in (q_left, 1], for the target quantile range.
+        interpolation : {‘linear’, ‘lower’, ‘higher’, ‘midpoint’, ‘nearest’}
+            Argument passed to ``Series.quantile`` or ``DataFrame.quantile`` for
+            quantile estimation.
+        inclusive : {'both', 'neither', 'left', 'right'}
+            Identify whether quantile bounds are closed or open.
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_between: Highlight a defined range with a style.
+
+        Notes
+        -----
+        This function does not work with ``str`` dtypes.
+
+        Examples
+        --------
+        Using ``axis=None`` and apply a quantile to all collective data
+
+        >>> df = pd.DataFrame(np.arange(10).reshape(2,5) + 1)
+        >>> df.style.highlight_quantile(axis=None, q_left=0.8, color="#fffd75")
+
+        .. figure:: ../../_static/style/hq_axNone.png
+
+        Or highlight quantiles row-wise or column-wise, in this case by row-wise
+
+        >>> df.style.highlight_quantile(axis=1, q_left=0.8, color="#fffd75")
+
+        .. figure:: ../../_static/style/hq_ax1.png
+
+        Use ``props`` instead of default background coloring
+
+        >>> df.style.highlight_quantile(axis=None, q_left=0.2, q_right=0.8,
+        ...     props='font-weight:bold;color:#e83e8c')
+
+        .. figure:: ../../_static/style/hq_props.png
+        """
+        subset_ = slice(None) if subset is None else subset
+        subset_ = non_reducing_slice(subset_)
+        data = self.data.loc[subset_]
+
+        # after quantile is found along axis, e.g. along rows,
+        # applying the calculated quantile to alternate axis, e.g. to each column
+        kwargs = {"q": [q_left, q_right], "interpolation": interpolation}
+        if axis in [0, "index"]:
+            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            axis_apply: int | None = 1
+        elif axis in [1, "columns"]:
+            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            axis_apply = 0
+        else:  # axis is None
+            q = Series(data.to_numpy().ravel()).quantile(**kwargs)
+            axis_apply = None
+
+        if props is None:
+            props = f"background-color: {color};"
+        return self.apply(
+            _highlight_between,  # type: ignore[arg-type]
+            axis=axis_apply,
+            subset=subset,
+            props=props,
+            left=q.iloc[0],
+            right=q.iloc[1],
+            inclusive=inclusive,
         )
 
     @classmethod
@@ -1485,7 +1723,7 @@ class Styler(StylerRenderer):
         # error: Invalid base class "cls"
         class MyStyler(cls):  # type:ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
-            template = env.get_template(name)
+            template_html = env.get_template(name)
 
         return MyStyler
 
@@ -1675,3 +1913,51 @@ def _background_gradient(
                 index=data.index,
                 columns=data.columns,
             )
+
+
+def _highlight_between(
+    data: FrameOrSeries,
+    props: str,
+    left: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
+    right: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
+    inclusive: bool | str = True,
+) -> np.ndarray:
+    """
+    Return an array of css props based on condition of data values within given range.
+    """
+    if np.iterable(left) and not isinstance(left, str):
+        left = _validate_apply_axis_arg(
+            left, "left", None, data  # type: ignore[arg-type]
+        )
+
+    if np.iterable(right) and not isinstance(right, str):
+        right = _validate_apply_axis_arg(
+            right, "right", None, data  # type: ignore[arg-type]
+        )
+
+    # get ops with correct boundary attribution
+    if inclusive == "both":
+        ops = (operator.ge, operator.le)
+    elif inclusive == "neither":
+        ops = (operator.gt, operator.lt)
+    elif inclusive == "left":
+        ops = (operator.ge, operator.lt)
+    elif inclusive == "right":
+        ops = (operator.gt, operator.le)
+    else:
+        raise ValueError(
+            f"'inclusive' values can be 'both', 'left', 'right', or 'neither' "
+            f"got {inclusive}"
+        )
+
+    g_left = (
+        ops[0](data, left)
+        if left is not None
+        else np.full(data.shape, True, dtype=bool)
+    )
+    l_right = (
+        ops[1](data, right)
+        if right is not None
+        else np.full(data.shape, True, dtype=bool)
+    )
+    return np.where(g_left & l_right, props, "")

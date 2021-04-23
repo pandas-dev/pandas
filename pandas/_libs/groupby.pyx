@@ -388,23 +388,26 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_any_all(uint8_t[::1] out,
-                  const uint8_t[::1] values,
+def group_any_all(int8_t[::1] out,
+                  const int8_t[::1] values,
                   const intp_t[:] labels,
                   const uint8_t[::1] mask,
                   str val_test,
-                  bint skipna) -> None:
+                  bint skipna,
+                  bint nullable) -> None:
     """
-    Aggregated boolean values to show truthfulness of group elements.
+    Aggregated boolean values to show truthfulness of group elements. If the
+    input is a nullable type (nullable=True), the result will be computed
+    using Kleene logic.
 
     Parameters
     ----------
-    out : np.ndarray[np.uint8]
+    out : np.ndarray[np.int8]
         Values into which this method will write its results.
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its
         ordering matching up to the corresponding record in `values`
-    values : np.ndarray[np.uint8]
+    values : np.ndarray[np.int8]
         Containing the truth value of each element.
     mask : np.ndarray[np.uint8]
         Indicating whether a value is na or not.
@@ -412,16 +415,20 @@ def group_any_all(uint8_t[::1] out,
         String object dictating whether to use any or all truth testing
     skipna : bool
         Flag to ignore nan values during truth testing
+    nullable : bool
+        Whether or not the input is a nullable type. If True, the
+        result will be computed using Kleene logic
 
     Notes
     -----
     This method modifies the `out` parameter rather than returning an object.
-    The returned values will either be 0 or 1 (False or True, respectively).
+    The returned values will either be 0, 1 (False or True, respectively), or
+    -1 to signify a masked position in the case of a nullable input.
     """
     cdef:
         Py_ssize_t i, N = len(labels)
         intp_t lab
-        uint8_t flag_val
+        int8_t flag_val
 
     if val_test == 'all':
         # Because the 'all' value of an empty iterable in Python is True we can
@@ -444,6 +451,16 @@ def group_any_all(uint8_t[::1] out,
             if lab < 0 or (skipna and mask[i]):
                 continue
 
+            if nullable and mask[i]:
+                # Set the position as masked if `out[lab] != flag_val`, which
+                # would indicate True/False has not yet been seen for any/all,
+                # so by Kleene logic the result is currently unknown
+                if out[lab] != flag_val:
+                    out[lab] = -1
+                continue
+
+            # If True and 'any' or False and 'all', the result is
+            # already determined
             if values[i] == flag_val:
                 out[lab] = flag_val
 
@@ -1122,6 +1139,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
                    ndarray[groupby_t, ndim=2] values,
                    const intp_t[:] labels,
                    Py_ssize_t min_count=-1,
+                   bint is_datetimelike=False,
                    bint compute_max=True):
     """
     Compute minimum/maximum  of columns of `values`, in row groups `labels`.
@@ -1139,6 +1157,8 @@ cdef group_min_max(groupby_t[:, ::1] out,
     min_count : Py_ssize_t, default -1
         The minimum number of non-NA group elements, NA result if threshold
         is not met
+    is_datetimelike : bool
+        True if `values` contains datetime-like entries.
     compute_max : bint, default True
         True to compute group-wise max, False to compute min
 
@@ -1187,8 +1207,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
             for j in range(K):
                 val = values[i, j]
 
-                if not _treat_as_na(val, True):
-                    # TODO: Sure we always want is_datetimelike=True?
+                if not _treat_as_na(val, is_datetimelike):
                     nobs[lab, j] += 1
                     if compute_max:
                         if val > group_min_or_max[lab, j]:
@@ -1220,9 +1239,18 @@ def group_max(groupby_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[groupby_t, ndim=2] values,
               const intp_t[:] labels,
-              Py_ssize_t min_count=-1) -> None:
+              Py_ssize_t min_count=-1,
+              bint is_datetimelike=False) -> None:
     """See group_min_max.__doc__"""
-    group_min_max(out, counts, values, labels, min_count=min_count, compute_max=True)
+    group_min_max(
+        out,
+        counts,
+        values,
+        labels,
+        min_count=min_count,
+        is_datetimelike=is_datetimelike,
+        compute_max=True,
+    )
 
 
 @cython.wraparound(False)
@@ -1231,15 +1259,25 @@ def group_min(groupby_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[groupby_t, ndim=2] values,
               const intp_t[:] labels,
-              Py_ssize_t min_count=-1) -> None:
+              Py_ssize_t min_count=-1,
+              bint is_datetimelike=False) -> None:
     """See group_min_max.__doc__"""
-    group_min_max(out, counts, values, labels, min_count=min_count, compute_max=False)
+    group_min_max(
+        out,
+        counts,
+        values,
+        labels,
+        min_count=min_count,
+        is_datetimelike=is_datetimelike,
+        compute_max=False,
+    )
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef group_cummin_max(groupby_t[:, ::1] out,
                       ndarray[groupby_t, ndim=2] values,
+                      uint8_t[:, ::1] mask,
                       const intp_t[:] labels,
                       int ngroups,
                       bint is_datetimelike,
@@ -1253,6 +1291,9 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
         Array to store cummin/max in.
     values : np.ndarray[groupby_t, ndim=2]
         Values to take cummin/max of.
+    mask : np.ndarray[bool] or None
+        If not None, indices represent missing values,
+        otherwise the mask will not be used
     labels : np.ndarray[np.intp]
         Labels to group by.
     ngroups : int
@@ -1270,11 +1311,14 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
     cdef:
         Py_ssize_t i, j, N, K, size
         groupby_t val, mval
-        ndarray[groupby_t, ndim=2] accum
+        groupby_t[:, ::1] accum
         intp_t lab
+        bint val_is_nan, use_mask
+
+    use_mask = mask is not None
 
     N, K = (<object>values).shape
-    accum = np.empty((ngroups, K), dtype=np.asarray(values).dtype)
+    accum = np.empty((ngroups, K), dtype=values.dtype)
     if groupby_t is int64_t:
         accum[:] = -_int64_max if compute_max else _int64_max
     elif groupby_t is uint64_t:
@@ -1289,11 +1333,29 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
             if lab < 0:
                 continue
             for j in range(K):
-                val = values[i, j]
+                val_is_nan = False
 
-                if _treat_as_na(val, is_datetimelike):
-                    out[i, j] = val
+                if use_mask:
+                    if mask[i, j]:
+
+                        # `out` does not need to be set since it
+                        # will be masked anyway
+                        val_is_nan = True
+                    else:
+
+                        # If using the mask, we can avoid grabbing the
+                        # value unless necessary
+                        val = values[i, j]
+
+                # Otherwise, `out` must be set accordingly if the
+                # value is missing
                 else:
+                    val = values[i, j]
+                    if _treat_as_na(val, is_datetimelike):
+                        val_is_nan = True
+                        out[i, j] = val
+
+                if not val_is_nan:
                     mval = accum[lab, j]
                     if compute_max:
                         if val > mval:
@@ -1310,9 +1372,18 @@ def group_cummin(groupby_t[:, ::1] out,
                  ndarray[groupby_t, ndim=2] values,
                  const intp_t[:] labels,
                  int ngroups,
-                 bint is_datetimelike) -> None:
+                 bint is_datetimelike,
+                 uint8_t[:, ::1] mask=None) -> None:
     """See group_cummin_max.__doc__"""
-    group_cummin_max(out, values, labels, ngroups, is_datetimelike, compute_max=False)
+    group_cummin_max(
+        out,
+        values,
+        mask,
+        labels,
+        ngroups,
+        is_datetimelike,
+        compute_max=False
+    )
 
 
 @cython.boundscheck(False)
@@ -1321,6 +1392,15 @@ def group_cummax(groupby_t[:, ::1] out,
                  ndarray[groupby_t, ndim=2] values,
                  const intp_t[:] labels,
                  int ngroups,
-                 bint is_datetimelike) -> None:
+                 bint is_datetimelike,
+                 uint8_t[:, ::1] mask=None) -> None:
     """See group_cummin_max.__doc__"""
-    group_cummin_max(out, values, labels, ngroups, is_datetimelike, compute_max=True)
+    group_cummin_max(
+        out,
+        values,
+        mask,
+        labels,
+        ngroups,
+        is_datetimelike,
+        compute_max=True
+    )

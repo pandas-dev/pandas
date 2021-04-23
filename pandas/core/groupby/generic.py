@@ -36,7 +36,7 @@ from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
     FrameOrSeriesUnion,
-    Manager,
+    Manager2D,
 )
 from pandas.util._decorators import (
     Appender,
@@ -46,7 +46,6 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import (
     find_common_type,
-    maybe_cast_result_dtype,
     maybe_downcast_numeric,
 )
 from pandas.core.dtypes.common import (
@@ -58,7 +57,6 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_numeric_dtype,
     is_scalar,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -346,6 +344,39 @@ class SeriesGroupBy(GroupBy[Series]):
             results, index=None  # type: ignore[arg-type]
         )
         return self.obj._constructor_expanddim(output, columns=columns)
+
+    def _cython_agg_general(
+        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+    ):
+        output: dict[base.OutputKey, ArrayLike] = {}
+        # Ideally we would be able to enumerate self._iterate_slices and use
+        # the index from enumeration as the key of output, but ohlc in particular
+        # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
+        # need to slice that up into 1D arrays
+        idx = 0
+        for obj in self._iterate_slices():
+            name = obj.name
+            is_numeric = is_numeric_dtype(obj.dtype)
+            if numeric_only and not is_numeric:
+                continue
+
+            result = self.grouper._cython_operation(
+                "aggregate", obj._values, how, axis=0, min_count=min_count
+            )
+            assert result.ndim == 1
+            key = base.OutputKey(label=name, position=idx)
+            output[key] = result
+            idx += 1
+
+        if not output:
+            raise DataError("No numeric types to aggregate")
+
+        # error: Argument 1 to "_wrap_aggregated_output" of "BaseGroupBy" has
+        # incompatible type "Dict[OutputKey, Union[ndarray, DatetimeArray]]";
+        # expected "Mapping[OutputKey, ndarray]"
+        return self._wrap_aggregated_output(
+            output, index=self.grouper.result_index  # type: ignore[arg-type]
+        )
 
     # TODO: index should not be Optional - see GH 35490
     def _wrap_series_output(
@@ -901,10 +932,6 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return self._reindex_output(result, fill_value=0)
 
-    def _apply_to_column_groupbys(self, func):
-        """ return a pass thru """
-        return func(self)
-
     def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None):
         """Calculate pct_change of each value to previous entry in group"""
         # TODO: Remove this conditional when #23918 is fixed
@@ -1095,22 +1122,21 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _cython_agg_manager(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ) -> Manager:
+    ) -> Manager2D:
+        # Note: we never get here with how="ohlc"; that goes through SeriesGroupBy
 
-        data: Manager = self._get_data_to_aggregate()
+        data: Manager2D = self._get_data_to_aggregate()
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
         using_array_manager = isinstance(data, ArrayManager)
 
-        def cast_agg_result(result, values: ArrayLike, how: str) -> ArrayLike:
+        def cast_agg_result(
+            result: ArrayLike, values: ArrayLike, how: str
+        ) -> ArrayLike:
             # see if we can cast the values to the desired dtype
             # this may not be the original dtype
-            assert not isinstance(result, DataFrame)
-
-            dtype = maybe_cast_result_dtype(values.dtype, how)
-            result = maybe_downcast_numeric(result, dtype)
 
             if isinstance(values, Categorical) and isinstance(result, np.ndarray):
                 # If the Categorical op didn't raise, it is dtype-preserving
@@ -1125,6 +1151,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             ):
                 # We went through a SeriesGroupByPath and need to reshape
                 # GH#32223 includes case with IntegerArray values
+                # We only get here with values.dtype == object
                 result = result.reshape(1, -1)
                 # test_groupby_duplicate_columns gets here with
                 #  result.dtype == int64, values.dtype=object, how="min"
@@ -1140,8 +1167,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             # call our grouper again with only this block
             if values.ndim == 1:
+                # We only get here with ExtensionArray
+
                 obj = Series(values)
             else:
+                # We only get here with values.dtype == object
                 # TODO special case not needed with ArrayManager
                 obj = DataFrame(values.T)
                 if obj.shape[1] == 1:
@@ -1184,20 +1214,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # generally if we have numeric_only=False
                 # and non-applicable functions
                 # try to python agg
-
-                if alt is None:
-                    # we cannot perform the operation
-                    # in an alternate way, exclude the block
-                    assert how == "ohlc"
-                    raise
-
                 result = py_fallback(values)
 
-            return cast_agg_result(result, values, how)
+                return cast_agg_result(result, values, how)
+            return result
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
-        # NotImplementedError -> "ohlc" with wrong dtype
         new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
         if not len(new_mgr):
@@ -1366,11 +1389,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         # if we have date/time like in the original, then coerce dates
         # as we are stacking can easily have object dtypes here
-        so = self._selected_obj
-        if so.ndim == 2 and so.dtypes.apply(needs_i8_conversion).any():
-            result = result._convert(datetime=True)
-        else:
-            result = result._convert(datetime=True)
+        result = result._convert(datetime=True)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -1507,7 +1526,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         try:
             res_fast = fast_path(group)
         except AssertionError:
-            raise
+            raise  # pragma: no cover
         except Exception:
             # GH#29631 For user-defined function, we can't predict what may be
             #  raised; see test_transform.test_transform_fastpath_raises
@@ -1691,7 +1710,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             return self.obj._constructor(result, index=obj.index, columns=result_index)
 
-    def _get_data_to_aggregate(self) -> Manager:
+    def _get_data_to_aggregate(self) -> Manager2D:
         obj = self._obj_with_exclusions
         if self.axis == 1:
             return obj.T._mgr
@@ -1776,7 +1795,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _wrap_agged_manager(self, mgr: Manager) -> DataFrame:
+    def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         if not self.as_index:
             index = np.arange(mgr.shape[1])
             mgr.set_axis(1, ibase.Index(index), verify_integrity=False)

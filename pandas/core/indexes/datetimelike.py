@@ -20,7 +20,6 @@ from pandas._libs import (
     NaT,
     Timedelta,
     iNaT,
-    join as libjoin,
     lib,
 )
 from pandas._libs.tslibs import (
@@ -73,36 +72,6 @@ if TYPE_CHECKING:
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _T = TypeVar("_T", bound="DatetimeIndexOpsMixin")
-
-
-def _join_i8_wrapper(joinf, with_indexers: bool = True):
-    """
-    Create the join wrapper methods.
-    """
-
-    # error: 'staticmethod' used with a non-method
-    @staticmethod  # type: ignore[misc]
-    def wrapper(left, right):
-        # Note: these only get called with left.dtype == right.dtype
-        orig_left = left
-
-        left = left.view("i8")
-        right = right.view("i8")
-
-        results = joinf(left, right)
-        if with_indexers:
-
-            join_index, left_indexer, right_indexer = results
-            if not isinstance(orig_left, np.ndarray):
-                # When called from Index._intersection/_union, we have the EA
-                join_index = join_index.view(orig_left._ndarray.dtype)
-                join_index = orig_left._from_backing_data(join_index)
-
-            return join_index, left_indexer, right_indexer
-
-        return results
-
-    return wrapper
 
 
 @inherit_names(
@@ -603,13 +572,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Join/Set Methods
 
-    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
-    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
-    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer)
-    _left_indexer_unique = _join_i8_wrapper(
-        libjoin.left_join_indexer_unique, with_indexers=False
-    )
-
     def _get_join_freq(self, other):
         """
         Get the freq to attach to the result of a join operation.
@@ -621,13 +583,21 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             freq = self.freq if self._can_fast_union(other) else None
         return freq
 
-    def _wrap_joined_index(self, joined: np.ndarray, other):
+    def _wrap_joined_index(self, joined, other):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        assert joined.dtype == "i8" or joined.dtype == self.dtype, joined.dtype
-        joined = joined.view(self._data._ndarray.dtype)
         result = super()._wrap_joined_index(joined, other)
         result._data._freq = self._get_join_freq(other)
         return result
+
+    def _get_join_target(self) -> np.ndarray:
+        return self._data._ndarray.view("i8")
+
+    def _from_join_target(self, result: np.ndarray):
+        # view e.g. i8 back to M8[ns]
+        result = result.view(self._data._ndarray.dtype)
+        return self._data._from_backing_data(result)
+
+    # --------------------------------------------------------------------
 
     @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr):
