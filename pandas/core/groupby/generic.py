@@ -1076,14 +1076,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ) -> DataFrame:
-        agg_mgr = self._cython_agg_manager(
-            how, alt=alt, numeric_only=numeric_only, min_count=min_count
-        )
-        return self._wrap_agged_manager(agg_mgr)
-
-    def _cython_agg_manager(
-        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ) -> Manager2D:
         # Note: we never get here with how="ohlc"; that goes through SeriesGroupBy
 
         data: Manager2D = self._get_data_to_aggregate()
@@ -1185,7 +1177,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if not len(new_mgr):
             raise DataError("No numeric types to aggregate")
 
-        return new_mgr
+        return self._wrap_agged_manager(new_mgr)
 
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
         if self.grouper.nkeys != 1:
