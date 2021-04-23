@@ -15,7 +15,7 @@ dependencies:
   # pandas dependencies
   - botocore>=1.11
   - fsspec>=0.7.4
-  - numpy
+  - numpy=1.19
   - python-dateutil
   - nomkl
   - pyarrow=0.15.1
