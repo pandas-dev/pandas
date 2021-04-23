@@ -220,21 +220,6 @@ class TestClipboard:
         # excel data is parsed correctly
         assert df.iloc[1][1] == "Harry Carney"
 
-        # a null on the first column works
-        text = dedent(
-            """
-            John James	Charlie Mingus
-            1	2
-            	Harry Carney
-            7	Carl Miney
-            """.strip()
-        )
-        mock_clipboard[request.node.name] = text
-        df = read_clipboard(**clip_kwargs)
-
-        # excel data is parsed correctly
-        assert df.iloc[1][1] == "Harry Carney"
-
         # having diff tab counts doesn't trigger it
         text = dedent(
             """
@@ -257,6 +242,17 @@ class TestClipboard:
         exp = read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
+
+    # Tests that nulls on the first column do not trip infering excel format
+    def test_infer_excel_with_nulls(self, request, mock_clipboard):
+        # GH41108
+        text = "col1\tcol2\n1\tred\n\tblue\n2\tgreen"
+
+        mock_clipboard[request.node.name] = text
+        df = read_clipboard()
+
+        # excel data is parsed correctly
+        assert df.iloc[1][1] == "blue"
 
     def test_invalid_encoding(self, df):
         msg = "clipboard only supports utf-8 encoding"
