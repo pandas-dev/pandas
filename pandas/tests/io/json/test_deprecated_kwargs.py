@@ -2,14 +2,10 @@
 Tests for the deprecated keyword arguments for `read_json`.
 """
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.json import read_json
-
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def test_deprecated_kwargs():
