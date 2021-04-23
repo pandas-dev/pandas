@@ -443,7 +443,8 @@ class PythonParser(ParserBase):
                         ic = len(sic) if sic is not None else 0
                         unnamed_count = len(this_unnamed_cols)
 
-                        if lc != unnamed_count and lc - ic > unnamed_count:
+                        # if wrong number of blanks or no index, not our format
+                        if (lc != unnamed_count and lc - ic > unnamed_count) or ic == 0:
                             clear_buffer = False
                             this_columns = [None] * lc
                             self.buf = [self.buf[-1]]
