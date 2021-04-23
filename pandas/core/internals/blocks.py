@@ -1778,10 +1778,6 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
 
-    def get_block_values_for_json(self):
-        # Not necessary to override, but helps perf
-        return self.values._ndarray
-
 
 class DatetimeTZBlock(DatetimeLikeBlock):
     """ implement a datetime64 block with a tz attribute """
