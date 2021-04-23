@@ -44,6 +44,7 @@ from pandas.core.dtypes.missing import (
     isna,
 )
 
+from pandas.core.arrays.integer import IntegerArray
 import pandas.core.common as com
 from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
@@ -1588,9 +1589,10 @@ class _iLocIndexer(_LocationIndexer):
         BlockManager methods, see GH#12991, GH#22046, GH#15686.
         """
         info_axis = self.obj._info_axis_number
-
         # maybe partial set
         take_split_path = not self.obj._mgr.is_single_block
+
+        value = np.array(value) if isinstance(value, IntegerArray) else value
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
@@ -1705,7 +1707,6 @@ class _iLocIndexer(_LocationIndexer):
         """
         # Above we only set take_split_path to True for 2D cases
         assert self.ndim == 2
-
         if not isinstance(indexer, tuple):
             indexer = _tuplify(self.ndim, indexer)
         if len(indexer) > self.ndim:
@@ -1716,8 +1717,8 @@ class _iLocIndexer(_LocationIndexer):
         if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
             from pandas import Series
 
+            print("value is ABCseries")
             value = self._align_series(indexer, Series(value))
-
         # Ensure we have something we can iterate over
         info_axis = indexer[1]
         ilocs = self._ensure_iterable_column_indexer(info_axis)
@@ -1731,6 +1732,7 @@ class _iLocIndexer(_LocationIndexer):
         if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
 
             if isinstance(value, ABCDataFrame):
+                print("value is ABCDataFrame")
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
             elif np.ndim(value) == 2:

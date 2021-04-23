@@ -74,7 +74,7 @@ def test_iloc_getitem_multiple_items():
     tm.assert_frame_equal(result, expected)
 
 
-def test_iloc_np_and_pd():
+def test_iloc_pd_arr_value():
     # test if iloc returns the same output for numpy array input and integer array input
     df = DataFrame(
         data={
@@ -83,13 +83,42 @@ def test_iloc_np_and_pd():
             "col3": [6, 7, 8, 9],
         }
     )
-    df_np = df
-    df_pd = df
-    np_arr = np.array([1, 2, 3])
+    df_np = df.copy()
+    df_pd = df.copy()
+    df_int = df.copy()
+
     pd_arr = pd.array([1, 2, 3])
-    df_np.iloc[[1, 2, 3]] = np_arr
+    np_arr = np.array([1, 2, 3])
+    int_arr = [1, 2, 3]
     df_pd.iloc[[1, 2, 3]] = pd_arr
-    tm.assert_frame_equal(df_np, df_pd)
+    df_np.iloc[[1, 2, 3]] = np_arr
+    df_int.iloc[[1, 2, 3]] = int_arr
+
+    tm.assert_frame_equal(df_pd, df_np) and tm.assert_frame_equal(df_int, df_np)
+
+
+def test_iloc_pd_arr_value2():
+    # test if iloc returns the same output for numpy array input and integer array input
+    df = DataFrame(
+        data={
+            "col1": [1, 2, 3, 4],
+            "col2": [3, 4, 5, 6],
+            "col3": [6, 7, 8, 9],
+        }
+    )
+    df_np = df.copy()
+    df_pd = df.copy()
+    df_int = df.copy()
+
+    pd_arr = pd.array([1, 2, 3])
+    np_arr = np.array([1, 2, 3])
+    int_arr = [1, 2, 3]
+
+    df_pd.iloc[[1, 2, 3], :] = pd_arr
+    df_np.iloc[[1, 2, 3], :] = np_arr
+    df_int.iloc[[1, 2, 3], :] = int_arr
+
+    tm.assert_frame_equal(df_pd, df_np) and tm.assert_frame_equal(df_int, df_np)
 
 
 def test_iloc_getitem_labels():
