@@ -1075,7 +1075,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
         return self.set_categories(new_categories, ordered=ordered, inplace=inplace)
 
-    def add_categories(self, new_categories, inplace=False):
+    def add_categories(self, new_categories, inplace=no_default):
         """
         Add new categories.
 
@@ -1089,6 +1089,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace : bool, default False
            Whether or not to add the categories inplace or return a copy of
            this categorical with added categories.
+
+           .. deprecated:: 1.3.0
 
         Returns
         -------
@@ -1109,6 +1111,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
         """
+        if inplace is not no_default:
+            warn(
+                "The `inplace` parameter in pandas.Categorical."
+                "add_categories is deprecated and will be removed in "
+                "a future version. Removing unused categories will always "
+                "return a new Categorical object.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_list_like(new_categories):
             new_categories = [new_categories]
