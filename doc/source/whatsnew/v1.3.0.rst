@@ -882,7 +882,7 @@ ExtensionArray
 - Fixed bug where :meth:`Series.idxmax`, :meth:`Series.idxmin` and ``argmax/min`` fail when the underlying data is :class:`ExtensionArray` (:issue:`32749`, :issue:`33719`, :issue:`36566`)
 - Fixed a bug where some properties of subclasses of :class:`PandasExtensionDtype` where improperly cached (:issue:`40329`)
 - Bug in :meth:`DataFrame.mask` where masking a :class:`Dataframe` with an :class:`ExtensionArray` dtype raises ``ValueError`` (:issue:`40941`)
-- Bug in :func:`pyarrow_array_to_numpy_and_mask` where Numpy raises ``ValueError`` if buffer size does not match multiple of dtype size (:issue:`40896`)
+- Bug in :func:`pyarrow_array_to_numpy_and_mask` when converting a pyarrow array who's data buffer size is not a multiple of dtype size (:issue:`40896`)
 
 Styler
 ^^^^^^
