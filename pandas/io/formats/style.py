@@ -200,7 +200,46 @@ class Styler(StylerRenderer):
         """
         Hooks into Jupyter notebook rich display system.
         """
-        return self.render()
+        return self._render_html()
+
+    def render(self, **kwargs) -> str:
+        """
+        Render the ``Styler`` including all applied styles to HTML.
+
+        Parameters
+        ----------
+        **kwargs
+            Any additional keyword arguments are passed
+            through to ``self.template.render``.
+            This is useful when you need to provide
+            additional variables for a custom template.
+
+        Returns
+        -------
+        rendered : str
+            The rendered HTML.
+
+        Notes
+        -----
+        Styler objects have defined the ``_repr_html_`` method
+        which automatically calls ``self.render()`` when it's the
+        last item in a Notebook cell. When calling ``Styler.render()``
+        directly, wrap the result in ``IPython.display.HTML`` to view
+        the rendered HTML in the notebook.
+
+        Pandas uses the following keys in render. Arguments passed
+        in ``**kwargs`` take precedence, so think carefully if you want
+        to override them:
+
+        * head
+        * cellstyle
+        * body
+        * uuid
+        * table_styles
+        * caption
+        * table_attributes
+        """
+        return self._render_html(**kwargs)
 
     def set_tooltips(
         self,
