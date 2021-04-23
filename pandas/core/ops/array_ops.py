@@ -209,8 +209,10 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
     right = _maybe_upcast_for_op(right, left.shape)
 
-    if should_extension_dispatch(left, right) or isinstance(
-        right, (Timedelta, BaseOffset, Timestamp) or right is NaT
+    if (
+        should_extension_dispatch(left, right)
+        or isinstance(right, (Timedelta, BaseOffset, Timestamp))
+        or right is NaT
     ):
         # Timedelta/Timestamp and other custom scalars are included in the check
         # because numexpr will fail on it, see GH#31457
