@@ -336,7 +336,6 @@ class SeriesGroupBy(GroupBy[Series]):
             # let higher level handle
             return results
 
-        # Otherwise, the user-provided functions were not all reducing, see GH#35490
         indexed_output = {key.position: val for key, val in results.items()}
         output = self.obj._constructor_expanddim(indexed_output, index=None)
         output.columns = Index(key.label for key in results)
@@ -393,7 +392,6 @@ class SeriesGroupBy(GroupBy[Series]):
         In the vast majority of cases output will only contain one element.
         The exception is operations that expand dimensions, like ohlc.
         """
-
         assert len(output) == 1
 
         name = self.obj.name
