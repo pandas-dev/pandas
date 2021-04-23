@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 
 from pandas._libs import (
-    NaTType,
+    NaT,
     Timedelta,
     Timestamp,
     lib,
@@ -210,9 +210,10 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     right = _maybe_upcast_for_op(right, left.shape)
 
     if should_extension_dispatch(left, right) or isinstance(
-        right, (Timedelta, BaseOffset, Timestamp, NaTType)
+        right, (Timedelta, BaseOffset, Timestamp) or right is NaT
     ):
-        # Timedelta is included because numexpr will fail on it, see GH#31457
+        # Timedelta/Timestamp and other custom scalars are included in the check
+        # because numexpr will fail on it, see GH#31457
         res_values = op(left, right)
     else:
         res_values = _na_arithmetic_op(left, right, op)
@@ -257,7 +258,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
             )
 
     if should_extension_dispatch(lvalues, rvalues) or (
-        isinstance(rvalues, (Timedelta, BaseOffset, Timestamp, NaTType))
+        (isinstance(rvalues, (Timedelta, BaseOffset, Timestamp)) or right is NaT)
         and not is_object_dtype(lvalues.dtype)
     ):
         # Call the method on lvalues
