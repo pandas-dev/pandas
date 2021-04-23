@@ -1,0 +1,39 @@
+name: Python Dev
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches:
+      - master
+      - 1.2.x
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Fetch Git Tags
+      run: |
+        git remote -v
+        git fetch --all --tags
+
+    - name: Set up Python Dev Version
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10-dev'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis
+
+    - name: Build Pandas
+      run: |
+        python setup.py build_ext -q -j2
+        python -m pip install -e . --no-build-isolation --no-use-pep517
+
+    - name: Test with pytest
+      run: |
+        pytest -m 'not slow and not network and not clipboard' pandas --junitxml=test-data.xml
