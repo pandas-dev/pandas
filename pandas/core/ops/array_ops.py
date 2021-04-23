@@ -205,7 +205,7 @@ def arithmetic_op(left: ArrayLike, right: Any, op, use_numexpr=True):
         # Timedelta is included because numexpr will fail on it, see GH#31457
         res_values = op(left, right)
     else:
-        res_values = _na_arithmetic_op(left, right, op)
+        res_values = _na_arithmetic_op(left, right, op, use_numexpr=use_numexpr)
 
     return res_values
 
