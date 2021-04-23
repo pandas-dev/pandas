@@ -58,14 +58,16 @@ def test_custom_grouper(index):
     g = s.groupby(b)
 
     # check all cython functions work
-    funcs = ["add", "mean", "prod", "ohlc", "min", "max", "var"]
+    g.ohlc()  # doesn't use _cython_agg_general
+    funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
         g._cython_agg_general(f)
 
     b = Grouper(freq=Minute(5), closed="right", label="right")
     g = s.groupby(b)
     # check all cython functions work
-    funcs = ["add", "mean", "prod", "ohlc", "min", "max", "var"]
+    g.ohlc()  # doesn't use _cython_agg_general
+    funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
         g._cython_agg_general(f)
 
@@ -79,7 +81,7 @@ def test_custom_grouper(index):
     idx = DatetimeIndex(idx, freq="5T")
     expect = Series(arr, index=idx)
 
-    # GH2763 - return in put dtype if we can
+    # GH2763 - return input dtype if we can
     result = g.agg(np.sum)
     tm.assert_series_equal(result, expect)
 
