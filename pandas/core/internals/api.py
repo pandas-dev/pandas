@@ -6,7 +6,7 @@ authors
 2) Use only functions exposed here (or in core.internals)
 
 """
-from __future__ import annotations
+from typing import Optional
 
 import numpy as np
 
@@ -23,7 +23,6 @@ from pandas.core.internals.blocks import (
     Block,
     DatetimeTZBlock,
     check_ndim,
-    ensure_block_shape,
     extract_pandas_array,
     get_block_type,
     maybe_coerce_values,
@@ -31,7 +30,7 @@ from pandas.core.internals.blocks import (
 
 
 def make_block(
-    values, placement, klass=None, ndim=None, dtype: Dtype | None = None
+    values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None
 ) -> Block:
     """
     This is a pseudo-public analogue to blocks.new_block.
@@ -49,7 +48,6 @@ def make_block(
 
     values, dtype = extract_pandas_array(values, dtype, ndim)
 
-    needs_reshape = False
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
@@ -57,21 +55,17 @@ def make_block(
     elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
         # pyarrow calls get here
         values = DatetimeArray._simple_new(values, dtype=dtype)
-        needs_reshape = True
 
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
 
     ndim = maybe_infer_ndim(values, placement, ndim)
-    if needs_reshape:
-        values = ensure_block_shape(values, ndim)
-
     check_ndim(values, placement, ndim)
     values = maybe_coerce_values(values)
     return klass(values, ndim=ndim, placement=placement)
 
 
-def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
+def maybe_infer_ndim(values, placement: BlockPlacement, ndim: Optional[int]) -> int:
     """
     If `ndim` is not provided, infer it from placment and values.
     """

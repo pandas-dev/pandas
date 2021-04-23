@@ -1341,7 +1341,7 @@ class TestSeriesConstructors:
         #        td.astype('m8[%s]' % t)
 
         # valid astype
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             # astype(int64) deprecated
             td.astype("int64")
 
