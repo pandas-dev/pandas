@@ -673,17 +673,20 @@ def test_coordinates(setup_path):
         tm.assert_frame_equal(result, expected)
 
         # invalid
-        msg = "cannot process expression"
-        with pytest.raises(ValueError, match=msg):
+        msg = (
+            "where must be passed as a string, PyTablesExpr, "
+            "or list-like of PyTablesExpr"
+        )
+        with pytest.raises(TypeError, match=msg):
             store.select("df", where=np.arange(len(df), dtype="float64"))
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             store.select("df", where=np.arange(len(df) + 1))
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             store.select("df", where=np.arange(len(df)), start=5)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             store.select("df", where=np.arange(len(df)), start=5, stop=10)
 
         # selection with filter

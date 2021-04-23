@@ -669,11 +669,11 @@ class _MergeOperation:
         # warn user when merging between different levels
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
-                "merging between different levels can give an unintended "
-                f"result ({left.columns.nlevels} levels on the left,"
+                "merging between different levels is deprecated and will be removed "
+                f"in a future version. ({left.columns.nlevels} levels on the left,"
                 f"{right.columns.nlevels} on the right)"
             )
-            warnings.warn(msg, UserWarning)
+            warnings.warn(msg, FutureWarning, stacklevel=3)
 
         self._validate_specification()
 
@@ -2311,4 +2311,22 @@ def _items_overlap_with_suffix(
     lrenamer = partial(renamer, suffix=lsuffix)
     rrenamer = partial(renamer, suffix=rsuffix)
 
-    return (left._transform_index(lrenamer), right._transform_index(rrenamer))
+    llabels = left._transform_index(lrenamer)
+    rlabels = right._transform_index(rrenamer)
+
+    dups = []
+    if not llabels.is_unique:
+        # Only warn when duplicates are caused because of suffixes, already duplicated
+        # columns in origin should not warn
+        dups = llabels[(llabels.duplicated()) & (~left.duplicated())].tolist()
+    if not rlabels.is_unique:
+        dups.extend(rlabels[(rlabels.duplicated()) & (~right.duplicated())].tolist())
+    if dups:
+        warnings.warn(
+            f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
+            f"result is deprecated and will raise a MergeError in a future version.",
+            FutureWarning,
+            stacklevel=4,
+        )
+
+    return llabels, rlabels
