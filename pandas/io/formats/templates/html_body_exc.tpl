@@ -1,4 +1,3 @@
-{# this template excludes all style, ids and classes #}
 {% block before_table %}{% endblock before_table %}
 {% block table %}
 <table>

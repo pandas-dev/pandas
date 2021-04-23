@@ -12,13 +12,18 @@ env = jinja2.Environment(loader=loader, trim_blocks=True)
 
 
 @pytest.fixture
-def tpl_styles():
-    return env.get_template("html_styles.tpl")
+def tpl_style():
+    return env.get_template("html_style.tpl")
 
 
 @pytest.fixture
-def tpl_basic():
-    return env.get_template("html_basic.tpl")
+def tpl_body_exc():
+    return env.get_template("html_body_exc.tpl")
+
+
+@pytest.fixture
+def tpl_body_inc():
+    return env.get_template("html_body_inc.tpl")
 
 
 def test_html_template_extends_options():
@@ -26,11 +31,9 @@ def test_html_template_extends_options():
     # to understand the dependency
     with open("pandas/io/formats/templates/html.tpl") as file:
         result = file.read()
-    expected = (
-        '{% if exclude_styles %}\n{% extends "html_basic.tpl" %}\n'
-        '{% else %}\n{% extends "html_styles.tpl" %}\n'
-    )
-    assert expected in result
+    assert '{% include "html_body_exc.tpl" %}' in result
+    assert '{% include "html_style.tpl" %}' in result
+    assert '{% include "html_body_inc.tpl" %}' in result
 
 
 def test_exclude_styles():
@@ -41,7 +44,7 @@ def test_exclude_styles():
         <!DOCTYPE html>
         <html>
         <head>
-          <meta charset="utf-8">
+        <meta charset="utf-8">
         </head>
         <body>
         <table>
@@ -135,15 +138,19 @@ def test_rowspan_w3():
 
 def test_styles():
     s = Styler(DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]), uuid="abc")
+    s.set_table_styles([{"selector": "td", "props": "color: red;"}])
     result = s.to_html()
     expected = dedent(
         """\
         <!DOCTYPE html>
         <html>
         <head>
-          <meta charset="utf-8">
-          <style type="text/css">
-          </style>
+        <meta charset="utf-8">
+        <style type="text/css">
+        #T_abc_ td {
+          color: red;
+        }
+        </style>
         </head>
         <body>
         <table id="T_abc_">
@@ -171,14 +178,16 @@ def test_styles():
     assert result == expected
 
 
-def test_block_names(tpl_styles, tpl_basic):
+def test_block_names(tpl_style, tpl_body_inc, tpl_body_exc):
     # catch accidental removal of a block
-    expected1 = {
+    expected_style = {
         "before_style",
         "style",
         "table_styles",
         "before_cellstyle",
         "cellstyle",
+    }
+    expected_body = {
         "before_table",
         "table",
         "caption",
@@ -192,12 +201,14 @@ def test_block_names(tpl_styles, tpl_basic):
         "tr",
         "after_rows",
     }
-    result1 = set(tpl_styles.blocks)
-    assert result1 == expected1
+    result1 = set(tpl_style.blocks)
+    assert result1 == expected_style
 
-    expected2 = {v for v in expected1 if "style" not in v}
-    result2 = set(tpl_basic.blocks)
-    assert result2 == expected2
+    result2 = set(tpl_body_exc.blocks)
+    assert result2 == expected_body
+
+    result3 = set(tpl_body_inc.blocks)
+    assert result3 == expected_body
 
 
 def test_from_custom_template(tmpdir):
