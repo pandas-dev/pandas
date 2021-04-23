@@ -671,14 +671,13 @@ class DataFrame(NDFrame, OpsMixin):
             if not isinstance(data, (abc.Sequence, ExtensionArray)):
                 # For data is a sqlalchemy query, extract column names
                 if str(type(data)) == "<class 'sqlalchemy.orm.query.Query'>":
-                    query = str(data)
                     sql_mt = import_optional_dependency("sql_metadata")
                     # Extract column names using sql_metadata
                     columns = list(sql_mt.get_query_columns(str(data)))
                     # Sanitize column names
                     for i in range(len(columns)):
-                        if columns[i].find('.') != -1:
-                            columns[i] = columns[i][columns[i].find('.') + 1:]
+                        if columns[i].find(".") != -1:
+                            columns[i] = columns[i][columns[i].find(".") + 1 :]
 
                 data = list(data)
             if len(data) > 0:
