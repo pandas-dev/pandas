@@ -47,7 +47,6 @@ doctest_optionflags = [
 filterwarnings = [
   "error:Sparse:FutureWarning",
   "error:The SparseArray:FutureWarning",
-  "ignore:unclosed transport <asyncio.sslproto:ResourceWarning",
 ]
 junit_family = "xunit2"
 markers = [
