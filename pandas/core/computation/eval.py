@@ -4,6 +4,7 @@ Top level ``eval`` module.
 from __future__ import annotations
 
 import tokenize
+from typing import TYPE_CHECKING
 import warnings
 
 from pandas._libs.lib import no_default
@@ -20,6 +21,9 @@ from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 
 def _check_engine(engine: str | None) -> str:
@@ -164,7 +168,7 @@ def _check_for_locals(expr: str, stack_level: int, parser: str):
 
 def eval(
     expr: str | BinOp,  # we leave BinOp out of the docstr bc it isn't for users
-    parser: str = "pandas",
+    parser: Literal["pandas", "python"] = "pandas",
     engine: str | None = None,
     truediv=no_default,
     local_dict: dict | None = None,

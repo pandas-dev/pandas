@@ -3888,8 +3888,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        ndarray, scalar, pandas object, or None
-            The result of evaluation of the provided query expression or
+        ndarray, scalar, DataFrame, Series, or None
+            The result of evaluating the provided query expression or
             None if ``inplace=True``.
 
         See Also
@@ -4038,7 +4038,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        ndarray, scalar, pandas object, or None
+        ndarray, scalar, DataFrame, Series, or None
             The result of the evaluation or None if ``inplace=True``.
 
         See Also

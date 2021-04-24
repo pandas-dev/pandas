@@ -10,6 +10,7 @@ from functools import (
 from keyword import iskeyword
 import tokenize
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Optional,
     Set,
@@ -51,6 +52,9 @@ from pandas.core.computation.parsing import (
 from pandas.core.computation.scope import Scope
 
 import pandas.io.formats.printing as printing
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 
 def _rewrite_assign(tok: Tuple[int, str]) -> Tuple[int, str]:
@@ -802,7 +806,7 @@ class Expr:
         self,
         expr,
         engine: str = "numexpr",
-        parser: str = "pandas",
+        parser: Literal["pandas", "python"] = "pandas",
         env: Optional[Scope] = None,
         level: int = 0,
     ):
