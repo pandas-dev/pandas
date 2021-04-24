@@ -254,8 +254,7 @@ class TestClipboard:
         )
 
         # excel data is parsed correctly
-        assert df.iloc[1][1] == "blue"
-        assert df.equals(df_expected)
+        tm.assert_frame_equal(df, df_expected)
 
     def test_invalid_encoding(self, df):
         msg = "clipboard only supports utf-8 encoding"
