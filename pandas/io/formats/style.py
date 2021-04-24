@@ -394,14 +394,14 @@ class Styler(StylerRenderer):
             self.set_table_attributes(table_attributes)
 
         # Build HTML string..
-        styler_html = self.render(
+        html = self.render(
             exclude_styles=exclude_styles,
             encoding=encoding if encoding else "utf-8",
             doctype_html=doctype_html,
         )
 
         return save_to_buffer(
-            styler_html, buf=buf, encoding=(encoding if buf is not None else None)
+            html, buf=buf, encoding=(encoding if buf is not None else None)
         )
 
     def set_td_classes(self, classes: DataFrame) -> Styler:

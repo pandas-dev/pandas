@@ -12,6 +12,11 @@ env = jinja2.Environment(loader=loader, trim_blocks=True)
 
 
 @pytest.fixture
+def styler():
+    return Styler(DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]))
+
+
+@pytest.fixture
 def tpl_style():
     return env.get_template("html_style.tpl")
 
@@ -30,9 +35,8 @@ def test_html_template_extends_options():
     assert '{% include "html_table.tpl" %}' in result
 
 
-def test_exclude_styles():
-    s = Styler(DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]))
-    result = s.to_html(exclude_styles=True)
+def test_exclude_styles(styler):
+    result = styler.to_html(exclude_styles=True)
     expected = dedent(
         """\
         <!DOCTYPE html>
@@ -66,30 +70,29 @@ def test_exclude_styles():
     assert result == expected
 
 
-def test_w3_html_format():
-    s = (
-        Styler(
-            DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]),
-            uuid_len=0,
-        )
-        .set_table_styles([{"selector": "th", "props": "att2:v2;"}])
-        .applymap(lambda x: "att1:v1;")
-        .set_table_attributes('class="my-cls1" style="attr3:v3;"')
-        .set_td_classes(DataFrame(["my-cls2"], index=["a"], columns=["A"]))
-        .format("{:.1f}")
-        .set_caption("A comprehensive test")
+def test_w3_html_format(styler):
+    styler.set_uuid("").set_table_styles(
+        [{"selector": "th", "props": "att2:v2;"}]
+    ).applymap(lambda x: "att1:v1;").set_table_attributes(
+        'class="my-cls1" style="attr3:v3;"'
+    ).set_td_classes(
+        DataFrame(["my-cls2"], index=["a"], columns=["A"])
+    ).format(
+        "{:.1f}"
+    ).set_caption(
+        "A comprehensive test"
     )
     expected = dedent(
         """\
         <style type="text/css">
-        #T__ th {
+        #T_ th {
           att2: v2;
         }
-        #T__row0_col0, #T__row1_col0 {
+        #T_row0_col0, #T_row1_col0 {
           att1: v1;
         }
         </style>
-        <table id="T__" class="my-cls1" style="attr3:v3;">
+        <table id="T_" class="my-cls1" style="attr3:v3;">
           <caption>A comprehensive test</caption>
           <thead>
             <tr>
@@ -99,41 +102,41 @@ def test_w3_html_format():
           </thead>
           <tbody>
             <tr>
-              <th id="T__level0_row0" class="row_heading level0 row0" >a</th>
-              <td id="T__row0_col0" class="data row0 col0 my-cls2" >2.6</td>
+              <th id="T_level0_row0" class="row_heading level0 row0" >a</th>
+              <td id="T_row0_col0" class="data row0 col0 my-cls2" >2.6</td>
             </tr>
             <tr>
-              <th id="T__level0_row1" class="row_heading level0 row1" >b</th>
-              <td id="T__row1_col0" class="data row1 col0" >2.7</td>
+              <th id="T_level0_row1" class="row_heading level0 row1" >b</th>
+              <td id="T_row1_col0" class="data row1 col0" >2.7</td>
             </tr>
           </tbody>
         </table>
         """
     )
-    assert expected == s.render()
+    assert expected == styler.render()
 
 
 def test_colspan_w3():
     # GH 36223
     df = DataFrame(data=[[1, 2]], columns=[["l0", "l0"], ["l1a", "l1b"]])
-    s = Styler(df, uuid="_", cell_ids=False)
-    assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in s.render()
+    styler = Styler(df, uuid="_", cell_ids=False)
+    assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in styler.render()
 
 
 def test_rowspan_w3():
     # GH 38533
     df = DataFrame(data=[[1, 2]], index=[["l0", "l0"], ["l1a", "l1b"]])
-    s = Styler(df, uuid="_", cell_ids=False)
+    styler = Styler(df, uuid="_", cell_ids=False)
     assert (
         '<th id="T___level0_row0" class="row_heading '
-        'level0 row0" rowspan="2">l0</th>' in s.render()
+        'level0 row0" rowspan="2">l0</th>' in styler.render()
     )
 
 
-def test_styles():
-    s = Styler(DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]), uuid="abc")
-    s.set_table_styles([{"selector": "td", "props": "color: red;"}])
-    result = s.to_html()
+def test_styles(styler):
+    styler.set_uuid("abc_")
+    styler.set_table_styles([{"selector": "td", "props": "color: red;"}])
+    result = styler.to_html()
     expected = dedent(
         """\
         <!DOCTYPE html>
@@ -170,6 +173,14 @@ def test_styles():
         """
     )
     assert result == expected
+
+
+def test_doctype(styler):
+    result = styler.to_html(doctype_html=False)
+    assert "<html>" not in result
+    assert "<body>" not in result
+    assert "<!DOCTYPE html>" not in result
+    assert "<head>" not in result
 
 
 def test_block_names(tpl_style, tpl_table):
