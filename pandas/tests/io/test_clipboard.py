@@ -243,16 +243,19 @@ class TestClipboard:
 
         tm.assert_frame_equal(res, exp)
 
-    # Tests that nulls on the first column do not trip infering excel format
     def test_infer_excel_with_nulls(self, request, mock_clipboard):
         # GH41108
         text = "col1\tcol2\n1\tred\n\tblue\n2\tgreen"
 
         mock_clipboard[request.node.name] = text
         df = read_clipboard()
+        df_expected = DataFrame(
+            data={"col1": [1, None, 2], "col2": ["red", "blue", "green"]}
+        )
 
         # excel data is parsed correctly
         assert df.iloc[1][1] == "blue"
+        assert df.equals(df_expected)
 
     def test_invalid_encoding(self, df):
         msg = "clipboard only supports utf-8 encoding"
