@@ -291,9 +291,7 @@ class WrappedCythonOp:
             elif isinstance(dtype, (BooleanDtype, _IntegerDtype)):
                 return Int64Dtype()
         elif how in ["mean", "median", "var"]:
-            if isinstance(
-                dtype, (BooleanDtype, _IntegerDtype)
-            ):
+            if isinstance(dtype, (BooleanDtype, _IntegerDtype)):
                 return Float64Dtype()
             elif is_float_dtype(dtype):
                 return dtype

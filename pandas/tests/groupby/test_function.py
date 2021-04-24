@@ -407,7 +407,7 @@ def test_median_empty_bins(observed):
     bins = pd.cut(df[0], grps)
 
     result = df.groupby(bins, observed=observed).median()
-    expected = df.groupby(bins, observed=observed).agg(lambda x: x.median()).astype(float)
+    expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
     tm.assert_frame_equal(result, expected)
 
 
@@ -588,7 +588,7 @@ def test_ops_general(op, targop):
     df = DataFrame(np.random.randn(1000))
     labels = np.random.randint(0, 50, size=1000).astype(float)
 
-    result = getattr(df.groupby(labels), op)().astype(float)
+    result = getattr(df.groupby(labels), op)()
     expected = df.groupby(labels).agg(targop)
     tm.assert_frame_equal(result, expected)
 

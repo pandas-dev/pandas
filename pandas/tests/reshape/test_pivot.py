@@ -392,10 +392,7 @@ class TestPivotTable:
         )
 
         result = dict(df_res.dtypes)
-        expected = {
-            col: np.dtype("float64")
-            for col in df_res
-        }
+        expected = {col: np.dtype("float64") for col in df_res}
         assert result == expected
 
     def test_pivot_no_values(self):
@@ -990,7 +987,6 @@ class TestPivotTable:
 
         tm.assert_frame_equal(expected, result)
 
-    @pytest.mark.xfail(reason="GH#17035 (len of floats is casted back to floats)")
     def test_margins_dtype_len(self):
         mi_val = list(product(["bar", "foo"], ["one", "two"])) + [("All", "")]
         mi = MultiIndex.from_tuples(mi_val, names=("A", "B"))
@@ -1718,7 +1714,11 @@ class TestPivotTable:
 
     def test_categorical_margins(self, observed, request):
         if observed:
-            request.node.add_marker(pytest.mark.xfail(reason="GH#17035 (np.mean of ints is casted back to ints)"))
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="GH#17035 (np.mean of ints is casted back to ints)"
+                )
+            )
         # GH 10989
         df = DataFrame(
             {"x": np.arange(8), "y": np.arange(8) // 4, "z": np.arange(8) % 2}
@@ -1733,7 +1733,11 @@ class TestPivotTable:
 
     def test_categorical_margins_category(self, observed, request):
         if observed:
-            request.node.add_marker(pytest.mark.xfail(reason="GH#17035 (np.mean of ints is casted back to ints)"))
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="GH#17035 (np.mean of ints is casted back to ints)"
+                )
+            )
         df = DataFrame(
             {"x": np.arange(8), "y": np.arange(8) // 4, "z": np.arange(8) % 2}
         )
