@@ -64,6 +64,7 @@ class PandasArray(
     _typ = "npy_extension"
     __array_priority__ = 1000
     _ndarray: np.ndarray
+    _dtype: PandasDtype
 
     # ------------------------------------------------------------------------
     # Constructors

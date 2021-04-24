@@ -355,6 +355,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     _typ = "categorical"
     _can_hold_na = True
 
+    _dtype: CategoricalDtype
+
     def __init__(
         self,
         values,
@@ -466,7 +468,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         dtype = CategoricalDtype(ordered=False).update_dtype(dtype)
         arr = coerce_indexer_dtype(codes, dtype.categories)
-        super().__init__(arr, dtype)
+        # error: Argument 1 to "__init__" of "NDArrayBacked" has incompatible
+        # type "Union[ExtensionArray, ndarray]"; expected "ndarray"
+        super().__init__(arr, dtype)  # type: ignore[arg-type]
 
     @property
     def dtype(self) -> CategoricalDtype:
@@ -515,9 +519,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise ValueError("Cannot convert float NaN to integer")
 
         elif len(self.codes) == 0 or len(self.categories) == 0:
-            # error: Incompatible types in assignment (expression has type "ndarray",
-            # variable has type "Categorical")
-            result = np.array(  # type: ignore[assignment]
+            result = np.array(
                 self,
                 dtype=dtype,
                 copy=copy,
@@ -535,11 +537,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 raise ValueError(msg)
 
-            # error: Incompatible types in assignment (expression has type "ndarray",
-            # variable has type "Categorical")
-            result = take_nd(  # type: ignore[assignment]
-                new_cats, ensure_platform_int(self._codes)
-            )
+            result = take_nd(new_cats, ensure_platform_int(self._codes))
 
         return result
 
