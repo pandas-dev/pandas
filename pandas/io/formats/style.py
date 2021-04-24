@@ -507,7 +507,7 @@ class Styler(StylerRenderer):
         Internally Styler uses its ``table_styles`` object to parse the
         ``column_format``, ``position``, ``position_float``, ``hrules`` and ``label``
         input arguments. There is additional scope to add custom LaTeX commands,
-        which will included and positioned
+        which are included and positioned
         immediately above the '\\begin{tabular}' command. For example to add odd and
         even row coloring, from the {colortbl} package, use:
 
@@ -515,7 +515,7 @@ class Styler(StylerRenderer):
         ...                    overwrite=False])
 
         Instead of using ``hrules`` it is also possible to change the rule definition,
-        for example by adding just a ``toprule`` and ``bottomrule`` and ignoring
+        for example by setting just a ``toprule`` and ``bottomrule`` and ignoring
         any ``midrule``:
 
         >>> s.set_table_styles([{'selector': 'toprule', 'props': ':toprule;'},
