@@ -44,10 +44,6 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.cast import (
-    maybe_cast_result_dtype,
-    maybe_downcast_numeric,
-)
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool,
