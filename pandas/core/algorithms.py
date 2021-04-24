@@ -143,14 +143,11 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
             # until our algos support uint8 directly (see TODO)
             return np.asarray(values).astype("uint64"), np.dtype("bool")
         elif is_signed_integer_dtype(values):
-            dtype = getattr(values, "dtype", np.dtype("int64"))
-            return ensure_int64(values), dtype
+            return ensure_int64(values), values.dtype
         elif is_unsigned_integer_dtype(values):
-            dtype = getattr(values, "dtype", np.dtype("uint64"))
-            return ensure_uint64(values), dtype
+            return ensure_uint64(values), values.dtype
         elif is_float_dtype(values):
-            dtype = getattr(values, "dtype", np.dtype("float64"))
-            return ensure_float64(values), dtype
+            return ensure_float64(values), values.dtype
         elif is_complex_dtype(values):
 
             # ignore the fact that we are casting to float
