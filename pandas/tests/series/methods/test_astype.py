@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+import pandas.util._test_decorators as td
 
 from pandas import (
     NA,
@@ -246,25 +247,34 @@ class TestAstype:
         assert result.dtype == np.object_
 
     @pytest.mark.parametrize(
-        "values",
+        "data, dtype",
         [
-            Series(["x", "y", "z"], dtype="string"),
-            Series(["x", "y", "z"], dtype="category"),
-            Series(3 * [Timestamp("2020-01-01", tz="UTC")]),
-            Series(3 * [Interval(0, 1)]),
+            (["x", "y", "z"], "string"),
+            pytest.param(
+                ["x", "y", "z"],
+                "arrow_string",
+                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+            ),
+            (["x", "y", "z"], "category"),
+            (3 * [Timestamp("2020-01-01", tz="UTC")], None),
+            (3 * [Interval(0, 1)], None),
         ],
     )
     @pytest.mark.parametrize("errors", ["raise", "ignore"])
-    def test_astype_ignores_errors_for_extension_dtypes(self, values, errors):
+    def test_astype_ignores_errors_for_extension_dtypes(self, data, dtype, errors):
         # https://github.com/pandas-dev/pandas/issues/35471
+
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+        ser = Series(data, dtype=dtype)
         if errors == "ignore":
-            expected = values
-            result = values.astype(float, errors="ignore")
+            expected = ser
+            result = ser.astype(float, errors="ignore")
             tm.assert_series_equal(result, expected)
         else:
             msg = "(Cannot cast)|(could not convert)"
             with pytest.raises((ValueError, TypeError), match=msg):
-                values.astype(float, errors=errors)
+                ser.astype(float, errors=errors)
 
     @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
     def test_astype_from_float_to_str(self, dtype):
@@ -348,6 +358,38 @@ class TestAstype:
         # GH#39474
         result = Series(["foo", "bar", "baz"]).astype(bytes)
         assert result.dtypes == np.dtype("S3")
+
+
+class TestAstypeString:
+    @pytest.mark.parametrize(
+        "data, dtype",
+        [
+            ([True, NA], "boolean"),
+            (["A", NA], "category"),
+            (["2020-10-10", "2020-10-10"], "datetime64[ns]"),
+            (["2020-10-10", "2020-10-10", NaT], "datetime64[ns]"),
+            (
+                ["2012-01-01 00:00:00-05:00", NaT],
+                "datetime64[ns, US/Eastern]",
+            ),
+            ([1, None], "UInt16"),
+            (["1/1/2021", "2/1/2021"], "period[M]"),
+            (["1/1/2021", "2/1/2021", NaT], "period[M]"),
+            (["1 Day", "59 Days", NaT], "timedelta64[ns]"),
+            # currently no way to parse IntervalArray from a list of strings
+        ],
+    )
+    def test_astype_string_to_extension_dtype_roundtrip(self, data, dtype, request):
+        if dtype == "boolean" or (
+            dtype in ("period[M]", "datetime64[ns]", "timedelta64[ns]") and NaT in data
+        ):
+            mark = pytest.mark.xfail(
+                reason="TODO StringArray.astype() with missing values #GH40566"
+            )
+            request.node.add_marker(mark)
+        # GH-40351
+        s = Series(data, dtype=dtype)
+        tm.assert_series_equal(s, s.astype("string").astype(dtype))
 
 
 class TestAstypeCategorical:

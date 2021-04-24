@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import datetime
-from typing import Type
 
 import pytest
+
+from pandas._typing import type_t
 
 import pandas as pd
 from pandas.api.extensions import (
@@ -27,7 +28,7 @@ class ArrowTimestampUSDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type[ArrowTimestampUSArray]:
+    def construct_array_type(cls) -> type_t[ArrowTimestampUSArray]:
         """
         Return the array type associated with this dtype.
 

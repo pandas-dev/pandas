@@ -11,9 +11,6 @@ import string
 from typing import (
     TYPE_CHECKING,
     Hashable,
-    List,
-    Optional,
-    Tuple,
     cast,
 )
 import warnings
@@ -94,16 +91,16 @@ def merge(
     left: FrameOrSeriesUnion,
     right: FrameOrSeriesUnion,
     how: str = "inner",
-    on: Optional[IndexLabel] = None,
-    left_on: Optional[IndexLabel] = None,
-    right_on: Optional[IndexLabel] = None,
+    on: IndexLabel | None = None,
+    left_on: IndexLabel | None = None,
+    right_on: IndexLabel | None = None,
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
     copy: bool = True,
     indicator: bool = False,
-    validate: Optional[str] = None,
+    validate: str | None = None,
 ) -> DataFrame:
     op = _MergeOperation(
         left,
@@ -143,7 +140,7 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
         by = [by]
 
     lby = left.groupby(by, sort=False)
-    rby: Optional[groupby.DataFrameGroupBy] = None
+    rby: groupby.DataFrameGroupBy | None = None
 
     # if we can groupby the rhs
     # then we can get vastly better perf
@@ -186,12 +183,12 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
 def merge_ordered(
     left: DataFrame,
     right: DataFrame,
-    on: Optional[IndexLabel] = None,
-    left_on: Optional[IndexLabel] = None,
-    right_on: Optional[IndexLabel] = None,
+    on: IndexLabel | None = None,
+    left_on: IndexLabel | None = None,
+    right_on: IndexLabel | None = None,
     left_by=None,
     right_by=None,
-    fill_method: Optional[str] = None,
+    fill_method: str | None = None,
     suffixes: Suffixes = ("_x", "_y"),
     how: str = "outer",
 ) -> DataFrame:
@@ -327,9 +324,9 @@ def merge_ordered(
 def merge_asof(
     left: DataFrame,
     right: DataFrame,
-    on: Optional[IndexLabel] = None,
-    left_on: Optional[IndexLabel] = None,
-    right_on: Optional[IndexLabel] = None,
+    on: IndexLabel | None = None,
+    left_on: IndexLabel | None = None,
+    right_on: IndexLabel | None = None,
     left_index: bool = False,
     right_index: bool = False,
     by=None,
@@ -614,9 +611,9 @@ class _MergeOperation:
         left: FrameOrSeriesUnion,
         right: FrameOrSeriesUnion,
         how: str = "inner",
-        on: Optional[IndexLabel] = None,
-        left_on: Optional[IndexLabel] = None,
-        right_on: Optional[IndexLabel] = None,
+        on: IndexLabel | None = None,
+        left_on: IndexLabel | None = None,
+        right_on: IndexLabel | None = None,
         axis: int = 1,
         left_index: bool = False,
         right_index: bool = False,
@@ -624,7 +621,7 @@ class _MergeOperation:
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         indicator: bool = False,
-        validate: Optional[str] = None,
+        validate: str | None = None,
     ):
         _left = _validate_operand(left)
         _right = _validate_operand(right)
@@ -650,7 +647,7 @@ class _MergeOperation:
 
         self.indicator = indicator
 
-        self.indicator_name: Optional[str]
+        self.indicator_name: str | None
         if isinstance(self.indicator, str):
             self.indicator_name = self.indicator
         elif isinstance(self.indicator, bool):
@@ -672,11 +669,11 @@ class _MergeOperation:
         # warn user when merging between different levels
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
-                "merging between different levels can give an unintended "
-                f"result ({left.columns.nlevels} levels on the left,"
+                "merging between different levels is deprecated and will be removed "
+                f"in a future version. ({left.columns.nlevels} levels on the left,"
                 f"{right.columns.nlevels} on the right)"
             )
-            warnings.warn(msg, UserWarning)
+            warnings.warn(msg, FutureWarning, stacklevel=3)
 
         self._validate_specification()
 
@@ -743,14 +740,14 @@ class _MergeOperation:
         return result.__finalize__(self, method="merge")
 
     def _maybe_drop_cross_column(
-        self, result: DataFrame, cross_col: Optional[str]
+        self, result: DataFrame, cross_col: str | None
     ) -> None:
         if cross_col is not None:
             result.drop(columns=cross_col, inplace=True)
 
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
-    ) -> Tuple[DataFrame, DataFrame]:
+    ) -> tuple[DataFrame, DataFrame]:
 
         columns = left.columns.union(right.columns)
 
@@ -830,8 +827,8 @@ class _MergeOperation:
     def _maybe_add_join_keys(
         self,
         result: DataFrame,
-        left_indexer: Optional[np.ndarray],
-        right_indexer: Optional[np.ndarray],
+        left_indexer: np.ndarray | None,
+        right_indexer: np.ndarray | None,
     ) -> None:
 
         left_has_missing = None
@@ -972,7 +969,16 @@ class _MergeOperation:
                     join_index = self.right.index.take(right_indexer)
                     left_indexer = np.array([-1] * len(join_index), dtype=np.intp)
             elif self.left_index:
-                if len(self.right) > 0:
+                if self.how == "asof":
+                    # GH#33463 asof should always behave like a left merge
+                    join_index = self._create_join_index(
+                        self.left.index,
+                        self.right.index,
+                        left_indexer,
+                        how="left",
+                    )
+
+                elif len(self.right) > 0:
                     join_index = self._create_join_index(
                         self.right.index,
                         self.left.index,
@@ -1274,7 +1280,7 @@ class _MergeOperation:
 
     def _create_cross_configuration(
         self, left: DataFrame, right: DataFrame
-    ) -> Tuple[DataFrame, DataFrame, str, str]:
+    ) -> tuple[DataFrame, DataFrame, str, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
         e.g. adding a join column and resetting parameters. Join column is added
@@ -1488,7 +1494,8 @@ def get_join_indexers(
         "outer": libjoin.full_outer_join,
     }[how]
 
-    return join_func(lkey, rkey, count, **kwargs)
+    # error: Cannot call function of unknown type
+    return join_func(lkey, rkey, count, **kwargs)  # type: ignore[operator]
 
 
 def restore_dropped_levels_multijoin(
@@ -1498,7 +1505,7 @@ def restore_dropped_levels_multijoin(
     join_index: Index,
     lindexer: np.ndarray,
     rindexer: np.ndarray,
-) -> Tuple[List[Index], np.ndarray, List[Hashable]]:
+) -> tuple[list[Index], np.ndarray, list[Hashable]]:
     """
     *this is an internal non-public method*
 
@@ -1592,15 +1599,15 @@ class _OrderedMerge(_MergeOperation):
         self,
         left: DataFrame,
         right: DataFrame,
-        on: Optional[IndexLabel] = None,
-        left_on: Optional[IndexLabel] = None,
-        right_on: Optional[IndexLabel] = None,
+        on: IndexLabel | None = None,
+        left_on: IndexLabel | None = None,
+        right_on: IndexLabel | None = None,
         left_index: bool = False,
         right_index: bool = False,
         axis: int = 1,
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
-        fill_method: Optional[str] = None,
+        fill_method: str | None = None,
         how: str = "outer",
     ):
 
@@ -1627,9 +1634,20 @@ class _OrderedMerge(_MergeOperation):
             self.left._info_axis, self.right._info_axis, self.suffixes
         )
 
+        left_join_indexer: np.ndarray | None
+        right_join_indexer: np.ndarray | None
+
         if self.fill_method == "ffill":
-            left_join_indexer = libjoin.ffill_indexer(left_indexer)
-            right_join_indexer = libjoin.ffill_indexer(right_indexer)
+            # error: Argument 1 to "ffill_indexer" has incompatible type
+            # "Optional[ndarray]"; expected "ndarray"
+            left_join_indexer = libjoin.ffill_indexer(
+                left_indexer  # type: ignore[arg-type]
+            )
+            # error: Argument 1 to "ffill_indexer" has incompatible type
+            # "Optional[ndarray]"; expected "ndarray"
+            right_join_indexer = libjoin.ffill_indexer(
+                right_indexer  # type: ignore[arg-type]
+            )
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
@@ -1686,9 +1704,9 @@ class _AsOfMerge(_OrderedMerge):
         self,
         left: DataFrame,
         right: DataFrame,
-        on: Optional[IndexLabel] = None,
-        left_on: Optional[IndexLabel] = None,
-        right_on: Optional[IndexLabel] = None,
+        on: IndexLabel | None = None,
+        left_on: IndexLabel | None = None,
+        right_on: IndexLabel | None = None,
         left_index: bool = False,
         right_index: bool = False,
         by=None,
@@ -1697,7 +1715,7 @@ class _AsOfMerge(_OrderedMerge):
         axis: int = 1,
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
-        fill_method: Optional[str] = None,
+        fill_method: str | None = None,
         how: str = "asof",
         tolerance=None,
         allow_exact_matches: bool = True,
@@ -1931,8 +1949,10 @@ class _AsOfMerge(_OrderedMerge):
             # upcast 'by' parameter because HashTable is limited
             by_type = _get_cython_type_upcast(left_by_values.dtype)
             by_type_caster = _type_casters[by_type]
-            left_by_values = by_type_caster(left_by_values)
-            right_by_values = by_type_caster(right_by_values)
+            # error: Cannot call function of unknown type
+            left_by_values = by_type_caster(left_by_values)  # type: ignore[operator]
+            # error: Cannot call function of unknown type
+            right_by_values = by_type_caster(right_by_values)  # type: ignore[operator]
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
@@ -2031,7 +2051,7 @@ def _left_join_on_index(
 
 def _factorize_keys(
     lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
-) -> Tuple[np.ndarray, np.ndarray, int]:
+) -> tuple[np.ndarray, np.ndarray, int]:
     """
     Encode left and right keys as enumerated types.
 
@@ -2083,8 +2103,9 @@ def _factorize_keys(
     (array([0, 1, 2]), array([0, 1]), 3)
     """
     # Some pre-processing for non-ndarray lk / rk
-    lk = extract_array(lk, extract_numpy=True)
-    rk = extract_array(rk, extract_numpy=True)
+    lk = extract_array(lk, extract_numpy=True, extract_range=True)
+    rk = extract_array(rk, extract_numpy=True, extract_range=True)
+    # TODO: if either is a RangeIndex, we can likely factorize more efficiently?
 
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values
@@ -2290,4 +2311,22 @@ def _items_overlap_with_suffix(
     lrenamer = partial(renamer, suffix=lsuffix)
     rrenamer = partial(renamer, suffix=rsuffix)
 
-    return (left._transform_index(lrenamer), right._transform_index(rrenamer))
+    llabels = left._transform_index(lrenamer)
+    rlabels = right._transform_index(rrenamer)
+
+    dups = []
+    if not llabels.is_unique:
+        # Only warn when duplicates are caused because of suffixes, already duplicated
+        # columns in origin should not warn
+        dups = llabels[(llabels.duplicated()) & (~left.duplicated())].tolist()
+    if not rlabels.is_unique:
+        dups.extend(rlabels[(rlabels.duplicated()) & (~right.duplicated())].tolist())
+    if dups:
+        warnings.warn(
+            f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
+            f"result is deprecated and will raise a MergeError in a future version.",
+            FutureWarning,
+            stacklevel=4,
+        )
+
+    return llabels, rlabels
