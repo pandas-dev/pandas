@@ -1005,6 +1005,8 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
             parr[~mask] = NaT
             results.append(parr)
 
+        if not results:
+            return PeriodArray(np.array([], dtype="int64"), freq=self.freq, copy=False)
         return PeriodArray._concat_same_type(results)
 
 
@@ -1238,6 +1240,12 @@ class IntervalDtype(PandasExtensionDtype):
             iarr = IntervalArray.from_arrays(left, right, closed=array.type.closed)
             results.append(iarr)
 
+        if not results:
+            return IntervalArray.from_arrays(
+                np.array([], dtype=self.subtype),
+                np.array([], dtype=self.subtype),
+                closed=array.type.closed,
+            )
         return IntervalArray._concat_same_type(results)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:

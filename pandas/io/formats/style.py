@@ -7,7 +7,6 @@ from contextlib import contextmanager
 import copy
 from functools import partial
 import operator
-import re
 from typing import (
     Any,
     Callable,
@@ -106,6 +105,16 @@ class Styler(StylerRenderer):
 
         .. versionadded:: 1.2.0
 
+    decimal : str, default "."
+        Character used as decimal separator for floats, complex and integers
+
+        .. versionadded:: 1.3.0
+
+    thousands : str, optional, default None
+        Character used as thousands separator for floats, complex and integers
+
+        .. versionadded:: 1.3.0
+
     escape : bool, default False
         Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
         strings with HTML-safe sequences.
@@ -164,6 +173,8 @@ class Styler(StylerRenderer):
         cell_ids: bool = True,
         na_rep: str | None = None,
         uuid_len: int = 5,
+        decimal: str = ".",
+        thousands: str | None = None,
         escape: bool = False,
     ):
         super().__init__(
@@ -179,7 +190,14 @@ class Styler(StylerRenderer):
         # validate ordered args
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
-        self.format(formatter=None, precision=precision, na_rep=na_rep, escape=escape)
+        self.format(
+            formatter=None,
+            precision=precision,
+            na_rep=na_rep,
+            escape=escape,
+            decimal=decimal,
+            thousands=thousands,
+        )
 
     def _repr_html_(self) -> str:
         """
@@ -356,8 +374,8 @@ class Styler(StylerRenderer):
             \\begin{tabular}{<column_format>}
 
             Defaults to 'l' for index and
-            non-numeric data columns, otherwise 'r' (or 'S' if using the
-            {siunitx} package).
+            non-numeric data columns, and, for numeric data columns,
+            to 'r' by default, or 'S' if ``siunitx`` is ``True``.
         position : str, optional
             The LaTeX positional argument (e.g. 'h!') for tables, placed in location:
 
@@ -418,7 +436,7 @@ class Styler(StylerRenderer):
         sparse rows           \\usepackage{multirow}
         hrules                \\usepackage{booktabs}
         colors                \\usepackage[table]{xcolor}
-        siunitx §             \\usepackage{siunitx}
+        siunitx               \\usepackage{siunitx}
         bold (with siunitx)   | \\usepackage{etoolbox}
                               | \\robustify\\bfseries
                               | \\sisetup{detect-all = true}  *(within {document})*
@@ -427,9 +445,6 @@ class Styler(StylerRenderer):
                               | \\sisetup{detect-all = true}  *(within {document})*
         ===================== ==========================================================
 
-        §: if using the ``siunitx`` argument then numeric columns will be set to a
-        ``column_format`` of "S" instead of "r".
-
         **Cell Styles**
 
         LaTeX styling can only be rendered if the accompanying styling functions have
@@ -437,7 +452,7 @@ class Styler(StylerRenderer):
         functionality is built around the concept of a CSS ``(<attribute>, <value>)``
         pair (see `Table Visualization <../../user_guide/style.ipynb>`_), and this
         should be replaced by a LaTeX
-        ``(<command>, <options>)`` approach and each cell will be styled individually
+        ``(<command>, <options>)`` approach. Each cell will be styled individually
         using nested LaTeX commands with their accompanied options.
 
         For example the following code will highlight and bold a cell in HTML-CSS:
@@ -450,7 +465,7 @@ class Styler(StylerRenderer):
         The equivalent using LaTeX only commands is the following:
 
         >>> s = df.style.highlight_max(axis=None,
-        ...                            props='color:{red}; bfseries: ;')
+        ...                            props='cellcolor:{red}; bfseries: ;')
         >>> s.to_latex()
 
         Internally these structured LaTeX ``(<command>, <options>)`` pairs
@@ -458,7 +473,8 @@ class Styler(StylerRenderer):
         ``display_value`` with the default structure:
         ``\<command><options> <display_value>``.
         Where there are multiple commands the latter is nested recursively, so that
-        the above example highlighed cell is rendered as ``\color{red} \bfseries 4``.
+        the above example highlighed cell is rendered as
+        ``\cellcolor{red} \bfseries 4``.
 
         Occasionally this format does not suit the applied command, or
         combination of LaTeX packages that is in use, so additional flags can be
@@ -495,37 +511,22 @@ class Styler(StylerRenderer):
 
         **Table Styles**
 
-        Internally Styler uses its ``table_styles`` object to parse the following
-        input arguments:
-
-          - *column_format*
-          - *position*
-          - *position_float*
-          - *hrules* (including the *toprule*, *midrule* and *bottomrule* sub commands)
-          - *label*
-
-        These command arguments (except for ``caption``) are added in the following way:
-
-        >>> s.set_table_styles([{'selector': '<command>', 'props': ':<options>;'}],
-        ...                    overwrite=False)
-
-        For example, if setting a ``column_format``, this is internally recorded as:
-
-        >>> s.set_table_styles([{'selector': 'column_format', 'props': ':rcll;'}],
-        ...                    overwrite=False])
-
-        Note that since ``labels`` often include ':' but this is used as a
-        CSS separator, there is a character replacement,
-        substituting ':' for '§', so a label of 'fig:item1' is recorded as:
-
-        >>> s.set_table_styles([{'selector': 'label', 'props': ':{fig§item1};'}],
-        ...                    overwrite=False])
-
-        Any custom commands you add to ``table_styles`` are included and positioned
+        Internally Styler uses its ``table_styles`` object to parse the
+        ``column_format``, ``position``, ``position_float``, ``hrules`` and ``label``
+        input arguments. There is additional scope to add custom LaTeX commands,
+        which are included and positioned
         immediately above the '\\begin{tabular}' command. For example to add odd and
         even row coloring, from the {colortbl} package, use:
 
         >>> s.set_table_styles([{'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}],
+        ...                    overwrite=False])
+
+        Instead of using ``hrules`` it is also possible to change the rule definition,
+        for example by setting just a ``toprule`` and ``bottomrule`` and ignoring
+        any ``midrule``:
+
+        >>> s.set_table_styles([{'selector': 'toprule', 'props': ':toprule;'},
+        ...                     {'selector': 'bottomrule', 'props': ':hline;'}],
         ...                    overwrite=False])
 
         A more comprehensive example using these arguments is as follows:
@@ -612,6 +613,12 @@ class Styler(StylerRenderer):
             )
 
         if position_float:
+            if position_float not in ["raggedright", "raggedleft", "centering"]:
+                raise ValueError(
+                    f"`position_float` should be one of "
+                    f"'raggedright', 'raggedleft', 'centering', "
+                    f"got: '{position_float}'"
+                )
             self.set_table_styles(
                 [{"selector": "position_float", "props": f":{position_float}"}],
                 overwrite=False,
@@ -1686,6 +1693,7 @@ class Styler(StylerRenderer):
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
         def f(data: DataFrame, props: str) -> np.ndarray:
@@ -1734,6 +1742,7 @@ class Styler(StylerRenderer):
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
@@ -1782,6 +1791,7 @@ class Styler(StylerRenderer):
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
@@ -1838,6 +1848,7 @@ class Styler(StylerRenderer):
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
 
         Notes
         -----
@@ -1889,60 +1900,119 @@ class Styler(StylerRenderer):
 
         .. figure:: ../../_static/style/hbetw_props.png
         """
-
-        def f(
-            data: FrameOrSeries,
-            props: str,
-            left: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
-            right: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
-            inclusive: bool | str = True,
-        ) -> np.ndarray:
-            if np.iterable(left) and not isinstance(left, str):
-                left = _validate_apply_axis_arg(
-                    left, "left", None, data  # type: ignore[arg-type]
-                )
-
-            if np.iterable(right) and not isinstance(right, str):
-                right = _validate_apply_axis_arg(
-                    right, "right", None, data  # type: ignore[arg-type]
-                )
-
-            # get ops with correct boundary attribution
-            if inclusive == "both":
-                ops = (operator.ge, operator.le)
-            elif inclusive == "neither":
-                ops = (operator.gt, operator.lt)
-            elif inclusive == "left":
-                ops = (operator.ge, operator.lt)
-            elif inclusive == "right":
-                ops = (operator.gt, operator.le)
-            else:
-                raise ValueError(
-                    f"'inclusive' values can be 'both', 'left', 'right', or 'neither' "
-                    f"got {inclusive}"
-                )
-
-            g_left = (
-                ops[0](data, left)
-                if left is not None
-                else np.full(data.shape, True, dtype=bool)
-            )
-            l_right = (
-                ops[1](data, right)
-                if right is not None
-                else np.full(data.shape, True, dtype=bool)
-            )
-            return np.where(g_left & l_right, props, "")
-
         if props is None:
             props = f"background-color: {color};"
         return self.apply(
-            f,  # type: ignore[arg-type]
+            _highlight_between,  # type: ignore[arg-type]
             axis=axis,
             subset=subset,
             props=props,
             left=left,
             right=right,
+            inclusive=inclusive,
+        )
+
+    def highlight_quantile(
+        self,
+        subset: IndexLabel | None = None,
+        color: str = "yellow",
+        axis: Axis | None = 0,
+        q_left: float = 0.0,
+        q_right: float = 1.0,
+        interpolation: str = "linear",
+        inclusive: str = "both",
+        props: str | None = None,
+    ) -> Styler:
+        """
+        Highlight values defined by a quantile with a style.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        subset : IndexSlice, default None
+            A valid slice for ``data`` to limit the style application to.
+        color : str, default 'yellow'
+            Background color to use for highlighting
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Axis along which to determine and highlight quantiles. If ``None`` quantiles
+            are measured over the entire DataFrame. See examples.
+        q_left : float, default 0
+            Left bound, in [0, q_right), for the target quantile range.
+        q_right : float, default 1
+            Right bound, in (q_left, 1], for the target quantile range.
+        interpolation : {‘linear’, ‘lower’, ‘higher’, ‘midpoint’, ‘nearest’}
+            Argument passed to ``Series.quantile`` or ``DataFrame.quantile`` for
+            quantile estimation.
+        inclusive : {'both', 'neither', 'left', 'right'}
+            Identify whether quantile bounds are closed or open.
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_between: Highlight a defined range with a style.
+
+        Notes
+        -----
+        This function does not work with ``str`` dtypes.
+
+        Examples
+        --------
+        Using ``axis=None`` and apply a quantile to all collective data
+
+        >>> df = pd.DataFrame(np.arange(10).reshape(2,5) + 1)
+        >>> df.style.highlight_quantile(axis=None, q_left=0.8, color="#fffd75")
+
+        .. figure:: ../../_static/style/hq_axNone.png
+
+        Or highlight quantiles row-wise or column-wise, in this case by row-wise
+
+        >>> df.style.highlight_quantile(axis=1, q_left=0.8, color="#fffd75")
+
+        .. figure:: ../../_static/style/hq_ax1.png
+
+        Use ``props`` instead of default background coloring
+
+        >>> df.style.highlight_quantile(axis=None, q_left=0.2, q_right=0.8,
+        ...     props='font-weight:bold;color:#e83e8c')
+
+        .. figure:: ../../_static/style/hq_props.png
+        """
+        subset_ = slice(None) if subset is None else subset
+        subset_ = non_reducing_slice(subset_)
+        data = self.data.loc[subset_]
+
+        # after quantile is found along axis, e.g. along rows,
+        # applying the calculated quantile to alternate axis, e.g. to each column
+        kwargs = {"q": [q_left, q_right], "interpolation": interpolation}
+        if axis in [0, "index"]:
+            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            axis_apply: int | None = 1
+        elif axis in [1, "columns"]:
+            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            axis_apply = 0
+        else:  # axis is None
+            q = Series(data.to_numpy().ravel()).quantile(**kwargs)
+            axis_apply = None
+
+        if props is None:
+            props = f"background-color: {color};"
+        return self.apply(
+            _highlight_between,  # type: ignore[arg-type]
+            axis=axis_apply,
+            subset=subset,
+            props=props,
+            left=q.iloc[0],
+            right=q.iloc[1],
             inclusive=inclusive,
         )
 
@@ -2164,211 +2234,49 @@ def _background_gradient(
             )
 
 
-def _parse_latex_table_wrapping(
-    table_styles: CSSStyles, caption: Optional[str]
-) -> bool:
+def _highlight_between(
+    data: FrameOrSeries,
+    props: str,
+    left: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
+    right: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
+    inclusive: bool | str = True,
+) -> np.ndarray:
     """
-    Discovers whether \\begin{tabular}..\\end{tabular} should be wrapped within
-    \\begin{table}..\\end{table}
-
-    Parses the `table_styles` and detects any selectors which must be included outside
-    of {tabular}, i.e. indicating that wrapping must occur, and therefore return True.
+    Return an array of css props based on condition of data values within given range.
     """
-    IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
-    # ignored selectors are included with {tabular} so do not need wrapping
-    if (
-        table_styles is not None
-        and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
-    ) or caption:
-        return True
-    return False
+    if np.iterable(left) and not isinstance(left, str):
+        left = _validate_apply_axis_arg(
+            left, "left", None, data  # type: ignore[arg-type]
+        )
 
+    if np.iterable(right) and not isinstance(right, str):
+        right = _validate_apply_axis_arg(
+            right, "right", None, data  # type: ignore[arg-type]
+        )
 
-def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> Optional[str]:
-    """
-    Find the relevant first `props` `value` from a list of `(attribute,value)` tuples
-    within `table_styles` identified by a given selector.
-
-    For example: table_styles =[
-        {'selector': 'foo', 'props': [('attr','value')],
-        {'selector': 'bar', 'props': [('attr', 'overwritten')]},
-        {'selector': 'bar', 'props': [('attr', 'baz'), ('attr2', 'ignored')]}
-    ]
-
-    Then for selector='bar', the return value is 'baz'.
-    """
-    for style in table_styles[::-1]:  # in reverse for most recently applied style
-        if style["selector"] == selector:
-            return str(style["props"][0][1]).replace("§", ":")
-    return None
-
-
-def _parse_latex_cell_styles(
-    latex_styles: CSSList, display_value: str, convert_css: bool = False
-) -> str:
-    r"""
-    Build a recursive latex chain of commands based on CSS list values, nested around
-    `display_value`.
-
-    If a CSS style is given as ('<command>', '<options>') this is translated to
-    '\<command><options>{display_value}', and this value is treated as the
-    display value for the next iteration.
-
-    The most recent style forms the inner component, for example:
-    `styles=[('emph', ''), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
-    \emph{\cellcolor[rgb]{0,1,1}{display_value}}
-
-    Sometimes latex commands have to be wrapped with curly braces in different ways:
-    We create some parsing flags to identify the different behaviours:
-
-     - `--rwrap`        : `\<command><options>{<display_value>}`
-     - `--wrap`         : `{\<command><options> <display_value>}`
-     - `--nowrap`       : `\<command><options> <display_value>`
-     - `--lwrap`        : `{\<command><options>} <display_value>`
-     - `--dwrap`        : `{\<command><options>}{<display_value>}`
-
-    For example:
-    `styles=[('Huge', '--wrap'), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
-    {\Huge \cellcolor[rgb]{0,1,1}{display_value}}
-    """
-    if convert_css:
-        latex_styles = _parse_latex_css_conversion(latex_styles)
-    for (command, options) in latex_styles[::-1]:  # in reverse for most recent style
-        formatter = {
-            "--wrap": f"{{\\{command}--to_parse {display_value}}}",
-            "--nowrap": f"\\{command}--to_parse {display_value}",
-            "--lwrap": f"{{\\{command}--to_parse}} {display_value}",
-            "--rwrap": f"\\{command}--to_parse{{{display_value}}}",
-            "--dwrap": f"{{\\{command}--to_parse}}{{{display_value}}}",
-        }
-        display_value = f"\\{command}{options} {display_value}"
-        for arg in ["--nowrap", "--wrap", "--lwrap", "--rwrap", "--dwrap"]:
-            if arg in str(options):
-                display_value = formatter[arg].replace(
-                    "--to_parse", _parse_latex_options_strip(value=options, arg=arg)
-                )
-    return display_value
-
-
-def _parse_latex_header_span(
-    cell: Dict, multirow_align: str, multicol_align: str, wrap: bool = False
-) -> str:
-    r"""
-    examines a header cell dict and if it detects a 'colspan' attribute or a 'rowspan'
-    attribute (which do not occur simultaneously) will reformat
-    the latex display value
-
-    For example: if cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
-    The latex output will be '\multicol{3}{*}{text}' instead of 'text'
-
-    Notes: needs latex packages {multirow} and {multicol}
-    """
-    if "attributes" in cell:
-        attrs = cell["attributes"]
-        if 'colspan="' in attrs:
-            colspan = attrs[attrs.find('colspan="') + 9 :]
-            colspan = int(colspan[: colspan.find('"')])
-            return (
-                f"\\multicolumn{{{colspan}}}{{{multicol_align}}}"
-                f"{{{cell['display_value']}}}"
-            )
-        elif 'rowspan="' in attrs:
-            rowspan = attrs[attrs.find('rowspan="') + 9 :]
-            rowspan = int(rowspan[: rowspan.find('"')])
-            return (
-                f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}"
-                f"{{{cell['display_value']}}}"
-            )
-    if wrap:
-        return f"{{{cell['display_value']}}}"
+    # get ops with correct boundary attribution
+    if inclusive == "both":
+        ops = (operator.ge, operator.le)
+    elif inclusive == "neither":
+        ops = (operator.gt, operator.lt)
+    elif inclusive == "left":
+        ops = (operator.ge, operator.lt)
+    elif inclusive == "right":
+        ops = (operator.gt, operator.le)
     else:
-        return cell["display_value"]
+        raise ValueError(
+            f"'inclusive' values can be 'both', 'left', 'right', or 'neither' "
+            f"got {inclusive}"
+        )
 
-
-def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
-    """
-    Accept list of CSS (attribute,value) pairs and convert to equivalent LaTeX
-    (command,options) pairs.
-
-    Ignore conversion if tagged with `--latex` option
-
-    Removed if no conversion found.
-    """
-
-    def font_weight(value, arg):
-        if value == "bold" or value == "bolder":
-            return "bfseries", f"{arg}"
-        return None
-
-    def font_style(value, arg):
-        if value == "italic":
-            return "itshape", f"{arg}"
-        elif value == "oblique":
-            return "slshape", f"{arg}"
-        return None
-
-    def color(value, user_arg, command, comm_arg):
-        """
-        CSS colors have 5 formats to process:
-
-         - 6 digit hex code: "#ff23ee"     --> [HTML]{FF23EE}
-         - 3 digit hex code: "#f0e"        --> [HTML]{FF00EE}
-         - rgba: rgba(128, 255, 0, 0.5)    --> [rgb]{0.502, 1.000, 0.000}
-         - rgb: rgb(128, 255, 0,)          --> [rbg]{0.502, 1.000, 0.000}
-         - string: red                     --> {red}
-
-        Additionally rgb or rgba can be expressed in % which is also parsed.
-        """
-        arg = user_arg if user_arg != "" else comm_arg
-
-        if value[0] == "#" and len(value) == 7:  # color is hex code
-            return command, f"[HTML]{{{value[1:].upper()}}}{arg}"
-        if value[0] == "#" and len(value) == 4:  # color is short hex code
-            val = f"{value[1].upper()*2}{value[2].upper()*2}{value[3].upper()*2}"
-            return command, f"[HTML]{{{val}}}{arg}"
-        elif value[:3] == "rgb":  # color is rgb or rgba
-            r = re.search("(?<=\\()[0-9\\s%]+(?=,)", value)[0].strip()
-            r = float(r[:-1]) / 100 if "%" in r else int(r) / 255
-            g = re.search("(?<=,)[0-9\\s%]+(?=,)", value)[0].strip()
-            g = float(g[:-1]) / 100 if "%" in g else int(g) / 255
-            if value[3] == "a":  # color is rgba
-                b = re.findall("(?<=,)[0-9\\s%]+(?=,)", value)[1].strip()
-            else:  # color is rgb
-                b = re.search("(?<=,)[0-9\\s%]+(?=\\))", value)[0].strip()
-            b = float(b[:-1]) / 100 if "%" in b else int(b) / 255
-            return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}{arg}"
-        else:
-            return command, f"{{{value}}}{arg}"  # color is likely string-named
-
-    CONVERTED_ATTRIBUTES = {
-        "font-weight": font_weight,
-        "background-color": partial(color, command="cellcolor", comm_arg="--lwrap"),
-        "color": partial(color, command="color", comm_arg=""),
-        "font-style": font_style,
-    }
-
-    latex_styles = []
-    for (attribute, value) in styles:
-        if "--latex" in value:
-            # return the style without conversion but lose --latex option
-            latex_styles.append((attribute, value.replace("--latex", "")))
-        if attribute in CONVERTED_ATTRIBUTES.keys():
-            arg = ""
-            for x in ["--wrap", "--nowrap", "--lwrap", "--dwrap", "--rwrap"]:
-                if x in str(value):
-                    arg, value = x, _parse_latex_options_strip(value, x)
-                    break
-            latex_style = CONVERTED_ATTRIBUTES[attribute](value, arg)
-            if latex_style is not None:
-                latex_styles.extend([latex_style])
-    return latex_styles
-
-
-def _parse_latex_options_strip(value: Union[str, int, float], arg: str) -> str:
-    """
-    Strip a css_value which may have latex wrapping arguments, css comment identifiers,
-    and whitespaces, to a valid string for latex options parsing.
-
-    For example: 'red /* --wrap */  ' --> 'red'
-    """
-    return str(value).replace(arg, "").replace("/*", "").replace("*/", "").strip()
+    g_left = (
+        ops[0](data, left)
+        if left is not None
+        else np.full(data.shape, True, dtype=bool)
+    )
+    l_right = (
+        ops[1](data, right)
+        if right is not None
+        else np.full(data.shape, True, dtype=bool)
+    )
+    return np.where(g_left & l_right, props, "")

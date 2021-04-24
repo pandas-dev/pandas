@@ -114,6 +114,12 @@ def test_label(styler):
     assert "\\label{more :text}" in styler.to_latex()
 
 
+def test_position_float_raises(styler):
+    msg = "`position_float` should be one of 'raggedright', 'raggedleft', 'centering',"
+    with pytest.raises(ValueError, match=msg):
+        styler.to_latex(position_float="bad_string")
+
+
 @pytest.mark.parametrize("label", [(None, ""), ("text", "\\label{text}")])
 @pytest.mark.parametrize("position", [(None, ""), ("h!", "{table}[h!]")])
 @pytest.mark.parametrize("caption", [(None, ""), ("text", "\\caption{text}")])

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from functools import partial
+import re
 from typing import (
     Any,
     Callable,
@@ -38,7 +39,7 @@ from pandas.api.types import is_list_like
 import pandas.core.common as com
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-from markupsafe import escape as escape_func  # markupsafe is jinja2 dependency
+from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
@@ -153,7 +154,7 @@ class StylerRenderer:
         self._compute()
 
         d = self._translate(blank="")
-        d = self._translate_latex(d)
+        self._translate_latex(d)
 
         self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
         self.template_latex.globals["parse_table"] = _parse_latex_table_styles
@@ -378,13 +379,15 @@ class StylerRenderer:
             body.append(index_headers + data)
         return body
 
-    def _translate_latex(self, d: dict) -> dict:
-        """
-        Post process the default render dict for the LaTeX template format.
+    def _translate_latex(self, d: dict) -> None:
+        r"""
+        Post-process the default render dict for the LaTeX template format.
+
+        Processing items included are:
           - Remove hidden columns from the non-headers part of the body.
-          - Place cellstyles directly in td cells rather than use cellstyle_map
+          - Place cellstyles directly in td cells rather than use cellstyle_map.
           - Remove hidden indexes or reinsert missing th elements if part of multiindex
-            or multirow sparsification.
+            or multirow sparsification (so that \multirow and \multicol work correctly).
         """
         d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
         body = []
@@ -411,7 +414,6 @@ class StylerRenderer:
 
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
-        return d
 
     def format(
         self,
@@ -419,6 +421,8 @@ class StylerRenderer:
         subset: slice | Sequence[Any] | None = None,
         na_rep: str | None = None,
         precision: int | None = None,
+        decimal: str = ".",
+        thousands: str | None = None,
         escape: bool = False,
     ) -> StylerRenderer:
         """
@@ -440,6 +444,16 @@ class StylerRenderer:
         precision : int, optional
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
+
+            .. versionadded:: 1.3.0
+
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers
+
+            .. versionadded:: 1.3.0
+
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers
 
             .. versionadded:: 1.3.0
 
@@ -535,6 +549,8 @@ class StylerRenderer:
                 formatter is None,
                 subset is None,
                 precision is None,
+                decimal == ".",
+                thousands is None,
                 na_rep is None,
                 escape is False,
             )
@@ -555,8 +571,14 @@ class StylerRenderer:
                 format_func = formatter[col]
             except KeyError:
                 format_func = None
+
             format_func = _maybe_wrap_formatter(
-                format_func, na_rep=na_rep, precision=precision, escape=escape
+                format_func,
+                na_rep=na_rep,
+                precision=precision,
+                decimal=decimal,
+                thousands=thousands,
+                escape=escape,
             )
 
             for row, value in data[[col]].itertuples():
@@ -660,7 +682,7 @@ def _format_table_styles(styles: CSSStyles) -> CSSStyles:
     ]
 
 
-def _default_formatter(x: Any, precision: int) -> Any:
+def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     """
     Format the display of a value
 
@@ -670,14 +692,54 @@ def _default_formatter(x: Any, precision: int) -> Any:
         Input variable to be formatted
     precision : Int
         Floating point precision used if ``x`` is float or complex.
+    thousands : bool, default False
+        Whether to group digits with thousands separated with ",".
 
     Returns
     -------
     value : Any
-        Matches input type, or string if input is float or complex.
+        Matches input type, or string if input is float or complex or int with sep.
     """
     if isinstance(x, (float, complex)):
+        if thousands:
+            return f"{x:,.{precision}f}"
         return f"{x:.{precision}f}"
+    elif isinstance(x, int) and thousands:
+        return f"{x:,.0f}"
+    return x
+
+
+def _wrap_decimal_thousands(
+    formatter: Callable, decimal: str, thousands: str | None
+) -> Callable:
+    """
+    Takes a string formatting function and wraps logic to deal with thousands and
+    decimal parameters, in the case that they are non-standard and that the input
+    is a (float, complex, int).
+    """
+
+    def wrapper(x):
+        if isinstance(x, (float, complex, int)):
+            if decimal != "." and thousands is not None and thousands != ",":
+                return (
+                    formatter(x)
+                    .replace(",", "§_§-")  # rare string to avoid "," <-> "." clash.
+                    .replace(".", decimal)
+                    .replace("§_§-", thousands)
+                )
+            elif decimal != "." and (thousands is None or thousands == ","):
+                return formatter(x).replace(".", decimal)
+            elif decimal == "." and thousands is not None and thousands != ",":
+                return formatter(x).replace(",", thousands)
+        return formatter(x)
+
+    return wrapper
+
+
+def _str_escape_html(x):
+    """if escaping html: only use on str, else return input"""
+    if isinstance(x, str):
+        return escape_html(x)
     return x
 
 
@@ -685,6 +747,8 @@ def _maybe_wrap_formatter(
     formatter: BaseFormatter | None = None,
     na_rep: str | None = None,
     precision: int | None = None,
+    decimal: str = ".",
+    thousands: str | None = None,
     escape: bool = False,
 ) -> Callable:
     """
@@ -692,29 +756,36 @@ def _maybe_wrap_formatter(
     a default formatting function. wraps with na_rep, and precision where they are
     available.
     """
+    # Get initial func from input string, input callable, or from default factory
     if isinstance(formatter, str):
-        formatter_func = lambda x: formatter.format(x)
+        func_0 = lambda x: formatter.format(x)
     elif callable(formatter):
-        formatter_func = formatter
+        func_0 = formatter
     elif formatter is None:
         precision = get_option("display.precision") if precision is None else precision
-        formatter_func = partial(_default_formatter, precision=precision)
+        func_0 = partial(
+            _default_formatter, precision=precision, thousands=(thousands is not None)
+        )
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
-    def _str_escape(x, escape: bool):
-        """if escaping: only use on str, else return input"""
-        if escape and isinstance(x, str):
-            return escape_func(x)
-        else:
-            return x
-
-    display_func = lambda x: formatter_func(partial(_str_escape, escape=escape)(x))
-
-    if na_rep is None:
-        return display_func
+    # Replace HTML chars if escaping
+    if escape:
+        func_1 = lambda x: func_0(_str_escape_html(x))
     else:
-        return lambda x: na_rep if isna(x) else display_func(x)
+        func_1 = func_0
+
+    # Replace decimals and thousands if non-standard inputs detected
+    if decimal != "." or (thousands is not None and thousands != ","):
+        func_2 = _wrap_decimal_thousands(func_1, decimal=decimal, thousands=thousands)
+    else:
+        func_2 = func_1
+
+    # Replace missing values if na_rep
+    if na_rep is None:
+        return func_2
+    else:
+        return lambda x: na_rep if isna(x) else func_2(x)
 
 
 def non_reducing_slice(slice_):
@@ -946,34 +1017,36 @@ class Tooltips:
 
 def _parse_latex_table_wrapping(table_styles: CSSStyles, caption: str | None) -> bool:
     """
-    Discovers whether \\begin{tabular}..\\end{tabular} should be wrapped within
-    \\begin{table}..\\end{table}
+    Indicate whether LaTeX {tabular} should be wrapped with a {table} environment.
 
     Parses the `table_styles` and detects any selectors which must be included outside
-    of {tabular}, i.e. indicating that wrapping must occur, and therefore return True.
+    of {tabular}, i.e. indicating that wrapping must occur, and therefore return True,
+    or if a caption exists and requires similar.
     """
     IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
     # ignored selectors are included with {tabular} so do not need wrapping
-    if (
+    return (
         table_styles is not None
         and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
-    ) or caption:
-        return True
-    return False
+    ) or caption is not None
 
 
 def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | None:
     """
-    Find the relevant first `props` `value` from a list of `(attribute,value)` tuples
-    within `table_styles` identified by a given selector.
+    Return the first 'props' 'value' from ``tables_styles`` identified by ``selector``.
 
-    For example: table_styles =[
-        {'selector': 'foo', 'props': [('attr','value')],
-        {'selector': 'bar', 'props': [('attr', 'overwritten')]},
-        {'selector': 'bar', 'props': [('attr', 'baz'), ('attr2', 'ignored')]}
-    ]
+    Examples
+    --------
+    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')],
+    ...                 {'selector': 'bar', 'props': [('attr', 'overwritten')]},
+    ...                 {'selector': 'bar', 'props': [('a1', 'baz'), ('a2', 'ignore')]}]
+    >>> _parse_latex_table_styles(table_styles, selector='bar')
+    'baz'
 
-    Then for selector='bar', the return value is 'baz'.
+    Notes
+    -----
+    The replacement of "§" with ":" is to avoid the CSS problem where ":" has structural
+    significance and cannot be used in LaTeX labels, but is often required by them.
     """
     for style in table_styles[::-1]:  # in reverse for most recently applied style
         if style["selector"] == selector:
@@ -981,18 +1054,21 @@ def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | N
     return None
 
 
-def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
+def _parse_latex_cell_styles(
+    latex_styles: CSSList, display_value: str, convert_css: bool = False
+) -> str:
     r"""
-    Build a recursive latex chain of commands based on CSS list values, nested around
-    `display_value`.
+    Mutate the ``display_value`` string including LaTeX commands from ``latex_styles``.
+
+    This method builds a recursive latex chain of commands based on the
+    CSSList input, nested around ``display_value``.
 
     If a CSS style is given as ('<command>', '<options>') this is translated to
     '\<command><options>{display_value}', and this value is treated as the
     display value for the next iteration.
 
-    The most recent style forms the inner component, for example:
-    `styles=[('emph', ''), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
-    \emph{\cellcolor[rgb]{0,1,1}{display_value}}
+    The most recent style forms the inner component, for example for styles:
+    `[('c1', 'o1'), ('c2', 'o2')]` this returns: `\c1o1{\c2o2{display_value}}`
 
     Sometimes latex commands have to be wrapped with curly braces in different ways:
     We create some parsing flags to identify the different behaviours:
@@ -1003,10 +1079,11 @@ def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
      - `--lwrap`        : `{\<command><options>} <display_value>`
      - `--dwrap`        : `{\<command><options>}{<display_value>}`
 
-    For example:
-    `styles=[('Huge', '--wrap'), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
-    {\Huge \cellcolor[rgb]{0,1,1}{display_value}}
+    For example for styles:
+    `[('c1', 'o1--wrap'), ('c2', 'o2')]` this returns: `{\c1o1 \c2o2{display_value}}
     """
+    if convert_css:
+        latex_styles = _parse_latex_css_conversion(latex_styles)
     for (command, options) in latex_styles[::-1]:  # in reverse for most recent style
         formatter = {
             "--wrap": f"{{\\{command}--to_parse {display_value}}}",
@@ -1021,26 +1098,36 @@ def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
                 display_value = formatter[arg].replace(
                     "--to_parse", _parse_latex_options_strip(value=options, arg=arg)
                 )
+                break  # only ever one purposeful entry
     return display_value
 
 
 def _parse_latex_header_span(
-    cell: dict, multirow_align: str, multicol_align: str, wrap: bool = False
+    cell: dict[str, Any], multirow_align: str, multicol_align: str, wrap: bool = False
 ) -> str:
     r"""
-    examines a header cell dict and if it detects a 'colspan' attribute or a 'rowspan'
-    attribute (which do not occur simultaneously) will reformat
-    the latex display value
+    Refactor the cell `display_value` if a 'colspan' or 'rowspan' attribute is present.
 
-    For example: if cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
-    The latex output will be '\multicol{3}{*}{text}' instead of 'text'
+    'rowspan' and 'colspan' do not occur simultaneouly. If they are detected then
+    the `display_value` is altered to a LaTeX `multirow` or `multicol` command
+    respectively, with the appropriate cell-span.
 
-    Notes: needs latex packages {multirow} and {multicol}
+    ``wrap`` is used to enclose the `display_value` in braces which is needed for
+    column headers using an siunitx package.
+
+    Requires the package {multirow}, whereas multicol support is usually built in
+    to the {tabular} environment.
+
+    Examples
+    --------
+    >>> cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
+    >>> _parse_latex_header_span(cell, 't', 'c')
+    '\multicol{3}{c}{text}'
     """
     if "attributes" in cell:
         attrs = cell["attributes"]
         if 'colspan="' in attrs:
-            colspan = attrs[attrs.find('colspan="') + 9 :]
+            colspan = attrs[attrs.find('colspan="') + 9 :]  # len('colspan="') = 9
             colspan = int(colspan[: colspan.find('"')])
             return (
                 f"\\multicolumn{{{colspan}}}{{{multicol_align}}}"
@@ -1067,3 +1154,82 @@ def _parse_latex_options_strip(value: str | int | float, arg: str) -> str:
     For example: 'red /* --wrap */  ' --> 'red'
     """
     return str(value).replace(arg, "").replace("/*", "").replace("*/", "").strip()
+
+
+def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
+    """
+    Accept list of CSS (attribute,value) pairs and convert to equivalent LaTeX
+    (command,options) pairs.
+
+    Ignore conversion if tagged with `--latex` option
+
+    Removed if no conversion found.
+    """
+
+    def font_weight(value, arg):
+        if value == "bold" or value == "bolder":
+            return "bfseries", f"{arg}"
+        return None
+
+    def font_style(value, arg):
+        if value == "italic":
+            return "itshape", f"{arg}"
+        elif value == "oblique":
+            return "slshape", f"{arg}"
+        return None
+
+    def color(value, user_arg, command, comm_arg):
+        """
+        CSS colors have 5 formats to process:
+
+         - 6 digit hex code: "#ff23ee"     --> [HTML]{FF23EE}
+         - 3 digit hex code: "#f0e"        --> [HTML]{FF00EE}
+         - rgba: rgba(128, 255, 0, 0.5)    --> [rgb]{0.502, 1.000, 0.000}
+         - rgb: rgb(128, 255, 0,)          --> [rbg]{0.502, 1.000, 0.000}
+         - string: red                     --> {red}
+
+        Additionally rgb or rgba can be expressed in % which is also parsed.
+        """
+        arg = user_arg if user_arg != "" else comm_arg
+
+        if value[0] == "#" and len(value) == 7:  # color is hex code
+            return command, f"[HTML]{{{value[1:].upper()}}}{arg}"
+        if value[0] == "#" and len(value) == 4:  # color is short hex code
+            val = f"{value[1].upper()*2}{value[2].upper()*2}{value[3].upper()*2}"
+            return command, f"[HTML]{{{val}}}{arg}"
+        elif value[:3] == "rgb":  # color is rgb or rgba
+            r = re.search("(?<=\\()[0-9\\s%]+(?=,)", value)[0].strip()
+            r = float(r[:-1]) / 100 if "%" in r else int(r) / 255
+            g = re.search("(?<=,)[0-9\\s%]+(?=,)", value)[0].strip()
+            g = float(g[:-1]) / 100 if "%" in g else int(g) / 255
+            if value[3] == "a":  # color is rgba
+                b = re.findall("(?<=,)[0-9\\s%]+(?=,)", value)[1].strip()
+            else:  # color is rgb
+                b = re.search("(?<=,)[0-9\\s%]+(?=\\))", value)[0].strip()
+            b = float(b[:-1]) / 100 if "%" in b else int(b) / 255
+            return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}{arg}"
+        else:
+            return command, f"{{{value}}}{arg}"  # color is likely string-named
+
+    CONVERTED_ATTRIBUTES = {
+        "font-weight": font_weight,
+        "background-color": partial(color, command="cellcolor", comm_arg="--lwrap"),
+        "color": partial(color, command="color", comm_arg=""),
+        "font-style": font_style,
+    }
+
+    latex_styles = []
+    for (attribute, value) in styles:
+        if "--latex" in value:
+            # return the style without conversion but drop '--latex'
+            latex_styles.append((attribute, value.replace("--latex", "")))
+        if attribute in CONVERTED_ATTRIBUTES.keys():
+            arg = ""
+            for x in ["--wrap", "--nowrap", "--lwrap", "--dwrap", "--rwrap"]:
+                if x in str(value):
+                    arg, value = x, _parse_latex_options_strip(value, x)
+                    break
+            latex_style = CONVERTED_ATTRIBUTES[attribute](value, arg)
+            if latex_style is not None:
+                latex_styles.extend([latex_style])
+    return latex_styles
