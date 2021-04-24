@@ -73,7 +73,9 @@ cdef inline float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x) nogi
     cdef:
         float64_t result
 
-    if nobs >= minp:
+    if nobs == 0 == minp:
+        result = 0
+    elif nobs >= minp:
         result = sum_x
     else:
         result = NaN
