@@ -167,13 +167,13 @@ def eval(
     parser: str = "pandas",
     engine: str | None = None,
     truediv=no_default,
-    local_dict: Optional[Dict] = None,
-    global_dict: Optional[Dict] = None,
+    local_dict: dict | None = None,
+    global_dict: dict | None = None,
     resolvers=(),
     level: int = 0,
     target=None,
     inplace: bool = False,
-) -> Optional[EvalResult]:
+) -> EvalResult | None:
     """
     Evaluate a Python expression as a string using various backends.
 

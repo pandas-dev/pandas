@@ -4015,7 +4015,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return result
 
-    def eval(self, expr: str, inplace: bool = False, **kwargs) -> Optional[EvalResult]:
+    def eval(self, expr: str, inplace: bool = False, **kwargs) -> EvalResult | None:
         """
         Evaluate a string describing operations on DataFrame columns.
 
