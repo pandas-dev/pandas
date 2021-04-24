@@ -314,8 +314,12 @@ footer
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
 
 
-def test_usecols_indices_out_of_bounds(python_parser_only):
+@pytest.mark.parametrize("header", [0, None])
+@pytest.mark.parametrize("names", [None, ["a", "b"], ["a", "b", "c"]])
+def test_usecols_indices_out_of_bounds(python_parser_only, names, header):
     # GH#25623
+    if header == 0 and names == ["a", "b", "c"]:
+        pytest.skip("This case is not valid")
     parser = python_parser_only
     data = """
     a,b
@@ -323,4 +327,4 @@ def test_usecols_indices_out_of_bounds(python_parser_only):
     """
     msg = r"Usecols indices \[2\] are out of bounds!"
     with pytest.raises(ParserError, match=msg):
-        parser.read_csv(StringIO(data), usecols=[0, 2])
+        parser.read_csv(StringIO(data), usecols=[0, 2], names=names, header=header)
