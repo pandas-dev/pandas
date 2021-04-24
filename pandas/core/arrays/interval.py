@@ -8,6 +8,7 @@ from operator import (
 import textwrap
 from typing import (
     TYPE_CHECKING,
+    Generic,
     Sequence,
     TypeVar,
     cast,
@@ -93,6 +94,7 @@ if TYPE_CHECKING:
     )
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
+S = TypeVar("S", np.ndarray, DatetimeArray, TimedeltaArray)
 
 _interval_shared_docs: dict[str, str] = {}
 
@@ -194,14 +196,14 @@ for more.
         ),
     }
 )
-class IntervalArray(IntervalMixin, ExtensionArray):
+class IntervalArray(IntervalMixin, ExtensionArray, Generic[S]):
     ndim = 1
     can_hold_na = True
     _na_value = _fill_value = np.nan
 
     _dtype: IntervalDtype
-    _left: np.ndarray | DatetimeArray | TimedeltaArray
-    _right: np.ndarray | DatetimeArray | TimedeltaArray
+    _left: S
+    _right: S
 
     # ---------------------------------------------------------------------
     # Constructors
@@ -599,9 +601,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             raise ValueError(msg)
         # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
-        if not (
+        if not (  # type: ignore[union-attr]
             self._left[left_mask] <= self._right[left_mask]
-        ).all():  # type: ignore[union-attr]
+        ).all():
             msg = "left side of interval must be <= right side"
             raise ValueError(msg)
 
@@ -1501,9 +1503,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             np.putmask(self._right, mask, value_right)
         else:
             self._left.putmask(mask, value_left)
-            # error: Item "ndarray" of "Union[ndarray, DatetimeArray, TimedeltaArray]"
-            # has no attribute "putmask"
-            self._right.putmask(mask, value_right)  # type: ignore[union-attr]
+            self._right.putmask(mask, value_right)
 
     def insert(self: IntervalArrayT, loc: int, item: Interval) -> IntervalArrayT:
         """
@@ -1533,9 +1533,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             new_right = np.delete(self._right, loc)
         else:
             new_left = self._left.delete(loc)
-            # error: Item "ndarray" of "Union[ndarray, DatetimeArray, TimedeltaArray]"
-            # has no attribute "delete"
-            new_right = self._right.delete(loc)  # type: ignore[union-attr]
+            new_right = self._right.delete(loc)
         return self._shallow_copy(left=new_left, right=new_right)
 
     @Appender(_extension_array_shared_docs["repeat"] % _shared_docs_kwargs)
