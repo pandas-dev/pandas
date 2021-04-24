@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from typing import (
+    Callable,
     Hashable,
-    Optional,
 )
 import warnings
 
@@ -48,12 +50,14 @@ class NumericIndex(Index):
     This is an abstract class.
     """
 
+    _values: np.ndarray
     _default_dtype: np.dtype
+    _dtype_validation_metadata: tuple[Callable[..., bool], str]
 
     _is_numeric_dtype = True
     _can_hold_strings = False
 
-    def __new__(cls, data=None, dtype: Optional[Dtype] = None, copy=False, name=None):
+    def __new__(cls, data=None, dtype: Dtype | None = None, copy=False, name=None):
         name = maybe_extract_name(name, data, cls)
 
         subarr = cls._ensure_array(data, dtype, copy)
@@ -97,14 +101,8 @@ class NumericIndex(Index):
     def _validate_dtype(cls, dtype: Dtype) -> None:
         if dtype is None:
             return
-        validation_metadata = {
-            "int64index": (is_signed_integer_dtype, "signed integer"),
-            "uint64index": (is_unsigned_integer_dtype, "unsigned integer"),
-            "float64index": (is_float_dtype, "float"),
-            "rangeindex": (is_signed_integer_dtype, "signed integer"),
-        }
 
-        validation_func, expected = validation_metadata[cls._typ]
+        validation_func, expected = cls._dtype_validation_metadata
         if not validation_func(dtype):
             raise ValueError(
                 f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
@@ -253,9 +251,7 @@ class IntegerIndex(NumericIndex):
             FutureWarning,
             stacklevel=2,
         )
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ndarray")
-        return self._values.view(self._default_dtype)  # type: ignore[return-value]
+        return self._values.view(self._default_dtype)
 
 
 class Int64Index(IntegerIndex):
@@ -264,6 +260,7 @@ class Int64Index(IntegerIndex):
     _typ = "int64index"
     _engine_type = libindex.Int64Engine
     _default_dtype = np.dtype(np.int64)
+    _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
 
 
 _uint64_descr_args = {
@@ -280,6 +277,7 @@ class UInt64Index(IntegerIndex):
     _typ = "uint64index"
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
+    _dtype_validation_metadata = (is_unsigned_integer_dtype, "unsigned integer")
 
     # ----------------------------------------------------------------
     # Indexing Methods
@@ -311,6 +309,7 @@ class Float64Index(NumericIndex):
     _typ = "float64index"
     _engine_type = libindex.Float64Engine
     _default_dtype = np.dtype(np.float64)
+    _dtype_validation_metadata = (is_float_dtype, "float")
 
     @property
     def inferred_type(self) -> str:
@@ -330,10 +329,7 @@ class Float64Index(NumericIndex):
         elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
-
-            # error: Argument 1 to "astype_nansafe" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            arr = astype_nansafe(self._values, dtype=dtype)  # type: ignore[arg-type]
+            arr = astype_nansafe(self._values, dtype=dtype)
             return Int64Index(arr, name=self.name)
         return super().astype(dtype, copy=copy)
 
