@@ -373,8 +373,8 @@ class Styler(StylerRenderer):
             \\begin{tabular}{<column_format>}
 
             Defaults to 'l' for index and
-            non-numeric data columns, otherwise 'r' (or 'S' if using the
-            {siunitx} package).
+            non-numeric data columns, and, for numeric data columns,
+            to 'r' by default, or 'S' if ``siunitx`` is ``True``.
         position : str, optional
             The LaTeX positional argument (e.g. 'h!') for tables, placed in location:
 
@@ -429,7 +429,7 @@ class Styler(StylerRenderer):
         sparse rows           \\usepackage{multirow}
         hrules                \\usepackage{booktabs}
         colors                \\usepackage[table]{xcolor}
-        siunitx §             \\usepackage{siunitx}
+        siunitx               \\usepackage{siunitx}
         bold (with siunitx)   | \\usepackage{etoolbox}
                               | \\robustify\\bfseries
                               | \\sisetup{detect-all = true}  *(within {document})*
@@ -438,9 +438,6 @@ class Styler(StylerRenderer):
                               | \\sisetup{detect-all = true}  *(within {document})*
         ===================== ==========================================================
 
-        §: if using the ``siunitx`` argument then numeric columns will be set to a
-        ``column_format`` of "S" instead of "r".
-
         **Cell Styles**
 
         LaTeX styling can only be rendered if the accompanying styling functions have
@@ -448,7 +445,7 @@ class Styler(StylerRenderer):
         functionality is built around the concept of a CSS ``(<attribute>, <value>)``
         pair (see `Table Visualization <../../user_guide/style.ipynb>`_), and this
         should be replaced by a LaTeX
-        ``(<command>, <options>)`` approach and each cell will be styled individually
+        ``(<command>, <options>)`` approach. Each cell will be styled individually
         using nested LaTeX commands with their accompanied options.
 
         For example the following code will highlight and bold a cell in HTML-CSS:
@@ -507,37 +504,22 @@ class Styler(StylerRenderer):
 
         **Table Styles**
 
-        Internally Styler uses its ``table_styles`` object to parse the following
-        input arguments:
-
-          - *column_format*
-          - *position*
-          - *position_float*
-          - *hrules* (including the *toprule*, *midrule* and *bottomrule* sub commands)
-          - *label*
-
-        These command arguments (except for ``caption``) are added in the following way:
-
-        >>> s.set_table_styles([{'selector': '<command>', 'props': ':<options>;'}],
-        ...                    overwrite=False)
-
-        For example, if setting a ``column_format``, this is internally recorded as:
-
-        >>> s.set_table_styles([{'selector': 'column_format', 'props': ':rcll;'}],
-        ...                    overwrite=False])
-
-        Note that since ``labels`` often include ':' but this is used as a
-        CSS separator, there is a character replacement,
-        substituting ':' for '§', so a label of 'fig:item1' is recorded as:
-
-        >>> s.set_table_styles([{'selector': 'label', 'props': ':{fig§item1};'}],
-        ...                    overwrite=False])
-
-        Any custom commands you add to ``table_styles`` are included and positioned
+        Internally Styler uses its ``table_styles`` object to parse the
+        ``column_format``, ``position``, ``position_float``, ``hrules`` and ``label``
+        input arguments. There is additional scope to add custom LaTeX commands,
+        which will included and positioned
         immediately above the '\\begin{tabular}' command. For example to add odd and
         even row coloring, from the {colortbl} package, use:
 
         >>> s.set_table_styles([{'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}],
+        ...                    overwrite=False])
+
+        Instead of using ``hrules`` it is also possible to change the rule definition,
+        for example by adding just a ``toprule`` and ``bottomrule`` and ignoring
+        any ``midrule``:
+
+        >>> s.set_table_styles([{'selector': 'toprule', 'props': ':toprule;'},
+        ...                     {'selector': 'bottomrule', 'props': ':hline;'}],
         ...                    overwrite=False])
 
         A more comprehensive example using these arguments is as follows:
