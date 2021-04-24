@@ -396,7 +396,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         name = self.obj.name
         index = self.grouper.result_index
-        values = list(output.values())[0]
+        values = next(iter(output.values()))
 
         result = self.obj._constructor(values, index=index, name=name)
         return self._reindex_output(result)
