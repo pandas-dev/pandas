@@ -1031,16 +1031,20 @@ def _parse_latex_table_wrapping(table_styles: CSSStyles, caption: str | None) ->
 
 def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | None:
     """
-    Find the relevant first `props` `value` from a list of `(attribute,value)` tuples
-    within `table_styles` identified by a given selector.
+    Return the first 'props' 'value' from ``tables_styles`` identified by ``selector``.
 
-    For example: table_styles =[
-        {'selector': 'foo', 'props': [('attr','value')],
-        {'selector': 'bar', 'props': [('attr', 'overwritten')]},
-        {'selector': 'bar', 'props': [('attr', 'baz'), ('attr2', 'ignored')]}
-    ]
+    Examples
+    --------
+    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')],
+    ...                 {'selector': 'bar', 'props': [('attr', 'overwritten')]},
+    ...                 {'selector': 'bar', 'props': [('a1', 'baz'), ('a2', 'ignore')]}]
+    >>> _parse_latex_table_styles(table_styles, selector='bar')
+    'baz'
 
-    Then for selector='bar', the return value is 'baz'.
+    Notes
+    -----
+    The replacement of "§" with ":" is to avoid the CSS problem where ":" has structural
+    significance and cannot be used in LaTeX labels, but is often required by them.
     """
     for style in table_styles[::-1]:  # in reverse for most recently applied style
         if style["selector"] == selector:
