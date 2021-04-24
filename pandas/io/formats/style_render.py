@@ -153,7 +153,7 @@ class StylerRenderer:
         self._compute()
 
         d = self._translate(blank="")
-        d = self._translate_latex(d)
+        self._translate_latex(d)
 
         self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
         self.template_latex.globals["parse_table"] = _parse_latex_table_styles
@@ -378,7 +378,7 @@ class StylerRenderer:
             body.append(index_headers + data)
         return body
 
-    def _translate_latex(self, d: dict) -> dict:
+    def _translate_latex(self, d: dict) -> None:
         """
         Post process the default render dict for the LaTeX template format.
           - Remove hidden columns from the non-headers part of the body.
@@ -411,7 +411,7 @@ class StylerRenderer:
 
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
-        return d
+        return None
 
     def format(
         self,
