@@ -68,6 +68,9 @@ cdef extern from "numpy/arrayobject.h":
             object fields
             tuple names
 
+cdef extern from "numpy/ndarrayobject.h":
+    bint PyArray_CheckScalar(obj) nogil
+
 
 cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
@@ -207,6 +210,24 @@ def is_scalar(val: object) -> bool:
             or is_period_object(val)
             or is_interval(val)
             or is_offset_object(val))
+
+
+cdef inline int64_t get_itemsize(object val):
+    """
+    Get the itemsize of a NumPy scalar, -1 if not a NumPy scalar.
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_ndarray : bool
+    """
+    if PyArray_CheckScalar(val):
+        return cnp.PyArray_DescrFromScalar(val).itemsize
+    else:
+        return -1
 
 
 def is_iterator(obj: object) -> bool:
@@ -633,7 +654,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_intsafe(ndarray[object] arr, new_dtype) -> ndarray:
+def astype_intsafe(ndarray[object] arr, cnp.dtype new_dtype) -> ndarray:
     cdef:
         Py_ssize_t i, n = len(arr)
         object val
@@ -661,7 +682,8 @@ cpdef ndarray[object] ensure_string_array(
         bint copy=True,
         bint skipna=True,
 ):
-    """Returns a new numpy array with object dtype and only strings and na values.
+    """
+    Returns a new numpy array with object dtype and only strings and na values.
 
     Parameters
     ----------
@@ -679,7 +701,7 @@ cpdef ndarray[object] ensure_string_array(
 
     Returns
     -------
-    ndarray
+    np.ndarray[object]
         An array with the input array's elements casted to str or nan-like.
     """
     cdef:
@@ -2187,7 +2209,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
 
     Parameters
     ----------
-    values : ndarray[object]
+    objects : ndarray[object]
         Array of object elements to convert.
     try_float : bool, default False
         If an array-like object contains only float or NaN values is
@@ -2211,7 +2233,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
         Array of converted object values to more specific dtypes if applicable.
     """
     cdef:
-        Py_ssize_t i, n, itemsize = 0
+        Py_ssize_t i, n, itemsize_max = 0
         ndarray[float64_t] floats
         ndarray[complex128_t] complexes
         ndarray[int64_t] ints
@@ -2244,12 +2266,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
 
     for i in range(n):
         val = objects[i]
-        if (
-            hasattr(val, "dtype")
-            and hasattr(val.dtype, "itemsize")
-            and val.dtype.itemsize > itemsize
-        ):
-            itemsize = val.dtype.itemsize
+        if itemsize_max != -1:
+            itemsize = get_itemsize(val)
+            if itemsize > itemsize_max or itemsize == -1:
+                itemsize_max = itemsize
 
         if val is None:
             seen.null_ = True
@@ -2438,9 +2458,13 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                                 result = ints
                 elif seen.is_bool and not seen.nan_:
                     result = bools.view(np.bool_)
-        if result is not None:
-            if itemsize > 0 and itemsize != result.dtype.itemsize:
-                result = result.astype(result.dtype.kind + str(itemsize))
+
+        if result is uints or result is ints or result is floats or result is complexes:
+            # cast to the largest itemsize when all values are NumPy scalars
+            if itemsize_max > 0 and itemsize_max != result.dtype.itemsize:
+                result = result.astype(result.dtype.kind + str(itemsize_max))
+            return result
+        elif result is not None:
             return result
 
     return objects
@@ -2463,7 +2487,8 @@ no_default = NoDefault.no_default  # Sentinel indicating the default value.
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=True,
-                   object na_value=no_default, object dtype=object) -> "ArrayLike":
+                   object na_value=no_default, cnp.dtype dtype=np.dtype(object)
+                   ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2483,7 +2508,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 
     Returns
     -------
-    ndarray
+    np.ndarray or ExtensionArray
     """
     cdef:
         Py_ssize_t i, n

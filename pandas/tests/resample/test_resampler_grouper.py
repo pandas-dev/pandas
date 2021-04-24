@@ -258,6 +258,8 @@ def test_apply():
         return x.resample("2s").apply(lambda y: y.sum())
 
     result = g.apply(f)
+    # y.sum() results in int64 instead of int32 on 32-bit architectures
+    expected = expected.astype("int64")
     tm.assert_frame_equal(result, expected)
 
 
