@@ -51,6 +51,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
+    is_numeric_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.missing import (
