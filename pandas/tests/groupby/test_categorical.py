@@ -416,7 +416,7 @@ def test_observed_codes_remap(observed):
     groups_double_key = df.groupby([values, "C2"], observed=observed)
 
     idx = MultiIndex.from_arrays([values, [1, 2, 3, 4]], names=["cat", "C2"])
-    expected = DataFrame({"C1": [3, 3, 4, 5], "C3": [10, 100, 200, 34]}, index=idx)
+    expected = DataFrame({"C1": [3.0, 3.0, 4.0, 5.0], "C3": [10.0, 100.0, 200.0, 34.0]}, index=idx)
     if not observed:
         expected = cartesian_product_for_groupers(
             expected, [values.values, [1, 2, 3, 4]], ["cat", "C2"]
@@ -1503,7 +1503,7 @@ def test_read_only_category_no_sort():
     df = DataFrame(
         {"a": [1, 3, 5, 7], "b": Categorical([1, 1, 2, 2], categories=Index(cats))}
     )
-    expected = DataFrame(data={"a": [2, 6]}, index=CategoricalIndex([1, 2], name="b"))
+    expected = DataFrame(data={"a": [2.0, 6.0]}, index=CategoricalIndex([1, 2], name="b"))
     result = df.groupby("b", sort=False).mean()
     tm.assert_frame_equal(result, expected)
 

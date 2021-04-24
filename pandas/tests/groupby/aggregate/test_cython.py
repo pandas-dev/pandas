@@ -196,6 +196,8 @@ def test_cython_agg_empty_buckets(op, targop, observed):
 
     g = df.groupby(pd.cut(df[0], grps), observed=observed)
     expected = g.agg(lambda x: targop(x))
+    if op in ("mean", "median", "var"):
+        expected = expected.astype(float)
     tm.assert_frame_equal(result, expected)
 
 

@@ -1241,8 +1241,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
 
-            print("func:", func)
-            if not callable(func) and is_numeric_dtype(obj.dtype):
+            if is_numeric_dtype(obj.dtype):
                 result = maybe_downcast_numeric(result, obj.dtype)
 
             if self.grouper._filter_empty_groups:

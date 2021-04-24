@@ -509,7 +509,6 @@ class Grouping:
                         codes = np.sort(codes)
                 else:
                     codes = np.arange(len(categories))
-                    # codes = algorithms.unique1d(self.grouper.codes)
 
                 self._group_index = CategoricalIndex(
                     Categorical.from_codes(
