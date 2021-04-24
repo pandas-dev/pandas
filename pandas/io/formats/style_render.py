@@ -1097,22 +1097,31 @@ def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
 
 
 def _parse_latex_header_span(
-    cell: dict, multirow_align: str, multicol_align: str, wrap: bool = False
+    cell: dict[str, Any], multirow_align: str, multicol_align: str, wrap: bool = False
 ) -> str:
     r"""
-    examines a header cell dict and if it detects a 'colspan' attribute or a 'rowspan'
-    attribute (which do not occur simultaneously) will reformat
-    the latex display value
+    Refactor the cell `display_value` if a 'colspan' or 'rowspan' attribute is present.
 
-    For example: if cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
-    The latex output will be '\multicol{3}{*}{text}' instead of 'text'
+    'rowspan' and 'colspan' do not occur simultaneouly. If they are detected then
+    the `display_value` is altered to a LaTeX `multirow` or `multicol` command
+    respectively, with the appropriate cell-span.
 
-    Notes: needs latex packages {multirow} and {multicol}
+    ``wrap`` is used to enclose the `display_value` in braces which is needed for
+    column headers using an siunitx package.
+
+    Requires the package {multirow}, whereas multicol support is usually built in
+    to the {tabular} environment.
+
+    Examples
+    --------
+    >>> cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
+    >>> _parse_latex_header_span(cell, 't', 'c')
+    '\multicol{3}{c}{text}'
     """
     if "attributes" in cell:
         attrs = cell["attributes"]
         if 'colspan="' in attrs:
-            colspan = attrs[attrs.find('colspan="') + 9 :]
+            colspan = attrs[attrs.find('colspan="') + 9 :]  # len('colspan="') = 9
             colspan = int(colspan[: colspan.find('"')])
             return (
                 f"\\multicolumn{{{colspan}}}{{{multicol_align}}}"
