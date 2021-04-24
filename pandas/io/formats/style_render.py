@@ -1026,7 +1026,7 @@ def _parse_latex_table_wrapping(table_styles: CSSStyles, caption: str | None) ->
     return (
         table_styles is not None
         and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
-    ) or caption
+    ) or caption is not None
 
 
 def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | None:
