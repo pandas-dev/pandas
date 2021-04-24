@@ -95,29 +95,32 @@ class TestFactorize:
         exp = np.array(["a", "b", "c"], dtype=object)
         tm.assert_numpy_array_equal(uniques, exp)
 
-        codes, uniques = algos.factorize(list(reversed(range(5))))
+        arr = np.arange(5, dtype=np.intp)[::-1]
+
+        codes, uniques = algos.factorize(arr)
         exp = np.array([0, 1, 2, 3, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        exp = np.array([4, 3, 2, 1, 0], dtype=np.int32)
+        exp = np.array([4, 3, 2, 1, 0], dtype=arr.dtype)
         tm.assert_numpy_array_equal(uniques, exp)
 
-        codes, uniques = algos.factorize(list(reversed(range(5))), sort=True)
-
+        codes, uniques = algos.factorize(arr, sort=True)
         exp = np.array([4, 3, 2, 1, 0], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        exp = np.array([0, 1, 2, 3, 4], dtype=np.int32)
+        exp = np.array([0, 1, 2, 3, 4], dtype=arr.dtype)
         tm.assert_numpy_array_equal(uniques, exp)
 
-        codes, uniques = algos.factorize(list(reversed(np.arange(5.0))))
+        arr = np.arange(5.0)[::-1]
+
+        codes, uniques = algos.factorize(arr)
         exp = np.array([0, 1, 2, 3, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        exp = np.array([4.0, 3.0, 2.0, 1.0, 0.0], dtype=np.float64)
+        exp = np.array([4.0, 3.0, 2.0, 1.0, 0.0], dtype=arr.dtype)
         tm.assert_numpy_array_equal(uniques, exp)
 
-        codes, uniques = algos.factorize(list(reversed(np.arange(5.0))), sort=True)
+        codes, uniques = algos.factorize(arr, sort=True)
         exp = np.array([4, 3, 2, 1, 0], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        exp = np.array([0.0, 1.0, 2.0, 3.0, 4.0], dtype=np.float64)
+        exp = np.array([0.0, 1.0, 2.0, 3.0, 4.0], dtype=arr.dtype)
         tm.assert_numpy_array_equal(uniques, exp)
 
     def test_mixed(self):
