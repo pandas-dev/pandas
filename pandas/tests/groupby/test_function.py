@@ -408,7 +408,7 @@ def test_median_empty_bins(observed):
 
     result = df.groupby(bins, observed=observed).median()
     expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
-    # TODO: .median() should be float
+    # TODO: GH 41137
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
