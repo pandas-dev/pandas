@@ -5,6 +5,7 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Sequence,
+    cast,
 )
 
 import numpy as np
@@ -23,6 +24,8 @@ from pandas.core.dtypes.cast import (
     find_common_type,
 )
 from pandas.core.dtypes.common import (
+    is_1d_only_ea_dtype,
+    is_1d_only_ea_obj,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -210,8 +213,8 @@ def concatenate_managers(
                 values = np.concatenate(vals, axis=blk.ndim - 1)
             else:
                 # TODO(EA2D): special-casing not needed with 2D EAs
-                values = concat_compat(vals)
-                values = ensure_block_shape(values, ndim=2)
+                values = concat_compat(vals, axis=1)
+                values = ensure_block_shape(values, blk.ndim)
 
             values = ensure_wrapped_if_datetimelike(values)
 
@@ -412,13 +415,16 @@ class JoinUnit:
                         fill_value = None
 
                 if is_datetime64tz_dtype(empty_dtype):
-                    # TODO(EA2D): special case unneeded with 2D EAs
-                    i8values = np.full(self.shape[1], fill_value.value)
+                    i8values = np.full(self.shape, fill_value.value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
+
                 elif is_extension_array_dtype(blk_dtype):
                     pass
-                elif isinstance(empty_dtype, ExtensionDtype):
+
+                elif is_1d_only_ea_dtype(empty_dtype):
+                    empty_dtype = cast(ExtensionDtype, empty_dtype)
                     cls = empty_dtype.construct_array_type()
+
                     missing_arr = cls._from_sequence([], dtype=empty_dtype)
                     ncols, nrows = self.shape
                     assert ncols == 1, ncols
@@ -429,6 +435,7 @@ class JoinUnit:
                 else:
                     # NB: we should never get here with empty_dtype integer or bool;
                     #  if we did, the missing_arr.fill would cast to gibberish
+                    empty_dtype = cast(np.dtype, empty_dtype)
 
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
@@ -493,15 +500,17 @@ def _concatenate_join_units(
                     concat_values = concat_values.copy()
             else:
                 concat_values = concat_values.copy()
-    elif any(isinstance(t, ExtensionArray) and t.ndim == 1 for t in to_concat):
+
+    elif any(is_1d_only_ea_obj(t) for t in to_concat):
+        # TODO(EA2D): special case not needed if all EAs used HybridBlocks
+        # NB: we are still assuming here that Hybrid blocks have shape (1, N)
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
+
         # error: Invalid index type "Tuple[int, slice]" for
         # "Union[ExtensionArray, ndarray]"; expected type "Union[int, slice, ndarray]"
         to_concat = [
-            t
-            if (isinstance(t, ExtensionArray) and t.ndim == 1)
-            else t[0, :]  # type: ignore[index]
+            t if is_1d_only_ea_obj(t) else t[0, :]  # type: ignore[index]
             for t in to_concat
         ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
