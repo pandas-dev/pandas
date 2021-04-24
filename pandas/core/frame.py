@@ -1458,7 +1458,7 @@ class DataFrame(NDFrame, OpsMixin):
     @classmethod
     def from_dict(
         cls,
-        data: Union[dist, list],
+        data: dict | list,
         orient: str = "columns",
         dtype: Dtype | None = None,
         columns=None,
