@@ -13,10 +13,6 @@ import tokenize
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Optional,
-    Set,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
