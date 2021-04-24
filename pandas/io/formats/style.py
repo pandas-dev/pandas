@@ -602,6 +602,12 @@ class Styler(StylerRenderer):
             )
 
         if position_float:
+            if position_float not in ["raggedright", "raggedleft", "centering"]:
+                raise ValueError(
+                    f"`position_float` should be one of "
+                    f"'raggedright', 'raggedleft', 'centering', "
+                    f"got: '{position_float}'"
+                )
             self.set_table_styles(
                 [{"selector": "position_float", "props": f":{position_float}"}],
                 overwrite=False,
