@@ -911,6 +911,7 @@ Other
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)
 - Bug in :meth:`DataFrame.clip` not interpreting missing values as no threshold (:issue:`40420`)
+- Bug in :meth:`DataFrame.isin` and :meth:`Series.isin` failing to compare ``None`` values (:issue:`35565`)
 
 .. ---------------------------------------------------------------------------
 

@@ -1070,6 +1070,15 @@ class TestIsin:
         expected_false = DataFrame({"values": [False, False]})
         tm.assert_frame_equal(result, expected_false)
 
+    def test_isin_none(self):
+        # GH35565
+        x = DataFrame([["foo", "bar"], [1, None]])
+        y = x[1].copy()
+        res = x.isin(y)
+        expected = DataFrame([[False, True], [False, True]])
+        print(expected)
+        tm.assert_frame_equal(res, expected)
+
 
 class TestValueCounts:
     def test_value_counts(self):

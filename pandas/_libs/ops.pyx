@@ -23,7 +23,10 @@ from numpy cimport (
 import_array()
 
 
-from pandas._libs.missing cimport checknull
+from pandas._libs.missing cimport (
+    checknull,
+    is_matching_na,
+)
 from pandas._libs.util cimport (
     UINT8_MAX,
     is_nan,
@@ -160,8 +163,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
         for i in range(n):
             x = left[i]
             y = right[i]
-
-            if checknull(x) or checknull(y):
+            if (checknull(x) or checknull(y)) and not (x is None and y is None):
                 result[i] = True
             else:
                 result[i] = PyObject_RichCompareBool(x, y, flag)
@@ -169,8 +171,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
         for i in range(n):
             x = left[i]
             y = right[i]
-
-            if checknull(x) or checknull(y):
+            if (checknull(x) or checknull(y)) and not (x is None and y is None):
                 result[i] = False
             else:
                 result[i] = PyObject_RichCompareBool(x, y, flag)
