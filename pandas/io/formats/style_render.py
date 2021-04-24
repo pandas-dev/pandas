@@ -379,12 +379,14 @@ class StylerRenderer:
         return body
 
     def _translate_latex(self, d: dict) -> None:
-        """
-        Post process the default render dict for the LaTeX template format.
+        r"""
+        Post-process the default render dict for the LaTeX template format.
+
+        Processing items included are:
           - Remove hidden columns from the non-headers part of the body.
-          - Place cellstyles directly in td cells rather than use cellstyle_map
+          - Place cellstyles directly in td cells rather than use cellstyle_map.
           - Remove hidden indexes or reinsert missing th elements if part of multiindex
-            or multirow sparsification.
+            or multirow sparsification (so that \multirow and \multicol work correctly).
         """
         d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
         body = []
@@ -411,7 +413,6 @@ class StylerRenderer:
 
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
-        return None
 
     def format(
         self,
