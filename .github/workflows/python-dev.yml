@@ -28,6 +28,7 @@ jobs:
         pip install git+https://github.com/numpy/numpy.git
         pip install git+https://github.com/pytest-dev/pytest.git
         pip install cython python-dateutil pytz pytest-xdist hypothesis
+        pip list
 
     - name: Build Pandas
       run: |
