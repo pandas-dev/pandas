@@ -27,9 +27,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = td.skip_array_manager_not_yet_implemented
-
-
 _seriesd = tm.getSeriesData()
 
 _frame = DataFrame(_seriesd)
@@ -318,7 +315,13 @@ class TestPandasContainer:
                 '{"columns":["A","B"],'
                 '"index":["2","3"],'
                 '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}',
-                r"Shape of passed values is \(3, 2\), indices imply \(2, 2\)",
+                "|".join(
+                    [
+                        r"Shape of passed values is \(3, 2\), indices imply \(2, 2\)",
+                        "Passed arrays should have the same length as the rows Index: "
+                        "3 vs 2 rows",
+                    ]
+                ),
                 "split",
             ),
             # too many columns
@@ -854,6 +857,8 @@ class TestPandasContainer:
         result = read_json(dumps(data))[["id", infer_word]]
         tm.assert_frame_equal(result, expected)
 
+    # TODO(ArrayManager) JSON
+    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize(
         "date,date_unit",
         [
@@ -1729,11 +1734,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             time.sleep(0.1)
             timeout -= 0.1
             assert timeout > 0, "Timed out waiting for file to appear on moto"
-
-    def test_json_pandas_na(self):
-        # GH 31615
-        result = DataFrame([[pd.NA]]).to_json()
-        assert result == '{"0":{"0":null}}'
 
     def test_json_pandas_nulls(self, nulls_fixture, request):
         # GH 31615

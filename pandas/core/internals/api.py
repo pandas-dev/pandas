@@ -6,27 +6,32 @@ authors
 2) Use only functions exposed here (or in core.internals)
 
 """
-from typing import Optional
+from __future__ import annotations
 
 import numpy as np
 
 from pandas._libs.internals import BlockPlacement
 from pandas._typing import Dtype
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    pandas_dtype,
+)
 
 from pandas.core.arrays import DatetimeArray
 from pandas.core.internals.blocks import (
     Block,
     DatetimeTZBlock,
     check_ndim,
+    ensure_block_shape,
     extract_pandas_array,
     get_block_type,
+    maybe_coerce_values,
 )
 
 
 def make_block(
-    values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None
+    values, placement, klass=None, ndim=None, dtype: Dtype | None = None
 ) -> Block:
     """
     This is a pseudo-public analogue to blocks.new_block.
@@ -39,12 +44,12 @@ def make_block(
     - Block.make_block_same_class
     - Block.__init__
     """
-    # error: Argument 2 to "extract_pandas_array" has incompatible type
-    # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-    # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
-    # ExtensionDtype, None]"
-    values, dtype = extract_pandas_array(values, dtype, ndim)  # type: ignore[arg-type]
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
 
+    values, dtype = extract_pandas_array(values, dtype, ndim)
+
+    needs_reshape = False
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
@@ -52,16 +57,21 @@ def make_block(
     elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
         # pyarrow calls get here
         values = DatetimeArray._simple_new(values, dtype=dtype)
+        needs_reshape = True
 
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
 
-    ndim = _maybe_infer_ndim(values, placement, ndim)
+    ndim = maybe_infer_ndim(values, placement, ndim)
+    if needs_reshape:
+        values = ensure_block_shape(values, ndim)
+
     check_ndim(values, placement, ndim)
+    values = maybe_coerce_values(values)
     return klass(values, ndim=ndim, placement=placement)
 
 
-def _maybe_infer_ndim(values, placement: BlockPlacement, ndim: Optional[int]) -> int:
+def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
     """
     If `ndim` is not provided, infer it from placment and values.
     """

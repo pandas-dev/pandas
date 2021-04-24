@@ -101,7 +101,7 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
 
 All windowing operations support a ``min_periods`` argument that dictates the minimum amount of
 non-``np.nan`` values a window must have; otherwise, the resulting value is ``np.nan``.
-``min_peridos`` defaults to 1 for time-based windows and ``window`` for fixed windows
+``min_periods`` defaults to 1 for time-based windows and ``window`` for fixed windows
 
 .. ipython:: python
 
@@ -157,6 +157,20 @@ By default the labels are set to the right edge of the window, but a
    s.rolling(window=5, center=True).mean()
 
 
+This can also be applied to datetime-like indices.
+
+.. versionadded:: 1.3
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {"A": [0, 1, 2, 3, 4]}, index=pd.date_range("2020", periods=5, freq="1D")
+    )
+    df
+    df.rolling("2D", center=False).mean()
+    df.rolling("2D", center=True).mean()
+
+
 .. _window.endpoints:
 
 Rolling window endpoints
@@ -168,7 +182,7 @@ parameter:
 =============  ====================
 Value          Behavior
 =============  ====================
-``right'``     close right endpoint
+``'right'``     close right endpoint
 ``'left'``     close left endpoint
 ``'both'``     close both endpoints
 ``'neither'``  open endpoints
@@ -214,7 +228,7 @@ ending indices of the windows. Additionally, ``num_values``, ``min_periods``, ``
 and will automatically be passed to ``get_window_bounds`` and the defined method must
 always accept these arguments.
 
-For example, if we have the following :class:``DataFrame``:
+For example, if we have the following :class:`DataFrame`
 
 .. ipython:: python
 
@@ -370,8 +384,8 @@ two :class:`Series` or any combination of :class:`DataFrame`/:class:`Series` or
   with the passed Series, thus returning a DataFrame.
 * :class:`DataFrame`/:class:`DataFrame`: by default compute the statistic for matching column
   names, returning a DataFrame. If the keyword argument ``pairwise=True`` is
-  passed then computes the statistic for each pair of columns, returning a
-  ``MultiIndexed DataFrame`` whose ``index`` are the dates in question (see :ref:`the next section
+  passed then computes the statistic for each pair of columns, returning a :class:`DataFrame` with a
+  :class:`MultiIndex` whose values are the dates in question (see :ref:`the next section
   <window.corr_pairwise>`).
 
 For example:
