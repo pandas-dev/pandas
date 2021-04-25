@@ -12,10 +12,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Fetch Git Tags
-      run: |
-        git remote -v
-        git fetch --all --tags
+      with:
+        fetch-depth: 0
 
     - name: Set up Python Dev Version
       uses: actions/setup-python@v2
