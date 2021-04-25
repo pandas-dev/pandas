@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (
+from pandas import (  # noqa
     CategoricalIndex,
     DatetimeIndex,
     Float64Index,
@@ -795,9 +795,11 @@ class NumericBase(Base):
     """
 
     def test_constructor_unwraps_index(self, dtype):
+        index_cls = self._index_cls
+
         idx = Index([1, 2], dtype=dtype)
-        result = self._index_cls(idx)
-        expected = np.array([1, 2], dtype=dtype)
+        result = index_cls(idx)
+        expected = np.array([1, 2], dtype=idx.dtype)
         tm.assert_numpy_array_equal(result._data, expected)
 
     def test_where(self):

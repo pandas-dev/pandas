@@ -24,6 +24,7 @@ from pandas import (
     Float64Index,
     Int64Index,
     IntervalIndex,
+    NumIndex,
     PeriodIndex,
     RangeIndex,
     Series,

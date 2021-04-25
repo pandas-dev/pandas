@@ -21,6 +21,7 @@ from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     MultiIndex,
+    NumIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,
