@@ -621,9 +621,9 @@ def _format_table_styles(styles: CSSStyles) -> CSSStyles:
               {'selector': 'th', 'props': 'a:v;'}]
     """
     return [
-        CSSDict(selector=x, props=style["props"])
-        for style in styles
-        for x in style["selector"].split(",")
+        {"selector": selector, "props": css_dict["props"]}
+        for css_dict in styles
+        for selector in css_dict["selector"].split(",")
     ]
 
 
