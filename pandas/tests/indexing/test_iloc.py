@@ -1194,7 +1194,7 @@ class TestILocSetItemDuplicateColumns:
         tm.assert_frame_equal(df, expected_int)
         
         df.iloc[:, 2] = df.iloc[:, 2].astype("float")
-        expected_float =DataFrame([[0, "str", 1.2]], columns=["a", "b", "b"])
+        expected_float = DataFrame([[0, "str", 1.2]], columns=["a", "b", "b"])
         tm.assert_frame_equal(df, expected_float)
 
 
