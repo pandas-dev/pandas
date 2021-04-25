@@ -1,4 +1,7 @@
-import operator
+"""
+This module tests the functionality of StringArray and ArrowStringArray.
+Tests for the str accessors are in pandas/tests/strings/test_string_array.py
+"""
 
 import numpy as np
 import pytest
@@ -86,29 +89,6 @@ def test_setitem_with_scalar_string(dtype):
     arr[0] = "d"
     expected = pd.array(["d", "c"], dtype=dtype)
     tm.assert_extension_array_equal(arr, expected)
-
-
-@pytest.mark.parametrize(
-    "input, method",
-    [
-        (["a", "b", "c"], operator.methodcaller("capitalize")),
-        (["a", "b", "c"], operator.methodcaller("capitalize")),
-        (["a b", "a bc. de"], operator.methodcaller("capitalize")),
-    ],
-)
-def test_string_methods(input, method, dtype, request):
-    if dtype == "arrow_string":
-        reason = "AttributeError: 'ArrowStringDtype' object has no attribute 'base'"
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
-
-    a = pd.Series(input, dtype=dtype)
-    b = pd.Series(input, dtype="object")
-    result = method(a.str)
-    expected = method(b.str)
-
-    assert result.dtype.name == dtype
-    tm.assert_series_equal(result.astype(object), expected)
 
 
 def test_astype_roundtrip(dtype, request):
@@ -496,12 +476,23 @@ def test_arrow_roundtrip(dtype, dtype_object):
     assert result.loc[2, "a"] is pd.NA
 
 
-def test_value_counts_na(dtype, request):
-    if dtype == "arrow_string":
-        reason = "TypeError: boolean value of NA is ambiguous"
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
+@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+def test_arrow_load_from_zero_chunks(dtype, dtype_object):
+    # GH-41040
+    import pyarrow as pa
 
+    data = pd.array([], dtype=dtype)
+    df = pd.DataFrame({"a": data})
+    table = pa.table(df)
+    assert table.field("a").type == "string"
+    # Instantiate the same table with no chunks at all
+    table = pa.table([pa.chunked_array([], type=pa.string())], schema=table.schema)
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, dtype_object)
+    tm.assert_frame_equal(result, df)
+
+
+def test_value_counts_na(dtype):
     arr = pd.array(["a", "b", "a", pd.NA], dtype=dtype)
     result = arr.value_counts(dropna=False)
     expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA], dtype="Int64")
@@ -512,12 +503,7 @@ def test_value_counts_na(dtype, request):
     tm.assert_series_equal(result, expected)
 
 
-def test_value_counts_with_normalize(dtype, request):
-    if dtype == "arrow_string":
-        reason = "TypeError: boolean value of NA is ambiguous"
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
-
+def test_value_counts_with_normalize(dtype):
     s = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
     result = s.value_counts(normalize=True)
     expected = pd.Series([2, 1], index=["a", "b"], dtype="Float64") / 3
