@@ -408,7 +408,8 @@ def test_median_empty_bins(observed):
 
     result = df.groupby(bins, observed=observed).median()
     expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
-    tm.assert_frame_equal(result, expected)
+    # TODO: GH 41137
+    tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
 @pytest.mark.parametrize(
