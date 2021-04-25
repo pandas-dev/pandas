@@ -223,7 +223,14 @@ class SeriesGroupBy(GroupBy[Series]):
     ... )
        minimum  maximum
     1        1        2
-    2        3        4"""
+    2        3        4
+
+    The resulting dtype will reflect that of the aggregating function.
+
+    >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
+    1    1.0
+    2    3.0
+    dtype: float64"""
     )
 
     @Appender(
@@ -1017,7 +1024,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
       ``['column', 'aggfunc']`` to make it clearer what the arguments are.
       As usual, the aggregation can be a callable or a string alias.
 
-    See :ref:`groupby.aggregate.named` for more."""
+    See :ref:`groupby.aggregate.named` for more.
+
+    The resulting dtype will reflect that of the aggregating function.
+
+    >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
+          B
+    A
+    1   1.0
+    2   3.0
+
+    """
     )
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")

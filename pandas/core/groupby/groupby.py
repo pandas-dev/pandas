@@ -474,6 +474,9 @@ user defined function, and no alternative execution attempts will be tried.
 Functions that mutate the passed object can produce unexpected
 behavior or errors and are not supported. See :ref:`udf-mutation`
 for more details.
+
+The resulting dtype will reflect that of the passed ``func``, see the examples
+below.
 """
 
 
