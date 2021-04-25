@@ -424,7 +424,7 @@ class SeriesGroupBy(GroupBy[Series]):
         assert len(output) == 1
 
         name = self.obj.name
-        values = list(output.values())[0]
+        values = next(iter(output.values()))
         result = self.obj._constructor(values, index=self.obj.index, name=name)
 
         # No transformations increase the ndim of the result
