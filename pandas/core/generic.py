@@ -6469,15 +6469,45 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="fillna")
 
+    @overload
+    def ffill(
+        self: FrameOrSeries,
+        axis: None | str | int = ...,
+        inplace: Literal[False] = ...,
+        limit: None | int = ...,
+        downcast: None | str | dict = ...,
+    ) -> FrameOrSeries:
+        ...
+
+    @overload
+    def ffill(
+        self: FrameOrSeries,
+        axis: None | str | int = ...,
+        inplace: Literal[True] = ...,
+        limit: None | int = ...,
+        downcast: None | str | dict = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def ffill(
+        self: FrameOrSeries,
+        axis: None | str | int = ...,
+        inplace: bool_t = ...,
+        limit: None | int = ...,
+        downcast: None | str | dict = ...,
+    ) -> FrameOrSeries | None:
+        ...
+
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def ffill(
         self: FrameOrSeries,
-        axis=None,
+        axis: None | str | int = None,
         inplace: bool_t = False,
-        limit=None,
-        downcast=None,
-    ) -> FrameOrSeries | None:
+        limit: None | int = None,
+        downcast: None | str | dict = None,
+    ):
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
 
@@ -6492,15 +6522,45 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     pad = ffill
 
+    @overload
+    def bfill(
+        self: FrameOrSeries,
+        axis: None | str | int = ...,
+        inplace: Literal[False] = ...,
+        limit: None | int = ...,
+        downcast: None | str | dict = ...,
+    ) -> FrameOrSeries:
+        ...
+
+    @overload
+    def bfill(
+        self: FrameOrSeries,
+        axis: None | str | int = ...,
+        inplace: Literal[True] = ...,
+        limit: None | int = ...,
+        downcast: None | str | dict = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def bfill(
+        self: FrameOrSeries,
+        axis: None | str | int = ...,
+        inplace: bool_t = ...,
+        limit: None | int = ...,
+        downcast: None | str | dict = ...,
+    ) -> FrameOrSeries | None:
+        ...
+
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def bfill(
         self: FrameOrSeries,
-        axis=None,
+        axis: None | str | int = None,
         inplace: bool_t = False,
-        limit=None,
-        downcast=None,
-    ) -> FrameOrSeries | None:
+        limit: None | int = None,
+        downcast: None | str | dict = None,
+    ):
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
 
