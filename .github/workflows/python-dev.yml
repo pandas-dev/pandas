@@ -35,6 +35,9 @@ jobs:
         python setup.py build_ext -q -j2
         python -m pip install -e . --no-build-isolation --no-use-pep517
 
+    - name: Build Version
+      run: python -c "import pandas; pandas.show_versions();"
+
     - name: Test with pytest
       run: |
         pytest -m 'not slow and not network and not clipboard' pandas --junitxml=test-data.xml
