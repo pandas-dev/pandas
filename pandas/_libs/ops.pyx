@@ -23,10 +23,7 @@ from numpy cimport (
 import_array()
 
 
-from pandas._libs.missing cimport (
-    checknull,
-    is_matching_na,
-)
+from pandas._libs.missing cimport checknull
 from pandas._libs.util cimport (
     UINT8_MAX,
     is_nan,
