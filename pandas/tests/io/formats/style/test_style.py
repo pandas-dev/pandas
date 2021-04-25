@@ -1419,6 +1419,82 @@ class TestStyler:
         result = df.loc[non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "subset",
+        [
+            pd.Series(["i1", "i2"]),
+            np.array(["i1", "i2"]),
+            pd.Index(["i1", "i2"]),
+            ["i1", "i2"],
+            pd.IndexSlice["i1":"i2"],
+        ],
+    )
+    def test_hide_values_index(self, subset):
+        df = DataFrame(
+            [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+            index=["i1", "i2", "i3"],
+            columns=["c1", "c2", "c3"],
+        )
+        styler = Styler(df, uuid_len=0, cell_ids=False)
+        styler.hide_values(subset=subset, axis="index")
+        result = styler.render()
+
+        assert (
+            '<th id="T__level0_row0" class="row_heading level0 row0" >i1</th>'
+            not in result
+        )
+        assert (
+            '<th id="T__level0_row1" class="row_heading level0 row1" >i2</th>'
+            not in result
+        )
+        assert (
+            '<th id="T__level0_row2" class="row_heading level0 row2" >i3</th>' in result
+        )
+
+        assert '<td  class="data row0 col0" >1</td>' not in result
+        assert '<td  class="data row0 col1" >2</td>' not in result
+        assert '<td  class="data row0 col2" >3</td>' not in result
+        assert '<td  class="data row1 col0" >4</td>' not in result
+        assert '<td  class="data row1 col1" >5</td>' not in result
+        assert '<td  class="data row1 col2" >6</td>' not in result
+        assert '<td  class="data row2 col0" >7</td>' in result
+        assert '<td  class="data row2 col1" >8</td>' in result
+        assert '<td  class="data row2 col2" >9</td>' in result
+
+    @pytest.mark.parametrize(
+        "subset",
+        [
+            pd.Series(["c1", "c2"]),
+            np.array(["c1", "c2"]),
+            pd.Index(["c1", "c2"]),
+            ["c1", "c2"],
+            pd.IndexSlice["c1":"c2"],
+        ],
+    )
+    def test_hide_values_columns(self, subset):
+        df = DataFrame(
+            [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+            index=["i1", "i2", "i3"],
+            columns=["c1", "c2", "c3"],
+        )
+        styler = Styler(df, uuid_len=0, cell_ids=False)
+        styler.hide_values(subset=subset, axis="columns")
+        result = styler.render()
+
+        assert '<th class="col_heading level0 col0" >c1</th>' not in result
+        assert '<th class="col_heading level0 col1" >c2</th>' not in result
+        assert '<th class="col_heading level0 col2" >c3</th>' in result
+
+        assert '<td  class="data row0 col0" >1</td>' not in result
+        assert '<td  class="data row0 col1" >2</td>' not in result
+        assert '<td  class="data row0 col2" >3</td>' in result
+        assert '<td  class="data row1 col0" >4</td>' not in result
+        assert '<td  class="data row1 col1" >5</td>' not in result
+        assert '<td  class="data row1 col2" >6</td>' in result
+        assert '<td  class="data row2 col0" >7</td>' not in result
+        assert '<td  class="data row2 col1" >8</td>' not in result
+        assert '<td  class="data row2 col2" >9</td>' in result
+
 
 def test_block_names():
     # catch accidental removal of a block

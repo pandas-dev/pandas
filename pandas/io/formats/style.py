@@ -1004,13 +1004,7 @@ class Styler(StylerRenderer):
         -------
         self : Styler
         """
-        subset = non_reducing_slice(subset)
-        hidden_df = self.data.loc[subset]
-        hcols = self.columns.get_indexer_for(hidden_df.columns)
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "Sequence[int]")
-        self.hidden_columns = hcols  # type: ignore[assignment]
-        return self
+        return self.hide_values(subset)
 
     def hide_values(self, subset, axis: Axis = "columns", show: bool = False) -> Styler:
         """
