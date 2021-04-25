@@ -28,6 +28,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 import pandas as pd
+from pandas import IndexSlice
 from pandas.api.types import is_list_like
 from pandas.core import generic
 import pandas.core.common as com
@@ -602,7 +603,7 @@ class Styler(StylerRenderer):
     def _applymap(self, func: Callable, subset=None, **kwargs) -> Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
-            subset = pd.IndexSlice[:]
+            subset = IndexSlice[:]
         subset = non_reducing_slice(subset)
         result = self.data.loc[subset].applymap(func)
         self._update_ctx(result)
@@ -1011,15 +1012,17 @@ class Styler(StylerRenderer):
         self.hidden_columns = hcols  # type: ignore[assignment]
         return self
 
-    def hide_values(self, subset, show: bool = False) -> Styler:
+    def hide_values(self, subset, axis: Axis = "columns", show: bool = False) -> Styler:
         """
-        Hide (or explicitly show) rows and/or columns from rendering.
+        Hide (or explicitly show) columns or rows upon rendering.
 
         Parameters
         ----------
         subset : IndexSlice
-            An argument to ``DataFrame.loc`` that identifies which rows and/or columns
-            are hidden.
+            An valid input to a specific ``axis`` in ``DataFrame.loc`` that identifies
+            which columns or rows are hidden/shown.
+        axis : {0 or 'index', 1 or 'columns'}
+            Axis along which the ``subset`` is applied.
         show : bool
             Indicates whether the supplied subset should be hidden, or explicitly shown.
 
@@ -1027,24 +1030,30 @@ class Styler(StylerRenderer):
         -------
         self : Styler
         """
-        subset = non_reducing_slice(subset)
-        data = self.data.loc[subset]
-        if show:
-            # QUESTION FOR REVIEWER: is there a better way to invert an indexer???
-            # then invert the hidden elements
-            hidden_df = self.data.loc[
-                ~self.data.index.isin(data.index.to_list()),
-                ~self.data.columns.isin(data.columns.to_list()),
-            ]
+        if axis in [0, "index"]:
+            subset = IndexSlice[subset, :]
+            subset = non_reducing_slice(subset)
+            hide = self.data.loc[subset]
+            if show:  # invert the display
+                hide = self.data.loc[~self.data.index.isin(hide.index.to_list()), :]
+            hrows = self.index.get_indexer_for(hide.index)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Sequence[int]")
+            self.hidden_rows = hrows  # type: ignore[assignment]
+        elif axis in [1, "columns"]:
+            subset = IndexSlice[:, subset]
+            subset = non_reducing_slice(subset)
+            hide = self.data.loc[subset]
+            if show:  # invert the display
+                hide = self.data.loc[:, ~self.data.index.isin(hide.columns.to_list())]
+            hcols = self.columns.get_indexer_for(hide.columns)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Sequence[int]")
+            self.hidden_columns = hcols  # type: ignore[assignment]
         else:
-            hidden_df = data
-
-        hcols = self.columns.get_indexer_for(hidden_df.columns)
-        hrows = self.index.get_indexer_for(hidden_df.index)
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "Sequence[int]")
-        self.hidden_columns = hcols  # type: ignore[assignment]
-        self.hidden_rows = hrows  # type: ignore[assignment]
+            raise ValueError(
+                f"`axis` must be one of [0, 1] or 'index' or 'columns', got: {axis}"
+            )
         return self
 
     # -----------------------------------------------------------------------
