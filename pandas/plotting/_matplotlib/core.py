@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_number,
     is_numeric_dtype,
+    is_datetime64_any_dtype
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -489,12 +490,11 @@ class MPLPlot:
         """Post process for each axes. Overridden in child classes"""
         pass
 
-    def _has_iterable_only_float_int_or_datetime(self, list_iterable: list) -> bool:
+    def _has_valid_lim_dtype(self, list_iterable: list) -> bool:
         """checks if an iterable has float,int or datetime datatype """
         """targeting #GH40781"""
-        from datetime import datetime as dt
         if (
-            all(([isinstance(x, dt) for x in list_iterable]))
+            all([is_datetime64_any_dtype(lim) for lim in list_iterable])
             or np.issubdtype(np.array(list_iterable).dtype, np.int)
             or np.issubdtype(np.array(list_iterable).dtype, np.float)
         ):
@@ -523,22 +523,22 @@ class MPLPlot:
             if self.xticks is not None:
                 ax.set_xticks(self.xticks)
 
-            # Addressing issue #40781 raising ValueError
+            # Addressing issue #GH40781 raising ValueError
             # if xlim or ylim contain non float or non int dtype
             if self.ylim is not None:
-                if not self._has_iterable_only_float_int_or_datetime(self.ylim):
+                if not self._has_valid_lim_dtype(self.ylim):
                     raise ValueError(
                         "`ylim` contains values"
-                        " which are not of float, int or datetime type"
+                        " which are not of float, int or numpy.datetime64 dtype"
                         f" in {self.ylim}"
                     )
                 ax.set_ylim(self.ylim)
 
             if self.xlim is not None:
-                if not self._has_iterable_only_float_int_or_datetime(self.xlim):
+                if not self._has_valid_lim_dtype(self.xlim):
                     raise ValueError(
                         "`xlim` contains values"
-                        " which are not of float, int or datetime type"
+                        " which are not of float, int or numpy.datetime64 dtype"
                         f" in {self.xlim}"
                     )
                 ax.set_xlim(self.xlim)
