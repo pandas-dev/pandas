@@ -58,11 +58,15 @@ def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
     # 0  1  2
     # 1  3  4
 
-    counts = {
-        x.count("\t") if i > 0 else x.lstrip().count("\t") for i, x in enumerate(lines)
-    }
+    counts = {x.lstrip(" ").count("\t") for x in lines}
     if len(lines) > 1 and len(counts) == 1 and counts.pop() != 0:
         sep = "\t"
+        # check the number of leading tabs in the first line
+        # to account for index columns
+        index_length = len(lines[0]) - len(lines[0].lstrip(" \t"))
+        if index_length != 0:
+            print(index_length)
+            kwargs.setdefault("index_col", [0, index_length - 1])
 
     # Edge case where sep is specified to be None, return to default
     if sep is None and kwargs.get("delim_whitespace") is None:
