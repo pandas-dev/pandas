@@ -100,6 +100,7 @@ ABCIndex = cast(
             "rangeindex",
             "float64index",
             "uint64index",
+            "numindex",
             "multiindex",
             "datetimeindex",
             "timedeltaindex",

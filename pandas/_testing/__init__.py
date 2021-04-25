@@ -50,6 +50,7 @@ from pandas import (
     Int64Index,
     IntervalIndex,
     MultiIndex,
+    NumIndex,
     RangeIndex,
     Series,
     UInt64Index,

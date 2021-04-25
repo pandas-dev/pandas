@@ -23,6 +23,7 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
+    is_categorical_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,

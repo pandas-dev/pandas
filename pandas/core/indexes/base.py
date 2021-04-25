@@ -385,6 +385,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         from pandas.core.arrays import PandasArray
+        from pandas.core.indexes.numeric import NumIndex
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
@@ -436,6 +437,8 @@ class Index(IndexOpsMixin, PandasObject):
             return Index._simple_new(data, name=name)
 
         # index-like
+        elif isinstance(data, NumIndex) and dtype is None:
+            return NumIndex(data, name=name, copy=copy)
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
             if isinstance(data, ABCMultiIndex):
@@ -5699,6 +5702,7 @@ class Index(IndexOpsMixin, PandasObject):
             a MultiIndex will be returned.
         """
         from pandas.core.indexes.multi import MultiIndex
+        from pandas.core.indexes.numeric import NumIndex
 
         new_values = self._map_values(mapper, na_action=na_action)
 
@@ -5718,6 +5722,9 @@ class Index(IndexOpsMixin, PandasObject):
         if not new_values.size:
             # empty
             attributes["dtype"] = self.dtype
+
+        if isinstance(self, NumIndex):
+            return NumIndex(new_values, **attributes)
 
         return Index(new_values, **attributes)
 

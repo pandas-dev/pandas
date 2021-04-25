@@ -21,6 +21,7 @@ from pandas.util._decorators import doc
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -279,6 +280,26 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                 )
 
         return other
+
+    @doc(Index.astype)
+    def astype(self, dtype, copy: bool = True) -> Index:
+        from pandas import NumIndex
+
+        dtype = pandas_dtype(dtype)
+
+        cat = self.categories
+        if isinstance(cat, NumIndex):
+            try:
+                cat._validate_dtype(dtype)
+            except ValueError:
+                pass
+            else:
+                new_values = self._data.astype(dtype, copy=copy)
+                # pass copy=False because any copying has been done in the
+                #  _data.astype call above
+                return NumIndex(new_values, name=self.name, copy=False)
+
+        return super().astype(dtype, copy=copy)
 
     def equals(self, other: object) -> bool:
         """

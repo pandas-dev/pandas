@@ -23,6 +23,7 @@ from pandas.core.indexes.numeric import (
     Float64Index,
     Int64Index,
     NumericIndex,
+    NumIndex,
     UInt64Index,
 )
 from pandas.core.indexes.period import PeriodIndex
@@ -44,6 +45,7 @@ To retain the current behavior and silence the warning, pass 'sort=True'.
 __all__ = [
     "Index",
     "MultiIndex",
+    "NumIndex",
     "NumericIndex",
     "Float64Index",
     "Int64Index",

@@ -31,7 +31,21 @@ from pandas.api.types import (
 
 COMPATIBLE_INCONSISTENT_PAIRS = [
     (np.float64, np.int64),
+    (np.float64, np.int32),
+    (np.float64, np.int16),
+    (np.float64, np.int8),
     (np.float64, np.uint64),
+    (np.float64, np.uint32),
+    (np.float64, np.uint16),
+    (np.float64, np.uint8),
+    (np.float32, np.int64),
+    (np.float32, np.int32),
+    (np.float32, np.int16),
+    (np.float32, np.int8),
+    (np.float32, np.uint64),
+    (np.float32, np.uint32),
+    (np.float32, np.uint16),
+    (np.float32, np.uint8),
 ]
 
 

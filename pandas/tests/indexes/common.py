@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (
+from pandas import (  # noqa
     CategoricalIndex,
     DatetimeIndex,
     Float64Index,
@@ -533,7 +533,7 @@ class Base:
             return
         elif isinstance(index, DatetimeIndexOpsMixin):
             values[1] = iNaT
-        elif isinstance(index, (Int64Index, UInt64Index, RangeIndex)):
+        elif issubclass(index.dtype.type, np.integer):
             return
         else:
             values[1] = np.nan
@@ -572,7 +572,7 @@ class Base:
 
             if isinstance(index, DatetimeIndexOpsMixin):
                 values[1] = iNaT
-            elif isinstance(index, (Int64Index, UInt64Index, RangeIndex)):
+            elif issubclass(index.dtype.type, np.integer):
                 return
             else:
                 values[1] = np.nan
