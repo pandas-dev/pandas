@@ -1190,10 +1190,12 @@ class TestILocSetItemDuplicateColumns:
         # GH#22035
         df = DataFrame([["0", "str", "1.2"]], columns=["a", "b", "b"])
         df.iloc[:, 0] = df.iloc[:, 0].astype("int64")
-        assert df.dtypes.iloc[0] == np.int64
+        expected_int = DataFrame([[0, "str", "1.2"]], columns=["a", "b", "b"])
+        tm.assert_frame_equal(df, expected_int)
         
         df.iloc[:, 2] = df.iloc[:, 2].astype("float")
-        assert df.dtypes.iloc[2] == np.float64
+        expected_float =DataFrame([[0, "str", 1.2]], columns=["a", "b", "b"])
+        tm.assert_frame_equal(df, expected_float)
 
 
 class TestILocCallable:
