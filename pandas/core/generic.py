@@ -6517,7 +6517,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         limit: None | int = None,
         downcast=None,
-    ):
+    ) -> FrameOrSeries | None:
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
 
@@ -6580,7 +6580,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         limit: None | int = None,
         downcast=None,
-    ):
+    ) -> FrameOrSeries | None:
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
 
