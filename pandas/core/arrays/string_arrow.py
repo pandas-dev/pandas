@@ -25,19 +25,17 @@ from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
+    is_array_like,
+    is_bool_dtype,
+    is_integer,
+    is_integer_dtype,
     is_object_dtype,
+    is_scalar,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.api.types import (
-    is_array_like,
-    is_bool_dtype,
-    is_integer,
-    is_integer_dtype,
-    is_scalar,
-)
 from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
@@ -677,13 +675,18 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
         vc = self._data.value_counts()
 
-        # Index cannot hold ExtensionArrays yet
-        index = Index(type(self)(vc.field(0)).astype(object))
-        # No missing values so we can adhere to the interface and return a numpy array.
-        counts = np.array(vc.field(1))
-
+        values = vc.field(0)
+        counts = vc.field(1)
         if dropna and self._data.null_count > 0:
-            raise NotImplementedError("yo")
+            mask = values.is_valid()
+            values = values.filter(mask)
+            counts = counts.filter(mask)
+
+        # No missing values so we can adhere to the interface and return a numpy array.
+        counts = np.array(counts)
+
+        # Index cannot hold ExtensionArrays yet
+        index = Index(type(self)(values)).astype(object)
 
         return Series(counts, index=index).astype("Int64")
 
@@ -754,3 +757,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             #    or .findall returns a list).
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
+
+    def _str_lower(self):
+        return type(self)(pc.utf8_lower(self._data))
+
+    def _str_upper(self):
+        return type(self)(pc.utf8_upper(self._data))
