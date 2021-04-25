@@ -687,7 +687,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def set_axis(self: FrameOrSeries, labels, axis: Axis, inplace: Literal[True]) -> None: ...   # noqa: E501, E704
     @overload
-    def set_axis(self: FrameOrSeries, labels, *, inplace: Literal[True]) -> None: ...  # noqa: E501, E704 https://github.com/asottile/yesqa/issues/67
+    def set_axis(self: FrameOrSeries, labels, *, inplace: Literal[True]) -> None: ...  # noqa: E501, E704
     @overload
     def set_axis(self: FrameOrSeries, labels, axis: Axis = ..., inplace: bool_t = ...) -> FrameOrSeries | None: ...  # noqa: E501, E704
     # fmt: on
@@ -3615,7 +3615,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         return self._constructor(new_data).__finalize__(self, method="take")
 
-    @final
     def _take_with_is_copy(self: FrameOrSeries, indices, axis=0) -> FrameOrSeries:
         """
         Internal version of the `take` method that sets the `_is_copy`
@@ -7331,8 +7330,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return self._clip_with_scalar(None, threshold, inplace=inplace)
             return self._clip_with_scalar(threshold, None, inplace=inplace)
 
-        subset = method(threshold, axis=axis) | isna(self)
-
         # GH #15390
         # In order for where method to work, the threshold must
         # be transformed to NDFrame from other array like structure.
@@ -7341,6 +7338,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 threshold = self._constructor(threshold, index=self.index)
             else:
                 threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
+
+        # GH 40420
+        # Treat missing thresholds as no bounds, not clipping the values
+        if is_list_like(threshold):
+            fill_value = np.inf if method.__name__ == "le" else -np.inf
+            threshold_inf = threshold.fillna(fill_value)
+        else:
+            threshold_inf = threshold
+
+        subset = method(threshold_inf, axis=axis) | isna(self)
+
+        # GH 40420
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     # fmt: off
@@ -7361,7 +7370,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def clip(self: FrameOrSeries, lower, upper, *, inplace: Literal[True], **kwargs) -> None: ...   # noqa: E501, E704
     @overload
-    def clip(self: FrameOrSeries, *, inplace: Literal[True], **kwargs) -> None: ...   # noqa: E501, E704 https://github.com/asottile/yesqa/issues/67
+    def clip(self: FrameOrSeries, *, inplace: Literal[True], **kwargs) -> None: ...   # noqa: E501, E704
     @overload
     def clip(self: FrameOrSeries, lower=..., upper=..., axis: Axis | None = ..., inplace: bool_t = ..., *args, **kwargs) -> FrameOrSeries | None: ...  # noqa: E501, E704
     # fmt: on
@@ -7387,10 +7396,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         lower : float or array_like, default None
             Minimum threshold value. All values below this
-            threshold will be set to it.
+            threshold will be set to it. A missing
+            threshold (e.g `NA`) will not clip the value.
         upper : float or array_like, default None
             Maximum threshold value. All values above this
-            threshold will be set to it.
+            threshold will be set to it. A missing
+            threshold (e.g `NA`) will not clip the value.
         axis : int or str axis name, optional
             Align object with lower and upper along the given axis.
         inplace : bool, default False
@@ -7451,6 +7462,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2      0      3
         3      6      8
         4      5      3
+
+        Clips using specific lower threshold per column element, with missing values:
+
+        >>> t = pd.Series([2, -4, np.NaN, 6, 3])
+        >>> t
+        0    2.0
+        1   -4.0
+        2    NaN
+        3    6.0
+        4    3.0
+        dtype: float64
+
+        >>> df.clip(t, axis=0)
+        col_0  col_1
+        0      9      2
+        1     -3     -4
+        2      0      6
+        3      6      8
+        4      5      3
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -7463,9 +7493,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # so ignore
         # GH 19992
         # numpy doesn't drop a list-like bound containing NaN
-        if not is_list_like(lower) and np.any(isna(lower)):
+        isna_lower = isna(lower)
+        if not is_list_like(lower):
+            if np.any(isna_lower):
+                lower = None
+        elif np.all(isna_lower):
             lower = None
-        if not is_list_like(upper) and np.any(isna(upper)):
+        isna_upper = isna(upper)
+        if not is_list_like(upper):
+            if np.any(isna_upper):
+                upper = None
+        elif np.all(isna_upper):
             upper = None
 
         # GH 2747 (arguments were reversed)
@@ -8862,7 +8900,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     join="left",
                     axis=axis,
                     level=level,
-                    fill_value=np.nan,
+                    fill_value=None,
                     copy=False,
                 )
 

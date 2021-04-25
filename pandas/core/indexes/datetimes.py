@@ -391,7 +391,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _mpl_repr(self):
+    def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
         return ints_to_pydatetime(self.asi8, self.tz)
 
@@ -448,7 +448,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
 
-    def _get_time_micros(self):
+    def _get_time_micros(self) -> np.ndarray:
         """
         Return the number of microseconds since midnight.
 
@@ -541,7 +541,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         return Series(values, index=index, name=name)
 
-    def snap(self, freq="S"):
+    def snap(self, freq="S") -> DatetimeIndex:
         """
         Snap time stamps to nearest occurring frequency.
 
@@ -891,7 +891,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         else:
             time_micros = self._get_time_micros()
         micros = _time_to_micros(time)
-        return (micros == time_micros).nonzero()[0]
+        return (time_micros == micros).nonzero()[0]
 
     def indexer_between_time(
         self, start_time, end_time, include_start: bool = True, include_end: bool = True
