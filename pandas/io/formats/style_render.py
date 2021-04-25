@@ -620,17 +620,12 @@ def _format_table_styles(styles: CSSStyles) -> CSSStyles:
         ---> [{'selector': 'td', 'props': 'a:v;'},
               {'selector': 'th', 'props': 'a:v;'}]
     """
-    return [
-        item
-        for sublist in [
-            [
-                CSSDict(selector=x, props=style["props"])
-                for x in style["selector"].split(",")
-            ]
-            for style in styles
-        ]
-        for item in sublist
+    ret = [
+        CSSDict(selector=x, props=style["props"])
+        for style in styles
+        for x in style["selector"].split(",")
     ]
+    return ret
 
 
 def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
