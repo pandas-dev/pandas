@@ -476,7 +476,11 @@ def _json_normalize(
     result = DataFrame(records)
 
     if record_prefix is not None:
-        result = result.rename(columns=lambda x: f"{record_prefix}{x}")
+        # Incompatible types in assignment (expression has type "Optional[DataFrame]",
+        # variable has type "DataFrame")
+        result = result.rename(
+            columns=lambda x: f"{record_prefix}{x}"
+        )  # type: ignore[assignment]
 
     # Data types, a problem
     for k, v in meta_vals.items():
