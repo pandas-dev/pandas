@@ -65,7 +65,7 @@ jobs:
       if: always()
 
     - name: Testing docstring validation script
-      run: pytest --capture=no --strict-markers scripts
+      run: pytest scripts
       if: always()
 
     - name: Running benchmarks
