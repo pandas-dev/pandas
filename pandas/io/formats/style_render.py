@@ -93,6 +93,7 @@ class StylerRenderer:
         # add rendering variables
         self.hidden_index: bool = False
         self.hidden_columns: Sequence[int] = []
+        self.hidden_rows: Sequence[int] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
@@ -307,7 +308,7 @@ class StylerRenderer:
         <style></style> block
         """
         # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(self.index)
+        idx_lengths = _get_level_lengths(self.index, self.hidden_rows)
 
         rlabels = self.data.index.tolist()
         if self.data.index.nlevels == 1:
@@ -342,7 +343,7 @@ class StylerRenderer:
                     "td",
                     f"{data_class} row{r} col{c}{cls}",
                     value,
-                    (c not in self.hidden_columns),
+                    (c not in self.hidden_columns and r not in self.hidden_rows),
                     attributes="",
                     display_value=self._display_funcs[(r, c)](value),
                 )

@@ -1011,6 +1011,42 @@ class Styler(StylerRenderer):
         self.hidden_columns = hcols  # type: ignore[assignment]
         return self
 
+    def hide_values(self, subset, show: bool = False) -> Styler:
+        """
+        Hide (or explicitly show) rows and/or columns from rendering.
+
+        Parameters
+        ----------
+        subset : IndexSlice
+            An argument to ``DataFrame.loc`` that identifies which rows and/or columns
+            are hidden.
+        show : bool
+            Indicates whether the supplied subset should be hidden, or explicitly shown.
+
+        Returns
+        -------
+        self : Styler
+        """
+        subset = non_reducing_slice(subset)
+        data = self.data.loc[subset]
+        if show:
+            # QUESTION FOR REVIEWER: is there a better way to invert an indexer???
+            # then invert the hidden elements
+            hidden_df = self.data.loc[
+                ~self.data.index.isin(data.index.to_list()),
+                ~self.data.columns.isin(data.columns.to_list()),
+            ]
+        else:
+            hidden_df = data
+
+        hcols = self.columns.get_indexer_for(hidden_df.columns)
+        hrows = self.index.get_indexer_for(hidden_df.index)
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "Sequence[int]")
+        self.hidden_columns = hcols  # type: ignore[assignment]
+        self.hidden_rows = hrows  # type: ignore[assignment]
+        return self
+
     # -----------------------------------------------------------------------
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
