@@ -94,7 +94,7 @@ if TYPE_CHECKING:
     )
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
-S = TypeVar("S", np.ndarray, DatetimeArray, TimedeltaArray)
+S = TypeVar("S", np.ndarray, "DatetimeArray", "TimedeltaArray")
 
 _interval_shared_docs: dict[str, str] = {}
 
