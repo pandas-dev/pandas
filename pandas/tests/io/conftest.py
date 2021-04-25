@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import shlex
@@ -10,6 +11,9 @@ import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
 
+@pytest.fixture(scope="class")
+def event_loop():
+    return asyncio.get_event_loop()
 
 @pytest.fixture
 def tips_file(datapath):

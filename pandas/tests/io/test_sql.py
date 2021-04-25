@@ -27,6 +27,16 @@ from io import StringIO
 import sqlite3
 import warnings
 
+from typing import List, Union, Callable, Any
+from dataclasses import dataclass
+
+import inspect as live
+import asyncio
+import pathlib
+import re
+import os
+
+
 import numpy as np
 import pytest
 
@@ -68,6 +78,17 @@ try:
     SQLALCHEMY_INSTALLED = True
 except ImportError:
     SQLALCHEMY_INSTALLED = False
+
+try:
+    from sqlalchemy.ext.asyncio import (
+        create_async_engine,
+        AsyncConnection,
+        AsyncSession
+    )
+    from sqlalchemy import text
+    ASYNC_SQLALCHEMY = True
+except ModuleNotFoundError:
+    ASYNC_SQLALCHEMY = False
 
 SQL_STRINGS = {
     "create_iris": {
@@ -469,8 +490,7 @@ class PandasSQLTest:
 
     def _count_rows(self, table_name):
         result = (
-            self._get_exec()
-            .execute(f"SELECT count(*) AS count_1 FROM {table_name}")
+            self._get_exec().execute(f"SELECT count(*) AS count_1 FROM {table_name}")
             .fetchone()
         )
         return result[0]
@@ -1704,9 +1724,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_table(
-            "types_test_data",
-            self.conn,
-            parse_dates={"DateCol": {"format": "%Y-%m-%d %H:%M:%S"}},
+            "types_test_data", self.conn, parse_dates={"DateCol": {"format": "%Y-%m-%d %H:%M:%S"}},
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
@@ -1780,14 +1798,22 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # test support for datetime.time
         df = DataFrame([time(9, 0, 0), time(9, 1, 30)], columns=["a"])
         df.to_sql("test_time", self.conn, index=False)
-        res = read_sql_table("test_time", self.conn)
+        res = sql.read_sql_table("test_time", self.conn)
         tm.assert_frame_equal(res, df)
 
         # GH8341
         # first, use the fallback to have the sqlite adapter put in place
         sqlite_conn = TestSQLiteFallback.connect()
-        sql.to_sql(df, "test_time2", sqlite_conn, index=False)
-        res = sql.read_sql_query("SELECT * FROM test_time2", sqlite_conn)
+        sql.to_sql(
+            df,
+            "test_time2",
+            sqlite_conn,
+            index=False
+        )
+        res = sql.read_sql_query(
+            "SELECT * FROM test_time2",
+            sqlite_conn
+        )
         ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
         tm.assert_frame_equal(ref, res)  # check if adapter is in place
         # then test if sqlalchemy is unaffected by the sqlite adapter
@@ -1956,11 +1982,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         )
 
         df.to_sql(
-            "test_dtypes",
-            self.conn,
-            index=False,
-            if_exists="replace",
-            dtype={"f64_as_f32": sqlalchemy.Float(precision=23)},
+            "test_dtypes", self.conn, index=False, if_exists="replace", dtype={"f64_as_f32": sqlalchemy.Float(precision=23)},
         )
         res = sql.read_sql_table("test_dtypes", self.conn)
 
@@ -2321,6 +2343,484 @@ class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy):
 @pytest.mark.single
 class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn):
     pass
+
+
+@dataclass
+class ConvertFunctionsToAsync:
+    functions: List[str]
+
+    @staticmethod
+    def standardize_function(function: str):
+        if function.startswith(' '):
+            indent = re.match(r'\s*[a@]', function).end() - 1
+            lines = [line[indent:] for line in function.splitlines()]
+            return '\n'.join(lines)
+        return function
+
+
+    def convert_function(
+        self,
+        function: Union[Callable[..., Any], str],
+        decorators: Union[str, List[str]] = None,
+        include: Union[List[str], str] = None,
+        exclude: Union[List[str], str] = None,
+    ):
+        src = live.getsource(function) if callable(function) else function
+        loc = src.find('def')
+        if loc == -1:
+            raise ValueError('function argument must be the source code of a function')
+        src = src[:loc] + 'async ' + src[loc:]
+        src = self.standardize_function(src)
+
+        if decorators:
+            if isinstance(decorators, str):
+                decorators = [decorators]
+            elif isinstance(decorators, (list, tuple)):
+                pass
+            else:
+                raise TypeError(f'decorators argument must be a str, tuple, or list type not {type(decorators)!r}')
+            for decorator in decorators:
+                if decorator.startswith('@'):
+                    decorator = decorator[1:]
+                src = f"@{decorator}\n" + src
+
+        if include:
+            if isinstance(include, str):
+                include = (include,)
+            self.functions.extend(include)
+
+        if exclude:
+            if isinstance(exclude, str):
+                exclude = (exclude,)
+            for excluding in exclude:
+                self.functions.remove(excluding)
+
+        for function in self.functions:
+            start = 0
+            for _ in range(src.count(function)):
+                loc = src.find(function, start)
+
+                if function.endswith('('):
+                    function = function[:-1]
+                if function.endswith('()'):
+                    function = function[:-2]
+                regex_function = (
+                    function.replace("(", r"\(")
+                            .replace(")", r"\)")
+                            .replace(".", r"\.")
+                )
+                pattern = re.match(fr"{regex_function}\(\n?.*\n? *\)", src[loc:])
+                # Prevent functions inside the main
+                # function from be modified with await
+                # statements
+                if loc != -1 and f"def {function}" != src[loc - 4:loc+len(function)]:
+                    for slash_n in range(loc, -1, -1):
+                        if src[slash_n] == '\n':
+                            break
+                    spaces = re.search(" +", src[slash_n:loc])
+                    if len(spaces[0]) != 4:
+                        inner_function = re.search(fr"def (\w+)\(.*\):((\n {{{len(spaces[0])}}}.*)*){regex_function}\(\n?.*\n? *\)", src)
+                    else:
+                        inner_function = None
+
+                    if pattern:
+                        src = src[:loc] + '(await ' + src[loc:pattern.end() + loc] + ')' + src[pattern.end() + loc:]
+                    if inner_function:
+                        src = src[:inner_function.start()] + 'async ' + src[inner_function.start():]
+                        self.functions.append(inner_function[1])
+                start = loc
+                start += len(function) + 1
+
+        if include:
+            for inclusion in include:
+                self.functions.remove(inclusion)
+
+        if exclude:
+            self.functions.extend(exclude)
+
+        return src
+
+
+class TransformToAsync(type):
+    def __init__(cls, name, bases, dictionary):
+
+        functions_for_conversion = (
+            "_read_sql_iris_parameter",
+            "_read_sql_iris_named_parameter",
+
+            "_to_sql_empty",
+            "_to_sql_fail",
+            "_to_sql_replace",
+            "_to_sql_append",
+            "_to_sql_method_callable",
+            "_roundtrip",
+            "_execute_sql",
+            "_to_sql_save_index",
+        )
+
+        converter = ConvertFunctionsToAsync(
+            list(map(lambda function: f"self.{function}", functions_for_conversion))
+            + [
+                "self._get_exec().execute",
+
+                "self.drop_table",
+
+                "self._count_rows",
+
+                "self.pandasSQL.read_query",
+                "self.pandasSQL.to_sql",
+                "self.pandasSQL.has_table",
+                "self.pandasSQL.execute",
+
+                "self._get_index_columns",
+
+                "sql.read_sql_table",
+                "sql.read_sql_query",
+
+                "df.to_sql",
+                "expected.to_sql",
+                "data.to_sql",
+                "sql.to_sql",
+
+                # Need to add a parenthesis
+                # so the async transformation
+                # isn't applied to functions that
+                # contain the substring below
+                "self._read_sql_iris()",
+                "self._to_sql(",
+                "conn.execute",
+            ]
+        )
+
+        for function_name in functions_for_conversion + (
+            "load_iris_data",
+            "_load_raw_sql",
+            "_count_rows",
+
+            "_read_sql_iris",
+
+            "_to_sql",
+        ):
+            for base in bases:
+                if hasattr(base, function_name):
+                    function = getattr(base, function_name)
+                    converted = converter.convert_function(function)
+                    exec(converted)
+                    setattr(cls, function_name, locals()[function_name])
+                    break
+
+        for function_name in (
+            "test_read_sql",
+            "test_read_sql_parameter",
+            "test_read_sql_named_parameter",
+            "test_to_sql",
+            "test_to_sql_empty",
+            "test_to_sql_fail",
+            "test_to_sql_replace",
+            "test_to_sql_append",
+            "test_to_sql_method_multi",
+            "test_to_sql_method_callable",
+            "test_roundtrip",
+            "test_execute_sql",
+            "test_read_table",
+            "test_read_table_columns",
+            "test_read_table_absent_raises",
+            "test_default_type_conversion",
+            "test_bigint",
+            "test_default_date_load",
+            "test_datetime_with_timezone",
+            "test_datetime_with_timezone_roundtrip",
+            "test_out_of_bounds_datetime",
+            "test_naive_datetimeindex_roundtrip",
+            "test_date_parsing",
+            "test_datetime",
+            "test_datetime_NaT",
+            "test_datetime_date",
+            "test_datetime_time",
+            "test_mixed_dtype_insert",
+            "test_nan_numeric",
+            "test_nan_fullcolumn",
+            "test_nan_string",
+            "test_to_sql_save_index",
+            "test_get_schema_create_table",
+            "test_dtype",
+            "test_notna_dtype",
+            "test_double_precision",
+            "test_to_sql_with_negative_npinf",
+        ) + cls.unique_tests_for_conversion:
+            for base in bases:
+                if hasattr(base, function_name):
+                    function = getattr(base, function_name)
+                    include, exclude = (None,) * 2
+                    if function_name == "test_datetime_with_timezone":
+                        include = ["read_sql_query"]
+                    elif function_name == "test_datetime_date":
+                        include = ["read_sql_table"]
+                    elif function_name == "test_get_schema_create_table":
+                        include = ["self.conn.execute"]
+                        exclude = ["conn.execute"]
+                    converted = converter.convert_function(
+                        function,
+                        decorators="@pytest.mark.asyncio",
+                        include=include,
+                        exclude=exclude
+                    )
+                    if function_name in ("test_dtype",
+                                         "test_notna_dtype",
+                                         "test_double_precision"):
+                        converted = converted.replace(
+                            f"meta = sqlalchemy.schema.MetaData(bind=self.conn)",
+                            f"meta = sqlalchemy.schema.MetaData()"
+                        ).replace(
+                            "meta.reflect()",
+                            "await self.conn.run_sync(meta.reflect)"
+                        )
+                    # if function_name == 'test_to_sql_with_negative_npinf':
+                    #     print()
+                    #     print(converted)
+                    exec(converted)
+                    setattr(cls, function_name, locals()[function_name])
+                    break
+
+        for attr in dir(cls):
+            if attr.startswith("test") and not live.iscoroutinefunction(getattr(cls, attr)):
+                setattr(
+                    cls,
+                    attr,
+                    lambda *args, **kwargs:
+                        pytest.skip(
+                            "Skipping "
+                            + re.search(r'::(test\w+)', os.environ['PYTEST_CURRENT_TEST'])[1]
+                            + " since it is not an async test"
+                        )
+                )
+
+        super().__init__(name, bases, dictionary)
+
+
+def check_table(connection, table):
+    inspector = inspect(connection)
+    return inspector.has_table(table)
+
+
+@pytest.mark.skipif(not ASYNC_SQLALCHEMY, reason="SQLAlchemy version does not support asyncio")
+class _TestAsyncSQLAlchemy(_TestSQLAlchemy):
+    """
+    Base class for testing the async sqlalchemy backend.
+    """
+    custom_execute = False
+
+    async def drop_table(self, table_name):
+        await self.pandasSQL.drop_table(table_name)
+
+    def _get_exec(self):
+        if not self.custom_execute:
+            # Money-patch the execute function
+            # so it's compatiable with deprecated
+            # usage of SQLAlchemy
+
+            AsyncConnection.original_execute = AsyncConnection.execute
+
+            async def execute(self, *args, **kwargs):
+                # Only used modified execute when the caller is a unit test
+                # function. Any other functions will use the unmodified version
+                # of execute
+                stacks = live.stack()
+
+                import json
+
+                def picklable(stack):
+                    dictionary = stack._asdict()
+                    del dictionary['frame']
+                    return dictionary
+
+                # print(json.dumps(list(map(picklable, stacks[:8])), indent=4), end='\n'*4)
+
+                caller_filename = pathlib.Path(stacks[2].filename).stem
+
+                if caller_filename in ('plugin', 'test_sql', '<string>'):
+                    args = list(args)
+                    if isinstance(args[0], str):
+                        if "?" in args[0]:
+                            for num in range(args[0].count("?")):
+                                args[0] = args[0].replace("?", f":{num}", 1)
+                        args[0] = text(args[0])
+                    if len(args) >= 2 and isinstance(args[1], (tuple, list)):
+                        args[1] = {str(num): val for num, val in enumerate(args[1])}
+                    async with self.begin():
+                        return await self.original_execute(*args, **kwargs)
+
+                return await self.original_execute(*args, **kwargs)
+
+            AsyncConnection.execute = execute
+            type(self).custom_execute = True
+        return self.conn
+
+    @pytest.fixture(autouse=True, scope="class")
+    def assert_import(cls):
+        # You need add this through your
+        # manual subclassing
+        # See lines 1431-1434
+        cls.setup_import()
+
+    @pytest.fixture(autouse=True, scope="class")
+    async def setup_class(weird, import_driver, engine):
+        # NOTE: For some reason the first argument isn't
+        # the class and it's not instance in question either
+        # When setting attributes use type to ensure that
+        # attributes are set to the class
+        try:
+            async with engine.connect() as conn:
+                type(weird).conn = conn
+                type(weird).pandasSQL = sql.AsyncSQLDatabase(conn)
+                yield
+        except sqlalchemy.exc.OperationalError:
+            pytest.skip(f"Can't connect to {self.flavor} server")
+
+    @pytest.fixture(autouse=True)
+    async def setup_method(self, load_iris_data):
+        await self._load_raw_sql()
+        # HACK:
+        # Since self in this function is not
+        # the self used in unit tests we need
+        # to make this assigns a class variable instead
+        # of an instance variable
+        PandasSQLTest._load_test1_data(type(self))
+
+    @pytest.fixture
+    async def temp_frame(self):
+        return DataFrame(
+            {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
+        )
+
+    async def _get_index_columns(self, table_name):
+        def get_indexes(conn):
+            inspector = inspect(conn)
+            ixs = inspector.get_indexes(table_name)
+            ixs = [i["column_names"] for i in ixs]
+            return ixs
+        async with self.conn.engine.connect() as conn:
+            return await conn.run_sync(get_indexes)
+
+    @pytest.mark.asyncio
+    async def test_create_table(self, temp_frame):
+        pandasSQL = sql.AsyncSQLDatabase(self.conn)
+        await pandasSQL.to_sql(temp_frame, "temp_frame")
+
+        assert await self.conn.run_sync(check_table, "temp_frame")
+
+    @pytest.mark.asyncio
+    async def test_drop_table(self, temp_frame):
+        pandasSQL = sql.AsyncSQLDatabase(self.conn)
+        await pandasSQL.to_sql(temp_frame, "temp_frame")
+
+        assert await self.conn.run_sync(check_table, "temp_frame")
+
+        await pandasSQL.drop_table("temp_frame")
+
+        assert not await self.conn.run_sync(check_table, "temp_frame")
+
+    @pytest.mark.asyncio
+    async def test_transactions(self):
+        # TODO: Can automatically write this test
+        # if conversion of context managers is implemented
+        # in ConvertFunctionsToAsync
+
+        async with self.pandasSQL.run_transaction() as trans:
+            await trans.execute(text("CREATE TABLE test_trans (A INT, B TEXT)"))
+
+        class DummyException(Exception):
+            pass
+        ins_sql = text("INSERT INTO test_trans (A,B) VALUES (1, 'blah')")
+
+        try:
+            async with self.pandasSQL.run_transaction() as trans:
+                await trans.execute(ins_sql)
+                raise DummyException
+        except DummyException:
+            pass
+        res = await self.pandasSQL.read_query("SELECT * FROM test_trans")
+        assert len(res) == 0
+
+        async with self.pandasSQL.run_transaction() as trans:
+            await trans.execute(ins_sql)
+        res2 = await self.pandasSQL.read_query("SELECT * FROM test_trans")
+        assert len(res2) == 1
+
+    @pytest.mark.asyncio
+    async def test_connectable_issue_example(self):
+        # This tests the example raised in issue
+        # https://github.com/pandas-dev/pandas/issues/10104
+
+        async def foo(connection):
+            query = "SELECT test_foo_data FROM test_foo_data"
+            return await sql.read_sql_query(query, con=connection)
+
+        async def bar(connection, data):
+            await data.to_sql(name="test_foo_data", con=connection, if_exists="append")
+
+        async def main(connectable):
+            async with connectable.connect() as conn:
+                async with conn.begin():
+                    foo_data = await foo(conn)
+                    await bar(conn, foo_data)
+
+        await DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
+        await main(self.conn.engine)
+
+    @pytest.mark.asyncio
+    async def test_temporary_table(self, engine):
+        test_data = "Hello, World!"
+        expected = DataFrame({"spam": [test_data]})
+        Base = declarative.declarative_base()
+
+        class Temporary(Base):
+            __tablename__ = "temp_test"
+            __table_args__ = {"prefixes": ["TEMPORARY"]}
+            id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+            spam = sqlalchemy.Column(sqlalchemy.Unicode(30), nullable=False)
+
+        session = AsyncSession(engine)
+        async with session.begin():
+            conn = await session.connection()
+            await conn.run_sync(Temporary.__table__.create)
+            session.add(Temporary(spam=test_data))
+            await session.flush()
+            df = await sql.read_sql_query(sql=sqlalchemy.select([Temporary.spam]), con=conn)
+
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.fixture(autouse=True)
+    async def drop_tables(self):
+        async def drop():
+            metadata = sqlalchemy.schema.MetaData()
+            await self.conn.run_sync(metadata.reflect)
+            await self.conn.run_sync(metadata.drop_all)
+
+        if self.conn.in_transaction():
+            await drop()
+            await self.conn.commit()
+        else:
+            async with self.conn.begin():
+                await drop()
+
+    def teardown_method(self, method):
+        pass
+
+@pytest.mark.db
+class TestAsyncSQLiteAlchemy(_TestSQLiteAlchemy, _TestAsyncSQLAlchemy, metaclass=TransformToAsync):
+    flavor = "sqlite"
+
+    unique_tests_for_conversion = ("test_bigint_warning",)
+
+    @pytest.fixture(scope="class")
+    async def engine(cls):
+        return create_async_engine(f"sqlite+{cls.driver}:///")
+
+    @pytest.fixture(scope="class")
+    async def import_driver(cls):
+        pytest.importorskip("aiosqlite")
+        cls.driver = "aiosqlite"
 
 
 # -----------------------------------------------------------------------------

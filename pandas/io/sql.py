@@ -3,7 +3,7 @@ Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
 
-from contextlib import contextmanager
+from contextlib import contextmanager, asynccontextmanager
 from datetime import (
     date,
     datetime,
@@ -353,10 +353,18 @@ def read_sql_table(
     elif _is_async_sqlalchemy_connectable(con):
 
         async def read_table():
+            # Need to import sqlalchemy to prevent
+            # this error: NameError: free variable
+            # 'sqlalchemy' referenced before assignment
+            # in enclosing scope
+            import sqlalchemy
             metadata = MetaData()
             pandas_sql = AsyncSQLDatabase(con)
             async with pandas_sql.engine.connect() as conn:
-                await conn.run_sync(metadata.reflect, views=True, only=[table_name])
+                try:
+                    await conn.run_sync(metadata.reflect, views=True, only=[table_name])
+                except sqlalchemy.exc.InvalidRequestError as err:
+                    raise ValueError(f"Table {table_name} not found") from err
             pandas_sql._metadata = metadata
             table = await pandas_sql.read_table(
                 table_name,
@@ -899,7 +907,7 @@ class SQLTable(PandasObject):
     def sql_schema(self):
         from sqlalchemy.schema import CreateTable
 
-        return str(CreateTable(self.table).compile(self.pd_sql.connectable))
+        return CreateTable(self.table).compile(self.pd_sql.connectable)
 
     def _execute_create(self):
         # Inserting table into database, add to MetaData object
@@ -1206,7 +1214,10 @@ class SQLTable(PandasObject):
         # once table is created.
         from sqlalchemy.schema import MetaData
 
-        meta = MetaData(self.pd_sql, schema=schema)
+        if isinstance(self, AsyncSQLTable):
+            meta= MetaData(schema=schema)
+        else:
+            meta = MetaData(self.pd_sql, schema=schema)
 
         return Table(self.name, meta, *columns, schema=schema)
 
@@ -1918,6 +1929,8 @@ class AsyncSQLDatabase(SQLDatabase):
         else:
             self.engine = connectable.engine
 
+        self.connectable = self.engine
+
         self.schema = schema
 
         self._tables_added = False
@@ -1937,10 +1950,9 @@ class AsyncSQLDatabase(SQLDatabase):
 
             self._metadata = MetaData()
 
-        if not self._tables_added:
-            async with self.engine.connect() as conn:
-                await conn.run_sync(self._metadata.reflect)
-                self._tables_added = True
+        async with self.engine.connect() as conn:
+            await conn.run_sync(self._metadata.reflect)
+            self._tables_added = True
 
         return self._metadata
 
@@ -1959,9 +1971,10 @@ class AsyncSQLDatabase(SQLDatabase):
         schema = schema or self.schema
         if await self.has_table(table_name, schema):
             table = await self.get_table(table_name, schema)
-            (await self.metadata).remove(table)
-            async with self.engine.connect() as conn:
+            async with self.engine.begin() as conn:
                 await conn.run_sync(table.drop, conn)
+        if table_name in (await self.metadata).tables:
+            (await self.metadata).remove((await self.metadata).tables[table_name])
 
     async def read_table(
         self,
@@ -1992,8 +2005,29 @@ class AsyncSQLDatabase(SQLDatabase):
         dtype: Optional[DtypeArg] = None,
     ):
         from sqlalchemy import text
+        from sqlalchemy.sql import ClauseElement
 
-        result = await self.execute(text(sql), parameters=params)
+        # Convert qmark paramstyle to numeric since
+        # SQLAlchemy execute no longer supports qmark
+        # paramstyle
+        # References: https://www.python.org/dev/peps/pep-0249/#paramstyle,
+        # https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html#sqlalchemy.ext.asyncio.AsyncConnection.execute
+        if isinstance(sql, str):
+            if "?" in sql:
+                for num in range(sql.count("?")):
+                    sql = sql.replace("?", f":{num}", 1)
+                if not isinstance(params, (list, tuple, set)):
+                    raise TypeError("params argument must a tuple or list when using qmark style")
+                params = {str(num): value for num, value in enumerate(params)}
+            sql = text(sql)
+
+        if not issubclass(type(sql), ClauseElement):
+            raise TypeError(
+                "sql argument must be a string, ClauseElement "
+                f"(ex. select, insert, etc), not {type(sql)!r}"
+            )
+
+        result = await self.execute(sql, parameters=params)
 
         return self._convert_result_to_df(
             result,
@@ -2037,6 +2071,33 @@ class AsyncSQLDatabase(SQLDatabase):
         if not name.isdigit() and not name.islower():
             if await self.has_table(name):
                 self._warn_table_name_mismatch(name)
+
+    @asynccontextmanager
+    async def run_transaction(self):
+        async with self.engine.begin() as conn:
+            yield conn
+
+    def _create_sql_schema(
+        self,
+        frame: DataFrame,
+        table_name: str,
+        keys: Optional[List[str]] = None,
+        dtype: Optional[DtypeArg] = None,
+        schema: Optional[str] = None,
+    ):
+        from sqlalchemy import text
+
+        table = AsyncSQLTable(
+            table_name,
+            self,
+            frame=frame,
+            index=False,
+            keys=keys,
+            dtype=dtype,
+            schema=schema,
+        )
+
+        return text(str(table.sql_schema()))
 
 
 # ---- SQL without SQLAlchemy ---
