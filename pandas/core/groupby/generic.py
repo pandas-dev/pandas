@@ -225,7 +225,7 @@ class SeriesGroupBy(GroupBy[Series]):
     1        1        2
     2        3        4
 
-    The resulting dtype will reflect that of the aggregating function.
+    The resulting dtype will reflect the return value of the aggregating function.
 
     >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
     1    1.0
@@ -643,7 +643,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Notes
         -----
         Functions that mutate the passed object can produce unexpected
-        behavior or errors and are not supported. See :ref:`udf-mutation`
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
         Examples
@@ -1026,7 +1026,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     See :ref:`groupby.aggregate.named` for more.
 
-    The resulting dtype will reflect that of the aggregating function.
+    The resulting dtype will reflect the return value of the aggregating function.
 
     >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
           B
@@ -1598,7 +1598,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         which group you are working on.
 
         Functions that mutate the passed object can produce unexpected
-        behavior or errors and are not supported. See :ref:`udf-mutation`
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
         Examples
