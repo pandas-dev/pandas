@@ -65,7 +65,6 @@ def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
         # to account for index columns
         index_length = len(lines[0]) - len(lines[0].lstrip(" \t"))
         if index_length != 0:
-            print(index_length)
             kwargs.setdefault("index_col", [0, index_length - 1])
 
     # Edge case where sep is specified to be None, return to default
