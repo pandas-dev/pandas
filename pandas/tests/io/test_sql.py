@@ -2814,7 +2814,7 @@ class TestAsyncSQLiteAlchemy(_TestSQLiteAlchemy, _TestAsyncSQLAlchemy, metaclass
     unique_tests_for_conversion = ("test_bigint_warning",)
 
     @pytest.fixture(scope="class")
-    async def engine(cls):
+    def engine(cls):
         return create_async_engine(f"sqlite+{cls.driver}:///")
 
     @pytest.fixture(scope="class")
