@@ -163,7 +163,9 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
         for i in range(n):
             x = left[i]
             y = right[i]
-            if (checknull(x) or checknull(y)) and not (x is None and y is None):
+            if x is None and y is None:
+                result[i] = True
+            elif checknull(x) or checknull(y):
                 result[i] = True
             else:
                 result[i] = PyObject_RichCompareBool(x, y, flag)
@@ -171,7 +173,9 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
         for i in range(n):
             x = left[i]
             y = right[i]
-            if (checknull(x) or checknull(y)) and not (x is None and y is None):
+            if x is None and y is None:
+                result[i] = True
+            elif checknull(x) or checknull(y):
                 result[i] = False
             else:
                 result[i] = PyObject_RichCompareBool(x, y, flag)
