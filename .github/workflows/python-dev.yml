@@ -2,14 +2,15 @@ name: Python Dev
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
   pull_request:
-    branches: [master]
+    branches:
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    continue-on-error: true
 
     steps:
     - uses: actions/checkout@v2
@@ -35,8 +36,10 @@ jobs:
         python -m pip install -e . --no-build-isolation --no-use-pep517
 
     - name: Build Version
-      run: python -c "import pandas; pandas.show_versions();"
+      run: |
+        python -c "import pandas; pandas.show_versions();"
 
     - name: Test with pytest
       run: |
         pytest -m 'not slow and not network and not clipboard' pandas --junitxml=test-data.xml
+      continue-on-error: true
