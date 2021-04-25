@@ -1186,6 +1186,14 @@ class TestILocSetItemDuplicateColumns:
         df.iloc[:, 0] = df.iloc[:, 0].astype(np.float64)
         assert df.dtypes.iloc[2] == np.int64
 
+    def test_iloc_setitem_dtypes_duplicate_columns(self):
+        df = DataFrame([["0", "str", "1.2"]], columns=["a", "b", "b"])
+        df.iloc[:, 0] = df.iloc[:, 0].astype("int64")
+        assert df.dtypes.iloc[0] == np.int64
+        
+        df.iloc[:, 2] = df.iloc[:, 2].astype("float")
+        assert df.dtypes.iloc[2] == np.float64
+
 
 class TestILocCallable:
     def test_frame_iloc_getitem_callable(self):
