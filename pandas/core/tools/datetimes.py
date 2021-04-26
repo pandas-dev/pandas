@@ -628,16 +628,16 @@ def _adjust_to_origin(arg, origin, unit):
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
-        offset -= Timestamp(0)
+        td_offset = offset - Timestamp(0)
 
         # convert the offset to the unit of the arg
         # this should be lossless in terms of precision
-        offset = offset // Timedelta(1, unit=unit)
+        ioffset = td_offset // Timedelta(1, unit=unit)
 
         # scalars & ndarray-like can handle the addition
         if is_list_like(arg) and not isinstance(arg, (ABCSeries, Index, np.ndarray)):
             arg = np.asarray(arg)
-        arg = arg + offset
+        arg = arg + ioffset
     return arg
 
 
@@ -887,13 +887,17 @@ def to_datetime(
         infer_datetime_format=infer_datetime_format,
     )
 
+    result: Timestamp | NaTType | Series | Index
+
     if isinstance(arg, Timestamp):
         result = arg
         if tz is not None:
             if arg.tz is not None:
-                result = result.tz_convert(tz)
+                # error: Too many arguments for "tz_convert" of "NaTType"
+                result = result.tz_convert(tz)  # type: ignore[call-arg]
             else:
-                result = result.tz_localize(tz)
+                # error: Too many arguments for "tz_localize" of "NaTType"
+                result = result.tz_localize(tz)  # type: ignore[call-arg]
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
@@ -928,7 +932,10 @@ def to_datetime(
     else:
         result = convert_listlike(np.array([arg]), format)[0]
 
-    return result
+    #  error: Incompatible return value type (got "Union[Timestamp, NaTType,
+    # Series, Index]", expected "Union[DatetimeIndex, Series, float, str,
+    # NaTType, None]")
+    return result  # type: ignore[return-value]
 
 
 # mappings for assembling units

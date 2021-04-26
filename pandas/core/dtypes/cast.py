@@ -189,13 +189,13 @@ def maybe_box_native(value: Scalar) -> Scalar:
         value = maybe_box_datetimelike(value)
     elif is_float(value):
         # error: Argument 1 to "float" has incompatible type
-        # "Union[Union[str, int, float, bool], Union[Any, Any, Timedelta, Any]]";
+        # "Union[Union[str, int, float, bool], Union[Any, Timestamp, Timedelta, Any]]";
         # expected "Union[SupportsFloat, _SupportsIndex, str]"
         value = float(value)  # type: ignore[arg-type]
     elif is_integer(value):
         # error: Argument 1 to "int" has incompatible type
-        # "Union[Union[str, int, float, bool], Union[Any, Any, Timedelta, Any]]";
-        # pected "Union[str, SupportsInt, _SupportsIndex, _SupportsTrunc]"
+        # "Union[Union[str, int, float, bool], Union[Any, Timestamp, Timedelta, Any]]";
+        # expected "Union[str, SupportsInt, _SupportsIndex, _SupportsTrunc]"
         value = int(value)  # type: ignore[arg-type]
     elif is_bool(value):
         value = bool(value)
@@ -729,7 +729,9 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
         except OutOfBoundsDatetime:
             return np.dtype(object), val
 
-        if val is NaT or val.tz is None:
+        # error: Non-overlapping identity check (left operand type: "Timestamp",
+        # right operand type: "NaTType")
+        if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
             dtype = np.dtype("M8[ns]")
             val = val.to_datetime64()
         else:
@@ -2056,7 +2058,7 @@ def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
     ValueError
     """
     # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-    # "Union[Union[str, int, float, bool], Union[Any, Any, Timedelta, Any]]";
+    # "Union[Union[str, int, float, bool], Union[Any, Timestamp, Timedelta, Any]]";
     # expected "Union[Union[int, float, complex, str, bytes, generic],
     # Sequence[Union[int, float, complex, str, bytes, generic]],
     # Sequence[Sequence[Any]], _SupportsArray]"
