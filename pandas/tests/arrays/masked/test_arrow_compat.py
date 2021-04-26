@@ -8,6 +8,8 @@ import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow", minversion="0.15.0")
 
+from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
+
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES]
 arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]
 arrays += [pd.array([True, False, True, None], dtype="boolean")]
@@ -110,8 +112,6 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     Also tests empty pyarrow arrays with non empty buffers.
     See https://github.com/pandas-dev/pandas/issues/40896
     """
-    from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
-
     np_dtype, pa_array, np_expected, mask_expected = np_dtype_to_arrays
     data, mask = pyarrow_array_to_numpy_and_mask(pa_array, np_dtype)
     tm.assert_numpy_array_equal(data[:3], np_expected)
