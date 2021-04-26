@@ -301,22 +301,5 @@ def test_qcut_nullable_integer(q, any_nullable_int_dtype):
     expected = qcut(arr.astype(float), q)
 
     tm.assert_categorical_equal(result, expected)
-    
-
-@pytest.mark.parametrize(
-    "Data_type,Data_type_string",
-    [
-        (pd.Float64Dtype(),"Float64Dtype"),    
-        (pd.Int64Dtype(),"Int64Dtype") 
-    ]
-)
-def test_qcut_numeric_dtype(Data_type,Data_type_string):
-    series = pd.Series([1.0, 2.0, 3.0, 4.0], dtype=Data_type)
-
-    try:
-        pd.qcut(series,2)
-    except:
-        Fail_string = Data_type_string + " is not supported"
-        pytest.fail( msg = Fail_string )
-        
+            
         
