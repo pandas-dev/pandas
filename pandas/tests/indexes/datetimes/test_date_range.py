@@ -146,6 +146,7 @@ class TestDateRanges:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             date_range(end="1969-11-14", periods=106752 * 24, freq="H")
 
+    @pytest.mark.slow
     def test_date_range_int64_overflow_stride_endpoint_different_signs(self):
         # cases where stride * periods overflow int64 and stride/endpoint
         #  have different signs

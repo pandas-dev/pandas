@@ -631,7 +631,7 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
     tm.assert_series_equal(expected, result)
 
 
-@pytest.mark.arm_slow
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "op, args, targop",
     [
