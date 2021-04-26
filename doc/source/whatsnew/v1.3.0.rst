@@ -705,6 +705,7 @@ Conversion
 - Bug in :class:`DataFrame` failing to raise ``TypeError`` when constructing from a ``frozenset`` (:issue:`40163`)
 - Bug in :class:`Index` construction silently ignoring a passed ``dtype`` when the data cannot be cast to that dtype (:issue:`21311`)
 - Bug in :meth:`StringArray.astype` falling back to numpy and raising when converting to ``dtype='categorical'`` (:issue:`40450`)
+- Bug in :func:`factorize` where, when given an array with a numeric numpy dtype lower than int64, uint64 and float64, the unique values did not keep their original dtype (:issue:`41132`)
 - Bug in :class:`DataFrame` construction with a dictionary containing an arraylike with ``ExtensionDtype`` and ``copy=True`` failing to make a copy (:issue:`38939`)
 -
 
