@@ -1426,7 +1426,7 @@ class TestStyler:
             np.array(["i1", "i2"]),
             pd.Index(["i1", "i2"]),
             ["i1", "i2"],
-            pd.IndexSlice["i1":"i2"],
+            pd.IndexSlice["i1":"i2"],  # type: ignore[misc]
         ],
     )
     def test_hide_values_index(self, subset):
@@ -1469,7 +1469,7 @@ class TestStyler:
             np.array(["c1", "c2"]),
             pd.Index(["c1", "c2"]),
             ["c1", "c2"],
-            pd.IndexSlice["c1":"c2"],
+            pd.IndexSlice["c1":"c2"],  # type: ignore[misc]
         ],
     )
     def test_hide_values_columns(self, subset):
