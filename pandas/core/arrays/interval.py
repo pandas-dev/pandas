@@ -602,7 +602,9 @@ class IntervalArray(IntervalMixin, ExtensionArray, Generic[S]):
             raise ValueError(msg)
         # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
         if not (  # type: ignore[union-attr]
-            self._left[left_mask] <= self._right[left_mask]
+            # error: Unsupported operand types for <= ("Timestamp" and "Timedelta")
+            self._left[left_mask]  # type: ignore[operator]
+            <= self._right[left_mask]
         ).all():
             msg = "left side of interval must be <= right side"
             raise ValueError(msg)
@@ -1379,18 +1381,30 @@ class IntervalArray(IntervalMixin, ExtensionArray, Generic[S]):
         if self.closed == "both":
             return bool(
                 # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
-                (self._right[:-1] < self._left[1:]).all()  # type: ignore[union-attr]
+                # error: Unsupported operand types for > ("Timedelta" and "Timestamp")
+                (  # type: ignore[union-attr]
+                    self._right[:-1] < self._left[1:]  # type: ignore[operator]
+                ).all()
                 # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
-                or (self._left[:-1] > self._right[1:]).all()  # type: ignore[union-attr]
+                # error: Unsupported operand types for > ("Timedelta" and "Timestamp")
+                or (  # type: ignore[union-attr]
+                    self._left[:-1] > self._right[1:]  # type: ignore[operator]
+                ).all()
             )
 
         # non-strict inequality when closed != 'both'; at least one side is
         # not included in the intervals, so equality does not imply overlapping
         return bool(
             # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
-            (self._right[:-1] <= self._left[1:]).all()  # type: ignore[union-attr]
+            # error: Unsupported operand types for <= ("Timestamp" and "Timedelta")
+            (  # type: ignore[union-attr]
+                self._right[:-1] <= self._left[1:]  # type: ignore[operator]
+            ).all()
             # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
-            or (self._left[:-1] >= self._right[1:]).all()  # type: ignore[union-attr]
+            # error: Unsupported operand types for >= ("Timedelta" and "Timestamp")
+            or (  # type: ignore[union-attr]
+                self._left[:-1] >= self._right[1:]  # type: ignore[operator]
+            ).all()
         )
 
     # ---------------------------------------------------------------------
