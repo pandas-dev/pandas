@@ -1,7 +1,4 @@
-from typing import (
-    List,
-    cast,
-)
+from typing import List
 
 import numpy as np
 
@@ -200,10 +197,9 @@ class ODFReader(BaseExcelReader):
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
             return pd.to_datetime(cell_value)
         elif cell_type == "time":
-            result = pd.to_datetime(str(cell))
-            result = cast(pd.Timestamp, result)
+            stamp = pd.to_datetime(str(cell))
             # error: Item "str" of "Union[float, str, NaTType]" has no attribute "time"
-            return result.time()  # type: ignore[union-attr]
+            return stamp.time()  # type: ignore[union-attr]
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")

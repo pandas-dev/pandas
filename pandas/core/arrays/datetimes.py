@@ -742,7 +742,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         assert isinstance(other, (datetime, np.datetime64))
         assert other is not NaT
         other = Timestamp(other)
-        if other is NaT:
+        # error: Non-overlapping identity check (left operand type: "Timestamp",
+        # right operand type: "NaTType")
+        if other is NaT:  # type: ignore[comparison-overlap]
             return self - NaT
 
         if not self._has_same_tz(other):
