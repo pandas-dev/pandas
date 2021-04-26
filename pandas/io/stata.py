@@ -21,6 +21,7 @@ from typing import (
     Any,
     AnyStr,
     Hashable,
+    Literal,
     Sequence,
     cast,
 )
@@ -767,7 +768,7 @@ class StataNonCatValueLabel(StataValueLabel):
         self,
         labname: str,
         value_labels: dict[float | int, str],
-        encoding: str = "latin-1",
+        encoding: Literal["latin-1", "utf-8"] = "latin-1",
     ):
 
         if encoding not in ("latin-1", "utf-8"):
@@ -2344,7 +2345,7 @@ class StataWriter(StataParser):
         for labname, labels in self._non_cat_value_labels.items():
             if labname not in data.columns:
                 # Value label should apply to a column
-                raise ValueError(
+                raise KeyError(
                     f"Can't create value labels for {labname}, it wasn't "
                     "found in the dataset."
                 )
@@ -3616,7 +3617,7 @@ class StataWriterUTF8(StataWriter117):
         time_stamp: datetime.datetime | None = None,
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
-        value_labels: dict[str, dict[float | int, str]] | None = None,
+        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
         convert_strl: Sequence[Hashable] | None = None,
         version: int | None = None,
         compression: CompressionOptions = "infer",

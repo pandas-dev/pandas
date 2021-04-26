@@ -2378,7 +2378,7 @@ class DataFrame(NDFrame, OpsMixin):
         time_stamp: datetime.datetime | None = None,
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
-        value_labels: dict[str, dict[float | int, str]] | None = None,
+        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
         version: int | None = 114,
         convert_strl: Sequence[Hashable] | None = None,
         compression: CompressionOptions = "infer",
@@ -2421,7 +2421,7 @@ class DataFrame(NDFrame, OpsMixin):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-        value_labels : dict
+        value_labels : dict of dicts
             Dictionary containing columns as keys and dictionaries of column value
             to labels as values. Labels for a single variable must be 32,000
             characters or smaller.
