@@ -15,7 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Regression in :func:`concat` between two :class:`DataFrames` where one has an :class:`Index` that is all-None and the other is :class:`DatetimeIndex` incorrectly raising (:issue:`40841`)
--
+- Regression in :func:`read_csv` when using ``memory_map=True`` with an non-UTF8 encoding (:issue:`40986`)
 -
 
 .. ---------------------------------------------------------------------------
