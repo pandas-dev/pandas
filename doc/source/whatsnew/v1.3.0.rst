@@ -707,7 +707,7 @@ Conversion
 - Bug in :meth:`StringArray.astype` falling back to numpy and raising when converting to ``dtype='categorical'`` (:issue:`40450`)
 - Bug in :func:`factorize` where, when given an array with a numeric numpy dtype lower than int64, uint64 and float64, the unique values did not keep their original dtype (:issue:`41132`)
 - Bug in :class:`DataFrame` construction with a dictionary containing an arraylike with ``ExtensionDtype`` and ``copy=True`` failing to make a copy (:issue:`38939`)
--
+- Bug in :meth:`qcut` raising error when taking ``Float64DType`` as input (:issue:`40730`)
 
 Strings
 ^^^^^^^
