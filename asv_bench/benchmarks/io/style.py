@@ -17,19 +17,19 @@ class Render:
 
     def time_apply_render(self, cols, rows):
         self._style_apply()
-        self.st.render()
+        self.st._render_html()
 
     def peakmem_apply_render(self, cols, rows):
         self._style_apply()
-        self.st.render()
+        self.st._render_html()
 
     def time_classes_render(self, cols, rows):
         self._style_classes()
-        self.st.render()
+        self.st._render_html()
 
     def peakmem_classes_render(self, cols, rows):
         self._style_classes()
-        self.st.render()
+        self.st._render_html()
 
     def _style_apply(self):
         def _apply_func(s):
