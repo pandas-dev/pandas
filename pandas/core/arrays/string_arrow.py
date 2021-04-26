@@ -39,6 +39,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
@@ -757,6 +758,69 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             #    or .findall returns a list).
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
+
+    def _str_isalnum(self):
+        if hasattr(pc, "utf8_is_alnum"):
+            result = pc.utf8_is_alnum(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isalnum()
+
+    def _str_isalpha(self):
+        if hasattr(pc, "utf8_is_alpha"):
+            result = pc.utf8_is_alpha(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isalpha()
+
+    def _str_isdecimal(self):
+        if hasattr(pc, "utf8_is_decimal"):
+            result = pc.utf8_is_decimal(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isdecimal()
+
+    def _str_isdigit(self):
+        if hasattr(pc, "utf8_is_digit"):
+            result = pc.utf8_is_digit(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isdigit()
+
+    def _str_islower(self):
+        if hasattr(pc, "utf8_is_lower"):
+            result = pc.utf8_is_lower(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_islower()
+
+    def _str_isnumeric(self):
+        if hasattr(pc, "utf8_is_numeric"):
+            result = pc.utf8_is_numeric(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isnumeric()
+
+    def _str_isspace(self):
+        if hasattr(pc, "utf8_is_space"):
+            result = pc.utf8_is_space(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isspace()
+
+    def _str_istitle(self):
+        if hasattr(pc, "utf8_is_title"):
+            result = pc.utf8_is_title(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_istitle()
+
+    def _str_isupper(self):
+        if hasattr(pc, "utf8_is_upper"):
+            result = pc.utf8_is_upper(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isupper()
 
     def _str_lower(self):
         return type(self)(pc.utf8_lower(self._data))
