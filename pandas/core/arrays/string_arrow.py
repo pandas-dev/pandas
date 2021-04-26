@@ -759,6 +759,16 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
+    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
+        if not regex and case:
+            result = pc.match_substring(self._data, pat)
+            result = BooleanDtype().__from_arrow__(result)
+            if not isna(na):
+                result[isna(result)] = bool(na)
+            return result
+        else:
+            return super()._str_contains(pat, case, flags, na, regex)
+
     def _str_isalnum(self):
         if hasattr(pc, "utf8_is_alnum"):
             result = pc.utf8_is_alnum(self._data)
