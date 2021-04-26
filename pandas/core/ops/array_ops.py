@@ -513,5 +513,5 @@ def _bool_arith_check(op, a, b):
         ):
             op_name = op.__name__.strip("_").lstrip("r")
             raise NotImplementedError(
-                f"operator {op_name} not implemented for bool dtypes"
+                f"operator '{op_name}' not implemented for bool dtypes"
             )
