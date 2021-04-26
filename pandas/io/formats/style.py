@@ -1008,7 +1008,7 @@ class Styler(StylerRenderer):
 
     def hide_values(self, subset, axis: Axis = "columns", show: bool = False) -> Styler:
         """
-        Hide (or explicitly show) columns or rows upon rendering.
+        Hide (or exclusively show) columns or rows upon rendering.
 
         Parameters
         ----------
@@ -1018,11 +1018,37 @@ class Styler(StylerRenderer):
         axis : {0 or 'index', 1 or 'columns'}
             Axis along which the ``subset`` is applied.
         show : bool
-            Indicates whether the supplied subset should be hidden, or explicitly shown.
+            Indicates whether the supplied subset should be hidden, or exclusively
+            shown.
 
         Returns
         -------
         self : Styler
+
+        Examples
+        --------
+        >>> df = DataFrame([[1, 2], [3, 4]], columns=["c1", "c2"], index=["i1", "i2"])
+        >>> df.style.hide_values("c1")
+             c2
+        i1    2
+        i2    4
+
+        >>> df.style.hide_values("i1", axis="index")
+             c1   c2
+        i2    3    4
+
+        >>> df.style.hide_values("i1", axis="index", show=True)
+             c1   c2
+        i1    1    2
+
+        >>> mcols = MultiIndex.from_product([["c1", "c2"], ["d1", "d2", "d3"]])
+        >>> data = np.arange(12).reshape((2,6))
+        >>> df = DataFrame(data, columns=mcols, index=["i1", "i2"])
+        >>> df.style.hide_values(subset=(slice(None), "d2":"d3"))
+            c1   c2
+            d1   d1
+        i1   0    6
+        i2   3    9
         """
         if axis in [0, "index"]:
             subset = IndexSlice[subset, :]
