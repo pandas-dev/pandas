@@ -50,90 +50,125 @@ class Construction:
 
 
 class Methods:
-    def setup(self):
-        self.s = Series(tm.makeStringIndex(10 ** 5))
+    params = ["str", "string", "arrow_string"]
+    param_names = ["dtype"]
 
-    def time_center(self):
+    def setup(self, dtype):
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+        try:
+            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
+        except ImportError:
+            raise NotImplementedError
+
+    def time_center(self, dtype):
         self.s.str.center(100)
 
-    def time_count(self):
+    def time_count(self, dtype):
         self.s.str.count("A")
 
-    def time_endswith(self):
+    def time_endswith(self, dtype):
         self.s.str.endswith("A")
 
-    def time_extract(self):
+    def time_extract(self, dtype):
         with warnings.catch_warnings(record=True):
             self.s.str.extract("(\\w*)A(\\w*)")
 
-    def time_findall(self):
+    def time_findall(self, dtype):
         self.s.str.findall("[A-Z]+")
 
-    def time_find(self):
+    def time_find(self, dtype):
         self.s.str.find("[A-Z]+")
 
-    def time_rfind(self):
+    def time_rfind(self, dtype):
         self.s.str.rfind("[A-Z]+")
 
-    def time_get(self):
+    def time_get(self, dtype):
         self.s.str.get(0)
 
-    def time_len(self):
+    def time_len(self, dtype):
         self.s.str.len()
 
-    def time_join(self):
+    def time_join(self, dtype):
         self.s.str.join(" ")
 
-    def time_match(self):
+    def time_match(self, dtype):
         self.s.str.match("A")
 
-    def time_normalize(self):
+    def time_normalize(self, dtype):
         self.s.str.normalize("NFC")
 
-    def time_pad(self):
+    def time_pad(self, dtype):
         self.s.str.pad(100, side="both")
 
-    def time_partition(self):
+    def time_partition(self, dtype):
         self.s.str.partition("A")
 
-    def time_rpartition(self):
+    def time_rpartition(self, dtype):
         self.s.str.rpartition("A")
 
-    def time_replace(self):
+    def time_replace(self, dtype):
         self.s.str.replace("A", "\x01\x01")
 
-    def time_translate(self):
+    def time_translate(self, dtype):
         self.s.str.translate({"A": "\x01\x01"})
 
-    def time_slice(self):
+    def time_slice(self, dtype):
         self.s.str.slice(5, 15, 2)
 
-    def time_startswith(self):
+    def time_startswith(self, dtype):
         self.s.str.startswith("A")
 
-    def time_strip(self):
+    def time_strip(self, dtype):
         self.s.str.strip("A")
 
-    def time_rstrip(self):
+    def time_rstrip(self, dtype):
         self.s.str.rstrip("A")
 
-    def time_lstrip(self):
+    def time_lstrip(self, dtype):
         self.s.str.lstrip("A")
 
-    def time_title(self):
+    def time_title(self, dtype):
         self.s.str.title()
 
-    def time_upper(self):
+    def time_upper(self, dtype):
         self.s.str.upper()
 
-    def time_lower(self):
+    def time_lower(self, dtype):
         self.s.str.lower()
 
-    def time_wrap(self):
+    def time_wrap(self, dtype):
         self.s.str.wrap(10)
 
-    def time_zfill(self):
+    def time_zfill(self, dtype):
         self.s.str.zfill(10)
+
+    def time_isalnum(self, dtype):
+        self.s.str.isalnum()
+
+    def time_isalpha(self, dtype):
+        self.s.str.isalpha()
+
+    def time_isdecimal(self, dtype):
+        self.s.str.isdecimal()
+
+    def time_isdigit(self, dtype):
+        self.s.str.isdigit()
+
+    def time_islower(self, dtype):
+        self.s.str.islower()
+
+    def time_isnumeric(self, dtype):
+        self.s.str.isnumeric()
+
+    def time_isspace(self, dtype):
+        self.s.str.isspace()
+
+    def time_istitle(self, dtype):
+        self.s.str.istitle()
+
+    def time_isupper(self, dtype):
+        self.s.str.isupper()
 
 
 class Repeat:
