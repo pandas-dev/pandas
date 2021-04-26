@@ -45,7 +45,7 @@ class TestDataFrameBlockInternals:
         ts = dti[1]
 
         df = DataFrame({"B": dti})
-        assert df["B"]._values.freq == "D"
+        assert df["B"]._values.freq is None
 
         df.iloc[1, 0] = pd.NaT
         assert df["B"]._values.freq is None
