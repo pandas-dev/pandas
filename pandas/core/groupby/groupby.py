@@ -1056,9 +1056,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         return result
 
-    def _wrap_aggregated_output(
-        self, output: Mapping[base.OutputKey, np.ndarray], index: Index | None
-    ):
+    def _wrap_aggregated_output(self, output: Mapping[base.OutputKey, np.ndarray]):
         raise AbstractMethodError(self)
 
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, ArrayLike]):
@@ -1259,7 +1257,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if not output:
             return self._python_apply_general(f, self._selected_obj)
 
-        return self._wrap_aggregated_output(output, index=self.grouper.result_index)
+        return self._wrap_aggregated_output(output)
 
     @final
     def _agg_general(
@@ -1791,7 +1789,25 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         DataFrame
             Open, high, low and close values within each group.
         """
-        return self._apply_to_column_groupbys(lambda x: x._cython_agg_general("ohlc"))
+        if self.obj.ndim == 1:
+            # self._iterate_slices() yields only self._selected_obj
+            obj = self._selected_obj
+
+            is_numeric = is_numeric_dtype(obj.dtype)
+            if not is_numeric:
+                raise DataError("No numeric types to aggregate")
+
+            res_values = self.grouper._cython_operation(
+                "aggregate", obj._values, "ohlc", axis=0, min_count=-1
+            )
+
+            agg_names = ["open", "high", "low", "close"]
+            result = self.obj._constructor_expanddim(
+                res_values, index=self.grouper.result_index, columns=agg_names
+            )
+            return self._reindex_output(result)
+
+        return self._apply_to_column_groupbys(lambda x: x.ohlc())
 
     @final
     @doc(DataFrame.describe)
@@ -2768,7 +2784,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             raise TypeError(error_msg)
 
         if aggregate:
-            return self._wrap_aggregated_output(output, index=self.grouper.result_index)
+            return self._wrap_aggregated_output(output)
         else:
             return self._wrap_transformed_output(output)
 
