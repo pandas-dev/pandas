@@ -1012,6 +1012,7 @@ class TestDataFrameConstructors:
         alt = DataFrame({name: data[name] for name in data.dtype.names}, dtype=int)
         tm.assert_frame_equal(result, alt)
 
+    @pytest.mark.slow
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
         # from GH3479
