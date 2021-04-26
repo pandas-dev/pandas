@@ -364,23 +364,25 @@ def test_match():
 
 def test_fullmatch():
     # GH 32806
-    values = Series(["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"])
-    result = values.str.fullmatch(".*BAD[_]+.*BAD")
-    exp = Series([True, False, np.nan, False])
-    tm.assert_series_equal(result, exp)
+    ser = Series(["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"])
+    result = ser.str.fullmatch(".*BAD[_]+.*BAD")
+    expected = Series([True, False, np.nan, False])
+    tm.assert_series_equal(result, expected)
 
-    # Make sure that the new string arrays work
-    string_values = Series(
-        ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype="string"
-    )
-    result = string_values.str.fullmatch(".*BAD[_]+.*BAD")
-    # Result is nullable boolean with StringDtype
-    string_exp = Series([True, False, np.nan, False], dtype="boolean")
-    tm.assert_series_equal(result, string_exp)
-
-    values = Series(["ab", "AB", "abc", "ABC"])
-    result = values.str.fullmatch("ab", case=False)
+    ser = Series(["ab", "AB", "abc", "ABC"])
+    result = ser.str.fullmatch("ab", case=False)
     expected = Series([True, True, False, False])
+    tm.assert_series_equal(result, expected)
+
+
+def test_fullmatch_nullable_string_dtype(nullable_string_dtype):
+    ser = Series(
+        ["fooBAD__barBAD", "BAD_BADleroybrown", None, "foo"],
+        dtype=nullable_string_dtype,
+    )
+    result = ser.str.fullmatch(".*BAD[_]+.*BAD")
+    # Result is nullable boolean
+    expected = Series([True, False, np.nan, False], dtype="boolean")
     tm.assert_series_equal(result, expected)
 
 
