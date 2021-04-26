@@ -249,7 +249,6 @@ def test_pickle_options(fsspectest):
     tm.assert_frame_equal(df, out)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) JSON
 def test_json_options(fsspectest, compression):
     df = DataFrame({"a": [0]})
     df.to_json(
