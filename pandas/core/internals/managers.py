@@ -1153,6 +1153,30 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         values = block.iget(self.blklocs[i])
         return values
 
+    @property
+    def column_arrays(self) -> list[np.ndarray]:
+        """
+        Used in the JSON C code to access column arrays.
+        This optimizes compared to using `iget_values` by converting each
+        block.values to a np.ndarray only once up front
+        """
+        # special casing datetimetz to avoid conversion through object dtype
+        arrays = [
+            blk.values._ndarray
+            if isinstance(blk, DatetimeTZBlock)
+            else np.asarray(blk.values)
+            for blk in self.blocks
+        ]
+        result = []
+        for i in range(len(self.items)):
+            arr = arrays[self.blknos[i]]
+            if arr.ndim == 2:
+                values = arr[self.blklocs[i]]
+            else:
+                values = arr
+            result.append(values)
+        return result
+
     def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not

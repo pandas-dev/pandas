@@ -857,8 +857,6 @@ class TestPandasContainer:
         result = read_json(dumps(data))[["id", infer_word]]
         tm.assert_frame_equal(result, expected)
 
-    # TODO(ArrayManager) JSON
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize(
         "date,date_unit",
         [

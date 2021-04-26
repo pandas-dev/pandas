@@ -226,13 +226,6 @@ class Block(PandasObject):
         # expected "ndarray")
         return self.values  # type: ignore[return-value]
 
-    def get_block_values_for_json(self) -> np.ndarray:
-        """
-        This is used in the JSON C code.
-        """
-        # TODO(EA2D): reshape will be unnecessary with 2D EAs
-        return np.asarray(self.values).reshape(self.shape)
-
     @final
     @cache_readonly
     def fill_value(self):
@@ -1777,10 +1770,6 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     __slots__ = ()
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
-
-    def get_block_values_for_json(self):
-        # Not necessary to override, but helps perf
-        return self.values._ndarray
 
 
 class DatetimeTZBlock(DatetimeLikeBlock):
