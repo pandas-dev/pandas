@@ -258,6 +258,15 @@ class TestSetitemCoercion(CoercionBase):
         )
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
+    def test_setitem_series_no_coercion_from_values_list(self):
+        # GH35865 - int casted to str when internally calling np.array(ser.values)
+        ser = pd.Series(["a", 1])
+        ser[:] = list(ser.values)
+
+        expected = pd.Series(["a", 1])
+
+        tm.assert_series_equal(ser, expected)
+
     def _assert_setitem_index_conversion(
         self, original_series, loc_key, expected_index, expected_dtype
     ):
