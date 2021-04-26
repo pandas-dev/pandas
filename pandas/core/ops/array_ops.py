@@ -26,6 +26,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_object,
+    get_dtype,
     is_bool_dtype,
     is_integer_dtype,
     is_list_like,
@@ -487,14 +488,28 @@ _BOOL_OP_NOT_ALLOWED = {
 }
 
 
+def _is_bool_dtype(arr_or_dtype):
+    # version of the common is_bool_dtype that only checks for numpy bool
+    # and not for boolean EA
+    if arr_or_dtype is None:
+        return False
+    try:
+        dtype = get_dtype(arr_or_dtype)
+    except (TypeError, ValueError):
+        return False
+    return isinstance(dtype, np.dtype) and dtype.kind == "b"
+
+
 def _bool_arith_check(op, a, b):
     """
     In contrast to numpy, pandas raises an error for certain operations
     with booleans.
     """
     if op in _BOOL_OP_NOT_ALLOWED:
-        if is_bool_dtype(a.dtype) and (
-            is_bool_dtype(b) or isinstance(b, (bool, np.bool_))
+        # TODO we should handle EAs consistently
+        # and replace `_is_bool_dtype` with `is_bool_dtype`
+        if _is_bool_dtype(a.dtype) and (
+            _is_bool_dtype(b) or isinstance(b, (bool, np.bool_))
         ):
             op_name = op.__name__.strip("_").lstrip("r")
             raise NotImplementedError(
