@@ -231,6 +231,9 @@ class PyArrowImpl(BaseImpl):
                     "'use_nullable_dtypes=True' is only supported for pyarrow >= 0.16 "
                     f"({self.api.__version__} is installed"
                 )
+        manager = get_option("mode.data_manager")
+        if manager == "array":
+            to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
 
         path_or_handle, handles, kwargs["filesystem"] = _get_path_or_handle(
             path,
@@ -239,9 +242,12 @@ class PyArrowImpl(BaseImpl):
             mode="rb",
         )
         try:
-            return self.api.parquet.read_table(
+            result = self.api.parquet.read_table(
                 path_or_handle, columns=columns, **kwargs
             ).to_pandas(**to_pandas_kwargs)
+            if manager == "array":
+                result = result._as_manager("array", copy=False)
+            return result
         finally:
             if handles is not None:
                 handles.close()

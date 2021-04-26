@@ -286,13 +286,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         object.__setattr__(obj, "_attrs", {})
         return obj
 
-    def _as_manager(self: FrameOrSeries, typ: str) -> FrameOrSeries:
+    def _as_manager(
+        self: FrameOrSeries, typ: str, copy: bool_t = True
+    ) -> FrameOrSeries:
         """
         Private helper function to create a DataFrame with specific manager.
 
         Parameters
         ----------
         typ : {"block", "array"}
+        copy : bool, default True
+            Only controls whether the conversion from Block->ArrayManager
+            copies the 1D arrays (to ensure proper/contiguous memory layout).
 
         Returns
         -------
@@ -301,7 +306,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             to be a copy or not.
         """
         new_mgr: Manager
-        new_mgr = mgr_to_mgr(self._mgr, typ=typ)
+        new_mgr = mgr_to_mgr(self._mgr, typ=typ, copy=copy)
         # fastpath of passing a manager doesn't check the option/manager class
         return self._constructor(new_mgr).__finalize__(self)
 

@@ -9,6 +9,8 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
+from pandas._config import get_option
+
 from pandas.compat import (
     PY38,
     is_platform_windows,
@@ -41,12 +43,12 @@ except ImportError:
     _HAVE_FASTPARQUET = False
 
 
-pytestmark = [
-    pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning"),
-    # TODO(ArrayManager) fastparquet / pyarrow rely on BlockManager internals
-    td.skip_array_manager_not_yet_implemented,
-]
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
+)
 
+
+# TODO(ArrayManager) fastparquet relies on BlockManager internals
 
 # setup engines & skips
 @pytest.fixture(
@@ -54,7 +56,8 @@ pytestmark = [
         pytest.param(
             "fastparquet",
             marks=pytest.mark.skipif(
-                not _HAVE_FASTPARQUET, reason="fastparquet is not installed"
+                not _HAVE_FASTPARQUET or get_option("mode.data_manager") == "array",
+                reason="fastparquet is not installed or ArrayManager is used",
             ),
         ),
         pytest.param(
@@ -80,6 +83,8 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
+    elif get_option("mode.data_manager") == "array":
+        pytest.skip("ArrayManager is not supported with fastparquet")
     return "fastparquet"
 
 
@@ -922,6 +927,18 @@ class TestParquetPyArrow(Base):
                 path, pa, filters=[("a", "==", 0)], use_legacy_dataset=False
             )
         assert len(result) == 1
+
+    def test_read_parquet_manager(self, pa, using_array_manager):
+        # ensure that read_parquet honors the pandas.options.mode.data_manager option
+        df = pd.DataFrame(np.random.randn(10, 3), columns=["A", "B", "C"])
+
+        with tm.ensure_clean() as path:
+            df.to_parquet(path, pa)
+            result = read_parquet(path, pa)
+        if using_array_manager:
+            assert isinstance(result._mgr, pd.core.internals.ArrayManager)
+        else:
+            assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
 
 class TestParquetFastParquet(Base):
