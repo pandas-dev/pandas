@@ -275,7 +275,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except (ValueError, KeyError):
+            except KeyError:
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
@@ -553,6 +553,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         results = []
         for name, group in self:
+            # this setattr is needed for test_transform_lambda_with_datetimetz
             object.__setattr__(group, "name", name)
             res = func(group, *args, **kwargs)
 
