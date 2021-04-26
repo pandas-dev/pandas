@@ -2165,7 +2165,10 @@ class MultiIndex(Index):
             arrays = []
             for i in range(self.nlevels):
                 label = self._get_level_values(i)
-                appended = [o._get_level_values(i) for o in other]
+                if label.names[0]:
+                    appended = [o._get_level_values(o.names.index(label.names[0])) for o in other]
+                else:
+                    appended = [o._get_level_values(i) for o in other]
                 arrays.append(label.append(appended))
             return MultiIndex.from_arrays(arrays, names=self.names)
 

@@ -1311,3 +1311,17 @@ def test_dropna(fill_value):
     df = pd.DataFrame({"a": [0, 1], "b": arr})
     expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Int64Index([1]))
     tm.assert_equal(df.dropna(), expected_df)
+
+
+def test_maxmin():
+    data = np.arange(10).astype(float)
+    max_out = SparseArray(data).max()
+    min_out = SparseArray(data).min()
+    assert max_out == 9
+    assert min_out == 0
+
+    data = data*(-1)
+    max_out = SparseArray(data).max()
+    min_out = SparseArray(data).min()
+    assert max_out == 0
+    assert min_out == -9
