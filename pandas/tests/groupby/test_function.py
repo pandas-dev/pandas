@@ -22,20 +22,31 @@ from pandas.util import _test_decorators as td
 
 
 @pytest.fixture(
-    params=[np.int32, np.int64, np.float32, np.float64],
-    ids=["np.int32", "np.int64", "np.float32", "np.float64"],
+    params=[np.int32, np.int64, np.float32, np.float64, "Int64", "Float64"],
+    ids=["np.int32", "np.int64", "np.float32", "np.float64", "Int64", "Float64"],
 )
-def numpy_dtypes_for_minmax(request):
+def dtypes_for_minmax(request):
     """
-    Fixture of numpy dtypes with min and max values used for testing
+    Fixture of dtypes with min and max values used for testing
     cummin and cummax
     """
     dtype = request.param
+
+    np_type = dtype
+    if dtype == "Int64":
+        np_type = np.int64
+    elif dtype == "Float64":
+        np_type = np.float64
+
     min_val = (
-        np.iinfo(dtype).min if np.dtype(dtype).kind == "i" else np.finfo(dtype).min
+        np.iinfo(np_type).min
+        if np.dtype(np_type).kind == "i"
+        else np.finfo(np_type).min
     )
     max_val = (
-        np.iinfo(dtype).max if np.dtype(dtype).kind == "i" else np.finfo(dtype).max
+        np.iinfo(np_type).max
+        if np.dtype(np_type).kind == "i"
+        else np.finfo(np_type).max
     )
 
     return (dtype, min_val, max_val)
@@ -495,6 +506,8 @@ def test_idxmin_idxmax_returns_int_types(func, values):
     df["c_date_tz"] = df["c_date"].dt.tz_localize("US/Pacific")
     df["c_timedelta"] = df["c_date"] - df["c_date"].iloc[0]
     df["c_period"] = df["c_date"].dt.to_period("W")
+    df["c_Integer"] = df["c_int"].astype("Int64")
+    df["c_Floating"] = df["c_float"].astype("Float64")
 
     result = getattr(df.groupby("name"), func)()
 
@@ -502,6 +515,8 @@ def test_idxmin_idxmax_returns_int_types(func, values):
     expected["c_date_tz"] = expected["c_date"]
     expected["c_timedelta"] = expected["c_date"]
     expected["c_period"] = expected["c_date"]
+    expected["c_Integer"] = expected["c_int"]
+    expected["c_Floating"] = expected["c_float"]
 
     tm.assert_frame_equal(result, expected)
 
@@ -723,9 +738,9 @@ def test_numpy_compat(func):
         getattr(g, func)(foo=1)
 
 
-def test_cummin(numpy_dtypes_for_minmax):
-    dtype = numpy_dtypes_for_minmax[0]
-    min_val = numpy_dtypes_for_minmax[1]
+def test_cummin(dtypes_for_minmax):
+    dtype = dtypes_for_minmax[0]
+    min_val = dtypes_for_minmax[1]
 
     # GH 15048
     base_df = DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [3, 4, 3, 2, 2, 3, 2, 1]})
@@ -771,19 +786,24 @@ def test_cummin(numpy_dtypes_for_minmax):
     tm.assert_series_equal(result, expected)
 
 
-def test_cummin_all_nan_column():
+@pytest.mark.parametrize("method", ["cummin", "cummax"])
+@pytest.mark.parametrize("dtype", ["UInt64", "Int64", "Float64", "float", "boolean"])
+def test_cummin_max_all_nan_column(method, dtype):
     base_df = DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
+    base_df["B"] = base_df["B"].astype(dtype)
+    grouped = base_df.groupby("A")
 
-    expected = DataFrame({"B": [np.nan] * 8})
-    result = base_df.groupby("A").cummin()
+    expected = DataFrame({"B": [np.nan] * 8}, dtype=dtype)
+    result = getattr(grouped, method)()
     tm.assert_frame_equal(expected, result)
-    result = base_df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
+
+    result = getattr(grouped["B"], method)().to_frame()
     tm.assert_frame_equal(expected, result)
 
 
-def test_cummax(numpy_dtypes_for_minmax):
-    dtype = numpy_dtypes_for_minmax[0]
-    max_val = numpy_dtypes_for_minmax[2]
+def test_cummax(dtypes_for_minmax):
+    dtype = dtypes_for_minmax[0]
+    max_val = dtypes_for_minmax[2]
 
     # GH 15048
     base_df = DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [3, 4, 3, 2, 2, 3, 2, 1]})
@@ -827,14 +847,20 @@ def test_cummax(numpy_dtypes_for_minmax):
     tm.assert_series_equal(result, expected)
 
 
-def test_cummax_all_nan_column():
-    base_df = DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
+@td.skip_if_32bit
+@pytest.mark.parametrize("method", ["cummin", "cummax"])
+@pytest.mark.parametrize(
+    "dtype,val", [("UInt64", np.iinfo("uint64").max), ("Int64", 2 ** 53 + 1)]
+)
+def test_nullable_int_not_cast_as_float(method, dtype, val):
+    data = [val, pd.NA]
+    df = DataFrame({"grp": [1, 1], "b": data}, dtype=dtype)
+    grouped = df.groupby("grp")
 
-    expected = DataFrame({"B": [np.nan] * 8})
-    result = base_df.groupby("A").cummax()
-    tm.assert_frame_equal(expected, result)
-    result = base_df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
-    tm.assert_frame_equal(expected, result)
+    result = grouped.transform(method)
+    expected = DataFrame({"b": data}, dtype=dtype)
+
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
