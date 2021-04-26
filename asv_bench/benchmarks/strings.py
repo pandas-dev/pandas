@@ -213,13 +213,18 @@ class Cat:
 
 class Contains:
 
-    params = [True, False]
-    param_names = ["regex"]
+    params = (["str", "string", "arrow_string"], [True, False])
+    param_names = ["dtype", "regex"]
 
-    def setup(self, regex):
-        self.s = Series(tm.makeStringIndex(10 ** 5))
+    def setup(self, dtype, regex):
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
 
-    def time_contains(self, regex):
+        try:
+            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
+        except ImportError:
+            raise NotImplementedError
+
+    def time_contains(self, dtype, regex):
         self.s.str.contains("A", regex=regex)
 
 
