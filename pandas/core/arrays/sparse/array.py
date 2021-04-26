@@ -1391,6 +1391,26 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
+            
+            
+    def max(self, axis=0, *args, **kwargs):
+
+        nv.validate_max(args, kwargs)
+
+        if self.sp_index.ngaps > 0 and np.all(self._valid_sp_values < 0):
+            return 0
+        else:
+            return np.amax(self._valid_sp_values, axis)
+
+
+    def min(self, axis=0, *args, **kwargs):
+
+        nv.validate_min(args, kwargs)
+
+        if self.sp_index.ngaps > 0 and np.all(self._valid_sp_values > 0):
+            return 0
+        else:
+            return np.amin(self._valid_sp_values, axis)
 
     # ------------------------------------------------------------------------
     # Ufuncs
