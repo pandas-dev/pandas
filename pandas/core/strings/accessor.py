@@ -3002,8 +3002,9 @@ def _result_dtype(arr):
     # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
     # when the list of values is empty.
     from pandas.core.arrays.string_ import StringDtype
+    from pandas.core.arrays.string_arrow import ArrowStringDtype
 
-    if isinstance(arr.dtype, StringDtype):
+    if isinstance(arr.dtype, (StringDtype, ArrowStringDtype)):
         return arr.dtype.name
     else:
         return object
