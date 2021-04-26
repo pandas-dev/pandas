@@ -84,6 +84,7 @@ ArrayConvertible = Union[List, Tuple, AnyArrayLike, "Series"]
 Scalar = Union[int, float, str]
 DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
+start_caching_at = 50
 
 
 # ---------------------------------------------------------------------
@@ -130,7 +131,7 @@ def should_cache(
     # default realization
     if check_count is None:
         # in this case, the gain from caching is negligible
-        if len(arg) <= 50:
+        if len(arg) <= start_caching_at:
             return False
 
         if len(arg) <= 5000:
@@ -193,6 +194,9 @@ def _maybe_cache(
         if len(unique_dates) < len(arg):
             cache_dates = convert_listlike(unique_dates, format)
             cache_array = Series(cache_dates, index=unique_dates)
+            if not cache_array.is_unique:
+                # GH#39882 in case of None and NaT we get duplicates
+                cache_array = cache_array.drop_duplicates()
     return cache_array
 
 
@@ -624,16 +628,16 @@ def _adjust_to_origin(arg, origin, unit):
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
-        offset -= Timestamp(0)
+        td_offset = offset - Timestamp(0)
 
         # convert the offset to the unit of the arg
         # this should be lossless in terms of precision
-        offset = offset // Timedelta(1, unit=unit)
+        ioffset = td_offset // Timedelta(1, unit=unit)
 
         # scalars & ndarray-like can handle the addition
         if is_list_like(arg) and not isinstance(arg, (ABCSeries, Index, np.ndarray)):
             arg = np.asarray(arg)
-        arg = arg + offset
+        arg = arg + ioffset
     return arg
 
 
@@ -851,8 +855,19 @@ def to_datetime(
 
     >>> pd.to_datetime([1, 2, 3], unit='D',
     ...                origin=pd.Timestamp('1960-01-01'))
-    DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'], \
-dtype='datetime64[ns]', freq=None)
+    DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
+                  dtype='datetime64[ns]', freq=None)
+
+    In case input is list-like and the elements of input are of mixed
+    timezones, return will have object type Index if utc=False.
+
+    >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'])
+    Index([2018-10-26 12:00:00-05:30, 2018-10-26 12:00:00-05:00], dtype='object')
+
+    >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'],
+    ...                utc=True)
+    DatetimeIndex(['2018-10-26 17:30:00+00:00', '2018-10-26 17:00:00+00:00'],
+                  dtype='datetime64[ns, UTC]', freq=None)
     """
     if arg is None:
         return None
@@ -872,13 +887,17 @@ dtype='datetime64[ns]', freq=None)
         infer_datetime_format=infer_datetime_format,
     )
 
+    result: Timestamp | NaTType | Series | Index
+
     if isinstance(arg, Timestamp):
         result = arg
         if tz is not None:
             if arg.tz is not None:
-                result = result.tz_convert(tz)
+                # error: Too many arguments for "tz_convert" of "NaTType"
+                result = result.tz_convert(tz)  # type: ignore[call-arg]
             else:
-                result = result.tz_localize(tz)
+                # error: Too many arguments for "tz_localize" of "NaTType"
+                result = result.tz_localize(tz)  # type: ignore[call-arg]
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
@@ -913,7 +932,10 @@ dtype='datetime64[ns]', freq=None)
     else:
         result = convert_listlike(np.array([arg]), format)[0]
 
-    return result
+    #  error: Incompatible return value type (got "Union[Timestamp, NaTType,
+    # Series, Index]", expected "Union[DatetimeIndex, Series, float, str,
+    # NaTType, None]")
+    return result  # type: ignore[return-value]
 
 
 # mappings for assembling units

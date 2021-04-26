@@ -13,6 +13,7 @@ from typing import (
     Sequence,
     TypeVar,
     cast,
+    overload,
 )
 import warnings
 
@@ -159,6 +160,8 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas import (
         CategoricalIndex,
         DataFrame,
@@ -3026,9 +3029,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _wrap_setop_result(self, other: Index, result) -> Index:
-        if is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
-            result = Categorical(result, dtype=self.dtype)
-
         name = get_op_result_name(self, other)
         if isinstance(result, Index):
             if result.name != name:
@@ -4025,7 +4025,7 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, lindexer, rindexer
 
     @final
-    def _join_multi(self, other, how):
+    def _join_multi(self, other: Index, how: str_t):
         from pandas.core.indexes.multi import MultiIndex
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
@@ -4270,7 +4270,7 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, left_indexer, right_indexer
 
     @final
-    def _join_monotonic(self, other: Index, how="left"):
+    def _join_monotonic(self, other: Index, how: str_t = "left"):
         # We only get here with matching dtypes
         assert other.dtype == self.dtype
 
@@ -5212,7 +5212,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
+    def get_indexer_non_unique(self, target) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
         target = ensure_index(target)
 
         if not self._should_compare(target) and not is_interval_dtype(self.dtype):
@@ -5236,7 +5237,7 @@ class Index(IndexOpsMixin, PandasObject):
         tgt_values = target._get_engine_target()
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
-        return ensure_platform_int(indexer), missing
+        return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @final
     def get_indexer_for(self, target, **kwargs) -> np.ndarray:
@@ -5256,8 +5257,31 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
+    @overload
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: Literal[True] = ...
+    ) -> np.ndarray:
+        # returned ndarray is np.intp
+        ...
+
+    @overload
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: Literal[False]
+    ) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
+        ...
+
+    @overload
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: bool = True
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+        # any returned ndarrays are np.intp
+        ...
+
     @final
-    def _get_indexer_non_comparable(self, target: Index, method, unique: bool = True):
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: bool = True
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         """
         Called from get_indexer or get_indexer_non_unique when the target
         is of a non-comparable dtype.
@@ -5500,7 +5524,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        is_contained : ndarray[bool]
+        np.ndarray[bool]
             NumPy array of boolean values.
 
         See Also
