@@ -34,6 +34,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_datetime64tz_dtype,
+    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_integer_dtype,
@@ -60,6 +61,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
 )
@@ -316,9 +318,29 @@ def ndarray_to_mgr(
     index, columns = _get_axes(
         values.shape[0], values.shape[1], index=index, columns=columns
     )
-    values = values.T
 
     _check_values_indices_shape_match(values, index, columns)
+
+    if typ == "array":
+
+        if issubclass(values.dtype.type, str):
+            values = np.array(values, dtype=object)
+
+        if dtype is None and is_object_dtype(values.dtype):
+            arrays = [
+                ensure_wrapped_if_datetimelike(
+                    maybe_infer_to_datetimelike(values[:, i].copy())
+                )
+                for i in range(values.shape[1])
+            ]
+        else:
+            if is_datetime_or_timedelta_dtype(values.dtype):
+                values = ensure_wrapped_if_datetimelike(values)
+            arrays = [values[:, i].copy() for i in range(values.shape[1])]
+
+        return ArrayManager(arrays, [index, columns], verify_integrity=False)
+
+    values = values.T
 
     # if we don't have a dtype specified, then try to convert objects
     # on the entire block; this is to convert if we have datetimelike's
@@ -358,13 +380,13 @@ def _check_values_indices_shape_match(
     Check that the shape implied by our axes matches the actual shape of the
     data.
     """
-    if values.shape[0] != len(columns):
+    if values.shape[1] != len(columns) or values.shape[0] != len(index):
         # Could let this raise in Block constructor, but we get a more
         #  helpful exception message this way.
-        if values.shape[1] == 0:
+        if values.shape[0] == 0:
             raise ValueError("Empty data passed with indices specified.")
 
-        passed = values.T.shape
+        passed = values.shape
         implied = (len(index), len(columns))
         raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
