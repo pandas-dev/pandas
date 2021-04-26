@@ -17,7 +17,6 @@ from pandas import (
     Index,
     Int64Index,
     MultiIndex,
-    RangeIndex,
     Series,
     TimedeltaIndex,
     Timestamp,
@@ -29,12 +28,10 @@ from pandas.api.types import (
     pandas_dtype,
 )
 
-COMPATIBLE_INCONSISTENT_PAIRS = {
-    (Int64Index, RangeIndex): (tm.makeIntIndex, tm.makeRangeIndex),
-    (Float64Index, Int64Index): (tm.makeFloatIndex, tm.makeIntIndex),
-    (Float64Index, RangeIndex): (tm.makeFloatIndex, tm.makeIntIndex),
-    (Float64Index, UInt64Index): (tm.makeFloatIndex, tm.makeUIntIndex),
-}
+COMPATIBLE_INCONSISTENT_PAIRS = [
+    (np.float64, np.int64),
+    (np.float64, np.uint64),
+]
 
 
 def test_union_same_types(index):
@@ -51,7 +48,7 @@ def test_union_different_types(index_flat, index_flat2):
     idx1 = index_flat
     idx2 = index_flat2
 
-    type_pair = tuple(sorted([type(idx1), type(idx2)], key=lambda x: str(x)))
+    type_pair = tuple(sorted([idx1.dtype.type, idx2.dtype.type], key=lambda x: str(x)))
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
@@ -80,7 +77,15 @@ def test_union_different_types(index_flat, index_flat2):
         raise NotImplementedError
 
 
-@pytest.mark.parametrize("idx_fact1,idx_fact2", COMPATIBLE_INCONSISTENT_PAIRS.values())
+@pytest.mark.parametrize(
+    "idx_fact1,idx_fact2",
+    [
+        (tm.makeIntIndex, tm.makeRangeIndex),
+        (tm.makeFloatIndex, tm.makeIntIndex),
+        (tm.makeFloatIndex, tm.makeRangeIndex),
+        (tm.makeFloatIndex, tm.makeUIntIndex),
+    ],
+)
 def test_compatible_inconsistent_pairs(idx_fact1, idx_fact2):
     # GH 23525
     idx1 = idx_fact1(10)
