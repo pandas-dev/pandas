@@ -26,7 +26,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_object,
-    get_dtype,
     is_bool_dtype,
     is_integer_dtype,
     is_list_like,
@@ -202,12 +201,14 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
     right = _maybe_upcast_for_op(right, left.shape)
 
-    _bool_arith_check(op, left, right)
-
     if should_extension_dispatch(left, right) or isinstance(right, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
         res_values = op(left, right)
     else:
+        # TODO we should handle EAs consistently and move this check before the if/else
+        # (https://github.com/pandas-dev/pandas/issues/41165)
+        _bool_arith_check(op, left, right)
+
         res_values = _na_arithmetic_op(left, right, op)
 
     return res_values
@@ -488,28 +489,14 @@ _BOOL_OP_NOT_ALLOWED = {
 }
 
 
-def _is_bool_dtype(arr_or_dtype):
-    # version of the common is_bool_dtype that only checks for numpy bool
-    # and not for boolean EA
-    if arr_or_dtype is None:
-        return False
-    try:
-        dtype = get_dtype(arr_or_dtype)
-    except (TypeError, ValueError):
-        return False
-    return isinstance(dtype, np.dtype) and dtype.kind == "b"
-
-
 def _bool_arith_check(op, a, b):
     """
     In contrast to numpy, pandas raises an error for certain operations
     with booleans.
     """
     if op in _BOOL_OP_NOT_ALLOWED:
-        # TODO we should handle EAs consistently
-        # and replace `_is_bool_dtype` with `is_bool_dtype`
-        if _is_bool_dtype(a.dtype) and (
-            _is_bool_dtype(b) or isinstance(b, (bool, np.bool_))
+        if is_bool_dtype(a.dtype) and (
+            is_bool_dtype(b) or isinstance(b, (bool, np.bool_))
         ):
             op_name = op.__name__.strip("_").lstrip("r")
             raise NotImplementedError(
