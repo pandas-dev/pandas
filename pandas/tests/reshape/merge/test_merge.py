@@ -2409,3 +2409,40 @@ def test_merge_result_empty_index_and_on():
 
     result = merge(df2, df1, left_index=True, right_on=["b"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_suffixes_produce_dup_columns_warns():
+    # GH#22818
+    left = DataFrame({"a": [1, 2, 3], "b": 1, "b_x": 2})
+    right = DataFrame({"a": [1, 2, 3], "b": 2})
+    expected = DataFrame(
+        [[1, 1, 2, 2], [2, 1, 2, 2], [3, 1, 2, 2]], columns=["a", "b_x", "b_x", "b_y"]
+    )
+    with tm.assert_produces_warning(FutureWarning):
+        result = merge(left, right, on="a")
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        merge(right, left, on="a", suffixes=("_y", "_x"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_duplicate_columns_with_suffix_no_warning():
+    # GH#22818
+    # Do not raise warning when duplicates are caused by duplicates in origin
+    left = DataFrame([[1, 1, 1], [2, 2, 2]], columns=["a", "b", "b"])
+    right = DataFrame({"a": [1, 3], "b": 2})
+    result = merge(left, right, on="a")
+    expected = DataFrame([[1, 1, 1, 2]], columns=["a", "b_x", "b_x", "b_y"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_duplicate_columns_with_suffix_causing_another_duplicate():
+    # GH#22818
+    # This should raise warning because suffixes cause another collision
+    left = DataFrame([[1, 1, 1, 1], [2, 2, 2, 2]], columns=["a", "b", "b", "b_x"])
+    right = DataFrame({"a": [1, 3], "b": 2})
+    with tm.assert_produces_warning(FutureWarning):
+        result = merge(left, right, on="a")
+    expected = DataFrame([[1, 1, 1, 1, 2]], columns=["a", "b_x", "b_x", "b_x", "b_y"])
+    tm.assert_frame_equal(result, expected)
