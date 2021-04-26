@@ -73,7 +73,9 @@ cdef inline float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x) nogi
     cdef:
         float64_t result
 
-    if nobs >= minp:
+    if nobs == 0 == minp:
+        result = 0
+    elif nobs >= minp:
         result = sum_x
     else:
         result = NaN
@@ -170,7 +172,7 @@ cdef inline float64_t calc_mean(int64_t minp, Py_ssize_t nobs,
     cdef:
         float64_t result
 
-    if nobs >= minp:
+    if nobs >= minp and nobs > 0:
         result = sum_x / <float64_t>nobs
         if neg_ct == 0 and result < 0:
             # all positive
@@ -1485,8 +1487,7 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
     com : float64
     adjust : bool
     ignore_na : bool
-    times : ndarray (float64 type)
-    halflife : float64
+    deltas : ndarray (float64 type)
 
     Returns
     -------
@@ -1495,7 +1496,7 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
 
     cdef:
         Py_ssize_t i, j, s, e, nobs, win_size, N = len(vals), M = len(start)
-        const float64_t[:] sub_vals
+        const float64_t[:] sub_deltas, sub_vals
         ndarray[float64_t] sub_output, output = np.empty(N, dtype=float)
         float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
         bint is_observation
@@ -1511,6 +1512,9 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
         s = start[j]
         e = end[j]
         sub_vals = vals[s:e]
+        # note that len(deltas) = len(vals) - 1 and deltas[i] is to be used in
+        # conjunction with vals[i+1]
+        sub_deltas = deltas[s:e - 1]
         win_size = len(sub_vals)
         sub_output = np.empty(win_size, dtype=float)
 
@@ -1528,7 +1532,7 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
                 if weighted_avg == weighted_avg:
 
                     if is_observation or not ignore_na:
-                        old_wt *= old_wt_factor ** deltas[i - 1]
+                        old_wt *= old_wt_factor ** sub_deltas[i - 1]
                         if is_observation:
 
                             # avoid numerical errors on constant series
