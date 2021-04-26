@@ -1089,6 +1089,9 @@ class BinGrouper(BaseGrouper):
             # preempt SeriesBinGrouper from raising TypeError
             return self._aggregate_series_pure_python(obj, func)
 
+        elif obj.index._has_complex_internals:
+            return self._aggregate_series_pure_python(obj, func)
+
         grouper = libreduction.SeriesBinGrouper(obj, func, self.bins)
         return grouper.get_result()
 
