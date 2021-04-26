@@ -67,6 +67,7 @@ class TestPDApi(Base):
         "HDFStore",
         "Index",
         "Int64Index",
+        "NumIndex",
         "MultiIndex",
         "Period",
         "PeriodIndex",
