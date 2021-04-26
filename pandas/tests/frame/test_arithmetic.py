@@ -174,9 +174,19 @@ class TestFrameComparisons:
                 with pytest.raises(TypeError, match=msg):
                     right_f(pd.Timestamp("20010109"), df)
             # nats
-            expected = left_f(df, pd.Timestamp("nat"))
-            result = right_f(pd.Timestamp("nat"), df)
-            tm.assert_frame_equal(result, expected)
+            if left in ["eq", "ne"]:
+                expected = left_f(df, pd.Timestamp("nat"))
+                result = right_f(pd.Timestamp("nat"), df)
+                tm.assert_frame_equal(result, expected)
+            else:
+                msg = (
+                    "'(<|>)=?' not supported between "
+                    "instances of 'numpy.ndarray' and 'NaTType'"
+                )
+                with pytest.raises(TypeError, match=msg):
+                    left_f(df, pd.Timestamp("nat"))
+                with pytest.raises(TypeError, match=msg):
+                    right_f(pd.Timestamp("nat"), df)
 
     def test_mixed_comparison(self):
         # GH#13128, GH#22163 != datetime64 vs non-dt64 should be False,
