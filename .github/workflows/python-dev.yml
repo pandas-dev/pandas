@@ -11,6 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    name: actions-310-dev
 
     steps:
     - uses: actions/checkout@v2
@@ -27,7 +28,7 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
         pip install git+https://github.com/numpy/numpy.git
         pip install git+https://github.com/pytest-dev/pytest.git
-        pip install cython python-dateutil pytz pytest-xdist hypothesis
+        pip install cython python-dateutil pytz pytest-xdist hypothesis pytest-cov
         pip list
 
     - name: Build Pandas
@@ -41,5 +42,22 @@ jobs:
 
     - name: Test with pytest
       run: |
-        pytest -m 'not slow and not network and not clipboard' pandas
+        pytest -m 'not slow and not network and not clipboard' -n 2 --dist=loadfile --cov=pandas --cov-report=xml pandas
       continue-on-error: true
+
+    - name: Publish test results
+      uses: actions/upload-artifact@master
+      with:
+        name: Test results
+        path: test-data.xml
+      if: failure()
+
+    - name: Print skipped tests
+      run: python ci/print_skipped.py
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        flags: unittests
+        name: codecov-pandas
+        fail_ci_if_error: true
