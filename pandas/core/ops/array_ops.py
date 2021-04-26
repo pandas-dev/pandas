@@ -201,6 +201,8 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
     right = _maybe_upcast_for_op(right, left.shape)
 
+    _bool_arith_check(op, left, right)
+
     if should_extension_dispatch(left, right) or isinstance(right, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
         res_values = op(left, right)
@@ -473,3 +475,33 @@ def _maybe_upcast_for_op(obj, shape: Shape):
         return Timedelta(obj)
 
     return obj
+
+
+def _has_bool_dtype(x):
+    try:
+        return x.dtype == bool
+    except AttributeError:
+        return isinstance(x, (bool, np.bool_))
+
+
+_BOOL_OP_NOT_ALLOWED = {
+    operator.truediv,
+    roperator.rtruediv,
+    operator.floordiv,
+    roperator.rfloordiv,
+    operator.pow,
+    roperator.rpow,
+}
+
+
+def _bool_arith_check(op, a, b):
+    """
+    In contrast to numpy, pandas raises an error for certain operations
+    with booleans.
+    """
+    if op in _BOOL_OP_NOT_ALLOWED:
+        if _has_bool_dtype(a) and _has_bool_dtype(b):
+            op_name = op.__name__.strip("_").lstrip("r")
+            raise NotImplementedError(
+                f"operator {op_name} not implemented for bool dtypes"
+            )
