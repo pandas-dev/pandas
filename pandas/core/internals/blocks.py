@@ -2050,18 +2050,22 @@ def to_native_types(
 ) -> np.ndarray:
     """ convert to our native types format """
     values = ensure_wrapped_if_datetimelike(values)
-
+    if isinstance(values, Categorical) and isinstance(values.categories[0], Timestamp):
+        values = values.astype('datetime64[ns]')
+        values = DatetimeArray(values)
+        
     if isinstance(values, (DatetimeArray, TimedeltaArray)):
         result = values._format_native_types(na_rep=na_rep, **kwargs)
         result = result.astype(object, copy=False)
         return result
 
+
     elif isinstance(values, ExtensionArray):
         mask = isna(values)
-
         new_values = np.asarray(values.astype(object))
         new_values[mask] = na_rep
-        return new_values
+        return new_values 
+
 
     elif values.dtype.kind == "f":
         # see GH#13418: no special formatting is desired at the
