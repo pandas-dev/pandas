@@ -1457,6 +1457,7 @@ class TestStyler:
         assert '<td  class="data row1 col0" >4</td>' not in result
         assert '<td  class="data row1 col1" >5</td>' not in result
         assert '<td  class="data row1 col2" >6</td>' not in result
+
         assert '<td  class="data row2 col0" >7</td>' in result
         assert '<td  class="data row2 col1" >8</td>' in result
         assert '<td  class="data row2 col2" >9</td>' in result
@@ -1485,15 +1486,49 @@ class TestStyler:
         assert '<th class="col_heading level0 col1" >c2</th>' not in result
         assert '<th class="col_heading level0 col2" >c3</th>' in result
 
+        assert '<td  class="data row0 col2" >3</td>' in result
+        assert '<td  class="data row1 col2" >6</td>' in result
+        assert '<td  class="data row2 col2" >9</td>' in result
+
         assert '<td  class="data row0 col0" >1</td>' not in result
         assert '<td  class="data row0 col1" >2</td>' not in result
-        assert '<td  class="data row0 col2" >3</td>' in result
         assert '<td  class="data row1 col0" >4</td>' not in result
         assert '<td  class="data row1 col1" >5</td>' not in result
-        assert '<td  class="data row1 col2" >6</td>' in result
         assert '<td  class="data row2 col0" >7</td>' not in result
         assert '<td  class="data row2 col1" >8</td>' not in result
-        assert '<td  class="data row2 col2" >9</td>' in result
+
+    def test_hide_values_multiindex(self):
+        idx = pd.MultiIndex.from_product([["i1", "i2"], ["j1", "j2"]])
+        col = pd.MultiIndex.from_product([["c1", "c2"], ["d1", "d2"]])
+        df = DataFrame(np.arange(16).reshape((4, 4)), columns=col, index=idx)
+
+        # test hide
+        styler = (
+            Styler(df, uuid_len=0, cell_ids=False)
+            .hide_values(subset=(slice(None), "j1"), axis="index")
+            .hide_values(subset="c1", axis="columns")
+        )
+        result = styler.render()
+        for header in [">c1<", ">j1<"]:
+            assert header not in result
+        for data in [0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13]:
+            assert f">{data}<" not in result
+        for data in [6, 7, 14, 15]:
+            assert f">{data}<" in result
+
+        # test show
+        styler = (
+            Styler(df, uuid_len=0, cell_ids=False)
+            .hide_values(subset=(slice(None), "j1"), axis="index", show=True)
+            .hide_values(subset="c1", axis="columns", show=True)
+        )
+        result = styler.render()
+        for header in [">c2<", ">j2<"]:
+            assert header not in result
+        for data in [2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15]:
+            assert f">{data}<" not in result
+        for data in [0, 1, 8, 9]:
+            assert f">{data}<" in result
 
 
 def test_block_names():

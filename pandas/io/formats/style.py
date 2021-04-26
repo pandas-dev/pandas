@@ -1039,7 +1039,7 @@ class Styler(StylerRenderer):
             subset = non_reducing_slice(subset)
             hide = self.data.loc[subset]
             if show:  # invert the display
-                hide = self.data.loc[:, ~self.data.index.isin(hide.columns.to_list())]
+                hide = self.data.loc[:, ~self.data.columns.isin(hide.columns.to_list())]
             hcols = self.columns.get_indexer_for(hide.columns)
             # error: Incompatible types in assignment (expression has type
             # "ndarray", variable has type "Sequence[int]")
