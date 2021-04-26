@@ -2144,7 +2144,7 @@ class MultiIndex(Index):
             levels=self.levels, codes=taken, names=self.names, verify_integrity=False
         )
 
-    def append(self, other):
+    def append(self, other, concat_indexes = False):
         """
         Append a collection of Index options together
 
@@ -2165,7 +2165,7 @@ class MultiIndex(Index):
             arrays = []
             for i in range(self.nlevels):
                 label = self._get_level_values(i)
-                if label.names[0]:
+                if label.names[0] and concat_indexes == True:
                     appended = [o._get_level_values
                     (o.names.index(label.names[0])) for o in other]
                 else:

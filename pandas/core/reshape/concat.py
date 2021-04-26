@@ -611,7 +611,7 @@ class _Concatenator:
 
 
 def _concat_indexes(indexes) -> Index:
-    return indexes[0].append(indexes[1:])
+    return indexes[0].append(indexes[1:], concat_indexes=True)
 
 
 def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:
