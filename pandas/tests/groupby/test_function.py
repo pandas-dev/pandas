@@ -70,8 +70,9 @@ def test_max_min_non_numeric():
 
 
 def test_max_min_object_multiple_columns(using_array_manager):
-    # case where the aggregation is valid for some columns but not others;
-    # we split object blocks column-wise, consistent with DataFrame._reduce
+    # GH#41111 case where the aggregation is valid for some columns but not
+    # others; we split object blocks column-wise, consistent with
+    # DataFrame._reduce
 
     df = DataFrame(
         {
