@@ -398,9 +398,11 @@ def unique(values):
     ...         ]
     ...     )
     ... )
-    DatetimeIndex(['2016-01-01 00:00:00-05:00'],
-            dtype='datetime64[ns, US/Eastern]',
-            freq=None)
+    DatetimeIndex(\
+['2016-01-01 00:00:00-05:00'], \
+dtype='datetime64[ns, US/Eastern]', \
+freq=None\
+)
 
     >>> pd.unique(list("baabc"))
     array(['b', 'a', 'c'], dtype=object)
