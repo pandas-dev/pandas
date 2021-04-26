@@ -110,10 +110,13 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules \
       pandas/core/accessor.py \
       pandas/core/aggregation.py \
+      pandas/core/algorithms.py \
       pandas/core/base.py \
       pandas/core/construction.py \
       pandas/core/frame.py \
       pandas/core/generic.py \
+      pandas/core/indexers.py \
+      pandas/core/nanops.py \
       pandas/core/series.py \
       pandas/io/sql.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
