@@ -477,13 +477,6 @@ def _maybe_upcast_for_op(obj, shape: Shape):
     return obj
 
 
-def _has_bool_dtype(x):
-    try:
-        return x.dtype == bool
-    except AttributeError:
-        return isinstance(x, (bool, np.bool_))
-
-
 _BOOL_OP_NOT_ALLOWED = {
     operator.truediv,
     roperator.rtruediv,
@@ -500,7 +493,9 @@ def _bool_arith_check(op, a, b):
     with booleans.
     """
     if op in _BOOL_OP_NOT_ALLOWED:
-        if _has_bool_dtype(a) and _has_bool_dtype(b):
+        if is_bool_dtype(a.dtype) and (
+            is_bool_dtype(b) or isinstance(b, (bool, np.bool_))
+        ):
             op_name = op.__name__.strip("_").lstrip("r")
             raise NotImplementedError(
                 f"operator {op_name} not implemented for bool dtypes"
