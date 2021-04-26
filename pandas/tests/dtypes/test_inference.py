@@ -453,7 +453,7 @@ class TestInference:
         self, coerce_numeric, infinity, prefix, convert_to_masked_nullable
     ):
         # see gh-13274
-        result = lib.maybe_convert_numeric(
+        result, _ = lib.maybe_convert_numeric(
             np.array([prefix + infinity], dtype=object),
             na_values={"", "NULL", "nan"},
             coerce_numeric=coerce_numeric,
@@ -492,42 +492,43 @@ class TestInference:
             expected = FloatingArray(expected, np.isnan(expected))
             tm.assert_extension_array_equal(expected, FloatingArray(*out))
         else:
+            out = out[0]
             tm.assert_numpy_array_equal(out, expected)
 
     def test_convert_infs(self):
         arr = np.array(["inf", "inf", "inf"], dtype="O")
-        result = lib.maybe_convert_numeric(arr, set(), False)
+        result, _ = lib.maybe_convert_numeric(arr, set(), False)
         assert result.dtype == np.float64
 
         arr = np.array(["-inf", "-inf", "-inf"], dtype="O")
-        result = lib.maybe_convert_numeric(arr, set(), False)
+        result, _ = lib.maybe_convert_numeric(arr, set(), False)
         assert result.dtype == np.float64
 
     def test_scientific_no_exponent(self):
         # See PR 12215
         arr = np.array(["42E", "2E", "99e", "6e"], dtype="O")
-        result = lib.maybe_convert_numeric(arr, set(), False, True)
+        result, _ = lib.maybe_convert_numeric(arr, set(), False, True)
         assert np.all(np.isnan(result))
 
     def test_convert_non_hashable(self):
         # GH13324
         # make sure that we are handing non-hashables
         arr = np.array([[10.0, 2], 1.0, "apple"], dtype=object)
-        result = lib.maybe_convert_numeric(arr, set(), False, True)
+        result, _ = lib.maybe_convert_numeric(arr, set(), False, True)
         tm.assert_numpy_array_equal(result, np.array([np.nan, 1.0, np.nan]))
 
     def test_convert_numeric_uint64(self):
         arr = np.array([2 ** 63], dtype=object)
         exp = np.array([2 ** 63], dtype=np.uint64)
-        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
+        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
         arr = np.array([str(2 ** 63)], dtype=object)
         exp = np.array([2 ** 63], dtype=np.uint64)
-        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
+        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
         arr = np.array([np.uint64(2 ** 63)], dtype=object)
         exp = np.array([2 ** 63], dtype=np.uint64)
-        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
+        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
     @pytest.mark.parametrize(
         "arr",
@@ -540,7 +541,7 @@ class TestInference:
     )
     def test_convert_numeric_uint64_nan(self, coerce, arr):
         expected = arr.astype(float) if coerce else arr.copy()
-        result = lib.maybe_convert_numeric(arr, set(), coerce_numeric=coerce)
+        result, _ = lib.maybe_convert_numeric(arr, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
@@ -565,6 +566,8 @@ class TestInference:
                 np.array([True, False], dtype="bool"),
             )
             result = IntegerArray(*result)
+        else:
+            result = result[0]  # discard mask
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -583,12 +586,13 @@ class TestInference:
         self, case, coerce, convert_to_masked_nullable
     ):
         expected = case.astype(float) if coerce else case.copy()
-        result = lib.maybe_convert_numeric(
+        result, _ = lib.maybe_convert_numeric(
             case,
             set(),
             coerce_numeric=coerce,
             convert_to_masked_nullable=convert_to_masked_nullable,
         )
+        print(result)
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
@@ -602,6 +606,8 @@ class TestInference:
         )
         if convert_to_masked_nullable:
             result = FloatingArray(*result)
+        else:
+            result = result[0]
         assert np.isnan(result)
 
     @pytest.mark.parametrize("value", [-(2 ** 63) - 1, 2 ** 64])
@@ -700,6 +706,7 @@ class TestInference:
             result = IntegerArray(*result)
             tm.assert_extension_array_equal(result, exp)
         else:
+            result = result[0]
             tm.assert_numpy_array_equal(result, exp)
 
     @pytest.mark.parametrize(
@@ -725,6 +732,7 @@ class TestInference:
         if convert_to_masked_nullable:
             tm.assert_extension_array_equal(FloatingArray(*result), exp)
         else:
+            result = result[0]
             tm.assert_numpy_array_equal(result, exp)
 
     def test_maybe_convert_objects_bool_nan(self):

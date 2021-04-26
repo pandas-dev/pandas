@@ -182,7 +182,7 @@ def to_numeric(arg, errors="raise", downcast=None):
         try:
             values = lib.maybe_convert_numeric(
                 values, set(), coerce_numeric=coerce_numeric
-            )
+            )[0]
         except (ValueError, TypeError):
             if errors == "raise":
                 raise

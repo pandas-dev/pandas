@@ -258,7 +258,7 @@ def maybe_convert_bool(ndarray[object] arr,
                        true_values=None,
                        false_values=None,
                        convert_to_masked_nullable=False
-                       ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+                       ) -> tuple[np.ndarray, np.ndarray | None]:
     cdef:
         Py_ssize_t i, n
         ndarray[uint8_t] result
@@ -305,6 +305,6 @@ def maybe_convert_bool(ndarray[object] arr,
         else:
             arr = result.view(np.bool_).astype(object)
             np.putmask(arr, mask, np.nan)
-            return arr
+            return (arr, None)
     else:
-        return result.view(np.bool_)
+        return (result.view(np.bool_), None)

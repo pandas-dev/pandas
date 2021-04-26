@@ -2009,7 +2009,7 @@ def maybe_convert_numeric(
     bint convert_empty=True,
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray | None]:
     """
     Convert object array to a numeric array if possible.
 
@@ -2038,12 +2038,15 @@ def maybe_convert_numeric(
         upcasting for ints with nulls to float64.
     Returns
     -------
-    np.ndarray or tuple of converted values and its mask
+    np.ndarray
         Array of converted object values to numerical ones.
-        Also returns mask if convert_to_masked_nullable is True.
+
+    Optional[np.ndarray]
+        If convert_to_masked_nullable is True,
+        returns a boolean mask for the converted values, otherwise returns None.
     """
     if len(values) == 0:
-        return np.array([], dtype='i8')
+        return (np.array([], dtype='i8'), None)
 
     # fastpath for ints - try to convert all based on first value
     cdef:
@@ -2053,7 +2056,7 @@ def maybe_convert_numeric(
         try:
             maybe_ints = values.astype('i8')
             if (maybe_ints == values).all():
-                return maybe_ints
+                return (maybe_ints, None)
         except (ValueError, OverflowError, TypeError):
             pass
 
@@ -2193,7 +2196,7 @@ def maybe_convert_numeric(
                 floats[i] = NaN
 
     if seen.check_uint64_conflict():
-        return values
+        return (values, None)
 
     # This occurs since we disabled float nulls showing as null in anticipation
     # of seeing ints that were never seen. So then, we return float
@@ -2201,11 +2204,11 @@ def maybe_convert_numeric(
         seen.float_ = True
 
     if seen.complex_:
-        return complexes
+        return (complexes, None)
     elif seen.float_:
         if seen.null_ and convert_to_masked_nullable:
             return (floats, mask.view(np.bool_))
-        return floats
+        return (floats, None)
     elif seen.int_:
         if seen.null_ and convert_to_masked_nullable:
             if seen.uint_:
@@ -2213,14 +2216,14 @@ def maybe_convert_numeric(
             else:
                 return (ints, mask.view(np.bool_))
         if seen.uint_:
-            return uints
+            return (uints, None)
         else:
-            return ints
+            return (ints, None)
     elif seen.bool_:
-        return bools.view(np.bool_)
+        return (bools.view(np.bool_), None)
     elif seen.uint_:
-        return uints
-    return ints
+        return (uints, None)
+    return (ints, None)
 
 
 @cython.boundscheck(False)
