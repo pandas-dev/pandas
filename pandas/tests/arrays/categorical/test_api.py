@@ -153,7 +153,10 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(res, new)
 
         # inplace == True
-        res = cat.reorder_categories(["c", "b", "a"], inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            # issue #37643 inplace kwarg deprecated
+            res = cat.reorder_categories(["c", "b", "a"], inplace=True)
+
         assert res is None
         tm.assert_categorical_equal(cat, new)
 
