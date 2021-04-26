@@ -1320,7 +1320,7 @@ def test_maxmin():
     assert max_out == 9
     assert min_out == 0
 
-    data = data*(-1)
+    data = data * (-1)
     max_out = SparseArray(data).max()
     min_out = SparseArray(data).min()
     assert max_out == 0

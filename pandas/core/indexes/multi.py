@@ -2166,7 +2166,8 @@ class MultiIndex(Index):
             for i in range(self.nlevels):
                 label = self._get_level_values(i)
                 if label.names[0]:
-                    appended = [o._get_level_values(o.names.index(label.names[0])) for o in other]
+                    appended = [o._get_level_values
+                    (o.names.index(label.names[0])) for o in other]
                 else:
                     appended = [o._get_level_values(i) for o in other]
                 arrays.append(label.append(appended))
