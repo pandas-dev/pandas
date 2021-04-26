@@ -491,8 +491,8 @@ class MPLPlot:
         pass
 
     def _has_valid_lim_dtype(self, list_iterable: list) -> bool:
-        """checks if an iterable has float,int or datetime datatype """
-        """targeting #GH40781"""
+        """Check if an iterable has float, int or datetime datatype"""
+        # GH40781
         if (
             all([is_datetime64_any_dtype(lim) for lim in list_iterable])
             or np.issubdtype(np.array(list_iterable).dtype, np.int)
