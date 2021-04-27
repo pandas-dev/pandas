@@ -586,9 +586,7 @@ class ExponentialMovingWindow(BaseWindow):
                     X,
                     start,
                     end,
-                    # error: Argument 4 to "ewmcov" has incompatible type
-                    # "Optional[int]"; expected "int"
-                    self.min_periods,  # type: ignore[arg-type]
+                    min_periods,
                     Y,
                     self._com,
                     self.adjust,

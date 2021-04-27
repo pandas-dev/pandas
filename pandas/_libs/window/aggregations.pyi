@@ -1,3 +1,9 @@
+from typing import (
+    Any,
+    Callable,
+    Literal,
+)
+
 import numpy as np
 
 def roll_sum(
@@ -63,7 +69,7 @@ def roll_quantile(
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
     quantile: float,  # float64_t
-    interpolation: str,
+    interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
 ) -> np.ndarray: ...  # np.ndarray[float]
 
 def roll_apply(
@@ -71,11 +77,11 @@ def roll_apply(
     start: np.ndarray,  # np.ndarray[np.int64]
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
-    function: object,
+    function: Callable[..., Any],
     raw: bool,
-    args: tuple,
-    kwargs: dict,
-) -> np.ndarray: ...  # np.ndarray[float]
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+) -> np.ndarray: ...  # np.ndarray[float]  # FIXME: could also be type(obj) if n==0
 
 def roll_weighted_sum(
     values: np.ndarray,  # const float64_t[:]
