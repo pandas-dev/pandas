@@ -586,14 +586,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
         elif isinstance(fill_value, self._recognized_scalars):
             fill_value = self._scalar_type(fill_value)
         else:
+            new_fill: DatetimeLikeScalar
+
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
                 new_fill = Period._from_ordinal(fill_value, freq=self.freq)
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "Union[Period, Any, Timedelta]", variable has type "Period")
-                new_fill = self._scalar_type(fill_value)  # type: ignore[assignment]
+                new_fill = self._scalar_type(fill_value)
 
             # stacklevel here is chosen to be correct when called from
             #  DataFrame.shift or Series.shift

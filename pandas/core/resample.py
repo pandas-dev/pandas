@@ -1772,7 +1772,8 @@ class TimeGrouper(Grouper):
 
             # Get offset for bin edge (not label edge) adjustment
             start_offset = Period(start, self.freq) - Period(p_start, self.freq)
-            bin_shift = start_offset.n % freq_mult
+            # error: Item "Period" of "Union[Period, Any]" has no attribute "n"
+            bin_shift = start_offset.n % freq_mult  # type: ignore[union-attr]
             start = p_start
 
         labels = binner = period_range(

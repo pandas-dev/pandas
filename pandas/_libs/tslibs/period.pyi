@@ -1,8 +1,14 @@
+from typing import Literal
+
 import numpy as np
 
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._libs.tslibs.timestamps import Timestamp
+from pandas._typing import (
+    Frequency,
+    Timezone,
+)
 
 INVALID_FREQ_ERR_MSG: str
 DIFFERENT_FREQ: str
@@ -29,12 +35,12 @@ def get_period_field_arr(
 
 def from_ordinals(
     values: np.ndarray,  # const int64_t[:]
-    freq,
+    freq: Frequency,
 ) -> np.ndarray: ...  # np.ndarray[np.int64]
 
 def extract_ordinals(
     values: np.ndarray,  # np.ndarray[object]
-    freq,
+    freq: Frequency | int,
 ) -> np.ndarray: ...  # np.ndarray[np.int64]
 
 def extract_freq(
@@ -49,7 +55,7 @@ def period_ordinal(
 ) -> int: ...
 
 def freq_to_dtype_code(freq: BaseOffset) -> int: ...
-def validate_end_alias(how: str) -> str: ...
+def validate_end_alias(how: str) -> Literal["E", "S"]: ...
 
 class Period:
     ordinal: int  # int64_t
@@ -81,7 +87,12 @@ class Period:
 
     def strftime(self, fmt: str) -> str: ...
 
-    def to_timestamp(self, freq=..., how=..., tz=...) -> Timestamp: ...
+    def to_timestamp(
+        self,
+        freq: str | BaseOffset | None =...,
+        how: str = ...,
+        tz: Timezone | None = ...,
+    ) -> Timestamp: ...
 
     def asfreq(self, freq, how=...) -> Period: ...
 
@@ -142,6 +153,6 @@ class Period:
     @property
     def start_time(self) -> Timestamp: ...
 
-    def __sub__(self, other): ...
+    def __sub__(self, other) -> Period | BaseOffset: ...
 
     def __add__(self, other) -> Period: ...

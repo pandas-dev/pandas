@@ -2539,7 +2539,7 @@ cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
                           minute, second, 0, 0, base)
 
 
-def validate_end_alias(how: str) -> str:
+def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
     how_dict = {'S': 'S', 'E': 'E',
                 'START': 'S', 'FINISH': 'E',
                 'BEGIN': 'S', 'END': 'E'}
