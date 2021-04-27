@@ -1674,6 +1674,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
     """
 
     values: NDArrayBackedExtensionArray
+    getitem_block_index = libinternals.NDArrayBackedBlock.getitem_block_index
 
     @property
     def is_view(self) -> bool:
