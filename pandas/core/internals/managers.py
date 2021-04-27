@@ -9,6 +9,7 @@ from typing import (
     Hashable,
     Sequence,
     TypeVar,
+    cast,
 )
 import warnings
 
@@ -32,6 +33,7 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     ensure_platform_int,
+    is_1d_only_ea_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
@@ -47,6 +49,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -135,22 +138,16 @@ class BaseBlockManager(DataManager):
     This is *not* a public API class
     """
 
-    __slots__ = [
-        "axes",
-        "blocks",
-        "_known_consolidated",
-        "_is_consolidated",
-        "_blknos",
-        "_blklocs",
-    ]
+    __slots__ = ()
 
     _blknos: np.ndarray
     _blklocs: np.ndarray
     blocks: tuple[Block, ...]
     axes: list[Index]
 
-    # Non-trivially faster than a property
     ndim: int
+    _known_consolidated: bool
+    _is_consolidated: bool
 
     def __init__(self, blocks, axes, verify_integrity=True):
         raise NotImplementedError
@@ -275,57 +272,6 @@ class BaseBlockManager(DataManager):
         ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
         """
         return [blk.values for blk in self.blocks]
-
-    def __getstate__(self):
-        block_values = [b.values for b in self.blocks]
-        block_items = [self.items[b.mgr_locs.indexer] for b in self.blocks]
-        axes_array = list(self.axes)
-
-        extra_state = {
-            "0.14.1": {
-                "axes": axes_array,
-                "blocks": [
-                    {"values": b.values, "mgr_locs": b.mgr_locs.indexer}
-                    for b in self.blocks
-                ],
-            }
-        }
-
-        # First three elements of the state are to maintain forward
-        # compatibility with 0.13.1.
-        return axes_array, block_values, block_items, extra_state
-
-    def __setstate__(self, state):
-        def unpickle_block(values, mgr_locs, ndim: int) -> Block:
-            # TODO(EA2D): ndim would be unnecessary with 2D EAs
-            # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
-            values = extract_array(values, extract_numpy=True)
-            return new_block(values, placement=mgr_locs, ndim=ndim)
-
-        if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
-            state = state[3]["0.14.1"]
-            self.axes = [ensure_index(ax) for ax in state["axes"]]
-            ndim = len(self.axes)
-
-            for blk in state["blocks"]:
-                vals = blk["values"]
-                # older versions may hold e.g. DatetimeIndex instead of DTA
-                vals = extract_array(vals, extract_numpy=True)
-                blk["values"] = ensure_block_shape(vals, ndim=ndim)
-
-            self.blocks = tuple(
-                unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)
-                for b in state["blocks"]
-            )
-        else:
-            raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
-
-        self._post_setstate()
-
-    def _post_setstate(self) -> None:
-        self._is_consolidated = False
-        self._known_consolidated = False
-        self._rebuild_blknos_and_blklocs()
 
     def __repr__(self) -> str:
         output = type(self).__name__
@@ -823,7 +769,7 @@ class BaseBlockManager(DataManager):
         if self.is_consolidated():
             return self
 
-        bm = type(self)(self.blocks, self.axes)
+        bm = type(self)(self.blocks, self.axes, verify_integrity=False)
         bm._is_consolidated = False
         bm._consolidate_inplace()
         return bm
@@ -1078,7 +1024,7 @@ class BaseBlockManager(DataManager):
         )
 
 
-class BlockManager(BaseBlockManager):
+class BlockManager(libinternals.BlockManager, BaseBlockManager):
     """
     BaseBlockManager that holds 2D blocks.
     """
@@ -1094,27 +1040,31 @@ class BlockManager(BaseBlockManager):
         axes: Sequence[Index],
         verify_integrity: bool = True,
     ):
-        self.axes = [ensure_index(ax) for ax in axes]
-        self.blocks: tuple[Block, ...] = tuple(blocks)
-
-        for block in blocks:
-            if self.ndim != block.ndim:
-                raise AssertionError(
-                    f"Number of Block dimensions ({block.ndim}) must equal "
-                    f"number of axes ({self.ndim})"
-                )
 
         if verify_integrity:
-            self._verify_integrity()
+            assert all(isinstance(x, Index) for x in axes)
 
-        # Populate known_consolidate, blknos, and blklocs lazily
-        self._known_consolidated = False
-        # error: Incompatible types in assignment (expression has type "None",
-        # variable has type "ndarray")
-        self._blknos = None  # type: ignore[assignment]
-        # error: Incompatible types in assignment (expression has type "None",
-        # variable has type "ndarray")
-        self._blklocs = None  # type: ignore[assignment]
+            for block in blocks:
+                if self.ndim != block.ndim:
+                    raise AssertionError(
+                        f"Number of Block dimensions ({block.ndim}) must equal "
+                        f"number of axes ({self.ndim})"
+                    )
+                if isinstance(block, DatetimeTZBlock) and block.values.ndim == 1:
+                    # TODO: remove once fastparquet no longer needs this
+                    # error: Incompatible types in assignment (expression has type
+                    # "Union[ExtensionArray, ndarray]", variable has type
+                    # "DatetimeArray")
+                    block.values = ensure_block_shape(  # type: ignore[assignment]
+                        block.values, self.ndim
+                    )
+                    try:
+                        block._cache.clear()
+                    except AttributeError:
+                        # _cache not initialized
+                        pass
+
+            self._verify_integrity()
 
     def _verify_integrity(self) -> None:
         mgr_shape = self.shape
@@ -1128,21 +1078,6 @@ class BlockManager(BaseBlockManager):
                 f"block items\n# manager items: {len(self.items)}, # "
                 f"tot_items: {tot_items}"
             )
-
-    @classmethod
-    def _simple_new(cls, blocks: tuple[Block, ...], axes: list[Index]):
-        """
-        Fastpath constructor; does NO validation.
-        """
-        obj = cls.__new__(cls)
-        obj.axes = axes
-        obj.blocks = blocks
-
-        # Populate known_consolidate, blknos, and blklocs lazily
-        obj._known_consolidated = False
-        obj._blknos = None
-        obj._blklocs = None
-        return obj
 
     @classmethod
     def from_blocks(cls, blocks: list[Block], axes: list[Index]) -> BlockManager:
@@ -1196,21 +1131,6 @@ class BlockManager(BaseBlockManager):
 
         return result
 
-    def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
-        assert isinstance(slobj, slice), type(slobj)
-
-        if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(slobj)
-        elif axis == 1:
-            new_blocks = [blk.getitem_block_index(slobj) for blk in self.blocks]
-        else:
-            raise IndexError("Requested axis not found in manager")
-
-        new_axes = list(self.axes)
-        new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
-
-        return type(self)._simple_new(tuple(new_blocks), new_axes)
-
     def iget(self, i: int) -> SingleBlockManager:
         """
         Return the data as a SingleBlockManager.
@@ -1232,6 +1152,30 @@ class BlockManager(BaseBlockManager):
         values = block.iget(self.blklocs[i])
         return values
 
+    @property
+    def column_arrays(self) -> list[np.ndarray]:
+        """
+        Used in the JSON C code to access column arrays.
+        This optimizes compared to using `iget_values` by converting each
+        block.values to a np.ndarray only once up front
+        """
+        # special casing datetimetz to avoid conversion through object dtype
+        arrays = [
+            blk.values._ndarray
+            if isinstance(blk, DatetimeTZBlock)
+            else np.asarray(blk.values)
+            for blk in self.blocks
+        ]
+        result = []
+        for i in range(len(self.items)):
+            arr = arrays[self.blknos[i]]
+            if arr.ndim == 2:
+                values = arr[self.blklocs[i]]
+            else:
+                values = arr
+            result.append(values)
+        return result
+
     def iset(
         self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
     ):
@@ -1246,7 +1190,8 @@ class BlockManager(BaseBlockManager):
             self._rebuild_blknos_and_blklocs()
 
         # Note: we exclude DTA/TDA here
-        value_is_extension_type = is_extension_array_dtype(value)
+        vdtype = getattr(value, "dtype", None)
+        value_is_extension_type = is_1d_only_ea_dtype(vdtype)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:
@@ -1419,7 +1364,7 @@ class BlockManager(BaseBlockManager):
         nbs = self._slice_take_blocks_ax0(taker, only_slice=True)
         new_columns = self.items[~is_deleted]
         axes = [new_columns, self.axes[1]]
-        return type(self)._simple_new(tuple(nbs), axes)
+        return type(self)(tuple(nbs), axes)
 
     # ----------------------------------------------------------------
     # Block-wise Operation
@@ -1602,6 +1547,45 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         block = new_block(array, placement=slice(0, len(index)), ndim=1)
         return cls(block, index)
+
+    def __getstate__(self):
+        block_values = [b.values for b in self.blocks]
+        block_items = [self.items[b.mgr_locs.indexer] for b in self.blocks]
+        axes_array = list(self.axes)
+
+        extra_state = {
+            "0.14.1": {
+                "axes": axes_array,
+                "blocks": [
+                    {"values": b.values, "mgr_locs": b.mgr_locs.indexer}
+                    for b in self.blocks
+                ],
+            }
+        }
+
+        # First three elements of the state are to maintain forward
+        # compatibility with 0.13.1.
+        return axes_array, block_values, block_items, extra_state
+
+    def __setstate__(self, state):
+        def unpickle_block(values, mgr_locs, ndim: int) -> Block:
+            # TODO(EA2D): ndim would be unnecessary with 2D EAs
+            # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
+            values = extract_array(values, extract_numpy=True)
+            return new_block(values, placement=mgr_locs, ndim=ndim)
+
+        if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
+            state = state[3]["0.14.1"]
+            self.axes = [ensure_index(ax) for ax in state["axes"]]
+            ndim = len(self.axes)
+            self.blocks = tuple(
+                unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)
+                for b in state["blocks"]
+            )
+        else:
+            raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
+
+        self._post_setstate()
 
     def _post_setstate(self):
         pass
@@ -1838,7 +1822,12 @@ def _form_blocks(
 
     if len(items_dict["DatetimeTZBlock"]):
         dttz_blocks = [
-            new_block(array, klass=DatetimeTZBlock, placement=i, ndim=2)
+            new_block(
+                ensure_block_shape(extract_array(array), 2),
+                klass=DatetimeTZBlock,
+                placement=i,
+                ndim=2,
+            )
             for i, array in items_dict["DatetimeTZBlock"]
         ]
         blocks.extend(dttz_blocks)
@@ -1975,11 +1964,19 @@ def _merge_blocks(
         # TODO: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
-        # error: List comprehension has incompatible type List[Union[ndarray,
-        # ExtensionArray]]; expected List[Union[complex, generic, Sequence[Union[int,
-        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
-        # _SupportsArray]]
-        new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
+
+        new_values: ArrayLike
+
+        if isinstance(blocks[0].dtype, np.dtype):
+            # error: List comprehension has incompatible type List[Union[ndarray,
+            # ExtensionArray]]; expected List[Union[complex, generic,
+            # Sequence[Union[int, float, complex, str, bytes, generic]],
+            # Sequence[Sequence[Any]], SupportsArray]]
+            new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
+        else:
+            bvals = [blk.values for blk in blocks]
+            bvals2 = cast(Sequence[NDArrayBackedExtensionArray], bvals)
+            new_values = bvals2[0]._concat_same_type(bvals2, axis=0)
 
         argsort = np.argsort(new_mgr_locs)
         new_values = new_values[argsort]

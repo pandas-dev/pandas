@@ -541,7 +541,8 @@ class TestStyler:
 
         style1 = "foo: bar"
 
-        result = self.df.style.where(f, style1)._compute().ctx
+        with tm.assert_produces_warning(FutureWarning):
+            result = self.df.style.where(f, style1)._compute().ctx
         expected = {
             (r, c): [("foo", "bar")]
             for r, row in enumerate(self.df.index)
@@ -568,14 +569,15 @@ class TestStyler:
         style1 = "foo: bar"
         style2 = "baz: foo"
 
-        result = self.df.style.where(f, style1, style2, subset=slice_)._compute().ctx
+        with tm.assert_produces_warning(FutureWarning):
+            res = self.df.style.where(f, style1, style2, subset=slice_)._compute().ctx
         expected = {
             (r, c): [("foo", "bar") if f(self.df.loc[row, col]) else ("baz", "foo")]
             for r, row in enumerate(self.df.index)
             for c, col in enumerate(self.df.columns)
             if row in self.df.loc[slice_].index and col in self.df.loc[slice_].columns
         }
-        assert result == expected
+        assert res == expected
 
     def test_where_subset_compare_with_applymap(self):
         # GH 17474
@@ -597,9 +599,10 @@ class TestStyler:
         ]
 
         for slice_ in slices:
-            result = (
-                self.df.style.where(f, style1, style2, subset=slice_)._compute().ctx
-            )
+            with tm.assert_produces_warning(FutureWarning):
+                result = (
+                    self.df.style.where(f, style1, style2, subset=slice_)._compute().ctx
+                )
             expected = self.df.style.applymap(g, subset=slice_)._compute().ctx
             assert result == expected
 
@@ -609,14 +612,15 @@ class TestStyler:
         def f(x, val):
             return x > val
 
-        result = df.style.where(f, "color:green;", "color:red;", val=2)._compute().ctx
+        with tm.assert_produces_warning(FutureWarning):
+            res = df.style.where(f, "color:green;", "color:red;", val=2)._compute().ctx
         expected = {
             (0, 0): [("color", "red")],
             (0, 1): [("color", "red")],
             (1, 0): [("color", "green")],
             (1, 1): [("color", "green")],
         }
-        assert result == expected
+        assert res == expected
 
     def test_empty(self):
         df = DataFrame({"A": [1, 0]})

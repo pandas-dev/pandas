@@ -118,7 +118,10 @@ class StringDtype(ExtensionDtype):
             str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
-        return StringArray._concat_same_type(results)
+        if results:
+            return StringArray._concat_same_type(results)
+        else:
+            return StringArray(np.array([], dtype="object"))
 
 
 class StringArray(PandasArray):

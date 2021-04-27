@@ -17,7 +17,14 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
+pytestmark = [
+    pytest.mark.single,
+    td.skip_array_manager_not_yet_implemented,
+    # pytables https://github.com/PyTables/PyTables/issues/822
+    pytest.mark.filterwarnings(
+        "ignore:a closed node found in the registry:UserWarning"
+    ),
+]
 
 
 def test_categorical(setup_path):
