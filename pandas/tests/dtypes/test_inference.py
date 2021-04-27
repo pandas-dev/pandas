@@ -594,7 +594,7 @@ class TestInference:
             coerce_numeric=coerce,
             convert_to_masked_nullable=convert_to_masked_nullable,
         )
-        print(result)
+
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
