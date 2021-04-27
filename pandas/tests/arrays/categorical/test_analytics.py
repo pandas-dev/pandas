@@ -320,10 +320,14 @@ class TestCategoricalAnalytics:
             cat.rename_categories(["X", "Y", "Z"], inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            cat.reorder_categories(["X", "Y", "Z"], ordered=True, inplace=value)
+            with tm.assert_produces_warning(FutureWarning):
+                # issue #37643 inplace kwarg deprecated
+                cat.reorder_categories(["X", "Y", "Z"], ordered=True, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            cat.add_categories(new_categories=["D", "E", "F"], inplace=value)
+            with tm.assert_produces_warning(FutureWarning):
+                # issue #37643 inplace kwarg deprecated
+                cat.add_categories(new_categories=["D", "E", "F"], inplace=value)
 
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning):

@@ -142,6 +142,14 @@ def _assert_caught_no_extra_warnings(
 
     for actual_warning in caught_warnings:
         if _is_unexpected_warning(actual_warning, expected_warning):
+            unclosed = "unclosed transport <asyncio.sslproto._SSLProtocolTransport"
+            if isinstance(actual_warning, ResourceWarning) and unclosed in str(
+                actual_warning
+            ):
+                # FIXME: kludge because pytest.filterwarnings does not
+                #  suppress these, xref GH#38630
+                continue
+
             extra_warnings.append(
                 (
                     actual_warning.category.__name__,
