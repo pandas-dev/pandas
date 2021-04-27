@@ -433,7 +433,7 @@ class TestReaders:
         float_expected = expected.copy()
         float_expected["IntCol"] = float_expected["IntCol"].astype(float)
         float_expected.loc[float_expected.index[1], "Str2Col"] = 3.0
-        with pytest.warns(FutureWarning, match="convert_float is deprecated"):
+        with tm.assert_produces_warning(FutureWarning, match="convert_float is deprecated"):
             actual = pd.read_excel(
                 basename + read_ext, sheet_name="Sheet1", convert_float=False
             )
@@ -456,7 +456,7 @@ class TestReaders:
 
         no_convert_float = float_expected.copy()
         no_convert_float["StrCol"] = no_convert_float["StrCol"].apply(str)
-        with pytest.warns(FutureWarning, match="convert_float is deprecated"):
+        with tm.assert_produces_warning(FutureWarning, match="convert_float is deprecated"):
             actual = pd.read_excel(
                 basename + read_ext,
                 sheet_name="Sheet1",

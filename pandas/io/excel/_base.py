@@ -504,7 +504,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             warnings.warn(
                 "convert_float is deprecated and will be removed in a future version",
                 FutureWarning,
-                stacklevel=1,
             )
 
         validate_header_arg(header)
