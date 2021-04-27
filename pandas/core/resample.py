@@ -4,6 +4,7 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Callable,
     no_type_check,
 )
@@ -84,6 +85,9 @@ from pandas.tseries.offsets import (
     Nano,
     Tick,
 )
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 _shared_docs_kwargs: dict[str, str] = {}
 
@@ -1055,7 +1059,8 @@ class _GroupByMixin(PandasObject):
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
 
-        self.binner = kwargs.get("binner", getattr(parent, "binner"))
+        # error: Too many arguments for "__init__" of "object"
+        super().__init__(None)  # type: ignore[call-arg]
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
@@ -1451,7 +1456,7 @@ class TimeGrouper(Grouper):
     def __init__(
         self,
         freq="Min",
-        closed: str | None = None,
+        closed: Literal["left", "right"] | None = None,
         label: str | None = None,
         how="mean",
         axis=0,
@@ -1826,9 +1831,9 @@ def _get_timestamp_range_edges(
     first: Timestamp,
     last: Timestamp,
     freq: BaseOffset,
-    closed: str = "left",
+    closed: Literal["right", "left"] = "left",
     origin="start_day",
-    offset=None,
+    offset: Timedelta | None = None,
 ) -> tuple[Timestamp, Timestamp]:
     """
     Adjust the `first` Timestamp to the preceding Timestamp that resides on
@@ -1904,9 +1909,9 @@ def _get_period_range_edges(
     first: Period,
     last: Period,
     freq: BaseOffset,
-    closed: str = "left",
+    closed: Literal["right", "left"] = "left",
     origin="start_day",
-    offset=None,
+    offset: Timedelta | None = None,
 ) -> tuple[Period, Period]:
     """
     Adjust the provided `first` and `last` Periods to the respective Period of
@@ -1970,7 +1975,12 @@ def _insert_nat_bin(
 
 
 def _adjust_dates_anchored(
-    first, last, freq, closed="right", origin="start_day", offset=None
+    first,
+    last,
+    freq,
+    closed: Literal["right", "left"] = "right",
+    origin="start_day",
+    offset: Timedelta | None = None,
 ):
     # First and last offsets should be calculated from the start day to fix an
     # error cause by resampling across multiple days when a one day period is
