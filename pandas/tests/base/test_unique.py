@@ -65,7 +65,7 @@ def test_unique_null(null_obj, index_or_series_obj):
     unique_values_not_null = [val for val in unique_values_raw if not pd.isnull(val)]
     unique_values = [null_obj] + unique_values_not_null
 
-    if isinstance(obj, pd.NumIndex):
+    if type(obj) is pd.NumIndex:
         expected = pd.NumIndex(unique_values, dtype=obj.dtype)
         tm.assert_index_equal(result, expected)
     elif isinstance(obj, pd.Index):

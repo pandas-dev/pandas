@@ -289,6 +289,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
         cat = self.categories
         if type(cat) is NumIndex:
+            assert isinstance(cat, NumIndex)  # mypy complaint fix
             try:
                 cat._validate_dtype(dtype)
             except ValueError:
