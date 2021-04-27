@@ -29,7 +29,7 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
         pip install git+https://github.com/numpy/numpy.git
         pip install git+https://github.com/pytest-dev/pytest.git
-        pip install cython python-dateutil pytz hypothesis pytest-xdist
+        pip install cython python-dateutil pytz hypothesis
         pip list
 
     - name: Build Pandas
@@ -43,7 +43,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        pytest -m 'not slow and not network and not clipboard' -n 2 --dist=loadfile pandas
+        pytest -m 'not slow and not network and not clipboard' pandas
       continue-on-error: true
 
     - name: Publish test results
