@@ -428,7 +428,7 @@ class RangeIndex(NumericIndex):
     def repeat(self, repeats, axis=None) -> Int64Index:
         return self._int64index.repeat(repeats, axis=axis)
 
-    def delete(self, loc) -> Int64Index:
+    def delete(self, loc) -> Int64Index:  # type: ignore[override]
         return self._int64index.delete(loc)
 
     def take(
@@ -749,7 +749,7 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
-    def _concat(self, indexes: list[Index], name: Hashable):
+    def _concat(self, indexes: list[Index], name: Hashable) -> Index:
         """
         Overriding parent method for the case of all RangeIndex instances.
 
@@ -761,16 +761,15 @@ class RangeIndex(NumericIndex):
         if not all(isinstance(x, RangeIndex) for x in indexes):
             return super()._concat(indexes, name)
 
-        elif len(indexes) == 1:
-            return indexes[0]
+        rng_indexes: list[RangeIndex] = [cast(RangeIndex, obj) for obj in indexes]
+
+        if len(indexes) == 1:
+            return rng_indexes[0]
 
         start = step = next_ = None
 
         # Filter the empty indexes
-        assert all(isinstance(x, RangeIndex) for x in indexes)
-        non_empty_indexes: list[RangeIndex] = [
-            cast(RangeIndex, obj) for obj in indexes if len(obj)
-        ]
+        non_empty_indexes = [obj for obj in rng_indexes if len(obj)]
 
         for obj in non_empty_indexes:
             rng = obj._range
@@ -783,7 +782,9 @@ class RangeIndex(NumericIndex):
             elif step is None:
                 # First non-empty index had only one element
                 if rng.start == start:
-                    result = Int64Index(np.concatenate([x._values for x in indexes]))
+                    result = Int64Index(
+                        np.concatenate([x._values for x in rng_indexes])
+                    )
                     return result.rename(name)
 
                 step = rng.start - start
@@ -792,7 +793,7 @@ class RangeIndex(NumericIndex):
                 next_ is not None and rng.start != next_
             )
             if non_consecutive:
-                result = Int64Index(np.concatenate([x._values for x in indexes]))
+                result = Int64Index(np.concatenate([x._values for x in rng_indexes]))
                 return result.rename(name)
 
             if step is not None:
