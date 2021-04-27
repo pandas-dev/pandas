@@ -30,25 +30,6 @@ class CParserWrapper(ParserBase):
         assert self.handles is not None
         for key in ("storage_options", "encoding", "memory_map", "compression"):
             kwds.pop(key, None)
-        if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
-            # error: Item "IO[Any]" of "Union[IO[Any], RawIOBase, BufferedIOBase,
-            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
-
-            # error: Item "RawIOBase" of "Union[IO[Any], RawIOBase, BufferedIOBase,
-            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
-
-            # error: Item "BufferedIOBase" of "Union[IO[Any], RawIOBase, BufferedIOBase,
-            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
-
-            # error: Item "TextIOBase" of "Union[IO[Any], RawIOBase, BufferedIOBase,
-            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
-
-            # error: Item "TextIOWrapper" of "Union[IO[Any], RawIOBase, BufferedIOBase,
-            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
-
-            # error: Item "mmap" of "Union[IO[Any], RawIOBase, BufferedIOBase,
-            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
-            self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
         try:
             self._reader = parsers.TextReader(self.handles.handle, **kwds)
