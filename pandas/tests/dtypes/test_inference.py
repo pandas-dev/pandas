@@ -442,6 +442,7 @@ class TestInference:
         if convert_to_masked_nullable:
             tm.assert_extension_array_equal(BooleanArray(*result), exp)
         else:
+            result = result[0]
             tm.assert_numpy_array_equal(result, exp)
 
     @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])

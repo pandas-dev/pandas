@@ -297,7 +297,7 @@ def maybe_convert_bool(ndarray[object] arr,
             result[i] = 0  # Value here doesn't matter, will be replaced w/ nan
             has_na = True
         else:
-            return arr
+            return (arr, None)
 
     if has_na:
         if convert_to_masked_nullable:

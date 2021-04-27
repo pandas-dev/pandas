@@ -180,9 +180,9 @@ def to_numeric(arg, errors="raise", downcast=None):
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
         try:
-            values = lib.maybe_convert_numeric(
+            values, _ = lib.maybe_convert_numeric(
                 values, set(), coerce_numeric=coerce_numeric
-            )[0]
+            )
         except (ValueError, TypeError):
             if errors == "raise":
                 raise
