@@ -44,7 +44,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        coverage run -m pytest -m 'not slow and not network and not clipboard' pandas/tests/io/json
+        coverage run -m pytest -m 'not slow and not network and not clipboard' pandas/tests/io/json/test_normalize.py
       continue-on-error: true
       timeout-minutes: 5
 
