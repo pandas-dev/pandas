@@ -524,3 +524,11 @@ class TestRangeIndex(Numeric):
         # GH39401
         result = RI.append([])
         tm.assert_index_equal(result, RI, exact=True)
+
+    @pytest.mark.parametrize("base", [RangeIndex(0, 2), Index([0, 1])])
+    def test_isin_range(self, base):
+        # GH#41151
+        values = RangeIndex(0, 1)
+        result = base.isin(values)
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(result, expected)
