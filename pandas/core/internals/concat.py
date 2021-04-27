@@ -532,9 +532,11 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     elif dtype.kind in ["f", "c"]:
         return dtype.type("NaN")
     elif dtype.kind == "b":
+        # different from missing.na_value_for_dtype
         return None
     elif dtype.kind in ["i", "u"]:
         if not has_none_blocks:
+            # different from missing.na_value_for_dtype
             return None
         return np.nan
     elif dtype.kind == "O":
