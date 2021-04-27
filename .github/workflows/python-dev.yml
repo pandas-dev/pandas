@@ -45,6 +45,7 @@ jobs:
       run: |
         coverage run -m pytest -m 'not slow and not network and not clipboard' pandas/tests/io/json
       continue-on-error: true
+      timeout-minutes: 5
 
     - name: Publish test results
       uses: actions/upload-artifact@master
