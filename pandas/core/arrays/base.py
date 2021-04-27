@@ -13,14 +13,9 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
     Iterator,
-    Optional,
     Sequence,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -31,6 +26,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     NpDtype,
+    PositionalIndexer,
     Shape,
 )
 from pandas.compat import set_function_name
@@ -85,7 +81,7 @@ if TYPE_CHECKING:
             pass
 
 
-_extension_array_shared_docs: Dict[str, str] = {}
+_extension_array_shared_docs: dict[str, str] = {}
 
 ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
 
@@ -226,7 +222,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -249,7 +245,7 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+        cls, strings, *, dtype: Dtype | None = None, copy=False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -296,9 +292,7 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
 
-    def __getitem__(
-        self, item: Union[int, slice, np.ndarray]
-    ) -> Union[ExtensionArray, Any]:
+    def __getitem__(self, item: PositionalIndexer) -> ExtensionArray | Any:
         """
         Select a subset of self.
 
@@ -329,7 +323,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __setitem__(self, key: Union[int, slice, np.ndarray], value: Any) -> None:
+    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
         """
         Set one or more values inplace.
 
@@ -394,7 +388,7 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __contains__(self, item: Any) -> Union[bool, np.bool_]:
+    def __contains__(self, item) -> bool | np.bool_:
         """
         Return for `item in self`.
         """
@@ -433,9 +427,9 @@ class ExtensionArray:
 
     def to_numpy(
         self,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         copy: bool = False,
-        na_value: Optional[Any] = lib.no_default,
+        na_value: Any | None = lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
@@ -553,7 +547,7 @@ class ExtensionArray:
         # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
         return np.array(self, dtype=dtype, copy=copy)  # type: ignore[arg-type]
 
-    def isna(self) -> Union[np.ndarray, ExtensionArraySupportsAnyAll]:
+    def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
         A 1-D array indicating if each value is missing.
 
@@ -615,7 +609,7 @@ class ExtensionArray:
 
         Returns
         -------
-        ndarray
+        np.ndarray[np.intp]
             Array of indices that sort ``self``. If NaN values are contained,
             NaN values are placed at the end.
 
@@ -688,9 +682,9 @@ class ExtensionArray:
 
     def fillna(
         self,
-        value: Optional[Union[Any, ArrayLike]] = None,
-        method: Optional[Literal["backfill", "bfill", "ffill", "pad"]] = None,
-        limit: Optional[int] = None,
+        value: Any | ArrayLike | None = None,
+        method: Literal["backfill", "bfill", "ffill", "pad"] | None = None,
+        limit: int | None = None,
     ) -> ExtensionArray:
         """
         Fill NA/NaN values using the specified method.
@@ -823,7 +817,7 @@ class ExtensionArray:
         self,
         value: Sequence[Any],
         side: Literal["left", "right"] = "left",
-        sorter: Optional[Sequence[Any]] = None,
+        sorter: Sequence[Any] | None = None,
     ) -> np.ndarray:
         """
         Find indices where elements should be inserted to maintain order.
@@ -925,7 +919,7 @@ class ExtensionArray:
         # "Union[Union[ExtensionArray, ndarray], Index, Series]"
         return isin(self.astype(object), values)  # type: ignore[arg-type]
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
+    def _values_for_factorize(self) -> tuple[np.ndarray, Any]:
         """
         Return an array and missing value suitable for factorization.
 
@@ -949,7 +943,7 @@ class ExtensionArray:
         """
         return cast(np.ndarray, self.astype(object)), np.nan
 
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
@@ -1047,7 +1041,7 @@ class ExtensionArray:
     @Appender(_extension_array_shared_docs["repeat"])
     def repeat(
         self,
-        repeats: Union[int, Sequence[int]],
+        repeats: int | Sequence[int],
         axis: Literal[None, 0] = None,
     ) -> ExtensionArray:
         nv.validate_repeat((), {"axis": axis})
@@ -1163,7 +1157,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
         """
         Return a view on the array.
 
@@ -1201,7 +1195,7 @@ class ExtensionArray:
         class_name = f"<{type(self).__name__}>\n"
         return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
 
-    def _formatter(self, boxed: bool = False) -> Callable[[Any], Optional[str]]:
+    def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         """
         Formatting function for scalar values.
 
@@ -1246,9 +1240,7 @@ class ExtensionArray:
     def T(self) -> ExtensionArray:
         return self.transpose()
 
-    def ravel(
-        self, order: Optional[Literal["C", "F", "A", "K"]] = "C"
-    ) -> ExtensionArray:
+    def ravel(self, order: Literal["C", "F", "A", "K"] | None = "C") -> ExtensionArray:
         """
         Return a flattened view on this array.
 
@@ -1269,7 +1261,7 @@ class ExtensionArray:
 
     @classmethod
     def _concat_same_type(
-        cls: Type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
+        cls: type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
     ) -> ExtensionArrayT:
         """
         Concatenate multiple array of this dtype.
@@ -1328,9 +1320,24 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods
 
-    def delete(self, loc: Union[int, Sequence[int]]) -> ExtensionArray:
+    def delete(self, loc: int | Sequence[int]) -> ExtensionArray:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
+
+    @classmethod
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype):
+        """
+        Create an ExtensionArray with the given shape and dtype.
+        """
+        obj = cls._from_sequence([], dtype=dtype)
+
+        taker = np.broadcast_to(np.intp(-1), shape)
+        result = obj.take(taker, allow_fill=True)
+        if not isinstance(result, cls) or dtype != result.dtype:
+            raise NotImplementedError(
+                f"Default 'empty' implementation is invalid for dtype='{dtype}'"
+            )
+        return result
 
 
 class ExtensionOpsMixin:

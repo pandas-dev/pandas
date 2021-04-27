@@ -1,6 +1,11 @@
 """
 Quantilization functions and related stuff
 """
+from typing import (
+    Any,
+    Callable,
+)
+
 import numpy as np
 
 from pandas._libs import (
@@ -11,7 +16,7 @@ from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
-    ensure_int64,
+    ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -19,8 +24,8 @@ from pandas.core.dtypes.common import (
     is_datetime_or_timedelta_dtype,
     is_extension_array_dtype,
     is_integer,
-    is_integer_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
     is_timedelta64_dtype,
 )
@@ -413,7 +418,7 @@ def _bins_to_cuts(
             bins = unique_bins
 
     side = "left" if right else "right"
-    ids = ensure_int64(bins.searchsorted(x, side=side))
+    ids = ensure_platform_int(bins.searchsorted(x, side=side))
 
     if include_lowest:
         ids[x == bins[0]] = 1
@@ -483,7 +488,7 @@ def _coerce_to_type(x):
     # Will properly support in the future.
     # https://github.com/pandas-dev/pandas/pull/31290
     # https://github.com/pandas-dev/pandas/issues/31389
-    elif is_extension_array_dtype(x.dtype) and is_integer_dtype(x.dtype):
+    elif is_extension_array_dtype(x.dtype) and is_numeric_dtype(x.dtype):
         x = x.to_numpy(dtype=np.float64, na_value=np.nan)
 
     if dtype is not None:
@@ -549,6 +554,8 @@ def _format_labels(
 ):
     """ based on the dtype, return our labels """
     closed = "right" if right else "left"
+
+    formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]
 
     if is_datetime64tz_dtype(dtype):
         formatter = lambda x: Timestamp(x, tz=dtype.tz)

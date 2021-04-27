@@ -1,11 +1,5 @@
 from __future__ import annotations
 
-from typing import (
-    List,
-    Optional,
-    Tuple,
-    Type,
-)
 import warnings
 
 import numpy as np
@@ -64,7 +58,7 @@ class FloatingDtype(NumericDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type[FloatingArray]:
+    def construct_array_type(cls) -> type[FloatingArray]:
         """
         Return the array type associated with this dtype.
 
@@ -74,7 +68,7 @@ class FloatingDtype(NumericDtype):
         """
         return FloatingArray
 
-    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # for now only handle other floating types
         if not all(isinstance(t, FloatingDtype) for t in dtypes):
             return None
@@ -91,7 +85,7 @@ class FloatingDtype(NumericDtype):
 
 def coerce_to_array(
     values, dtype=None, mask=None, copy: bool = False
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask.
 
@@ -275,7 +269,7 @@ class FloatingArray(NumericArray):
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
-    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:

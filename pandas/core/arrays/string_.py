@@ -1,11 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -16,6 +11,7 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     Scalar,
+    type_t,
 )
 from pandas.compat.numpy import function as nv
 
@@ -85,11 +81,11 @@ class StringDtype(ExtensionDtype):
     na_value = libmissing.NA
 
     @property
-    def type(self) -> Type[str]:
+    def type(self) -> type[str]:
         return str
 
     @classmethod
-    def construct_array_type(cls) -> Type[StringArray]:
+    def construct_array_type(cls) -> type_t[StringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -103,7 +99,7 @@ class StringDtype(ExtensionDtype):
         return "StringDtype"
 
     def __from_arrow__(
-        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> StringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
@@ -122,7 +118,10 @@ class StringDtype(ExtensionDtype):
             str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
-        return StringArray._concat_same_type(results)
+        if results:
+            return StringArray._concat_same_type(results)
+        else:
+            return StringArray(np.array([], dtype="object"))
 
 
 class StringArray(PandasArray):
@@ -225,7 +224,7 @@ class StringArray(PandasArray):
             )
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         if dtype:
             assert dtype == "string"
 
@@ -254,9 +253,15 @@ class StringArray(PandasArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+        cls, strings, *, dtype: Dtype | None = None, copy=False
     ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _empty(cls, shape, dtype) -> StringArray:
+        values = np.empty(shape, dtype=object)
+        values[:] = libmissing.NA
+        return cls(values).astype(dtype, copy=False)
 
     def __arrow_array__(self, type=None):
         """
@@ -407,7 +412,7 @@ class StringArray(PandasArray):
     # String methods interface
     _str_na_value = StringDtype.na_value
 
-    def _str_map(self, f, na_value=None, dtype: Optional[Dtype] = None):
+    def _str_map(self, f, na_value=None, dtype: Dtype | None = None):
         from pandas.arrays import BooleanArray
 
         if dtype is None:
@@ -419,7 +424,7 @@ class StringArray(PandasArray):
         arr = np.asarray(self)
 
         if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: Union[Type[IntegerArray], Type[BooleanArray]]
+            constructor: type[IntegerArray] | type[BooleanArray]
             if is_integer_dtype(dtype):
                 constructor = IntegerArray
             else:
@@ -445,7 +450,9 @@ class StringArray(PandasArray):
             if not na_value_is_na:
                 mask[:] = False
 
-            return constructor(result, mask)
+            # error: Argument 1 to "maybe_convert_objects" has incompatible
+            # type "Union[ExtensionArray, ndarray]"; expected "ndarray"
+            return constructor(result, mask)  # type: ignore[arg-type]
 
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype

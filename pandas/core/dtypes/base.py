@@ -7,17 +7,16 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
+    TypeVar,
     cast,
 )
 
 import numpy as np
 
-from pandas._typing import DtypeObj
+from pandas._typing import (
+    DtypeObj,
+    type_t,
+)
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import (
@@ -28,6 +27,9 @@ from pandas.core.dtypes.generic import (
 
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
+
+    # To parameterize on same ExtensionDtype
+    ExtensionDtypeT = TypeVar("ExtensionDtypeT", bound="ExtensionDtype")
 
 
 class ExtensionDtype:
@@ -102,7 +104,7 @@ class ExtensionDtype:
     provided for registering virtual subclasses.
     """
 
-    _metadata: Tuple[str, ...] = ()
+    _metadata: tuple[str, ...] = ()
 
     def __str__(self) -> str:
         return self.name
@@ -154,7 +156,7 @@ class ExtensionDtype:
         return np.nan
 
     @property
-    def type(self) -> Type[Any]:
+    def type(self) -> type[Any]:
         """
         The scalar type for the array, e.g. ``int``
 
@@ -191,7 +193,7 @@ class ExtensionDtype:
         raise AbstractMethodError(self)
 
     @property
-    def names(self) -> Optional[List[str]]:
+    def names(self) -> list[str] | None:
         """
         Ordered list of field names, or None if there are no fields.
 
@@ -201,7 +203,7 @@ class ExtensionDtype:
         return None
 
     @classmethod
-    def construct_array_type(cls) -> Type[ExtensionArray]:
+    def construct_array_type(cls) -> type_t[ExtensionArray]:
         """
         Return the array type associated with this dtype.
 
@@ -338,7 +340,7 @@ class ExtensionDtype:
         """
         return False
 
-    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         """
         Return the common dtype, if one exists.
 
@@ -367,7 +369,7 @@ class ExtensionDtype:
             return None
 
 
-def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
+def register_extension_dtype(cls: type[ExtensionDtypeT]) -> type[ExtensionDtypeT]:
     """
     Register an ExtensionType with pandas as class decorator.
 
@@ -410,9 +412,9 @@ class Registry:
     """
 
     def __init__(self):
-        self.dtypes: List[Type[ExtensionDtype]] = []
+        self.dtypes: list[type[ExtensionDtype]] = []
 
-    def register(self, dtype: Type[ExtensionDtype]) -> None:
+    def register(self, dtype: type[ExtensionDtype]) -> None:
         """
         Parameters
         ----------
@@ -423,7 +425,7 @@ class Registry:
 
         self.dtypes.append(dtype)
 
-    def find(self, dtype: Union[Type[ExtensionDtype], str]) -> Optional[ExtensionDtype]:
+    def find(self, dtype: type[ExtensionDtype] | str) -> ExtensionDtype | None:
         """
         Parameters
         ----------
