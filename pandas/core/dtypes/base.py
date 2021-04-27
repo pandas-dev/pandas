@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    TypeVar,
 )
 
 import numpy as np
@@ -25,6 +26,9 @@ from pandas.core.dtypes.generic import (
 
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
+
+    # To parameterize on same ExtensionDtype
+    E = TypeVar("E", bound="ExtensionDtype")
 
 
 class ExtensionDtype:
@@ -151,7 +155,7 @@ class ExtensionDtype:
         return np.nan
 
     @property
-    def type(self) -> type[Any]:
+    def type(self) -> type_t[Any]:
         """
         The scalar type for the array, e.g. ``int``
 
@@ -364,7 +368,7 @@ class ExtensionDtype:
             return None
 
 
-def register_extension_dtype(cls: type[ExtensionDtype]) -> type[ExtensionDtype]:
+def register_extension_dtype(cls: type[E]) -> type[E]:
     """
     Register an ExtensionType with pandas as class decorator.
 
