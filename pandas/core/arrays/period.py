@@ -178,8 +178,8 @@ class PeriodArray(dtl.DatelikeOps):
         "days_in_month",
         "daysinmonth",
     ]
-    _datetimelike_ops = _field_ops + _object_ops + _bool_ops
-    _datetimelike_methods = ["strftime", "to_timestamp", "asfreq"]
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    _datetimelike_methods: list[str] = ["strftime", "to_timestamp", "asfreq"]
 
     # --------------------------------------------------------------------
     # Constructors
