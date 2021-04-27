@@ -496,8 +496,7 @@ for more details.
 
 The resulting dtype will reflect the return value of the passed ``func``,
 see the examples below.
-{examples}
-"""
+{examples}"""
 
 
 @final
