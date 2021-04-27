@@ -217,10 +217,10 @@ _apply_docs = {
     each group together into a new Series, using the dtype returned
     from the function for the result dtype:
 
-    >>> g.apply(lambda x:  x*2 if x.name == 'a' else x/2)
+    >>> g.apply(lambda x: x*2 if x.name == 'a' else x/2)
     a    0.0
-    a    1.0
-    b    2.0
+    a    2.0
+    b    1.0
     dtype: float64
 
     Example 2: The function passed to `apply` takes a Series as
