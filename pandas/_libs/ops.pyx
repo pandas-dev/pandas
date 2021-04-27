@@ -209,7 +209,7 @@ def scalar_binop(object[:] values, object val, object op) -> ndarray:
         else:
             result[i] = op(x, val)
 
-    return maybe_convert_bool(result.base)
+    return maybe_convert_bool(result.base)[0]
 
 
 @cython.wraparound(False)
@@ -251,7 +251,7 @@ def vec_binop(object[:] left, object[:] right, object op) -> ndarray:
             else:
                 raise
 
-    return maybe_convert_bool(result.base)  # `.base` to access np.ndarray
+    return maybe_convert_bool(result.base)[0]  # `.base` to access np.ndarray
 
 
 def maybe_convert_bool(ndarray[object] arr,
