@@ -288,7 +288,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         dtype = pandas_dtype(dtype)
 
         cat = self.categories
-        if isinstance(cat, NumIndex):
+        if type(cat) is NumIndex:
             try:
                 cat._validate_dtype(dtype)
             except ValueError:
