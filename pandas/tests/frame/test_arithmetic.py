@@ -549,7 +549,7 @@ class TestFrameFlexArithmetic:
             # in the `2 + mixed_int_frame` operation, int32 column becomes
             # and int64 column (not preserving dtype in operation with Python
             # scalar), and then the int32/int64 combo results in int64 result
-            dtype["A"] = "int64"
+            dtype["A"] = (2 + mixed_int_frame)["A"].dtype
         tm.assert_frame_equal(result, expected)
         _check_mixed_int(result, dtype=dtype)
 
