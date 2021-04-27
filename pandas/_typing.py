@@ -11,7 +11,7 @@ from io import (
 )
 from mmap import mmap
 from os import PathLike
-from typing import (
+from typing import (  # noqa: F401
     IO,
     TYPE_CHECKING,
     Any,
@@ -31,6 +31,13 @@ from typing import (
 )
 
 import numpy as np
+
+try:
+    from numpy.typing import DTypeLike as NpDtype
+except ImportError:
+    # error: Name 'NpDtype' already defined (possibly by an import)
+    NpDtype: Any = None  # type: ignore[no-redef]
+
 
 # To prevent import cycles place any internal imports in the branch below
 # and use a string literal forward reference to it in subsequent types
@@ -122,10 +129,7 @@ Frequency = Union[str, "DateOffset"]
 Axes = Collection[Any]
 
 # dtypes
-NpDtype = Union[str, np.dtype]
-Dtype = Union[
-    "ExtensionDtype", NpDtype, type_t[Union[str, float, int, complex, bool, object]]
-]
+Dtype = Union["ExtensionDtype", NpDtype]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]

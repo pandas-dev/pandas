@@ -933,10 +933,9 @@ class Parser:
                 )
                 if dtype is not None:
                     try:
-                        # error: Argument 1 to "dtype" has incompatible type
-                        # "Union[ExtensionDtype, str, dtype[Any], Type[object]]";
-                        # expected "Type[Any]"
-                        dtype = np.dtype(dtype)  # type: ignore[arg-type]
+                        # error: No overload variant of "dtype" matches argument type
+                        # "object"
+                        dtype = np.dtype(dtype)  # type: ignore[call-overload]
                         return data.astype(dtype), True
                     except (TypeError, ValueError):
                         return data, False

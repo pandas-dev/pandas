@@ -1295,7 +1295,7 @@ class PandasDtype(ExtensionDtype):
         if isinstance(dtype, PandasDtype):
             # make constructor univalent
             dtype = dtype.numpy_dtype
-        self._dtype = np.dtype(dtype)
+        self._dtype: np.dtype = np.dtype(dtype)
 
     def __repr__(self) -> str:
         return f"PandasDtype({repr(self.name)})"

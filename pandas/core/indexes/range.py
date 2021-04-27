@@ -111,12 +111,7 @@ class RangeIndex(NumericIndex):
         name: Hashable = None,
     ) -> RangeIndex:
 
-        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected
-        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object]]"
-        cls._validate_dtype(dtype)  # type: ignore[arg-type]
+        cls._validate_dtype(dtype)
         name = maybe_extract_name(name, start, cls)
 
         # RangeIndex
@@ -160,12 +155,7 @@ class RangeIndex(NumericIndex):
                 f"range, {repr(data)} was passed"
             )
 
-        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected
-        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object]]"
-        cls._validate_dtype(dtype)  # type: ignore[arg-type]
+        cls._validate_dtype(dtype)
         return cls._simple_new(data, name=name)
 
     @classmethod

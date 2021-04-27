@@ -280,9 +280,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            # error: Incompatible types in assignment (expression has type
-            # "Type[object]", variable has type "Union[str, dtype[Any], None]")
-            dtype = object  # type: ignore[assignment]
+            dtype = object
         if self._hasna:
             if (
                 not is_object_dtype(dtype)
@@ -409,9 +407,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 result += self._mask
             else:
                 result *= np.invert(self._mask)
-        # error: No overload variant of "zeros_like" matches argument types
-        # "BaseMaskedArray", "Type[bool]"
-        mask = np.zeros_like(self, dtype=bool)  # type: ignore[call-overload]
+        mask = np.zeros_like(self, dtype=bool)
         return BooleanArray(result, mask, copy=False)
 
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:

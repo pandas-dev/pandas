@@ -1159,7 +1159,9 @@ class SQLTable(PandasObject):
         if is_dict_like(dtype):
             dtype = cast(dict, dtype)
             if col.name in dtype:
-                return dtype[col.name]
+                # error: TypedDict key must be a string literal; expected one of
+                # ('names', 'formats', 'offsets', 'titles', 'itemsize', ...)
+                return dtype[col.name]  # type: ignore[misc]
 
         # Infer type of column, while ignoring missing values.
         # Needed for inserting typed data containing NULLs, GH 8778.
@@ -1841,7 +1843,9 @@ class SQLiteTable(SQLTable):
         if is_dict_like(dtype):
             dtype = cast(dict, dtype)
             if col.name in dtype:
-                return dtype[col.name]
+                # error: TypedDict key must be a string literal; expected one of
+                # ('names', 'formats', 'offsets', 'titles', 'itemsize', ...)
+                return dtype[col.name]  # type: ignore[misc]
 
         # Infer type of column, while ignoring missing values.
         # Needed for inserting typed data containing NULLs, GH 8778.
