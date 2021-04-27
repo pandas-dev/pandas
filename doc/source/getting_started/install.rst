@@ -15,6 +15,8 @@ Instructions for installing from source,
 `PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <https://github.com/pandas-dev/pandas>`__ are also provided.
 
+.. _install.version:
+
 Python version support
 ----------------------
 
@@ -184,7 +186,7 @@ You can find simple installation instructions for pandas in this document: ``ins
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a pandas development environment.
+See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing_environment>` if you wish to create a pandas development environment.
 
 Running the test suite
 ----------------------
@@ -193,7 +195,7 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<https://docs.pytest.org/en/latest/>`__ >= 5.0.1 and `Hypothesis
+<https://docs.pytest.org/en/latest/>`__ >= 6.0 and `Hypothesis
 <https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
@@ -220,7 +222,7 @@ Dependencies
 Package                                                          Minimum supported version
 ================================================================ ==========================
 `setuptools <https://setuptools.readthedocs.io/en/latest/>`__    38.6.0
-`NumPy <https://numpy.org>`__                                    1.16.5
+`NumPy <https://numpy.org>`__                                    1.17.3
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
 `pytz <https://pypi.org/project/pytz/>`__                        2017.3
 ================================================================ ==========================
@@ -359,6 +361,21 @@ fastparquet               0.4.0              Parquet reading / writing
 pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
 pyreadstat                                   SPSS files (.sav) reading
 ========================= ================== =============================================================
+
+.. _install.warn_orc:
+
+.. warning::
+
+    * If you want to use :func:`~pandas.read_orc`, it is highly recommended to install pyarrow using conda.
+      The following is a summary of the environment in which :func:`~pandas.read_orc` can work.
+
+      ========================= ================== =============================================================
+      System                    Conda              PyPI
+      ========================= ================== =============================================================
+      Linux                     Successful         Failed(pyarrow==3.0 Successful)
+      macOS                     Successful         Failed
+      Windows                   Failed             Failed
+      ========================= ================== =============================================================
 
 Access data in the cloud
 ^^^^^^^^^^^^^^^^^^^^^^^^

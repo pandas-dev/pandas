@@ -8,13 +8,8 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
     Hashable,
-    List,
-    Optional,
     Sequence,
-    Tuple,
-    Union,
 )
 
 import numpy as np
@@ -37,7 +32,9 @@ from pandas.core.dtypes.cast import (
     maybe_upcast,
 )
 from pandas.core.dtypes.common import (
+    is_1d_only_ea_dtype,
     is_datetime64tz_dtype,
+    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_integer_dtype,
@@ -60,9 +57,11 @@ from pandas.core import (
 )
 from pandas.core.arrays import (
     Categorical,
-    DatetimeArray,
+    ExtensionArray,
+    TimedeltaArray,
 )
 from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
 )
@@ -102,9 +101,9 @@ def arrays_to_mgr(
     index,
     columns,
     *,
-    dtype: Optional[DtypeObj] = None,
+    dtype: DtypeObj | None = None,
     verify_integrity: bool = True,
-    typ: Optional[str] = None,
+    typ: str | None = None,
     consolidate: bool = True,
 ) -> Manager:
     """
@@ -146,10 +145,10 @@ def arrays_to_mgr(
 
 
 def rec_array_to_mgr(
-    data: Union[MaskedRecords, np.recarray, np.ndarray],
+    data: MaskedRecords | np.recarray | np.ndarray,
     index,
     columns,
-    dtype: Optional[DtypeObj],
+    dtype: DtypeObj | None,
     copy: bool,
     typ: str,
 ):
@@ -192,7 +191,7 @@ def rec_array_to_mgr(
     return mgr
 
 
-def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> List[np.ndarray]:
+def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> list[np.ndarray]:
     """
     Convert numpy MaskedRecords to ensure mask is softened.
     """
@@ -210,10 +209,11 @@ def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> List[np.ndarr
     return new_arrays
 
 
-def mgr_to_mgr(mgr, typ: str):
+def mgr_to_mgr(mgr, typ: str, copy: bool = True):
     """
     Convert to specific type of Manager. Does not copy if the type is already
-    correct. Does not guarantee a copy otherwise.
+    correct. Does not guarantee a copy otherwise. `copy` keyword only controls
+    whether conversion from Block->ArrayManager copies the 1D arrays.
     """
     new_mgr: Manager
 
@@ -232,10 +232,15 @@ def mgr_to_mgr(mgr, typ: str):
             new_mgr = mgr
         else:
             if mgr.ndim == 2:
-                arrays = [mgr.iget_values(i).copy() for i in range(len(mgr.axes[0]))]
+                arrays = [mgr.iget_values(i) for i in range(len(mgr.axes[0]))]
+                if copy:
+                    arrays = [arr.copy() for arr in arrays]
                 new_mgr = ArrayManager(arrays, [mgr.axes[1], mgr.axes[0]])
             else:
-                new_mgr = SingleArrayManager([mgr.internal_values()], [mgr.index])
+                array = mgr.internal_values()
+                if copy:
+                    array = array.copy()
+                new_mgr = SingleArrayManager([array], [mgr.index])
     else:
         raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{typ}'")
     return new_mgr
@@ -246,7 +251,7 @@ def mgr_to_mgr(mgr, typ: str):
 
 
 def ndarray_to_mgr(
-    values, index, columns, dtype: Optional[DtypeObj], copy: bool, typ: str
+    values, index, columns, dtype: DtypeObj | None, copy: bool, typ: str
 ) -> Manager:
     # used in DataFrame.__init__
     # input must be a ndarray, list, Series, Index, ExtensionArray
@@ -264,7 +269,8 @@ def ndarray_to_mgr(
         if not len(values) and columns is not None and len(columns):
             values = np.empty((0, 1), dtype=object)
 
-    if is_extension_array_dtype(values) or isinstance(dtype, ExtensionDtype):
+    vdtype = getattr(values, "dtype", None)
+    if is_1d_only_ea_dtype(vdtype) or isinstance(dtype, ExtensionDtype):
         # GH#19157
 
         if isinstance(values, np.ndarray) and values.ndim > 1:
@@ -279,9 +285,18 @@ def ndarray_to_mgr(
 
         return arrays_to_mgr(values, columns, index, columns, dtype=dtype, typ=typ)
 
-    # by definition an array here
-    # the dtypes will be coerced to a single dtype
-    values = _prep_ndarray(values, copy=copy)
+    if is_extension_array_dtype(vdtype) and not is_1d_only_ea_dtype(vdtype):
+        # i.e. Datetime64TZ
+        values = extract_array(values, extract_numpy=True)
+        if copy:
+            values = values.copy()
+        if values.ndim == 1:
+            values = values.reshape(-1, 1)
+
+    else:
+        # by definition an array here
+        # the dtypes will be coerced to a single dtype
+        values = _prep_ndarray(values, copy=copy)
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         shape = values.shape
@@ -309,9 +324,29 @@ def ndarray_to_mgr(
     index, columns = _get_axes(
         values.shape[0], values.shape[1], index=index, columns=columns
     )
-    values = values.T
 
     _check_values_indices_shape_match(values, index, columns)
+
+    if typ == "array":
+
+        if issubclass(values.dtype.type, str):
+            values = np.array(values, dtype=object)
+
+        if dtype is None and is_object_dtype(values.dtype):
+            arrays = [
+                ensure_wrapped_if_datetimelike(
+                    maybe_infer_to_datetimelike(values[:, i].copy())
+                )
+                for i in range(values.shape[1])
+            ]
+        else:
+            if is_datetime_or_timedelta_dtype(values.dtype):
+                values = ensure_wrapped_if_datetimelike(values)
+            arrays = [values[:, i].copy() for i in range(values.shape[1])]
+
+        return ArrayManager(arrays, [index, columns], verify_integrity=False)
+
+    values = values.T
 
     # if we don't have a dtype specified, then try to convert objects
     # on the entire block; this is to convert if we have datetimelike's
@@ -325,7 +360,6 @@ def ndarray_to_mgr(
             dvals_list = [ensure_block_shape(dval, 2) for dval in dvals_list]
 
             # TODO: What about re-joining object columns?
-            dvals_list = [maybe_squeeze_dt64tz(x) for x in dvals_list]
             block_values = [
                 new_block(dvals_list[n], placement=n, ndim=2)
                 for n in range(len(dvals_list))
@@ -333,12 +367,10 @@ def ndarray_to_mgr(
 
         else:
             datelike_vals = maybe_infer_to_datetimelike(values)
-            datelike_vals = maybe_squeeze_dt64tz(datelike_vals)
             nb = new_block(datelike_vals, placement=slice(len(columns)), ndim=2)
             block_values = [nb]
     else:
-        new_values = maybe_squeeze_dt64tz(values)
-        nb = new_block(new_values, placement=slice(len(columns)), ndim=2)
+        nb = new_block(values, placement=slice(len(columns)), ndim=2)
         block_values = [nb]
 
     if len(columns) == 0:
@@ -354,37 +386,23 @@ def _check_values_indices_shape_match(
     Check that the shape implied by our axes matches the actual shape of the
     data.
     """
-    if values.shape[0] != len(columns):
+    if values.shape[1] != len(columns) or values.shape[0] != len(index):
         # Could let this raise in Block constructor, but we get a more
         #  helpful exception message this way.
-        if values.shape[1] == 0:
+        if values.shape[0] == 0:
             raise ValueError("Empty data passed with indices specified.")
 
-        passed = values.T.shape
+        passed = values.shape
         implied = (len(index), len(columns))
         raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
 
-def maybe_squeeze_dt64tz(dta: ArrayLike) -> ArrayLike:
-    """
-    If we have a tzaware DatetimeArray with shape (1, N), squeeze to (N,)
-    """
-    # TODO(EA2D): kludge not needed with 2D EAs
-    if isinstance(dta, DatetimeArray) and dta.ndim == 2 and dta.tz is not None:
-        assert dta.shape[0] == 1
-        # error: Incompatible types in assignment (expression has type
-        # "Union[DatetimeLikeArrayMixin, Union[Any, NaTType]]", variable has
-        # type "Union[ExtensionArray, ndarray]")
-        dta = dta[0]  # type: ignore[assignment]
-    return dta
-
-
 def dict_to_mgr(
-    data: Dict,
+    data: dict,
     index,
     columns,
     *,
-    dtype: Optional[DtypeObj] = None,
+    dtype: DtypeObj | None = None,
     typ: str = "block",
     copy: bool = True,
 ) -> Manager:
@@ -394,14 +412,13 @@ def dict_to_mgr(
 
     Used in DataFrame.__init__
     """
-    arrays: Union[Sequence[Any], Series]
+    arrays: Sequence[Any] | Series
 
     if columns is not None:
         from pandas.core.series import Series
 
         arrays = Series(data, index=columns, dtype=object)
         data_names = arrays.index
-
         missing = arrays.isna()
         if index is None:
             # GH10856
@@ -455,9 +472,9 @@ def dict_to_mgr(
 
 def nested_data_to_arrays(
     data: Sequence,
-    columns: Optional[Index],
-    index: Optional[Index],
-    dtype: Optional[DtypeObj],
+    columns: Index | None,
+    index: Index | None,
+    dtype: DtypeObj | None,
 ):
     """
     Convert a single sequence of arrays to multiple arrays.
@@ -486,13 +503,23 @@ def treat_as_nested(data) -> bool:
     """
     Check if we should use nested_data_to_arrays.
     """
-    return len(data) > 0 and is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1
+    return (
+        len(data) > 0
+        and is_list_like(data[0])
+        and getattr(data[0], "ndim", 1) == 1
+        and not (isinstance(data, ExtensionArray) and data.ndim == 2)
+    )
 
 
 # ---------------------------------------------------------------------
 
 
 def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
+    if isinstance(values, TimedeltaArray):
+        # On older numpy, np.asarray below apparently does not call __array__,
+        #  so nanoseconds get dropped.
+        values = values._ndarray
+
     if not isinstance(values, (np.ndarray, ABCSeries, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
@@ -540,7 +567,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index: Index, dtype: Optional[DtypeObj]):
+def _homogenize(data, index: Index, dtype: DtypeObj | None):
     oindex = None
     homogenized = []
 
@@ -585,7 +612,7 @@ def extract_index(data) -> Index:
         index = Index([])
     elif len(data) > 0:
         raw_lengths = []
-        indexes: List[Union[List[Hashable], Index]] = []
+        indexes: list[list[Hashable] | Index] = []
 
         have_raw_arrays = False
         have_series = False
@@ -638,8 +665,8 @@ def extract_index(data) -> Index:
 
 
 def reorder_arrays(
-    arrays: List[ArrayLike], arr_columns: Index, columns: Optional[Index]
-) -> Tuple[List[ArrayLike], Index]:
+    arrays: list[ArrayLike], arr_columns: Index, columns: Index | None
+) -> tuple[list[ArrayLike], Index]:
     # reorder according to the columns
     if columns is not None and len(columns) and len(arr_columns):
         indexer = ensure_index(arr_columns).get_indexer(columns)
@@ -653,7 +680,7 @@ def _get_names_from_index(data) -> Index:
     if not has_some_name:
         return ibase.default_index(len(data))
 
-    index: List[Hashable] = list(range(len(data)))
+    index: list[Hashable] = list(range(len(data)))
     count = 0
     for i, s in enumerate(data):
         n = getattr(s, "name", None)
@@ -667,8 +694,8 @@ def _get_names_from_index(data) -> Index:
 
 
 def _get_axes(
-    N: int, K: int, index: Optional[Index], columns: Optional[Index]
-) -> Tuple[Index, Index]:
+    N: int, K: int, index: Index | None, columns: Index | None
+) -> tuple[Index, Index]:
     # helper to create the axes as indexes
     # return axes or defaults
 
@@ -717,8 +744,8 @@ def dataclasses_to_dicts(data):
 
 
 def to_arrays(
-    data, columns: Optional[Index], dtype: Optional[DtypeObj] = None
-) -> Tuple[List[ArrayLike], Index]:
+    data, columns: Index | None, dtype: DtypeObj | None = None
+) -> tuple[list[ArrayLike], Index]:
     """
     Return list of arrays, columns.
     """
@@ -770,7 +797,7 @@ def to_arrays(
     return content, columns
 
 
-def _list_to_arrays(data: List[Union[Tuple, List]]) -> np.ndarray:
+def _list_to_arrays(data: list[tuple | list]) -> np.ndarray:
     # Returned np.ndarray has ndim = 2
     # Note: we already check len(data) > 0 before getting hre
     if isinstance(data[0], tuple):
@@ -782,9 +809,9 @@ def _list_to_arrays(data: List[Union[Tuple, List]]) -> np.ndarray:
 
 
 def _list_of_series_to_arrays(
-    data: List,
-    columns: Optional[Index],
-) -> Tuple[np.ndarray, Index]:
+    data: list,
+    columns: Index | None,
+) -> tuple[np.ndarray, Index]:
     # returned np.ndarray has ndim == 2
 
     if columns is None:
@@ -792,7 +819,7 @@ def _list_of_series_to_arrays(
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
         columns = get_objs_combined_axis(pass_data, sort=False)
 
-    indexer_cache: Dict[int, np.ndarray] = {}
+    indexer_cache: dict[int, np.ndarray] = {}
 
     aligned_values = []
     for s in data:
@@ -818,9 +845,9 @@ def _list_of_series_to_arrays(
 
 
 def _list_of_dict_to_arrays(
-    data: List[Dict],
-    columns: Optional[Index],
-) -> Tuple[np.ndarray, Index]:
+    data: list[dict],
+    columns: Index | None,
+) -> tuple[np.ndarray, Index]:
     """
     Convert list of dicts to numpy arrays
 
@@ -843,8 +870,8 @@ def _list_of_dict_to_arrays(
     if columns is None:
         gen = (list(x.keys()) for x in data)
         sort = not any(isinstance(d, dict) for d in data)
-        columns = lib.fast_unique_multiple_list_gen(gen, sort=sort)
-        columns = ensure_index(columns)
+        pre_cols = lib.fast_unique_multiple_list_gen(gen, sort=sort)
+        columns = ensure_index(pre_cols)
 
     # assure that they are of the base dict class and not of derived
     # classes
@@ -856,9 +883,9 @@ def _list_of_dict_to_arrays(
 
 def _finalize_columns_and_data(
     content: np.ndarray,  # ndim == 2
-    columns: Optional[Index],
-    dtype: Optional[DtypeObj],
-) -> Tuple[List[ArrayLike], Index]:
+    columns: Index | None,
+    dtype: DtypeObj | None,
+) -> tuple[list[ArrayLike], Index]:
     """
     Ensure we have valid columns, cast object dtypes if possible.
     """
@@ -877,7 +904,7 @@ def _finalize_columns_and_data(
 
 
 def _validate_or_indexify_columns(
-    content: List[np.ndarray], columns: Optional[Index]
+    content: list[np.ndarray], columns: Index | None
 ) -> Index:
     """
     If columns is None, make numbers as column names; Otherwise, validate that
@@ -935,8 +962,8 @@ def _validate_or_indexify_columns(
 
 
 def _convert_object_array(
-    content: List[np.ndarray], dtype: Optional[DtypeObj]
-) -> List[ArrayLike]:
+    content: list[np.ndarray], dtype: DtypeObj | None
+) -> list[ArrayLike]:
     """
     Internal function to convert object array.
 
