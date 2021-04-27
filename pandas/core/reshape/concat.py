@@ -15,7 +15,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion
+from pandas._typing import (
+    Axis,
+    FrameOrSeriesUnion,
+)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
@@ -42,6 +45,8 @@ import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas import (
         DataFrame,
         Series,
@@ -55,15 +60,63 @@ if TYPE_CHECKING:
 @overload
 def concat(
     objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
-    axis=0,
-    join: str = "outer",
-    ignore_index: bool = False,
-    keys=None,
-    levels=None,
-    names=None,
-    verify_integrity: bool = False,
-    sort: bool = False,
-    copy: bool = True,
+    axis: Literal[0, "index"] = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> DataFrame:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
+    axis: Literal[1, "columns"],
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> DataFrame:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[Series] | Mapping[Hashable, Series],
+    axis: Literal[0, "index"] = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> Series:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[Series] | Mapping[Hashable, Series],
+    axis: Literal[1, "columns"],
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -71,9 +124,9 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
-    axis=0,
-    join: str = "outer",
-    ignore_index: bool = False,
+    axis: Axis = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
     keys=None,
     levels=None,
     names=None,
@@ -86,8 +139,8 @@ def concat(
 
 def concat(
     objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
-    axis=0,
-    join="outer",
+    axis: Axis = 0,
+    join: str = "outer",
     ignore_index: bool = False,
     keys=None,
     levels=None,
