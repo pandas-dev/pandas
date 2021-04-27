@@ -34,6 +34,7 @@ class TestXport:
         with td.file_leak_context():
             yield
 
+    @pytest.mark.slow
     def test1_basic(self):
         # Tests with DEMO_G.xpt (all numeric file)
 
