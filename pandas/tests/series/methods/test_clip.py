@@ -40,6 +40,21 @@ class TestSeriesClip:
             assert list(isna(s)) == list(isna(lower))
             assert list(isna(s)) == list(isna(upper))
 
+    @pytest.mark.parametrize("dtypes", ["Float64", "Int64", "Float32", "Int32"])
+    def test_series_clipping_with_na_values(self, dtypes):
+        # Ensure that clipping method can handle NA values with out failing
+        # GH#40581
+
+        s = Series([pd.NA, 1.0, 3.0], dtype=dtypes)
+        s_clipped_upper = s.clip(upper=2.0)
+        s_clipped_lower = s.clip(lower=2.0)
+
+        expected_upper = Series([pd.NA, 1.0, 2.0], dtype=dtypes)
+        expected_lower = Series([pd.NA, 2.0, 3.0], dtype=dtypes)
+
+        tm.assert_series_equal(s_clipped_upper, expected_upper)
+        tm.assert_series_equal(s_clipped_lower, expected_lower)
+
     def test_clip_with_na_args(self):
         """Should process np.nan argument as None """
         # GH#17276
