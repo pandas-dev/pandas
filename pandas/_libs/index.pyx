@@ -584,7 +584,7 @@ cdef class BaseMultiIndexCodesEngine:
     def _codes_to_ints(self, ndarray[uint64_t] codes) -> np.ndarray:
         raise NotImplementedError("Implemented by subclass")
 
-    def _extract_level_codes(self, ndarray[object] target) -> np.ndarray:
+    def _extract_level_codes(self, list target) -> np.ndarray:
         """
         Map the requested list of (tuple) keys to their integer representations
         for searching in the underlying integer index.
@@ -599,11 +599,12 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-        level_codes = [lev.get_indexer(codes) + 1 for lev, codes
-                       in zip(self.levels, zip(*target))]
+        n_levels = len(self.levels)
+        level_codes = [self.levels[i].get_indexer(target[i]) + 1
+                       for i in range(n_levels)]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 
-    def get_indexer(self, ndarray[object] target) -> np.ndarray:
+    def get_indexer(self, list target) -> np.ndarray:
         """
         Returns an array giving the positions of each value of `target` in
         `self.values`, where -1 represents a value in `target` which does not

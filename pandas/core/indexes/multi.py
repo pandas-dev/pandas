@@ -715,6 +715,24 @@ class MultiIndex(Index):
         arr = lib.fast_zip(values)
         return arr
 
+    @cache_readonly
+    def _values_for_indexer(self):
+        values = []
+
+        for i in range(self.nlevels):
+            vals = self._get_level_values(i)
+            if is_categorical_dtype(vals.dtype):
+                vals = cast("CategoricalIndex", vals)
+                vals = vals._data._internal_get_values()
+            if isinstance(vals.dtype, ExtensionDtype):
+                vals = vals.astype(object)
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "Index")
+            vals = np.array(vals, copy=False)  # type: ignore[assignment]
+            values.append(vals)
+
+        return values
+
     @property
     def values(self) -> np.ndarray:
         return self._values
@@ -2666,6 +2684,15 @@ class MultiIndex(Index):
 
         return key
 
+    def _get_engine_target(self) -> np.ndarray:
+        """
+        Override base
+        Get the ndarray that we can pass to the IndexEngine constructor.
+        """
+        # error: Incompatible return value type (got "Union[ExtensionArray,
+        # ndarray]", expected "ndarray")
+        return self._values_for_indexer  # type: ignore[return-value]
+
     def _get_indexer(
         self,
         target: Index,
@@ -2686,7 +2713,7 @@ class MultiIndex(Index):
 
                 # let's instead try with a straight Index
                 if method is None:
-                    return Index(self._values).get_indexer(
+                    return Index(self._values_for_indexer).get_indexer(
                         target, method=method, limit=limit, tolerance=tolerance
                     )
 
@@ -2701,7 +2728,10 @@ class MultiIndex(Index):
             # TODO: get_indexer_with_fill docstring says values must be _sorted_
             #  but that doesn't appear to be enforced
             indexer = self._engine.get_indexer_with_fill(
-                target=target._values, values=self._values, method=method, limit=limit
+                target=target._values_for_indexer,
+                values=self._values_for_indexer,
+                method=method,
+                limit=limit,
             )
         elif method == "nearest":
             raise NotImplementedError(
@@ -2709,7 +2739,7 @@ class MultiIndex(Index):
                 "for MultiIndex; see GitHub issue 9365"
             )
         else:
-            indexer = self._engine.get_indexer(target._values)
+            indexer = self._engine.get_indexer(target._values_for_indexer)
 
         # Note: we only get here (in extant tests at least) with
         #  target.nlevels == self.nlevels
