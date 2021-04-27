@@ -263,7 +263,7 @@ class Block(PandasObject):
         if placement is None:
             placement = self._mgr_locs
 
-        if values.dtype.kind == "m":
+        if values.dtype.kind in ["m", "M"]:
             # TODO: remove this once fastparquet has stopped relying on it
             values = ensure_wrapped_if_datetimelike(values)
 
@@ -1668,7 +1668,7 @@ class NumericBlock(NumpyBlock):
     is_numeric = True
 
 
-class NDArrayBackedExtensionBlock(libinternals.Block, EABackedBlock):
+class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock):
     """
     Block backed by an NDArrayBackedExtensionArray
     """
