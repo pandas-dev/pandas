@@ -1051,7 +1051,10 @@ class Window(BaseWindow):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = window_aggregations.roll_weighted_sum
-        return self._apply(window_func, name="sum", **kwargs)
+        # error: Argument 1 to "_apply" of "Window" has incompatible type
+        # "Callable[[ndarray, ndarray, int], ndarray]"; expected
+        # "Callable[[ndarray, int, int], ndarray]"
+        return self._apply(window_func, name="sum", **kwargs)  # type: ignore[arg-type]
 
     @doc(
         template_header,
@@ -1068,7 +1071,10 @@ class Window(BaseWindow):
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func = window_aggregations.roll_weighted_mean
-        return self._apply(window_func, name="mean", **kwargs)
+        # error: Argument 1 to "_apply" of "Window" has incompatible type
+        # "Callable[[ndarray, ndarray, int], ndarray]"; expected
+        # "Callable[[ndarray, int, int], ndarray]"
+        return self._apply(window_func, name="mean", **kwargs)  # type: ignore[arg-type]
 
     @doc(
         template_header,
