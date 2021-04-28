@@ -3087,10 +3087,8 @@ Keep all original rows and also all original values
             new_name = self.name
 
         # try_float=False is to match _aggregate_series_pure_python
-        res_values = lib.maybe_convert_objects(new_values, try_float=False)
-        res_values = maybe_cast_pointwise_result(
-            res_values, self.dtype, same_dtype=False
-        )
+        npvalues = lib.maybe_convert_objects(new_values, try_float=False)
+        res_values = maybe_cast_pointwise_result(npvalues, self.dtype, same_dtype=False)
         return self._constructor(res_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> Series:
@@ -5315,6 +5313,7 @@ Keep all original rows and also all original values
 
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
+        rvalues = ops.maybe_prepare_scalar_for_op(rvalues, lvalues.shape)
         rvalues = ensure_wrapped_if_datetimelike(rvalues)
 
         with np.errstate(all="ignore"):

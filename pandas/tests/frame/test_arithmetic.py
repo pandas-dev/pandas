@@ -941,16 +941,16 @@ class TestFrameArithmetic:
         elif (op, dtype) in skip:
 
             if op in [operator.add, operator.mul]:
-                with tm.assert_produces_warning(UserWarning):
-                    # "evaluating in Python space because ..."
-                    op(s, e.value)
+                # TODO we should assert this or not depending on whether
+                # numexpr is used or not
+                # with tm.assert_produces_warning(UserWarning):
+                #     # "evaluating in Python space because ..."
+                op(s, e.value)
 
             else:
                 msg = "operator '.*' not implemented for .* dtypes"
                 with pytest.raises(NotImplementedError, match=msg):
-                    with tm.assert_produces_warning(UserWarning):
-                        # "evaluating in Python space because ..."
-                        op(s, e.value)
+                    op(s, e.value)
 
         else:
             # FIXME: Since dispatching to Series, this test no longer
