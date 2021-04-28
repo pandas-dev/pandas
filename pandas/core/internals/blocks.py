@@ -1892,7 +1892,9 @@ def get_block_type(values, dtype: Dtype | None = None):
         cls = ExtensionBlock
     elif isinstance(dtype, CategoricalDtype):
         cls = CategoricalBlock
-    elif vtype is Timestamp:
+    # error: Non-overlapping identity check (left operand type: "Type[generic]",
+    # right operand type: "Type[Timestamp]")
+    elif vtype is Timestamp:  # type: ignore[comparison-overlap]
         cls = DatetimeTZBlock
     elif isinstance(dtype, ExtensionDtype):
         # Note: need to be sure PandasArray is unwrapped before we get here
