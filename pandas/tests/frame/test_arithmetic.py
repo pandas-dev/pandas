@@ -914,7 +914,7 @@ class TestFrameArithmetic:
         ],
         ids=lambda x: x.__name__,
     )
-    def test_binop_other(self, op, value, dtype):
+    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements):
 
         skip = {
             (operator.truediv, "bool"),
@@ -963,11 +963,13 @@ class TestFrameArithmetic:
         elif (op, dtype) in skip:
 
             if op in [operator.add, operator.mul]:
-                # TODO we should assert this or not depending on whether
-                # numexpr is used or not
-                # with tm.assert_produces_warning(UserWarning):
-                #     # "evaluating in Python space because ..."
-                op(s, e.value)
+                if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
+                    # "evaluating in Python space because ..."
+                    warn = UserWarning
+                else:
+                    warn = None
+                with tm.assert_produces_warning(warn):
+                    op(s, e.value)
 
             else:
                 msg = "operator '.*' not implemented for .* dtypes"
