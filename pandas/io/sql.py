@@ -11,7 +11,6 @@ from datetime import (
     datetime,
     time,
 )
-from distutils.version import LooseVersion
 from functools import partial
 import re
 from typing import (
@@ -24,6 +23,7 @@ from typing import (
 import warnings
 
 import numpy as np
+from packaging.version import Version
 
 import pandas._libs.lib as lib
 from pandas._typing import DtypeArg
@@ -83,7 +83,7 @@ def _gt14() -> bool:
     """
     import sqlalchemy
 
-    return LooseVersion(sqlalchemy.__version__) >= LooseVersion("1.4.0")
+    return Version(sqlalchemy.__version__) >= Version("1.4.0")
 
 
 def _convert_params(sql, params):

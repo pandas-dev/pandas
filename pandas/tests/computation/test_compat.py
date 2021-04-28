@@ -1,5 +1,4 @@
-from distutils.version import LooseVersion
-
+from packaging.version import Version
 import pytest
 
 from pandas.compat._optional import VERSIONS
@@ -18,7 +17,7 @@ def test_compat():
         import numexpr as ne
 
         ver = ne.__version__
-        if LooseVersion(ver) < LooseVersion(VERSIONS["numexpr"]):
+        if Version(ver) < Version(VERSIONS["numexpr"]):
             assert not NUMEXPR_INSTALLED
         else:
             assert NUMEXPR_INSTALLED

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 import datetime
-from distutils.version import LooseVersion
 import inspect
 from io import BytesIO
 import os
@@ -14,6 +13,8 @@ from typing import (
 )
 import warnings
 import zipfile
+
+from packaging.version import Version
 
 from pandas._config import config
 
@@ -1147,7 +1148,7 @@ class ExcelFile:
         else:
             import xlrd
 
-            xlrd_version = LooseVersion(get_version(xlrd))
+            xlrd_version = Version(get_version(xlrd))
 
         ext = None
         if engine is None:

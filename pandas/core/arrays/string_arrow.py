@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from distutils.version import LooseVersion
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -9,6 +8,7 @@ from typing import (
 )
 
 import numpy as np
+from packaging.version import Version
 
 from pandas._libs import (
     lib,
@@ -54,7 +54,7 @@ else:
     # PyArrow backed StringArrays are available starting at 1.0.0, but this
     # file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
     # and its compute functions existed. GH38801
-    if LooseVersion(pa.__version__) >= "1.0.0":
+    if Version(pa.__version__) >= Version("1.0.0"):
         import pyarrow.compute as pc
 
         ARROW_CMP_FUNCS = {
@@ -222,7 +222,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     def _chk_pyarrow_available(cls) -> None:
         # TODO: maybe update import_optional_dependency to allow a minimum
         # version to be specified rather than use the global minimum
-        if pa is None or LooseVersion(pa.__version__) < "1.0.0":
+        if pa is None or Version(pa.__version__) < Version("1.0.0"):
             msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
             raise ImportError(msg)
 

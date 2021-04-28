@@ -5,7 +5,6 @@ Operator classes for eval.
 from __future__ import annotations
 
 from datetime import datetime
-from distutils.version import LooseVersion
 from functools import partial
 import operator
 from typing import (
@@ -14,6 +13,7 @@ from typing import (
 )
 
 import numpy as np
+from packaging.version import Version
 
 from pandas._libs.tslibs import Timestamp
 
@@ -623,7 +623,7 @@ class FuncNode:
 
         if name not in MATHOPS or (
             NUMEXPR_INSTALLED
-            and NUMEXPR_VERSION < LooseVersion("2.6.9")
+            and Version(NUMEXPR_VERSION) < Version("2.6.9")
             and name in ("floor", "ceil")
         ):
             raise ValueError(f'"{name}" is not a supported function')

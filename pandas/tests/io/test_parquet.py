@@ -1,12 +1,12 @@
 """ test parquet compat """
 import datetime
-from distutils.version import LooseVersion
 from io import BytesIO
 import os
 import pathlib
 from warnings import catch_warnings
 
 import numpy as np
+from packaging.version import Version
 import pytest
 
 from pandas._config import get_option
@@ -273,12 +273,12 @@ def test_get_engine_auto_error_message():
     have_pa_bad_version = (
         False
         if not _HAVE_PYARROW
-        else LooseVersion(pyarrow.__version__) < LooseVersion(pa_min_ver)
+        else Version(pyarrow.__version__) < Version(pa_min_ver)
     )
     have_fp_bad_version = (
         False
         if not _HAVE_FASTPARQUET
-        else LooseVersion(fastparquet.__version__) < LooseVersion(fp_min_ver)
+        else Version(fastparquet.__version__) < Version(fp_min_ver)
     )
     # Do we have usable engines installed?
     have_usable_pa = _HAVE_PYARROW and not have_pa_bad_version
@@ -322,10 +322,8 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
 def test_cross_engine_fp_pa(request, df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
-    if (
-        LooseVersion(pyarrow.__version__) < "0.15"
-        and LooseVersion(pyarrow.__version__) >= "0.13"
-    ):
+    pyarrow_version = Version(pyarrow.__version__)
+    if pyarrow_version < Version("0.15") and pyarrow_version >= Version("0.13"):
         request.node.add_marker(
             pytest.mark.xfail(
                 "Reading fastparquet with pyarrow in 0.14 fails: "
@@ -623,7 +621,7 @@ class TestParquetPyArrow(Base):
         self.check_error_on_write(df, pa, ValueError, "Duplicate column names found")
 
     def test_unsupported(self, pa):
-        if LooseVersion(pyarrow.__version__) < LooseVersion("0.15.1.dev"):
+        if Version(pyarrow.__version__) < Version("0.15.1.dev"):
             # period - will be supported using an extension type with pyarrow 1.0
             df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
             # pyarrow 0.11 raises ArrowTypeError
@@ -657,7 +655,7 @@ class TestParquetPyArrow(Base):
             ["a", "b", "c", "a", "c", "b"], categories=["b", "c", "d"], ordered=True
         )
 
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.0"):
+        if Version(pyarrow.__version__) >= Version("0.15.0"):
             check_round_trip(df, pa)
         else:
             # de-serialized as object for pyarrow < 0.15
@@ -671,7 +669,7 @@ class TestParquetPyArrow(Base):
     )
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
-        if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
+        if Version(pyarrow.__version__) <= Version("0.17.0"):
             pytest.skip()
         s3 = s3fs.S3FileSystem(**s3so)
         kw = {"filesystem": s3}
@@ -684,7 +682,7 @@ class TestParquetPyArrow(Base):
         )
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa, s3so):
-        if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
+        if Version(pyarrow.__version__) <= Version("0.17.0"):
             pytest.skip()
         # GH #19134
         s3so = {"storage_options": s3so}
@@ -716,8 +714,8 @@ class TestParquetPyArrow(Base):
         # These are added to back of dataframe on read. In new API category dtype is
         # only used if partition field is string, but this changed again to use
         # category dtype for all types (not only strings) in pyarrow 2.0.0
-        pa10 = (LooseVersion(pyarrow.__version__) >= LooseVersion("1.0.0")) and (
-            LooseVersion(pyarrow.__version__) < LooseVersion("2.0.0")
+        pa10 = (Version(pyarrow.__version__) >= Version("1.0.0")) and (
+            Version(pyarrow.__version__) < Version("2.0.0")
         )
         if partition_col:
             if pa10:
@@ -824,7 +822,7 @@ class TestParquetPyArrow(Base):
                 "c": pd.Series(["a", None, "c"], dtype="string"),
             }
         )
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.16.0"):
+        if Version(pyarrow.__version__) >= Version("0.16.0"):
             expected = df
         else:
             # de-serialized as plain int / object
@@ -834,7 +832,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa, expected=expected)
 
         df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.16.0"):
+        if Version(pyarrow.__version__) >= Version("0.16.0"):
             expected = df
         else:
             # if missing values in integer, currently de-serialized as float
@@ -899,7 +897,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa, write_kwargs={"version": "2.0"})
 
     def test_timezone_aware_index(self, pa, timezone_aware_date_list):
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("2.0.0"):
+        if Version(pyarrow.__version__) >= Version("2.0.0"):
             # temporary skip this test until it is properly resolved
             # https://github.com/pandas-dev/pandas/issues/37286
             pytest.skip()

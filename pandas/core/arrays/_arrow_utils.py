@@ -1,12 +1,12 @@
-from distutils.version import LooseVersion
 import json
 
 import numpy as np
+from packaging.version import Version
 import pyarrow
 
 from pandas.core.arrays.interval import VALID_CLOSED
 
-_pyarrow_version_ge_015 = LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")
+_pyarrow_version_ge_015 = Version(pyarrow.__version__) >= Version("0.15")
 
 
 def pyarrow_array_to_numpy_and_mask(arr, dtype):

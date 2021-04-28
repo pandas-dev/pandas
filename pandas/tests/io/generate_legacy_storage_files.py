@@ -33,13 +33,13 @@ run under the older AND the newer version.
 """
 
 from datetime import timedelta
-from distutils.version import LooseVersion
 import os
 import pickle
 import platform as pl
 import sys
 
 import numpy as np
+from packaging.version import Version
 
 import pandas
 from pandas import (
@@ -88,7 +88,7 @@ except ImportError:
     from pandas.core.sparse.api import SparseArray
 
 
-_loose_version = LooseVersion(pandas.__version__)
+_loose_version = Version(pandas.__version__)
 
 
 def _create_sp_series():
@@ -155,7 +155,7 @@ def create_data():
 
     index["range"] = RangeIndex(10)
 
-    if _loose_version >= LooseVersion("0.21"):
+    if _loose_version >= Version("0.21"):
         from pandas import interval_range
 
         index["interval"] = interval_range(0, periods=10)

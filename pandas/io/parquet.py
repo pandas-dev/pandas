@@ -1,7 +1,6 @@
 """ parquet compat """
 from __future__ import annotations
 
-from distutils.version import LooseVersion
 import io
 import os
 from typing import (
@@ -9,6 +8,8 @@ from typing import (
     AnyStr,
 )
 from warnings import catch_warnings
+
+from packaging.version import Version
 
 from pandas._typing import (
     FilePathOrBuffer,
@@ -210,7 +211,7 @@ class PyArrowImpl(BaseImpl):
 
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
-            if LooseVersion(self.api.__version__) >= "0.16":
+            if Version(self.api.__version__) >= Version("0.16"):
                 import pandas as pd
 
                 mapping = {

@@ -26,12 +26,12 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 import locale
 from typing import Callable
 import warnings
 
 import numpy as np
+from packaging.version import Version
 import pytest
 
 from pandas._config import get_option
@@ -88,9 +88,7 @@ def safe_import(mod_name: str, min_version: str | None = None):
             # xlrd uses a capitalized attribute name
             version = getattr(sys.modules[mod_name], "__VERSION__")
         if version:
-            from distutils.version import LooseVersion
-
-            if LooseVersion(version) >= LooseVersion(min_version):
+            if Version(version) >= Version(min_version):
                 return mod
 
     return False
@@ -211,7 +209,7 @@ def skip_if_np_lt(ver_str: str, *args, reason: str | None = None):
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
-        np.__version__ < LooseVersion(ver_str),
+        Version(np.__version__) < Version(ver_str),
         *args,
         reason=reason,
     )
