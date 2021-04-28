@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     TypeVar,
+    overload,
 )
 
 import numpy as np
@@ -202,7 +203,7 @@ class ExtensionDtype:
         return None
 
     @classmethod
-    def construct_array_type(cls) -> type_t[ExtensionArray]:
+    def construct_array_type(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionArray]:
         """
         Return the array type associated with this dtype.
 
@@ -213,7 +214,9 @@ class ExtensionDtype:
         raise NotImplementedError
 
     @classmethod
-    def construct_from_string(cls, string: str) -> ExtensionDtype:
+    def construct_from_string(
+        cls: type_t[ExtensionDtypeT], string: str
+    ) -> ExtensionDtype:
         r"""
         Construct this type from a string.
 
@@ -268,7 +271,7 @@ class ExtensionDtype:
         return cls()
 
     @classmethod
-    def is_dtype(cls, dtype: object) -> bool:
+    def is_dtype(cls: type_t[ExtensionDtypeT], dtype: object) -> bool:
         """
         Check if we match 'dtype'.
 
@@ -424,13 +427,25 @@ class Registry:
 
         self.dtypes.append(dtype)
 
+    @overload
+    def find(self, dtype: type[ExtensionDtype]) -> ExtensionDtype:
+        ...
+
+    @overload
+    def find(self, dtype: ExtensionDtype) -> ExtensionDtype:
+        ...
+
+    @overload
+    def find(self, dtype: str) -> ExtensionDtype | None:
+        ...
+
     def find(
         self, dtype: type[ExtensionDtype] | ExtensionDtype | str
     ) -> type[ExtensionDtype] | ExtensionDtype | None:
         """
         Parameters
         ----------
-        dtype : Type[ExtensionDtype] or ExtensionDtype or str
+        dtype : ExtensionDtype class or instance or str
 
         Returns
         -------
