@@ -389,8 +389,6 @@ def _convert_listlike_datetimes(
             require_iso8601 = not infer_datetime_format
             format = None
 
-    result = None
-
     if format is not None:
         res = _to_datetime_with_format(
             arg, orig_arg, name, tz, format, exact, errors, infer_datetime_format
@@ -398,24 +396,23 @@ def _convert_listlike_datetimes(
         if res is not None:
             return res
 
-    if result is None:
-        assert format is None or infer_datetime_format
-        utc = tz == "utc"
-        result, tz_parsed = objects_to_datetime64ns(
-            arg,
-            dayfirst=dayfirst,
-            yearfirst=yearfirst,
-            utc=utc,
-            errors=errors,
-            require_iso8601=require_iso8601,
-            allow_object=True,
-        )
+    assert format is None or infer_datetime_format
+    utc = tz == "utc"
+    result, tz_parsed = objects_to_datetime64ns(
+        arg,
+        dayfirst=dayfirst,
+        yearfirst=yearfirst,
+        utc=utc,
+        errors=errors,
+        require_iso8601=require_iso8601,
+        allow_object=True,
+    )
 
-        if tz_parsed is not None:
-            # We can take a shortcut since the datetime64 numpy array
-            # is in UTC
-            dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
-            return DatetimeIndex._simple_new(dta, name=name)
+    if tz_parsed is not None:
+        # We can take a shortcut since the datetime64 numpy array
+        # is in UTC
+        dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
+        return DatetimeIndex._simple_new(dta, name=name)
 
     utc = tz == "utc"
     return _box_as_indexlike(result, utc=utc, name=name)

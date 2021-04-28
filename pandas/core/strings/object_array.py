@@ -61,12 +61,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             na_value = self._str_na_value
 
         if not len(self):
-            # error: Argument "dtype" to "array" has incompatible type
-            # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
-            # "Union[dtype[Any], None, type, _SupportsDType, str,
-            # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
-            # _DTypeDict, Tuple[Any, Any]]]"
-            return np.array([], dtype=dtype)  # type: ignore[arg-type]
+            # error: Argument 1 to "ndarray" has incompatible type "int";
+            # expected "Sequence[int]"
+            return np.ndarray(0, dtype=dtype)  # type: ignore[arg-type]
 
         arr = np.asarray(self, dtype=object)
         mask = isna(arr)
