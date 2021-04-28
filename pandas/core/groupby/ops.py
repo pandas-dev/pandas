@@ -14,6 +14,7 @@ from typing import (
     Hashable,
     Iterator,
     Sequence,
+    overload,
 )
 
 import numpy as np
@@ -49,7 +50,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
-    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_period_dtype,
@@ -57,6 +57,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCCategoricalIndex
 from pandas.core.dtypes.missing import (
     isna,
@@ -67,6 +68,15 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
     TimedeltaArray,
+)
+from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.floating import (
+    Float64Dtype,
+    FloatingDtype,
+)
+from pandas.core.arrays.integer import (
+    Int64Dtype,
+    _IntegerDtype,
 )
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
@@ -265,6 +275,14 @@ class WrappedCythonOp:
                 out_dtype = "object"
         return np.dtype(out_dtype)
 
+    @overload
+    def _get_result_dtype(self, dtype: np.dtype) -> np.dtype:
+        ...
+
+    @overload
+    def _get_result_dtype(self, dtype: ExtensionDtype) -> ExtensionDtype:
+        ...
+
     def _get_result_dtype(self, dtype: DtypeObj) -> DtypeObj:
         """
         Get the desired dtype of a result based on the
@@ -280,13 +298,6 @@ class WrappedCythonOp:
         np.dtype or ExtensionDtype
             The desired dtype of the result.
         """
-        from pandas.core.arrays.boolean import BooleanDtype
-        from pandas.core.arrays.floating import Float64Dtype
-        from pandas.core.arrays.integer import (
-            Int64Dtype,
-            _IntegerDtype,
-        )
-
         how = self.how
 
         if how in ["add", "cumsum", "sum", "prod"]:
@@ -367,7 +378,7 @@ class WrappedCythonOp:
             result = type(orig_values)(res_values)
             return result
 
-        elif is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
+        elif isinstance(values.dtype, (BooleanDtype, _IntegerDtype)):
             # IntegerArray or BooleanArray
             npvalues = values.to_numpy("float64", na_value=np.nan)
             res_values = self._cython_op_ndim_compat(
@@ -384,16 +395,13 @@ class WrappedCythonOp:
                 return res_values
 
             dtype = self._get_result_dtype(orig_values.dtype)
-            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]"
-            # has no attribute "construct_array_type"
-            cls = dtype.construct_array_type()  # type: ignore[union-attr]
+            cls = dtype.construct_array_type()
             return cls._from_sequence(res_values, dtype=dtype)
 
-        elif is_float_dtype(values.dtype):
+        elif isinstance(values.dtype, FloatingDtype):
             # FloatingArray
-            # error: "ExtensionDtype" has no attribute "numpy_dtype"
             npvalues = values.to_numpy(
-                values.dtype.numpy_dtype,  # type: ignore[attr-defined]
+                values.dtype.numpy_dtype,
                 na_value=np.nan,
             )
             res_values = self._cython_op_ndim_compat(
@@ -410,9 +418,7 @@ class WrappedCythonOp:
                 return res_values
 
             dtype = self._get_result_dtype(orig_values.dtype)
-            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]"
-            # has no attribute "construct_array_type"
-            cls = dtype.construct_array_type()  # type: ignore[union-attr]
+            cls = dtype.construct_array_type()
             return cls._from_sequence(res_values, dtype=dtype)
 
         raise NotImplementedError(
@@ -576,11 +582,7 @@ class WrappedCythonOp:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cast_blocklist we get here
             res_dtype = self._get_result_dtype(orig_values.dtype)
-            # error: Argument 2 to "maybe_downcast_to_dtype" has incompatible type
-            # "Union[dtype[Any], ExtensionDtype]"; expected "Union[str, dtype[Any]]"
-            op_result = maybe_downcast_to_dtype(
-                result, res_dtype  # type: ignore[arg-type]
-            )
+            op_result = maybe_downcast_to_dtype(result, res_dtype)
         else:
             op_result = result
 
