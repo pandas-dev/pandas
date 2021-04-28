@@ -117,6 +117,7 @@ parser_defaults = {
 
 class ParserBase:
     _implicit_index: bool = False
+    _first_chunk: bool
 
     def __init__(self, kwds):
 
@@ -301,8 +302,9 @@ class ParserBase:
                     name is not None and name in self.parse_dates
                 )
 
+    @final
     def _extract_multi_indexer_columns(
-        self, header, index_names, col_names, passed_names=False
+        self, header, index_names, col_names, passed_names: bool = False
     ):
         """
         extract and return the names, index_names, col_names
@@ -360,6 +362,7 @@ class ParserBase:
 
         return names, index_names, col_names, passed_names
 
+    @final
     def _maybe_dedup_names(self, names):
         # see gh-7160 and gh-9424: this helps to provide
         # immediate alleviation of the duplicate names
@@ -388,12 +391,14 @@ class ParserBase:
 
         return names
 
+    @final
     def _maybe_make_multi_index_columns(self, columns, col_names=None):
         # possibly create a column mi here
         if _is_potential_multi_index(columns):
             columns = MultiIndex.from_tuples(columns, names=col_names)
         return columns
 
+    @final
     def _make_index(self, data, alldata, columns, indexnamerow=False):
         if not is_index_col(self.index_col) or not self.index_col:
             index = None
@@ -421,6 +426,7 @@ class ParserBase:
 
         return index, columns
 
+    @final
     def _get_simple_index(self, data, columns):
         def ix(col):
             if not isinstance(col, str):
@@ -443,6 +449,7 @@ class ParserBase:
 
         return index
 
+    @final
     def _get_complex_date_index(self, data, col_names):
         def _get_name(icol):
             if isinstance(icol, str):
@@ -587,6 +594,7 @@ class ParserBase:
                 print(f"Filled {na_count} NA values in column {c!s}")
         return result
 
+    @final
     def _set_noconvert_dtype_columns(
         self, col_indices: List[int], names: List[Union[int, str, Tuple]]
     ) -> Set[int]:

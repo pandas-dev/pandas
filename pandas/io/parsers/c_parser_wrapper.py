@@ -219,8 +219,7 @@ class CParserWrapper(ParserBase):
             else:
                 data = self._reader.read(nrows)
         except StopIteration:
-            # error: Cannot determine type of '_first_chunk'
-            if self._first_chunk:  # type: ignore[has-type]
+            if self._first_chunk:
                 self._first_chunk = False
                 names = self._maybe_dedup_names(self.orig_names)
                 index, columns, col_dict = self._get_empty_meta(
@@ -324,7 +323,7 @@ class CParserWrapper(ParserBase):
 
         return names, idx_names
 
-    def _maybe_parse_dates(self, values, index: int, try_parse_dates=True):
+    def _maybe_parse_dates(self, values, index: int, try_parse_dates: bool = True):
         if try_parse_dates and self._should_parse_dates(index):
             values = self._date_conv(values)
         return values
