@@ -139,6 +139,7 @@ from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
+import pandas.core.computation.expressions as expressions
 from pandas.core.construction import (
     extract_array,
     sanitize_array,
@@ -6827,8 +6828,6 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame
         """
-        import pandas.core.computation.expressions as expressions
-
         # Get the appropriate array-op to apply to each column/block's values.
         array_op = ops.get_array_op(func)
 

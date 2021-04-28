@@ -72,7 +72,7 @@ def _evaluate_standard(op, op_str, a, b):
     return op(a, b)
 
 
-def can_use_numexpr(op, size=None, dtypes=None, scalar=None):
+def can_use_numexpr(op, size: Optional[int] = None, dtypes=None, scalar=None):
     """
     Initial check whether numexpr can be used with the given size and
     involved data types and/or scalar operand.
