@@ -8,6 +8,7 @@ from urllib.error import URLError
 from zipfile import BadZipFile
 
 import numpy as np
+from packaging.version import Version
 import pytest
 
 import pandas.util._test_decorators as td
@@ -70,7 +71,7 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
     if (
         engine == "xlrd"
         and xlrd_version is not None
-        and xlrd_version >= "2"
+        and xlrd_version >= Version("2")
         and read_ext != ".xls"
     ):
         return False
@@ -1404,7 +1405,7 @@ class TestExcelFileRead:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(
-        xlrd_version is not None and xlrd_version >= "2",
+        xlrd_version is not None and xlrd_version >= Version("2"),
         reason="xlrd no longer supports xlsx",
     )
     def test_excel_high_surrogate(self, engine):

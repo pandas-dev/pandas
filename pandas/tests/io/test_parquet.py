@@ -321,16 +321,6 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
 
 def test_cross_engine_fp_pa(request, df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
-
-    pyarrow_version = Version(pyarrow.__version__)
-    if pyarrow_version < Version("0.15") and pyarrow_version >= Version("0.13"):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                "Reading fastparquet with pyarrow in 0.14 fails: "
-                "https://issues.apache.org/jira/browse/ARROW-6492"
-            )
-        )
-
     df = df_cross_compat
     with tm.ensure_clean() as path:
         df.to_parquet(path, engine=fp, compression=None)
@@ -621,13 +611,6 @@ class TestParquetPyArrow(Base):
         self.check_error_on_write(df, pa, ValueError, "Duplicate column names found")
 
     def test_unsupported(self, pa):
-        if Version(pyarrow.__version__) < Version("0.15.1.dev"):
-            # period - will be supported using an extension type with pyarrow 1.0
-            df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
-            # pyarrow 0.11 raises ArrowTypeError
-            # older pyarrows raise ArrowInvalid
-            self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
-
         # timedelta
         df = pd.DataFrame({"a": pd.timedelta_range("1 day", periods=3)})
         self.check_external_error_on_write(df, pa, NotImplementedError)
