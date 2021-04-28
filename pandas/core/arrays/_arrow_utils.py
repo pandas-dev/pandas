@@ -14,6 +14,8 @@ def pyarrow_array_to_numpy_and_mask(arr, dtype):
     Convert a primitive pyarrow.Array to a numpy array and boolean mask based
     on the buffers of the Array.
 
+    At the moment pyarrow.BooleanArray is not supported.
+
     Parameters
     ----------
     arr : pyarrow.Array
@@ -25,8 +27,16 @@ def pyarrow_array_to_numpy_and_mask(arr, dtype):
         Tuple of two numpy arrays with the raw data (with specified dtype) and
         a boolean mask (validity mask, so False means missing)
     """
+    dtype = np.dtype(dtype)
+
     buflist = arr.buffers()
-    data = np.frombuffer(buflist[1], dtype=dtype)[arr.offset : arr.offset + len(arr)]
+    # Since Arrow buffers might contain padding and the data might be offset,
+    # the buffer gets sliced here before handing it to numpy.
+    # See also https://github.com/pandas-dev/pandas/issues/40896
+    offset = arr.offset * dtype.itemsize
+    length = len(arr) * dtype.itemsize
+    data_buf = buflist[1][offset : offset + length]
+    data = np.frombuffer(data_buf, dtype=dtype)
     bitmask = buflist[0]
     if bitmask is not None:
         mask = pyarrow.BooleanArray.from_buffers(
