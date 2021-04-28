@@ -1395,26 +1395,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def max(self, axis=0, *args, **kwargs):
         nv.validate_max(args, kwargs)
 
-        if self.sp_index.ngaps > 0 and np.all(self._valid_sp_values < 0):
-
-            if self.size > 0 and self._valid_sp_values.size == 0:
-                return np.nan
-
-            return 0
+        # This condition returns a nan if there are no valid values in the array.
+        if self.size > 0 and self._valid_sp_values.size == 0:
+            return np.nan
         else:
-            return np.amax(self._valid_sp_values, axis)
+            return np.nanmax(self, axis)
 
     def min(self, axis=0, *args, **kwargs):
         nv.validate_min(args, kwargs)
 
-        if self.sp_index.ngaps > 0 and np.all(self._valid_sp_values > 0):
-
-            if self.size > 0 and self._valid_sp_values.size == 0:
-                return np.nan
-
-            return 0
+        # This condition returns a nan if there are no valid values in the array.
+        if self.size > 0 and self._valid_sp_values.size == 0:
+            return np.nan
         else:
-            return np.amin(self._valid_sp_values, axis)
+            return np.nanmin(self, axis)
 
     # ------------------------------------------------------------------------
     # Ufuncs
