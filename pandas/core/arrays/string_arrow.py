@@ -420,10 +420,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                # error: Argument 1 to "to_numpy" of "ArrowStringArray" has incompatible
-                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
                 new_values, _ = func(
-                    self.to_numpy(object),  # type: ignore[arg-type]
+                    self.to_numpy("object"),
                     limit=limit,
                     mask=mask,
                 )
@@ -740,11 +738,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             if not na_value_is_na:
                 mask[:] = False
 
-            # error: Argument 1 to "IntegerArray" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            # error: Argument 1 to "BooleanArray" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            return constructor(result, mask)  # type: ignore[arg-type]
+            return constructor(result, mask)
 
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype

@@ -996,8 +996,8 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-        out = lib.maybe_convert_objects(result, try_float=False)
-        out = maybe_cast_pointwise_result(out, obj.dtype, numeric_only=True)
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
+        out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
 
         return out, counts
 

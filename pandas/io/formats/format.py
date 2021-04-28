@@ -1318,7 +1318,6 @@ class GenericArrayFormatter:
                 "ExtensionArray formatting should use ExtensionArrayFormatter"
             )
         inferred = lib.map_infer(vals, is_float)
-        inferred = cast(np.ndarray, inferred)
         is_float_type = (
             inferred
             # vals may have 2 or more dimensions

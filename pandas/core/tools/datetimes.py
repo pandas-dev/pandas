@@ -252,9 +252,7 @@ def _convert_and_box_cache(
     from pandas import Series
 
     result = Series(arg).map(cache_array)
-    # error: Argument 1 to "_box_as_indexlike" has incompatible type "Series"; expected
-    # "Union[ExtensionArray, ndarray]"
-    return _box_as_indexlike(result, utc=None, name=name)  # type: ignore[arg-type]
+    return _box_as_indexlike(result._values, utc=None, name=name)
 
 
 def _return_parsed_timezone_results(result: np.ndarray, timezones, tz, name) -> Index:
@@ -368,13 +366,11 @@ def _convert_listlike_datetimes(
         arg, _ = maybe_convert_dtype(arg, copy=False)
     except TypeError:
         if errors == "coerce":
-            result = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
-            return DatetimeIndex(result, name=name)
+            npvalues = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
+            return DatetimeIndex(npvalues, name=name)
         elif errors == "ignore":
-            # error: Incompatible types in assignment (expression has type
-            # "Index", variable has type "ExtensionArray")
-            result = Index(arg, name=name)  # type: ignore[assignment]
-            return result
+            idx = Index(arg, name=name)
+            return idx
         raise
 
     arg = ensure_object(arg)
@@ -393,37 +389,30 @@ def _convert_listlike_datetimes(
             require_iso8601 = not infer_datetime_format
             format = None
 
-    # error: Incompatible types in assignment (expression has type "None", variable has
-    # type "ExtensionArray")
-    result = None  # type: ignore[assignment]
-
     if format is not None:
-        # error: Incompatible types in assignment (expression has type
-        # "Optional[Index]", variable has type "ndarray")
-        result = _to_datetime_with_format(  # type: ignore[assignment]
+        res = _to_datetime_with_format(
             arg, orig_arg, name, tz, format, exact, errors, infer_datetime_format
         )
-        if result is not None:
-            return result
+        if res is not None:
+            return res
 
-    if result is None:
-        assert format is None or infer_datetime_format
-        utc = tz == "utc"
-        result, tz_parsed = objects_to_datetime64ns(
-            arg,
-            dayfirst=dayfirst,
-            yearfirst=yearfirst,
-            utc=utc,
-            errors=errors,
-            require_iso8601=require_iso8601,
-            allow_object=True,
-        )
+    assert format is None or infer_datetime_format
+    utc = tz == "utc"
+    result, tz_parsed = objects_to_datetime64ns(
+        arg,
+        dayfirst=dayfirst,
+        yearfirst=yearfirst,
+        utc=utc,
+        errors=errors,
+        require_iso8601=require_iso8601,
+        allow_object=True,
+    )
 
-        if tz_parsed is not None:
-            # We can take a shortcut since the datetime64 numpy array
-            # is in UTC
-            dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
-            return DatetimeIndex._simple_new(dta, name=name)
+    if tz_parsed is not None:
+        # We can take a shortcut since the datetime64 numpy array
+        # is in UTC
+        dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
+        return DatetimeIndex._simple_new(dta, name=name)
 
     utc = tz == "utc"
     return _box_as_indexlike(result, utc=utc, name=name)
@@ -509,13 +498,11 @@ def _to_datetime_with_format(
 
         # fallback
         if result is None:
-            # error: Incompatible types in assignment (expression has type
-            # "Optional[Index]", variable has type "Optional[ndarray]")
-            result = _array_strptime_with_fallback(  # type: ignore[assignment]
+            res = _array_strptime_with_fallback(
                 arg, name, tz, fmt, exact, errors, infer_datetime_format
             )
-            if result is not None:
-                return result
+            if res is not None:
+                return res
 
     except ValueError as e:
         # Fallback to try to convert datetime objects if timezone-aware
