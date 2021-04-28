@@ -184,7 +184,8 @@ class PyArrowImpl(BaseImpl):
 
                 filesystem, path = FileSystem.from_uri(path)
             except Exception:
-                # fallback to use fsspec for filesystems that pyarrow doesn't support
+                # fallback to use get_handle / fsspec for filesystems
+                # that pyarrow doesn't support
                 pass
 
         path_or_handle, handles, kwargs["filesystem"] = _get_path_or_handle(
