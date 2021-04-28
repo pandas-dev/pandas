@@ -449,7 +449,7 @@ class ExponentialMovingWindow(BaseWindow):
     def var(self, bias: bool = False, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = window_aggregations.ewmcov
-        window_func = partial(
+        wfunc = partial(
             window_func,
             com=self._com,
             adjust=self.adjust,
@@ -458,7 +458,7 @@ class ExponentialMovingWindow(BaseWindow):
         )
 
         def var_func(values, begin, end, min_periods):
-            return window_func(values, begin, end, min_periods, values)
+            return wfunc(values, begin, end, min_periods, values)
 
         return self._apply(var_func)
 
@@ -518,7 +518,9 @@ class ExponentialMovingWindow(BaseWindow):
                 x_array,
                 start,
                 end,
-                self.min_periods,
+                # error: Argument 4 to "ewmcov" has incompatible type
+                # "Optional[int]"; expected "int"
+                self.min_periods,  # type: ignore[arg-type]
                 y_array,
                 self._com,
                 self.adjust,
@@ -584,12 +586,12 @@ class ExponentialMovingWindow(BaseWindow):
                     X,
                     start,
                     end,
-                    self.min_periods,
+                    min_periods,
                     Y,
                     self._com,
                     self.adjust,
                     self.ignore_na,
-                    1,
+                    True,
                 )
 
             with np.errstate(all="ignore"):
