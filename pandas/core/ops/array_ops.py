@@ -156,14 +156,8 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False, use_numexpr=True):
     ------
     TypeError : invalid operation
     """
-    if isinstance(right, str):
-        # can never use numexpr
-        func = op
-    else:
-        func = partial(expressions.evaluate, op, use_numexpr=use_numexpr)
-
     try:
-        result = func(left, right)
+        result = expressions.evaluate(op, left, right, use_numexpr=use_numexpr)
     except TypeError:
         if is_object_dtype(left) or is_object_dtype(right) and not is_cmp:
             # For object dtype, fallback to a masked operation (only operating

@@ -6862,7 +6862,6 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 use_numexpr = expressions.USE_NUMEXPR
 
-            # breakpoint()
             array_op = ops.get_array_op(func, use_numexpr=use_numexpr)
 
             # TODO operate_blockwise expects a manager of the same type
@@ -6887,6 +6886,17 @@ class DataFrame(NDFrame, OpsMixin):
             # maybe_align_as_frame ensures we do not have an ndarray here
             assert not isinstance(right, np.ndarray)
 
+            if isinstance(self._mgr, ArrayManager):
+                use_numexpr = expressions.can_use_numexpr(
+                    func, self.shape[1], (right.dtype,), None
+                )
+            else:
+                use_numexpr = expressions.can_use_numexpr(
+                    func, None, (right.dtype,), None
+                )
+
+            array_op = ops.get_array_op(func, use_numexpr=use_numexpr)
+
             with np.errstate(all="ignore"):
                 arrays = [
                     array_op(_left, _right)
@@ -6896,6 +6906,17 @@ class DataFrame(NDFrame, OpsMixin):
         elif isinstance(right, Series):
             assert right.index.equals(self.index)  # Handle other cases later
             right = right._values
+
+            if isinstance(self._mgr, ArrayManager):
+                use_numexpr = expressions.can_use_numexpr(
+                    func, self.shape[0], (right.dtype,), None
+                )
+            else:
+                use_numexpr = expressions.can_use_numexpr(
+                    func, None, (right.dtype,), None
+                )
+
+            array_op = ops.get_array_op(func, use_numexpr=use_numexpr)
 
             with np.errstate(all="ignore"):
                 arrays = [array_op(left, right) for left in self._iter_column_arrays()]

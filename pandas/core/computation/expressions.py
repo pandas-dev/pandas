@@ -122,6 +122,9 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
 
         # required min elements (otherwise we are adding overhead)
         if a.size > _MIN_ELEMENTS:
+            if isinstance(b, str):
+                return False
+
             # check for dtype compatibility
             dtypes: Set[str] = set()
             for o in [a, b]:
