@@ -286,13 +286,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         object.__setattr__(obj, "_attrs", {})
         return obj
 
-    def _as_manager(self: FrameOrSeries, typ: str) -> FrameOrSeries:
+    def _as_manager(
+        self: FrameOrSeries, typ: str, copy: bool_t = True
+    ) -> FrameOrSeries:
         """
         Private helper function to create a DataFrame with specific manager.
 
         Parameters
         ----------
         typ : {"block", "array"}
+        copy : bool, default True
+            Only controls whether the conversion from Block->ArrayManager
+            copies the 1D arrays (to ensure proper/contiguous memory layout).
 
         Returns
         -------
@@ -301,7 +306,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             to be a copy or not.
         """
         new_mgr: Manager
-        new_mgr = mgr_to_mgr(self._mgr, typ=typ)
+        new_mgr = mgr_to_mgr(self._mgr, typ=typ, copy=copy)
         # fastpath of passing a manager doesn't check the option/manager class
         return self._constructor(new_mgr).__finalize__(self)
 
@@ -6469,13 +6474,53 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="fillna")
 
+    @overload
+    def ffill(
+        self: FrameOrSeries,
+        axis: None | Axis = ...,
+        inplace: Literal[False] = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> FrameOrSeries:
+        ...
+
+    @overload
+    def ffill(
+        self: FrameOrSeries,
+        axis: None | Axis,
+        inplace: Literal[True],
+        limit: None | int = ...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def ffill(
+        self: FrameOrSeries,
+        *,
+        inplace: Literal[True],
+        limit: None | int = ...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def ffill(
+        self: FrameOrSeries,
+        axis: None | Axis = ...,
+        inplace: bool_t = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> FrameOrSeries | None:
+        ...
+
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def ffill(
         self: FrameOrSeries,
-        axis=None,
+        axis: None | Axis = None,
         inplace: bool_t = False,
-        limit=None,
+        limit: None | int = None,
         downcast=None,
     ) -> FrameOrSeries | None:
         """
@@ -6492,13 +6537,53 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     pad = ffill
 
+    @overload
+    def bfill(
+        self: FrameOrSeries,
+        axis: None | Axis = ...,
+        inplace: Literal[False] = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> FrameOrSeries:
+        ...
+
+    @overload
+    def bfill(
+        self: FrameOrSeries,
+        axis: None | Axis,
+        inplace: Literal[True],
+        limit: None | int = ...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def bfill(
+        self: FrameOrSeries,
+        *,
+        inplace: Literal[True],
+        limit: None | int = ...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def bfill(
+        self: FrameOrSeries,
+        axis: None | Axis = ...,
+        inplace: bool_t = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> FrameOrSeries | None:
+        ...
+
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def bfill(
         self: FrameOrSeries,
-        axis=None,
+        axis: None | Axis = None,
         inplace: bool_t = False,
-        limit=None,
+        limit: None | int = None,
         downcast=None,
     ) -> FrameOrSeries | None:
         """
