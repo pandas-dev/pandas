@@ -86,14 +86,14 @@ class Numeric(Base):
         # Tested in numeric.test_indexing
         pass
 
-    def test_can_hold_identifiers(self):
-        idx = self.create_index()
+    def test_can_hold_identifiers(self, simple_index):
+        idx = simple_index
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is False
 
-    def test_format(self):
+    def test_format(self, simple_index):
         # GH35439
-        idx = self.create_index()
+        idx = simple_index
         max_width = max(len(str(x)) for x in idx)
         expected = [str(x).ljust(max_width) for x in idx]
         assert idx.format() == expected
@@ -101,9 +101,9 @@ class Numeric(Base):
     def test_numeric_compat(self):
         pass  # override Base method
 
-    def test_insert_na(self, nulls_fixture):
+    def test_insert_na(self, nulls_fixture, simple_index):
         # GH 18295 (test missing)
-        index = self.create_index()
+        index = simple_index
         na_val = nulls_fixture
 
         if na_val is pd.NaT:
@@ -119,7 +119,8 @@ class TestFloat64Index(Numeric):
     _index_cls = Float64Index
     _dtype = np.float64
 
-    def create_index(self) -> Float64Index:
+    @pytest.fixture
+    def simple_index(self) -> Index:
         values = np.arange(5, dtype=self._dtype)
         return self._index_cls(values)
 
@@ -437,13 +438,13 @@ class NumericInt(Numeric):
         assert not index._is_strictly_monotonic_increasing
         assert not index._is_strictly_monotonic_decreasing
 
-    def test_logical_compat(self):
-        idx = self.create_index()
+    def test_logical_compat(self, simple_index):
+        idx = simple_index
         assert idx.all() == idx.values.all()
         assert idx.any() == idx.values.any()
 
-    def test_identical(self):
-        index = self.create_index()
+    def test_identical(self, simple_index):
+        index = simple_index
 
         idx = Index(index.copy())
         assert idx.identical(index)
@@ -476,12 +477,12 @@ class NumericInt(Numeric):
         with pytest.raises(TypeError, match=msg):
             self._index_cls(data)
 
-    def test_view_index(self):
-        index = self.create_index()
+    def test_view_index(self, simple_index):
+        index = simple_index
         index.view(Index)
 
-    def test_prevent_casting(self):
-        index = self.create_index()
+    def test_prevent_casting(self, simple_index):
+        index = simple_index
         result = index.astype("O")
         assert result.dtype == np.object_
 
@@ -490,7 +491,8 @@ class TestInt64Index(NumericInt):
     _index_cls = Int64Index
     _dtype = np.int64
 
-    def create_index(self) -> Int64Index:
+    @pytest.fixture
+    def simple_index(self) -> Index:
         return self._index_cls(range(0, 20, 2), dtype=self._dtype)
 
     @pytest.fixture(
@@ -587,6 +589,11 @@ class TestUInt64Index(NumericInt):
     _index_cls = UInt64Index
     _dtype = np.uint64
 
+    @pytest.fixture
+    def simple_index(self) -> Index:
+        # compat with shared Int64/Float64 tests
+        return self._index_cls(np.arange(5, dtype=self._dtype))
+
     @pytest.fixture(
         params=[
             [2 ** 63, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20, 2 ** 63 + 25],
@@ -596,10 +603,6 @@ class TestUInt64Index(NumericInt):
     )
     def index(self, request):
         return self._index_cls(request.param)
-
-    def create_index(self) -> UInt64Index:
-        # compat with shared Int64/Float64 tests
-        return self._index_cls(np.arange(5, dtype=self._dtype))
 
     def test_constructor(self):
         index_cls = self._index_cls

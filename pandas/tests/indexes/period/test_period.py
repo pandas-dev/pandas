@@ -21,6 +21,10 @@ from pandas.tests.indexes.datetimelike import DatetimeLike
 class TestPeriodIndex(DatetimeLike):
     _index_cls = PeriodIndex
 
+    @pytest.fixture
+    def simple_index(self) -> Index:
+        return period_range("20130101", periods=5, freq="D")
+
     @pytest.fixture(
         params=[
             tm.makePeriodIndex(10),
@@ -30,9 +34,6 @@ class TestPeriodIndex(DatetimeLike):
     )
     def index(self, request):
         return request.param
-
-    def create_index(self) -> PeriodIndex:
-        return period_range("20130101", periods=5, freq="D")
 
     def test_pickle_compat_construction(self):
         pass
