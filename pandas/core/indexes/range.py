@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    List,
     cast,
 )
 import warnings
@@ -761,10 +762,10 @@ class RangeIndex(NumericIndex):
         if not all(isinstance(x, RangeIndex) for x in indexes):
             return super()._concat(indexes, name)
 
-        rng_indexes: list[RangeIndex] = [cast(RangeIndex, obj) for obj in indexes]
+        elif len(indexes) == 1:
+            return indexes[0]
 
-        if len(indexes) == 1:
-            return rng_indexes[0]
+        rng_indexes = cast(List[RangeIndex], indexes)
 
         start = step = next_ = None
 
@@ -782,9 +783,8 @@ class RangeIndex(NumericIndex):
             elif step is None:
                 # First non-empty index had only one element
                 if rng.start == start:
-                    result = Int64Index(
-                        np.concatenate([x._values for x in rng_indexes])
-                    )
+                    values = np.concatenate([x._values for x in rng_indexes])
+                    result = Int64Index(values)
                     return result.rename(name)
 
                 step = rng.start - start
@@ -800,6 +800,8 @@ class RangeIndex(NumericIndex):
                 next_ = rng[-1] + step
 
         if non_empty_indexes:
+            # Get the stop value from "next" or alternatively
+            # from the last non-empty index
             stop = non_empty_indexes[-1].stop if next_ is None else next_
             return RangeIndex(start, stop, step).rename(name)
 
