@@ -11,16 +11,14 @@ from typing import (
 from pandas._typing import (
     DtypeObj,
     Shape,
+    final,
 )
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas.core.base import PandasObject
-from pandas.core.indexes.api import (
-    Index,
-    ensure_index,
-)
+from pandas.core.indexes.api import Index
 
 T = TypeVar("T", bound="DataManager")
 
@@ -59,31 +57,26 @@ class DataManager(PandasObject):
     ) -> T:
         raise AbstractMethodError(self)
 
+    @final
     def reindex_axis(
-        self,
-        new_index,
+        self: T,
+        new_index: Index,
         axis: int,
-        method=None,
-        limit=None,
         fill_value=None,
-        copy: bool = True,
         consolidate: bool = True,
         only_slice: bool = False,
-    ):
+    ) -> T:
         """
         Conform data manager to new index.
         """
-        new_index = ensure_index(new_index)
-        new_index, indexer = self.axes[axis].reindex(
-            new_index, method=method, limit=limit
-        )
+        new_index, indexer = self.axes[axis].reindex(new_index)
 
         return self.reindex_indexer(
             new_index,
             indexer,
             axis=axis,
             fill_value=fill_value,
-            copy=copy,
+            copy=False,
             consolidate=consolidate,
             only_slice=only_slice,
         )
