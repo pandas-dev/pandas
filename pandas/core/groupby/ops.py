@@ -48,11 +48,9 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
-    is_period_dtype,
     is_sparse,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -67,6 +65,7 @@ from pandas.core.dtypes.missing import (
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
+    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.boolean import BooleanDtype
@@ -330,15 +329,12 @@ class WrappedCythonOp:
         # TODO: general case implementation overridable by EAs.
         orig_values = values
 
-        if is_datetime64tz_dtype(values.dtype) or is_period_dtype(values.dtype):
+        if isinstance(orig_values, (DatetimeArray, PeriodArray)):
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
-            npvalues = values.view("M8[ns]")
+            npvalues = orig_values._ndarray.view("M8[ns]")
             res_values = self._cython_op_ndim_compat(
-                # error: Argument 1 to "_cython_op_ndim_compat" of
-                # "WrappedCythonOp" has incompatible type
-                # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-                npvalues,  # type: ignore[arg-type]
+                npvalues,
                 min_count=min_count,
                 ngroups=ngroups,
                 comp_ids=comp_ids,
@@ -351,17 +347,14 @@ class WrappedCythonOp:
                 # preserve float64 dtype
                 return res_values
 
-            res_values = res_values.astype("i8", copy=False)
-            # error: Too many arguments for "ExtensionArray"
-            result = type(orig_values)(  # type: ignore[call-arg]
-                res_values, dtype=orig_values.dtype
-            )
+            res_values = res_values.view("i8")
+            result = type(orig_values)(res_values, dtype=orig_values.dtype)
             return result
 
-        elif isinstance(orig_values, (DatetimeArray, TimedeltaArray)):
+        elif isinstance(orig_values, TimedeltaArray):
             # We have an ExtensionArray but not ExtensionDtype
             res_values = self._cython_op_ndim_compat(
-                np.asarray(values),
+                orig_values._ndarray,
                 min_count=min_count,
                 ngroups=ngroups,
                 comp_ids=comp_ids,
