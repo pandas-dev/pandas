@@ -1305,10 +1305,10 @@ class IndexOpsMixin:
         4
         """
         uniqs = self.unique()
-        n = len(uniqs)
-        if dropna and isna(uniqs).any():
-            n -= 1
-        return n
+        if dropna:
+            return (~np.isnan(uniqs)).sum()
+        else:
+            return len(uniqs)
 
     @property
     def is_unique(self) -> bool:
