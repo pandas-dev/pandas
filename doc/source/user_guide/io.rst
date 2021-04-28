@@ -343,7 +343,7 @@ dialect : str or :class:`python:csv.Dialect` instance, default ``None``
 Error handling
 ++++++++++++++
 
-error_bad_lines : boolean, default ``True``
+error_bad_lines : boolean, default ``None``
   Lines with too many fields (e.g. a csv line with too many commas) will by
   default cause an exception to be raised, and no ``DataFrame`` will be
   returned. If ``False``, then these "bad lines" will dropped from the
@@ -351,33 +351,21 @@ error_bad_lines : boolean, default ``True``
   below.
 
   .. deprecated:: 1.3
-     The ``on_bad_lines`` parameter takes precedence over this parameter
-     when specified and should be used instead to specify behavior upon
+     The ``on_bad_lines`` parameter should be used instead to specify behavior upon
      encountering a bad line instead.
-warn_bad_lines : boolean, default ``True``
+warn_bad_lines : boolean, default ``None``
   If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
   each "bad line" will be output.
 
   .. deprecated:: 1.3
-     The ``on_bad_lines`` parameter takes precedence over this parameter
-     when specified and should be used instead to specify behavior upon
+     The ``on_bad_lines`` parameter should be used instead to specify behavior upon
      encountering a bad line instead.
-on_bad_lines : {{None, 'error', 'warn', 'skip'}}, default ``None``
+on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
     Allowed values are :
-
-        - ``None``, default option, defers to ``error_bad_lines`` and ``warn_bad_lines``.
-
-          Note: This option is only present for backwards-compatibility reasons and will
-          be removed after the removal of ``error_bad_lines`` and ``warn_bad_lines``.
-          Please do not specify it explicitly.
-
-        - 'error', raise an Exception when a bad line is encountered.
-        - 'warn', raise a warning when a bad line is encountered and skip that line.
+        - 'error', raise an ParserError when a bad line is encountered.
+        - 'warn', raise a  when a bad line is encountered and skip that line.
         - 'skip', skip bad lines without raising or warning when they are encountered.
-
-    This parameter takes precedence over parameters ``error_bad_lines`` and ``warn_bad_lines``
-    if specified.
 
     .. versionadded:: 1.3
 

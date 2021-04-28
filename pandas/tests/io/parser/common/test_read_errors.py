@@ -174,7 +174,7 @@ def test_suppress_error_output(all_parsers, capsys, kwargs):
 )
 @pytest.mark.parametrize(
     "warn_kwargs",
-    [{}, {"warn_bad_lines": True}, pytest.param({"warn_bad_lines": False})],
+    [{}, {"warn_bad_lines": False}],
 )
 def test_error_bad_lines(all_parsers, kwargs, warn_kwargs):
     # see gh-15925

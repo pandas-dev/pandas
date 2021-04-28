@@ -209,23 +209,25 @@ class ParserBase:
         self.handles: Optional[IOHandles] = None
 
         # Bad line handling
-        on_bad_lines = kwds.get("on_bad_lines")
-        if on_bad_lines is not None:
-            if on_bad_lines == "error":
-                self.on_bad_lines = self.BadLineHandleMethod.ERROR
-            elif on_bad_lines == "warn":
-                self.on_bad_lines = self.BadLineHandleMethod.WARN
-            elif on_bad_lines == "skip":
-                self.on_bad_lines = self.BadLineHandleMethod.SKIP
-            else:
-                raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
+        on_bad_lines = kwds.get("on_bad_lines", "error")
+        if on_bad_lines == "error":
+            self.on_bad_lines = self.BadLineHandleMethod.ERROR
+        elif on_bad_lines == "warn":
+            self.on_bad_lines = self.BadLineHandleMethod.WARN
+        elif on_bad_lines == "skip":
+            self.on_bad_lines = self.BadLineHandleMethod.SKIP
         else:
-            if kwds.get("error_bad_lines"):
-                self.on_bad_lines = self.BadLineHandleMethod.ERROR
-            elif kwds.get("warn_bad_lines"):
-                self.on_bad_lines = self.BadLineHandleMethod.WARN
-            else:
-                self.on_bad_lines = self.BadLineHandleMethod.SKIP
+            raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
+        # Override on_bad_lines w/ deprecated args for backward compatibility
+        error_bad_lines = kwds.get("error_bad_lines")
+        warn_bad_lines = kwds.get("warn_bad_lines")
+        if error_bad_lines:
+            self.on_bad_lines = self.BadLineHandleMethod.ERROR
+        elif warn_bad_lines:
+            self.on_bad_lines = self.BadLineHandleMethod.WARN
+        elif error_bad_lines is False and warn_bad_lines is False:
+            # Be careful - None evaluates to False
+            self.on_bad_lines = self.BadLineHandleMethod.SKIP
 
     def _open_handles(self, src: FilePathOrBuffer, kwds: Dict[str, Any]) -> None:
         """
