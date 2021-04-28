@@ -175,9 +175,19 @@ class TestFrameComparisons:
                 with pytest.raises(TypeError, match=msg):
                     right_f(pd.Timestamp("20010109"), df)
             # nats
-            expected = left_f(df, pd.Timestamp("nat"))
-            result = right_f(pd.Timestamp("nat"), df)
-            tm.assert_frame_equal(result, expected)
+            if left in ["eq", "ne"]:
+                expected = left_f(df, pd.Timestamp("nat"))
+                result = right_f(pd.Timestamp("nat"), df)
+                tm.assert_frame_equal(result, expected)
+            else:
+                msg = (
+                    "'(<|>)=?' not supported between "
+                    "instances of 'numpy.ndarray' and 'NaTType'"
+                )
+                with pytest.raises(TypeError, match=msg):
+                    left_f(df, pd.Timestamp("nat"))
+                with pytest.raises(TypeError, match=msg):
+                    right_f(pd.Timestamp("nat"), df)
 
     def test_mixed_comparison(self):
         # GH#13128, GH#22163 != datetime64 vs non-dt64 should be False,
@@ -932,16 +942,16 @@ class TestFrameArithmetic:
         elif (op, dtype) in skip:
 
             if op in [operator.add, operator.mul]:
-                with tm.assert_produces_warning(UserWarning):
-                    # "evaluating in Python space because ..."
-                    op(s, e.value)
+                # TODO we should assert this or not depending on whether
+                # numexpr is used or not
+                # with tm.assert_produces_warning(UserWarning):
+                #     # "evaluating in Python space because ..."
+                op(s, e.value)
 
             else:
                 msg = "operator '.*' not implemented for .* dtypes"
                 with pytest.raises(NotImplementedError, match=msg):
-                    with tm.assert_produces_warning(UserWarning):
-                        # "evaluating in Python space because ..."
-                        op(s, e.value)
+                    op(s, e.value)
 
         else:
             # FIXME: Since dispatching to Series, this test no longer
