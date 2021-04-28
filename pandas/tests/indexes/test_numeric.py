@@ -172,16 +172,15 @@ class TestFloat64Index(Numeric):
         tm.assert_numpy_array_equal(index.values, expected)
         index = index_cls(np.array([1, 2, 3, 4, 5]))
         assert isinstance(index, index_cls)
-        assert index.dtype.type is dtype
+        assert index.dtype == dtype
 
         index = index_cls([1.0, 2, 3, 4, 5])
         assert isinstance(index, index_cls)
-        assert index.dtype.type is dtype
+        assert index.dtype == dtype
 
         index = index_cls(np.array([1.0, 2, 3, 4, 5]))
         assert isinstance(index, index_cls)
-        assert index.dtype.type is dtype
-        assert index.dtype == float
+        assert index.dtype == dtype
 
         index = index_cls(np.array([1.0, 2, 3, 4, 5]), dtype=np.float32)
         assert isinstance(index, index_cls)
