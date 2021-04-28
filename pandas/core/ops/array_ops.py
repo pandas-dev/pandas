@@ -218,6 +218,10 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
         # because numexpr will fail on it, see GH#31457
         res_values = op(left, right)
     else:
+        # TODO we should handle EAs consistently and move this check before the if/else
+        # (https://github.com/pandas-dev/pandas/issues/41165)
+        _bool_arith_check(op, left, right)
+
         res_values = _na_arithmetic_op(left, right, op)
 
     return res_values
@@ -492,3 +496,28 @@ def _maybe_upcast_for_op(obj, shape: Shape):
         return Timedelta(obj)
 
     return obj
+
+
+_BOOL_OP_NOT_ALLOWED = {
+    operator.truediv,
+    roperator.rtruediv,
+    operator.floordiv,
+    roperator.rfloordiv,
+    operator.pow,
+    roperator.rpow,
+}
+
+
+def _bool_arith_check(op, a, b):
+    """
+    In contrast to numpy, pandas raises an error for certain operations
+    with booleans.
+    """
+    if op in _BOOL_OP_NOT_ALLOWED:
+        if is_bool_dtype(a.dtype) and (
+            is_bool_dtype(b) or isinstance(b, (bool, np.bool_))
+        ):
+            op_name = op.__name__.strip("_").lstrip("r")
+            raise NotImplementedError(
+                f"operator '{op_name}' not implemented for bool dtypes"
+            )
