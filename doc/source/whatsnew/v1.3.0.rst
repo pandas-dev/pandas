@@ -708,6 +708,7 @@ Conversion
 - Bug in :func:`factorize` where, when given an array with a numeric numpy dtype lower than int64, uint64 and float64, the unique values did not keep their original dtype (:issue:`41132`)
 - Bug in :class:`DataFrame` construction with a dictionary containing an arraylike with ``ExtensionDtype`` and ``copy=True`` failing to make a copy (:issue:`38939`)
 - Bug in :meth:`qcut` raising error when taking ``Float64DType`` as input (:issue:`40730`)
+- Bug in :meth:`BaseMaskedArray.to_numpy` does not output ``numeric_dtype`` with ``numeric_dtype`` input (:issue:`40630`)
 
 Strings
 ^^^^^^^

@@ -32,6 +32,8 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_integer,
+    is_integer_dtype,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -244,7 +246,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         Examples
         --------
-        An object-dtype is the default result
+        Other than numerical type input (int and float), object-dtype is
+        the default result
+
+        >>> a = pd.Series([1, 2, 3], dtype=pd.Int64Dtype())
+        >>> a.to_numpy()
+        array([1, 2, 3], dtype=int64)
 
         >>> a = pd.array([True, False, pd.NA], dtype="boolean")
         >>> a.to_numpy()
@@ -280,10 +287,27 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            # error: Incompatible types in assignment (expression has type
-            # "Type[object]", variable has type "Union[str, dtype[Any], None]")
-            dtype = object  # type: ignore[assignment]
-        if self._hasna:
+            if is_numeric_dtype(self):
+                dtype = self.dtype.numpy_dtype
+            else:
+                # error: Incompatible types in assignment (expression has type
+                # "Type[object]", variable has type "Union[str, dtype[Any], None]")
+                dtype = object  # type: ignore[assignment]
+
+        if is_numeric_dtype(self):
+
+            # If there is NA and the data is of int type, a float
+            # is being returned as int type cannot support np.nan.
+            if is_integer_dtype(self) and self._hasna:
+                data = self._data.astype(float)
+            else:
+                data = self._data.astype(dtype)
+
+            # For numerical input, pd.na is replaced with np.nan
+            if self._hasna is True:
+                data[np.where(self._mask is True)] = np.nan
+
+        elif self._hasna:
             if (
                 not is_object_dtype(dtype)
                 and not is_string_dtype(dtype)

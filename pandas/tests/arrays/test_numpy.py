@@ -154,6 +154,21 @@ def test_to_numpy():
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "data_content,data_type,expected_result",
+    [
+        ([1, 2, 3], pd.Float64Dtype(), np.array([1, 2, 3], dtype=np.float64)),
+        ([1, 2, 3], "Int64", np.array([1, 2, 3], dtype=np.int64)),
+        ([1, 2, pd.NA], pd.Float64Dtype(), np.array([1, 2, np.nan], dtype=np.float64)),
+        ([1, 2, pd.NA], "Int64", np.array([1, 2, np.nan], dtype=np.float64)),
+    ],
+)
+def test_to_numpy_int_float(data_content, data_type, expected_result):
+    data = pd.Series(data_content, dtype=data_type)
+    actual_result = data.to_numpy()
+    assert np.array_equal(actual_result, expected_result, equal_nan=True)
+
+
 # ----------------------------------------------------------------------------
 # Setitem
 
