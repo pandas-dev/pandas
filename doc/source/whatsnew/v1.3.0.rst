@@ -878,7 +878,7 @@ Sparse
 
 - Bug in :meth:`DataFrame.sparse.to_coo` raising ``KeyError`` with columns that are a numeric :class:`Index` without a 0 (:issue:`18414`)
 - Bug in :meth:`SparseArray.astype` with ``copy=False`` producing incorrect results when going from integer dtype to floating dtype (:issue:`34456`)
--
+- Implemented :meth:`SparseArray.max` and :meth:`SparseArray.min` (:issue:`40921`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
