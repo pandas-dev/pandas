@@ -40,17 +40,22 @@ class TestSeriesClip:
             assert list(isna(s)) == list(isna(lower))
             assert list(isna(s)) == list(isna(upper))
 
-    @pytest.mark.parametrize("dtypes", ["Float64", "Int64", "Float32", "Int32"])
-    def test_series_clipping_with_na_values(self, dtypes):
+    def test_series_clipping_with_na_values(
+        self, any_nullable_numeric_dtype, nulls_fixture
+    ):
         # Ensure that clipping method can handle NA values with out failing
         # GH#40581
 
-        s = Series([pd.NA, 1.0, 3.0], dtype=dtypes)
+        s = Series([nulls_fixture, 1.0, 3.0], dtype=any_nullable_numeric_dtype)
         s_clipped_upper = s.clip(upper=2.0)
         s_clipped_lower = s.clip(lower=2.0)
 
-        expected_upper = Series([pd.NA, 1.0, 2.0], dtype=dtypes)
-        expected_lower = Series([pd.NA, 2.0, 3.0], dtype=dtypes)
+        expected_upper = Series(
+            [nulls_fixture, 1.0, 2.0], dtype=any_nullable_numeric_dtype
+        )
+        expected_lower = Series(
+            [nulls_fixture, 2.0, 3.0], dtype=any_nullable_numeric_dtype
+        )
 
         tm.assert_series_equal(s_clipped_upper, expected_upper)
         tm.assert_series_equal(s_clipped_lower, expected_lower)
