@@ -63,7 +63,11 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -194,7 +198,7 @@ class WrappedCythonOp:
 
         return func, values
 
-    def disallow_invalid_ops(self, dtype: DtypeObj, is_numeric: bool = False):
+    def _disallow_invalid_ops(self, dtype: DtypeObj, is_numeric: bool = False):
         """
         Check if we can do this operation with our cython functions.
 
@@ -230,7 +234,7 @@ class WrappedCythonOp:
             if how in ["prod", "cumprod"]:
                 raise TypeError(f"timedelta64 type does not support {how} operations")
 
-    def get_output_shape(self, ngroups: int, values: np.ndarray) -> Shape:
+    def _get_output_shape(self, ngroups: int, values: np.ndarray) -> Shape:
         how = self.how
         kind = self.kind
 
@@ -261,7 +265,7 @@ class WrappedCythonOp:
                 out_dtype = "object"
         return np.dtype(out_dtype)
 
-    def get_result_dtype(self, dtype: DtypeObj) -> DtypeObj:
+    def _get_result_dtype(self, dtype: DtypeObj) -> DtypeObj:
         """
         Get the desired dtype of a result based on the
         input dtype and how it was computed.
@@ -343,6 +347,26 @@ class WrappedCythonOp:
             )
             return result
 
+        elif isinstance(orig_values, (DatetimeArray, TimedeltaArray)):
+            # We have an ExtensionArray but not ExtensionDtype
+            res_values = self._cython_op_ndim_compat(
+                np.asarray(values),
+                min_count=min_count,
+                ngroups=ngroups,
+                comp_ids=comp_ids,
+                mask=None,
+                **kwargs,
+            )
+            if self.how in ["rank"]:
+                # i.e. how in WrappedCythonOp.cast_blocklist, since
+                #  other cast_blocklist methods dont go through cython_operation
+                # preserve float64 dtype
+                return res_values
+
+            # otherwise res_values has the same dtype as original values
+            result = type(orig_values)(res_values)
+            return result
+
         elif is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
             # IntegerArray or BooleanArray
             npvalues = values.to_numpy("float64", na_value=np.nan)
@@ -359,7 +383,7 @@ class WrappedCythonOp:
                 #  other cast_blocklist methods dont go through cython_operation
                 return res_values
 
-            dtype = self.get_result_dtype(orig_values.dtype)
+            dtype = self._get_result_dtype(orig_values.dtype)
             # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]"
             # has no attribute "construct_array_type"
             cls = dtype.construct_array_type()  # type: ignore[union-attr]
@@ -385,7 +409,7 @@ class WrappedCythonOp:
                 #  other cast_blocklist methods dont go through cython_operation
                 return res_values
 
-            dtype = self.get_result_dtype(orig_values.dtype)
+            dtype = self._get_result_dtype(orig_values.dtype)
             # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]"
             # has no attribute "construct_array_type"
             cls = dtype.construct_array_type()  # type: ignore[union-attr]
@@ -422,12 +446,13 @@ class WrappedCythonOp:
             mask=mask,
             **kwargs,
         )
-        dtype = self.get_result_dtype(orig_values.dtype)
+        dtype = self._get_result_dtype(orig_values.dtype)
         assert isinstance(dtype, BaseMaskedDtype)
         cls = dtype.construct_array_type()
 
         return cls(res_values.astype(dtype.type, copy=False), mask)
 
+    @final
     def _cython_op_ndim_compat(
         self,
         values: np.ndarray,
@@ -500,7 +525,7 @@ class WrappedCythonOp:
         if mask is not None:
             mask = mask.reshape(values.shape, order="C")
 
-        out_shape = self.get_output_shape(ngroups, values)
+        out_shape = self._get_output_shape(ngroups, values)
         func, values = self.get_cython_func_and_vals(values, is_numeric)
         out_dtype = self.get_out_dtype(values.dtype)
 
@@ -550,7 +575,7 @@ class WrappedCythonOp:
         if self.how not in self.cast_blocklist:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cast_blocklist we get here
-            res_dtype = self.get_result_dtype(orig_values.dtype)
+            res_dtype = self._get_result_dtype(orig_values.dtype)
             # error: Argument 2 to "maybe_downcast_to_dtype" has incompatible type
             # "Union[dtype[Any], ExtensionDtype]"; expected "Union[str, dtype[Any]]"
             op_result = maybe_downcast_to_dtype(
@@ -562,6 +587,62 @@ class WrappedCythonOp:
         # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
         # expected "ndarray")
         return op_result  # type: ignore[return-value]
+
+    @final
+    def cython_operation(
+        self,
+        *,
+        values: ArrayLike,
+        axis: int,
+        min_count: int = -1,
+        comp_ids: np.ndarray,
+        ngroups: int,
+        **kwargs,
+    ) -> ArrayLike:
+        """
+        Call our cython function, with appropriate pre- and post- processing.
+        """
+        if values.ndim > 2:
+            raise NotImplementedError("number of dimensions is currently limited to 2")
+        elif values.ndim == 2:
+            # Note: it is *not* the case that axis is always 0 for 1-dim values,
+            #  as we can have 1D ExtensionArrays that we need to treat as 2D
+            assert axis == 1, axis
+
+        dtype = values.dtype
+        is_numeric = is_numeric_dtype(dtype)
+
+        # can we do this operation with our cython functions
+        # if not raise NotImplementedError
+        self._disallow_invalid_ops(dtype, is_numeric)
+
+        if not isinstance(values, np.ndarray):
+            # i.e. ExtensionArray
+            if isinstance(values, BaseMaskedArray) and self.uses_mask():
+                return self._masked_ea_wrap_cython_operation(
+                    values,
+                    min_count=min_count,
+                    ngroups=ngroups,
+                    comp_ids=comp_ids,
+                    **kwargs,
+                )
+            else:
+                return self._ea_wrap_cython_operation(
+                    values,
+                    min_count=min_count,
+                    ngroups=ngroups,
+                    comp_ids=comp_ids,
+                    **kwargs,
+                )
+
+        return self._cython_op_ndim_compat(
+            values,
+            min_count=min_count,
+            ngroups=ngroups,
+            comp_ids=comp_ids,
+            mask=None,
+            **kwargs,
+        )
 
 
 class BaseGrouper:
@@ -799,6 +880,7 @@ class BaseGrouper:
 
         ngroups = len(obs_group_ids)
         comp_ids = ensure_platform_int(comp_ids)
+
         return comp_ids, obs_group_ids, ngroups
 
     @final
@@ -868,7 +950,6 @@ class BaseGrouper:
         how: str,
         axis: int,
         min_count: int = -1,
-        mask: np.ndarray | None = None,
         **kwargs,
     ) -> ArrayLike:
         """
@@ -876,50 +957,16 @@ class BaseGrouper:
         """
         assert kind in ["transform", "aggregate"]
 
-        if values.ndim > 2:
-            raise NotImplementedError("number of dimensions is currently limited to 2")
-        elif values.ndim == 2:
-            # Note: it is *not* the case that axis is always 0 for 1-dim values,
-            #  as we can have 1D ExtensionArrays that we need to treat as 2D
-            assert axis == 1, axis
-
-        dtype = values.dtype
-        is_numeric = is_numeric_dtype(dtype)
-
         cy_op = WrappedCythonOp(kind=kind, how=how)
-
-        # can we do this operation with our cython functions
-        # if not raise NotImplementedError
-        cy_op.disallow_invalid_ops(dtype, is_numeric)
 
         comp_ids, _, _ = self.group_info
         ngroups = self.ngroups
-
-        func_uses_mask = cy_op.uses_mask()
-        if is_extension_array_dtype(dtype):
-            if isinstance(values, BaseMaskedArray) and func_uses_mask:
-                return cy_op._masked_ea_wrap_cython_operation(
-                    values,
-                    min_count=min_count,
-                    ngroups=ngroups,
-                    comp_ids=comp_ids,
-                    **kwargs,
-                )
-            else:
-                return cy_op._ea_wrap_cython_operation(
-                    values,
-                    min_count=min_count,
-                    ngroups=ngroups,
-                    comp_ids=comp_ids,
-                    **kwargs,
-                )
-
-        return cy_op._cython_op_ndim_compat(
-            values,
+        return cy_op.cython_operation(
+            values=values,
+            axis=axis,
             min_count=min_count,
-            ngroups=self.ngroups,
             comp_ids=comp_ids,
-            mask=mask,
+            ngroups=ngroups,
             **kwargs,
         )
 
@@ -967,8 +1014,8 @@ class BaseGrouper:
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
         group_index = group_index.take(indexer)
-        grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups)
-        result, counts = grouper.get_result()
+        sgrouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups)
+        result, counts = sgrouper.get_result()
         return result, counts
 
     @final
@@ -1169,8 +1216,8 @@ class BinGrouper(BaseGrouper):
         elif obj.index._has_complex_internals:
             return self._aggregate_series_pure_python(obj, func)
 
-        grouper = libreduction.SeriesBinGrouper(obj, func, self.bins)
-        return grouper.get_result()
+        sbg = libreduction.SeriesBinGrouper(obj, func, self.bins)
+        return sbg.get_result()
 
 
 def _is_indexed_like(obj, axes, axis: int) -> bool:
