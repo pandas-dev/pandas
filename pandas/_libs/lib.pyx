@@ -2488,7 +2488,7 @@ no_default = NoDefault.no_default  # Sentinel indicating the default value.
 @cython.wraparound(False)
 def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=True,
                    object na_value=no_default, cnp.dtype dtype=np.dtype(object)
-                   ) -> "ArrayLike":
+                   ) -> np.ndarray:
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2508,7 +2508,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 
     Returns
     -------
-    np.ndarray or ExtensionArray
+    np.ndarray
     """
     cdef:
         Py_ssize_t i, n
@@ -2545,7 +2545,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 @cython.wraparound(False)
 def map_infer(
     ndarray arr, object f, bint convert=True, bint ignore_na=False
-) -> "ArrayLike":
+) -> np.ndarray:
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2559,7 +2559,7 @@ def map_infer(
 
     Returns
     -------
-    np.ndarray or ExtensionArray
+    np.ndarray
     """
     cdef:
         Py_ssize_t i, n
@@ -2697,7 +2697,7 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_multiget(dict mapping, ndarray keys, default=np.nan) -> "ArrayLike":
+def fast_multiget(dict mapping, ndarray keys, default=np.nan) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = len(keys)
         object val
