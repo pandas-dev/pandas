@@ -172,9 +172,24 @@ class PyArrowImpl(BaseImpl):
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
 
+        filesystem = kwargs.pop("filesystem", None)
+        if (
+            isinstance(path, str)
+            and storage_options is None
+            and filesystem is None
+            and LooseVersion(self.api.__version__) >= "5.0.0"
+        ):
+            try:
+                from pyarrow.fs import FileSystem
+
+                filesystem, path = FileSystem.from_uri(path)
+            except Exception:
+                # fallback to use fsspec for filesystems that pyarrow doesn't support
+                pass
+
         path_or_handle, handles, kwargs["filesystem"] = _get_path_or_handle(
             path,
-            kwargs.pop("filesystem", None),
+            filesystem,
             storage_options=storage_options,
             mode="wb",
             is_dir=partition_cols is not None,
