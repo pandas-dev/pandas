@@ -117,7 +117,7 @@ class Numeric(Base):
 
 class TestFloat64Index(Numeric):
     _index_cls = Float64Index
-    _dtype = "float64"
+    _dtype = np.float64
 
     def create_index(self) -> Float64Index:
         values = np.arange(5, dtype=self._dtype)
@@ -489,19 +489,16 @@ class NumericInt(Numeric):
 
 class TestInt64Index(NumericInt):
     _index_cls = Int64Index
-    _dtype = "int64"
+    _dtype = np.int64
 
-    def create_index(self, values=None) -> Int64Index:
-        if values is None:
-            values = range(0, 20, 2)
-
-        return self._index_cls(values, dtype=self._dtype)
+    def create_index(self) -> Int64Index:
+        return self._index_cls(range(0, 20, 2), dtype=self._dtype)
 
     @pytest.fixture(
         params=[range(0, 20, 2), range(19, -1, -1)], ids=["index_inc", "index_dec"]
     )
     def index(self, request):
-        return self.create_index(request.param)
+        return self._index_cls(request.param)
 
     def test_constructor(self):
         index_cls = self._index_cls
@@ -589,7 +586,7 @@ class TestInt64Index(NumericInt):
 class TestUInt64Index(NumericInt):
 
     _index_cls = UInt64Index
-    _dtype = "uint64"
+    _dtype = np.uint64
 
     @pytest.fixture(
         params=[
@@ -605,8 +602,9 @@ class TestUInt64Index(NumericInt):
         # compat with shared Int64/Float64 tests
         return self._index_cls(np.arange(5, dtype=self._dtype))
 
-    def test_constructor(self, dtype):
+    def test_constructor(self):
         index_cls = self._index_cls
+        dtype = self._dtype
 
         idx = index_cls([1, 2, 3])
         res = Index([1, 2, 3], dtype=dtype)
