@@ -175,9 +175,9 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
     import pandas as pd
 
     df = pd.read_csv("data.csv")
-    df
+    df  # discover interesting vis insights!
 
-By printing out a dataframe, Lux automatically `recommends a set of visualizations <https://github.com/lux-org/lux-resources/blob/master/readme_img/demohighlight.gif?raw=true>`__ that highlights interesting trends and patterns in the dataframe. Users can quickly browse through large collections of visualizations via an interactive widget within their Jupyter notebook to make sense what's inside their dataframe. Lux is tightly coupled with pandas, which means that users can leverage any existing pandas commands without modifying their code. Lux also offers a `powerful, intuitive language <https://lux-api.readthedocs.io/en/latest/source/guide/vis.html>`__ that allow users to create  `Altair <https://altair-viz.github.io/>`__, `matplotlib <https://matplotlib.org>`__, or `Vega-Lite
+By printing out a dataframe, Lux automatically `recommends a set of visualizations <https://github.com/lux-org/lux-resources/blob/master/readme_img/demohighlight.gif?raw=true>`__ that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a `powerful, intuitive language <https://lux-api.readthedocs.io/en/latest/source/guide/vis.html>`__ that allow users to create  `Altair <https://altair-viz.github.io/>`__, `matplotlib <https://matplotlib.org>`__, or `Vega-Lite
 <https://vega.github.io/vega-lite/>`__ visualizations without having to think at the level of code.
 
 `Qtpandas <https://github.com/draperjames/qtpandas>`__
