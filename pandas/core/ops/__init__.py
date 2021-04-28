@@ -35,6 +35,7 @@ from pandas.core.ops.array_ops import (  # noqa:F401
     comparison_op,
     get_array_op,
     logical_op,
+    maybe_prepare_scalar_for_op,
 )
 from pandas.core.ops.common import (  # noqa:F401
     get_op_result_name,
@@ -428,6 +429,7 @@ def flex_arith_method_FRAME(op):
 
         axis = self._get_axis_number(axis) if axis is not None else 1
 
+        other = maybe_prepare_scalar_for_op(other, self.shape)
         self, other = align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):
