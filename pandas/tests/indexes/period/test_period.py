@@ -19,7 +19,7 @@ from pandas.tests.indexes.datetimelike import DatetimeLike
 
 
 class TestPeriodIndex(DatetimeLike):
-    _holder = PeriodIndex
+    _index_cls = PeriodIndex
 
     @pytest.fixture(
         params=[
@@ -357,7 +357,7 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_format_empty(self):
         # GH35712
-        empty_idx = self._holder([], freq="A")
+        empty_idx = self._index_cls([], freq="A")
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 

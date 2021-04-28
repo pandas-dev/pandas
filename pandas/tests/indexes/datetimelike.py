@@ -51,11 +51,11 @@ class DatetimeLike(Base):
         i = self.create_index()
 
         i_view = i.view("i8")
-        result = self._holder(i)
+        result = self._index_cls(i)
         tm.assert_index_equal(result, i)
 
-        i_view = i.view(self._holder)
-        result = self._holder(i)
+        i_view = i.view(self._index_cls)
+        result = self._index_cls(i)
         tm.assert_index_equal(result, i_view)
 
     def test_map_callable(self):

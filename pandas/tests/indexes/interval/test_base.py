@@ -16,7 +16,7 @@ class TestBase(Base):
     in test_interval.py or the specific test file (e.g. test_astype.py)
     """
 
-    _holder = IntervalIndex
+    _index_cls = IntervalIndex
 
     @pytest.fixture
     def index(self):

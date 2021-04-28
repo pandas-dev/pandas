@@ -21,7 +21,7 @@ OI = Index
 
 
 class TestRangeIndex(Numeric):
-    _holder = RangeIndex
+    _index_cls = RangeIndex
 
     @pytest.fixture(
         params=[
@@ -506,7 +506,7 @@ class TestRangeIndex(Numeric):
 
     def test_format_empty(self):
         # GH35712
-        empty_idx = self._holder(0)
+        empty_idx = self._index_cls(0)
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 

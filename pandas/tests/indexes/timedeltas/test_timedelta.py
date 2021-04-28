@@ -20,7 +20,7 @@ randn = np.random.randn
 
 
 class TestTimedeltaIndex(DatetimeLike):
-    _holder = TimedeltaIndex
+    _index_cls = TimedeltaIndex
 
     @pytest.fixture
     def index(self):

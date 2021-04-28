@@ -31,7 +31,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 class Base:
     """ base class for index sub-class tests """
 
-    _holder: Type[Index]
+    _index_cls: Type[Index]
 
     def create_index(self) -> Index:
         raise NotImplementedError("Method not implemented")
@@ -45,7 +45,7 @@ class Base:
             r"__new__\(\) takes at least 2 arguments \(1 given\)"
         )
         with pytest.raises(TypeError, match=msg):
-            self._holder()
+            self._index_cls()
 
     @pytest.mark.parametrize("name", [None, "new_name"])
     def test_to_frame(self, name):
@@ -495,7 +495,7 @@ class Base:
 
     def test_format_empty(self):
         # GH35712
-        empty_idx = self._holder([])
+        empty_idx = self._index_cls([])
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 

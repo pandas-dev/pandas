@@ -10,7 +10,7 @@ from pandas.tests.indexes.datetimelike import DatetimeLike
 
 
 class TestDatetimeIndex(DatetimeLike):
-    _holder = DatetimeIndex
+    _index_cls = DatetimeIndex
 
     @pytest.fixture(
         params=[tm.makeDateIndex(10), date_range("20130110", periods=10, freq="-1D")],

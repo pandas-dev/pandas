@@ -46,7 +46,7 @@ from pandas.tests.indexes.common import Base
 
 
 class TestIndex(Base):
-    _holder = Index
+    _index_cls = Index
 
     def create_index(self) -> Index:
         return Index(list("abcde"))
@@ -1415,7 +1415,7 @@ class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
     # in py2 and py3 because ints and strings are uncomparable in py3
     # (GH 13514)
-    _holder = Index
+    _index_cls = Index
 
     @pytest.fixture(params=[[0, "a", 1, "b", 2, "c"]], ids=["mixedIndex"])
     def index(self, request):

@@ -17,7 +17,7 @@ from pandas.tests.indexes.common import Base
 
 
 class TestCategoricalIndex(Base):
-    _holder = CategoricalIndex
+    _index_cls = CategoricalIndex
 
     @pytest.fixture
     def index(self, request):
