@@ -638,12 +638,7 @@ class TestParquetPyArrow(Base):
             ["a", "b", "c", "a", "c", "b"], categories=["b", "c", "d"], ordered=True
         )
 
-        if Version(pyarrow.__version__) >= Version("0.15.0"):
-            check_round_trip(df, pa)
-        else:
-            # de-serialized as object for pyarrow < 0.15
-            expected = df.astype(object)
-            check_round_trip(df, pa, expected=expected)
+        check_round_trip(df, pa)
 
     @pytest.mark.xfail(
         is_platform_windows() and PY38,
