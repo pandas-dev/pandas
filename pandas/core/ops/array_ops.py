@@ -2,7 +2,7 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
-from datetime import timedelta
+import datetime
 from functools import partial
 import operator
 from typing import Any
@@ -10,11 +10,13 @@ from typing import Any
 import numpy as np
 
 from pandas._libs import (
+    NaT,
     Timedelta,
     Timestamp,
     lib,
     ops as libops,
 )
+from pandas._libs.tslibs import BaseOffset
 from pandas._typing import (
     ArrayLike,
     Shape,
@@ -154,8 +156,14 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     ------
     TypeError : invalid operation
     """
+    if isinstance(right, str):
+        # can never use numexpr
+        func = op
+    else:
+        func = partial(expressions.evaluate, op)
+
     try:
-        result = expressions.evaluate(op, left, right)
+        result = func(left, right)
     except TypeError:
         if is_object_dtype(left) or is_object_dtype(right) and not is_cmp:
             # For object dtype, fallback to a masked operation (only operating
@@ -194,17 +202,25 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     ndarray or ExtensionArray
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
-
     # NB: We assume that extract_array and ensure_wrapped_if_datetimelike
-    #  has already been called on `left` and `right`.
+    #  have already been called on `left` and `right`,
+    #  and `maybe_prepare_scalar_for_op` has already been called on `right`
     # We need to special-case datetime64/timedelta64 dtypes (e.g. because numpy
     # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
-    right = _maybe_upcast_for_op(right, left.shape)
 
-    if should_extension_dispatch(left, right) or isinstance(right, Timedelta):
-        # Timedelta is included because numexpr will fail on it, see GH#31457
+    if (
+        should_extension_dispatch(left, right)
+        or isinstance(right, (Timedelta, BaseOffset, Timestamp))
+        or right is NaT
+    ):
+        # Timedelta/Timestamp and other custom scalars are included in the check
+        # because numexpr will fail on it, see GH#31457
         res_values = op(left, right)
     else:
+        # TODO we should handle EAs consistently and move this check before the if/else
+        # (https://github.com/pandas-dev/pandas/issues/41165)
+        _bool_arith_check(op, left, right)
+
         res_values = _na_arithmetic_op(left, right, op)
 
     return res_values
@@ -246,7 +262,10 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
                 "Lengths must match to compare", lvalues.shape, rvalues.shape
             )
 
-    if should_extension_dispatch(lvalues, rvalues):
+    if should_extension_dispatch(lvalues, rvalues) or (
+        (isinstance(rvalues, (Timedelta, BaseOffset, Timestamp)) or right is NaT)
+        and not is_object_dtype(lvalues.dtype)
+    ):
         # Call the method on lvalues
         res_values = op(lvalues, rvalues)
 
@@ -261,7 +280,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # GH#36377 going through the numexpr path would incorrectly raise
         return invalid_comparison(lvalues, rvalues, op)
 
-    elif is_object_dtype(lvalues.dtype):
+    elif is_object_dtype(lvalues.dtype) or isinstance(rvalues, str):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
@@ -419,7 +438,7 @@ def get_array_op(op):
         raise NotImplementedError(op_name)
 
 
-def _maybe_upcast_for_op(obj, shape: Shape):
+def maybe_prepare_scalar_for_op(obj, shape: Shape):
     """
     Cast non-pandas objects to pandas types to unify behavior of arithmetic
     and comparison operations.
@@ -438,11 +457,14 @@ def _maybe_upcast_for_op(obj, shape: Shape):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
-    if type(obj) is timedelta:
+    if type(obj) is datetime.timedelta:
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
         return Timedelta(obj)
+    elif type(obj) is datetime.datetime:
+        # cast up to Timestamp to rely on Timestamp implementation, see Timedelta above
+        return Timestamp(obj)
     elif isinstance(obj, np.datetime64):
         # GH#28080 numpy casts integer-dtype to datetime64 when doing
         #  array[int] + datetime64, which we do not allow
@@ -473,3 +495,28 @@ def _maybe_upcast_for_op(obj, shape: Shape):
         return Timedelta(obj)
 
     return obj
+
+
+_BOOL_OP_NOT_ALLOWED = {
+    operator.truediv,
+    roperator.rtruediv,
+    operator.floordiv,
+    roperator.rfloordiv,
+    operator.pow,
+    roperator.rpow,
+}
+
+
+def _bool_arith_check(op, a, b):
+    """
+    In contrast to numpy, pandas raises an error for certain operations
+    with booleans.
+    """
+    if op in _BOOL_OP_NOT_ALLOWED:
+        if is_bool_dtype(a.dtype) and (
+            is_bool_dtype(b) or isinstance(b, (bool, np.bool_))
+        ):
+            op_name = op.__name__.strip("_").lstrip("r")
+            raise NotImplementedError(
+                f"operator '{op_name}' not implemented for bool dtypes"
+            )
