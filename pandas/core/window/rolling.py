@@ -43,10 +43,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
-    ABCPeriodIndex,
     ABCSeries,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import notna
 
@@ -58,8 +55,11 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.indexes.api import (
+    DatetimeIndex,
     Index,
     MultiIndex,
+    PeriodIndex,
+    TimedeltaIndex,
 )
 from pandas.core.internals import ArrayManager
 from pandas.core.reshape.concat import concat
@@ -1461,9 +1461,7 @@ class Rolling(RollingAndExpandingMixin):
         # we allow rolling on a datetimelike index
         if (
             self.obj.empty
-            or isinstance(
-                self._on, (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
-            )
+            or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
             self._validate_monotonic()
@@ -1476,7 +1474,7 @@ class Rolling(RollingAndExpandingMixin):
                     f"passed window {self.window} is not "
                     "compatible with a datetimelike index"
                 ) from err
-            if isinstance(self._on, ABCPeriodIndex):
+            if isinstance(self._on, PeriodIndex):
                 self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
             else:
                 self._win_freq_i8 = freq.nanos

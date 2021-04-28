@@ -232,7 +232,7 @@ def decons_group_index(comp_labels, shape):
     return label_list[::-1]
 
 
-def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
+def decons_obs_group_ids(comp_ids: np.ndarray, obs_ids, shape, labels, xnull: bool):
     """
     Reconstruct labels from observed group ids.
 
@@ -360,6 +360,10 @@ def nargsort(
     key : Optional[Callable], default None
     mask : Optional[np.ndarray], default None
         Passed when called by ExtensionArray.argsort.
+
+    Returns
+    -------
+    np.ndarray[np.intp]
     """
 
     if key is not None:
@@ -404,7 +408,7 @@ def nargsort(
         indexer = np.concatenate([nan_idx, indexer])
     else:
         raise ValueError(f"invalid na_position: {na_position}")
-    return indexer
+    return ensure_platform_int(indexer)
 
 
 def nargminmax(values, method: str, axis: int = 0):
@@ -644,7 +648,9 @@ def get_group_index_sorter(
     return ensure_platform_int(sorter)
 
 
-def compress_group_index(group_index, sort: bool = True):
+def compress_group_index(
+    group_index: np.ndarray, sort: bool = True
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
@@ -682,7 +688,7 @@ def _reorder_by_uniques(
     sorter = uniques.argsort()
 
     # reverse_indexer is where elements came from
-    reverse_indexer = np.empty(len(sorter), dtype=np.int64)
+    reverse_indexer = np.empty(len(sorter), dtype=np.intp)
     reverse_indexer.put(sorter, np.arange(len(sorter)))
 
     mask = labels < 0
