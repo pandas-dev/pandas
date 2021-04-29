@@ -71,7 +71,7 @@ class TestIntervalIndex:
         with pytest.raises(KeyError, match=r"^\[-1\]$"):
             indexer_sl(ser)[[-1, 3]]
 
-    @pytest.mark.arm_slow
+    @pytest.mark.slow
     def test_loc_getitem_large_series(self):
         ser = Series(
             np.arange(1000000), index=IntervalIndex.from_breaks(np.arange(1000001))

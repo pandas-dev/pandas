@@ -515,7 +515,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | numexpr         | 2.6.8           |          |         |
 +-----------------+-----------------+----------+---------+
-| pytest (dev)    | 5.0.1           |          |         |
+| pytest (dev)    | 6.0             |          |    X    |
 +-----------------+-----------------+----------+---------+
 | mypy (dev)      | 0.800           |          |    X    |
 +-----------------+-----------------+----------+---------+
@@ -609,7 +609,7 @@ Deprecations
 - Deprecated using :func:`merge` or :func:`join` on a different number of levels (:issue:`34862`)
 - Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
 - Deprecated the ``level`` keyword for :class:`DataFrame` and :class:`Series` aggregations; use groupby instead (:issue:`39983`)
-- The ``inplace`` parameter of :meth:`Categorical.remove_categories`, :meth:`Categorical.add_categories` is deprecated and will be removed in a future version (:issue:`37643`)
+- The ``inplace`` parameter of :meth:`Categorical.remove_categories`, :meth:`Categorical.add_categories`, :meth:`Categorical.reorder_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 - Deprecated :func:`merge` producing duplicated columns through the ``suffixes`` keyword  and already existing columns (:issue:`22818`)
 
 .. ---------------------------------------------------------------------------
@@ -705,8 +705,9 @@ Conversion
 - Bug in :class:`DataFrame` failing to raise ``TypeError`` when constructing from a ``frozenset`` (:issue:`40163`)
 - Bug in :class:`Index` construction silently ignoring a passed ``dtype`` when the data cannot be cast to that dtype (:issue:`21311`)
 - Bug in :meth:`StringArray.astype` falling back to numpy and raising when converting to ``dtype='categorical'`` (:issue:`40450`)
+- Bug in :func:`factorize` where, when given an array with a numeric numpy dtype lower than int64, uint64 and float64, the unique values did not keep their original dtype (:issue:`41132`)
 - Bug in :class:`DataFrame` construction with a dictionary containing an arraylike with ``ExtensionDtype`` and ``copy=True`` failing to make a copy (:issue:`38939`)
--
+- Bug in :meth:`qcut` raising error when taking ``Float64DType`` as input (:issue:`40730`)
 
 Strings
 ^^^^^^^
@@ -797,6 +798,7 @@ I/O
 - Bug in :func:`read_excel` raising ``AttributeError`` with ``MultiIndex`` header followed by two empty rows and no index, and bug affecting :func:`read_excel`, :func:`read_csv`, :func:`read_table`, :func:`read_fwf`, and :func:`read_clipboard` where one blank row after a ``MultiIndex`` header with no index would be dropped (:issue:`40442`)
 - Bug in :meth:`DataFrame.to_string` misplacing the truncation column when ``index=False`` (:issue:`40907`)
 - Bug in :func:`read_orc` always raising ``AttributeError`` (:issue:`40918`)
+- Bug in the conversion from pyarrow to pandas (e.g. for reading Parquet) with nullable dtypes and a pyarrow array whose data buffer size is not a multiple of dtype size (:issue:`40896`)
 - Bug in :func:`read_excel` loading trailing empty rows/columns for some filetypes (:issue:`41167`)
 
 Period
@@ -848,6 +850,8 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.cummin` and :meth:`GroupBy.cummax` incorrectly rounding integer values near the ``int64`` implementations bounds (:issue:`40767`)
 - Bug in :meth:`.GroupBy.rank` with nullable dtypes incorrectly raising ``TypeError`` (:issue:`41010`)
 - Bug in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` computing wrong result with nullable data types too large to roundtrip when casting to float (:issue:`37493`)
+- Bug in :meth:`DataFrame.rolling` returning mean zero for all ``NaN`` window with ``min_periods=0`` if calculation is not numerical stable (:issue:`41053`)
+- Bug in :meth:`DataFrame.rolling` returning sum not zero for all ``NaN`` window with ``min_periods=0`` if calculation is not numerical stable (:issue:`41053`)
 
 Reshaping
 ^^^^^^^^^
@@ -875,7 +879,7 @@ Sparse
 
 - Bug in :meth:`DataFrame.sparse.to_coo` raising ``KeyError`` with columns that are a numeric :class:`Index` without a 0 (:issue:`18414`)
 - Bug in :meth:`SparseArray.astype` with ``copy=False`` producing incorrect results when going from integer dtype to floating dtype (:issue:`34456`)
--
+- Implemented :meth:`SparseArray.max` and :meth:`SparseArray.min` (:issue:`40921`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^

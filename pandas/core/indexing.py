@@ -701,7 +701,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             keys = self.obj.columns.union(key, sort=False)
 
             self.obj._mgr = self.obj._mgr.reindex_axis(
-                keys, axis=0, copy=False, consolidate=False, only_slice=True
+                keys, axis=0, consolidate=False, only_slice=True
             )
 
     def __setitem__(self, key, value):
