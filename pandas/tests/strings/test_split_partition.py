@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -13,28 +11,6 @@ from pandas import (
     Series,
     _testing as tm,
 )
-
-
-@pytest.fixture(
-    params=[
-        "object",
-        "string",
-        pytest.param(
-            "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
-    ]
-)
-def any_string_dtype(request):
-    """
-    Parametrized fixture for string dtypes.
-
-    * 'object'
-    * 'string'
-    * 'arrow_string'
-    """
-    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-    return request.param
 
 
 def test_split(any_string_dtype):
