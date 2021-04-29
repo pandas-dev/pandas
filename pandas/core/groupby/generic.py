@@ -1088,9 +1088,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         using_array_manager = isinstance(data, ArrayManager)
 
-        def cast_agg_result(
-            result: ArrayLike, values: ArrayLike, how: str
-        ) -> ArrayLike:
+        def cast_agg_result(result: ArrayLike, values: ArrayLike) -> ArrayLike:
             # see if we can cast the values to the desired dtype
             # this may not be the original dtype
 
@@ -1102,7 +1100,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             elif (
                 not using_array_manager
-                and isinstance(result, np.ndarray)
+                and isinstance(result.dtype, np.dtype)
                 and result.ndim == 1
             ):
                 # We went through a SeriesGroupByPath and need to reshape
@@ -1129,34 +1127,26 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             else:
                 # We only get here with values.dtype == object
                 # TODO special case not needed with ArrayManager
-                obj = DataFrame(values.T)
-                if obj.shape[1] == 1:
-                    # Avoid call to self.values that can occur in DataFrame
-                    #  reductions; see GH#28949
-                    obj = obj.iloc[:, 0]
+                df = DataFrame(values.T)
+                # bc we split object blocks in grouped_reduce, we have only 1 col
+                # otherwise we'd have to worry about block-splitting GH#39329
+                assert df.shape[1] == 1
+                # Avoid call to self.values that can occur in DataFrame
+                #  reductions; see GH#28949
+                obj = df.iloc[:, 0]
 
             # Create SeriesGroupBy with observed=True so that it does
             # not try to add missing categories if grouping over multiple
             # Categoricals. This will done by later self._reindex_output()
             # Doing it here creates an error. See GH#34951
             sgb = get_groupby(obj, self.grouper, observed=True)
-            result = sgb.aggregate(lambda x: alt(x, axis=self.axis))
+            # Note: bc obj is always a Series here, we can ignore axis and pass
+            #  `alt` directly instead of `lambda x: alt(x, axis=self.axis)`
+            res_ser = sgb.aggregate(alt)  # this will go through sgb._python_agg_general
 
-            # In the case of object dtype block, it may have been split
-            #  in the operation.  We un-split here.
-            result = result._consolidate()
-            # unwrap DataFrame/Series to get array
-            mgr = result._mgr
-            arrays = mgr.arrays
-            if len(arrays) != 1:
-                # We've split an object block! Everything we've assumed
-                # about a single block input returning a single block output
-                # is a lie. See eg GH-39329
-                return mgr.as_array()
-            else:
-                # We are a single block from a BlockManager
-                # or one array from SingleArrayManager
-                return arrays[0]
+            # unwrap Series to get array
+            res_values = res_ser._mgr.arrays[0]
+            return cast_agg_result(res_values, values)
 
         def array_func(values: ArrayLike) -> ArrayLike:
 
@@ -1170,7 +1160,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # try to python agg
                 result = py_fallback(values)
 
-                return cast_agg_result(result, values, how)
             return result
 
         # TypeError -> we may have an exception in trying to aggregate
