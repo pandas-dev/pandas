@@ -154,10 +154,11 @@ class StringMethods(NoNewAttributesMixin):
 
     def __init__(self, data):
         from pandas.core.arrays.string_ import StringDtype
+        from pandas.core.arrays.string_arrow import ArrowStringDtype
 
         self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data.dtype)
-        self._is_string = isinstance(data.dtype, StringDtype)
+        self._is_string = isinstance(data.dtype, (StringDtype, ArrowStringDtype))
         self._data = data
 
         self._index = self._name = None
@@ -316,7 +317,7 @@ class StringMethods(NoNewAttributesMixin):
             # This is a mess.
             dtype: Optional[str]
             if self._is_string and returns_string:
-                dtype = "string"
+                dtype = self._orig.dtype
             else:
                 dtype = None
 
@@ -548,7 +549,9 @@ class StringMethods(NoNewAttributesMixin):
 
         # concatenate Series/Index with itself if no "others"
         if others is None:
-            data = ensure_object(data)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Series")
+            data = ensure_object(data)  # type: ignore[assignment]
             na_mask = isna(data)
             if na_rep is None and na_mask.any():
                 data = data[~na_mask]
@@ -1925,13 +1928,13 @@ class StringMethods(NoNewAttributesMixin):
         Examples
         --------
         >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()
-        a  b  c
+           a  b  c
         0  1  1  0
         1  1  0  0
         2  1  0  1
 
         >>> pd.Series(['a|b', np.nan, 'a|c']).str.get_dummies()
-        a  b  c
+           a  b  c
         0  1  1  0
         1  0  0  0
         2  1  0  1
@@ -2999,8 +3002,9 @@ def _result_dtype(arr):
     # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
     # when the list of values is empty.
     from pandas.core.arrays.string_ import StringDtype
+    from pandas.core.arrays.string_arrow import ArrowStringDtype
 
-    if isinstance(arr.dtype, StringDtype):
+    if isinstance(arr.dtype, (StringDtype, ArrowStringDtype)):
         return arr.dtype.name
     else:
         return object
@@ -3023,7 +3027,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
     """
     from pandas import (
         DataFrame,
-        array,
+        array as pd_array,
     )
 
     regex = re.compile(pat, flags=flags)
@@ -3034,7 +3038,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
         result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
         name = _get_single_group_name(regex)
         # not dispatching, so we have to reconstruct here.
-        result = array(result, dtype=result_dtype)
+        result = pd_array(result, dtype=result_dtype)
     else:
         if isinstance(arr, ABCIndex):
             raise ValueError("only one regex group is supported with Index")

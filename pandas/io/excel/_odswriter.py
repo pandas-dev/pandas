@@ -26,19 +26,24 @@ class ODSWriter(ExcelWriter):
         self,
         path: str,
         engine: Optional[str] = None,
+        date_format=None,
+        datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        **engine_kwargs,
+        if_sheet_exists: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, Any]] = None,
     ):
         from odf.opendocument import OpenDocumentSpreadsheet
-
-        engine_kwargs["engine"] = engine
 
         if mode == "a":
             raise ValueError("Append mode is not supported with odf!")
 
         super().__init__(
-            path, mode=mode, storage_options=storage_options, **engine_kwargs
+            path,
+            mode=mode,
+            storage_options=storage_options,
+            if_sheet_exists=if_sheet_exists,
+            engine_kwargs=engine_kwargs,
         )
 
         self.book = OpenDocumentSpreadsheet()

@@ -4,11 +4,8 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    Dict,
-    Optional,
-    Tuple,
-    Union,
     no_type_check,
 )
 
@@ -16,6 +13,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
+    BaseOffset,
     IncompatibleFrequency,
     NaT,
     Period,
@@ -24,9 +22,11 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
+    FrameOrSeries,
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
+    final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -43,14 +43,14 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import DataError
+from pandas.core.base import (
+    DataError,
+    PandasObject,
+)
+import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
     _shared_docs,
-)
-from pandas.core.groupby.base import (
-    GotItemMixin,
-    ShallowMixin,
 )
 from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
@@ -86,10 +86,13 @@ from pandas.tseries.offsets import (
     Tick,
 )
 
-_shared_docs_kwargs: Dict[str, str] = {}
+if TYPE_CHECKING:
+    from typing import Literal
+
+_shared_docs_kwargs: dict[str, str] = {}
 
 
-class Resampler(BaseGroupBy, ShallowMixin):
+class Resampler(BaseGroupBy, PandasObject):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -112,6 +115,11 @@ class Resampler(BaseGroupBy, ShallowMixin):
     -----
     After resampling, see aggregate, apply, and transform functions.
     """
+
+    # error: Incompatible types in assignment (expression has type
+    # "Optional[BinGrouper]", base class "BaseGroupBy" defined the type as
+    # "BaseGrouper")
+    grouper: BinGrouper | None  # type: ignore[assignment]
 
     # to the groupby descriptor
     _attributes = [
@@ -137,12 +145,22 @@ class Resampler(BaseGroupBy, ShallowMixin):
         self.as_index = True
         self.exclusions = set()
         self.binner = None
-        # error: Incompatible types in assignment (expression has type "None", variable
-        # has type "BaseGrouper")
-        self.grouper = None  # type: ignore[assignment]
+        self.grouper = None
 
         if self.groupby is not None:
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
+
+    @final
+    def _shallow_copy(self, obj, **kwargs):
+        """
+        return a new object with the replacement attributes
+        """
+        if isinstance(obj, self._constructor):
+            obj = obj.obj
+        for attr in self._attributes:
+            if attr not in kwargs:
+                kwargs[attr] = getattr(self, attr)
+        return self._constructor(obj, **kwargs)
 
     def __str__(self) -> str:
         """
@@ -274,7 +292,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
     @Appender(_pipe_template)
     def pipe(
         self,
-        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        func: Callable[..., T] | tuple[Callable[..., T], str],
         *args,
         **kwargs,
     ) -> T:
@@ -476,11 +494,11 @@ class Resampler(BaseGroupBy, ShallowMixin):
         self.loffset = None
         return result
 
-    def _get_resampler_for_grouping(self, groupby, **kwargs):
+    def _get_resampler_for_grouping(self, groupby):
         """
         Return the correct class for resampling with groupby.
         """
-        return self._resampler_for_grouping(self, groupby=groupby, **kwargs)
+        return self._resampler_for_grouping(self, groupby=groupby)
 
     def _wrap_result(self, result):
         """
@@ -1021,12 +1039,15 @@ for method in ["nunique"]:
     setattr(Resampler, method, h)
 
 
-class _GroupByMixin(GotItemMixin):
+class _GroupByMixin(PandasObject):
     """
     Provide the groupby facilities.
     """
 
-    def __init__(self, obj, *args, **kwargs):
+    _attributes: list[str]  # in practice the same as Resampler._attributes
+
+    def __init__(self, obj, **kwargs):
+        # reached via ._gotitem and _get_resampler_for_grouping
 
         parent = kwargs.pop("parent", None)
         groupby = kwargs.pop("groupby", None)
@@ -1067,6 +1088,42 @@ class _GroupByMixin(GotItemMixin):
     _downsample = _apply
     _groupby_and_aggregate = _apply
 
+    @final
+    def _gotitem(self, key, ndim, subset=None):
+        """
+        Sub-classes to define. Return a sliced object.
+
+        Parameters
+        ----------
+        key : string / list of selections
+        ndim : {1, 2}
+            requested ndim of result
+        subset : object, default None
+            subset to act on
+        """
+        # create a new object to prevent aliasing
+        if subset is None:
+            # error: "GotItemMixin" has no attribute "obj"
+            subset = self.obj  # type: ignore[attr-defined]
+
+        # we need to make a shallow copy of ourselves
+        # with the same groupby
+        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+
+        # Try to select from a DataFrame, falling back to a Series
+        try:
+            groupby = self._groupby[key]
+        except IndexError:
+            groupby = self._groupby
+
+        self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
+        self._reset_cache()
+        if subset.ndim == 2 and (
+            lib.is_scalar(key) and key in subset or lib.is_list_like(key)
+        ):
+            self._selection = key
+        return self
+
 
 class DatetimeIndexResampler(Resampler):
     @property
@@ -1090,7 +1147,7 @@ class DatetimeIndexResampler(Resampler):
         **kwargs : kw args passed to how function
         """
         self._set_binner()
-        how = self._get_cython_func(how) or how
+        how = com.get_cython_func(how) or how
         ax = self.ax
         obj = self._selected_obj
 
@@ -1103,10 +1160,10 @@ class DatetimeIndexResampler(Resampler):
 
         # do we have a regular frequency
 
-        # error: "BaseGrouper" has no attribute "binlabels"
+        # error: Item "None" of "Optional[Any]" has no attribute "binlabels"
         if (
             (ax.freq is not None or ax.inferred_freq is not None)
-            and len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]
+            and len(self.grouper.binlabels) > len(ax)  # type: ignore[union-attr]
             and how is None
         ):
 
@@ -1245,7 +1302,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self.kind == "timestamp":
             return super()._downsample(how, **kwargs)
 
-        how = self._get_cython_func(how) or how
+        how = com.get_cython_func(how) or how
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
@@ -1272,7 +1329,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         """
         Parameters
         ----------
-        method : string {'backfill', 'bfill', 'pad', 'ffill'}
+        method : {'backfill', 'bfill', 'pad', 'ffill'}
             Method for upsampling.
         limit : int, default None
             Maximum size gap to fill when reindexing.
@@ -1298,9 +1355,15 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         # Get the fill indexer
         indexer = memb.get_indexer(new_index, method=method, limit=limit)
-        return self._wrap_result(
-            _take_new_index(obj, indexer, new_index, axis=self.axis)
+        new_obj = _take_new_index(
+            obj,
+            indexer,
+            # error: Argument 3 to "_take_new_index" has incompatible type
+            # "Optional[Any]"; expected "Index"
+            new_index,  # type: ignore[arg-type]
+            axis=self.axis,
         )
+        return self._wrap_result(new_obj)
 
 
 class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
@@ -1393,18 +1456,18 @@ class TimeGrouper(Grouper):
     def __init__(
         self,
         freq="Min",
-        closed: Optional[str] = None,
-        label: Optional[str] = None,
+        closed: Literal["left", "right"] | None = None,
+        label: str | None = None,
         how="mean",
         axis=0,
         fill_method=None,
         limit=None,
         loffset=None,
-        kind: Optional[str] = None,
-        convention: Optional[str] = None,
-        base: Optional[int] = None,
-        origin: Union[str, TimestampConvertibleTypes] = "start_day",
-        offset: Optional[TimedeltaConvertibleTypes] = None,
+        kind: str | None = None,
+        convention: str | None = None,
+        base: int | None = None,
+        origin: str | TimestampConvertibleTypes = "start_day",
+        offset: TimedeltaConvertibleTypes | None = None,
         **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
@@ -1619,7 +1682,7 @@ class TimeGrouper(Grouper):
             bin_edges = binner.asi8
         return binner, bin_edges
 
-    def _get_time_delta_bins(self, ax):
+    def _get_time_delta_bins(self, ax: TimedeltaIndex):
         if not isinstance(ax, TimedeltaIndex):
             raise TypeError(
                 "axis must be a TimedeltaIndex, but got "
@@ -1742,24 +1805,36 @@ class TimeGrouper(Grouper):
         return binner, bins, labels
 
 
-def _take_new_index(obj, indexer, new_index, axis=0):
+def _take_new_index(
+    obj: FrameOrSeries, indexer: np.ndarray, new_index: Index, axis: int = 0
+) -> FrameOrSeries:
+    # indexer: np.ndarray[np.intp]
 
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)
-        return obj._constructor(new_values, index=new_index, name=obj.name)
+        # error: Incompatible return value type (got "Series", expected "FrameOrSeries")
+        return obj._constructor(  # type: ignore[return-value]
+            new_values, index=new_index, name=obj.name
+        )
     elif isinstance(obj, ABCDataFrame):
         if axis == 1:
             raise NotImplementedError("axis 1 is not supported")
-        return obj._constructor(
-            obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
-        )
+        new_mgr = obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
+        # error: Incompatible return value type
+        # (got "DataFrame", expected "FrameOrSeries")
+        return obj._constructor(new_mgr)  # type: ignore[return-value]
     else:
         raise ValueError("'obj' should be either a Series or a DataFrame")
 
 
 def _get_timestamp_range_edges(
-    first, last, freq, closed="left", origin="start_day", offset=None
-):
+    first: Timestamp,
+    last: Timestamp,
+    freq: BaseOffset,
+    closed: Literal["right", "left"] = "left",
+    origin="start_day",
+    offset: Timedelta | None = None,
+) -> tuple[Timestamp, Timestamp]:
     """
     Adjust the `first` Timestamp to the preceding Timestamp that resides on
     the provided offset. Adjust the `last` Timestamp to the following
@@ -1775,7 +1850,7 @@ def _get_timestamp_range_edges(
         The ending Timestamp of the range to be adjusted.
     freq : pd.DateOffset
         The dateoffset to which the Timestamps will be adjusted.
-    closed : {'right', 'left'}, default None
+    closed : {'right', 'left'}, default "left"
         Which side of bin interval is closed.
     origin : {'epoch', 'start', 'start_day'} or Timestamp, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin must
@@ -1831,8 +1906,13 @@ def _get_timestamp_range_edges(
 
 
 def _get_period_range_edges(
-    first, last, freq, closed="left", origin="start_day", offset=None
-):
+    first: Period,
+    last: Period,
+    freq: BaseOffset,
+    closed: Literal["right", "left"] = "left",
+    origin="start_day",
+    offset: Timedelta | None = None,
+) -> tuple[Period, Period]:
     """
     Adjust the provided `first` and `last` Periods to the respective Period of
     the given offset that encompasses them.
@@ -1845,7 +1925,7 @@ def _get_period_range_edges(
         The ending Period of the range to be adjusted.
     freq : pd.DateOffset
         The freq to which the Periods will be adjusted.
-    closed : {'right', 'left'}, default None
+    closed : {'right', 'left'}, default "left"
         Which side of bin interval is closed.
     origin : {'epoch', 'start', 'start_day'}, Timestamp, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin must
@@ -1883,7 +1963,7 @@ def _get_period_range_edges(
 
 def _insert_nat_bin(
     binner: PeriodIndex, bins: np.ndarray, labels: PeriodIndex, nat_count: int
-) -> Tuple[PeriodIndex, np.ndarray, PeriodIndex]:
+) -> tuple[PeriodIndex, np.ndarray, PeriodIndex]:
     # NaT handling as in pandas._lib.lib.generate_bins_dt64()
     # shift bins by the number of NaT
     assert nat_count > 0
@@ -1895,7 +1975,12 @@ def _insert_nat_bin(
 
 
 def _adjust_dates_anchored(
-    first, last, freq, closed="right", origin="start_day", offset=None
+    first,
+    last,
+    freq,
+    closed: Literal["right", "left"] = "right",
+    origin="start_day",
+    offset: Timedelta | None = None,
 ):
     # First and last offsets should be calculated from the start day to fix an
     # error cause by resampling across multiple days when a one day period is
@@ -1965,7 +2050,14 @@ def _adjust_dates_anchored(
     return fresult, lresult
 
 
-def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
+def asfreq(
+    obj: FrameOrSeries,
+    freq,
+    method=None,
+    how=None,
+    normalize: bool = False,
+    fill_value=None,
+) -> FrameOrSeries:
     """
     Utility frequency conversion method for Series/DataFrame.
 
@@ -1986,7 +2078,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
 
         new_obj.index = _asfreq_compat(obj.index, freq)
     else:
-        dti = date_range(obj.index[0], obj.index[-1], freq=freq)
+        dti = date_range(obj.index.min(), obj.index.max(), freq=freq)
         dti.name = obj.index.name
         new_obj = obj.reindex(dti, method=method, fill_value=fill_value)
         if normalize:
@@ -1995,7 +2087,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
     return new_obj
 
 
-def _asfreq_compat(index, freq):
+def _asfreq_compat(index: DatetimeIndex | PeriodIndex | TimedeltaIndex, freq):
     """
     Helper to mimic asfreq on (empty) DatetimeIndex and TimedeltaIndex.
 

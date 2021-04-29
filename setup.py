@@ -195,6 +195,7 @@ class CheckSDist(sdist_class):
     """Custom sdist that ensures Cython has compiled all pyx files to c."""
 
     _pyxfiles = [
+        "pandas/_libs/arrays.pyx",
         "pandas/_libs/lib.pyx",
         "pandas/_libs/hashtable.pyx",
         "pandas/_libs/tslib.pyx",
@@ -444,6 +445,7 @@ ext_data = {
         "include": klib_include,
         "depends": _pxi_dep["algos"],
     },
+    "_libs.arrays": {"pyxfile": "_libs/arrays"},
     "_libs.groupby": {"pyxfile": "_libs/groupby"},
     "_libs.hashing": {"pyxfile": "_libs/hashing", "depends": []},
     "_libs.hashtable": {

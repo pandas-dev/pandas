@@ -152,6 +152,7 @@ def test_center_reindex_series(series, roll_func):
     tm.assert_series_equal(series_xp, series_rs)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_center_reindex_frame(frame, roll_func):
     # shifter index

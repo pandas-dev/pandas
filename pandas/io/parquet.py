@@ -7,10 +7,6 @@ import os
 from typing import (
     Any,
     AnyStr,
-    Dict,
-    List,
-    Optional,
-    Tuple,
 )
 from warnings import catch_warnings
 
@@ -78,7 +74,7 @@ def _get_path_or_handle(
     storage_options: StorageOptions = None,
     mode: str = "rb",
     is_dir: bool = False,
-) -> Tuple[FilePathOrBuffer, Optional[IOHandles], Any]:
+) -> tuple[FilePathOrBuffer, IOHandles | None, Any]:
     """File handling for PyArrow."""
     path_or_handle = stringify_path(path)
     if is_fsspec_url(path_or_handle) and fs is None:
@@ -162,15 +158,15 @@ class PyArrowImpl(BaseImpl):
         self,
         df: DataFrame,
         path: FilePathOrBuffer[AnyStr],
-        compression: Optional[str] = "snappy",
-        index: Optional[bool] = None,
+        compression: str | None = "snappy",
+        index: bool | None = None,
         storage_options: StorageOptions = None,
-        partition_cols: Optional[List[str]] = None,
+        partition_cols: list[str] | None = None,
         **kwargs,
     ):
         self.validate_dataframe(df)
 
-        from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
+        from_pandas_kwargs: dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
 
@@ -235,6 +231,9 @@ class PyArrowImpl(BaseImpl):
                     "'use_nullable_dtypes=True' is only supported for pyarrow >= 0.16 "
                     f"({self.api.__version__} is installed"
                 )
+        manager = get_option("mode.data_manager")
+        if manager == "array":
+            to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
 
         path_or_handle, handles, kwargs["filesystem"] = _get_path_or_handle(
             path,
@@ -243,9 +242,12 @@ class PyArrowImpl(BaseImpl):
             mode="rb",
         )
         try:
-            return self.api.parquet.read_table(
+            result = self.api.parquet.read_table(
                 path_or_handle, columns=columns, **kwargs
             ).to_pandas(**to_pandas_kwargs)
+            if manager == "array":
+                result = result._as_manager("array", copy=False)
+            return result
         finally:
             if handles is not None:
                 handles.close()
@@ -348,14 +350,14 @@ class FastParquetImpl(BaseImpl):
 @doc(storage_options=generic._shared_docs["storage_options"])
 def to_parquet(
     df: DataFrame,
-    path: Optional[FilePathOrBuffer] = None,
+    path: FilePathOrBuffer | None = None,
     engine: str = "auto",
-    compression: Optional[str] = "snappy",
-    index: Optional[bool] = None,
+    compression: str | None = "snappy",
+    index: bool | None = None,
     storage_options: StorageOptions = None,
-    partition_cols: Optional[List[str]] = None,
+    partition_cols: list[str] | None = None,
     **kwargs,
-) -> Optional[bytes]:
+) -> bytes | None:
     """
     Write a DataFrame to the parquet format.
 

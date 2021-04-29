@@ -16,7 +16,6 @@ from pandas.compat.numpy import (
     is_numpy_dev,
     np_array_datetime64_compat,
     np_datetime64_compat,
-    np_version_under1p17,
     np_version_under1p18,
     np_version_under1p19,
     np_version_under1p20,
@@ -24,6 +23,7 @@ from pandas.compat.numpy import (
 
 PY38 = sys.version_info >= (3, 8)
 PY39 = sys.version_info >= (3, 9)
+PY310 = sys.version_info >= (3, 10)
 PYPY = platform.python_implementation() == "PyPy"
 IS64 = sys.maxsize > 2 ** 32
 
@@ -133,7 +133,6 @@ __all__ = [
     "is_numpy_dev",
     "np_array_datetime64_compat",
     "np_datetime64_compat",
-    "np_version_under1p17",
     "np_version_under1p18",
     "np_version_under1p19",
     "np_version_under1p20",
