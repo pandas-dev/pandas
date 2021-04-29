@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -11,6 +13,7 @@ from pandas import (
 import pandas._testing as tm
 
 
+@td.skip_if_no("xarray")
 class TestDataFrameToXArray:
     @pytest.fixture
     def df(self):
@@ -64,7 +67,6 @@ class TestDataFrameToXArray:
     def test_to_xarray_with_multiindex(self, df):
         from xarray import Dataset
 
-        # available in 0.7.1
         # MultiIndex
         df.index = MultiIndex.from_product([["a"], range(3)], names=["one", "two"])
         result = df.to_xarray()
@@ -82,6 +84,7 @@ class TestDataFrameToXArray:
         tm.assert_frame_equal(result, expected)
 
 
+@td.skip_if_no("xarray")
 class TestSeriesToXArray:
     def test_to_xarray_index_types(self, index):
         if isinstance(index, MultiIndex):
