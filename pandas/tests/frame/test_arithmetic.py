@@ -1795,7 +1795,7 @@ def test_inplace_arithmetic_series_update():
     tm.assert_frame_equal(df, expected)
 
 
-def test_arithemetic_multiindex_align():  # Needs a better name
+def test_arithemetic_multiindex_align():
     """
     Regression test for: https://github.com/pandas-dev/pandas/issues/33765
     """
