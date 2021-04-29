@@ -301,13 +301,25 @@ class BaseBlockManager(DataManager):
         result_blocks: list[Block] = []
 
         for blk in self.blocks:
-            try:
-                applied = blk.apply(func)
-            except (TypeError, NotImplementedError):
-                if not ignore_failures:
-                    raise
-                continue
-            result_blocks = extend_blocks(applied, result_blocks)
+            if blk.is_object:
+                # split on object-dtype blocks bc some columns may raise
+                #  while others do not.
+                for sb in blk._split():
+                    try:
+                        applied = sb.apply(func)
+                    except (TypeError, NotImplementedError):
+                        if not ignore_failures:
+                            raise
+                        continue
+                    result_blocks = extend_blocks(applied, result_blocks)
+            else:
+                try:
+                    applied = blk.apply(func)
+                except (TypeError, NotImplementedError):
+                    if not ignore_failures:
+                        raise
+                    continue
+                result_blocks = extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
             index = Index([None])  # placeholder
