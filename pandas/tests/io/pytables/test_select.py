@@ -1,7 +1,6 @@
 from warnings import catch_warnings
 
 import numpy as np
-from packaging.version import Version
 import pytest
 
 from pandas._libs.tslibs import Timestamp
@@ -25,7 +24,6 @@ from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,
-    tables,
 )
 
 from pandas.io.pytables import Term
@@ -861,10 +859,6 @@ def test_select_as_multiple(setup_path):
             )
 
 
-@pytest.mark.skipif(
-    Version(tables.__version__) < Version("3.1.0"),
-    reason=("tables version does not support fix for nan selection bug: GH 4858"),
-)
 def test_nan_selection_bug_4858(setup_path):
 
     with ensure_clean_store(setup_path) as store:
