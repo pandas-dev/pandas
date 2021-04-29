@@ -552,7 +552,9 @@ def read_csv(
     # Error Handling
     error_bad_lines=None,
     warn_bad_lines=None,
-    on_bad_lines="error",
+    # TODO (2.0): set on_bad_lines to "error".
+    # See _refine_defaults_read comment for why we do this.
+    on_bad_lines=None,
     # Internal
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],
@@ -565,7 +567,15 @@ def read_csv(
     del kwds["sep"]
 
     kwds_defaults = _refine_defaults_read(
-        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": ","}
+        dialect,
+        delimiter,
+        delim_whitespace,
+        engine,
+        sep,
+        error_bad_lines,
+        warn_bad_lines,
+        on_bad_lines,
+        defaults={"delimiter": ","},
     )
     kwds.update(kwds_defaults)
 
@@ -633,7 +643,9 @@ def read_table(
     # Error Handling
     error_bad_lines=None,
     warn_bad_lines=None,
-    on_bad_lines="error",
+    # TODO (2.0): set on_bad_lines to "error".
+    # See _refine_defaults_read comment for why we do this.
+    on_bad_lines=None,
     encoding_errors: Optional[str] = "strict",
     # Internal
     delim_whitespace=False,
@@ -646,7 +658,15 @@ def read_table(
     del kwds["sep"]
 
     kwds_defaults = _refine_defaults_read(
-        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": "\t"}
+        dialect,
+        delimiter,
+        delim_whitespace,
+        engine,
+        sep,
+        error_bad_lines,
+        warn_bad_lines,
+        on_bad_lines,
+        defaults={"delimiter": "\t"},
     )
     kwds.update(kwds_defaults)
 
@@ -1193,6 +1213,9 @@ def _refine_defaults_read(
     delim_whitespace: bool,
     engine: str,
     sep: Union[str, object],
+    error_bad_lines: Optional[str],
+    warn_bad_lines: Optional[str],
+    on_bad_lines: Optional[str],
     defaults: Dict[str, Any],
 ):
     """Validate/refine default values of input parameters of read_csv, read_table.
@@ -1218,6 +1241,12 @@ def _refine_defaults_read(
     sep : str or object
         A delimiter provided by the user (str) or a sentinel value, i.e.
         pandas._libs.lib.no_default.
+    error_bad_lines : str or None
+        Whether to error on a bad line or not.
+    warn_bad_lines : str or None
+        Whether to warn on a bad line or not.
+    on_bad_lines : str or None
+        An option for handling bad lines or a sentinel value(None).
     defaults: dict
         Default values of input parameters.
 
@@ -1228,8 +1257,11 @@ def _refine_defaults_read(
 
     Raises
     ------
-    ValueError : If a delimiter was specified with ``sep`` (or ``delimiter``) and
+    ValueError :
+        If a delimiter was specified with ``sep`` (or ``delimiter``) and
         ``delim_whitespace=True``.
+        If on_bad_lines is specified(not ``None``) and ``error_bad_lines``/
+        ``warn_bad_lines`` is True.
     """
     # fix types for sep, delimiter to Union(str, Any)
     delim_default = defaults["delimiter"]
@@ -1272,6 +1304,20 @@ def _refine_defaults_read(
     else:
         kwds["engine"] = "c"
         kwds["engine_specified"] = False
+
+    # Ensure that on_bad_lines and error_bad_lines/warn_bad_lines
+    # aren't specified at the same time. If so, raise. Otherwise,
+    # alias on_bad_lines to "error" if error/warn_bad_lines not set
+    # and on_bad_lines is not set. on_bad_lines is defaulted to None
+    # so we can tell if it is set (this is why this hack exists).
+    if on_bad_lines is not None:
+        if error_bad_lines is not None or warn_bad_lines is not None:
+            raise ValueError(
+                "Both on_bad_lines and error_bad_lines/warn_bad_lines are set. "
+                "Please only set on_bad_lines."
+            )
+    else:
+        kwds["on_bad_lines"] = "error"
 
     return kwds
 

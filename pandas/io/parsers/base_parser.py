@@ -223,7 +223,10 @@ class ParserBase:
         warn_bad_lines = kwds.get("warn_bad_lines")
         if error_bad_lines:
             self.on_bad_lines = self.BadLineHandleMethod.ERROR
-        elif warn_bad_lines:
+        elif warn_bad_lines and error_bad_lines is not None:
+            # Kinda sketch, but maintain BC in that needs explicit
+            # error_bad_lines -> False to warn even if warn_bad_lines->True.
+            # With new default of None, this is necessary.
             self.on_bad_lines = self.BadLineHandleMethod.WARN
         elif error_bad_lines is False and warn_bad_lines is False:
             # Be careful - None evaluates to False
