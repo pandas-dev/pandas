@@ -1207,26 +1207,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         obj = self._obj_with_exclusions
         result: dict[int | str, NDFrame] = {}
-        cannot_agg = []
         for item in obj:
             data = obj[item]
             colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
 
-            try:
-                result[item] = colg.aggregate(func, *args, **kwargs)
-
-            except ValueError as err:
-                if "Must produce aggregated value" in str(err):
-                    # raised in _aggregate_named, handle at higher level
-                    #  see test_apply_with_mutated_index
-                    raise
-                # otherwise we get here from an AttributeError in _make_wrapper
-                cannot_agg.append(item)
-                continue
+            result[item] = colg.aggregate(func, *args, **kwargs)
 
         result_columns = obj.columns
-        if cannot_agg:
-            result_columns = result_columns.drop(cannot_agg)
 
         return self.obj._constructor(result, columns=result_columns)
 
