@@ -43,10 +43,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
-    ABCPeriodIndex,
     ABCSeries,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import notna
 
@@ -58,8 +55,11 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.indexes.api import (
+    DatetimeIndex,
     Index,
     MultiIndex,
+    PeriodIndex,
+    TimedeltaIndex,
 )
 from pandas.core.internals import ArrayManager
 from pandas.core.reshape.concat import concat
@@ -1051,7 +1051,10 @@ class Window(BaseWindow):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = window_aggregations.roll_weighted_sum
-        return self._apply(window_func, name="sum", **kwargs)
+        # error: Argument 1 to "_apply" of "Window" has incompatible type
+        # "Callable[[ndarray, ndarray, int], ndarray]"; expected
+        # "Callable[[ndarray, int, int], ndarray]"
+        return self._apply(window_func, name="sum", **kwargs)  # type: ignore[arg-type]
 
     @doc(
         template_header,
@@ -1068,7 +1071,10 @@ class Window(BaseWindow):
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func = window_aggregations.roll_weighted_mean
-        return self._apply(window_func, name="mean", **kwargs)
+        # error: Argument 1 to "_apply" of "Window" has incompatible type
+        # "Callable[[ndarray, ndarray, int], ndarray]"; expected
+        # "Callable[[ndarray, int, int], ndarray]"
+        return self._apply(window_func, name="mean", **kwargs)  # type: ignore[arg-type]
 
     @doc(
         template_header,
@@ -1455,9 +1461,7 @@ class Rolling(RollingAndExpandingMixin):
         # we allow rolling on a datetimelike index
         if (
             self.obj.empty
-            or isinstance(
-                self._on, (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
-            )
+            or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
             self._validate_monotonic()
@@ -1470,7 +1474,7 @@ class Rolling(RollingAndExpandingMixin):
                     f"passed window {self.window} is not "
                     "compatible with a datetimelike index"
                 ) from err
-            if isinstance(self._on, ABCPeriodIndex):
+            if isinstance(self._on, PeriodIndex):
                 self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
             else:
                 self._win_freq_i8 = freq.nanos

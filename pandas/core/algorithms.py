@@ -143,11 +143,11 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
             # until our algos support uint8 directly (see TODO)
             return np.asarray(values).astype("uint64"), np.dtype("bool")
         elif is_signed_integer_dtype(values):
-            return ensure_int64(values), np.dtype("int64")
+            return ensure_int64(values), values.dtype
         elif is_unsigned_integer_dtype(values):
-            return ensure_uint64(values), np.dtype("uint64")
+            return ensure_uint64(values), values.dtype
         elif is_float_dtype(values):
-            return ensure_float64(values), np.dtype("float64")
+            return ensure_float64(values), values.dtype
         elif is_complex_dtype(values):
 
             # ignore the fact that we are casting to float
@@ -375,46 +375,60 @@ def unique(values):
     >>> pd.unique(pd.Series([2] + [1] * 5))
     array([2, 1])
 
-    >>> pd.unique(pd.Series([pd.Timestamp('20160101'),
-    ...                     pd.Timestamp('20160101')]))
+    >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
     array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
 
-    >>> pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
-    ...                      pd.Timestamp('20160101', tz='US/Eastern')]))
-    array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
-          dtype=object)
+    >>> pd.unique(
+    ...     pd.Series(
+    ...         [
+    ...             pd.Timestamp("20160101", tz="US/Eastern"),
+    ...             pd.Timestamp("20160101", tz="US/Eastern"),
+    ...         ]
+    ...     )
+    ... )
+    <DatetimeArray>
+    ['2016-01-01 00:00:00-05:00']
+    Length: 1, dtype: datetime64[ns, US/Eastern]
 
-    >>> pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
-    ...                     pd.Timestamp('20160101', tz='US/Eastern')]))
+    >>> pd.unique(
+    ...     pd.Index(
+    ...         [
+    ...             pd.Timestamp("20160101", tz="US/Eastern"),
+    ...             pd.Timestamp("20160101", tz="US/Eastern"),
+    ...         ]
+    ...     )
+    ... )
     DatetimeIndex(['2016-01-01 00:00:00-05:00'],
-    ...           dtype='datetime64[ns, US/Eastern]', freq=None)
+            dtype='datetime64[ns, US/Eastern]',
+            freq=None)
 
-    >>> pd.unique(list('baabc'))
+    >>> pd.unique(list("baabc"))
     array(['b', 'a', 'c'], dtype=object)
 
     An unordered Categorical will return categories in the
     order of appearance.
 
-    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'))))
-    [b, a, c]
-    Categories (3, object): [b, a, c]
+    >>> pd.unique(pd.Series(pd.Categorical(list("baabc"))))
+    ['b', 'a', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
-    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
-    ...                                    categories=list('abc'))))
-    [b, a, c]
-    Categories (3, object): [b, a, c]
+    >>> pd.unique(pd.Series(pd.Categorical(list("baabc"), categories=list("abc"))))
+    ['b', 'a', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
     An ordered Categorical preserves the category ordering.
 
-    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
-    ...                                    categories=list('abc'),
-    ...                                    ordered=True)))
-    [b, a, c]
-    Categories (3, object): [a < b < c]
+    >>> pd.unique(
+    ...     pd.Series(
+    ...         pd.Categorical(list("baabc"), categories=list("abc"), ordered=True)
+    ...     )
+    ... )
+    ['b', 'a', 'c']
+    Categories (3, object): ['a' < 'b' < 'c']
 
     An array of tuples
 
-    >>> pd.unique([('a', 'b'), ('b', 'a'), ('a', 'c'), ('b', 'a')])
+    >>> pd.unique([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
     values = _ensure_arraylike(values)
@@ -466,7 +480,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # Avoid raising in extract_array
         values = np.array(values)
     else:
-        values = extract_array(values, extract_numpy=True)
+        values = extract_array(values, extract_numpy=True, extract_range=True)
 
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
@@ -1876,29 +1890,33 @@ def _sort_tuples(values: np.ndarray) -> np.ndarray:
     return values[indexer]
 
 
-def union_with_duplicates(lvals: np.ndarray, rvals: np.ndarray) -> np.ndarray:
+def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     """
     Extracts the union from lvals and rvals with respect to duplicates and nans in
     both arrays.
 
     Parameters
     ----------
-    lvals: np.ndarray
+    lvals: np.ndarray or ExtensionArray
         left values which is ordered in front.
-    rvals: np.ndarray
+    rvals: np.ndarray or ExtensionArray
         right values ordered after lvals.
 
     Returns
     -------
-    np.ndarray containing the unsorted union of both arrays
+    np.ndarray or ExtensionArray
+        Containing the unsorted union of both arrays.
     """
     indexer = []
     l_count = value_counts(lvals, dropna=False)
     r_count = value_counts(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
     unique_array = unique(np.append(lvals, rvals))
-    if is_extension_array_dtype(lvals) or is_extension_array_dtype(rvals):
-        unique_array = pd_array(unique_array)
+    if not isinstance(lvals, np.ndarray):
+        # i.e. ExtensionArray
+        # Note: we only get here with lvals.dtype == rvals.dtype
+        # TODO: are there any cases where union won't be type/dtype preserving?
+        unique_array = type(lvals)._from_sequence(unique_array, dtype=lvals.dtype)
     for i, value in enumerate(unique_array):
         indexer += [i] * int(max(l_count[value], r_count[value]))
     return unique_array.take(indexer)
