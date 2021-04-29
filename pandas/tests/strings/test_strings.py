@@ -570,19 +570,19 @@ def test_slice_replace():
     tm.assert_series_equal(result, exp)
 
 
-def test_strip_lstrip_rstrip():
-    values = Series(["  aa   ", " bb \n", np.nan, "cc  "])
+def test_strip_lstrip_rstrip(any_string_dtype):
+    values = Series(["  aa   ", " bb \n", np.nan, "cc  "], dtype=any_string_dtype)
 
     result = values.str.strip()
-    exp = Series(["aa", "bb", np.nan, "cc"])
+    exp = Series(["aa", "bb", np.nan, "cc"], dtype=any_string_dtype)
     tm.assert_series_equal(result, exp)
 
     result = values.str.lstrip()
-    exp = Series(["aa   ", "bb \n", np.nan, "cc  "])
+    exp = Series(["aa   ", "bb \n", np.nan, "cc  "], dtype=any_string_dtype)
     tm.assert_series_equal(result, exp)
 
     result = values.str.rstrip()
-    exp = Series(["  aa", " bb", np.nan, "cc"])
+    exp = Series(["  aa", " bb", np.nan, "cc"], dtype=any_string_dtype)
     tm.assert_series_equal(result, exp)
 
 
@@ -609,19 +609,19 @@ def test_strip_lstrip_rstrip_mixed():
     tm.assert_almost_equal(rs, xp)
 
 
-def test_strip_lstrip_rstrip_args():
-    values = Series(["xxABCxx", "xx BNSD", "LDFJH xx"])
+def test_strip_lstrip_rstrip_args(any_string_dtype):
+    values = Series(["xxABCxx", "xx BNSD", "LDFJH xx"], dtype=any_string_dtype)
 
     rs = values.str.strip("x")
-    xp = Series(["ABC", " BNSD", "LDFJH "])
+    xp = Series(["ABC", " BNSD", "LDFJH "], dtype=any_string_dtype)
     tm.assert_series_equal(rs, xp)
 
     rs = values.str.lstrip("x")
-    xp = Series(["ABCxx", " BNSD", "LDFJH xx"])
+    xp = Series(["ABCxx", " BNSD", "LDFJH xx"], dtype=any_string_dtype)
     tm.assert_series_equal(rs, xp)
 
     rs = values.str.rstrip("x")
-    xp = Series(["xxABC", "xx BNSD", "LDFJH "])
+    xp = Series(["xxABC", "xx BNSD", "LDFJH "], dtype=any_string_dtype)
     tm.assert_series_equal(rs, xp)
 
 
