@@ -28,59 +28,34 @@ def test_split(any_string_dtype):
     result = values.str.split("__", expand=False)
     tm.assert_series_equal(result, exp)
 
-    # mixed
-    mixed = Series(
-        [
-            "a_b_c",
-            np.nan,
-            "d_e_f",
-            True,
-            datetime(2021, 4, 21, 18, 7, 26, 633720),
-            None,
-            1,
-            2.0,
-        ],
-        dtype=any_string_dtype,
-    )
+    # regex split
+    values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
+    result = values.str.split("[,_]")
+    exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
+    tm.assert_series_equal(result, exp)
+
+
+def test_split_object_mixed():
+    mixed = Series(["a_b_c", np.nan, "d_e_f", True, datetime.today(), None, 1, 2.0])
     result = mixed.str.split("_")
-    if any_string_dtype == "object":
-        exp = Series(
-            [
-                ["a", "b", "c"],
-                np.nan,
-                ["d", "e", "f"],
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-            ]
-        )
-    else:
-        exp = Series(
-            [
-                ["a", "b", "c"],
-                pd.NA,
-                ["d", "e", "f"],
-                ["True"],
-                ["2021-04-21 18:07:26.633720"],
-                pd.NA,
-                ["1"],
-                ["2.0"],
-            ]
-        )
+    exp = Series(
+        [
+            ["a", "b", "c"],
+            np.nan,
+            ["d", "e", "f"],
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+        ]
+    )
     assert isinstance(result, Series)
     tm.assert_almost_equal(result, exp)
 
     result = mixed.str.split("_", expand=False)
     assert isinstance(result, Series)
     tm.assert_almost_equal(result, exp)
-
-    # regex split
-    values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
-    result = values.str.split("[,_]")
-    exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
-    tm.assert_series_equal(result, exp)
 
 
 @pytest.mark.parametrize("method", ["split", "rsplit"])
@@ -109,54 +84,6 @@ def test_rsplit(any_string_dtype):
     result = values.str.rsplit("__", expand=False)
     tm.assert_series_equal(result, exp)
 
-    # mixed
-    mixed = Series(
-        [
-            "a_b_c",
-            np.nan,
-            "d_e_f",
-            True,
-            datetime(2021, 4, 21, 18, 7, 26, 633720),
-            None,
-            1,
-            2.0,
-        ],
-        dtype=any_string_dtype,
-    )
-    result = mixed.str.rsplit("_")
-    if any_string_dtype == "object":
-        exp = Series(
-            [
-                ["a", "b", "c"],
-                np.nan,
-                ["d", "e", "f"],
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-            ]
-        )
-    else:
-        exp = Series(
-            [
-                ["a", "b", "c"],
-                pd.NA,
-                ["d", "e", "f"],
-                ["True"],
-                ["2021-04-21 18:07:26.633720"],
-                pd.NA,
-                ["1"],
-                ["2.0"],
-            ]
-        )
-    assert isinstance(result, Series)
-    tm.assert_almost_equal(result, exp)
-
-    result = mixed.str.rsplit("_", expand=False)
-    assert isinstance(result, Series)
-    tm.assert_almost_equal(result, exp)
-
     # regex split is not supported by rsplit
     values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
     result = values.str.rsplit("[,_]")
@@ -168,6 +95,30 @@ def test_rsplit(any_string_dtype):
     result = values.str.rsplit("_", n=1)
     exp = Series([["a_b", "c"], ["c_d", "e"], np.nan, ["f_g", "h"]])
     tm.assert_series_equal(result, exp)
+
+
+def test_rsplit_object_mixed():
+    # mixed
+    mixed = Series(["a_b_c", np.nan, "d_e_f", True, datetime.today(), None, 1, 2.0])
+    result = mixed.str.rsplit("_")
+    exp = Series(
+        [
+            ["a", "b", "c"],
+            np.nan,
+            ["d", "e", "f"],
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+        ]
+    )
+    assert isinstance(result, Series)
+    tm.assert_almost_equal(result, exp)
+
+    result = mixed.str.rsplit("_", expand=False)
+    assert isinstance(result, Series)
+    tm.assert_almost_equal(result, exp)
 
 
 def test_split_blank_string(any_string_dtype, request):
