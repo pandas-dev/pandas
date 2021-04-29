@@ -35,7 +35,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -701,7 +700,7 @@ class BaseBlockManager(DataManager):
         # Give EAs some input on what happens here. Sparse needs this.
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
-        elif is_extension_array_dtype(dtype):
+        elif isinstance(dtype, ExtensionDtype):
             dtype = "object"
         elif is_dtype_equal(dtype, str):
             dtype = "object"
@@ -709,8 +708,8 @@ class BaseBlockManager(DataManager):
         # error: Argument "dtype" to "empty" has incompatible type
         # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
         # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
-        # Any]]]"
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
+        # Tuple[Any, Any]]]"
         result = np.empty(self.shape, dtype=dtype)  # type: ignore[arg-type]
 
         itemmask = np.zeros(self.shape[0])
@@ -1108,16 +1107,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
         n = len(self)
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             # we'll eventually construct an ExtensionArray.
             result = np.empty(n, dtype=object)
+            # TODO: let's just use dtype.empty?
         else:
-            # error: Argument "dtype" to "empty" has incompatible type
-            # "Union[dtype, ExtensionDtype, None]"; expected "Union[dtype,
-            # None, type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any,
-            # Union[int, Sequence[int]]], List[Any], _DtypeDict, Tuple[Any,
-            # Any]]"
-            result = np.empty(n, dtype=dtype)  # type: ignore[arg-type]
+            result = np.empty(n, dtype=dtype)
 
         result = ensure_wrapped_if_datetimelike(result)
 
