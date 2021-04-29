@@ -39,7 +39,6 @@ import platform as pl
 import sys
 
 import numpy as np
-from packaging.version import Version
 
 import pandas
 from pandas import (
@@ -54,9 +53,11 @@ from pandas import (
     Timestamp,
     bdate_range,
     date_range,
+    interval_range,
     period_range,
     timedelta_range,
 )
+from pandas.arrays import SparseArray
 
 from pandas.tseries.offsets import (
     FY5253,
@@ -80,15 +81,6 @@ from pandas.tseries.offsets import (
     YearBegin,
     YearEnd,
 )
-
-try:
-    # TODO: remove try/except when 0.24.0 is the legacy version.
-    from pandas.arrays import SparseArray
-except ImportError:
-    from pandas.core.sparse.api import SparseArray
-
-
-_loose_version = Version(pandas.__version__)
 
 
 def _create_sp_series():
@@ -155,10 +147,7 @@ def create_data():
 
     index["range"] = RangeIndex(10)
 
-    if _loose_version >= Version("0.21"):
-        from pandas import interval_range
-
-        index["interval"] = interval_range(0, periods=10)
+    index["interval"] = interval_range(0, periods=10)
 
     mi = {
         "reg2": MultiIndex.from_tuples(
