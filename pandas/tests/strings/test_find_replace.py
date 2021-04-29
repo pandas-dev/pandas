@@ -200,6 +200,25 @@ def test_startswith(dtype, null_value, na):
     tm.assert_series_equal(rs, xp)
 
 
+@pytest.mark.parametrize("na", [None, True, False])
+def test_startswith_nullable_string_dtype(nullable_string_dtype, na):
+    values = Series(
+        ["om", None, "foo_nom", "nom", "bar_foo", None, "foo", "regex", "rege."],
+        dtype=nullable_string_dtype,
+    )
+    result = values.str.startswith("foo", na=na)
+    exp = Series(
+        [False, na, True, False, False, na, True, False, False], dtype="boolean"
+    )
+    tm.assert_series_equal(result, exp)
+
+    result = values.str.startswith("rege.", na=na)
+    exp = Series(
+        [False, na, False, False, False, na, False, False, True], dtype="boolean"
+    )
+    tm.assert_series_equal(result, exp)
+
+
 @pytest.mark.parametrize("dtype", [None, "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
 @pytest.mark.parametrize("na", [True, False])
@@ -226,6 +245,25 @@ def test_endswith(dtype, null_value, na):
     rs = Series(mixed).str.endswith("f")
     xp = Series([False, np.nan, False, np.nan, np.nan, False, np.nan, np.nan, np.nan])
     tm.assert_series_equal(rs, xp)
+
+
+@pytest.mark.parametrize("na", [None, True, False])
+def test_endswith_nullable_string_dtype(nullable_string_dtype, na):
+    values = Series(
+        ["om", None, "foo_nom", "nom", "bar_foo", None, "foo", "regex", "rege."],
+        dtype=nullable_string_dtype,
+    )
+    result = values.str.endswith("foo", na=na)
+    exp = Series(
+        [False, na, False, False, True, na, True, False, False], dtype="boolean"
+    )
+    tm.assert_series_equal(result, exp)
+
+    result = values.str.endswith("rege.", na=na)
+    exp = Series(
+        [False, na, False, False, False, na, False, False, True], dtype="boolean"
+    )
+    tm.assert_series_equal(result, exp)
 
 
 def test_replace():

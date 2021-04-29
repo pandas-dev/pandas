@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from distutils.version import LooseVersion
+import re
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -762,6 +763,26 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return result
         else:
             return super()._str_contains(pat, case, flags, na, regex)
+
+    def _str_startswith(self, pat, na=None):
+        if hasattr(pc, "match_substring_regex"):
+            result = pc.match_substring_regex(self._data, "^" + re.escape(pat))
+            result = BooleanDtype().__from_arrow__(result)
+            if not isna(na):
+                result[isna(result)] = bool(na)
+            return result
+        else:
+            return super()._str_startswith(pat, na)
+
+    def _str_endswith(self, pat, na=None):
+        if hasattr(pc, "match_substring_regex"):
+            result = pc.match_substring_regex(self._data, re.escape(pat) + "$")
+            result = BooleanDtype().__from_arrow__(result)
+            if not isna(na):
+                result[isna(result)] = bool(na)
+            return result
+        else:
+            return super()._str_endswith(pat, na)
 
     def _str_isalnum(self):
         if hasattr(pc, "utf8_is_alnum"):
