@@ -1032,9 +1032,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
           B
     A
     1   1.0
-    2   3.0
-
-    """
+    2   3.0"""
     )
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
