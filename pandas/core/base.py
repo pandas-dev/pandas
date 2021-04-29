@@ -1042,7 +1042,7 @@ class IndexOpsMixin(OpsMixin):
         """
         uniqs = self.unique()
         if dropna:
-            return (~np.isnan(uniqs)).sum()
+            return (~isna(uniqs)).sum()
         else:
             return len(uniqs)
 
