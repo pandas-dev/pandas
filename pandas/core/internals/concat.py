@@ -43,7 +43,6 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
-    Categorical,
     DatetimeArray,
     ExtensionArray,
 )
@@ -193,17 +192,17 @@ def concatenate_managers(
     blocks = []
 
     for placement, join_units in concat_plan:
+        unit = join_units[0]
+        blk = unit.block
 
         if len(join_units) == 1 and not join_units[0].indexers:
-            b = join_units[0].block
-            values = b.values
+            values = blk.values
             if copy:
                 values = values.copy()
             else:
                 values = values.view()
-            b = b.make_block_same_class(values, placement=placement)
+            fastpath = True
         elif _is_uniform_join_units(join_units):
-            blk = join_units[0].block
             vals = [ju.block.values for ju in join_units]
 
             if not blk.is_extension:
@@ -218,14 +217,16 @@ def concatenate_managers(
 
             values = ensure_wrapped_if_datetimelike(values)
 
-            if blk.values.dtype == values.dtype:
-                # Fast-path
-                b = blk.make_block_same_class(values, placement=placement)
-            else:
-                b = new_block(values, placement=placement, ndim=blk.ndim)
+            fastpath = blk.values.dtype == values.dtype
         else:
-            new_values = _concatenate_join_units(join_units, concat_axis, copy=copy)
-            b = new_block(new_values, placement=placement, ndim=len(axes))
+            values = _concatenate_join_units(join_units, concat_axis, copy=copy)
+            fastpath = False
+
+        if fastpath:
+            b = blk.make_block_same_class(values, placement=placement)
+        else:
+            b = new_block(values, placement=placement, ndim=len(axes))
+
         blocks.append(b)
 
     return BlockManager(tuple(blocks), axes)
@@ -445,12 +446,10 @@ class JoinUnit:
                 # preserve these for validation in concat_compat
                 return self.block.values
 
-            if self.block.is_bool and not isinstance(self.block.values, Categorical):
+            if self.block.is_bool:
                 # External code requested filling/upcasting, bool values must
                 # be upcasted to object to avoid being upcasted to numeric.
                 values = self.block.astype(np.object_).values
-            elif self.block.is_extension:
-                values = self.block.values
             else:
                 # No dtype upcasting is done here, it will be performed during
                 # concatenation itself.
@@ -533,9 +532,11 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     elif dtype.kind in ["f", "c"]:
         return dtype.type("NaN")
     elif dtype.kind == "b":
+        # different from missing.na_value_for_dtype
         return None
     elif dtype.kind in ["i", "u"]:
         if not has_none_blocks:
+            # different from missing.na_value_for_dtype
             return None
         return np.nan
     elif dtype.kind == "O":
