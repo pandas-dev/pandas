@@ -481,7 +481,7 @@ class Apply(metaclass=abc.ABCMeta):
                 raise ValueError(f"Operation {f} does not support axis=1")
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
-    def apply_multiple(self) -> FrameOrSeriesUnion | None:
+    def apply_multiple(self) -> FrameOrSeriesUnion:
         """
         Compute apply in case of a list-like or dict-like.
 
