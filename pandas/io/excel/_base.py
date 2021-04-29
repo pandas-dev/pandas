@@ -1175,7 +1175,7 @@ class ExcelFile:
                         path_or_buffer, storage_options=storage_options
                     )
 
-            if ext != "xls" and xlrd_version >= "2":
+            if ext != "xls" and xlrd_version >= Version("2"):
                 raise ValueError(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install openpyxl instead."
