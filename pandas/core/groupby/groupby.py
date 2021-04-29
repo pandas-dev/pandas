@@ -1078,9 +1078,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         return result
 
-    def _wrap_aggregated_output(
-        self, output: Mapping[base.OutputKey, np.ndarray], index: Index | None
-    ):
+    def _wrap_aggregated_output(self, output: Mapping[base.OutputKey, np.ndarray]):
         raise AbstractMethodError(self)
 
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, ArrayLike]):
@@ -1278,7 +1276,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if not output:
             return self._python_apply_general(f, self._selected_obj)
 
-        return self._wrap_aggregated_output(output, index=self.grouper.result_index)
+        return self._wrap_aggregated_output(output)
 
     @final
     def _agg_general(
@@ -2805,7 +2803,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             raise TypeError(error_msg)
 
         if aggregate:
-            return self._wrap_aggregated_output(output, index=self.grouper.result_index)
+            return self._wrap_aggregated_output(output)
         else:
             return self._wrap_transformed_output(output)
 
