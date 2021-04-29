@@ -420,10 +420,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                # error: Argument 1 to "to_numpy" of "ArrowStringArray" has incompatible
-                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
                 new_values, _ = func(
-                    self.to_numpy(object),  # type: ignore[arg-type]
+                    self.to_numpy("object"),
                     limit=limit,
                     mask=mask,
                 )
@@ -740,11 +738,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             if not na_value_is_na:
                 mask[:] = False
 
-            # error: Argument 1 to "IntegerArray" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            # error: Argument 1 to "BooleanArray" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            return constructor(result, mask)  # type: ignore[arg-type]
+            return constructor(result, mask)
 
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype
@@ -758,6 +752,16 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             #    or .findall returns a list).
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
+
+    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
+        if not regex and case:
+            result = pc.match_substring(self._data, pat)
+            result = BooleanDtype().__from_arrow__(result)
+            if not isna(na):
+                result[isna(result)] = bool(na)
+            return result
+        else:
+            return super()._str_contains(pat, case, flags, na, regex)
 
     def _str_isalnum(self):
         if hasattr(pc, "utf8_is_alnum"):
