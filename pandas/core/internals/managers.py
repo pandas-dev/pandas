@@ -1235,7 +1235,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if blk.should_store(value):
                 if (
                     value.shape[0] != 1
-                    and len(blk_locs) != value.shape[0]
+                    and len(blklocs) != value.shape[0]
                     and value.ndim == 2
                 ):
                     raise ValueError("Errored123")
