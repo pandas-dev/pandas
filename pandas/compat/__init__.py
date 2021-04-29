@@ -23,6 +23,7 @@ from pandas.compat.numpy import (
 
 PY38 = sys.version_info >= (3, 8)
 PY39 = sys.version_info >= (3, 9)
+PY310 = sys.version_info >= (3, 10)
 PYPY = platform.python_implementation() == "PyPy"
 IS64 = sys.maxsize > 2 ** 32
 

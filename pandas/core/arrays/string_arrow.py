@@ -39,6 +39,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
@@ -419,10 +420,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                # error: Argument 1 to "to_numpy" of "ArrowStringArray" has incompatible
-                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
                 new_values, _ = func(
-                    self.to_numpy(object),  # type: ignore[arg-type]
+                    self.to_numpy("object"),
                     limit=limit,
                     mask=mask,
                 )
@@ -675,13 +674,18 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
         vc = self._data.value_counts()
 
-        # Index cannot hold ExtensionArrays yet
-        index = Index(type(self)(vc.field(0)).astype(object))
-        # No missing values so we can adhere to the interface and return a numpy array.
-        counts = np.array(vc.field(1))
-
+        values = vc.field(0)
+        counts = vc.field(1)
         if dropna and self._data.null_count > 0:
-            raise NotImplementedError("yo")
+            mask = values.is_valid()
+            values = values.filter(mask)
+            counts = counts.filter(mask)
+
+        # No missing values so we can adhere to the interface and return a numpy array.
+        counts = np.array(counts)
+
+        # Index cannot hold ExtensionArrays yet
+        index = Index(type(self)(values)).astype(object)
 
         return Series(counts, index=index).astype("Int64")
 
@@ -734,11 +738,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             if not na_value_is_na:
                 mask[:] = False
 
-            # error: Argument 1 to "IntegerArray" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            # error: Argument 1 to "BooleanArray" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            return constructor(result, mask)  # type: ignore[arg-type]
+            return constructor(result, mask)
 
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype
@@ -752,3 +752,82 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             #    or .findall returns a list).
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
+
+    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
+        if not regex and case:
+            result = pc.match_substring(self._data, pat)
+            result = BooleanDtype().__from_arrow__(result)
+            if not isna(na):
+                result[isna(result)] = bool(na)
+            return result
+        else:
+            return super()._str_contains(pat, case, flags, na, regex)
+
+    def _str_isalnum(self):
+        if hasattr(pc, "utf8_is_alnum"):
+            result = pc.utf8_is_alnum(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isalnum()
+
+    def _str_isalpha(self):
+        if hasattr(pc, "utf8_is_alpha"):
+            result = pc.utf8_is_alpha(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isalpha()
+
+    def _str_isdecimal(self):
+        if hasattr(pc, "utf8_is_decimal"):
+            result = pc.utf8_is_decimal(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isdecimal()
+
+    def _str_isdigit(self):
+        if hasattr(pc, "utf8_is_digit"):
+            result = pc.utf8_is_digit(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isdigit()
+
+    def _str_islower(self):
+        if hasattr(pc, "utf8_is_lower"):
+            result = pc.utf8_is_lower(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_islower()
+
+    def _str_isnumeric(self):
+        if hasattr(pc, "utf8_is_numeric"):
+            result = pc.utf8_is_numeric(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isnumeric()
+
+    def _str_isspace(self):
+        if hasattr(pc, "utf8_is_space"):
+            result = pc.utf8_is_space(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isspace()
+
+    def _str_istitle(self):
+        if hasattr(pc, "utf8_is_title"):
+            result = pc.utf8_is_title(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_istitle()
+
+    def _str_isupper(self):
+        if hasattr(pc, "utf8_is_upper"):
+            result = pc.utf8_is_upper(self._data)
+            return BooleanDtype().__from_arrow__(result)
+        else:
+            return super()._str_isupper()
+
+    def _str_lower(self):
+        return type(self)(pc.utf8_lower(self._data))
+
+    def _str_upper(self):
+        return type(self)(pc.utf8_upper(self._data))

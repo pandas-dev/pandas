@@ -85,6 +85,7 @@ def generate_numba_groupby_ewma_func(
     com: float,
     adjust: bool,
     ignore_na: bool,
+    deltas: np.ndarray,
 ):
     """
     Generate a numba jitted groupby ewma function specified by values
@@ -97,6 +98,7 @@ def generate_numba_groupby_ewma_func(
     com : float
     adjust : bool
     ignore_na : bool
+    deltas : numpy.ndarray
 
     Returns
     -------
@@ -141,7 +143,9 @@ def generate_numba_groupby_ewma_func(
 
                     if is_observation or not ignore_na:
 
-                        old_wt *= old_wt_factor
+                        # note that len(deltas) = len(vals) - 1 and deltas[i] is to be
+                        # used in conjunction with vals[i+1]
+                        old_wt *= old_wt_factor ** deltas[start + j - 1]
                         if is_observation:
 
                             # avoid numerical errors on constant series
