@@ -258,6 +258,15 @@ class TestSetitemCoercion(CoercionBase):
         )
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
+    def test_setitem_series_no_coercion_from_values_list(self):
+        # GH35865 - int casted to str when internally calling np.array(ser.values)
+        ser = pd.Series(["a", 1])
+        ser[:] = list(ser.values)
+
+        expected = pd.Series(["a", 1])
+
+        tm.assert_series_equal(ser, expected)
+
     def _assert_setitem_index_conversion(
         self, original_series, loc_key, expected_index, expected_dtype
     ):
@@ -641,7 +650,7 @@ class TestWhereCoercion(CoercionBase):
             values = klass([True, False, True, True])
         else:
             values = klass(x * fill_val for x in [5, 6, 7, 8])
-        exp = klass([1 + 1j, values[1], 3 + 3j, values[3]])
+        exp = klass([1 + 1j, values[1], 3 + 3j, values[3]], dtype=exp_dtype)
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
     @pytest.mark.parametrize(
