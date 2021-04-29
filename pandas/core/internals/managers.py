@@ -351,8 +351,12 @@ class BaseBlockManager(DataManager):
             errors=errors,
         )
 
-    def setitem(self: T, indexer, value) -> T:
-        return self.apply("setitem", indexer=indexer, value=value)
+    def setitem(self: T, indexer, value, inplace=False) -> T:
+        if inplace:
+            assert self.ndim == 1
+            self._block.values[indexer] = value
+        else:
+            return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
 
@@ -562,6 +566,8 @@ class BaseBlockManager(DataManager):
         -------
         BlockManager
         """
+        if deep is None:
+            deep = True
         # this preserves the notion of view copying of axes
         if deep:
             # hit in e.g. tests.io.json.test_pandas

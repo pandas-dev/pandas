@@ -992,7 +992,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: Renamer | None = None,
         columns: Renamer | None = None,
         axis: Axis | None = None,
-        copy: bool_t = True,
+        copy: bool_t | None = None,
         inplace: bool_t = False,
         level: Level | None = None,
         errors: str = "ignore",
@@ -3911,6 +3911,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         df.iloc[0:5]['group'] = 'a'
 
         """
+        if isinstance(self._mgr, (ArrayManager, SingleArrayManager)):
+            return
         # return early if the check is not needed
         if not (force or self._is_copy):
             return
@@ -5833,7 +5835,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result
 
     @final
-    def copy(self: FrameOrSeries, deep: bool_t = True) -> FrameOrSeries:
+    def copy(self: FrameOrSeries, deep: bool_t | None = True) -> FrameOrSeries:
         """
         Make a copy of this object's indices and data.
 

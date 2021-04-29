@@ -4930,7 +4930,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = None,
         columns: Renamer | None = None,
         axis: Axis | None = None,
-        copy: bool = True,
+        copy: bool | None = None,
         inplace: bool = False,
         level: Level | None = None,
         errors: str = "ignore",
@@ -5764,7 +5764,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             new_obj = self
         else:
-            new_obj = self.copy()
+            new_obj = self.copy(deep=None)
 
         new_index = ibase.default_index(len(new_obj))
         if level is not None:

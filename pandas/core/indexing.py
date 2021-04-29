@@ -1869,6 +1869,12 @@ class _iLocIndexer(_LocationIndexer):
         """
         pi = plane_indexer
 
+        if not getattr(self.obj._mgr, "blocks", False):
+            # ArrayManager
+            self.obj._mgr.column_setitem(loc, plane_indexer, value)
+            self.obj._clear_item_cache()
+            return
+
         ser = self.obj._ixs(loc, axis=1)
 
         # perform the equivalent of a setitem on the info axis

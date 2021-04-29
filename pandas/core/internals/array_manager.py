@@ -9,6 +9,7 @@ from typing import (
     Callable,
     TypeVar,
 )
+import weakref
 
 import numpy as np
 
@@ -121,11 +122,13 @@ class BaseArrayManager(DataManager):
 
     arrays: list[np.ndarray | ExtensionArray]
     _axes: list[Index]
+    refs: list | None
 
     def __init__(
         self,
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
+        refs: list | None,
         verify_integrity: bool = True,
     ):
         raise NotImplementedError
@@ -175,6 +178,15 @@ class BaseArrayManager(DataManager):
 
     def _consolidate_inplace(self) -> None:
         pass
+
+    def _has_no_reference(self, i: int):
+        return (self.refs is None or self.refs[i] is None) and weakref.getweakrefcount(
+            self.arrays[i]
+        ) == 0
+
+    def _clear_reference(self, i: int):
+        if self.refs is not None:
+            self.refs[i] = None
 
     def get_dtypes(self):
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
@@ -516,6 +528,12 @@ class BaseArrayManager(DataManager):
         -------
         BlockManager
         """
+        if deep is not True:
+            refs = [weakref.ref(arr) for arr in self.arrays]
+            return type(self)(
+                list(self.arrays), list(self._axes), refs, verify_integrity=False
+            )
+
         # this preserves the notion of view copying of axes
         if deep:
             # hit in e.g. tests.io.json.test_pandas
@@ -530,7 +548,11 @@ class BaseArrayManager(DataManager):
         if deep:
             new_arrays = [arr.copy() for arr in self.arrays]
         else:
-            new_arrays = self.arrays
+            new_arrays = list(self.arrays)
+        if deep:
+            refs = None
+        else:
+            refs = list(self.refs) if isinstance(self.refs, list) else self.refs
         return type(self)(new_arrays, new_axes)
 
     def reindex_indexer(
@@ -599,14 +621,18 @@ class BaseArrayManager(DataManager):
 
         if axis == 1:
             new_arrays = []
+            refs = []
             for i in indexer:
                 if i == -1:
                     arr = self._make_na_array(
                         fill_value=fill_value, use_na_proxy=use_na_proxy
                     )
+                    ref = None
                 else:
                     arr = self.arrays[i]
+                    ref = weakref.ref(arr)
                 new_arrays.append(arr)
+                refs.append(ref)
 
         else:
             validate_indices(indexer, len(self._axes[0]))
@@ -625,11 +651,12 @@ class BaseArrayManager(DataManager):
                 )
                 for arr in self.arrays
             ]
+            refs = None
 
         new_axes = list(self._axes)
         new_axes[axis] = new_axis
 
-        return type(self)(new_arrays, new_axes, verify_integrity=False)
+        return type(self)(new_arrays, new_axes, refs, verify_integrity=False)
 
     def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
         """
@@ -693,12 +720,14 @@ class ArrayManager(BaseArrayManager):
         self,
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
+        refs: list | None = None,
         verify_integrity: bool = True,
     ):
         # Note: we are storing the axes in "_axes" in the (row, columns) order
         # which contrasts the order how it is stored in BlockManager
         self._axes = axes
         self.arrays = arrays
+        self.refs = refs
 
         if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
@@ -768,15 +797,19 @@ class ArrayManager(BaseArrayManager):
 
         new_axes = list(self._axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
+        # TODO possible optimization is to have `refs` to be a weakref to the
+        # full ArrayManager to indicate it's referencing
+        refs = [weakref.ref(arr) for arr in self.arrays]
 
-        return type(self)(arrays, new_axes, verify_integrity=False)
+        return type(self)(arrays, new_axes, refs, verify_integrity=False)
 
     def iget(self, i: int) -> SingleArrayManager:
         """
         Return the data as a SingleArrayManager.
         """
         values = self.arrays[i]
-        return SingleArrayManager([values], [self._axes[0]])
+        ref = weakref.ref(values)
+        return SingleArrayManager([values], [self._axes[0]], [ref])
 
     def iget_values(self, i: int) -> ArrayLike:
         """
@@ -882,6 +915,8 @@ class ArrayManager(BaseArrayManager):
         # TODO is this copy needed?
         arrays = self.arrays.copy()
         arrays.insert(loc, value)
+        if self.refs is not None:
+            self.refs.insert(loc, None)
 
         self.arrays = arrays
         self._axes[1] = new_axis
@@ -896,6 +931,15 @@ class ArrayManager(BaseArrayManager):
         self.arrays = [self.arrays[i] for i in np.nonzero(to_keep)[0]]
         self._axes = [self._axes[0], self._axes[1][to_keep]]
         return self
+
+    def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value):
+        if self._has_no_reference(loc):
+            self.arrays[loc][idx] = value
+        else:
+            arr = self.arrays[loc].copy()
+            arr[idx] = value
+            self.arrays[loc] = arr
+            self._clear_reference(loc)
 
     # --------------------------------------------------------------------
     # Array-wise Operation
@@ -1179,10 +1223,12 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         self,
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
+        refs: list | None = None,
         verify_integrity: bool = True,
     ):
         self._axes = axes
         self.arrays = arrays
+        self.refs = refs
 
         if verify_integrity:
             assert len(axes) == 1
@@ -1286,8 +1332,14 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             new_array = getattr(self.array, func)(**kwargs)
         return type(self)([new_array], self._axes)
 
-    def setitem(self, indexer, value):
-        return self.apply_with_block("setitem", indexer=indexer, value=value)
+    def setitem(self, indexer, value, inplace=False):
+        if not self._has_no_reference(0):
+            self.arrays[0] = self.arrays[0].copy()
+            self._clear_reference(0)
+        if inplace:
+            self.arrays[0][indexer] = value
+        else:
+            return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def idelete(self, indexer) -> SingleArrayManager:
         """
