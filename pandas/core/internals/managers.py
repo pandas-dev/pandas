@@ -9,6 +9,7 @@ from typing import (
     Hashable,
     Sequence,
     TypeVar,
+    cast,
 )
 import warnings
 
@@ -32,8 +33,8 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     ensure_platform_int,
+    is_1d_only_ea_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -47,6 +48,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -698,7 +700,7 @@ class BaseBlockManager(DataManager):
         # Give EAs some input on what happens here. Sparse needs this.
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
-        elif is_extension_array_dtype(dtype):
+        elif isinstance(dtype, ExtensionDtype):
             dtype = "object"
         elif is_dtype_equal(dtype, str):
             dtype = "object"
@@ -706,8 +708,8 @@ class BaseBlockManager(DataManager):
         # error: Argument "dtype" to "empty" has incompatible type
         # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
         # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
-        # Any]]]"
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
+        # Tuple[Any, Any]]]"
         result = np.empty(self.shape, dtype=dtype)  # type: ignore[arg-type]
 
         itemmask = np.zeros(self.shape[0])
@@ -1048,6 +1050,19 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         f"Number of Block dimensions ({block.ndim}) must equal "
                         f"number of axes ({self.ndim})"
                     )
+                if isinstance(block, DatetimeTZBlock) and block.values.ndim == 1:
+                    # TODO: remove once fastparquet no longer needs this
+                    # error: Incompatible types in assignment (expression has type
+                    # "Union[ExtensionArray, ndarray]", variable has type
+                    # "DatetimeArray")
+                    block.values = ensure_block_shape(  # type: ignore[assignment]
+                        block.values, self.ndim
+                    )
+                    try:
+                        block._cache.clear()
+                    except AttributeError:
+                        # _cache not initialized
+                        pass
 
             self._verify_integrity()
 
@@ -1092,16 +1107,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
         n = len(self)
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             # we'll eventually construct an ExtensionArray.
             result = np.empty(n, dtype=object)
+            # TODO: let's just use dtype.empty?
         else:
-            # error: Argument "dtype" to "empty" has incompatible type
-            # "Union[dtype, ExtensionDtype, None]"; expected "Union[dtype,
-            # None, type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any,
-            # Union[int, Sequence[int]]], List[Any], _DtypeDict, Tuple[Any,
-            # Any]]"
-            result = np.empty(n, dtype=dtype)  # type: ignore[arg-type]
+            result = np.empty(n, dtype=dtype)
 
         result = ensure_wrapped_if_datetimelike(result)
 
@@ -1137,6 +1148,30 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         values = block.iget(self.blklocs[i])
         return values
 
+    @property
+    def column_arrays(self) -> list[np.ndarray]:
+        """
+        Used in the JSON C code to access column arrays.
+        This optimizes compared to using `iget_values` by converting each
+        block.values to a np.ndarray only once up front
+        """
+        # special casing datetimetz to avoid conversion through object dtype
+        arrays = [
+            blk.values._ndarray
+            if isinstance(blk, DatetimeTZBlock)
+            else np.asarray(blk.values)
+            for blk in self.blocks
+        ]
+        result = []
+        for i in range(len(self.items)):
+            arr = arrays[self.blknos[i]]
+            if arr.ndim == 2:
+                values = arr[self.blklocs[i]]
+            else:
+                values = arr
+            result.append(values)
+        return result
+
     def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
@@ -1149,7 +1184,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._rebuild_blknos_and_blklocs()
 
         # Note: we exclude DTA/TDA here
-        value_is_extension_type = is_extension_array_dtype(value)
+        vdtype = getattr(value, "dtype", None)
+        value_is_extension_type = is_1d_only_ea_dtype(vdtype)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:
@@ -1780,7 +1816,12 @@ def _form_blocks(
 
     if len(items_dict["DatetimeTZBlock"]):
         dttz_blocks = [
-            new_block(array, klass=DatetimeTZBlock, placement=i, ndim=2)
+            new_block(
+                ensure_block_shape(extract_array(array), 2),
+                klass=DatetimeTZBlock,
+                placement=i,
+                ndim=2,
+            )
             for i, array in items_dict["DatetimeTZBlock"]
         ]
         blocks.extend(dttz_blocks)
@@ -1917,11 +1958,19 @@ def _merge_blocks(
         # TODO: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
-        # error: List comprehension has incompatible type List[Union[ndarray,
-        # ExtensionArray]]; expected List[Union[complex, generic, Sequence[Union[int,
-        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
-        # _SupportsArray]]
-        new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
+
+        new_values: ArrayLike
+
+        if isinstance(blocks[0].dtype, np.dtype):
+            # error: List comprehension has incompatible type List[Union[ndarray,
+            # ExtensionArray]]; expected List[Union[complex, generic,
+            # Sequence[Union[int, float, complex, str, bytes, generic]],
+            # Sequence[Sequence[Any]], SupportsArray]]
+            new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
+        else:
+            bvals = [blk.values for blk in blocks]
+            bvals2 = cast(Sequence[NDArrayBackedExtensionArray], bvals)
+            new_values = bvals2[0]._concat_same_type(bvals2, axis=0)
 
         argsort = np.argsort(new_mgr_locs)
         new_values = new_values[argsort]

@@ -100,6 +100,7 @@ from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
+    ensure_wrapped_if_datetimelike,
     extract_array,
     is_empty_data,
     sanitize_array,
@@ -1891,7 +1892,7 @@ Name: Max Speed, dtype: float64
         2
         """
         if level is None:
-            return notna(self._values).sum()
+            return notna(self._values).sum().astype("int64")
         else:
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
@@ -2872,7 +2873,7 @@ Name: Max Speed, dtype: float64
         if not self.index.equals(other.index):
             this, other = self.align(other, level=level, join="outer", copy=False)
 
-        this_vals, other_vals = ops.fill_binop(this.values, other.values, fill_value)
+        this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
 
         with np.errstate(all="ignore"):
             result = func(this_vals, other_vals)
@@ -3086,10 +3087,8 @@ Keep all original rows and also all original values
             new_name = self.name
 
         # try_float=False is to match _aggregate_series_pure_python
-        res_values = lib.maybe_convert_objects(new_values, try_float=False)
-        res_values = maybe_cast_pointwise_result(
-            res_values, self.dtype, same_dtype=False
-        )
+        npvalues = lib.maybe_convert_objects(new_values, try_float=False)
+        res_values = maybe_cast_pointwise_result(npvalues, self.dtype, same_dtype=False)
         return self._constructor(res_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> Series:
@@ -4170,7 +4169,8 @@ Keep all original rows and also all original values
             Python function or NumPy ufunc to apply.
         convert_dtype : bool, default True
             Try to find better dtype for elementwise function results. If
-            False, leave as dtype=object.
+            False, leave as dtype=object. Note that the dtype is always
+            preserved for extension array dtypes, such as Categorical.
         args : tuple
             Positional arguments passed to func after the series value.
         **kwargs
@@ -5313,6 +5313,8 @@ Keep all original rows and also all original values
 
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
+        rvalues = ops.maybe_prepare_scalar_for_op(rvalues, lvalues.shape)
+        rvalues = ensure_wrapped_if_datetimelike(rvalues)
 
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)
