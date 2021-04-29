@@ -838,7 +838,7 @@ class TestParquetPyArrow(Base):
         )
         check_round_trip(df, pa)
 
-    @td.skip_if_no("pyarrow", min_version="0.16")
+    @td.skip_if_no("pyarrow", min_version="0.16.0")
     def test_use_nullable_dtypes(self, pa):
         import pyarrow.parquet as pq
 
@@ -867,7 +867,6 @@ class TestParquetPyArrow(Base):
         )
         tm.assert_frame_equal(result2, expected)
 
-    @td.skip_if_no("pyarrow", min_version="0.14")
     def test_timestamp_nanoseconds(self, pa):
         # with version 2.0, pyarrow defaults to writing the nanoseconds, so
         # this should work without error

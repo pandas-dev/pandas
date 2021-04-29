@@ -185,7 +185,7 @@ class TestFeather:
         result = tm.round_trip_localpath(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
-    @td.skip_if_no("pyarrow", min_version="0.16.1.dev")
+    @td.skip_if_no("pyarrow", min_version="0.17.0")
     def test_passthrough_keywords(self):
         df = tm.makeDataFrame().reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})

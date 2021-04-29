@@ -87,9 +87,8 @@ def safe_import(mod_name: str, min_version: str | None = None):
         except AttributeError:
             # xlrd uses a capitalized attribute name
             version = getattr(sys.modules[mod_name], "__VERSION__")
-        if version:
-            if Version(version) >= Version(min_version):
-                return mod
+        if version and Version(version) >= Version(min_version):
+            return mod
 
     return False
 
