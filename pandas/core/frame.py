@@ -7542,6 +7542,11 @@ a
 a   13.0   13.0
 b   12.3  123.0
 NaN 12.3   33.0
+
+If you encounter ``ValueError("Product space too large to allocate arrays!")``,
+you are trying to group over too complex a column cross-product to fit in memory.
+If any of those columns are categorical, you may be able to circumvent this issue
+by passing ``observed=True``.
 """
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
