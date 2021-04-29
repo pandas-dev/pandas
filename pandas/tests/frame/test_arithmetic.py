@@ -17,6 +17,7 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
+from pandas.core.computation import expressions as expr
 from pandas.core.computation.expressions import (
     _MIN_ELEMENTS,
     NUMEXPR_INSTALLED,
@@ -25,6 +26,16 @@ from pandas.tests.frame.common import (
     _check_mixed_float,
     _check_mixed_int,
 )
+
+
+@pytest.fixture(
+    autouse=True, scope="module", params=[0, 1000000], ids=["numexpr", "python"]
+)
+def switch_numexpr_min_elements(request):
+    _MIN_ELEMENTS = expr._MIN_ELEMENTS
+    expr._MIN_ELEMENTS = request.param
+    yield request.param
+    expr._MIN_ELEMENTS = _MIN_ELEMENTS
 
 
 class DummyElement:
@@ -514,7 +525,12 @@ class TestFrameFlexArithmetic:
 
     @pytest.mark.parametrize("op", ["__add__", "__sub__", "__mul__"])
     def test_arith_flex_frame_mixed(
-        self, op, int_frame, mixed_int_frame, mixed_float_frame
+        self,
+        op,
+        int_frame,
+        mixed_int_frame,
+        mixed_float_frame,
+        switch_numexpr_min_elements,
     ):
         f = getattr(operator, op)
 
@@ -528,6 +544,12 @@ class TestFrameFlexArithmetic:
             dtype = {"B": "uint64", "C": None}
         elif op in ["__add__", "__mul__"]:
             dtype = {"C": None}
+        if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
+            # when using numexpr, the casting rules are slightly different:
+            # in the `2 + mixed_int_frame` operation, int32 column becomes
+            # and int64 column (not preserving dtype in operation with Python
+            # scalar), and then the int32/int64 combo results in int64 result
+            dtype["A"] = (2 + mixed_int_frame)["A"].dtype
         tm.assert_frame_equal(result, expected)
         _check_mixed_int(result, dtype=dtype)
 
@@ -892,7 +914,7 @@ class TestFrameArithmetic:
         ],
         ids=lambda x: x.__name__,
     )
-    def test_binop_other(self, op, value, dtype):
+    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements):
 
         skip = {
             (operator.truediv, "bool"),
@@ -941,11 +963,13 @@ class TestFrameArithmetic:
         elif (op, dtype) in skip:
 
             if op in [operator.add, operator.mul]:
-                # TODO we should assert this or not depending on whether
-                # numexpr is used or not
-                # with tm.assert_produces_warning(UserWarning):
-                #     # "evaluating in Python space because ..."
-                op(s, e.value)
+                if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
+                    # "evaluating in Python space because ..."
+                    warn = UserWarning
+                else:
+                    warn = None
+                with tm.assert_produces_warning(warn):
+                    op(s, e.value)
 
             else:
                 msg = "operator '.*' not implemented for .* dtypes"
