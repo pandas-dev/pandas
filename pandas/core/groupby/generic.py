@@ -1686,7 +1686,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _wrap_aggregated_output(
         self,
-        output: Mapping[base.OutputKey, Series | np.ndarray],
+        output: Mapping[base.OutputKey, Series | ArrayLike],
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy aggregations into the expected result.
