@@ -237,11 +237,11 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             # numerical issues with Float32Dtype
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=False, convert_na_value=False)
+            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
             result[na_values] = ArrowStringDtype.na_value
         else:
             # convert non-na-likes to str, and nan-likes to StringDtype.na_value
-            result = lib.ensure_string_array(scalars, copy=False)
+            result = lib.ensure_string_array(scalars, copy=copy)
 
         return cls(pa.array(result, type=pa.string(), from_pandas=True))
 
