@@ -38,6 +38,35 @@ def test_setitem_size_incompatible_ndarray(arr):
         data["A"] = np.random.randn(arr[0], arr[1])
 
 
+# @pytest.mark.parametrize(
+#     argnames="arr",
+#     argvalues=[
+#         # (4, 3),
+#          (4, 4), (4, 10), (4, 20), (4, 30)
+#     ],
+# )
+# def test_setitem_size_incompatible_ndarray2(arr):
+#     # GH#40827
+#     # Assigning a dataframe column to an ndarray with more than one columns
+#     # should raise an exception.
+#     data = DataFrame(
+#         [[1, "A", 1.0], [2, "B", 2.0], [3, "C", 3.0], [4, "D", 4.0]],
+#         columns=["A", "A", "B"],
+#     )
+#     msg = "Errored123"
+#     with pytest.raises(ValueError, match=msg):
+#         data["A"] = np.random.randn(arr[0], arr[1])
+
+#     data = DataFrame(
+#         [[1, 1.0], [2, 2.0], [3, 3.0], [4, 4.0]],
+#         columns=["A", "B"],
+#     )
+#     msg = "Errored123"
+#     # TODO: This should fail with pytest.raises()
+#     with pytest.raises(ValueError, match=msg):
+#         data["A"] = np.random.randn(arr[0], arr[1])
+
+
 def test_setitem_size_compatible_ndarray():
     data = DataFrame(np.zeros(4), columns=["A"])
 
@@ -50,8 +79,7 @@ def test_setitem_size_compatible_ndarray():
 
 
 @pytest.mark.parametrize(
-    argnames="arr",
-    argvalues=[(4, 2), (4, 3), (4, 4), (4, 10), (4, 20), (4, 30)],
+    argnames="arr", argvalues=[(4, 2), (4, 3), (4, 4), (4, 10), (4, 20), (4, 30)],
 )
 def test_loc_setitem_with_size_incompatible_ndarray(arr):
     # GH#40827
