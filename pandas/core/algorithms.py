@@ -571,7 +571,7 @@ def factorize_array(
 
     Returns
     -------
-    codes : ndarray
+    codes : ndarray[np.intp]
     uniques : ndarray
     """
     hash_klass, values = get_data_algo(values)

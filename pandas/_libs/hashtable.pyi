@@ -25,7 +25,7 @@ class Factorizer:
         sort: bool = ...,
         na_sentinel=...,
         na_value=...,
-    ) -> np.ndarray: ...  # np.ndarray[int64|intp], but i think should be intp
+    ) -> np.ndarray: ...  # np.ndarray[intp]
 
     def unique(
         self,
@@ -47,7 +47,7 @@ class Int64Factorizer:
         sort: bool = ...,
         na_sentinel=...,
         na_value=...,
-    ) -> np.ndarray: ...  # np.ndarray[int64|intp], but i think should be intp
+    ) -> np.ndarray: ...  # np.ndarray[intp]
 
 
 class Int64Vector:
@@ -159,7 +159,7 @@ class HashTable:
         count_prior: int = ...,
         na_sentinel: int = ...,
         na_value: object = ...,
-    ) -> np.ndarray: ... # np.ndarray[int64], but i think should be intp
+    ) -> np.ndarray: ... # np.ndarray[intp_t]
 
     def unique(
         self,
@@ -167,7 +167,7 @@ class HashTable:
         return_inverse: bool = ...,
     ) -> tuple[
         np.ndarray,  # np.ndarray[subclass-specific]
-        np.ndarray,  # np.ndarray[int64], but i think should be intp
+        np.ndarray,  # np.ndarray[np.intp],
     ] | np.ndarray: ...  # np.ndarray[subclass-specific]
 
     def _unique(
@@ -181,7 +181,7 @@ class HashTable:
         return_inverse: bool = ...,
     ) -> tuple[
         np.ndarray,  # np.ndarray[subclass-specific]
-        np.ndarray,  # np.ndarray[int64], but i think should be intp
+        np.ndarray,  # np.ndarray[np.intp],
     ] | np.ndarray: ...  # np.ndarray[subclass-specific]
 
     def factorize(
@@ -192,7 +192,7 @@ class HashTable:
         mask=...,
     ) -> tuple[
             np.ndarray,  # np.ndarray[subclass-specific]
-            np.ndarray,  # np.ndarray[int64], but i think should be intp
+            np.ndarray,  # np.ndarray[np.intp],
         ]: ...
 
 class Complex128HashTable(HashTable): ...
@@ -224,7 +224,7 @@ class PyObjectHashTable(HashTable): ...
 
 def duplicated_int64(
     values: np.ndarray,  # const int64_t[:] values
-    keep: Literal["last"] | Literal["first"] | Literal[False] = ...,
+    keep: Literal["last", "first", False] = ...,
 ) -> np.ndarray: ...  # np.ndarray[bool]
 # TODO: Is it actually bool or is it uint8?
 
