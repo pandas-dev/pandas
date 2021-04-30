@@ -760,6 +760,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return super()._str_contains(pat, case, flags, na, regex)
 
         if regex:
+            # match_substring_regex added in pyarrow 4.0.0
             if hasattr(pc, "match_substring_regex") and case:
                 if re.compile(pat).groups:
                     warnings.warn(
@@ -782,6 +783,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         return result
 
     def _str_startswith(self, pat, na=None):
+        # match_substring_regex added in pyarrow 4.0.0
         if hasattr(pc, "match_substring_regex"):
             result = pc.match_substring_regex(self._data, "^" + re.escape(pat))
             result = BooleanDtype().__from_arrow__(result)
@@ -792,6 +794,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return super()._str_startswith(pat, na)
 
     def _str_endswith(self, pat, na=None):
+        # match_substring_regex added in pyarrow 4.0.0
         if hasattr(pc, "match_substring_regex"):
             result = pc.match_substring_regex(self._data, re.escape(pat) + "$")
             result = BooleanDtype().__from_arrow__(result)
