@@ -46,6 +46,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.arrays import (
+    DatetimeArray,
     IntervalArray,
     PeriodArray,
     SparseArray,
@@ -1011,6 +1012,7 @@ class TestDataFrameConstructors:
         alt = DataFrame({name: data[name] for name in data.dtype.names}, dtype=int)
         tm.assert_frame_equal(result, alt)
 
+    @pytest.mark.slow
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
         # from GH3479
@@ -1924,12 +1926,12 @@ class TestDataFrameConstructors:
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
         result = df.dtypes
-        expected = Series([np.dtype("int64")] * 5)
+        expected = Series([np.dtype("int")] * 5)
         tm.assert_series_equal(result, expected)
 
         df = DataFrame([np.array(np.arange(5), dtype="int32") for x in range(5)])
         result = df.dtypes
-        expected = Series([np.dtype("int64")] * 5)
+        expected = Series([np.dtype("int32")] * 5)
         tm.assert_series_equal(result, expected)
 
         # overflow issue? (we always expected int64 upcasting here)
@@ -2568,6 +2570,13 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
         with pytest.raises(TypeError, match=msg):
             Series(values)
+
+    def test_construction_from_ndarray_datetimelike(self):
+        # ensure the underlying arrays are properly wrapped as EA when
+        # constructed from 2D ndarray
+        arr = np.arange(0, 12, dtype="datetime64[ns]").reshape(4, 3)
+        df = DataFrame(arr)
+        assert all(isinstance(arr, DatetimeArray) for arr in df._mgr.arrays)
 
 
 def get1(obj):

@@ -99,10 +99,7 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
 
     applied = df.groupby("A").apply(max_value)
     result = applied.dtypes
-    expected = Series(
-        [np.dtype("object")] * 2 + [np.dtype("float64")] * 2 + [np.dtype("int64")],
-        index=["A", "B", "C", "D", "value"],
-    )
+    expected = df.dtypes
     tm.assert_series_equal(result, expected)
 
 
@@ -1732,6 +1729,8 @@ def test_pivot_table_values_key_error():
         [to_datetime(0)],
         [date_range(0, 1, 1, tz="US/Eastern")],
         [pd.array([0], dtype="Int64")],
+        [pd.array([0], dtype="Float64")],
+        [pd.array([False], dtype="boolean")],
     ],
 )
 @pytest.mark.parametrize("method", ["attr", "agg", "apply"])
@@ -2020,6 +2019,12 @@ def test_groupby_crash_on_nunique(axis):
         expected = expected.T
 
     tm.assert_frame_equal(result, expected)
+
+    # same thing, but empty columns
+    gb = df[[]].groupby(axis=axis_number, level=0)
+    res = gb.nunique()
+    exp = expected[[]]
+    tm.assert_frame_equal(res, exp)
 
 
 def test_groupby_list_level():

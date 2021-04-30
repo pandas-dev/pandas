@@ -137,14 +137,6 @@ class Apply(metaclass=abc.ABCMeta):
         self.orig_f: AggFuncType = func
         self.f: AggFuncType = f
 
-    @property
-    def index(self) -> Index:
-        return self.obj.index
-
-    @property
-    def agg_axis(self) -> Index:
-        return self.obj._get_agg_axis(self.axis)
-
     @abc.abstractmethod
     def apply(self) -> FrameOrSeriesUnion:
         pass
@@ -163,9 +155,8 @@ class Apply(metaclass=abc.ABCMeta):
         args = self.args
         kwargs = self.kwargs
 
-        result = self.maybe_apply_str()
-        if result is not None:
-            return result
+        if isinstance(arg, str):
+            return self.apply_str()
 
         if is_dict_like(arg):
             return self.agg_dict_like()
@@ -465,26 +456,18 @@ class Apply(metaclass=abc.ABCMeta):
 
         return result
 
-    def maybe_apply_str(self) -> FrameOrSeriesUnion | None:
+    def apply_str(self) -> FrameOrSeriesUnion:
         """
         Compute apply in case of a string.
 
         Returns
         -------
-        result: Series, DataFrame, or None
-            Result when self.f is a string, None otherwise.
+        result: Series or DataFrame
         """
-        f = self.f
-        if not isinstance(f, str):
-            return None
+        # Caller is responsible for checking isinstance(self.f, str)
+        f = cast(str, self.f)
 
         obj = self.obj
-
-        # TODO: GH 39993 - Avoid special-casing by replacing with lambda
-        if f == "size" and isinstance(obj, ABCDataFrame):
-            # Special-cased because DataFrame.size returns a single scalar
-            value = obj.shape[self.axis]
-            return obj._constructor_sliced(value, index=self.agg_axis, name="size")
 
         # Support for `frame.transform('method')`
         # Some methods (shift, etc.) require the axis argument, others
@@ -498,7 +481,7 @@ class Apply(metaclass=abc.ABCMeta):
                 raise ValueError(f"Operation {f} does not support axis=1")
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
-    def maybe_apply_multiple(self) -> FrameOrSeriesUnion | None:
+    def apply_multiple(self) -> FrameOrSeriesUnion:
         """
         Compute apply in case of a list-like or dict-like.
 
@@ -507,9 +490,6 @@ class Apply(metaclass=abc.ABCMeta):
         result: Series, DataFrame, or None
             Result when self.f is a list-like or dict-like, None otherwise.
         """
-        # Note: dict-likes are list-like
-        if not is_list_like(self.f):
-            return None
         return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
 
     def normalize_dictlike_arg(
@@ -587,7 +567,22 @@ class Apply(metaclass=abc.ABCMeta):
         )
 
 
-class FrameApply(Apply):
+class NDFrameApply(Apply):
+    """
+    Methods shared by FrameApply and SeriesApply but
+    not GroupByApply or ResamplerWindowApply
+    """
+
+    @property
+    def index(self) -> Index:
+        return self.obj.index
+
+    @property
+    def agg_axis(self) -> Index:
+        return self.obj._get_agg_axis(self.axis)
+
+
+class FrameApply(NDFrameApply):
     obj: DataFrame
 
     # ---------------------------------------------------------------
@@ -635,18 +630,16 @@ class FrameApply(Apply):
     def apply(self) -> FrameOrSeriesUnion:
         """ compute the results """
         # dispatch to agg
-        result = self.maybe_apply_multiple()
-        if result is not None:
-            return result
+        if is_list_like(self.f):
+            return self.apply_multiple()
 
         # all empty
         if len(self.columns) == 0 and len(self.index) == 0:
             return self.apply_empty_result()
 
         # string dispatch
-        result = self.maybe_apply_str()
-        if result is not None:
-            return result
+        if isinstance(self.f, str):
+            return self.apply_str()
 
         # ufunc
         elif isinstance(self.f, np.ufunc):
@@ -831,6 +824,16 @@ class FrameApply(Apply):
 
         return result
 
+    def apply_str(self) -> FrameOrSeriesUnion:
+        # Caller is responsible for checking isinstance(self.f, str)
+        # TODO: GH#39993 - Avoid special-casing by replacing with lambda
+        if self.f == "size":
+            # Special-cased because DataFrame.size returns a single scalar
+            obj = self.obj
+            value = obj.shape[self.axis]
+            return obj._constructor_sliced(value, index=self.agg_axis, name="size")
+        return super().apply_str()
+
 
 class FrameRowApply(FrameApply):
     axis = 0
@@ -967,7 +970,7 @@ class FrameColumnApply(FrameApply):
         return result
 
 
-class SeriesApply(Apply):
+class SeriesApply(NDFrameApply):
     obj: Series
     axis = 0
 
@@ -997,14 +1000,12 @@ class SeriesApply(Apply):
             return self.apply_empty_result()
 
         # dispatch to agg
-        result = self.maybe_apply_multiple()
-        if result is not None:
-            return result
+        if is_list_like(self.f):
+            return self.apply_multiple()
 
-        # if we are a string, try to dispatch
-        result = self.maybe_apply_str()
-        if result is not None:
-            return result
+        if isinstance(self.f, str):
+            # if we are a string, try to dispatch
+            return self.apply_str()
 
         return self.apply_standard()
 

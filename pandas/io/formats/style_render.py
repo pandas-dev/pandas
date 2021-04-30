@@ -12,7 +12,6 @@ from typing import (
     Sequence,
     Tuple,
     Union,
-    cast,
 )
 from uuid import uuid4
 
@@ -21,7 +20,10 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import FrameOrSeriesUnion
+from pandas._typing import (
+    FrameOrSeriesUnion,
+    TypedDict,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.generic import ABCSeries
@@ -38,17 +40,21 @@ from pandas.api.types import is_list_like
 import pandas.core.common as com
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-from markupsafe import escape as escape_func  # markupsafe is jinja2 dependency
+from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
 CSSPair = Tuple[str, Union[str, int, float]]
 CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
-CSSStyles = List[Dict[str, CSSProperties]]  # = List[CSSDict]
-# class CSSDict(TypedDict):  # available when TypedDict is valid in pandas
-#     selector: str
-#     props: CSSProperties
+
+
+class CSSDict(TypedDict):
+    selector: str
+    props: CSSProperties
+
+
+CSSStyles = List[CSSDict]
 
 
 class StylerRenderer:
@@ -102,42 +108,10 @@ class StylerRenderer:
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
 
-    def render(self, **kwargs) -> str:
+    def _render_html(self, **kwargs) -> str:
         """
-        Render the ``Styler`` including all applied styles to HTML.
-
-        Parameters
-        ----------
-        **kwargs
-            Any additional keyword arguments are passed
-            through to ``self.template.render``.
-            This is useful when you need to provide
-            additional variables for a custom template.
-
-        Returns
-        -------
-        rendered : str
-            The rendered HTML.
-
-        Notes
-        -----
-        Styler objects have defined the ``_repr_html_`` method
-        which automatically calls ``self.render()`` when it's the
-        last item in a Notebook cell. When calling ``Styler.render()``
-        directly, wrap the result in ``IPython.display.HTML`` to view
-        the rendered HTML in the notebook.
-
-        Pandas uses the following keys in render. Arguments passed
-        in ``**kwargs`` take precedence, so think carefully if you want
-        to override them:
-
-        * head
-        * cellstyle
-        * body
-        * uuid
-        * table_styles
-        * caption
-        * table_attributes
+        Renders the ``Styler`` including all applied styles to HTML.
+        Generates a dict with necessary kwargs passed to jinja2 template.
         """
         self._compute()
         # TODO: namespace all the pandas keys
@@ -366,6 +340,8 @@ class StylerRenderer:
         subset: slice | Sequence[Any] | None = None,
         na_rep: str | None = None,
         precision: int | None = None,
+        decimal: str = ".",
+        thousands: str | None = None,
         escape: bool = False,
     ) -> StylerRenderer:
         """
@@ -387,6 +363,16 @@ class StylerRenderer:
         precision : int, optional
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
+
+            .. versionadded:: 1.3.0
+
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers
+
+            .. versionadded:: 1.3.0
+
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers
 
             .. versionadded:: 1.3.0
 
@@ -482,6 +468,8 @@ class StylerRenderer:
                 formatter is None,
                 subset is None,
                 precision is None,
+                decimal == ".",
+                thousands is None,
                 na_rep is None,
                 escape is False,
             )
@@ -502,8 +490,14 @@ class StylerRenderer:
                 format_func = formatter[col]
             except KeyError:
                 format_func = None
+
             format_func = _maybe_wrap_formatter(
-                format_func, na_rep=na_rep, precision=precision, escape=escape
+                format_func,
+                na_rep=na_rep,
+                precision=precision,
+                decimal=decimal,
+                thousands=thousands,
+                escape=escape,
             )
 
             for row, value in data[[col]].itertuples():
@@ -595,19 +589,13 @@ def _format_table_styles(styles: CSSStyles) -> CSSStyles:
               {'selector': 'th', 'props': 'a:v;'}]
     """
     return [
-        item
-        for sublist in [
-            [  # this is a CSSDict when TypedDict is available to avoid cast.
-                {"selector": x, "props": style["props"]}
-                for x in cast(str, style["selector"]).split(",")
-            ]
-            for style in styles
-        ]
-        for item in sublist
+        {"selector": selector, "props": css_dict["props"]}
+        for css_dict in styles
+        for selector in css_dict["selector"].split(",")
     ]
 
 
-def _default_formatter(x: Any, precision: int) -> Any:
+def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     """
     Format the display of a value
 
@@ -617,14 +605,54 @@ def _default_formatter(x: Any, precision: int) -> Any:
         Input variable to be formatted
     precision : Int
         Floating point precision used if ``x`` is float or complex.
+    thousands : bool, default False
+        Whether to group digits with thousands separated with ",".
 
     Returns
     -------
     value : Any
-        Matches input type, or string if input is float or complex.
+        Matches input type, or string if input is float or complex or int with sep.
     """
     if isinstance(x, (float, complex)):
+        if thousands:
+            return f"{x:,.{precision}f}"
         return f"{x:.{precision}f}"
+    elif isinstance(x, int) and thousands:
+        return f"{x:,.0f}"
+    return x
+
+
+def _wrap_decimal_thousands(
+    formatter: Callable, decimal: str, thousands: str | None
+) -> Callable:
+    """
+    Takes a string formatting function and wraps logic to deal with thousands and
+    decimal parameters, in the case that they are non-standard and that the input
+    is a (float, complex, int).
+    """
+
+    def wrapper(x):
+        if isinstance(x, (float, complex, int)):
+            if decimal != "." and thousands is not None and thousands != ",":
+                return (
+                    formatter(x)
+                    .replace(",", "§_§-")  # rare string to avoid "," <-> "." clash.
+                    .replace(".", decimal)
+                    .replace("§_§-", thousands)
+                )
+            elif decimal != "." and (thousands is None or thousands == ","):
+                return formatter(x).replace(".", decimal)
+            elif decimal == "." and thousands is not None and thousands != ",":
+                return formatter(x).replace(",", thousands)
+        return formatter(x)
+
+    return wrapper
+
+
+def _str_escape_html(x):
+    """if escaping html: only use on str, else return input"""
+    if isinstance(x, str):
+        return escape_html(x)
     return x
 
 
@@ -632,6 +660,8 @@ def _maybe_wrap_formatter(
     formatter: BaseFormatter | None = None,
     na_rep: str | None = None,
     precision: int | None = None,
+    decimal: str = ".",
+    thousands: str | None = None,
     escape: bool = False,
 ) -> Callable:
     """
@@ -639,29 +669,36 @@ def _maybe_wrap_formatter(
     a default formatting function. wraps with na_rep, and precision where they are
     available.
     """
+    # Get initial func from input string, input callable, or from default factory
     if isinstance(formatter, str):
-        formatter_func = lambda x: formatter.format(x)
+        func_0 = lambda x: formatter.format(x)
     elif callable(formatter):
-        formatter_func = formatter
+        func_0 = formatter
     elif formatter is None:
         precision = get_option("display.precision") if precision is None else precision
-        formatter_func = partial(_default_formatter, precision=precision)
+        func_0 = partial(
+            _default_formatter, precision=precision, thousands=(thousands is not None)
+        )
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
-    def _str_escape(x, escape: bool):
-        """if escaping: only use on str, else return input"""
-        if escape and isinstance(x, str):
-            return escape_func(x)
-        else:
-            return x
-
-    display_func = lambda x: formatter_func(partial(_str_escape, escape=escape)(x))
-
-    if na_rep is None:
-        return display_func
+    # Replace HTML chars if escaping
+    if escape:
+        func_1 = lambda x: func_0(_str_escape_html(x))
     else:
-        return lambda x: na_rep if isna(x) else display_func(x)
+        func_1 = func_0
+
+    # Replace decimals and thousands if non-standard inputs detected
+    if decimal != "." or (thousands is not None and thousands != ","):
+        func_2 = _wrap_decimal_thousands(func_1, decimal=decimal, thousands=thousands)
+    else:
+        func_2 = func_1
+
+    # Replace missing values if na_rep
+    if na_rep is None:
+        return func_2
+    else:
+        return lambda x: na_rep if isna(x) else func_2(x)
 
 
 def non_reducing_slice(slice_):
