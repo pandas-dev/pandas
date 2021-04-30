@@ -1,4 +1,4 @@
-# Vendored from https://github.com/pypa/packaging/blob/main/packaging/version.py
+# Vendored from https://github.com/pypa/packaging/blob/main/packaging/_structures.py
 # changeset ae891fd74d6dd4c6063bb04f2faeadaac6fc6313
 # 04/30/2021
 
@@ -20,7 +20,7 @@ from typing import (
 )
 import warnings
 
-from ._structures import (
+from pandas.util.version._structures import (
     Infinity,
     InfinityType,
     NegativeInfinity,
