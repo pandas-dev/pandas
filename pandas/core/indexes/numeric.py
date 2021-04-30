@@ -98,7 +98,7 @@ class NumericIndex(Index):
         return subarr
 
     @classmethod
-    def _validate_dtype(cls, dtype: Dtype) -> None:
+    def _validate_dtype(cls, dtype: Dtype | None) -> None:
         if dtype is None:
             return
 

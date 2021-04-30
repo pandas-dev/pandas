@@ -5874,7 +5874,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return start_slice, end_slice
 
-    def delete(self, loc) -> Index:
+    def delete(self: _IndexT, loc) -> _IndexT:
         """
         Make new Index with passed location(-s) deleted.
 
