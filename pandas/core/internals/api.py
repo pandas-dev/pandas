@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core.arrays import DatetimeArray
+from pandas.core.construction import extract_array
 from pandas.core.internals.blocks import (
     Block,
     DatetimeTZBlock,
@@ -49,7 +50,6 @@ def make_block(
 
     values, dtype = extract_pandas_array(values, dtype, ndim)
 
-    needs_reshape = False
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
@@ -57,13 +57,14 @@ def make_block(
     elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
         # pyarrow calls get here
         values = DatetimeArray._simple_new(values, dtype=dtype)
-        needs_reshape = True
 
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
 
     ndim = maybe_infer_ndim(values, placement, ndim)
-    if needs_reshape:
+    if is_datetime64tz_dtype(values.dtype):
+        # GH#41168 ensure we can pass 1D dt64tz values
+        values = extract_array(values, extract_numpy=True)
         values = ensure_block_shape(values, ndim)
 
     check_ndim(values, placement, ndim)
