@@ -3,8 +3,8 @@
 import re
 
 import numpy as np
-
-from pandas.util.version import Version
+from packaging.version import Version
+# from pandas.util.version import Version
 
 # numpy versioning
 _np_version = np.__version__
@@ -12,7 +12,7 @@ _nlv = Version(_np_version)
 np_version_under1p18 = _nlv < Version("1.18")
 np_version_under1p19 = _nlv < Version("1.19")
 np_version_under1p20 = _nlv < Version("1.20")
-is_numpy_dev = ".dev" in str(_nlv)
+is_numpy_dev = _nlv.dev is not None
 _min_numpy_ver = "1.17.3"
 
 

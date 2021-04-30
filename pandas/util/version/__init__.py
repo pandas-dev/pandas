@@ -1,4 +1,5 @@
 # Vendored from https://github.com/pypa/packaging/blob/main/packaging/_structures.py
+# and https://github.com/pypa/packaging/blob/main/packaging/_structures.py
 # changeset ae891fd74d6dd4c6063bb04f2faeadaac6fc6313
 # 04/30/2021
 
@@ -20,14 +21,73 @@ from typing import (
 )
 import warnings
 
-from pandas.util.version._structures import (
-    Infinity,
-    InfinityType,
-    NegativeInfinity,
-    NegativeInfinityType,
-)
 
 __all__ = ["parse", "Version", "LegacyVersion", "InvalidVersion", "VERSION_PATTERN"]
+
+
+class InfinityType:
+    def __repr__(self) -> str:
+        return "Infinity"
+
+    def __hash__(self) -> int:
+        return hash(repr(self))
+
+    def __lt__(self, other: object) -> bool:
+        return False
+
+    def __le__(self, other: object) -> bool:
+        return False
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, type(self))
+
+    def __ne__(self, other: object) -> bool:
+        return not isinstance(other, type(self))
+
+    def __gt__(self, other: object) -> bool:
+        return True
+
+    def __ge__(self, other: object) -> bool:
+        return True
+
+    def __neg__(self: object) -> "NegativeInfinityType":
+        return NegativeInfinity
+
+
+Infinity = InfinityType()
+
+
+class NegativeInfinityType:
+    def __repr__(self) -> str:
+        return "-Infinity"
+
+    def __hash__(self) -> int:
+        return hash(repr(self))
+
+    def __lt__(self, other: object) -> bool:
+        return True
+
+    def __le__(self, other: object) -> bool:
+        return True
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, type(self))
+
+    def __ne__(self, other: object) -> bool:
+        return not isinstance(other, type(self))
+
+    def __gt__(self, other: object) -> bool:
+        return False
+
+    def __ge__(self, other: object) -> bool:
+        return False
+
+    def __neg__(self: object) -> InfinityType:
+        return Infinity
+
+
+NegativeInfinity = NegativeInfinityType()
+
 
 InfiniteTypes = Union[InfinityType, NegativeInfinityType]
 PrePostDevType = Union[InfiniteTypes, Tuple[str, int]]
