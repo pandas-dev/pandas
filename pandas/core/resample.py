@@ -450,11 +450,6 @@ class Resampler(BaseGroupBy, PandasObject):
             elif "len(index) != len(labels)" in str(err):
                 # raised in libgroupby validation
                 pass
-            elif "No objects to concatenate" in str(err):
-                # raised in concat call
-                #  In tests this is reached via either
-                #  _apply_to_column_groupbys (ohlc) or DataFrameGroupBy.nunique
-                pass
             else:
                 raise
 
