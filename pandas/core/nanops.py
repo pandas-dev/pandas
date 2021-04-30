@@ -1056,7 +1056,7 @@ def nanargmax(
            [ 6.,  7., nan],
            [ 9., 10., nan]])
     >>> nanops.nanargmax(arr, axis=1)
-    array([2, 2, 1, 1], dtype=int64)
+    array([2, 2, 1, 1])
     """
     values, mask, _, _, _ = _get_values(values, True, fill_value_typ="-inf", mask=mask)
     # error: Need type annotation for 'result'
@@ -1102,7 +1102,7 @@ def nanargmin(
            [nan,  7.,  8.],
            [nan, 10., 11.]])
     >>> nanops.nanargmin(arr, axis=1)
-    array([0, 0, 1, 1], dtype=int64)
+    array([0, 0, 1, 1])
     """
     values, mask, _, _, _ = _get_values(values, True, fill_value_typ="+inf", mask=mask)
     # error: Need type annotation for 'result'
@@ -1598,7 +1598,7 @@ def _ensure_numeric(x):
     elif not (is_float(x) or is_integer(x) or is_complex(x)):
         try:
             x = float(x)
-        except ValueError:
+        except (TypeError, ValueError):
             # e.g. "1+1j" or "foo"
             try:
                 x = complex(x)
