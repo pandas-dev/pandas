@@ -144,6 +144,11 @@ Notes
 -----
 See the `user guide
 <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more.
+
+If you encounter ``ValueError("Product space too large to allocate arrays!")``,
+you are trying to group over too complex a column cross-product to fit in memory.
+If any of those columns are categorical, you may be able to circumvent this issue
+by passing ``observed=True``.
 """
 
 _shared_docs[
