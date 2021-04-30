@@ -696,6 +696,7 @@ Numeric
 - Bug in :meth:`DataFrame.transform` would raise ``SpecificationError`` when passed a dictionary and columns were missing; will now raise a ``KeyError`` instead (:issue:`40004`)
 - Bug in :meth:`DataFrameGroupBy.rank` giving incorrect results with ``pct=True`` and equal values between consecutive groups (:issue:`40518`)
 - Bug in :meth:`Series.count` would result in an ``int32`` result on 32-bit platforms when argument ``level=None`` (:issue:`40908`)
+- Bug in :meth:`Series.clip` would fail if series contains NA values and has nullable int or float as a data type (:issue:`40851`)
 
 Conversion
 ^^^^^^^^^^
