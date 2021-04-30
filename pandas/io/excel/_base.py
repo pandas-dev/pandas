@@ -658,6 +658,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS').
+    num_formats : dict, default None
+        Add number formats to columns of type date and datetime.
+        Accepts a dictionary of column name(key) and format strings(value).
+        Formats for columns specified here will take precedence over the
+        ``datetime_format`` and ``date_format`` parameters for those specific columns.
+        Supported only for engine 'xlsxwriter'.
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
 
@@ -723,6 +729,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...                   datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
     ...     df.to_excel(writer)
 
+    You can set the num_formats for date/datetime columns when the engine is xlsxwriter:
+
+    >>> with ExcelWriter('path_to_file.xlsx',
+    ...                   num_formats={'col1:'YYYY-MM-DD','col2':'MMM'}) as writer:
+    ...     df.to_excel(writer)
+
     You can also append to an existing Excel file:
 
     >>> with ExcelWriter('path_to_file.xlsx', mode='a') as writer:
@@ -771,6 +783,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         engine=None,
         date_format=None,
         datetime_format=None,
+        num_formats: dict | None = None,
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
@@ -820,7 +833,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         FutureWarning,
                         stacklevel=4,
                     )
-
             cls = get_writer(engine)
 
         return object.__new__(cls)

@@ -1333,6 +1333,15 @@ class TestExcelWriter:
             with pytest.raises(ValueError, match=re.escape(msg)):
                 ExcelWriter(f, if_sheet_exists="replace")
 
+    def test_num_formats_xlsx(self, engine, ext):
+        # GH 30275
+        # check that an exception is raised when the engine is not xlsxwriter
+        with tm.ensure_clean(ext) as path:
+            if engine == "xlsxwriter":
+                pytest.skip("num_formats is compatible with xlsxwriter")
+            with pytest.raises(NotImplementedError, match=""):
+                ExcelWriter(path, num_formats={"col1": "MMM"})
+
 
 class TestExcelWriterEngineTests:
     @pytest.mark.parametrize(

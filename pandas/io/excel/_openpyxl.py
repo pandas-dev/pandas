@@ -35,6 +35,7 @@ class OpenpyxlWriter(ExcelWriter):
         engine=None,
         date_format=None,
         datetime_format=None,
+        num_formats=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
@@ -42,6 +43,9 @@ class OpenpyxlWriter(ExcelWriter):
     ):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
+
+        if num_formats is not None:
+            raise NotImplementedError
 
         super().__init__(
             path,

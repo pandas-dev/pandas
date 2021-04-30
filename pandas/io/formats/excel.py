@@ -6,6 +6,7 @@ from functools import reduce
 import itertools
 import re
 from typing import (
+    Any,
     Callable,
     Dict,
     Hashable,
@@ -534,6 +535,20 @@ class ExcelFormatter:
             )
         return val
 
+    def _get_col_mapping(self) -> Optional[Dict[int, Any]]:
+        """
+        Get the mapping between the column number and column name
+        """
+        if not isinstance(self.columns, MultiIndex):
+            coloffset = 0
+            if self.index:
+                coloffset = 1
+                if isinstance(self.df.index, MultiIndex):
+                    coloffset = len(self.df.index[0])
+
+            return {i + coloffset: j for i, j in enumerate(self.columns)}
+        return None
+
     def _format_header_mi(self) -> Iterable[ExcelCell]:
         if self.columns.nlevels > 1:
             if not self.index:
@@ -839,6 +854,9 @@ class ExcelFormatter:
                 writer, engine=engine, storage_options=storage_options
             )
             need_save = True
+
+        if writer.engine == "xlsxwriter":
+            writer.col_mapping = self._get_col_mapping()
 
         try:
             writer.write_cells(
