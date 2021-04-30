@@ -200,7 +200,46 @@ class Styler(StylerRenderer):
         """
         Hooks into Jupyter notebook rich display system.
         """
-        return self.render()
+        return self._render_html()
+
+    def render(self, **kwargs) -> str:
+        """
+        Render the ``Styler`` including all applied styles to HTML.
+
+        Parameters
+        ----------
+        **kwargs
+            Any additional keyword arguments are passed
+            through to ``self.template.render``.
+            This is useful when you need to provide
+            additional variables for a custom template.
+
+        Returns
+        -------
+        rendered : str
+            The rendered HTML.
+
+        Notes
+        -----
+        Styler objects have defined the ``_repr_html_`` method
+        which automatically calls ``self.render()`` when it's the
+        last item in a Notebook cell. When calling ``Styler.render()``
+        directly, wrap the result in ``IPython.display.HTML`` to view
+        the rendered HTML in the notebook.
+
+        Pandas uses the following keys in render. Arguments passed
+        in ``**kwargs`` take precedence, so think carefully if you want
+        to override them:
+
+        * head
+        * cellstyle
+        * body
+        * uuid
+        * table_styles
+        * caption
+        * table_attributes
+        """
+        return self._render_html(**kwargs)
 
     def set_tooltips(
         self,
@@ -572,7 +611,6 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.where: Apply CSS-styles based on a conditional function elementwise.
         Styler.applymap: Apply a CSS-styling function elementwise.
 
         Notes
@@ -630,7 +668,6 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.where: Apply CSS-styles based on a conditional function elementwise.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
         Notes
@@ -662,6 +699,8 @@ class Styler(StylerRenderer):
         """
         Apply CSS-styles based on a conditional function elementwise.
 
+        .. deprecated:: 1.3.0
+
         Updates the HTML representation with a style which is
         selected in accordance with the return value of a function.
 
@@ -689,13 +728,31 @@ class Styler(StylerRenderer):
         Styler.applymap: Apply a CSS-styling function elementwise.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
-        Examples
-        --------
-        >>> def cond(v):
-        ...     return v > 1 and v != 4
+        Notes
+        -----
+        This method is deprecated.
+
+        This method is a convenience wrapper for :meth:`Styler.applymap`, which we
+        recommend using instead.
+
+        The example:
         >>> df = pd.DataFrame([[1, 2], [3, 4]])
-        >>> df.style.where(cond, value='color:red;', other='font-size:2em;')
+        >>> def cond(v, limit=4):
+        ...     return v > 1 and v != limit
+        >>> df.style.where(cond, value='color:green;', other='color:red;')
+
+        should be refactored to:
+        >>> def style_func(v, value, other, limit=4):
+        ...     cond = v > 1 and v != limit
+        ...     return value if cond else other
+        >>> df.style.applymap(style_func, value='color:green;', other='color:red;')
         """
+        warnings.warn(
+            "this method is deprecated in favour of `Styler.applymap()`",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         if other is None:
             other = ""
 
@@ -1374,6 +1431,7 @@ class Styler(StylerRenderer):
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
         def f(data: DataFrame, props: str) -> np.ndarray:
@@ -1422,6 +1480,7 @@ class Styler(StylerRenderer):
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
@@ -1470,6 +1529,7 @@ class Styler(StylerRenderer):
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
@@ -1526,6 +1586,7 @@ class Styler(StylerRenderer):
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
 
         Notes
         -----
@@ -1586,6 +1647,110 @@ class Styler(StylerRenderer):
             props=props,
             left=left,
             right=right,
+            inclusive=inclusive,
+        )
+
+    def highlight_quantile(
+        self,
+        subset: IndexLabel | None = None,
+        color: str = "yellow",
+        axis: Axis | None = 0,
+        q_left: float = 0.0,
+        q_right: float = 1.0,
+        interpolation: str = "linear",
+        inclusive: str = "both",
+        props: str | None = None,
+    ) -> Styler:
+        """
+        Highlight values defined by a quantile with a style.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        subset : IndexSlice, default None
+            A valid slice for ``data`` to limit the style application to.
+        color : str, default 'yellow'
+            Background color to use for highlighting
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Axis along which to determine and highlight quantiles. If ``None`` quantiles
+            are measured over the entire DataFrame. See examples.
+        q_left : float, default 0
+            Left bound, in [0, q_right), for the target quantile range.
+        q_right : float, default 1
+            Right bound, in (q_left, 1], for the target quantile range.
+        interpolation : {‘linear’, ‘lower’, ‘higher’, ‘midpoint’, ‘nearest’}
+            Argument passed to ``Series.quantile`` or ``DataFrame.quantile`` for
+            quantile estimation.
+        inclusive : {'both', 'neither', 'left', 'right'}
+            Identify whether quantile bounds are closed or open.
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_between: Highlight a defined range with a style.
+
+        Notes
+        -----
+        This function does not work with ``str`` dtypes.
+
+        Examples
+        --------
+        Using ``axis=None`` and apply a quantile to all collective data
+
+        >>> df = pd.DataFrame(np.arange(10).reshape(2,5) + 1)
+        >>> df.style.highlight_quantile(axis=None, q_left=0.8, color="#fffd75")
+
+        .. figure:: ../../_static/style/hq_axNone.png
+
+        Or highlight quantiles row-wise or column-wise, in this case by row-wise
+
+        >>> df.style.highlight_quantile(axis=1, q_left=0.8, color="#fffd75")
+
+        .. figure:: ../../_static/style/hq_ax1.png
+
+        Use ``props`` instead of default background coloring
+
+        >>> df.style.highlight_quantile(axis=None, q_left=0.2, q_right=0.8,
+        ...     props='font-weight:bold;color:#e83e8c')
+
+        .. figure:: ../../_static/style/hq_props.png
+        """
+        subset_ = slice(None) if subset is None else subset
+        subset_ = non_reducing_slice(subset_)
+        data = self.data.loc[subset_]
+
+        # after quantile is found along axis, e.g. along rows,
+        # applying the calculated quantile to alternate axis, e.g. to each column
+        kwargs = {"q": [q_left, q_right], "interpolation": interpolation}
+        if axis in [0, "index"]:
+            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            axis_apply: int | None = 1
+        elif axis in [1, "columns"]:
+            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            axis_apply = 0
+        else:  # axis is None
+            q = Series(data.to_numpy().ravel()).quantile(**kwargs)
+            axis_apply = None
+
+        if props is None:
+            props = f"background-color: {color};"
+        return self.apply(
+            _highlight_between,  # type: ignore[arg-type]
+            axis=axis_apply,
+            subset=subset,
+            props=props,
+            left=q.iloc[0],
+            right=q.iloc[1],
             inclusive=inclusive,
         )
 
