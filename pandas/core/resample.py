@@ -1046,11 +1046,9 @@ class _GroupByMixin(PandasObject):
 
     _attributes: list[str]  # in practice the same as Resampler._attributes
 
-    def __init__(self, obj, **kwargs):
+    def __init__(self, obj, parent=None, groupby=None, **kwargs):
         # reached via ._gotitem and _get_resampler_for_grouping
 
-        parent = kwargs.pop("parent", None)
-        groupby = kwargs.pop("groupby", None)
         if parent is None:
             parent = obj
 
