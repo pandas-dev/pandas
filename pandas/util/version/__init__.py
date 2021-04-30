@@ -21,7 +21,6 @@ from typing import (
 )
 import warnings
 
-
 __all__ = ["parse", "Version", "LegacyVersion", "InvalidVersion", "VERSION_PATTERN"]
 
 
