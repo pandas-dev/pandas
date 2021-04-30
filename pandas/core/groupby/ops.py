@@ -965,7 +965,8 @@ class BaseGrouper:
             **kwargs,
         )
 
-    def agg_series(self, obj: Series, func: F):
+    @final
+    def agg_series(self, obj: Series, func: F) -> tuple[ArrayLike, np.ndarray]:
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
@@ -994,8 +995,9 @@ class BaseGrouper:
                 raise
         return self._aggregate_series_pure_python(obj, func)
 
-    @final
-    def _aggregate_series_fast(self, obj: Series, func: F):
+    def _aggregate_series_fast(
+        self, obj: Series, func: F
+    ) -> tuple[ArrayLike, np.ndarray]:
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
@@ -1199,18 +1201,14 @@ class BinGrouper(BaseGrouper):
             for lvl, name in zip(self.levels, self.names)
         ]
 
-    def agg_series(self, obj: Series, func: F):
-        # Caller is responsible for checking ngroups != 0
-        assert self.ngroups != 0
-        assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
-
-        if is_extension_array_dtype(obj.dtype):
-            # preempt SeriesBinGrouper from raising TypeError
-            return self._aggregate_series_pure_python(obj, func)
-
-        elif obj.index._has_complex_internals:
-            return self._aggregate_series_pure_python(obj, func)
-
+    def _aggregate_series_fast(
+        self, obj: Series, func: F
+    ) -> tuple[ArrayLike, np.ndarray]:
+        # At this point we have already checked that
+        #  - obj.index is not a MultiIndex
+        #  - obj is backed by an ndarray, not ExtensionArray
+        #  - ngroups != 0
+        #  - len(self.bins) > 0
         sbg = libreduction.SeriesBinGrouper(obj, func, self.bins)
         return sbg.get_result()
 
