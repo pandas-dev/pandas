@@ -229,10 +229,21 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
     @classmethod
     def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
+        from pandas.core.arrays.masked import BaseMaskedArray
+
         cls._chk_pyarrow_available()
-        # convert non-na-likes to str, and nan-likes to ArrowStringDtype.na_value
-        scalars = lib.ensure_string_array(scalars, copy=False)
-        return cls(pa.array(scalars, type=pa.string(), from_pandas=True))
+
+        if isinstance(scalars, BaseMaskedArray):
+            # avoid costly conversion to object dtype in ensure_string_array and
+            # numerical issues with Float32Dtype
+            na_values = scalars._mask
+            result = scalars._data
+            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            return cls(pa.array(result, mask=na_values, type=pa.string()))
+
+        # convert non-na-likes to str
+        result = lib.ensure_string_array(scalars, copy=copy)
+        return cls(pa.array(result, type=pa.string(), from_pandas=True))
 
     @classmethod
     def _from_sequence_of_strings(
