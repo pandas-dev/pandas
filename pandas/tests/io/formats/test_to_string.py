@@ -121,10 +121,10 @@ def test_format_remove_leading_space_dataframe(input_array, expected):
         (
             None,
             2,
-            " 0   1   2   3   4   6   7   8   9   10  11\n"
-            "  0   0   0   0   0   0   0   0   0   0   0\n"
-            " ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..\n"
-            "  0   0   0   0   0   0   0   0   0   0   0",
+            " 0   1   2   3   4   5   6   7   8   9   10  11\n"
+            "  0   0   0   0   0   0   0   0   0   0   0   0\n"
+            " ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..\n"
+            "  0   0   0   0   0   0   0   0   0   0   0   0",
         ),
         (
             10,
@@ -145,18 +145,13 @@ def test_format_remove_leading_space_dataframe(input_array, expected):
         (
             1,
             1,
-            " 0  ...\n"
-            " 0  ...\n"
-            "..  ...",
+            " 0  ...\n 0  ...\n..  ...",
         ),
     ],
 )
 def test_truncation_no_index(max_cols, max_rows, expected):
     df = DataFrame([[0] * 11] * 4)
-    assert (
-        df.to_string(index=False, max_cols=max_cols, max_rows=max_rows)
-        == expected
-    )
+    assert df.to_string(index=False, max_cols=max_cols, max_rows=max_rows) == expected
 
 
 def test_to_string_unicode_columns(float_frame):
@@ -239,7 +234,11 @@ def test_to_string_with_datetime64_monthformatter():
 
 def test_to_string_with_datetime64_hourformatter():
     x = DataFrame(
-        {"hod": to_datetime(["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f")}
+        {
+            "hod": to_datetime(
+                ["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f"
+            )
+        }
     )
 
     def format_func(x):
