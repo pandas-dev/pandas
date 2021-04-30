@@ -4,6 +4,7 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Callable,
     no_type_check,
 )
@@ -12,6 +13,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
+    BaseOffset,
     IncompatibleFrequency,
     NaT,
     Period,
@@ -83,6 +85,9 @@ from pandas.tseries.offsets import (
     Nano,
     Tick,
 )
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 _shared_docs_kwargs: dict[str, str] = {}
 
@@ -201,15 +206,6 @@ class Resampler(BaseGroupBy, PandasObject):
     @property
     def ax(self):
         return self.groupby.ax
-
-    @property
-    def _typ(self) -> str:
-        """
-        Masquerade for compat as a Series or a DataFrame.
-        """
-        if isinstance(self._selected_obj, ABCSeries):
-            return "series"
-        return "dataframe"
 
     @property
     def _from_selection(self) -> bool:
@@ -434,21 +430,23 @@ class Resampler(BaseGroupBy, PandasObject):
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)
-        except (DataError, AttributeError, KeyError):
+        except DataError:
+            # got TypeErrors on aggregation
+            result = grouped.apply(how, *args, **kwargs)
+        except (AttributeError, KeyError):
             # we have a non-reducing function; try to evaluate
             # alternatively we want to evaluate only a column of the input
+
+            # test_apply_to_one_column_of_df the function being applied references
+            #  a DataFrame column, but aggregate_item_by_item operates column-wise
+            #  on Series, raising AttributeError or KeyError
+            #  (depending on whether the column lookup uses getattr/__getitem__)
             result = grouped.apply(how, *args, **kwargs)
+
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
                 # raised in _aggregate_named
-                pass
-            elif "len(index) != len(labels)" in str(err):
-                # raised in libgroupby validation
-                pass
-            elif "No objects to concatenate" in str(err):
-                # raised in concat call
-                #  In tests this is reached via either
-                #  _apply_to_column_groupbys (ohlc) or DataFrameGroupBy.nunique
+                # see test_apply_without_aggregation, test_apply_with_mutated_index
                 pass
             else:
                 raise
@@ -489,11 +487,11 @@ class Resampler(BaseGroupBy, PandasObject):
         self.loffset = None
         return result
 
-    def _get_resampler_for_grouping(self, groupby, **kwargs):
+    def _get_resampler_for_grouping(self, groupby):
         """
         Return the correct class for resampling with groupby.
         """
-        return self._resampler_for_grouping(self, groupby=groupby, **kwargs)
+        return self._resampler_for_grouping(self, groupby=groupby)
 
     def _wrap_result(self, result):
         """
@@ -1039,12 +1037,11 @@ class _GroupByMixin(PandasObject):
     Provide the groupby facilities.
     """
 
-    _attributes: list[str]
+    _attributes: list[str]  # in practice the same as Resampler._attributes
 
-    def __init__(self, obj, *args, **kwargs):
+    def __init__(self, obj, parent=None, groupby=None, **kwargs):
+        # reached via ._gotitem and _get_resampler_for_grouping
 
-        parent = kwargs.pop("parent", None)
-        groupby = kwargs.pop("groupby", None)
         if parent is None:
             parent = obj
 
@@ -1410,15 +1407,13 @@ get_resampler.__doc__ = Resampler.__doc__
 
 
 def get_resampler_for_grouping(
-    groupby, rule, how=None, fill_method=None, limit=None, kind=None, **kwargs
+    groupby, rule, how=None, fill_method=None, limit=None, kind=None, on=None, **kwargs
 ):
     """
     Return our appropriate resampler when grouping as well.
     """
     # .resample uses 'on' similar to how .groupby uses 'key'
-    kwargs["key"] = kwargs.pop("on", None)
-
-    tg = TimeGrouper(freq=rule, **kwargs)
+    tg = TimeGrouper(freq=rule, key=on, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
     return resampler._get_resampler_for_grouping(groupby=groupby)
 
@@ -1450,7 +1445,7 @@ class TimeGrouper(Grouper):
     def __init__(
         self,
         freq="Min",
-        closed: str | None = None,
+        closed: Literal["left", "right"] | None = None,
         label: str | None = None,
         how="mean",
         axis=0,
@@ -1822,8 +1817,13 @@ def _take_new_index(
 
 
 def _get_timestamp_range_edges(
-    first, last, freq, closed="left", origin="start_day", offset=None
-):
+    first: Timestamp,
+    last: Timestamp,
+    freq: BaseOffset,
+    closed: Literal["right", "left"] = "left",
+    origin="start_day",
+    offset: Timedelta | None = None,
+) -> tuple[Timestamp, Timestamp]:
     """
     Adjust the `first` Timestamp to the preceding Timestamp that resides on
     the provided offset. Adjust the `last` Timestamp to the following
@@ -1895,8 +1895,13 @@ def _get_timestamp_range_edges(
 
 
 def _get_period_range_edges(
-    first, last, freq, closed="left", origin="start_day", offset=None
-):
+    first: Period,
+    last: Period,
+    freq: BaseOffset,
+    closed: Literal["right", "left"] = "left",
+    origin="start_day",
+    offset: Timedelta | None = None,
+) -> tuple[Period, Period]:
     """
     Adjust the provided `first` and `last` Periods to the respective Period of
     the given offset that encompasses them.
@@ -1959,7 +1964,12 @@ def _insert_nat_bin(
 
 
 def _adjust_dates_anchored(
-    first, last, freq, closed="right", origin="start_day", offset=None
+    first,
+    last,
+    freq,
+    closed: Literal["right", "left"] = "right",
+    origin="start_day",
+    offset: Timedelta | None = None,
 ):
     # First and last offsets should be calculated from the start day to fix an
     # error cause by resampling across multiple days when a one day period is
@@ -2029,7 +2039,14 @@ def _adjust_dates_anchored(
     return fresult, lresult
 
 
-def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
+def asfreq(
+    obj: FrameOrSeries,
+    freq,
+    method=None,
+    how=None,
+    normalize: bool = False,
+    fill_value=None,
+) -> FrameOrSeries:
     """
     Utility frequency conversion method for Series/DataFrame.
 
