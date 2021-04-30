@@ -148,7 +148,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self.group_keys = True
         self.as_index = True
         self.exclusions = set()
-        self.binner = None
 
         self.groupby._set_grouper(self._convert_obj(obj), sort=True)
         self.binner, self.grouper = self._get_binner()
