@@ -359,9 +359,8 @@ def test_reindex_too_many_args():
 def test_reindex_double_index():
     # GH 40980
     ser = Series([1, 2])
-    with pytest.raises(
-        TypeError, match=r"'index' passed as both positional and keyword argument"
-    ):
+    msg = r"'index' passed as both positional and keyword argument"
+    with pytest.raises(TypeError, match=msg):
         ser.reindex([2, 3], index=[3, 4])
 
 
