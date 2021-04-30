@@ -2226,10 +2226,6 @@ class StataWriter(StataParser):
     variable_labels : dict
         Dictionary containing columns as keys and variable labels as values.
         Each label must be 80 characters or smaller.
-    value_labels : dict
-        Dictionary containing columns as keys and dictionaries of column value
-        to labels as values. Labels for a single variable must be 32,000
-        characters or smaller.
     compression : str or dict, default 'infer'
         For on-the-fly compression of the output dta. If string, specifies
         compression mode. If dict, value at key 'method' specifies compression
@@ -2245,6 +2241,11 @@ class StataWriter(StataParser):
     {storage_options}
 
         .. versionadded:: 1.2.0
+
+    value_labels : dict of dicts
+        Dictionary containing columns as keys and dictionaries of column value
+        to labels as values. Labels for a single variable must be 32,000
+        characters or smaller.
 
     Returns
     -------
@@ -2294,9 +2295,10 @@ class StataWriter(StataParser):
         time_stamp: datetime.datetime | None = None,
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
-        value_labels: dict[str, dict[float | int, str]] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
+        *,
+        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
     ):
         super().__init__()
         self._convert_dates = {} if convert_dates is None else convert_dates
@@ -2308,6 +2310,7 @@ class StataWriter(StataParser):
         self._value_labels: list[StataValueLabel] = []
         self._compression = compression
         self._output_file: Buffer | None = None
+        self._converted_names: dict[Hashable, str] = {}
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
         self.storage_options = storage_options
@@ -2317,7 +2320,6 @@ class StataWriter(StataParser):
         self._byteorder = _set_endianness(byteorder)
         self._fname = fname
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
-        self._converted_names: dict[Hashable, str] = {}
 
     def _write(self, to_write: str) -> None:
         """
@@ -2339,27 +2341,33 @@ class StataWriter(StataParser):
         labels
         """
         self._has_value_labels = np.repeat(False, data.shape[1])
+        labelled_columns = []
         if self._non_cat_value_labels is None:
             return
 
         for labname, labels in self._non_cat_value_labels.items():
-            if labname not in data.columns:
-                # Value label should apply to a column
+            if labname in self._converted_names:
+                colname = self._converted_names[labname]
+            elif labname in data.columns:
+                colname = labname
+            else:
                 raise KeyError(
                     f"Can't create value labels for {labname}, it wasn't "
                     "found in the dataset."
                 )
-            if not is_numeric_dtype(data[labname].dtype):
+
+            if not is_numeric_dtype(data[colname].dtype):
                 # Labels should not be passed explicitly for categorical
                 # columns that will be converted to int
                 raise ValueError(
                     f"Can't create value labels for {labname}, value labels "
                     "can only be applied to numeric columns."
                 )
-            svl = StataNonCatValueLabel(labname, labels)
+            svl = StataNonCatValueLabel(colname, labels)
             self._value_labels.append(svl)
+            labelled_columns.append(colname)
 
-        has_non_cat_val_labels = data.columns.isin(self._non_cat_value_labels.keys())
+        has_non_cat_val_labels = data.columns.isin(labelled_columns)
         self._has_value_labels |= has_non_cat_val_labels
 
     def _prepare_categoricals(self, data: DataFrame) -> DataFrame:
@@ -3147,10 +3155,6 @@ class StataWriter117(StataWriter):
     variable_labels : dict
         Dictionary containing columns as keys and variable labels as values.
         Each label must be 80 characters or smaller.
-    value_labels : dict
-        Dictionary containing columns as keys and dictionaries of column value
-        to labels as values. Labels for a single variable must be 32,000
-        characters or smaller.
     convert_strl : list
         List of columns names to convert to Stata StrL format.  Columns with
         more than 2045 characters are automatically written as StrL.
@@ -3168,6 +3172,11 @@ class StataWriter117(StataWriter):
         other entries passed as additional compression options.
 
         .. versionadded:: 1.1.0
+
+    value_labels : dict of dicts
+        Dictionary containing columns as keys and dictionaries of column value
+        to labels as values. Labels for a single variable must be 32,000
+        characters or smaller.
 
     Returns
     -------
@@ -3219,10 +3228,11 @@ class StataWriter117(StataWriter):
         time_stamp: datetime.datetime | None = None,
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
-        value_labels: dict[str, dict[float | int, str]] | None = None,
         convert_strl: Sequence[Hashable] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
+        *,
+        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
     ):
         # Copy to new list since convert_strl might be modified later
         self._convert_strl: list[Hashable] = []
@@ -3539,10 +3549,6 @@ class StataWriterUTF8(StataWriter117):
     variable_labels : dict, default None
         Dictionary containing columns as keys and variable labels as values.
         Each label must be 80 characters or smaller.
-    value_labels : dict
-        Dictionary containing columns as keys and dictionaries of column value
-        to labels as values. Labels for a single variable must be 32,000
-        characters or smaller.
     convert_strl : list, default None
         List of columns names to convert to Stata StrL format.  Columns with
         more than 2045 characters are automatically written as StrL.
@@ -3564,6 +3570,11 @@ class StataWriterUTF8(StataWriter117):
         other entries passed as additional compression options.
 
         .. versionadded:: 1.1.0
+
+    value_labels : dict of dicts
+        Dictionary containing columns as keys and dictionaries of column value
+        to labels as values. Labels for a single variable must be 32,000
+        characters or smaller.
 
     Returns
     -------
@@ -3617,11 +3628,12 @@ class StataWriterUTF8(StataWriter117):
         time_stamp: datetime.datetime | None = None,
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
-        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
         convert_strl: Sequence[Hashable] | None = None,
         version: int | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
+        *,
+        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
     ):
         if version is None:
             version = 118 if data.shape[1] <= 32767 else 119
