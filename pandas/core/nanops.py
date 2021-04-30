@@ -1589,7 +1589,7 @@ def _ensure_numeric(x):
             except (TypeError, ValueError):
                 try:
                     x = x.astype(np.float64)
-                except ValueError as err:
+                except (TypeError, ValueError) as err:
                     # GH#29941 we get here with object arrays containing strs
                     raise TypeError(f"Could not convert {x} to numeric") from err
             else:
