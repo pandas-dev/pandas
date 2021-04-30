@@ -1343,7 +1343,7 @@ class SQLAlchemyEngine(BaseEngine):
             table.insert(chunksize=chunksize, method=method)
         except exc.SQLAlchemyError as err:
             # GH34431
-            msg = "(1054, \"Unknown column 'inf' in 'field list'\")"
+            msg = "(1054, \"Unknown column 'inf(e0)?' in 'field list'\")"
             err_text = str(err.orig)
             if re.search(msg, err_text):
                 raise ValueError("inf cannot be used with MySQL") from err
