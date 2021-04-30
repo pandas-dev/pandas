@@ -18,10 +18,10 @@ import os
 import struct
 import sys
 from typing import (
+    TYPE_CHECKING,
     Any,
     AnyStr,
     Hashable,
-    Literal,
     Sequence,
     cast,
 )
@@ -65,6 +65,9 @@ from pandas.core.indexes.base import Index
 from pandas.core.series import Series
 
 from pandas.io.common import get_handle
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
