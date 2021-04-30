@@ -277,6 +277,17 @@ cdef class _NaT(datetime):
         See Also
         --------
         DatetimeIndex.to_numpy : Similar method for DatetimeIndex.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.to_numpy()
+        numpy.datetime64('2020-03-14T15:32:52.192548651')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.to_numpy()
+        numpy.datetime64('NaT')
         """
         return self.to_datetime64()
 
@@ -414,6 +425,17 @@ class NaTType(_NaT):
         Returns
         -------
         str
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.month_name()
+        'March'
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.month_name()
+        nan
         """,
     )
     day_name = _make_nan_func(
@@ -429,6 +451,17 @@ class NaTType(_NaT):
         Returns
         -------
         str
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.day_name()
+        'Saturday'
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.day_name()
+        nan
         """,
     )
     # _nat_methods
@@ -467,6 +500,12 @@ class NaTType(_NaT):
             Format string to convert Timestamp to string.
             See strftime documentation for more information on the format string:
             https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.strftime('%Y-%m-%d %X')
+        '2020-03-14 15:32:52'
         """,
     )
 
@@ -485,6 +524,11 @@ class NaTType(_NaT):
         Timestamp.utcfromtimestamp(ts)
 
         Construct a naive UTC datetime from a POSIX timestamp.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromtimestamp(1584199972)
+        Timestamp('2020-03-14 15:32:52')
         """,
     )
     fromtimestamp = _make_error_func(
@@ -493,6 +537,13 @@ class NaTType(_NaT):
         Timestamp.fromtimestamp(ts)
 
         Transform timestamp[, tz] to tz's local time from POSIX timestamp.
+
+        Examples
+        --------
+        >>> pd.Timestamp.utcfromtimestamp(1584199972)
+        Timestamp('2020-03-14 15:32:52')
+
+        Note that the output may change depending on your local time.
         """,
     )
     combine = _make_error_func(
@@ -501,6 +552,12 @@ class NaTType(_NaT):
         Timestamp.combine(date, time)
 
         Combine date, time into datetime with same date and time fields.
+
+        Examples
+        --------
+        >>> from datetime import date, time
+        >>> pd.Timestamp.combine(date(2020, 3, 14), time(15, 30, 15))
+        Timestamp('2020-03-14 15:30:15')
         """,
     )
     utcnow = _make_error_func(
@@ -509,10 +566,26 @@ class NaTType(_NaT):
         Timestamp.utcnow()
 
         Return a new Timestamp representing UTC day and time.
+
+        Examples
+        --------
+        >>> pd.Timestamp.utcnow()
+        Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """,
     )
 
-    timestamp = _make_error_func("timestamp", "Return POSIX timestamp as float.")
+    timestamp = _make_error_func(
+        "timestamp",
+        """
+        Return POSIX timestamp as float.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548')
+        >>> ts.timestamp()
+        1584199972.192548
+        """
+    )
 
     # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
     # return NaT create functions that raise, for binding to NaTType
@@ -535,6 +608,29 @@ class NaTType(_NaT):
         ------
         TypeError
             If Timestamp is tz-naive.
+
+        Examples
+        --------
+        Create a timestamp object with UTC timezone:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651', tz='UTC')
+        >>> ts
+        Timestamp('2020-03-14 15:32:52.192548651+0000', tz='UTC')
+
+        Change to Tokyo timezone:
+
+        >>> ts.tz_convert(tz='Asia/Tokyo')
+        Timestamp('2020-03-15 00:32:52.192548651+0900', tz='Asia/Tokyo')
+
+        Can also use ``astimezone``:
+
+        >>> ts.astimezone(tz='Asia/Tokyo')
+        Timestamp('2020-03-15 00:32:52.192548651+0900', tz='Asia/Tokyo')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.tz_convert(tz='Asia/Tokyo')
+        NaT
         """,
     )
     fromordinal = _make_error_func(
@@ -553,6 +649,11 @@ class NaTType(_NaT):
             Offset to apply to the Timestamp.
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromordinal(737425)
+        Timestamp('2020-01-01 00:00:00')
         """,
     )
 
@@ -563,6 +664,17 @@ class NaTType(_NaT):
         Convert a Timestamp object to a native Python datetime object.
 
         If warn=True, issue a warning if nanoseconds is nonzero.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548')
+        >>> ts.to_pydatetime()
+        datetime.datetime(2020, 3, 14, 15, 32, 52, 192548)
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.to_pydatetime()
+        NaT
         """,
     )
 
@@ -578,6 +690,16 @@ class NaTType(_NaT):
         ----------
         tz : str or timezone object, default None
             Timezone to localize to.
+
+        Examples
+        --------
+        >>> pd.Timestamp.now()
+        Timestamp('2020-11-16 22:06:16.378782')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.now()
+        NaT
         """,
     )
     today = _make_nat_func(
@@ -593,6 +715,16 @@ class NaTType(_NaT):
         ----------
         tz : str or timezone object, default None
             Timezone to localize to.
+
+        Examples
+        --------
+        >>> pd.Timestamp.today()
+        Timestamp('2020-11-16 22:37:39.969883')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.today()
+        NaT
         """,
     )
     round = _make_nat_func(
@@ -636,6 +768,41 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted
+
+        Examples
+        --------
+        Create a timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+
+        A timestamp can be rounded using multiple frequency units:
+
+        >>> ts.round(freq='H') # hour
+        Timestamp('2020-03-14 16:00:00')
+
+        >>> ts.round(freq='T') # minute
+        Timestamp('2020-03-14 15:33:00')
+
+        >>> ts.round(freq='S') # seconds
+        Timestamp('2020-03-14 15:32:52')
+
+        >>> ts.round(freq='L') # milliseconds
+        Timestamp('2020-03-14 15:32:52.193000')
+
+        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+
+        >>> ts.round(freq='5T')
+        Timestamp('2020-03-14 15:35:00')
+
+        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+
+        >>> ts.round(freq='1H30T')
+        Timestamp('2020-03-14 15:00:00')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.round()
+        NaT
         """,
     )
     floor = _make_nat_func(
@@ -675,6 +842,41 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted.
+
+        Examples
+        --------
+        Create a timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+
+        A timestamp can be floored using multiple frequency units:
+
+        >>> ts.floor(freq='H') # hour
+        Timestamp('2020-03-14 15:00:00')
+
+        >>> ts.floor(freq='T') # minute
+        Timestamp('2020-03-14 15:32:00')
+
+        >>> ts.floor(freq='S') # seconds
+        Timestamp('2020-03-14 15:32:52')
+
+        >>> ts.floor(freq='N') # nanoseconds
+        Timestamp('2020-03-14 15:32:52.192548651')
+
+        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+
+        >>> ts.floor(freq='5T')
+        Timestamp('2020-03-14 15:30:00')
+
+        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+
+        >>> ts.floor(freq='1H30T')
+        Timestamp('2020-03-14 15:00:00')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.floor()
+        NaT
         """,
     )
     ceil = _make_nat_func(
@@ -714,6 +916,41 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted.
+
+        Examples
+        --------
+        Create a timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+
+        A timestamp can be ceiled using multiple frequency units:
+
+        >>> ts.ceil(freq='H') # hour
+        Timestamp('2020-03-14 16:00:00')
+
+        >>> ts.ceil(freq='T') # minute
+        Timestamp('2020-03-14 15:33:00')
+
+        >>> ts.ceil(freq='S') # seconds
+        Timestamp('2020-03-14 15:32:53')
+
+        >>> ts.ceil(freq='U') # microseconds
+        Timestamp('2020-03-14 15:32:52.192549')
+
+        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+
+        >>> ts.ceil(freq='5T')
+        Timestamp('2020-03-14 15:35:00')
+
+        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+
+        >>> ts.ceil(freq='1H30T')
+        Timestamp('2020-03-14 16:30:00')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.ceil()
+        NaT
         """,
     )
 
@@ -736,6 +973,29 @@ timedelta}, default 'raise'
         ------
         TypeError
             If Timestamp is tz-naive.
+
+        Examples
+        --------
+        Create a timestamp object with UTC timezone:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651', tz='UTC')
+        >>> ts
+        Timestamp('2020-03-14 15:32:52.192548651+0000', tz='UTC')
+
+        Change to Tokyo timezone:
+
+        >>> ts.tz_convert(tz='Asia/Tokyo')
+        Timestamp('2020-03-15 00:32:52.192548651+0900', tz='Asia/Tokyo')
+
+        Can also use ``astimezone``:
+
+        >>> ts.astimezone(tz='Asia/Tokyo')
+        Timestamp('2020-03-15 00:32:52.192548651+0900', tz='Asia/Tokyo')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.tz_convert(tz='Asia/Tokyo')
+        NaT
         """,
     )
     tz_localize = _make_nat_func(
@@ -791,6 +1051,24 @@ default 'raise'
         ------
         TypeError
             If the Timestamp is tz-aware and tz is not None.
+
+        Examples
+        --------
+        Create a naive timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts
+        Timestamp('2020-03-14 15:32:52.192548651')
+
+        Add 'Europe/Stockholm' as timezone:
+
+        >>> ts.tz_localize(tz='Europe/Stockholm')
+        Timestamp('2020-03-14 15:32:52.192548651+0100', tz='Europe/Stockholm')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.tz_localize()
+        NaT
         """,
     )
     replace = _make_nat_func(
@@ -814,6 +1092,30 @@ default 'raise'
         Returns
         -------
         Timestamp with fields replaced
+
+        Examples
+        --------
+        Create a timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651', tz='UTC')
+        >>> ts
+        Timestamp('2020-03-14 15:32:52.192548651+0000', tz='UTC')
+
+        Replace year and the hour:
+
+        >>> ts.replace(year=1999, hour=10)
+        Timestamp('1999-03-14 10:32:52.192548651+0000', tz='UTC')
+
+        Replace timezone (not a conversion):
+
+        >>> import pytz
+        >>> ts.replace(tzinfo=pytz.timezone('US/Pacific'))
+        Timestamp('2020-03-14 15:32:52.192548651-0700', tz='US/Pacific')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.replace(tzinfo=pytz.timezone('US/Pacific'))
+        NaT
         """,
     )
 
