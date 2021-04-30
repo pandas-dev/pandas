@@ -208,15 +208,6 @@ class Resampler(BaseGroupBy, PandasObject):
         return self.groupby.ax
 
     @property
-    def _typ(self) -> str:
-        """
-        Masquerade for compat as a Series or a DataFrame.
-        """
-        if isinstance(self._selected_obj, ABCSeries):
-            return "series"
-        return "dataframe"
-
-    @property
     def _from_selection(self) -> bool:
         """
         Is the resampling from a DataFrame column or MultiIndex level.
@@ -449,11 +440,6 @@ class Resampler(BaseGroupBy, PandasObject):
                 pass
             elif "len(index) != len(labels)" in str(err):
                 # raised in libgroupby validation
-                pass
-            elif "No objects to concatenate" in str(err):
-                # raised in concat call
-                #  In tests this is reached via either
-                #  _apply_to_column_groupbys (ohlc) or DataFrameGroupBy.nunique
                 pass
             else:
                 raise
@@ -1046,11 +1032,9 @@ class _GroupByMixin(PandasObject):
 
     _attributes: list[str]  # in practice the same as Resampler._attributes
 
-    def __init__(self, obj, **kwargs):
+    def __init__(self, obj, parent=None, groupby=None, **kwargs):
         # reached via ._gotitem and _get_resampler_for_grouping
 
-        parent = kwargs.pop("parent", None)
-        groupby = kwargs.pop("groupby", None)
         if parent is None:
             parent = obj
 
@@ -1416,15 +1400,13 @@ get_resampler.__doc__ = Resampler.__doc__
 
 
 def get_resampler_for_grouping(
-    groupby, rule, how=None, fill_method=None, limit=None, kind=None, **kwargs
+    groupby, rule, how=None, fill_method=None, limit=None, kind=None, on=None, **kwargs
 ):
     """
     Return our appropriate resampler when grouping as well.
     """
     # .resample uses 'on' similar to how .groupby uses 'key'
-    kwargs["key"] = kwargs.pop("on", None)
-
-    tg = TimeGrouper(freq=rule, **kwargs)
+    tg = TimeGrouper(freq=rule, key=on, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
     return resampler._get_resampler_for_grouping(groupby=groupby)
 

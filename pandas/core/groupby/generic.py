@@ -358,9 +358,26 @@ class SeriesGroupBy(GroupBy[Series]):
             if numeric_only and not is_numeric:
                 continue
 
-            result = self.grouper._cython_operation(
-                "aggregate", obj._values, how, axis=0, min_count=min_count
-            )
+            objvals = obj._values
+
+            if isinstance(objvals, Categorical):
+                if self.grouper.ngroups > 0:
+                    # without special-casing, we would raise, then in fallback
+                    # would eventually call agg_series but without re-casting
+                    # to Categorical
+                    # equiv: res_values, _ = self.grouper.agg_series(obj, alt)
+                    res_values, _ = self.grouper._aggregate_series_pure_python(obj, alt)
+                else:
+                    # equiv: res_values = self._python_agg_general(alt)
+                    res_values = self._python_apply_general(alt, self._selected_obj)
+
+                result = type(objvals)._from_sequence(res_values, dtype=objvals.dtype)
+
+            else:
+                result = self.grouper._cython_operation(
+                    "aggregate", obj._values, how, axis=0, min_count=min_count
+                )
+
             assert result.ndim == 1
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
@@ -1092,13 +1109,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # see if we can cast the values to the desired dtype
             # this may not be the original dtype
 
-            if isinstance(values, Categorical) and isinstance(result, np.ndarray):
-                # If the Categorical op didn't raise, it is dtype-preserving
-                # We get here with how="first", "last", "min", "max"
-                result = type(values)._from_sequence(result.ravel(), dtype=values.dtype)
-                # Note this will have result.dtype == dtype from above
-
-            elif (
+            if (
                 not using_array_manager
                 and isinstance(result.dtype, np.dtype)
                 and result.ndim == 1
@@ -1140,9 +1151,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # Categoricals. This will done by later self._reindex_output()
             # Doing it here creates an error. See GH#34951
             sgb = get_groupby(obj, self.grouper, observed=True)
+
             # Note: bc obj is always a Series here, we can ignore axis and pass
             #  `alt` directly instead of `lambda x: alt(x, axis=self.axis)`
-            res_ser = sgb.aggregate(alt)  # this will go through sgb._python_agg_general
+            # use _agg_general bc it will go through _cython_agg_general
+            #  which will correctly cast Categoricals.
+            res_ser = sgb._agg_general(
+                numeric_only=False, min_count=min_count, alias=how, npfunc=alt
+            )
 
             # unwrap Series to get array
             res_values = res_ser._mgr.arrays[0]
@@ -1754,11 +1770,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _apply_to_column_groupbys(self, func) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
-        return concat(
-            (func(col_groupby) for _, col_groupby in self._iterate_column_groupbys()),
-            keys=self._selected_obj.columns,
-            axis=1,
-        )
+        columns = self._selected_obj.columns
+        results = [
+            func(col_groupby) for _, col_groupby in self._iterate_column_groupbys()
+        ]
+
+        if not len(results):
+            # concat would raise
+            return DataFrame([], columns=columns, index=self.grouper.result_index)
+        else:
+            return concat(results, keys=columns, axis=1)
 
     def count(self) -> DataFrame:
         """
@@ -1850,27 +1871,30 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # Try to consolidate with normal wrapping functions
 
         obj = self._obj_with_exclusions
-        axis_number = obj._get_axis_number(self.axis)
-        other_axis = int(not axis_number)
-        if axis_number == 0:
+        if self.axis == 0:
             iter_func = obj.items
         else:
             iter_func = obj.iterrows
 
-        results = concat(
-            [
-                SeriesGroupBy(content, selection=label, grouper=self.grouper).nunique(
-                    dropna
-                )
-                for label, content in iter_func()
-            ],
-            axis=1,
-        )
-        results = cast(DataFrame, results)
+        res_list = [
+            SeriesGroupBy(content, selection=label, grouper=self.grouper).nunique(
+                dropna
+            )
+            for label, content in iter_func()
+        ]
+        if res_list:
+            results = concat(res_list, axis=1)
+            results = cast(DataFrame, results)
+        else:
+            # concat would raise
+            results = DataFrame(
+                [], index=self.grouper.result_index, columns=obj.columns[:0]
+            )
 
-        if axis_number == 1:
+        if self.axis == 1:
             results = results.T
 
+        other_axis = 1 - self.axis
         results._get_axis(other_axis).names = obj._get_axis(other_axis).names
 
         if not self.as_index:
