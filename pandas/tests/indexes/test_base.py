@@ -46,13 +46,14 @@ from pandas.tests.indexes.common import Base
 
 
 class TestIndex(Base):
-    _holder = Index
+    _index_cls = Index
 
-    def create_index(self) -> Index:
-        return Index(list("abcde"))
+    @pytest.fixture
+    def simple_index(self) -> Index:
+        return self._index_cls(list("abcde"))
 
-    def test_can_hold_identifiers(self):
-        index = self.create_index()
+    def test_can_hold_identifiers(self, simple_index):
+        index = simple_index
         key = index[0]
         assert index._can_hold_identifiers_and_holds_name(key) is True
 
@@ -77,8 +78,6 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_constructor_copy(self, index):
-        # copy
-        # index = self.create_index()
         arr = np.array(index)
         new_index = Index(arr, copy=True, name="name")
         assert isinstance(new_index, Index)
@@ -600,8 +599,8 @@ class TestIndex(Base):
         for i, val in enumerate(sub_index):
             assert sub_index.get_loc(val) == i
 
-    def test_fancy(self):
-        index = self.create_index()
+    def test_fancy(self, simple_index):
+        index = simple_index
         sl = index[[1, 2, 3]]
         for i in sl:
             assert i == sl[sl.get_loc(i)]
@@ -628,9 +627,9 @@ class TestIndex(Base):
         with pytest.raises(IndexError, match=msg):
             index[empty_farr]
 
-    def test_union_dt_as_obj(self, sort):
+    def test_union_dt_as_obj(self, sort, simple_index):
         # TODO: Replace with fixturesult
-        index = self.create_index()
+        index = simple_index
         date_index = date_range("2019-01-01", periods=10)
         first_cat = index.union(date_index)
         second_cat = index.union(index)
@@ -754,9 +753,9 @@ class TestIndex(Base):
         result = left.append(right)
         assert result.name == expected
 
-    def test_is_mixed_deprecated(self):
+    def test_is_mixed_deprecated(self, simple_index):
         # GH#32922
-        index = self.create_index()
+        index = simple_index
         with tm.assert_produces_warning(FutureWarning):
             index.is_mixed()
 
@@ -866,8 +865,8 @@ class TestIndex(Base):
         assert result == expected
 
     @pytest.mark.parametrize("op", ["any", "all"])
-    def test_logical_compat(self, op):
-        index = self.create_index()
+    def test_logical_compat(self, op, simple_index):
+        index = simple_index
         assert getattr(index, op)() == getattr(index.values, op)()
 
     @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
@@ -973,9 +972,9 @@ class TestIndex(Base):
         index = Index([5, datetime.now(), 7])
         assert not getattr(index, attr)
 
-    def test_set_value_deprecated(self):
+    def test_set_value_deprecated(self, simple_index):
         # GH 28621
-        idx = self.create_index()
+        idx = simple_index
         arr = np.array([1, 2, 3])
         with tm.assert_produces_warning(FutureWarning):
             idx.set_value(arr, idx[1], 80)
@@ -1415,29 +1414,30 @@ class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
     # in py2 and py3 because ints and strings are uncomparable in py3
     # (GH 13514)
-    _holder = Index
+    _index_cls = Index
+
+    @pytest.fixture
+    def simple_index(self) -> Index:
+        return self._index_cls([0, "a", 1, "b", 2, "c"])
 
     @pytest.fixture(params=[[0, "a", 1, "b", 2, "c"]], ids=["mixedIndex"])
     def index(self, request):
         return Index(request.param)
 
-    def create_index(self) -> Index:
-        return Index([0, "a", 1, "b", 2, "c"])
-
-    def test_argsort(self):
-        index = self.create_index()
+    def test_argsort(self, simple_index):
+        index = simple_index
         with pytest.raises(TypeError, match="'>|<' not supported"):
             index.argsort()
 
-    def test_numpy_argsort(self):
-        index = self.create_index()
+    def test_numpy_argsort(self, simple_index):
+        index = simple_index
         with pytest.raises(TypeError, match="'>|<' not supported"):
             np.argsort(index)
 
-    def test_copy_name(self):
+    def test_copy_name(self, simple_index):
         # Check that "name" argument passed at initialization is honoured
         # GH12309
-        index = self.create_index()
+        index = simple_index
 
         first = type(index)(index, copy=True, name="mario")
         second = type(first)(first, copy=False)
@@ -1482,8 +1482,8 @@ class TestMixedIntIndex(Base):
         result = idx.unique()
         tm.assert_index_equal(result, expected)
 
-    def test_logical_compat(self):
-        index = self.create_index()
+    def test_logical_compat(self, simple_index):
+        index = simple_index
         assert index.all() == index.values.all()
         assert index.any() == index.values.any()
 
