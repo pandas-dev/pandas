@@ -1105,6 +1105,11 @@ def test_groupby_single_agg_cat_cols(grp_col_dict, exp_data):
 
     expected_df = DataFrame(data=exp_data, index=cat_index)
 
+    if "cat_ord" in expected_df:
+        # ordered categorical columns should be preserved
+        dtype = input_df["cat_ord"].dtype
+        expected_df["cat_ord"] = expected_df["cat_ord"].astype(dtype)
+
     tm.assert_frame_equal(result_df, expected_df)
 
 
@@ -1149,6 +1154,10 @@ def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
     multi_index = MultiIndex.from_tuples(tuple(multi_index_list))
 
     expected_df = DataFrame(data=exp_data, columns=multi_index, index=cat_index)
+    for col in expected_df.columns:
+        if isinstance(col, tuple) and "cat_ord" in col:
+            # ordered categorical should be preserved
+            expected_df[col] = expected_df[col].astype(input_df["cat_ord"].dtype)
 
     tm.assert_frame_equal(result_df, expected_df)
 
