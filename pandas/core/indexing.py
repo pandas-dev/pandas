@@ -715,7 +715,6 @@ class _LocationIndexer(NDFrameIndexerBase):
             self.obj._mgr = self.obj._mgr.reindex_axis(
                 keys,
                 axis=0,
-                copy=False,
                 consolidate=False,
                 only_slice=True,
                 fill_value=fv,
