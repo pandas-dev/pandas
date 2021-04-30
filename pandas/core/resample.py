@@ -208,15 +208,6 @@ class Resampler(BaseGroupBy, PandasObject):
         return self.groupby.ax
 
     @property
-    def _typ(self) -> str:
-        """
-        Masquerade for compat as a Series or a DataFrame.
-        """
-        if isinstance(self._selected_obj, ABCSeries):
-            return "series"
-        return "dataframe"
-
-    @property
     def _from_selection(self) -> bool:
         """
         Is the resampling from a DataFrame column or MultiIndex level.
