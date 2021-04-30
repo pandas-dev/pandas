@@ -1041,10 +1041,10 @@ class IndexOpsMixin(OpsMixin):
         4
         """
         uniqs = self.unique()
-        if dropna:
-            return (~isna(uniqs)).sum()
-        else:
-            return len(uniqs)
+        l = len(uniqs)
+        if dropna and np.isnan(uniqs).any():
+            l = l - 1
+        return l
 
     @property
     def is_unique(self) -> bool:
