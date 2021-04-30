@@ -809,6 +809,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     grouper: ops.BaseGrouper
     as_index: bool
 
+    @final
     def __init__(
         self,
         obj: FrameOrSeries,
