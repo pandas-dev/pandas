@@ -1,10 +1,11 @@
-from packaging.version import Version
 import pytest
 
 from pandas.compat._optional import (
     get_version,
     import_optional_dependency,
 )
+
+from pandas.util.version import Version
 
 pytestmark = [
     pytest.mark.filterwarnings(

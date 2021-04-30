@@ -6,7 +6,6 @@ import pathlib
 from warnings import catch_warnings
 
 import numpy as np
-from packaging.version import Version
 import pytest
 
 from pandas._config import get_option
@@ -19,6 +18,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.util.version import Version
 
 from pandas.io.parquet import (
     FastParquetImpl,

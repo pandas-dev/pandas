@@ -9,7 +9,6 @@ from typing import (
 import warnings
 
 import numpy as np
-from packaging.version import Version
 import pytest
 
 from pandas.errors import PerformanceWarning
@@ -52,6 +51,7 @@ from pandas.core.computation.ops import (
     _binary_ops_dict,
     _unary_math_ops,
 )
+from pandas.util.version import Version
 
 
 @pytest.fixture(

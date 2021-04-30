@@ -9,7 +9,6 @@ from typing import (
 )
 
 import numpy as np
-from packaging.version import Version
 
 from pandas._libs import (
     lib,
@@ -46,6 +45,7 @@ from pandas.core.indexers import (
     validate_indices,
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
+from pandas.util.version import Version
 
 try:
     import pyarrow as pa

@@ -9,8 +9,6 @@ from typing import (
 )
 from warnings import catch_warnings
 
-from packaging.version import Version
-
 from pandas._typing import (
     FilePathOrBuffer,
     StorageOptions,
@@ -25,6 +23,7 @@ from pandas import (
     get_option,
 )
 from pandas.core import generic
+from pandas.util.version import Version
 
 from pandas.io.common import (
     IOHandles,

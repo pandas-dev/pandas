@@ -3,7 +3,6 @@ from functools import partial
 import string
 
 import numpy as np
-from packaging.version import Version
 import pytest
 
 from pandas.compat import np_version_under1p18
@@ -13,6 +12,7 @@ from pandas import Series
 import pandas._testing as tm
 from pandas.core import ops
 import pandas.core.common as com
+from pandas.util.version import Version
 
 
 def test_get_callable_name():

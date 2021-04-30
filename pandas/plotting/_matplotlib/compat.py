@@ -1,7 +1,7 @@
 # being a bit too dynamic
 import operator
 
-from packaging.version import Version
+from pandas.util.version import Version
 
 
 def _mpl_version(version, op):

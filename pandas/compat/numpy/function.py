@@ -26,7 +26,6 @@ from numpy import (
     __version__,
     ndarray,
 )
-from packaging.version import Version
 
 from pandas._libs.lib import (
     is_bool,
@@ -38,6 +37,8 @@ from pandas.util._validators import (
     validate_args_and_kwargs,
     validate_kwargs,
 )
+
+from pandas.util.version import Version
 
 
 class CompatValidator:

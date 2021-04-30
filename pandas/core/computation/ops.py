@@ -13,7 +13,6 @@ from typing import (
 )
 
 import numpy as np
-from packaging.version import Version
 
 from pandas._libs.tslibs import Timestamp
 
@@ -28,6 +27,7 @@ from pandas.core.computation.common import (
     result_type_many,
 )
 from pandas.core.computation.scope import DEFAULT_GLOBALS
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import (
     pprint_thing,

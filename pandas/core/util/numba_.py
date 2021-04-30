@@ -8,10 +8,11 @@ from typing import (
 )
 
 import numpy as np
-from packaging.version import Version
 
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
+
+from pandas.util.version import Version
 
 GLOBAL_USE_NUMBA: bool = False
 NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = {}

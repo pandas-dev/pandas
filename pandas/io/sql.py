@@ -23,7 +23,6 @@ from typing import (
 import warnings
 
 import numpy as np
-from packaging.version import Version
 
 import pandas._libs.lib as lib
 from pandas._typing import DtypeArg
@@ -42,6 +41,7 @@ from pandas.core.api import (
 )
 from pandas.core.base import PandasObject
 from pandas.core.tools.datetimes import to_datetime
+from pandas.util.version import Version
 
 
 class SQLAlchemyRequired(ImportError):

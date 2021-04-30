@@ -5,7 +5,7 @@ import sys
 import types
 import warnings
 
-from packaging.version import Version
+from pandas.util.version import Version
 
 # Update install.rst when updating versions!
 

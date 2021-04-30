@@ -31,7 +31,6 @@ from typing import Callable
 import warnings
 
 import numpy as np
-from packaging.version import Version
 import pytest
 
 from pandas._config import get_option
@@ -46,6 +45,7 @@ from pandas.core.computation.expressions import (
     NUMEXPR_INSTALLED,
     USE_NUMEXPR,
 )
+from pandas.util.version import Version
 
 
 def safe_import(mod_name: str, min_version: str | None = None):

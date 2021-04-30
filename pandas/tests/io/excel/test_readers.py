@@ -8,7 +8,6 @@ from urllib.error import URLError
 from zipfile import BadZipFile
 
 import numpy as np
-from packaging.version import Version
 import pytest
 
 import pandas.util._test_decorators as td
@@ -22,6 +21,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.tests.io.excel import xlrd_version
+from pandas.util.version import Version
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [

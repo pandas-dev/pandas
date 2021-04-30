@@ -14,8 +14,6 @@ from typing import (
 import warnings
 import zipfile
 
-from packaging.version import Version
-
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
@@ -45,6 +43,7 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.frame import DataFrame
 from pandas.core.shared_docs import _shared_docs
+from pandas.util.version import Version
 
 from pandas.io.common import (
     IOHandles,

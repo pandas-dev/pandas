@@ -17,7 +17,7 @@ import sys
 from sysconfig import get_config_vars
 
 import numpy
-from packaging.version import Version
+from pkg_resources import parse_version
 from setuptools import (
     Command,
     Extension,
@@ -47,7 +47,7 @@ try:
     )
     from Cython.Build import cythonize
 
-    _CYTHON_INSTALLED = Version(_CYTHON_VERSION) >= Version(min_cython_ver)
+    _CYTHON_INSTALLED = parse_version(_CYTHON_VERSION) >= parse_version(min_cython_ver)
 except ImportError:
     _CYTHON_VERSION = None
     _CYTHON_INSTALLED = False
@@ -352,10 +352,10 @@ if is_platform_mac():
             "MACOSX_DEPLOYMENT_TARGET", current_system
         )
         target_macos_version = "10.9"
-        parsed_macos_version = Version(target_macos_version)
+        parsed_macos_version = parse_version(target_macos_version)
         if (
-            Version(str(python_target)) < parsed_macos_version
-            and Version(current_system) >= parsed_macos_version
+            parse_version(str(python_target)) < parsed_macos_version
+            and parse_version(current_system) >= parsed_macos_version
         ):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = target_macos_version
 
