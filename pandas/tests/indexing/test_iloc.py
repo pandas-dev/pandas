@@ -1186,6 +1186,21 @@ class TestILocSetItemDuplicateColumns:
         df.iloc[:, 0] = df.iloc[:, 0].astype(np.float64)
         assert df.dtypes.iloc[2] == np.int64
 
+    @pytest.mark.parametrize(
+        ["dtypes", "init_value", "expected_value"],
+        [("int64", "0", 0), ("float", "1.2", 1.2)],
+    )
+    def test_iloc_setitem_dtypes_duplicate_columns(
+        self, dtypes, init_value, expected_value
+    ):
+        # GH#22035
+        df = DataFrame([[init_value, "str", "str2"]], columns=["a", "b", "b"])
+        df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
+        expected_df = DataFrame(
+            [[expected_value, "str", "str2"]], columns=["a", "b", "b"]
+        )
+        tm.assert_frame_equal(df, expected_df)
+
 
 class TestILocCallable:
     def test_frame_iloc_getitem_callable(self):
