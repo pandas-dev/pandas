@@ -114,6 +114,11 @@ def _evaluate_numexpr(op, op_str, a, b):
             # numexpr raises eg for array ** array with integers
             # (https://github.com/pydata/numexpr/issues/379)
             pass
+        except NotImplementedError:
+            if _bool_arith_fallback(op_str, a, b):
+                pass
+            else:
+                raise
 
         if is_reversed:
             # reverse order to original for fallback
@@ -137,8 +142,9 @@ _op_str_mapping = {
     roperator.rsub: "-",
     operator.truediv: "/",
     roperator.rtruediv: "/",
-    operator.floordiv: "//",
-    roperator.rfloordiv: "//",
+    # floordiv not supported by numexpr 2.x
+    operator.floordiv: None,
+    roperator.rfloordiv: None,
     # we require Python semantics for mod of negative for backwards compatibility
     # see https://github.com/pydata/numexpr/issues/365
     # so sticking with unaccelerated for now
@@ -197,26 +203,24 @@ def _has_bool_dtype(x):
         return isinstance(x, (bool, np.bool_))
 
 
-def _bool_arith_check(
-    op_str, a, b, not_allowed=frozenset(("/", "//", "**")), unsupported=None
-):
-    if unsupported is None:
-        unsupported = {"+": "|", "*": "&", "-": "^"}
+_BOOL_OP_UNSUPPORTED = {"+": "|", "*": "&", "-": "^"}
 
+
+def _bool_arith_fallback(op_str, a, b):
+    """
+    Check if we should fallback to the python `_evaluate_standard` in case
+    of an unsupported operation by numexpr, which is the case for some
+    boolean ops.
+    """
     if _has_bool_dtype(a) and _has_bool_dtype(b):
-        if op_str in unsupported:
+        if op_str in _BOOL_OP_UNSUPPORTED:
             warnings.warn(
                 f"evaluating in Python space because the {repr(op_str)} "
-                "operator is not supported by numexpr for "
-                f"the bool dtype, use {repr(unsupported[op_str])} instead"
+                "operator is not supported by numexpr for the bool dtype, "
+                f"use {repr(_BOOL_OP_UNSUPPORTED[op_str])} instead"
             )
-            return False
-
-        if op_str in not_allowed:
-            raise NotImplementedError(
-                f"operator {repr(op_str)} not implemented for bool dtypes"
-            )
-    return True
+            return True
+    return False
 
 
 def evaluate(op, a, b, use_numexpr: bool = True):
@@ -233,7 +237,6 @@ def evaluate(op, a, b, use_numexpr: bool = True):
     """
     op_str = _op_str_mapping[op]
     if op_str is not None:
-        use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
         if use_numexpr:
             # error: "None" not callable
             return _evaluate(op, op_str, a, b)  # type: ignore[misc]

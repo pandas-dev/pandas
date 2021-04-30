@@ -696,6 +696,7 @@ Numeric
 - Bug in :meth:`DataFrame.transform` would raise ``SpecificationError`` when passed a dictionary and columns were missing; will now raise a ``KeyError`` instead (:issue:`40004`)
 - Bug in :meth:`DataFrameGroupBy.rank` giving incorrect results with ``pct=True`` and equal values between consecutive groups (:issue:`40518`)
 - Bug in :meth:`Series.count` would result in an ``int32`` result on 32-bit platforms when argument ``level=None`` (:issue:`40908`)
+- Bug in :meth:`Series.clip` would fail if series contains NA values and has nullable int or float as a data type (:issue:`40851`)
 
 Conversion
 ^^^^^^^^^^
@@ -799,6 +800,7 @@ I/O
 - Bug in :meth:`DataFrame.to_string` misplacing the truncation column when ``index=False`` (:issue:`40907`)
 - Bug in :func:`read_orc` always raising ``AttributeError`` (:issue:`40918`)
 - Bug in :func:`read_csv` and :func:`read_table` misinterpreting arguments when ``sys.setprofile`` had been previously called (:issue:`41069`)
+- Bug in the conversion from pyarrow to pandas (e.g. for reading Parquet) with nullable dtypes and a pyarrow array whose data buffer size is not a multiple of dtype size (:issue:`40896`)
 
 Period
 ^^^^^^
@@ -851,6 +853,8 @@ Groupby/resample/rolling
 - Bug in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` computing wrong result with nullable data types too large to roundtrip when casting to float (:issue:`37493`)
 - Bug in :meth:`DataFrame.rolling` returning mean zero for all ``NaN`` window with ``min_periods=0`` if calculation is not numerical stable (:issue:`41053`)
 - Bug in :meth:`DataFrame.rolling` returning sum not zero for all ``NaN`` window with ``min_periods=0`` if calculation is not numerical stable (:issue:`41053`)
+- Bug in :meth:`SeriesGroupBy.agg` failing to retain ordered :class:`CategoricalDtype` on order-preserving aggregations (:issue:`41147`)
+- Bug in :meth:`DataFrameGroupBy.min` and :meth:`DataFrameGroupBy.max` with multiple object-dtype columns and ``numeric_only=False`` incorrectly raising ``ValueError`` (:issue:41111`)
 
 Reshaping
 ^^^^^^^^^
@@ -878,7 +882,7 @@ Sparse
 
 - Bug in :meth:`DataFrame.sparse.to_coo` raising ``KeyError`` with columns that are a numeric :class:`Index` without a 0 (:issue:`18414`)
 - Bug in :meth:`SparseArray.astype` with ``copy=False`` producing incorrect results when going from integer dtype to floating dtype (:issue:`34456`)
--
+- Implemented :meth:`SparseArray.max` and :meth:`SparseArray.min` (:issue:`40921`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
