@@ -17,10 +17,10 @@ class InfinityType:
         return False
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, self.__class__)
+        return isinstance(other, type(self))
 
     def __ne__(self, other: object) -> bool:
-        return not isinstance(other, self.__class__)
+        return not isinstance(other, type(self))
 
     def __gt__(self, other: object) -> bool:
         return True
@@ -49,10 +49,10 @@ class NegativeInfinityType:
         return True
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, self.__class__)
+        return isinstance(other, type(self))
 
     def __ne__(self, other: object) -> bool:
-        return not isinstance(other, self.__class__)
+        return not isinstance(other, type(self))
 
     def __gt__(self, other: object) -> bool:
         return False
