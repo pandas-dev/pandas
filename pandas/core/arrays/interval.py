@@ -829,6 +829,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         from pandas import Index
         from pandas.core.arrays.string_ import StringDtype
+        from pandas.core.arrays.string_arrow import ArrowStringDtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -851,7 +852,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             return self._shallow_copy(new_left, new_right)
         elif is_categorical_dtype(dtype):
             return Categorical(np.asarray(self), dtype=dtype)
-        elif isinstance(dtype, StringDtype):
+        elif isinstance(dtype, (StringDtype, ArrowStringDtype)):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         # TODO: This try/except will be repeated.
