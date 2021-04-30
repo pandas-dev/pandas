@@ -121,10 +121,10 @@ def test_format_remove_leading_space_dataframe(input_array, expected):
         (
             None,
             2,
-            " 0   1   2   3   4   5   6   7   8   9   10  11\n"
-            "  0   0   0   0   0   0   0   0   0   0   0   0\n"
-            " ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..\n"
-            "  0   0   0   0   0   0   0   0   0   0   0   0",
+            " 0   1   2   3   4   5   6   7   8   9   10\n"
+            "  0   0   0   0   0   0   0   0   0   0   0\n"
+            " ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..\n"
+            "  0   0   0   0   0   0   0   0   0   0   0",
         ),
         (
             10,
@@ -234,11 +234,7 @@ def test_to_string_with_datetime64_monthformatter():
 
 def test_to_string_with_datetime64_hourformatter():
     x = DataFrame(
-        {
-            "hod": to_datetime(
-                ["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f"
-            )
-        }
+        {"hod": to_datetime(["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f")}
     )
 
     def format_func(x):
