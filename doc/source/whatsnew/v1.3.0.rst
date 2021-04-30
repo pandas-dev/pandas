@@ -903,9 +903,6 @@ Styler
 
 Other
 ^^^^^
-- Bug in :class:`Index` constructor sometimes silently ignorning a a specified ``dtype`` (:issue:`38879`)
--
-=======
 - Bug in :class:`Index` constructor sometimes silently ignoring a specified ``dtype`` (:issue:`38879`)
 - Bug in :func:`pandas.api.types.infer_dtype` not recognizing Series, Index or array with a period dtype (:issue:`23553`)
 - Bug in :func:`pandas.api.types.infer_dtype` raising an error for general :class:`.ExtensionArray` objects. It will now return ``"unknown-array"`` instead of raising (:issue:`37367`)
