@@ -345,47 +345,37 @@ class SeriesGroupBy(GroupBy[Series]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output: dict[base.OutputKey, ArrayLike] = {}
-        # Ideally we would be able to enumerate self._iterate_slices and use
-        # the index from enumeration as the key of output, but ohlc in particular
-        # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
-        # need to slice that up into 1D arrays
-        idx = 0
-        for obj in self._iterate_slices():
-            name = obj.name
-            is_numeric = is_numeric_dtype(obj.dtype)
-            if numeric_only and not is_numeric:
-                continue
 
-            objvals = obj._values
+        obj = self._selected_obj
 
-            if isinstance(objvals, Categorical):
-                if self.grouper.ngroups > 0:
-                    # without special-casing, we would raise, then in fallback
-                    # would eventually call agg_series but without re-casting
-                    # to Categorical
-                    # equiv: res_values, _ = self.grouper.agg_series(obj, alt)
-                    res_values, _ = self.grouper._aggregate_series_pure_python(obj, alt)
-                else:
-                    # equiv: res_values = self._python_agg_general(alt)
-                    res_values = self._python_apply_general(alt, self._selected_obj)
-
-                result = type(objvals)._from_sequence(res_values, dtype=objvals.dtype)
-
-            else:
-                result = self.grouper._cython_operation(
-                    "aggregate", obj._values, how, axis=0, min_count=min_count
-                )
-
-            assert result.ndim == 1
-            key = base.OutputKey(label=name, position=idx)
-            output[key] = result
-            idx += 1
-
-        if not output:
+        is_numeric = is_numeric_dtype(obj.dtype)
+        if numeric_only and not is_numeric:
             raise DataError("No numeric types to aggregate")
 
-        return self._wrap_aggregated_output(output)
+        objvals = obj._values
+
+        if isinstance(objvals, Categorical):
+            if self.grouper.ngroups > 0:
+                # without special-casing, we would raise, then in fallback
+                # would eventually call agg_series but without re-casting
+                # to Categorical
+                # equiv: res_values, _ = self.grouper.agg_series(obj, alt)
+                res_values, _ = self.grouper._aggregate_series_pure_python(obj, alt)
+            else:
+                # equiv: res_values = self._python_agg_general(alt)
+                res_values = self._python_apply_general(alt, self._selected_obj)
+
+            result = type(objvals)._from_sequence(res_values, dtype=objvals.dtype)
+
+        else:
+            result = self.grouper._cython_operation(
+                "aggregate", obj._values, how, axis=0, min_count=min_count
+            )
+
+        ser = self.obj._constructor(
+            result, index=self.grouper.result_index, name=obj.name
+        )
+        return self._reindex_output(ser)
 
     def _wrap_aggregated_output(
         self,
