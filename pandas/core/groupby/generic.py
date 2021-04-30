@@ -1754,11 +1754,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _apply_to_column_groupbys(self, func) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
-        return concat(
-            (func(col_groupby) for _, col_groupby in self._iterate_column_groupbys()),
-            keys=self._selected_obj.columns,
-            axis=1,
-        )
+        columns = self._selected_obj.columns
+        results = [
+            func(col_groupby) for _, col_groupby in self._iterate_column_groupbys()
+        ]
+
+        if not len(results):
+            # concat would raise
+            return DataFrame([], columns=columns, index=self.grouper.result_index)
+        else:
+            return concat(results, keys=columns, axis=1)
 
     def count(self) -> DataFrame:
         """
@@ -1850,27 +1855,30 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # Try to consolidate with normal wrapping functions
 
         obj = self._obj_with_exclusions
-        axis_number = obj._get_axis_number(self.axis)
-        other_axis = int(not axis_number)
-        if axis_number == 0:
+        if self.axis == 0:
             iter_func = obj.items
         else:
             iter_func = obj.iterrows
 
-        results = concat(
-            [
-                SeriesGroupBy(content, selection=label, grouper=self.grouper).nunique(
-                    dropna
-                )
-                for label, content in iter_func()
-            ],
-            axis=1,
-        )
-        results = cast(DataFrame, results)
+        res_list = [
+            SeriesGroupBy(content, selection=label, grouper=self.grouper).nunique(
+                dropna
+            )
+            for label, content in iter_func()
+        ]
+        if res_list:
+            results = concat(res_list, axis=1)
+            results = cast(DataFrame, results)
+        else:
+            # concat would raise
+            results = DataFrame(
+                [], index=self.grouper.result_index, columns=obj.columns[:0]
+            )
 
-        if axis_number == 1:
+        if self.axis == 1:
             results = results.T
 
+        other_axis = 1 - self.axis
         results._get_axis(other_axis).names = obj._get_axis(other_axis).names
 
         if not self.as_index:
