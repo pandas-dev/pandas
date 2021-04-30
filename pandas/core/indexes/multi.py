@@ -3570,7 +3570,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
         result = super()._union(other, sort)
 
-        return MultiIndex.from_tuples(result, sortorder=0, names=result_names)
+        return MultiIndex.from_arrays(zip(*result), sortorder=0, names=result_names)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)
