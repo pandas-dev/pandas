@@ -510,6 +510,8 @@ class SeriesGroupBy(GroupBy[Series]):
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
+        # Note: this is very similar to _aggregate_series_pure_python,
+        #  but that does not pin group.name
         result = {}
         initialized = False
 
@@ -522,7 +524,7 @@ class SeriesGroupBy(GroupBy[Series]):
             output = libreduction.extract_result(output)
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(output, 0)
+                libreduction.check_result_array(output)
                 initialized = True
             result[name] = output
 

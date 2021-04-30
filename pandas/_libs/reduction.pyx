@@ -27,11 +27,11 @@ from pandas._libs.lib import (
 )
 
 
-cpdef check_result_array(object obj, Py_ssize_t cnt):
+cpdef check_result_array(object obj):
 
     if (is_array(obj) or
-            (isinstance(obj, list) and len(obj) == cnt) or
-            getattr(obj, 'shape', None) == (cnt,)):
+            (isinstance(obj, list) and len(obj) == 0) or
+            getattr(obj, 'shape', None) == (0,)):
         raise ValueError('Must produce aggregated value')
 
 
@@ -89,9 +89,7 @@ cdef class _BaseGrouper:
             # On the first pass, we check the output shape to see
             #  if this looks like a reduction.
             initialized = True
-            # In all tests other than test_series_grouper and
-            #  test_series_bin_grouper, we have len(self.dummy_arr) == 0
-            check_result_array(res, len(self.dummy_arr))
+            check_result_array(res)
 
         return res, initialized
 
