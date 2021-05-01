@@ -97,7 +97,6 @@ from pandas.core.indexes.api import (
     all_indexes_same,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.internals import ArrayManager
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 
@@ -358,9 +357,26 @@ class SeriesGroupBy(GroupBy[Series]):
             if numeric_only and not is_numeric:
                 continue
 
-            result = self.grouper._cython_operation(
-                "aggregate", obj._values, how, axis=0, min_count=min_count
-            )
+            objvals = obj._values
+
+            if isinstance(objvals, Categorical):
+                if self.grouper.ngroups > 0:
+                    # without special-casing, we would raise, then in fallback
+                    # would eventually call agg_series but without re-casting
+                    # to Categorical
+                    # equiv: res_values, _ = self.grouper.agg_series(obj, alt)
+                    res_values, _ = self.grouper._aggregate_series_pure_python(obj, alt)
+                else:
+                    # equiv: res_values = self._python_agg_general(alt)
+                    res_values = self._python_apply_general(alt, self._selected_obj)
+
+                result = type(objvals)._from_sequence(res_values, dtype=objvals.dtype)
+
+            else:
+                result = self.grouper._cython_operation(
+                    "aggregate", obj._values, how, axis=0, min_count=min_count
+                )
+
             assert result.ndim == 1
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
@@ -494,6 +510,8 @@ class SeriesGroupBy(GroupBy[Series]):
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
+        # Note: this is very similar to _aggregate_series_pure_python,
+        #  but that does not pin group.name
         result = {}
         initialized = False
 
@@ -506,7 +524,7 @@ class SeriesGroupBy(GroupBy[Series]):
             output = libreduction.extract_result(output)
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(output, 0)
+                libreduction.check_result_array(output)
                 initialized = True
             result[name] = output
 
@@ -1086,23 +1104,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
-        using_array_manager = isinstance(data, ArrayManager)
-
         def cast_agg_result(result: ArrayLike, values: ArrayLike) -> ArrayLike:
             # see if we can cast the values to the desired dtype
             # this may not be the original dtype
 
-            if isinstance(values, Categorical) and isinstance(result, np.ndarray):
-                # If the Categorical op didn't raise, it is dtype-preserving
-                # We get here with how="first", "last", "min", "max"
-                result = type(values)._from_sequence(result.ravel(), dtype=values.dtype)
-                # Note this will have result.dtype == dtype from above
-
-            elif (
-                not using_array_manager
-                and isinstance(result.dtype, np.dtype)
-                and result.ndim == 1
-            ):
+            if isinstance(result.dtype, np.dtype) and result.ndim == 1:
                 # We went through a SeriesGroupByPath and need to reshape
                 # GH#32223 includes case with IntegerArray values
                 # We only get here with values.dtype == object
@@ -1140,9 +1146,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # Categoricals. This will done by later self._reindex_output()
             # Doing it here creates an error. See GH#34951
             sgb = get_groupby(obj, self.grouper, observed=True)
+
             # Note: bc obj is always a Series here, we can ignore axis and pass
             #  `alt` directly instead of `lambda x: alt(x, axis=self.axis)`
-            res_ser = sgb.aggregate(alt)  # this will go through sgb._python_agg_general
+            # use _agg_general bc it will go through _cython_agg_general
+            #  which will correctly cast Categoricals.
+            res_ser = sgb._agg_general(
+                numeric_only=False, min_count=min_count, alias=how, npfunc=alt
+            )
 
             # unwrap Series to get array
             res_values = res_ser._mgr.arrays[0]
@@ -1778,8 +1789,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        using_array_manager = isinstance(data, ArrayManager)
-
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
             # TODO(2DEA): reshape would not be necessary with 2D EAs
             if bvalues.ndim == 1:
@@ -1789,10 +1798,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 masked = mask & ~isna(bvalues)
 
             counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
-            if using_array_manager:
-                # count_level_2d return (1, N) array for single column
-                # -> extract 1D array
-                counted = counted[0, :]
             return counted
 
         new_mgr = data.grouped_reduce(hfunc)
