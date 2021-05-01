@@ -3568,7 +3568,11 @@ class MultiIndex(Index):
 
     def _union(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
-        result = super()._union(other, sort)
+        if self.hasnans or other.hasnans:
+            result = super()._union(other, sort)
+        else:
+            rvals = other._values.astype(object, copy=False)
+            result = lib.fast_unique_multiple([self._values, rvals], sort=sort)
 
         return MultiIndex.from_arrays(zip(*result), sortorder=0, names=result_names)
 
