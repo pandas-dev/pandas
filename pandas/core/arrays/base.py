@@ -16,6 +16,7 @@ from typing import (
     Sequence,
     TypeVar,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -24,6 +25,7 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    NpDtype,
     PositionalIndexer,
     Shape,
 )
@@ -511,7 +513,15 @@ class ExtensionArray:
     # Additional Methods
     # ------------------------------------------------------------------------
 
-    def astype(self, dtype, copy=True):
+    @overload
+    def astype(self, dtype: NpDtype, copy: bool = True) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array with 'dtype'.
 
@@ -545,7 +555,7 @@ class ExtensionArray:
         ):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
-        return np.array(self, dtype=dtype, copy=copy)
+        return np.array(self, dtype=cast(NpDtype, dtype), copy=copy)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
@@ -925,7 +935,7 @@ class ExtensionArray:
         The values returned by this method are also used in
         :func:`pandas.util.hash_pandas_object`.
         """
-        return self.astype(object), np.nan
+        return cast(np.ndarray, self.astype(object)), np.nan
 
     def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         """

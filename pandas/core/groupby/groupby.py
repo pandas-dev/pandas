@@ -1401,7 +1401,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Shared func to call any / all Cython GroupBy implementations.
         """
 
-        def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
+        def objs_to_bool(vals: ArrayLike) -> tuple[ArrayLike, type]:
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
             elif isinstance(vals, BaseMaskedArray):

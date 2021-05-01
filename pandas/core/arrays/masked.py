@@ -5,6 +5,7 @@ from typing import (
     Any,
     Sequence,
     TypeVar,
+    overload,
 )
 
 import numpy as np
@@ -300,6 +301,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             data = self._data.astype(dtype, copy=copy)
         return data
+
+    @overload
+    def astype(self, dtype: NpDtype, copy: bool = True) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+        ...
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)

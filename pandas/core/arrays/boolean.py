@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import numbers
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    overload,
+)
 import warnings
 
 import numpy as np
@@ -13,6 +16,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    NpDtype,
     type_t,
 )
 from pandas.compat.numpy import function as nv
@@ -392,7 +396,16 @@ class BooleanArray(BaseMaskedArray):
     def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value)
 
-    def astype(self, dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: NpDtype, copy: bool = True) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 

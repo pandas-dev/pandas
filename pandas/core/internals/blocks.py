@@ -1354,7 +1354,9 @@ class EABackedBlock(Block):
         """
         values = self.values
         if dtype == _dtype_obj:
-            values = values.astype(object)
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "ExtensionArray")
+            values = values.astype(object)  # type: ignore[assignment]
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(values).reshape(self.shape)
 
