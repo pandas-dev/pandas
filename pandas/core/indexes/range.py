@@ -8,6 +8,8 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    List,
+    cast,
 )
 import warnings
 
@@ -110,13 +112,7 @@ class RangeIndex(NumericIndex):
         copy: bool = False,
         name: Hashable = None,
     ) -> RangeIndex:
-
-        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected
-        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object]]"
-        cls._validate_dtype(dtype)  # type: ignore[arg-type]
+        cls._validate_dtype(dtype)
         name = maybe_extract_name(name, start, cls)
 
         # RangeIndex
@@ -159,13 +155,7 @@ class RangeIndex(NumericIndex):
                 f"{cls.__name__}(...) must be called with object coercible to a "
                 f"range, {repr(data)} was passed"
             )
-
-        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected
-        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object]]"
-        cls._validate_dtype(dtype)  # type: ignore[arg-type]
+        cls._validate_dtype(dtype)
         return cls._simple_new(data, name=name)
 
     @classmethod
@@ -439,9 +429,8 @@ class RangeIndex(NumericIndex):
     def repeat(self, repeats, axis=None) -> Int64Index:
         return self._int64index.repeat(repeats, axis=axis)
 
-    def delete(self, loc) -> Int64Index:
-        # error: Incompatible return value type (got "Index", expected "Int64Index")
-        return self._int64index.delete(loc)  # type: ignore[return-value]
+    def delete(self, loc) -> Int64Index:  # type: ignore[override]
+        return self._int64index.delete(loc)
 
     def take(
         self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
@@ -761,7 +750,7 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
-    def _concat(self, indexes: list[Index], name: Hashable):
+    def _concat(self, indexes: list[Index], name: Hashable) -> Index:
         """
         Overriding parent method for the case of all RangeIndex instances.
 
@@ -776,14 +765,15 @@ class RangeIndex(NumericIndex):
         elif len(indexes) == 1:
             return indexes[0]
 
+        rng_indexes = cast(List[RangeIndex], indexes)
+
         start = step = next_ = None
 
         # Filter the empty indexes
-        non_empty_indexes = [obj for obj in indexes if len(obj)]
+        non_empty_indexes = [obj for obj in rng_indexes if len(obj)]
 
         for obj in non_empty_indexes:
-            # error: "Index" has no attribute "_range"
-            rng: range = obj._range  # type: ignore[attr-defined]
+            rng = obj._range
 
             if start is None:
                 # This is set by the first non-empty index
@@ -793,7 +783,8 @@ class RangeIndex(NumericIndex):
             elif step is None:
                 # First non-empty index had only one element
                 if rng.start == start:
-                    result = Int64Index(np.concatenate([x._values for x in indexes]))
+                    values = np.concatenate([x._values for x in rng_indexes])
+                    result = Int64Index(values)
                     return result.rename(name)
 
                 step = rng.start - start
@@ -802,7 +793,7 @@ class RangeIndex(NumericIndex):
                 next_ is not None and rng.start != next_
             )
             if non_consecutive:
-                result = Int64Index(np.concatenate([x._values for x in indexes]))
+                result = Int64Index(np.concatenate([x._values for x in rng_indexes]))
                 return result.rename(name)
 
             if step is not None:
@@ -811,12 +802,7 @@ class RangeIndex(NumericIndex):
         if non_empty_indexes:
             # Get the stop value from "next" or alternatively
             # from the last non-empty index
-            # error: "Index" has no attribute "stop"
-            stop = (
-                non_empty_indexes[-1].stop  # type: ignore[attr-defined]
-                if next_ is None
-                else next_
-            )
+            stop = non_empty_indexes[-1].stop if next_ is None else next_
             return RangeIndex(start, stop, step).rename(name)
 
         # Here all "indexes" had 0 length, i.e. were empty.
