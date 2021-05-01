@@ -32,7 +32,9 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 class Base:
-    """ base class for index sub-class tests """
+    """
+    Base class for index sub-class tests.
+    """
 
     _index_cls: Type[Index]
 
@@ -766,7 +768,9 @@ class Base:
 
 
 class NumericBase(Base):
-    """ base class for numeric index (incl. RangeIndex) sub-class tests """
+    """
+    Base class for numeric index (incl. RangeIndex) sub-class tests.
+    """
 
     def test_where(self):
         # Tested in numeric.test_indexing
