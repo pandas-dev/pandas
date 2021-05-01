@@ -6,6 +6,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Callable,
+    Hashable,
     no_type_check,
 )
 
@@ -117,6 +118,7 @@ class Resampler(BaseGroupBy, PandasObject):
     """
 
     grouper: BinGrouper
+    exclusions: frozenset[Hashable] = frozenset()  # for SelectionMixin compat
 
     # to the groupby descriptor
     _attributes = [
@@ -147,7 +149,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self.squeeze = False
         self.group_keys = True
         self.as_index = True
-        self.exclusions = set()
 
         self.groupby._set_grouper(self._convert_obj(obj), sort=True)
         self.binner, self.grouper = self._get_binner()
@@ -188,7 +189,9 @@ class Resampler(BaseGroupBy, PandasObject):
     # error: Signature of "obj" incompatible with supertype "BaseGroupBy"
     @property
     def obj(self) -> FrameOrSeries:  # type: ignore[override]
-        return self.groupby.obj
+        # error: Incompatible return value type (got "Optional[Any]",
+        # expected "FrameOrSeries")
+        return self.groupby.obj  # type: ignore[return-value]
 
     @property
     def ax(self):
@@ -1316,9 +1319,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         new_obj = _take_new_index(
             obj,
             indexer,
-            # error: Argument 3 to "_take_new_index" has incompatible type
-            # "Optional[Any]"; expected "Index"
-            new_index,  # type: ignore[arg-type]
+            new_index,
             axis=self.axis,
         )
         return self._wrap_result(new_obj)
