@@ -6219,7 +6219,6 @@ class DataFrame(NDFrame, OpsMixin):
             indexer = lexsort_indexer(
                 keys, orders=ascending, na_position=na_position, key=key
             )
-            indexer = ensure_platform_int(indexer)
         elif len(by):
 
             by = by[0]
