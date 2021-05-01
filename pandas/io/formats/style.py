@@ -29,6 +29,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 import pandas as pd
+from pandas import RangeIndex
 from pandas.api.types import is_list_like
 from pandas.core import generic
 import pandas.core.common as com
@@ -621,8 +622,10 @@ class Styler(StylerRenderer):
             pass  # adopt what has been previously set in table_styles
         else:
             # create a default: set float, complex, int cols to 'r' ('S'), index to 'l'
-            numeric_cols = list(self.data.select_dtypes(include=[np.number]).columns)
-            numeric_cols = list(self.columns.get_indexer_for(numeric_cols))
+            _original_columns = self.data.columns
+            self.data.columns = RangeIndex(stop=len(self.data.columns))
+            numeric_cols = self.data._get_numeric_data().columns.to_list()
+            self.data.columns = _original_columns
             column_format = "" if self.hidden_index else "l" * self.data.index.nlevels
             for ci, _ in enumerate(self.data.columns):
                 if ci not in self.hidden_columns:
