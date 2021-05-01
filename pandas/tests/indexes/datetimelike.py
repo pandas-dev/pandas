@@ -9,33 +9,33 @@ from pandas.tests.indexes.common import Base
 
 
 class DatetimeLike(Base):
-    def test_argsort_matches_array(self):
-        rng = self.create_index()
-        rng = rng.insert(1, pd.NaT)
+    def test_argsort_matches_array(self, simple_index):
+        idx = simple_index
+        idx = idx.insert(1, pd.NaT)
 
-        result = rng.argsort()
-        expected = rng._data.argsort()
+        result = idx.argsort()
+        expected = idx._data.argsort()
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_can_hold_identifiers(self):
-        idx = self.create_index()
+    def test_can_hold_identifiers(self, simple_index):
+        idx = simple_index
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is False
 
-    def test_shift_identity(self):
+    def test_shift_identity(self, simple_index):
 
-        idx = self.create_index()
+        idx = simple_index
         tm.assert_index_equal(idx, idx.shift(0))
 
-    def test_shift_empty(self):
+    def test_shift_empty(self, simple_index):
         # GH#14811
-        idx = self.create_index()[:0]
+        idx = simple_index[:0]
         tm.assert_index_equal(idx, idx.shift(1))
 
-    def test_str(self):
+    def test_str(self, simple_index):
 
         # test the string repr
-        idx = self.create_index()
+        idx = simple_index
         idx.name = "foo"
         assert not (f"length={len(idx)}" in str(idx))
         assert "'foo'" in str(idx)
@@ -47,19 +47,19 @@ class DatetimeLike(Base):
         if hasattr(idx, "freq"):
             assert f"freq='{idx.freqstr}'" in str(idx)
 
-    def test_view(self):
-        i = self.create_index()
+    def test_view(self, simple_index):
+        idx = simple_index
 
-        i_view = i.view("i8")
-        result = self._holder(i)
-        tm.assert_index_equal(result, i)
+        idx_view = idx.view("i8")
+        result = self._index_cls(idx)
+        tm.assert_index_equal(result, idx)
 
-        i_view = i.view(self._holder)
-        result = self._holder(i)
-        tm.assert_index_equal(result, i_view)
+        idx_view = idx.view(self._index_cls)
+        result = self._index_cls(idx)
+        tm.assert_index_equal(result, idx_view)
 
-    def test_map_callable(self):
-        index = self.create_index()
+    def test_map_callable(self, simple_index):
+        index = simple_index
         expected = index + index.freq
         result = index.map(lambda x: x + x.freq)
         tm.assert_index_equal(result, expected)
@@ -76,8 +76,8 @@ class DatetimeLike(Base):
             lambda values, index: pd.Series(values, index, dtype=object),
         ],
     )
-    def test_map_dictlike(self, mapper):
-        index = self.create_index()
+    def test_map_dictlike(self, mapper, simple_index):
+        index = simple_index
         expected = index + index.freq
 
         # don't compare the freqs
@@ -97,15 +97,15 @@ class DatetimeLike(Base):
         result = index.map(mapper([], []))
         tm.assert_index_equal(result, expected)
 
-    def test_getitem_preserves_freq(self):
-        index = self.create_index()
+    def test_getitem_preserves_freq(self, simple_index):
+        index = simple_index
         assert index.freq is not None
 
         result = index[:]
         assert result.freq == index.freq
 
-    def test_where_cast_str(self):
-        index = self.create_index()
+    def test_where_cast_str(self, simple_index):
+        index = simple_index
 
         mask = np.ones(len(index), dtype=bool)
         mask[-1] = False

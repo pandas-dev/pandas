@@ -208,15 +208,6 @@ class Resampler(BaseGroupBy, PandasObject):
         return self.groupby.ax
 
     @property
-    def _typ(self) -> str:
-        """
-        Masquerade for compat as a Series or a DataFrame.
-        """
-        if isinstance(self._selected_obj, ABCSeries):
-            return "series"
-        return "dataframe"
-
-    @property
     def _from_selection(self) -> bool:
         """
         Is the resampling from a DataFrame column or MultiIndex level.
@@ -439,21 +430,23 @@ class Resampler(BaseGroupBy, PandasObject):
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)
-        except (DataError, AttributeError, KeyError):
+        except DataError:
+            # got TypeErrors on aggregation
+            result = grouped.apply(how, *args, **kwargs)
+        except (AttributeError, KeyError):
             # we have a non-reducing function; try to evaluate
             # alternatively we want to evaluate only a column of the input
+
+            # test_apply_to_one_column_of_df the function being applied references
+            #  a DataFrame column, but aggregate_item_by_item operates column-wise
+            #  on Series, raising AttributeError or KeyError
+            #  (depending on whether the column lookup uses getattr/__getitem__)
             result = grouped.apply(how, *args, **kwargs)
+
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
                 # raised in _aggregate_named
-                pass
-            elif "len(index) != len(labels)" in str(err):
-                # raised in libgroupby validation
-                pass
-            elif "No objects to concatenate" in str(err):
-                # raised in concat call
-                #  In tests this is reached via either
-                #  _apply_to_column_groupbys (ohlc) or DataFrameGroupBy.nunique
+                # see test_apply_without_aggregation, test_apply_with_mutated_index
                 pass
             else:
                 raise
@@ -1046,11 +1039,9 @@ class _GroupByMixin(PandasObject):
 
     _attributes: list[str]  # in practice the same as Resampler._attributes
 
-    def __init__(self, obj, **kwargs):
+    def __init__(self, obj, parent=None, groupby=None, **kwargs):
         # reached via ._gotitem and _get_resampler_for_grouping
 
-        parent = kwargs.pop("parent", None)
-        groupby = kwargs.pop("groupby", None)
         if parent is None:
             parent = obj
 
@@ -1416,15 +1407,13 @@ get_resampler.__doc__ = Resampler.__doc__
 
 
 def get_resampler_for_grouping(
-    groupby, rule, how=None, fill_method=None, limit=None, kind=None, **kwargs
+    groupby, rule, how=None, fill_method=None, limit=None, kind=None, on=None, **kwargs
 ):
     """
     Return our appropriate resampler when grouping as well.
     """
     # .resample uses 'on' similar to how .groupby uses 'key'
-    kwargs["key"] = kwargs.pop("on", None)
-
-    tg = TimeGrouper(freq=rule, **kwargs)
+    tg = TimeGrouper(freq=rule, key=on, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
     return resampler._get_resampler_for_grouping(groupby=groupby)
 
