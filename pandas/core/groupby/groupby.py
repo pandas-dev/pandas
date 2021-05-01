@@ -158,7 +158,8 @@ _apply_docs = {
     side-effects, as they will take effect twice for the first
     group.
 
-    .. versionchanged:: 1.2.0
+    .. versionchanged:: 1.3.0
+
         The resulting dtype will reflect the return value of the passed ``func``,
         see the examples below.
 
@@ -187,8 +188,11 @@ _apply_docs = {
 
     Example 2: The function passed to `apply` takes a DataFrame as
     its argument and returns a Series.  `apply` combines the result for
-    each group together into a new DataFrame, using the dtype returned
-    from the function for the result dtype:
+    each group together into a new DataFrame.
+
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the passed ``func``.
 
     >>> g[['B', 'C']].apply(lambda x: x.astype(float).max() - x.min())
          B    C
@@ -215,8 +219,11 @@ _apply_docs = {
 
     Example 1: The function passed to `apply` takes a Series as
     its argument and returns a Series.  `apply` combines the result for
-    each group together into a new Series, using the dtype returned
-    from the function for the result dtype:
+    each group together into a new Series.
+
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the passed ``func``.
 
     >>> g.apply(lambda x: x*2 if x.name == 'a' else x/2)
     a    0.0
@@ -379,8 +386,10 @@ When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
 user defined function, and no alternative execution attempts will be tried.
 
-The resulting dtype will reflect the return value of the passed ``func``,
-see the examples below.
+.. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    see the examples below.
 
 Examples
 --------
@@ -412,8 +421,10 @@ Broadcast result of the transformation
 4  4  6.0
 5  3  8.0
 
-The resulting dtype will reflect the return value of the transformation function,
-for example:
+.. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    for example:
 
 >>> grouped[['C', 'D']].transform(lambda x: x.astype(int).max())
    C  D
@@ -495,8 +506,10 @@ Functions that mutate the passed object can produce unexpected
 behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
 for more details.
 
-The resulting dtype will reflect the return value of the passed ``func``,
-see the examples below.
+.. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    see the examples below.
 {examples}"""
 
 

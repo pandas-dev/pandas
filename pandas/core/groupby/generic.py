@@ -224,7 +224,9 @@ class SeriesGroupBy(GroupBy[Series]):
     1        1        2
     2        3        4
 
-    The resulting dtype will reflect the return value of the aggregating function.
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the aggregating function.
 
     >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
     1    1.0
@@ -1004,7 +1006,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     See :ref:`groupby.aggregate.named` for more.
 
-    The resulting dtype will reflect the return value of the aggregating function.
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the aggregating function.
 
     >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
           B
