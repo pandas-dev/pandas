@@ -158,8 +158,9 @@ _apply_docs = {
     side-effects, as they will take effect twice for the first
     group.
 
-    The resulting dtype will reflect the return value of the passed ``func``,
-    see the examples below.
+    .. versionchanged:: 1.2.0
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
 
     Examples
     --------

@@ -327,7 +327,7 @@ values as measured by ``np.allclose``. Now no such casting occurs.
 
 .. ipython:: python
 
-    In [5]: df.groupby('key').agg(lambda x: x.sum())
+    df.groupby('key').agg(lambda x: x.sum())
 
 Try operating inplace when setting values with ``loc`` and ``iloc``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
