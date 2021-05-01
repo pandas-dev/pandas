@@ -164,6 +164,21 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 
 `Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
 
+`Lux <https://github.com/lux-org/lux>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`Lux <https://github.com/lux-org/lux>`__ is a Python library that facilitates fast and easy experimentation with data by automating the visual data exploration process. To use Lux, simply add an extra import alongside pandas:
+
+.. code:: python
+
+    import lux
+    import pandas as pd
+
+    df = pd.read_csv("data.csv")
+    df  # discover interesting insights!
+
+By printing out a dataframe, Lux automatically `recommends a set of visualizations <https://github.com/lux-org/lux-resources/blob/master/readme_img/demohighlight.gif?raw=true>`__ that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a `powerful, intuitive language <https://lux-api.readthedocs.io/en/latest/source/guide/vis.html>`__ that allow users to create  `Altair <https://altair-viz.github.io/>`__, `matplotlib <https://matplotlib.org>`__, or `Vega-Lite <https://vega.github.io/vega-lite/>`__ visualizations without having to think at the level of code.
+
 `Qtpandas <https://github.com/draperjames/qtpandas>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
