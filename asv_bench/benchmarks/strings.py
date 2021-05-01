@@ -50,12 +50,10 @@ class Construction:
 
 
 class Methods:
-    params = ["str", "string", "arrow_string"]
+    params = ["str", "string[python]", "string[pyarrow]"]
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
         try:
             self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
         except ImportError:
@@ -213,12 +211,10 @@ class Cat:
 
 class Contains:
 
-    params = (["str", "string", "arrow_string"], [True, False])
+    params = (["str", "string[python]", "string[pyarrow]"], [True, False])
     param_names = ["dtype", "regex"]
 
     def setup(self, dtype, regex):
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
         try:
             self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
         except ImportError:

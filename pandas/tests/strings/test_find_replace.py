@@ -18,8 +18,9 @@ from pandas import (
     params=[
         "object",
         "string",
+        "string[python]",
         pytest.param(
-            "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
         ),
     ]
 )
@@ -28,10 +29,9 @@ def any_string_dtype(request):
     Parametrized fixture for string dtypes.
     * 'object'
     * 'string'
-    * 'arrow_string'
+    * 'string[python]'
+    * 'string[pyarrow]'
     """
-    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
     return request.param
 
 

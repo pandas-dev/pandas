@@ -34,8 +34,8 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
-from pandas.core.arrays.string_ import StringDtype
 from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
