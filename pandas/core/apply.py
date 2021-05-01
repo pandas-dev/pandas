@@ -156,7 +156,7 @@ class Apply(metaclass=abc.ABCMeta):
         kwargs = self.kwargs
 
         if isinstance(arg, str):
-            return self.maybe_apply_str()
+            return self.apply_str()
 
         if is_dict_like(arg):
             return self.agg_dict_like()
@@ -456,7 +456,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         return result
 
-    def maybe_apply_str(self) -> FrameOrSeriesUnion:
+    def apply_str(self) -> FrameOrSeriesUnion:
         """
         Compute apply in case of a string.
 
@@ -465,8 +465,7 @@ class Apply(metaclass=abc.ABCMeta):
         result: Series or DataFrame
         """
         # Caller is responsible for checking isinstance(self.f, str)
-        f = self.f
-        f = cast(str, f)
+        f = cast(str, self.f)
 
         obj = self.obj
 
@@ -482,7 +481,7 @@ class Apply(metaclass=abc.ABCMeta):
                 raise ValueError(f"Operation {f} does not support axis=1")
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
-    def maybe_apply_multiple(self) -> FrameOrSeriesUnion | None:
+    def apply_multiple(self) -> FrameOrSeriesUnion:
         """
         Compute apply in case of a list-like or dict-like.
 
@@ -491,9 +490,6 @@ class Apply(metaclass=abc.ABCMeta):
         result: Series, DataFrame, or None
             Result when self.f is a list-like or dict-like, None otherwise.
         """
-        # Note: dict-likes are list-like
-        if not is_list_like(self.f):
-            return None
         return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
 
     def normalize_dictlike_arg(
@@ -634,9 +630,8 @@ class FrameApply(NDFrameApply):
     def apply(self) -> FrameOrSeriesUnion:
         """ compute the results """
         # dispatch to agg
-        result = self.maybe_apply_multiple()
-        if result is not None:
-            return result
+        if is_list_like(self.f):
+            return self.apply_multiple()
 
         # all empty
         if len(self.columns) == 0 and len(self.index) == 0:
@@ -644,7 +639,7 @@ class FrameApply(NDFrameApply):
 
         # string dispatch
         if isinstance(self.f, str):
-            return self.maybe_apply_str()
+            return self.apply_str()
 
         # ufunc
         elif isinstance(self.f, np.ufunc):
@@ -829,7 +824,7 @@ class FrameApply(NDFrameApply):
 
         return result
 
-    def maybe_apply_str(self) -> FrameOrSeriesUnion:
+    def apply_str(self) -> FrameOrSeriesUnion:
         # Caller is responsible for checking isinstance(self.f, str)
         # TODO: GH#39993 - Avoid special-casing by replacing with lambda
         if self.f == "size":
@@ -837,7 +832,7 @@ class FrameApply(NDFrameApply):
             obj = self.obj
             value = obj.shape[self.axis]
             return obj._constructor_sliced(value, index=self.agg_axis, name="size")
-        return super().maybe_apply_str()
+        return super().apply_str()
 
 
 class FrameRowApply(FrameApply):
@@ -1005,13 +1000,12 @@ class SeriesApply(NDFrameApply):
             return self.apply_empty_result()
 
         # dispatch to agg
-        result = self.maybe_apply_multiple()
-        if result is not None:
-            return result
+        if is_list_like(self.f):
+            return self.apply_multiple()
 
         if isinstance(self.f, str):
             # if we are a string, try to dispatch
-            return self.maybe_apply_str()
+            return self.apply_str()
 
         return self.apply_standard()
 
