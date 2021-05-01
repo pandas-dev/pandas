@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Iterator,
     Sequence,
     TypeVar,
     cast,
@@ -69,6 +70,7 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from typing import Literal
 
     class ExtensionArraySupportsAnyAll("ExtensionArray"):
         def any(self, *, skipna: bool = True) -> bool:
@@ -375,7 +377,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         """
         Iterate over elements of the array.
         """
@@ -385,7 +387,7 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __contains__(self, item) -> bool | np.bool_:
+    def __contains__(self, item: Any) -> bool | np.bool_:
         """
         Return for `item in self`.
         """
@@ -680,7 +682,12 @@ class ExtensionArray:
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
-    def fillna(self, value=None, method=None, limit=None):
+    def fillna(
+        self,
+        value: Any | ArrayLike | None,
+        method: Literal["backfill", "bfill", "ffill", "pad"] | None = None,
+        limit: int | None = None,
+    ):
         """
         Fill NA/NaN values using the specified method.
 
@@ -1207,7 +1214,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self, *axes) -> ExtensionArray:
+    def transpose(self, *axes: int) -> ExtensionArray:
         """
         Return a transposed view on this array.
 
@@ -1220,7 +1227,7 @@ class ExtensionArray:
     def T(self) -> ExtensionArray:
         return self.transpose()
 
-    def ravel(self, order="C") -> ExtensionArray:
+    def ravel(self, order: Literal["C", "F", "A", "K"] | None = "C") -> ExtensionArray:
         """
         Return a flattened view on this array.
 
@@ -1294,7 +1301,7 @@ class ExtensionArray:
         """
         raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
 
     # ------------------------------------------------------------------------
