@@ -562,12 +562,14 @@ class Nunique:
     def time_frame_nunique(self):
         self.df.nunique()
 
+
 class SeriesNuniqueWithNan:
     def setup(self):
         self.ser = Series(100000 * (100 * [np.nan] + list(range(100)))).astype(float)
 
     def time_series_nunique_nan(self):
         self.ser.nunique()
+
 
 class Duplicated:
     def setup(self):
