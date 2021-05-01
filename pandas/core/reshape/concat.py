@@ -124,6 +124,38 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    axis: Literal[0, "index"] = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> FrameOrSeriesUnion:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    axis: Literal[1, "columns"],
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> DataFrame:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
     axis: Axis = ...,
     join: str = ...,
     ignore_index: bool = ...,
