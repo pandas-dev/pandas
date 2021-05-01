@@ -809,6 +809,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     grouper: ops.BaseGrouper
     as_index: bool
 
+    @final
     def __init__(
         self,
         obj: FrameOrSeries,
@@ -1056,7 +1057,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         return result
 
-    def _wrap_aggregated_output(self, output: Mapping[base.OutputKey, np.ndarray]):
+    def _wrap_aggregated_output(self, output: Mapping[base.OutputKey, ArrayLike]):
         raise AbstractMethodError(self)
 
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, ArrayLike]):
@@ -1222,7 +1223,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
-        output: dict[base.OutputKey, np.ndarray] = {}
+        output: dict[base.OutputKey, ArrayLike] = {}
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name

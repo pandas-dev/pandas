@@ -2020,6 +2020,12 @@ def test_groupby_crash_on_nunique(axis):
 
     tm.assert_frame_equal(result, expected)
 
+    # same thing, but empty columns
+    gb = df[[]].groupby(axis=axis_number, level=0)
+    res = gb.nunique()
+    exp = expected[[]]
+    tm.assert_frame_equal(res, exp)
+
 
 def test_groupby_list_level():
     # GH 9790
