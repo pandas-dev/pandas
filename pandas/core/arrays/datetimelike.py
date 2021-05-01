@@ -48,7 +48,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     NpDtype,
-    PositionalIndexer2D,
+    PositionalIndexer,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -309,8 +309,18 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
             return np.array(list(self), dtype=object)
         return self._ndarray
 
+    @overload
+    def __getitem__(self, item: int | np.integer) -> DTScalarOrNaT:
+        ...
+
+    @overload
     def __getitem__(
-        self, key: PositionalIndexer2D
+        self, item: slice | np.ndarray | Sequence[int]
+    ) -> DatetimeLikeArrayMixin:
+        ...
+
+    def __getitem__(
+        self, key: PositionalIndexer
     ) -> DatetimeLikeArrayMixin | DTScalarOrNaT:
         """
         This getitem defers to the underlying array, which by-definition can
@@ -1778,11 +1788,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             uniques = self.copy()  # TODO: copy or view?
             if sort and self.freq.n < 0:
                 codes = codes[::-1]
-                # TODO: overload __getitem__, a slice indexer returns same type as self
-                # error: Incompatible types in assignment (expression has type
-                # "Union[DatetimeLikeArrayMixin, Union[Any, Any]]", variable
-                # has type "TimelikeOps")
-                uniques = uniques[::-1]  # type: ignore[assignment]
+                uniques = uniques[::-1]
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort
         return super().factorize(na_sentinel=na_sentinel)

@@ -16,6 +16,7 @@ from typing import (
     Sequence,
     TypeVar,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -288,6 +289,13 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
+    @overload
+    def __getitem__(self, item: int | np.integer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(self, item: slice | np.ndarray | Sequence[int]) -> ExtensionArray:
+        ...
 
     def __getitem__(self, item: PositionalIndexer) -> ExtensionArray | Any:
         """
@@ -729,7 +737,7 @@ class ExtensionArray:
             new_values = self.copy()
         return new_values
 
-    def dropna(self):
+    def dropna(self: ExtensionArrayT) -> ExtensionArrayT:
         """
         Return ExtensionArray without NA values.
 

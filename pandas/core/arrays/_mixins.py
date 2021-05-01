@@ -6,6 +6,7 @@ from typing import (
     Sequence,
     TypeVar,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -13,7 +14,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import (
     F,
-    PositionalIndexer2D,
+    PositionalIndexer,
     Shape,
     type_t,
 )
@@ -276,9 +277,19 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _validate_setitem_value(self, value):
         return value
 
+    @overload
+    def __getitem__(self, item: int | np.integer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT, item: slice | np.ndarray | Sequence[int]
+    ) -> NDArrayBackedExtensionArrayT:
+        ...
+
     def __getitem__(
         self: NDArrayBackedExtensionArrayT,
-        key: PositionalIndexer2D,
+        key: PositionalIndexer,
     ) -> NDArrayBackedExtensionArrayT | Any:
         if lib.is_integer(key):
             # fast-path
