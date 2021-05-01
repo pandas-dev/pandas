@@ -56,9 +56,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
-    is_signed_integer_dtype,
     is_timedelta64_dtype,
-    is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -131,10 +129,10 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
         values = extract_array(values, extract_numpy=True)
 
     # we check some simple dtypes first
-    if is_object_dtype(values):
+    if is_object_dtype(values.dtype):
         return ensure_object(np.asarray(values)), np.dtype("object")
 
-    elif is_bool_dtype(values):
+    elif is_bool_dtype(values.dtype):
         if isinstance(values, np.ndarray):
             # i.e. actually dtype == np.dtype("bool")
             return np.asarray(values).view("uint8"), values.dtype
@@ -142,19 +140,16 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
             # i.e. all-bool Categorical, BooleanArray
             return np.asarray(values).astype("uint8", copy=False), values.dtype
 
-    elif is_signed_integer_dtype(values):
+    elif is_integer_dtype(values.dtype):
         return np.asarray(values), values.dtype
 
-    elif is_unsigned_integer_dtype(values):
-        return np.asarray(values), values.dtype
-
-    elif is_float_dtype(values):
+    elif is_float_dtype(values.dtype):
         if values.dtype == "float128" or values.dtype == "float16":
             # we dont (yet) have float128 hashtable support
             return ensure_float64(values), values.dtype
         return np.asarray(values), values.dtype
 
-    elif is_complex_dtype(values):
+    elif is_complex_dtype(values.dtype):
         # ignore the fact that we are casting to float
         # which discards complex parts
         with catch_warnings():
