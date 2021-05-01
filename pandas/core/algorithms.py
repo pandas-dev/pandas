@@ -135,8 +135,6 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
         return ensure_object(np.asarray(values)), np.dtype("object")
 
     elif is_bool_dtype(values):
-        # we are actually coercing to uint64
-        # until our algos support uint8 directly (see TODO)
         if isinstance(values, np.ndarray):
             # i.e. actually dtype == np.dtype("bool")
             return np.asarray(values).view("uint8"), values.dtype
