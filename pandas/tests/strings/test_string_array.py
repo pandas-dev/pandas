@@ -13,18 +13,10 @@ from pandas import (
 )
 
 
-def test_string_array(nullable_string_dtype, any_string_method, request):
+def test_string_array(nullable_string_dtype, any_string_method):
     method_name, args, kwargs = any_string_method
     if method_name == "decode":
         pytest.skip("decode requires bytes.")
-
-    if nullable_string_dtype == "arrow_string" and method_name in {
-        "extract",
-        "extractall",
-    }:
-        reason = "extract/extractall does not yet dispatch to array"
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
 
     data = ["a", "bb", np.nan, "ccc"]
     a = Series(data, dtype=object)
@@ -93,14 +85,9 @@ def test_string_array_boolean_array(nullable_string_dtype, method, expected):
     tm.assert_series_equal(result, expected)
 
 
-def test_string_array_extract(nullable_string_dtype, request):
+def test_string_array_extract(nullable_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/30969
     # Only expand=False & multiple groups was failing
-
-    if nullable_string_dtype == "arrow_string":
-        reason = "extract does not yet dispatch to array"
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
 
     a = Series(["a1", "b2", "cc"], dtype=nullable_string_dtype)
     b = Series(["a1", "b2", "cc"], dtype="object")

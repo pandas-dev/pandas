@@ -204,7 +204,10 @@ class StringDtype(ExtensionDtype):
                 str_arr = StringArray._from_sequence(np.array(arr))
                 results.append(str_arr)
 
+        if results:
             return StringArray._concat_same_type(results)
+        else:
+            return StringArray(np.array([], dtype="object"))
 
 
 class StringArray(PandasArray):
@@ -533,9 +536,7 @@ class StringArray(PandasArray):
             if not na_value_is_na:
                 mask[:] = False
 
-            # error: Argument 1 to "maybe_convert_objects" has incompatible
-            # type "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            return constructor(result, mask)  # type: ignore[arg-type]
+            return constructor(result, mask)
 
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype
