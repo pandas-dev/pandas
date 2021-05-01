@@ -13,77 +13,10 @@ from pandas import (
     UInt64Index,
 )
 import pandas._testing as tm
-from pandas.tests.indexes.common import Base
+from pandas.tests.indexes.common import NumericBase
 
 
-class TestArithmetic:
-    @pytest.mark.parametrize(
-        "klass", [Float64Index, Int64Index, UInt64Index, RangeIndex]
-    )
-    def test_arithmetic_explicit_conversions(self, klass):
-
-        # GH 8608
-        # add/sub are overridden explicitly for Float/Int Index
-        if klass is RangeIndex:
-            idx = RangeIndex(5)
-        else:
-            idx = klass(np.arange(5, dtype="int64"))
-
-        # float conversions
-        arr = np.arange(5, dtype="int64") * 3.2
-        expected = Float64Index(arr)
-        fidx = idx * 3.2
-        tm.assert_index_equal(fidx, expected)
-        fidx = 3.2 * idx
-        tm.assert_index_equal(fidx, expected)
-
-        # interops with numpy arrays
-        expected = Float64Index(arr)
-        a = np.zeros(5, dtype="float64")
-        result = fidx - a
-        tm.assert_index_equal(result, expected)
-
-        expected = Float64Index(-arr)
-        a = np.zeros(5, dtype="float64")
-        result = a - fidx
-        tm.assert_index_equal(result, expected)
-
-
-class Numeric(Base):
-    def test_where(self):
-        # Tested in numeric.test_indexing
-        pass
-
-    def test_can_hold_identifiers(self, simple_index):
-        idx = simple_index
-        key = idx[0]
-        assert idx._can_hold_identifiers_and_holds_name(key) is False
-
-    def test_format(self, simple_index):
-        # GH35439
-        idx = simple_index
-        max_width = max(len(str(x)) for x in idx)
-        expected = [str(x).ljust(max_width) for x in idx]
-        assert idx.format() == expected
-
-    def test_numeric_compat(self):
-        pass  # override Base method
-
-    def test_insert_na(self, nulls_fixture, simple_index):
-        # GH 18295 (test missing)
-        index = simple_index
-        na_val = nulls_fixture
-
-        if na_val is pd.NaT:
-            expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
-        else:
-            expected = Float64Index([index[0], np.nan] + list(index[1:]))
-
-        result = index.insert(1, na_val)
-        tm.assert_index_equal(result, expected)
-
-
-class TestFloat64Index(Numeric):
+class TestFloat64Index(NumericBase):
     _index_cls = Float64Index
     _dtype = np.float64
 
@@ -355,7 +288,7 @@ class TestFloat64Index(Numeric):
         tm.assert_index_equal(idx.fillna("obj"), exp)
 
 
-class NumericInt(Numeric):
+class NumericInt(NumericBase):
     def test_view(self):
         index_cls = self._index_cls
 
