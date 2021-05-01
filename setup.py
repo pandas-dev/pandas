@@ -7,7 +7,6 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
 import argparse
-from distutils.command.build import build
 import multiprocessing
 import os
 from os.path import join as pjoin
@@ -302,7 +301,7 @@ class DummyBuildSrc(Command):
         pass
 
 
-cmdclass.update({"clean": CleanCommand, "build": build})
+cmdclass["clean"] = CleanCommand
 cmdclass["build_ext"] = CheckingBuildExt
 
 if _CYTHON_INSTALLED:
