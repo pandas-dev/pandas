@@ -345,11 +345,6 @@ class SeriesGroupBy(GroupBy[Series]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output: dict[base.OutputKey, ArrayLike] = {}
-        # Ideally we would be able to enumerate self._iterate_slices and use
-        # the index from enumeration as the key of output, but ohlc in particular
-        # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
-        # need to slice that up into 1D arrays
 
         obj = self._selected_obj
         objvals = obj._values
@@ -388,14 +383,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
         result = array_func(objvals)
 
-        assert result.ndim == 1
-        key = base.OutputKey(label=obj.name, position=0)
-        output[key] = result
-
-        if not output:
-            raise DataError("No numeric types to aggregate")
-
-        return self._wrap_aggregated_output(output)
+        ser = self.obj._constructor(
+            result, index=self.grouper.result_index, name=obj.name
+        )
+        return self._reindex_output(ser)
 
     def _wrap_aggregated_output(
         self,
