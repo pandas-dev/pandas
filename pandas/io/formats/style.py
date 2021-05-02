@@ -1050,8 +1050,8 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         subset : IndexSlice
-            An argument to ``DataFrame.loc`` along the index, that identifies which
-            index key rows will be hidden.
+            An argument to ``DataFrame.loc[subset, :]``, i.e. along the index, that
+            identifies which index key rows will be hidden.
         show : bool
             Indicates whether the function `hides` the index or selected rows,
             by default, or operates inversely by exclusively showing them.
@@ -1134,8 +1134,8 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         subset : IndexSlice
-            An argument to ``DataFrame.loc`` along the columns, that identifies which
-            columns keys will be hidden.
+            An argument to ``DataFrame.loc[:, subset]``, i.e. along the columns, that
+            identifies which columns keys will be hidden.
         show : bool
             Indicates whether the function `hides` the columns headers or selected
             columns, by default, or operates inversely by exclusively showing them.
