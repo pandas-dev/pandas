@@ -97,7 +97,6 @@ from pandas.core.indexes.api import (
     all_indexes_same,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.internals import ArrayManager
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 
@@ -511,6 +510,8 @@ class SeriesGroupBy(GroupBy[Series]):
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
+        # Note: this is very similar to _aggregate_series_pure_python,
+        #  but that does not pin group.name
         result = {}
         initialized = False
 
@@ -523,7 +524,7 @@ class SeriesGroupBy(GroupBy[Series]):
             output = libreduction.extract_result(output)
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(output, 0)
+                libreduction.check_result_array(output)
                 initialized = True
             result[name] = output
 
@@ -1103,17 +1104,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
-        using_array_manager = isinstance(data, ArrayManager)
-
         def cast_agg_result(result: ArrayLike, values: ArrayLike) -> ArrayLike:
             # see if we can cast the values to the desired dtype
             # this may not be the original dtype
 
-            if (
-                not using_array_manager
-                and isinstance(result.dtype, np.dtype)
-                and result.ndim == 1
-            ):
+            if isinstance(result.dtype, np.dtype) and result.ndim == 1:
                 # We went through a SeriesGroupByPath and need to reshape
                 # GH#32223 includes case with IntegerArray values
                 # We only get here with values.dtype == object
@@ -1794,8 +1789,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        using_array_manager = isinstance(data, ArrayManager)
-
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
             # TODO(2DEA): reshape would not be necessary with 2D EAs
             if bvalues.ndim == 1:
@@ -1805,10 +1798,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 masked = mask & ~isna(bvalues)
 
             counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
-            if using_array_manager:
-                # count_level_2d return (1, N) array for single column
-                # -> extract 1D array
-                counted = counted[0, :]
             return counted
 
         new_mgr = data.grouped_reduce(hfunc)

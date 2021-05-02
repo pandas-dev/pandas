@@ -985,15 +985,7 @@ class BaseGrouper:
             # Preempt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
-        try:
-            return self._aggregate_series_fast(obj, func)
-        except ValueError as err:
-            if "Must produce aggregated value" in str(err):
-                # raised in libreduction
-                pass
-            else:
-                raise
-        return self._aggregate_series_pure_python(obj, func)
+        return self._aggregate_series_fast(obj, func)
 
     def _aggregate_series_fast(
         self, obj: Series, func: F
@@ -1023,9 +1015,10 @@ class BaseGrouper:
         result = np.empty(ngroups, dtype="O")
         initialized = False
 
+        # equiv: splitter = self._get_splitter(obj, axis=0)
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
-        for label, group in enumerate(splitter):
+        for i, group in enumerate(splitter):
 
             # Each step of this loop corresponds to
             #  libreduction._BaseGrouper._apply_to_group
@@ -1034,11 +1027,11 @@ class BaseGrouper:
 
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(res, 0)
+                libreduction.check_result_array(res)
                 initialized = True
 
-            counts[label] = group.shape[0]
-            result[label] = res
+            counts[i] = group.shape[0]
+            result[i] = res
 
         npvalues = lib.maybe_convert_objects(result, try_float=False)
         out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
