@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (  # noqa
+from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     Float64Index,
