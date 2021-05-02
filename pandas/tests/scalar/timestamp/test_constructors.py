@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
@@ -223,7 +224,11 @@ class TestTimestampConstructors:
 
     def test_constructor_positional(self):
         # see gh-10758
-        msg = "an integer is required"
+        msg = (
+            "'NoneType' object cannot be interpreted as an integer"
+            if PY310
+            else "an integer is required"
+        )
         with pytest.raises(TypeError, match=msg):
             Timestamp(2000, 1)
 

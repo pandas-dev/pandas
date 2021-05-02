@@ -242,7 +242,9 @@ class TestFloat64Index(Numeric):
         with pytest.raises((TypeError, ValueError), match=msg):
             index_cls(["a", "b", 0.0])
 
-        msg = r"float\(\) argument must be a string or a number, not 'Timestamp'"
+        msg = (
+            r"float\(\) argument must be a string or a( real)? number, not 'Timestamp'"
+        )
         with pytest.raises(TypeError, match=msg):
             index_cls([Timestamp("20130101")])
 
