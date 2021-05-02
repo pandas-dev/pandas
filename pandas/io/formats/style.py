@@ -28,6 +28,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 import pandas as pd
+from pandas import IndexSlice
 from pandas.api.types import is_list_like
 from pandas.core import generic
 import pandas.core.common as com
@@ -640,7 +641,7 @@ class Styler(StylerRenderer):
     def _applymap(self, func: Callable, subset=None, **kwargs) -> Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
-            subset = pd.IndexSlice[:]
+            subset = IndexSlice[:]
         subset = non_reducing_slice(subset)
         result = self.data.loc[subset].applymap(func)
         self._update_ctx(result)
@@ -1035,37 +1036,180 @@ class Styler(StylerRenderer):
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
 
-    def hide_index(self) -> Styler:
+    def hide_index(self, subset=None, show: bool = False) -> Styler:
         """
-        Hide any indices from rendering.
+        Hide the entire index, or specific keys in the index from rendering.
 
-        Returns
-        -------
-        self : Styler
-        """
-        self.hidden_index = True
-        return self
+        This method has dual functionality:
 
-    def hide_columns(self, subset) -> Styler:
-        """
-        Hide columns from rendering.
+          - if ``subset`` is ``None`` then the entire index will be hidden whilst
+            displaying all data-rows.
+          - if a ``subset`` is given then those specific rows will be hidden whilst the
+            index itself remains visible.
 
         Parameters
         ----------
         subset : IndexSlice
-            An argument to ``DataFrame.loc`` that identifies which columns
-            are hidden.
+            An argument to ``DataFrame.loc`` along the index, that identifies which
+            index key rows will be hidden.
+        show : bool
+            Indicates whether the function `hides` the index or selected rows,
+            by default, or operates inversely by exclusively showing them.
 
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.hide_columns: Hide the entire column headers row, or specific columns.
+
+        Examples
+        --------
+        Hide the index and retain the data values:
+
+        >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
+        >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
+        >>> df.style.format("{:.1f}").hide_index()
+                         x                    y
+           a      b      c      a      b      c
+         0.1    0.0    0.4    1.3    0.6   -1.4
+         0.7    1.0    1.3    1.5   -0.0   -0.2
+         1.4   -0.8    1.6   -0.2   -0.4   -0.3
+         0.4    1.0   -0.2   -0.8   -1.2    1.1
+        -0.6    1.2    1.8    1.9    0.3    0.3
+         0.8    0.5   -0.3    1.2    2.2   -0.8
+
+        Hide specific rows but retain the index:
+
+        >>> df.style.format("{:.1f}").hide_index(subset=(slice(None), ["a", "c"]))
+                                 x                    y
+                   a      b      c      a      b      c
+        x   b    0.7    1.0    1.3    1.5   -0.0   -0.2
+        y   b   -0.6    1.2    1.8    1.9    0.3    0.3
+
+        Hide specific rows and the index:
+
+        >>> df.style.format("{:.1f}").hide_index(subset=(slice(None), ["a", "c"]))
+        ...     .hide_index()
+                         x                    y
+           a      b      c      a      b      c
+         0.7    1.0    1.3    1.5   -0.0   -0.2
+        -0.6    1.2    1.8    1.9    0.3    0.3
+
+        Exclusively show specific rows:
+
+        >>> df.style.format("{:.1f}")
+        ...     .hide_index(subset=(slice(None), ["b"]), show=True)
+                                 x                    y
+                   a      b      c      a      b      c
+        x   b    0.7    1.0    1.3    1.5   -0.0   -0.2
+        y   b   -0.6    1.2    1.8    1.9    0.3    0.3
         """
-        subset = non_reducing_slice(subset)
-        hidden_df = self.data.loc[subset]
-        hcols = self.columns.get_indexer_for(hidden_df.columns)
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "Sequence[int]")
-        self.hidden_columns = hcols  # type: ignore[assignment]
+        if subset is None:
+            self.hidden_index = not show
+        else:
+            subset = IndexSlice[subset, :]
+            subset = non_reducing_slice(subset)
+            hide = self.data.loc[subset]
+            if show:  # invert the display
+                hide = self.data.loc[~self.data.index.isin(hide.index.to_list()), :]
+            hrows = self.index.get_indexer_for(hide.index)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Sequence[int]")
+            self.hidden_rows = hrows  # type: ignore[assignment]
+        return self
+
+    def hide_columns(self, subset=None, show: bool = False) -> Styler:
+        """
+        Hide the column headers or specific keys in the columns from rendering.
+
+        This method has dual functionality:
+
+          - if ``subset`` is ``None`` then the entire column headers row will be hidden
+            whilst the data-values remain visible.
+          - if a ``subset`` is given then those specific columns, including the
+            data-values will be hidden, whilst the column headers row remains visible.
+
+        Parameters
+        ----------
+        subset : IndexSlice
+            An argument to ``DataFrame.loc`` along the columns, that identifies which
+            columns keys will be hidden.
+        show : bool
+            Indicates whether the function `hides` the columns headers or selected
+            columns, by default, or operates inversely by exclusively showing them.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.hide_index: Hide the entire index, or specific keys in the index.
+
+        Examples
+        --------
+        Hide column headers and retain the data values:
+
+        >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
+        >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
+        >>> df.style.format("{:.1f}").hide_columns()
+        x   d    0.1    0.0    0.4    1.3    0.6   -1.4
+            e    0.7    1.0    1.3    1.5   -0.0   -0.2
+            f    1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y   d    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            e   -0.6    1.2    1.8    1.9    0.3    0.3
+            f    0.8    0.5   -0.3    1.2    2.2   -0.8
+
+        Hide specific columns but retain the column headers:
+
+        >>> df.style.format("{:.1f}").hide_columns(subset=(slice(None), ["a", "c"]))
+                   x      y
+                   b      b
+        x   a    0.0    0.6
+            b    1.0   -0.0
+            c   -0.8   -0.4
+        y   a    1.0   -1.2
+            b    1.2    0.3
+            c    0.5    2.2
+
+        Hide specific columns and the column headers:
+
+        >>> df.style.format("{:.1f}").hide_columns(subset=(slice(None), ["a", "c"]))
+        ...     .hide_columns()
+        x   a    0.0    0.6
+            b    1.0   -0.0
+            c   -0.8   -0.4
+        y   a    1.0   -1.2
+            b    1.2    0.3
+            c    0.5    2.2
+
+        Exclusively show specific columns:
+
+        >>> df.style.format("{:.1f}")
+        ...     .hide_columns(subset=(slice(None), ["b"]), show=True)
+                   x      y
+                   b      b
+        x   a    0.0    0.6
+            b    1.0   -0.0
+            c   -0.8   -0.4
+        y   a    1.0   -1.2
+            b    1.2    0.3
+            c    0.5    2.2
+        """
+        if subset is None:
+            self.hidden_colheads = not show
+        else:
+            subset = IndexSlice[:, subset]
+            subset = non_reducing_slice(subset)
+            hide = self.data.loc[subset]
+            if show:  # invert the display
+                hide = self.data.loc[:, ~self.data.columns.isin(hide.columns.to_list())]
+            hcols = self.columns.get_indexer_for(hide.columns)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Sequence[int]")
+            self.hidden_columns = hcols  # type: ignore[assignment]
         return self
 
     # -----------------------------------------------------------------------

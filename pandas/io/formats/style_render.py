@@ -98,6 +98,8 @@ class StylerRenderer:
 
         # add rendering variables
         self.hidden_index: bool = False
+        self.hidden_rows: Sequence[int] = []
+        self.hidden_colheads: bool = False
         self.hidden_columns: Sequence[int] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
@@ -209,37 +211,38 @@ class StylerRenderer:
 
         head = []
         # 1) column headers
-        for r in range(self.data.columns.nlevels):
-            index_blanks = [
-                _element("th", blank_class, blank_value, not self.hidden_index)
-            ] * (self.data.index.nlevels - 1)
+        if not self.hidden_colheads:
+            for r in range(self.data.columns.nlevels):
+                index_blanks = [
+                    _element("th", blank_class, blank_value, not self.hidden_index)
+                ] * (self.data.index.nlevels - 1)
 
-            name = self.data.columns.names[r]
-            column_name = [
-                _element(
-                    "th",
-                    f"{blank_class if name is None else index_name_class} level{r}",
-                    name if name is not None else blank_value,
-                    not self.hidden_index,
-                )
-            ]
-
-            if clabels:
-                column_headers = [
+                name = self.data.columns.names[r]
+                column_name = [
                     _element(
                         "th",
-                        f"{col_heading_class} level{r} col{c}",
-                        value,
-                        _is_visible(c, r, col_lengths),
-                        attributes=(
-                            f'colspan="{col_lengths.get((r, c), 0)}"'
-                            if col_lengths.get((r, c), 0) > 1
-                            else ""
-                        ),
+                        f"{blank_class if name is None else index_name_class} level{r}",
+                        name if name is not None else blank_value,
+                        not self.hidden_index,
                     )
-                    for c, value in enumerate(clabels[r])
                 ]
-                head.append(index_blanks + column_name + column_headers)
+
+                if clabels:
+                    column_headers = [
+                        _element(
+                            "th",
+                            f"{col_heading_class} level{r} col{c}",
+                            value,
+                            _is_visible(c, r, col_lengths),
+                            attributes=(
+                                f'colspan="{col_lengths.get((r, c), 0)}"'
+                                if col_lengths.get((r, c), 0) > 1
+                                else ""
+                            ),
+                        )
+                        for c, value in enumerate(clabels[r])
+                    ]
+                    head.append(index_blanks + column_name + column_headers)
 
         # 2) index names
         if (
@@ -281,7 +284,7 @@ class StylerRenderer:
         <style></style> block
         """
         # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(self.index)
+        idx_lengths = _get_level_lengths(self.index, self.hidden_rows)
 
         rlabels = self.data.index.tolist()
         if self.data.index.nlevels == 1:
@@ -316,7 +319,7 @@ class StylerRenderer:
                     "td",
                     f"{data_class} row{r} col{c}{cls}",
                     value,
-                    (c not in self.hidden_columns),
+                    (c not in self.hidden_columns and r not in self.hidden_rows),
                     attributes="",
                     display_value=self._display_funcs[(r, c)](value),
                 )
@@ -565,7 +568,13 @@ def _get_level_lengths(index, hidden_elements=None):
                 last_label = j
                 lengths[(i, last_label)] = 0
             elif j not in hidden_elements:
-                lengths[(i, last_label)] += 1
+                if lengths[(i, last_label)] == 0:
+                    # if the previous iteration was first-of-kind but hidden then offset
+                    last_label = j
+                    lengths[(i, last_label)] = 1
+                else:
+                    # else add to previous iteration
+                    lengths[(i, last_label)] += 1
 
     non_zero_lengths = {
         element: length for element, length in lengths.items() if length >= 1
