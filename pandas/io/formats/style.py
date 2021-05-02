@@ -465,12 +465,19 @@ class Styler(StylerRenderer):
             matter.
         """
         for cn in attrs.columns:
-            for rn, c in attrs[[cn]].itertuples():
-                if not c:
-                    continue
-                css_list = maybe_convert_css_to_tuples(c)
-                i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
-                self.ctx[(i, j)].extend(css_list)
+            try:
+                for rn, c in attrs[[cn]].itertuples():
+                    if not c:
+                        continue
+                    css_list = maybe_convert_css_to_tuples(c)
+                    i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
+                    self.ctx[(i, j)].extend(css_list)
+            except (ValueError, TypeError):
+                raise KeyError(
+                    "`Styler.apply` and `.applymap` are not "
+                    "compatible with subset slices containing "
+                    "non-unique index or column keys."
+                )
 
     def _copy(self, deepcopy: bool = False) -> Styler:
         styler = Styler(
