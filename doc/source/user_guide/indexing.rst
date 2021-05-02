@@ -1093,10 +1093,11 @@ partial setting via ``.loc`` (but on the contents rather than the axis labels).
 .. ipython:: python
 
    df2 = df.copy()
+   #TODO: replace with example actually using ``where`` like in info text above
    df2[df2[1:4] > 0] = 3
    df2
 
-Where can also accept ``axis`` and ``level`` parameters to align the input when
+``where`` can also accept ``axis`` and ``level`` parameters to align the input when
 performing the ``where``.
 
 .. ipython:: python
