@@ -345,47 +345,48 @@ class SeriesGroupBy(GroupBy[Series]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output: dict[base.OutputKey, ArrayLike] = {}
-        # Ideally we would be able to enumerate self._iterate_slices and use
-        # the index from enumeration as the key of output, but ohlc in particular
-        # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
-        # need to slice that up into 1D arrays
-        idx = 0
-        for obj in self._iterate_slices():
-            name = obj.name
-            is_numeric = is_numeric_dtype(obj.dtype)
-            if numeric_only and not is_numeric:
-                continue
 
-            objvals = obj._values
+        obj = self._selected_obj
+        objvals = obj._values
 
-            if isinstance(objvals, Categorical):
-                if self.grouper.ngroups > 0:
-                    # without special-casing, we would raise, then in fallback
-                    # would eventually call agg_series but without re-casting
-                    # to Categorical
-                    # equiv: res_values, _ = self.grouper.agg_series(obj, alt)
-                    res_values, _ = self.grouper._aggregate_series_pure_python(obj, alt)
-                else:
-                    # equiv: res_values = self._python_agg_general(alt)
-                    res_values = self._python_apply_general(alt, self._selected_obj)
-
-                result = type(objvals)._from_sequence(res_values, dtype=objvals.dtype)
-
-            else:
-                result = self.grouper._cython_operation(
-                    "aggregate", obj._values, how, axis=0, min_count=min_count
-                )
-
-            assert result.ndim == 1
-            key = base.OutputKey(label=name, position=idx)
-            output[key] = result
-            idx += 1
-
-        if not output:
+        if numeric_only and not is_numeric_dtype(obj.dtype):
             raise DataError("No numeric types to aggregate")
 
-        return self._wrap_aggregated_output(output)
+        # This is overkill because it is only called once, but is here to
+        #  mirror the array_func used in DataFrameGroupBy._cython_agg_general
+        def array_func(values: ArrayLike) -> ArrayLike:
+            try:
+                result = self.grouper._cython_operation(
+                    "aggregate", values, how, axis=0, min_count=min_count
+                )
+            except NotImplementedError:
+                ser = Series(values)  # equiv 'obj' from outer frame
+                if self.grouper.ngroups > 0:
+                    res_values, _ = self.grouper.agg_series(ser, alt)
+                else:
+                    # equiv: res_values = self._python_agg_general(alt)
+                    # error: Incompatible types in assignment (expression has
+                    # type "Union[DataFrame, Series]", variable has type
+                    # "Union[ExtensionArray, ndarray]")
+                    res_values = self._python_apply_general(  # type: ignore[assignment]
+                        alt, ser
+                    )
+
+                if isinstance(values, Categorical):
+                    # Because we only get here with known dtype-preserving
+                    #  reductions, we cast back to Categorical.
+                    # TODO: if we ever get "rank" working, exclude it here.
+                    result = type(values)._from_sequence(res_values, dtype=values.dtype)
+                else:
+                    result = res_values
+            return result
+
+        result = array_func(objvals)
+
+        ser = self.obj._constructor(
+            result, index=self.grouper.result_index, name=obj.name
+        )
+        return self._reindex_output(ser)
 
     def _wrap_aggregated_output(
         self,
