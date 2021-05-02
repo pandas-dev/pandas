@@ -81,3 +81,8 @@ def test_table_styles_dict_non_unique_columns(styler):
         {"selector": "td.col1", "props": [("a", "v")]},
         {"selector": "td.col2", "props": [("a", "v")]},
     ]
+
+
+def test_maybe_convert_css_raises(styler):
+    with pytest.raises(ValueError, match="Styles supplied as string must follow CSS"):
+        styler.applymap(lambda x: "bad-css;")._compute()
