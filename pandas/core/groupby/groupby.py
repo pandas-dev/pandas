@@ -1287,7 +1287,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 ) or "category dtype not supported" in str(err):
                     # raised in _get_cython_function, in some cases can
                     #  be trimmed by implementing cython funcs for more dtypes
-                    pass
+                    if self.obj.ndim != 1:
+                        # We expect to get here for SeriesGroupBy; but for
+                        #  DataFrameGroupBy these should be handled within
+                        #  _cython_agg_general
+                        raise
                 else:
                     raise
 
