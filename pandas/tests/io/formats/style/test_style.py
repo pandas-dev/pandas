@@ -1152,7 +1152,8 @@ class TestStyler:
 
         # hide first column only
         ctx = df.style.hide_columns([("b", 0)])._translate()
-        assert ctx["head"][0][2]["is_visible"]  # b
+        assert not ctx["head"][0][2]["is_visible"]  # b
+        assert ctx["head"][0][3]["is_visible"]  # b
         assert not ctx["head"][1][2]["is_visible"]  # 0
         assert not ctx["body"][1][2]["is_visible"]  # 3
         assert ctx["body"][1][3]["is_visible"]
@@ -1167,6 +1168,18 @@ class TestStyler:
         assert not ctx["body"][1][3]["is_visible"]  # 4
         assert ctx["body"][1][2]["is_visible"]
         assert ctx["body"][1][2]["display_value"] == 3
+
+        # hide top row level, which hides both rows
+        ctx = df.style.hide_index("a")._translate()
+        for i in [0, 1, 2, 3]:
+            assert not ctx["body"][0][i]["is_visible"]
+            assert not ctx["body"][1][i]["is_visible"]
+
+        # hide first row only
+        ctx = df.style.hide_index(("a", 0))._translate()
+        for i in [0, 1, 2, 3]:
+            assert not ctx["body"][0][i]["is_visible"]
+            assert ctx["body"][1][i]["is_visible"]
 
     def test_pipe(self):
         def set_caption_from_template(styler, a, b):
