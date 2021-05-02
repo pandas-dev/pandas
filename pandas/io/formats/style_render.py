@@ -82,8 +82,8 @@ class StylerRenderer:
             data = data.to_frame()
         if not isinstance(data, DataFrame):
             raise TypeError("``data`` must be a Series or DataFrame")
-        if not data.index.is_unique or not data.columns.is_unique:
-            raise ValueError("style is not supported for non-unique indices.")
+        # if not data.index.is_unique or not data.columns.is_unique:
+        #     raise ValueError("style is not supported for non-unique indices.")
         self.data: DataFrame = data
         self.index: Index = data.index
         self.columns: Index = data.columns
@@ -495,9 +495,12 @@ class StylerRenderer:
                 escape=escape,
             )
 
-            for row, value in data[[col]].itertuples():
-                i, j = self.index.get_loc(row), self.columns.get_loc(col)
-                self._display_funcs[(i, j)] = format_func
+            for row in data[[col]].itertuples():
+                i_ = self.index.get_indexer_for([row[0]])  # handle duplicate keys in
+                j_ = self.columns.get_indexer_for([col])  # non-unique indexes
+                for i in i_:
+                    for j in j_:
+                        self._display_funcs[(i, j)] = format_func
 
         return self
 
