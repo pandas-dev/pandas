@@ -7,7 +7,6 @@ from operator import (
 )
 import textwrap
 from typing import (
-    TYPE_CHECKING,
     Sequence,
     TypeVar,
     cast,
@@ -85,9 +84,6 @@ from pandas.core.ops import (
     invalid_comparison,
     unpack_zerodim_and_defer,
 )
-
-if TYPE_CHECKING:
-    from typing import Literal
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
@@ -1525,7 +1521,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def repeat(
         self: IntervalArrayT,
         repeats: int | Sequence[int],
-        axis: Literal[0] | None = None,
+        axis: int | None = None,
     ) -> IntervalArrayT:
         nv.validate_repeat((), {"axis": axis})
         left_repeat = self.left.repeat(repeats)
