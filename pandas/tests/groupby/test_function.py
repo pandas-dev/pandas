@@ -1077,6 +1077,7 @@ def test_describe_with_duplicate_output_column_names(as_index):
             "c": [10, 20, 30, 40, 50, 60],
         },
         columns=["a", "b", "b"],
+        copy=False,
     )
 
     expected = (
