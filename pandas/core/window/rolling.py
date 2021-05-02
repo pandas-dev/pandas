@@ -381,10 +381,11 @@ class BaseWindow(SelectionMixin):
         """
         obj = self._create_data(self._selected_obj)
 
-        try:
+        if name == "count":
             # GH 12541: Special case for count where we support date-like types
-            input = obj.values if name != "count" else notna(obj.values).astype(int)
-            values = self._prep_values(input)
+            obj = notna(obj).astype(int)
+        try:
+            values = self._prep_values(obj._values)
         except (TypeError, NotImplementedError) as err:
             raise DataError("No numeric types to aggregate") from err
 

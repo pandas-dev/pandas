@@ -113,15 +113,15 @@ from pandas.core.indexers import (
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     CategoricalIndex,
+    DatetimeIndex,
     Float64Index,
     Index,
     MultiIndex,
+    PeriodIndex,
+    TimedeltaIndex,
     ensure_index,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import (
     SingleArrayManager,
