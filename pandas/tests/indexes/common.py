@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (  # noqa
+from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     Float64Index,
@@ -30,6 +30,7 @@ from pandas import (  # noqa
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+from pandas.core.indexes.numeric import NumIndex
 
 
 class Base:
@@ -351,12 +352,13 @@ class Base:
     def test_repeat(self, simple_index):
         rep = 2
         idx = simple_index.copy()
-        expected = Index(idx.values.repeat(rep), name=idx.name)
+        new_index_cls = type(idx) if not isinstance(idx, RangeIndex) else Int64Index
+        expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
         idx = simple_index
         rep = np.arange(len(idx))
-        expected = Index(idx.values.repeat(rep), name=idx.name)
+        expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
     def test_numpy_repeat(self, simple_index):
@@ -657,7 +659,12 @@ class Base:
         tm.assert_index_equal(result, expected)
 
         # empty mappable
-        expected = Index([np.nan] * len(idx))
+        if idx._is_num_index():
+            new_index_cls = NumIndex
+        else:
+            new_index_cls = Float64Index
+
+        expected = new_index_cls([np.nan] * len(idx))
         result = idx.map(mapper(expected, idx))
         tm.assert_index_equal(result, expected)
 

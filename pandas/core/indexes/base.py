@@ -437,7 +437,7 @@ class Index(IndexOpsMixin, PandasObject):
             return Index._simple_new(data, name=name)
 
         # index-like
-        elif type(data) is NumIndex and dtype is None:
+        elif isinstance(data, NumIndex) and data._is_num_index() and dtype is None:
             return NumIndex(data, name=name, copy=copy)
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
@@ -2427,6 +2427,26 @@ class Index(IndexOpsMixin, PandasObject):
         Cached check equivalent to isinstance(self, MultiIndex)
         """
         return isinstance(self, ABCMultiIndex)
+
+    def _is_num_index(self) -> bool:
+        """
+        Whether self is a NumIndex, but not *not* Int64Index, UInt64Index, FloatIndex.
+
+        Typically used to check if an operation should return NumIndex or plain Index.
+        """
+        from pandas.core.indexes.numeric import (
+            Float64Index,
+            Int64Index,
+            NumIndex,
+            UInt64Index,
+        )
+
+        if not isinstance(self, NumIndex):
+            return False
+        elif isinstance(self, (Int64Index, UInt64Index, Float64Index)):
+            return False
+        else:
+            return True
 
     # --------------------------------------------------------------------
     # Pickle Methods
@@ -5723,8 +5743,8 @@ class Index(IndexOpsMixin, PandasObject):
             # empty
             attributes["dtype"] = self.dtype
 
-        if type(self) is NumIndex:
-            return type(self)(new_values, **attributes)
+        if self._is_num_index() and issubclass(new_values.dtype.type, np.number):
+            return NumIndex(new_values, **attributes)
 
         return Index(new_values, **attributes)
 
