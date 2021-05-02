@@ -1343,9 +1343,11 @@ class SQLAlchemyEngine(BaseEngine):
             table.insert(chunksize=chunksize, method=method)
         except exc.SQLAlchemyError as err:
             # GH34431
-            msg_pattern = "(OperationalError: )?\\(1054, \"Unknown column 'inf(e0)?' in 'field list'\"\\)"  # noqa: E501
+            # https://stackoverflow.com/a/67358288/6067848
+            msg = r"""(\(1054, "Unknown column 'inf(e0)?' in 'field list'"\))(?#
+            )|(ProgrammingError: inf can not be used with MySQL)"""
             err_text = str(err.orig)
-            if re.search(msg_pattern, err_text, re.MULTILINE | re.VERBOSE):
+            if re.search(msg, err_text, re.MULTILINE | re.VERBOSE):
                 raise ValueError("inf cannot be used with MySQL") from err
             else:
                 raise err
