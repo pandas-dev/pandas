@@ -24,7 +24,6 @@ from pandas import (
     Float64Index,
     Int64Index,
     IntervalIndex,
-    NumIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -714,8 +713,8 @@ class TestIndex(Base):
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
-        elif type(index) is NumIndex:
-            expected = NumIndex(np.arange(len(index), 0, -1), dtype=index.dtype)
+        elif index._is_num_index():
+            expected = type(index)(np.arange(len(index), 0, -1), dtype=index.dtype)
         else:
             expected = Index(np.arange(len(index), 0, -1))
 
