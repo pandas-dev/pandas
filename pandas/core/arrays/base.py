@@ -684,7 +684,7 @@ class ExtensionArray:
 
     def fillna(
         self,
-        value: Any | ArrayLike | None,
+        value: Any | ArrayLike | None = None,
         method: Literal["backfill", "bfill", "ffill", "pad"] | None = None,
         limit: int | None = None,
     ):
