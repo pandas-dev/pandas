@@ -667,19 +667,19 @@ class Base:
         # standard categories
         dtype = CategoricalDtype(ordered=ordered)
         result = idx.astype(dtype, copy=copy)
-        expected = CategoricalIndex(idx.values, name=name, ordered=ordered)
+        expected = CategoricalIndex(idx, name=name, ordered=ordered)
         tm.assert_index_equal(result, expected)
 
         # non-standard categories
         dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
         result = idx.astype(dtype, copy=copy)
-        expected = CategoricalIndex(idx.values, name=name, dtype=dtype)
+        expected = CategoricalIndex(idx, name=name, dtype=dtype)
         tm.assert_index_equal(result, expected)
 
         if ordered is False:
             # dtype='category' defaults to ordered=False, so only test once
             result = idx.astype("category", copy=copy)
-            expected = CategoricalIndex(idx.values, name=name)
+            expected = CategoricalIndex(idx, name=name)
             tm.assert_index_equal(result, expected)
 
     def test_is_unique(self, simple_index):
