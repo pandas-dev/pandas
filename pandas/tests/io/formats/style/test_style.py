@@ -1052,6 +1052,14 @@ class TestStyler:
         ]
         assert head == expected
 
+    def test_hide_column_headers(self):
+        ctx = self.styler.hide_columns()._translate()
+        assert len(ctx["head"]) == 0  # no header entries with an unnamed index
+
+        self.df.index.name = "some_name"
+        ctx = self.df.style.hide_columns()._translate()
+        assert len(ctx["head"]) == 1  # only a single row for index names: no col heads
+
     def test_hide_single_index(self):
         # GH 14194
         # single unnamed index
@@ -1120,7 +1128,7 @@ class TestStyler:
         assert not ctx["body"][0][1]["is_visible"]  # col A, row 1
         assert not ctx["body"][1][2]["is_visible"]  # col B, row 1
 
-    def test_hide_columns_mult_levels(self):
+    def test_hide_columns_index_mult_levels(self):
         # GH 14194
         # setup dataframe with multiple column levels and indices
         i1 = pd.MultiIndex.from_arrays(
