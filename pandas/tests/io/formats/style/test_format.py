@@ -240,6 +240,7 @@ def test_format_decimal(formatter, thousands, precision):
 
 
 def test_format_non_unique():
+    # GH 41269
     df = DataFrame(
         [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
         index=["i", "j", "j"],

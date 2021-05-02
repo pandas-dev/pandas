@@ -534,6 +534,30 @@ class TestStyler:
         df.loc[pct_subset]
         df.style.applymap(color_negative_red, subset=pct_subset)
 
+    @pytest.mark.parametrize("func", ["apply", "applymap"])
+    def test_apply_applymap_non_unique_raises(self, func):
+        # GH 41269
+        if func == "apply":
+            op = lambda s: ["color: red;"] * len(s)
+        else:
+            op = lambda v: "color: red;"
+
+        df = DataFrame(
+            [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+            index=["i", "j", "j"],
+            columns=["c", "d", "d"],
+        )
+        with pytest.raises(KeyError, match="`Styler.apply` and `.applymap` are not"):
+            # slice is non-unique on columns
+            getattr(df.style, func)(op, subset=("i", "d"))._compute()
+
+        with pytest.raises(KeyError, match="`Styler.apply` and `.applymap` are not"):
+            # slice is non-unique on rows
+            getattr(df.style, func)(op, subset=("j", "c"))._compute()
+
+        # unique subset OK
+        getattr(df.style, func)(op, subset=("i", "c"))._compute()
+
     def test_where_with_one_style(self):
         # GH 17474
         def f(x):
@@ -1467,20 +1491,3 @@ def test_from_custom_template(tmpdir):
     assert result.template_html is not Styler.template_html
     styler = result(DataFrame({"A": [1, 2]}))
     assert styler.render()
-
-    @pytest.mark.parametrize("func", ["apply", "applymap"])
-    def test_apply_applymap_non_unique_raises(func):
-        df = DataFrame(
-            [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-            index=["i", "j", "j"],
-            columns=["c", "d", "d"],
-        )
-        with pytest.raises(match="`Styler.apply` and `.applymap` are not compatible"):
-            # slice is non-unique on columns
-            getattr(df.style, func)(lambda x: x, subset=("i", "d"))
-
-        with pytest.raises(match="`Styler.apply` and `.applymap` are not compatible"):
-            # slice is non-unique on rows
-            getattr(df.style, func)(lambda x: x, subset=("j", "c"))
-
-        getattr(df.style, func)(lambda x: x, subset=("i", "c"))  # unique subset OK
