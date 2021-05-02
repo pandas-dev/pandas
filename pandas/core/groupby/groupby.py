@@ -1282,7 +1282,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             except DataError:
                 pass
             except NotImplementedError as err:
-                if "function is not implemented for this dtype" in str(err):
+                if "function is not implemented for this dtype" in str(
+                    err
+                ) or "category dtype not supported" in str(err):
                     # raised in _get_cython_function, in some cases can
                     #  be trimmed by implementing cython funcs for more dtypes
                     pass
