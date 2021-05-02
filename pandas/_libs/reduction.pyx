@@ -68,7 +68,6 @@ cdef class _BaseGrouper:
         # See the comment in indexes/base.py about _index_data.
         # We need this for EA-backed indexes that have a reference
         # to a 1-d ndarray like datetime / timedelta / period.
-        object.__setattr__(cached_ityp, '_index_data', islider.buf)
         cached_ityp._engine.clear_mapping()
         cached_ityp._cache.clear()  # e.g. inferred_freq must go
         cached_typ._mgr.set_values(vslider.buf)
@@ -82,8 +81,8 @@ cdef class _BaseGrouper:
         cdef:
             object res
 
-        cached_ityp._engine.clear_mapping()
-        cached_ityp._cache.clear()  # e.g. inferred_freq must go
+        # NB: we assume that _update_cached_objs has already cleared cleared
+        #  the cache and engine mapping
         res = self.f(cached_typ)
         res = extract_result(res)
         if not initialized:
