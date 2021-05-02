@@ -1347,7 +1347,7 @@ class SQLAlchemyEngine(BaseEngine):
             msg = r"""(\(1054, "Unknown column 'inf(e0)?' in 'field list'"\))(?#
             )|(ProgrammingError: inf can not be used with MySQL)"""
             err_text = str(err.orig)
-            if re.search(msg, err_text, re.MULTILINE | re.VERBOSE):
+            if re.search(msg, err_text):
                 raise ValueError("inf cannot be used with MySQL") from err
             else:
                 raise err
