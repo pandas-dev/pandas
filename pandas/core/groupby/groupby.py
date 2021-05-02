@@ -546,6 +546,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     axis: int
     grouper: ops.BaseGrouper
     obj: FrameOrSeries
+    group_keys: bool
 
     @final
     def __len__(self) -> int:
@@ -556,26 +557,17 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         # TODO: Better repr for GroupBy object
         return object.__repr__(self)
 
-    def _assure_grouper(self) -> None:
-        """
-        We create the grouper on instantiation sub-classes may have a
-        different policy.
-        """
-        pass
-
     @final
     @property
     def groups(self) -> dict[Hashable, np.ndarray]:
         """
         Dict {group name -> group labels}.
         """
-        self._assure_grouper()
         return self.grouper.groups
 
     @final
     @property
     def ngroups(self) -> int:
-        self._assure_grouper()
         return self.grouper.ngroups
 
     @final
@@ -584,7 +576,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         """
         Dict {group name -> group indices}.
         """
-        self._assure_grouper()
         return self.grouper.indices
 
     @final
@@ -721,6 +712,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
         return obj._take_with_is_copy(inds, axis=self.axis)
 
+    @final
     def __iter__(self) -> Iterator[tuple[Hashable, FrameOrSeries]]:
         """
         Groupby iterator.
@@ -1281,15 +1273,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 )
             except DataError:
                 pass
-            except NotImplementedError as err:
-                if "function is not implemented for this dtype" in str(
-                    err
-                ) or "category dtype not supported" in str(err):
-                    # raised in _get_cython_function, in some cases can
-                    #  be trimmed by implementing cython funcs for more dtypes
-                    pass
-                else:
-                    raise
 
             # apply a non-cython aggregation
             if result is None:
@@ -1817,9 +1800,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             result = self.apply(lambda x: x.describe(**kwargs))
             if self.axis == 1:
                 return result.T
-            # FIXME: not being consolidated breaks
-            #  test_describe_with_duplicate_output_column_names
-            return result._consolidate().unstack()
+            return result.unstack()
 
     @final
     def resample(self, rule, *args, **kwargs):
