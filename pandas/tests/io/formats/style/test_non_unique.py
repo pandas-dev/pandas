@@ -84,5 +84,6 @@ def test_table_styles_dict_non_unique_columns(styler):
 
 
 def test_maybe_convert_css_raises(styler):
+    # test _update_ctx() detects the right ValueError where non-unique columns present
     with pytest.raises(ValueError, match="Styles supplied as string must follow CSS"):
         styler.applymap(lambda x: "bad-css;")._compute()
