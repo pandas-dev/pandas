@@ -1214,7 +1214,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self, *axes: int) -> ExtensionArray:
+    def transpose(self, *axes: tuple[int] | list[int] | None) -> ExtensionArray:
         """
         Return a transposed view on this array.
 
