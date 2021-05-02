@@ -144,7 +144,8 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
         return np.asarray(values), values.dtype
 
     elif is_float_dtype(values.dtype):
-        if values.dtype == "float128" or values.dtype == "float16":
+        # Note: checking `values.dtype == "float128"` raises on Windows and 32bit
+        if values.dtype.itemsize in [2, 16]:
             # we dont (yet) have float128 hashtable support
             return ensure_float64(values), values.dtype
         return np.asarray(values), values.dtype
