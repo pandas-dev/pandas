@@ -147,7 +147,7 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
         # Note: checking `values.dtype == "float128"` raises on Windows and 32bit
         # error: Item "ExtensionDtype" of "Union[Any, ExtensionDtype, dtype[Any]]"
         # has no attribute "itemsize"
-        if values.dtype.itemsize in [2, 16]:  # type: ignore[union-attr]
+        if values.dtype.itemsize in [2, 12, 16]:  # type: ignore[union-attr]
             # we dont (yet) have float128 hashtable support
             return ensure_float64(values), values.dtype
         return np.asarray(values), values.dtype
