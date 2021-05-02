@@ -364,8 +364,7 @@ class SeriesGroupBy(GroupBy[Series]):
                     # without special-casing, we would raise, then in fallback
                     # would eventually call agg_series but without re-casting
                     # to Categorical
-                    # equiv: res_values, _ = self.grouper.agg_series(obj, alt)
-                    res_values, _ = self.grouper._aggregate_series_pure_python(obj, alt)
+                    res_values, _ = self.grouper.agg_series(obj, alt)
                 else:
                     # equiv: res_values = self._python_agg_general(alt)
                     res_values = self._python_apply_general(alt, self._selected_obj)
