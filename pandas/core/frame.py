@@ -62,6 +62,7 @@ from pandas._typing import (
     IndexLabel,
     Level,
     NpDtype,
+    NumpyAxis,
     PythonFuncType,
     Renamer,
     Scalar,
@@ -3189,7 +3190,7 @@ class DataFrame(NDFrame, OpsMixin):
             ).append(result)
         return result
 
-    def transpose(self, *args, copy: bool = False) -> DataFrame:
+    def transpose(self, axes: NumpyAxis = None, copy: bool = False) -> DataFrame:
         """
         Transpose index and columns.
 
@@ -3199,7 +3200,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        *args : tuple, optional
+        axes : tuple or list, optional
             Accepted for compatibility with NumPy.
         copy : bool, default False
             Whether to copy the data after transposing, even for DataFrames
@@ -3286,7 +3287,7 @@ class DataFrame(NDFrame, OpsMixin):
         1    object
         dtype: object
         """
-        nv.validate_transpose(args, {})
+        nv.validate_transpose(axes, {})
         # construct the args
 
         dtypes = list(self.dtypes)
@@ -5015,7 +5016,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value=...,
-        method: str | None = ...,
+        method: Literal["backfill", "bfill", "ffill", "pad"] | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
         limit=...,
@@ -5027,7 +5028,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value,
-        method: str | None,
+        method: Literal["backfill", "bfill", "ffill", "pad"] | None,
         axis: Axis | None,
         inplace: Literal[True],
         limit=...,
@@ -5060,7 +5061,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         *,
-        method: str | None,
+        method: Literal["backfill", "bfill", "ffill", "pad"] | None,
         inplace: Literal[True],
         limit=...,
         downcast=...,
@@ -5082,19 +5083,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         *,
-        method: str | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        *,
+        method: Literal["backfill", "bfill", "ffill", "pad"] | None,
         axis: Axis | None,
         inplace: Literal[True],
         limit=...,
@@ -5106,7 +5095,19 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value,
-        method: str | None,
+        *,
+        axis: Axis | None,
+        inplace: Literal[True],
+        limit=...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def fillna(
+        self,
+        value,
+        method: Literal["backfill", "bfill", "ffill", "pad"] | None,
         *,
         inplace: Literal[True],
         limit=...,
@@ -5118,7 +5119,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value=...,
-        method: str | None = ...,
+        method: Literal["backfill", "bfill", "ffill", "pad"] | None = ...,
         axis: Axis | None = ...,
         inplace: bool = ...,
         limit=...,
@@ -5129,8 +5130,8 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
-        value=None,
-        method: str | None = None,
+        value: Any | ArrayLike | None = None,
+        method: Literal["backfill", "bfill", "ffill", "pad"] | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
         limit=None,

@@ -25,6 +25,7 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    NumpyAxis,
     PositionalIndexer,
     Shape,
 )
@@ -1214,7 +1215,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self, *axes: tuple[int] | list[int] | None) -> ExtensionArray:
+    def transpose(self, axes: NumpyAxis = None) -> ExtensionArray:
         """
         Return a transposed view on this array.
 
