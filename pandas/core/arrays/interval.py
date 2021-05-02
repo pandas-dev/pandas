@@ -7,6 +7,7 @@ from operator import (
 )
 import textwrap
 from typing import (
+    TYPE_CHECKING,
     Sequence,
     TypeVar,
     cast,
@@ -84,6 +85,9 @@ from pandas.core.ops import (
     invalid_comparison,
     unpack_zerodim_and_defer,
 )
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
@@ -1518,7 +1522,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left=new_left, right=new_right)
 
     @Appender(_extension_array_shared_docs["repeat"] % _shared_docs_kwargs)
-    def repeat(self: IntervalArrayT, repeats: int, axis=None) -> IntervalArrayT:
+    def repeat(
+        self: IntervalArrayT,
+        repeats: int | Sequence[int],
+        axis: Literal[0] | None = None,
+    ) -> IntervalArrayT:
         nv.validate_repeat((), {"axis": axis})
         left_repeat = self.left.repeat(repeats)
         right_repeat = self.right.repeat(repeats)

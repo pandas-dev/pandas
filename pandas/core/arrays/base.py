@@ -69,6 +69,7 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from typing import Literal
 
     class ExtensionArraySupportsAnyAll("ExtensionArray"):
         def any(self, *, skipna: bool = True) -> bool:
@@ -794,7 +795,7 @@ class ExtensionArray:
             b = empty
         return self._concat_same_type([a, b])
 
-    def unique(self):
+    def unique(self: ExtensionArrayT) -> ExtensionArrayT:
         """
         Compute the ExtensionArray of unique values.
 
@@ -1023,7 +1024,7 @@ class ExtensionArray:
 
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
-    def repeat(self, repeats, axis=None):
+    def repeat(self, repeats: int | Sequence[int], axis: Literal[0] | None = None):
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
