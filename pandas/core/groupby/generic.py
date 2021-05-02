@@ -367,7 +367,12 @@ class SeriesGroupBy(GroupBy[Series]):
                     res_values, _ = self.grouper.agg_series(obj, alt)
                 else:
                     # equiv: res_values = self._python_agg_general(alt)
-                    res_values = self._python_apply_general(alt, self._selected_obj)
+                    # error: Incompatible types in assignment (expression has
+                    # type "Union[DataFrame, Series]", variable has type
+                    # "Union[ExtensionArray, ndarray]")
+                    res_values = self._python_apply_general(  # type: ignore[assignment]
+                        alt, self._selected_obj
+                    )
 
                 result = type(objvals)._from_sequence(res_values, dtype=objvals.dtype)
 
