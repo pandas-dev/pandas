@@ -370,7 +370,12 @@ class SeriesGroupBy(GroupBy[Series]):
                     res_values, _ = self.grouper.agg_series(ser, alt)
                 else:
                     # equiv: res_values = self._python_agg_general(alt)
-                    res_values = self._python_apply_general(alt, ser)
+                    # error: Incompatible types in assignment (expression has
+                    # type "Union[DataFrame, Series]", variable has type
+                    # "Union[ExtensionArray, ndarray]")
+                    res_values = self._python_apply_general(  # type: ignore[assignment]
+                        alt, ser
+                    )
 
                 if isinstance(values, Categorical):
                     # Because we only get here with known dtype-preserving
