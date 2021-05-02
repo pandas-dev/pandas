@@ -80,7 +80,7 @@ def generate_numba_apply_func(
     return roll_apply
 
 
-def generate_numba_groupby_ewma_func(
+def generate_numba_ewma_func(
     engine_kwargs: Optional[Dict[str, bool]],
     com: float,
     adjust: bool,
@@ -88,7 +88,7 @@ def generate_numba_groupby_ewma_func(
     deltas: np.ndarray,
 ):
     """
-    Generate a numba jitted groupby ewma function specified by values
+    Generate a numba jitted ewma function specified by values
     from engine_kwargs.
 
     Parameters
@@ -106,14 +106,14 @@ def generate_numba_groupby_ewma_func(
     """
     nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
 
-    cache_key = (lambda x: x, "groupby_ewma")
+    cache_key = (lambda x: x, "ewma")
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 
     numba = import_optional_dependency("numba")
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
-    def groupby_ewma(
+    def ewma(
         values: np.ndarray,
         begin: np.ndarray,
         end: np.ndarray,
@@ -121,14 +121,14 @@ def generate_numba_groupby_ewma_func(
     ) -> np.ndarray:
         result = np.empty(len(values))
         alpha = 1.0 / (1.0 + com)
+        old_wt_factor = 1.0 - alpha
+        new_wt = 1.0 if adjust else alpha
+
         for i in numba.prange(len(begin)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
             sub_result = np.empty(len(window))
-
-            old_wt_factor = 1.0 - alpha
-            new_wt = 1.0 if adjust else alpha
 
             weighted_avg = window[0]
             nobs = int(not np.isnan(weighted_avg))
@@ -166,7 +166,7 @@ def generate_numba_groupby_ewma_func(
 
         return result
 
-    return groupby_ewma
+    return ewma
 
 
 def generate_numba_table_func(
