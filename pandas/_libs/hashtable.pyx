@@ -163,7 +163,7 @@ cdef class Int64Factorizer:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def unique_label_indices(const int64_t[:] labels):
+def unique_label_indices(const int64_t[:] labels) -> ndarray:
     """
     Indices of the first occurrences of the unique labels
     *excluding* -1. equivalent to:
