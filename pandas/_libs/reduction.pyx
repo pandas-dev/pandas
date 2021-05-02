@@ -308,7 +308,7 @@ cpdef inline extract_result(object res):
         res = res._values
         if res.ndim == 1 and len(res) == 1:
             res = res[0]
-    if hasattr(res, 'values') and is_array(res.values):
+    if hasattr(res, "values") and is_array(res.values):
         res = res.values
     if is_array(res):
         if res.ndim == 0:
