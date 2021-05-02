@@ -534,30 +534,6 @@ class TestStyler:
         df.loc[pct_subset]
         df.style.applymap(color_negative_red, subset=pct_subset)
 
-    @pytest.mark.parametrize("func", ["apply", "applymap"])
-    def test_apply_applymap_non_unique_raises(self, func):
-        # GH 41269
-        if func == "apply":
-            op = lambda s: ["color: red;"] * len(s)
-        else:
-            op = lambda v: "color: red;"
-
-        df = DataFrame(
-            [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-            index=["i", "j", "j"],
-            columns=["c", "d", "d"],
-        )
-        with pytest.raises(KeyError, match="`Styler.apply` and `.applymap` are not"):
-            # slice is non-unique on columns
-            getattr(df.style, func)(op, subset=("i", "d"))._compute()
-
-        with pytest.raises(KeyError, match="`Styler.apply` and `.applymap` are not"):
-            # slice is non-unique on rows
-            getattr(df.style, func)(op, subset=("j", "c"))._compute()
-
-        # unique subset OK
-        getattr(df.style, func)(op, subset=("i", "c"))._compute()
-
     def test_where_with_one_style(self):
         # GH 17474
         def f(x):
@@ -694,15 +670,6 @@ class TestStyler:
             )
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "-"
-
-    def test_nonunique_raises(self):
-        df = DataFrame([[1, 2]], columns=["A", "A"])
-        msg = "style is not supported for non-unique indices."
-        with pytest.raises(ValueError, match=msg):
-            df.style
-
-        with pytest.raises(ValueError, match=msg):
-            Styler(df)
 
     def test_caption(self):
         styler = Styler(self.df, caption="foo")

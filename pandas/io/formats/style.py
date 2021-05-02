@@ -993,10 +993,11 @@ class Styler(StylerRenderer):
 
             table_styles = [
                 {
-                    "selector": str(s["selector"]) + idf + str(obj.get_loc(key)),
+                    "selector": str(s["selector"]) + idf + str(idx),
                     "props": maybe_convert_css_to_tuples(s["props"]),
                 }
                 for key, styles in table_styles.items()
+                for idx in obj.get_indexer_for([key])
                 for s in styles
             ]
         else:
