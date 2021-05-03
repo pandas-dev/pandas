@@ -16,6 +16,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
+    ArrayLike,
     Dtype,
     DtypeObj,
     IndexLabel,
@@ -996,7 +997,7 @@ class IndexOpsMixin(OpsMixin):
         values = self._values
 
         if not isinstance(values, np.ndarray):
-            result = values.unique()
+            result: ArrayLike = values.unique()
             if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
                 # GH#31182 Series._values returns EA, unpack for backward-compat
                 if getattr(self.dtype, "tz", None) is None:
