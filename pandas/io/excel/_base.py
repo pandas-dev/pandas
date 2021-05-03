@@ -501,10 +501,20 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         if convert_float is None:
             convert_float = True
         else:
+            caller = inspect.stack()[2]
+            if (
+                caller.filename.endswith(
+                    os.path.join("pandas", "io", "excel", "_base.py")
+                )
+                and caller.function == "read_excel"
+            ):
+                stacklevel = 5
+            else:
+                stacklevel = 3
             warnings.warn(
                 "convert_float is deprecated and will be removed in a future version",
                 FutureWarning,
-                stacklevel=5,
+                stacklevel=stacklevel,
             )
 
         validate_header_arg(header)
