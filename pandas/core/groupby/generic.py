@@ -1110,6 +1110,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # Note: we never get here with how="ohlc"; that goes through SeriesGroupBy
 
         data: Manager2D = self._get_data_to_aggregate()
+        orig = data
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
@@ -1187,7 +1188,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  continue and exclude the block
         new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
-        if not len(new_mgr):
+        if not len(new_mgr) and len(orig):
+            # If the original Manager was already empty, no need to raise
             raise DataError("No numeric types to aggregate")
 
         return self._wrap_agged_manager(new_mgr)
