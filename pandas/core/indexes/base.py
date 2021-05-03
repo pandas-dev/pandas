@@ -6065,8 +6065,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        any : bool or array_like (if axis is specified)
-            A single element array_like may be converted to bool.
+        any : bool or array-like (if axis is specified)
+            A single element array-like may be converted to bool.
 
         See Also
         --------
@@ -6109,8 +6109,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        all : bool or array_like (if axis is specified)
-            A single element array_like may be converted to bool.
+        all : bool or array-like (if axis is specified)
+            A single element array-like may be converted to bool.
 
         See Also
         --------
