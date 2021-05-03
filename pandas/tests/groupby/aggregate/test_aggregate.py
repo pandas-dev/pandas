@@ -234,11 +234,10 @@ def test_aggregate_item_by_item(df):
     K = len(result.columns)
 
     # GH5782
-    # odd comparisons can result here, so cast to make easy
-    exp = Series(np.array([foo] * K), index=list("BCD"), dtype=np.float64, name="foo")
+    exp = Series(np.array([foo] * K), index=list("BCD"), name="foo")
     tm.assert_series_equal(result.xs("foo"), exp)
 
-    exp = Series(np.array([bar] * K), index=list("BCD"), dtype=np.float64, name="bar")
+    exp = Series(np.array([bar] * K), index=list("BCD"), name="bar")
     tm.assert_almost_equal(result.xs("bar"), exp)
 
     def aggfun(ser):
@@ -440,6 +439,57 @@ def test_bool_agg_dtype(op):
 
     result = op(s.groupby("a")).dtype
     assert is_integer_dtype(result)
+
+
+@pytest.mark.parametrize(
+    "keys, agg_index",
+    [
+        (["a"], Index([1], name="a")),
+        (["a", "b"], MultiIndex([[1], [2]], [[0], [0]], names=["a", "b"])),
+    ],
+)
+@pytest.mark.parametrize(
+    "input_dtype", ["bool", "int32", "int64", "float32", "float64"]
+)
+@pytest.mark.parametrize(
+    "result_dtype", ["bool", "int32", "int64", "float32", "float64"]
+)
+@pytest.mark.parametrize("method", ["apply", "aggregate", "transform"])
+def test_callable_result_dtype_frame(
+    keys, agg_index, input_dtype, result_dtype, method
+):
+    # GH 21240
+    df = DataFrame({"a": [1], "b": [2], "c": [True]})
+    df["c"] = df["c"].astype(input_dtype)
+    op = getattr(df.groupby(keys)[["c"]], method)
+    result = op(lambda x: x.astype(result_dtype).iloc[0])
+    expected_index = pd.RangeIndex(0, 1) if method == "transform" else agg_index
+    expected = DataFrame({"c": [df["c"].iloc[0]]}, index=expected_index).astype(
+        result_dtype
+    )
+    if method == "apply":
+        expected.columns.names = [0]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "keys, agg_index",
+    [
+        (["a"], Index([1], name="a")),
+        (["a", "b"], MultiIndex([[1], [2]], [[0], [0]], names=["a", "b"])),
+    ],
+)
+@pytest.mark.parametrize("input", [True, 1, 1.0])
+@pytest.mark.parametrize("dtype", [bool, int, float])
+@pytest.mark.parametrize("method", ["apply", "aggregate", "transform"])
+def test_callable_result_dtype_series(keys, agg_index, input, dtype, method):
+    # GH 21240
+    df = DataFrame({"a": [1], "b": [2], "c": [input]})
+    op = getattr(df.groupby(keys)["c"], method)
+    result = op(lambda x: x.astype(dtype).iloc[0])
+    expected_index = pd.RangeIndex(0, 1) if method == "transform" else agg_index
+    expected = Series([df["c"].iloc[0]], index=expected_index, name="c").astype(dtype)
+    tm.assert_series_equal(result, expected)
 
 
 def test_order_aggregate_multiple_funcs():
@@ -849,7 +899,11 @@ def test_multiindex_custom_func(func):
     data = [[1, 4, 2], [5, 7, 1]]
     df = DataFrame(data, columns=MultiIndex.from_arrays([[1, 1, 2], [3, 4, 3]]))
     result = df.groupby(np.array([0, 1])).agg(func)
-    expected_dict = {(1, 3): {0: 1, 1: 5}, (1, 4): {0: 4, 1: 7}, (2, 3): {0: 2, 1: 1}}
+    expected_dict = {
+        (1, 3): {0: 1.0, 1: 5.0},
+        (1, 4): {0: 4.0, 1: 7.0},
+        (2, 3): {0: 2.0, 1: 1.0},
+    }
     expected = DataFrame(expected_dict)
     tm.assert_frame_equal(result, expected)
 

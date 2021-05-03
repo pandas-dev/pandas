@@ -1619,7 +1619,7 @@ def test_aggregate_categorical_with_isnan():
     index = MultiIndex.from_arrays([[1, 1], [1, 2]], names=("A", "B"))
     expected = DataFrame(
         data={
-            "numerical_col": [1.0, 0.0],
+            "numerical_col": [1, 0],
             "object_col": [0, 0],
             "categorical_col": [0, 0],
         },

@@ -299,10 +299,9 @@ def test_with_na_groups(dtype):
         return float(len(x))
 
     agged = grouped.agg(f)
-    expected = Series([4, 2], index=["bar", "foo"])
+    expected = Series([4.0, 2.0], index=["bar", "foo"])
 
-    tm.assert_series_equal(agged, expected, check_dtype=False)
-    assert issubclass(agged.dtype.type, np.dtype(dtype).type)
+    tm.assert_series_equal(agged, expected)
 
 
 def test_indices_concatenation_order():

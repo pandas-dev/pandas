@@ -178,7 +178,7 @@ To test for membership in the values, use the method :meth:`~pandas.Series.isin`
 For ``DataFrames``, likewise, ``in`` applies to the column axis,
 testing for membership in the list of column names.
 
-.. _udf-mutation:
+.. _gotchas.udf-mutation:
 
 Mutating with User Defined Function (UDF) methods
 -------------------------------------------------

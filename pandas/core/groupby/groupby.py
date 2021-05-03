@@ -158,6 +158,11 @@ _apply_docs = {
     side-effects, as they will take effect twice for the first
     group.
 
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
+
     Examples
     --------
     {examples}
@@ -165,7 +170,7 @@ _apply_docs = {
     "dataframe_examples": """
     >>> df = pd.DataFrame({'A': 'a a b'.split(),
     ...                    'B': [1,2,3],
-    ...                    'C': [4,6, 5]})
+    ...                    'C': [4,6,5]})
     >>> g = df.groupby('A')
 
     Notice that ``g`` has two groups, ``a`` and ``b``.
@@ -183,13 +188,17 @@ _apply_docs = {
 
     Example 2: The function passed to `apply` takes a DataFrame as
     its argument and returns a Series.  `apply` combines the result for
-    each group together into a new DataFrame:
+    each group together into a new DataFrame.
 
-    >>> g[['B', 'C']].apply(lambda x: x.max() - x.min())
-       B  C
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the passed ``func``.
+
+    >>> g[['B', 'C']].apply(lambda x: x.astype(float).max() - x.min())
+         B    C
     A
-    a  1  2
-    b  0  0
+    a  1.0  2.0
+    b  0.0  0.0
 
     Example 3: The function passed to `apply` takes a DataFrame as
     its argument and returns a scalar. `apply` combines the result for
@@ -210,12 +219,16 @@ _apply_docs = {
 
     Example 1: The function passed to `apply` takes a Series as
     its argument and returns a Series.  `apply` combines the result for
-    each group together into a new Series:
+    each group together into a new Series.
 
-    >>> g.apply(lambda x:  x*2 if x.name == 'b' else x/2)
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the passed ``func``.
+
+    >>> g.apply(lambda x: x*2 if x.name == 'a' else x/2)
     a    0.0
-    a    0.5
-    b    4.0
+    a    2.0
+    b    1.0
     dtype: float64
 
     Example 2: The function passed to `apply` takes a Series as
@@ -367,11 +380,16 @@ The current implementation imposes three requirements on f:
   in the subframe. If f also supports application to the entire subframe,
   then a fast path is used starting from the second chunk.
 * f must not mutate groups. Mutation is not supported and may
-  produce unexpected results. See :ref:`udf-mutation` for more details.
+  produce unexpected results. See :ref:`gotchas.udf-mutation` for more details.
 
 When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
 user defined function, and no alternative execution attempts will be tried.
+
+.. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    see the examples below.
 
 Examples
 --------
@@ -402,6 +420,20 @@ Broadcast result of the transformation
 3  3  8.0
 4  4  6.0
 5  3  8.0
+
+.. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    for example:
+
+>>> grouped[['C', 'D']].transform(lambda x: x.astype(int).max())
+   C  D
+0  5  8
+1  5  9
+2  5  8
+3  5  9
+4  5  8
+5  5  9
 """
 
 _agg_template = """
@@ -469,12 +501,16 @@ Notes
 When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
 user defined function, and no alternative execution attempts will be tried.
-{examples}
 
 Functions that mutate the passed object can produce unexpected
-behavior or errors and are not supported. See :ref:`udf-mutation`
+behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
 for more details.
-"""
+
+.. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    see the examples below.
+{examples}"""
 
 
 @final
@@ -1231,9 +1267,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
-
-            if is_numeric_dtype(obj.dtype):
-                result = maybe_downcast_numeric(result, obj.dtype)
 
             if self.grouper._filter_empty_groups:
                 mask = counts.ravel() > 0
