@@ -1559,7 +1559,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         result = self._cython_agg_general(
             "mean",
-            alt=lambda x, axis: Series(x).mean(numeric_only=numeric_only),
+            alt=lambda x: Series(x).mean(numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
         return result.__finalize__(self.obj, method="groupby")
@@ -1586,7 +1586,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         result = self._cython_agg_general(
             "median",
-            alt=lambda x, axis: Series(x).median(axis=axis, numeric_only=numeric_only),
+            alt=lambda x: Series(x).median(numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
         return result.__finalize__(self.obj, method="groupby")
@@ -1642,7 +1642,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         if ddof == 1:
             return self._cython_agg_general(
-                "var", alt=lambda x, axis: Series(x).var(ddof=ddof)
+                "var", alt=lambda x: Series(x).var(ddof=ddof)
             )
         else:
             func = lambda x: x.var(ddof=ddof)
