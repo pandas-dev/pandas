@@ -44,10 +44,6 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    maybe_downcast_numeric,
-)
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool,
@@ -226,7 +222,16 @@ class SeriesGroupBy(GroupBy[Series]):
     ... )
        minimum  maximum
     1        1        2
-    2        3        4"""
+    2        3        4
+
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the aggregating function.
+
+    >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
+    1    1.0
+    2    3.0
+    dtype: float64"""
     )
 
     @Appender(
@@ -566,8 +571,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _transform_general(self, func, *args, **kwargs):
         """
-        Transform with a non-str `func`.
+        Transform with a callable func`.
         """
+        assert callable(func)
         klass = type(self._selected_obj)
 
         results = []
@@ -589,13 +595,6 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self._set_result_index_ordered(concatenated)
         else:
             result = self.obj._constructor(dtype=np.float64)
-        # we will only try to coerce the result type if
-        # we have a numeric dtype, as these are *always* user-defined funcs
-        # the cython take a different path (and casting)
-        if is_numeric_dtype(result.dtype):
-            common_dtype = find_common_type([self._selected_obj.dtype, result.dtype])
-            if common_dtype is result.dtype:
-                result = maybe_downcast_numeric(result, self._selected_obj.dtype)
 
         result.name = self._selected_obj.name
         return result
@@ -625,7 +624,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Notes
         -----
         Functions that mutate the passed object can produce unexpected
-        behavior or errors and are not supported. See :ref:`udf-mutation`
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
         Examples
@@ -1006,7 +1005,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
       ``['column', 'aggfunc']`` to make it clearer what the arguments are.
       As usual, the aggregation can be a callable or a string alias.
 
-    See :ref:`groupby.aggregate.named` for more."""
+    See :ref:`groupby.aggregate.named` for more.
+
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the aggregating function.
+
+    >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
+          B
+    A
+    1   1.0
+    2   3.0"""
     )
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
@@ -1533,7 +1542,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         which group you are working on.
 
         Functions that mutate the passed object can produce unexpected
-        behavior or errors and are not supported. See :ref:`udf-mutation`
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
         Examples
