@@ -197,7 +197,7 @@ Other enhancements
 - Add support for dict-like names in :class:`MultiIndex.set_names` and :class:`MultiIndex.rename` (:issue:`20421`)
 - :func:`pandas.read_excel` can now auto detect .xlsb files (:issue:`35416`)
 - :class:`pandas.ExcelWriter` now accepts an ``if_sheet_exists`` parameter to control the behaviour of append mode when writing to existing sheets (:issue:`40230`)
-- :meth:`.Rolling.sum`, :meth:`.Expanding.sum`, :meth:`.Rolling.mean`, :meth:`.Expanding.mean`, :meth:`.Rolling.median`, :meth:`.Expanding.median`, :meth:`.Rolling.max`, :meth:`.Expanding.max`, :meth:`.Rolling.min`, and :meth:`.Expanding.min` now support ``Numba`` execution with the ``engine`` keyword (:issue:`38895`)
+- :meth:`.Rolling.sum`, :meth:`.Expanding.sum`, :meth:`.Rolling.mean`, :meth:`.Expanding.mean`, :meth:`.ExponentialMovingWindow.mean`, :meth:`.Rolling.median`, :meth:`.Expanding.median`, :meth:`.Rolling.max`, :meth:`.Expanding.max`, :meth:`.Rolling.min`, and :meth:`.Expanding.min` now support ``Numba`` execution with the ``engine`` keyword (:issue:`38895`, :issue:`41267`)
 - :meth:`DataFrame.apply` can now accept NumPy unary operators as strings, e.g. ``df.apply("sqrt")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
 - :meth:`DataFrame.apply` can now accept non-callable DataFrame properties as strings, e.g. ``df.apply("size")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
 - :meth:`DataFrame.applymap` can now accept kwargs to pass on to func (:issue:`39987`)
@@ -298,6 +298,36 @@ Preserve dtypes in  :meth:`~pandas.DataFrame.combine_first`
 
    combined.dtypes
 
+Group by methods agg and transform no longer changes return dtype for callables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously the methods :meth:`.DataFrameGroupBy.aggregate`,
+:meth:`.SeriesGroupBy.aggregate`, :meth:`.DataFrameGroupBy.transform`, and
+:meth:`.SeriesGroupBy.transform` might cast the result dtype when the argument ``func``
+is callable, possibly leading to undesirable results (:issue:`21240`). The cast would
+occur if the result is numeric and casting back to the input dtype does not change any
+values as measured by ``np.allclose``. Now no such casting occurs.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'key': [1, 1], 'a': [True, False], 'b': [True, True]})
+    df
+
+*pandas 1.2.x*
+
+.. code-block:: ipython
+
+    In [5]: df.groupby('key').agg(lambda x: x.sum())
+    Out[5]:
+            a  b
+    key
+    1    True  2
+
+*pandas 1.3.0*
+
+.. ipython:: python
+
+    df.groupby('key').agg(lambda x: x.sum())
 
 Try operating inplace when setting values with ``loc`` and ``iloc``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -609,7 +639,7 @@ Deprecations
 - Deprecated using :func:`merge` or :func:`join` on a different number of levels (:issue:`34862`)
 - Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
 - Deprecated the ``level`` keyword for :class:`DataFrame` and :class:`Series` aggregations; use groupby instead (:issue:`39983`)
-- The ``inplace`` parameter of :meth:`Categorical.remove_categories`, :meth:`Categorical.add_categories`, :meth:`Categorical.reorder_categories` is deprecated and will be removed in a future version (:issue:`37643`)
+- The ``inplace`` parameter of :meth:`Categorical.remove_categories`, :meth:`Categorical.add_categories`, :meth:`Categorical.reorder_categories`, :meth:`Categorical.rename_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 - Deprecated :func:`merge` producing duplicated columns through the ``suffixes`` keyword  and already existing columns (:issue:`22818`)
 
 .. ---------------------------------------------------------------------------
@@ -752,6 +782,7 @@ Indexing
 - Bug in :meth:`RangeIndex.append` where a single object of length 1 was concatenated incorrectly (:issue:`39401`)
 - Bug in setting ``numpy.timedelta64`` values into an object-dtype :class:`Series` using a boolean indexer (:issue:`39488`)
 - Bug in setting numeric values into a into a boolean-dtypes :class:`Series` using ``at`` or ``iat`` failing to cast to object-dtype (:issue:`39582`)
+- Bug in :meth:`DataFrame.__setitem__` and :meth:`DataFrame.iloc.__setitem__` raising ``ValueError`` when trying to index with a row-slice and setting a list as values (:issue:`40440`)
 - Bug in :meth:`DataFrame.loc.__setitem__` when setting-with-expansion incorrectly raising when the index in the expanding axis contains duplicates (:issue:`40096`)
 - Bug in :meth:`DataFrame.loc` incorrectly matching non-boolean index elements (:issue:`20432`)
 - Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
