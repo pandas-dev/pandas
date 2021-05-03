@@ -110,6 +110,7 @@ cpdef inline tzinfo maybe_get_tz(object tz):
     (Maybe) Construct a timezone object from a string. If tz is a string, use
     it to construct a timezone object. Otherwise, just return tz.
     """
+    print("In maybe_get_tz")
     if isinstance(tz, str):
         if tz == 'tzlocal()':
             tz = _dateutil_tzlocal()

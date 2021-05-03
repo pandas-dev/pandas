@@ -150,6 +150,8 @@ def integer_op_not_supported(obj):
 
 cdef class _Timestamp(ABCTimestamp):
 
+    print("In class _Timestamp")
+
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
     dayofweek = _Timestamp.day_of_week
@@ -920,6 +922,7 @@ class Timestamp(_Timestamp):
         *,
         fold=None
     ):
+        print("In __new__")
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
         #
@@ -1219,6 +1222,7 @@ timedelta}, default 'raise'
         return getattr(self.freq, 'freqstr', self.freq)
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
+        print("In localize")
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
