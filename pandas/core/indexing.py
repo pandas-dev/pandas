@@ -454,8 +454,8 @@ class IndexingMixin:
         8          4      10
         9          7      13
 
-        Assign partial column with certain aligned indexes in dataframe
-        missing from Series
+        Assigning column to a Series with non matching indexes aligns the
+        right hand side to the index of the left
 
         >>> df.loc[:, 'shield'] = pd.Series({8: 10})
         >>> df
