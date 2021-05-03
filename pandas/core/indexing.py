@@ -446,7 +446,8 @@ class IndexingMixin:
         **Setting values using Series**
 
         Assign column using Series
-        warning:: Preferred syntax to assign a column: `df['shield'] = ....`
+        warning:: Preferred syntax to assign a column: `df['shield']` instead
+        of allocation through `df.loc[]`
 
         >>> df.loc[:, 'shield'] = pd.Series({7: 8, 8: 10, 9: 13})
         >>> df
