@@ -308,8 +308,10 @@ class IndexOpsMixin(OpsMixin):
         %(klass)s
         """
         if not (isinstance(axes, list) and isinstance(axes, tuple)):
-            axes = (axes,)
-        nv.validate_transpose(axes, {})
+            args = (axes,)
+        else:
+            args = axes
+        nv.validate_transpose(args, {})
         return self
 
     T = property(
