@@ -1238,7 +1238,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # corner case where self._selected_obj is a Series
             # reached in test_groupby_as_index_select_column_sum_empty_df
             res_ser = self.obj._constructor_sliced(
-                values, index=self.grouper.result_index, name=data.name
+                values,
+                index=self.grouper.result_index,
+                name=data.name,
+                dtype=data.dtype,
             )
             result = res_ser.to_frame()
             if not self.as_index:
