@@ -53,24 +53,24 @@ cdef class _BaseGrouper:
 
         return values, index
 
+    cdef _init_dummy_series_and_index(self, Slider islider, Slider vslider):
+        """
+        Create Series and Index objects that we will alter in-place while iterating.
+        """
+        cached_index = self.ityp(islider.buf, dtype=self.idtype)
+        cached_series = self.typ(
+            vslider.buf, dtype=vslider.buf.dtype, index=cached_index, name=self.name
+        )
+        return cached_index, cached_series
+
     cdef inline _update_cached_objs(self, object cached_typ, object cached_ityp,
                                     Slider islider, Slider vslider):
-        if cached_typ is None:
-            cached_ityp = self.ityp(islider.buf, dtype=self.idtype)
-            cached_typ = self.typ(
-                vslider.buf, dtype=vslider.buf.dtype, index=cached_ityp, name=self.name
-            )
-        else:
-            # See the comment in indexes/base.py about _index_data.
-            # We need this for EA-backed indexes that have a reference
-            # to a 1-d ndarray like datetime / timedelta / period.
-            object.__setattr__(cached_ityp, '_index_data', islider.buf)
-            cached_ityp._engine.clear_mapping()
-            cached_ityp._cache.clear()  # e.g. inferred_freq must go
-            cached_typ._mgr.set_values(vslider.buf)
-            object.__setattr__(cached_typ, '_index', cached_ityp)
-            object.__setattr__(cached_typ, 'name', self.name)
-        return cached_typ, cached_ityp
+        # See the comment in indexes/base.py about _index_data.
+        # We need this for EA-backed indexes that have a reference
+        # to a 1-d ndarray like datetime / timedelta / period.
+        cached_ityp._engine.clear_mapping()
+        cached_ityp._cache.clear()  # e.g. inferred_freq must go
+        cached_typ._mgr.set_values(vslider.buf)
 
     cdef inline object _apply_to_group(self,
                                        object cached_typ, object cached_ityp,
@@ -81,8 +81,8 @@ cdef class _BaseGrouper:
         cdef:
             object res
 
-        cached_ityp._engine.clear_mapping()
-        cached_ityp._cache.clear()  # e.g. inferred_freq must go
+        # NB: we assume that _update_cached_objs has already cleared cleared
+        #  the cache and engine mapping
         res = self.f(cached_typ)
         res = extract_result(res)
         if not initialized:
@@ -160,6 +160,8 @@ cdef class SeriesBinGrouper(_BaseGrouper):
 
         result = np.empty(self.ngroups, dtype='O')
 
+        cached_ityp, cached_typ = self._init_dummy_series_and_index(islider, vslider)
+
         start = 0
         try:
             for i in range(self.ngroups):
@@ -169,7 +171,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
                 islider.move(start, end)
                 vslider.move(start, end)
 
-                cached_typ, cached_ityp = self._update_cached_objs(
+                self._update_cached_objs(
                     cached_typ, cached_ityp, islider, vslider)
 
                 res, initialized = self._apply_to_group(cached_typ, cached_ityp,
@@ -246,6 +248,8 @@ cdef class SeriesGrouper(_BaseGrouper):
 
         result = np.empty(self.ngroups, dtype='O')
 
+        cached_ityp, cached_typ = self._init_dummy_series_and_index(islider, vslider)
+
         start = 0
         try:
             for i in range(n):
@@ -263,7 +267,7 @@ cdef class SeriesGrouper(_BaseGrouper):
                     islider.move(start, end)
                     vslider.move(start, end)
 
-                    cached_typ, cached_ityp = self._update_cached_objs(
+                    self._update_cached_objs(
                         cached_typ, cached_ityp, islider, vslider)
 
                     res, initialized = self._apply_to_group(cached_typ, cached_ityp,
