@@ -142,14 +142,13 @@ def get_group_index(labels, shape: Shape, sort: bool, xnull: bool):
         # so that all output values are non-negative
         return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
 
-    labels = map(ensure_int64, labels)
+    labels = [ensure_int64(x) for x in labels]
     lshape = list(shape)
     if not xnull:
-        # error: Incompatible types in assignment (expression has type
-        # "List[_T]", variable has type "List[int]")
-        labels, lshape = map(  # type: ignore[assignment]
-            list, zip(*map(maybe_lift, labels, lshape))
-        )
+        for i, (lab, size) in enumerate(zip(labels, shape)):
+            lab, size = maybe_lift(lab, size)
+            labels[i] = lab
+            lshape[i] = size
 
     labels = list(labels)
 
