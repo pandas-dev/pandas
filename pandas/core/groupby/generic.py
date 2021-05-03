@@ -44,10 +44,6 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    maybe_downcast_numeric,
-)
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool,
@@ -226,7 +222,16 @@ class SeriesGroupBy(GroupBy[Series]):
     ... )
        minimum  maximum
     1        1        2
-    2        3        4"""
+    2        3        4
+
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the aggregating function.
+
+    >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
+    1    1.0
+    2    3.0
+    dtype: float64"""
     )
 
     @Appender(
@@ -345,47 +350,48 @@ class SeriesGroupBy(GroupBy[Series]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output: dict[base.OutputKey, ArrayLike] = {}
-        # Ideally we would be able to enumerate self._iterate_slices and use
-        # the index from enumeration as the key of output, but ohlc in particular
-        # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
-        # need to slice that up into 1D arrays
-        idx = 0
-        for obj in self._iterate_slices():
-            name = obj.name
-            is_numeric = is_numeric_dtype(obj.dtype)
-            if numeric_only and not is_numeric:
-                continue
 
-            objvals = obj._values
+        obj = self._selected_obj
+        objvals = obj._values
 
-            if isinstance(objvals, Categorical):
-                if self.grouper.ngroups > 0:
-                    # without special-casing, we would raise, then in fallback
-                    # would eventually call agg_series but without re-casting
-                    # to Categorical
-                    # equiv: res_values, _ = self.grouper.agg_series(obj, alt)
-                    res_values, _ = self.grouper._aggregate_series_pure_python(obj, alt)
-                else:
-                    # equiv: res_values = self._python_agg_general(alt)
-                    res_values = self._python_apply_general(alt, self._selected_obj)
-
-                result = type(objvals)._from_sequence(res_values, dtype=objvals.dtype)
-
-            else:
-                result = self.grouper._cython_operation(
-                    "aggregate", obj._values, how, axis=0, min_count=min_count
-                )
-
-            assert result.ndim == 1
-            key = base.OutputKey(label=name, position=idx)
-            output[key] = result
-            idx += 1
-
-        if not output:
+        if numeric_only and not is_numeric_dtype(obj.dtype):
             raise DataError("No numeric types to aggregate")
 
-        return self._wrap_aggregated_output(output)
+        # This is overkill because it is only called once, but is here to
+        #  mirror the array_func used in DataFrameGroupBy._cython_agg_general
+        def array_func(values: ArrayLike) -> ArrayLike:
+            try:
+                result = self.grouper._cython_operation(
+                    "aggregate", values, how, axis=0, min_count=min_count
+                )
+            except NotImplementedError:
+                ser = Series(values)  # equiv 'obj' from outer frame
+                if self.ngroups > 0:
+                    res_values, _ = self.grouper.agg_series(ser, alt)
+                else:
+                    # equiv: res_values = self._python_agg_general(alt)
+                    # error: Incompatible types in assignment (expression has
+                    # type "Union[DataFrame, Series]", variable has type
+                    # "Union[ExtensionArray, ndarray]")
+                    res_values = self._python_apply_general(  # type: ignore[assignment]
+                        alt, ser
+                    )
+
+                if isinstance(values, Categorical):
+                    # Because we only get here with known dtype-preserving
+                    #  reductions, we cast back to Categorical.
+                    # TODO: if we ever get "rank" working, exclude it here.
+                    result = type(values)._from_sequence(res_values, dtype=values.dtype)
+                else:
+                    result = res_values
+            return result
+
+        result = array_func(objvals)
+
+        ser = self.obj._constructor(
+            result, index=self.grouper.result_index, name=obj.name
+        )
+        return self._reindex_output(ser)
 
     def _wrap_aggregated_output(
         self,
@@ -565,8 +571,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _transform_general(self, func, *args, **kwargs):
         """
-        Transform with a non-str `func`.
+        Transform with a callable func`.
         """
+        assert callable(func)
         klass = type(self._selected_obj)
 
         results = []
@@ -588,13 +595,6 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self._set_result_index_ordered(concatenated)
         else:
             result = self.obj._constructor(dtype=np.float64)
-        # we will only try to coerce the result type if
-        # we have a numeric dtype, as these are *always* user-defined funcs
-        # the cython take a different path (and casting)
-        if is_numeric_dtype(result.dtype):
-            common_dtype = find_common_type([self._selected_obj.dtype, result.dtype])
-            if common_dtype is result.dtype:
-                result = maybe_downcast_numeric(result, self._selected_obj.dtype)
 
         result.name = self._selected_obj.name
         return result
@@ -604,12 +604,12 @@ class SeriesGroupBy(GroupBy[Series]):
         fast version of transform, only applicable to
         builtin/cythonizable functions
         """
-        ids, _, ngroup = self.grouper.group_info
+        ids, _, _ = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
         out = algorithms.take_nd(result._values, ids)
         return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
 
-    def filter(self, func, dropna=True, *args, **kwargs):
+    def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
         Return a copy of a Series excluding elements from groups that
         do not satisfy the boolean criterion specified by func.
@@ -624,7 +624,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Notes
         -----
         Functions that mutate the passed object can produce unexpected
-        behavior or errors and are not supported. See :ref:`udf-mutation`
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
         Examples
@@ -1005,7 +1005,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
       ``['column', 'aggfunc']`` to make it clearer what the arguments are.
       As usual, the aggregation can be a callable or a string alias.
 
-    See :ref:`groupby.aggregate.named` for more."""
+    See :ref:`groupby.aggregate.named` for more.
+
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the aggregating function.
+
+    >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
+          B
+    A
+    1   1.0
+    2   3.0"""
     )
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
@@ -1435,7 +1445,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         obj = self._obj_with_exclusions
 
         # for each col, reshape to size of original frame by take operation
-        ids, _, ngroup = self.grouper.group_info
+        ids, _, _ = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
         output = [
             algorithms.take_nd(result.iloc[:, i].values, ids)
@@ -1532,7 +1542,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         which group you are working on.
 
         Functions that mutate the passed object can produce unexpected
-        behavior or errors and are not supported. See :ref:`udf-mutation`
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
         Examples
