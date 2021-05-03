@@ -15,7 +15,7 @@
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
-#   $ ./ci/code_checks.sh typing  # run static type analysis
+#   $ ./ci/code_checks.sh typing        # run static type analysis
 
 [[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
     { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|typing]"; exit 9999; }
