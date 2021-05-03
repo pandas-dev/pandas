@@ -405,7 +405,7 @@ class TestNDFrame:
         # round-trip preserved
         tm.assert_equal(np.transpose(np.transpose(obj)), obj)
 
-        msg = "the 'axes' parameter is not supported"
+        msg = r"(the 'axes' parameter is not supported|axes don't match array)"
         with pytest.raises(ValueError, match=msg):
             np.transpose(obj, axes=1)
 
