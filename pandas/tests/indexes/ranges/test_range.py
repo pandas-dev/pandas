@@ -543,20 +543,16 @@ class TestRangeIndex(Numeric):
         super().test_astype_category(copy, name, ordered, simple_index)
 
         # GH 41263
-        idx = simple_index
-        if name:
-            idx = idx.rename(name)
+        idx = simple_index if not name else simple_index.rename(name)
 
-        # standard categories
-        dtype = CategoricalDtype(ordered=ordered)
-        result = idx.astype(dtype, copy=copy)
-        assert isinstance(result, CategoricalIndex)
-        assert isinstance(result.categories, RangeIndex)
-        assert (result.categories == idx).all()
-
+        dtypes = [CategoricalDtype(ordered=ordered)]
         if ordered is False:
             # dtype='category' defaults to ordered=False, so only test once
-            result = idx.astype("category", copy=copy)
+            dtypes.append("category")
+
+        for dtype in dtypes:
+            # standard categories
+            result = idx.astype(dtype, copy=copy)
             assert isinstance(result, CategoricalIndex)
             assert isinstance(result.categories, RangeIndex)
             assert (result.categories == idx).all()
