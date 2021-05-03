@@ -322,6 +322,10 @@ class Styler(StylerRenderer):
             raise NotImplementedError(
                 "Tooltips can only render with 'cell_ids' is True."
             )
+        if not ttips.index.is_unique or not ttips.columns.is_unique:
+            raise KeyError(
+                "Tooltips renders only if `ttips` has unique index and columns."
+            )
         if self.tooltips is None:  # create a default instance if necessary
             self.tooltips = Tooltips()
         self.tooltips.tt_data = ttips
