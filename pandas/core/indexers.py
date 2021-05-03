@@ -180,7 +180,8 @@ def check_setitem_lengths(indexer, value, values) -> bool:
 
     elif isinstance(indexer, slice):
         if is_list_like(value):
-            if len(value) != length_of_indexer(indexer, values):
+            if len(value) != length_of_indexer(indexer, values) and values.ndim == 1:
+                # In case of two dimensional value is used row-wise and broadcasted
                 raise ValueError(
                     "cannot set using a slice indexer with a "
                     "different length than the value"

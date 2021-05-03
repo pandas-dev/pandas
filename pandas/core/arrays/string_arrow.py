@@ -8,6 +8,7 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -229,10 +230,21 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
     @classmethod
     def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
+        from pandas.core.arrays.masked import BaseMaskedArray
+
         cls._chk_pyarrow_available()
-        # convert non-na-likes to str, and nan-likes to ArrowStringDtype.na_value
-        scalars = lib.ensure_string_array(scalars, copy=False)
-        return cls(pa.array(scalars, type=pa.string(), from_pandas=True))
+
+        if isinstance(scalars, BaseMaskedArray):
+            # avoid costly conversion to object dtype in ensure_string_array and
+            # numerical issues with Float32Dtype
+            na_values = scalars._mask
+            result = scalars._data
+            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            return cls(pa.array(result, mask=na_values, type=pa.string()))
+
+        # convert non-na-likes to str
+        result = lib.ensure_string_array(scalars, copy=copy)
+        return cls(pa.array(result, type=pa.string(), from_pandas=True))
 
     @classmethod
     def _from_sequence_of_strings(
@@ -755,16 +767,34 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
     def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
-        if not regex and case:
-            result = pc.match_substring(self._data, pat)
-            result = BooleanDtype().__from_arrow__(result)
-            if not isna(na):
-                result[isna(result)] = bool(na)
-            return result
-        else:
+        if flags:
             return super()._str_contains(pat, case, flags, na, regex)
 
+        if regex:
+            # match_substring_regex added in pyarrow 4.0.0
+            if hasattr(pc, "match_substring_regex") and case:
+                if re.compile(pat).groups:
+                    warnings.warn(
+                        "This pattern has match groups. To actually get the "
+                        "groups, use str.extract.",
+                        UserWarning,
+                        stacklevel=3,
+                    )
+                result = pc.match_substring_regex(self._data, pat)
+            else:
+                return super()._str_contains(pat, case, flags, na, regex)
+        else:
+            if case:
+                result = pc.match_substring(self._data, pat)
+            else:
+                result = pc.match_substring(pc.utf8_upper(self._data), pat.upper())
+        result = BooleanDtype().__from_arrow__(result)
+        if not isna(na):
+            result[isna(result)] = bool(na)
+        return result
+
     def _str_startswith(self, pat, na=None):
+        # match_substring_regex added in pyarrow 4.0.0
         if hasattr(pc, "match_substring_regex"):
             result = pc.match_substring_regex(self._data, "^" + re.escape(pat))
             result = BooleanDtype().__from_arrow__(result)
@@ -775,6 +805,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return super()._str_startswith(pat, na)
 
     def _str_endswith(self, pat, na=None):
+        # match_substring_regex added in pyarrow 4.0.0
         if hasattr(pc, "match_substring_regex"):
             result = pc.match_substring_regex(self._data, re.escape(pat) + "$")
             result = BooleanDtype().__from_arrow__(result)
