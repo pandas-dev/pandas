@@ -665,10 +665,18 @@ class StataValueLabel:
         categories = catarray.cat.categories
         self.value_labels = list(zip(np.arange(len(categories)), categories))
         self.value_labels.sort(key=lambda x: x[0])
+
         self.text_len = 0
         self.txt: list[bytes] = []
         self.n = 0
+        self.off = np.array([])
+        self.val = np.array([])
+        self.len = 0
 
+        self._prepare_value_labels()
+
+    def _prepare_value_labels(self):
+        """ Encode value labels. """
         # Compute lengths and setup lists of offsets and labels
         offsets: list[int] = []
         values: list[int] = []
@@ -677,10 +685,10 @@ class StataValueLabel:
             if not isinstance(category, str):
                 category = str(category)
                 warnings.warn(
-                    value_label_mismatch_doc.format(catarray.name),
+                    value_label_mismatch_doc.format(self.labname),
                     ValueLabelTypeMismatch,
                 )
-            category = category.encode(encoding)
+            category = category.encode(self._encoding)
             offsets.append(self.text_len)
             self.text_len += len(category) + 1  # +1 for the padding
             values.append(vl[0])
@@ -785,37 +793,11 @@ class StataNonCatValueLabel(StataValueLabel):
         self.text_len = 0
         self.txt: list[bytes] = []
         self.n = 0
+        self.off = np.array([])
+        self.val = np.array([])
+        self.len = 0
 
-        # Compute lengths and setup lists of offsets and labels
-        offsets: list[int] = []
-        values: list[int] = []
-        for vl in self.value_labels:
-            category = vl[1]
-            if not isinstance(category, str):
-                category = str(category)
-                warnings.warn(
-                    value_label_mismatch_doc.format(labname),
-                    ValueLabelTypeMismatch,
-                )
-            category = category.encode(encoding)
-            offsets.append(self.text_len)
-            self.text_len += len(category) + 1  # +1 for the padding
-            values.append(vl[0])
-            self.txt.append(category)
-            self.n += 1
-
-        if self.text_len > 32000:
-            raise ValueError(
-                "Stata value labels for a single variable must "
-                "have a combined length less than 32,000 characters."
-            )
-
-        # Ensure int32
-        self.off = np.array(offsets, dtype=np.int32)
-        self.val = np.array(values, dtype=np.int32)
-
-        # Total length
-        self.len = 4 + 4 + 4 * self.n + 4 * self.n + self.text_len
+        self._prepare_value_labels()
 
 
 class StataMissingValue:
