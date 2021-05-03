@@ -629,7 +629,7 @@ def test_concat_null_object_with_dti():
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_multiindex_with_empty_rangeindex(self):
+def test_concat_multiindex_with_empty_rangeindex():
     # GH#41234
     mi = MultiIndex.from_tuples([("B", 1), ("C", 1)])
     df1 = DataFrame([[1, 2]], columns=mi)
