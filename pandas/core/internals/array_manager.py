@@ -201,47 +201,6 @@ class BaseArrayManager(DataManager):
             output += f"\n{arr.dtype}"
         return output
 
-    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
-        """
-        Apply grouped reduction function columnwise, returning a new ArrayManager.
-
-        Parameters
-        ----------
-        func : grouped reduction function
-        ignore_failures : bool, default False
-            Whether to drop columns where func raises TypeError.
-
-        Returns
-        -------
-        ArrayManager
-        """
-        result_arrays: list[np.ndarray] = []
-        result_indices: list[int] = []
-
-        for i, arr in enumerate(self.arrays):
-            try:
-                res = func(arr)
-            except (TypeError, NotImplementedError):
-                if not ignore_failures:
-                    raise
-                continue
-            result_arrays.append(res)
-            result_indices.append(i)
-
-        if len(result_arrays) == 0:
-            index = Index([None])  # placeholder
-        else:
-            index = Index(range(result_arrays[0].shape[0]))
-
-        if ignore_failures:
-            columns = self.items[np.array(result_indices, dtype="int64")]
-        else:
-            columns = self.items
-
-        # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
-        # expected "List[Union[ndarray, ExtensionArray]]"
-        return type(self)(result_arrays, [index, columns])  # type: ignore[arg-type]
-
     def apply(
         self: T,
         f,
@@ -321,25 +280,6 @@ class BaseArrayManager(DataManager):
         # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
         # expected "List[Union[ndarray, ExtensionArray]]"
         return type(self)(result_arrays, new_axes)  # type: ignore[arg-type]
-
-    def apply_2d(self: T, f, ignore_failures: bool = False, **kwargs) -> T:
-        """
-        Variant of `apply`, but where the function should not be applied to
-        each column independently, but to the full data as a 2D array.
-        """
-        values = self.as_array()
-        try:
-            result = f(values, **kwargs)
-        except (TypeError, NotImplementedError):
-            if not ignore_failures:
-                raise
-            result_arrays = []
-            new_axes = [self._axes[0], self.axes[1].take([])]
-        else:
-            result_arrays = [result[:, i] for i in range(len(self._axes[1]))]
-            new_axes = self._axes
-
-        return type(self)(result_arrays, new_axes)
 
     def apply_with_block(self: T, f, align_keys=None, swap_axis=True, **kwargs) -> T:
         # switch axis to follow BlockManager logic
@@ -605,67 +545,6 @@ class BaseArrayManager(DataManager):
         else:
             new_arrays = self.arrays
         return type(self)(new_arrays, new_axes)
-
-    def as_array(
-        self,
-        transpose: bool = False,
-        dtype=None,
-        copy: bool = False,
-        na_value=lib.no_default,
-    ) -> np.ndarray:
-        """
-        Convert the blockmanager data into an numpy array.
-
-        Parameters
-        ----------
-        transpose : bool, default False
-            If True, transpose the return array.
-        dtype : object, default None
-            Data type of the return array.
-        copy : bool, default False
-            If True then guarantee that a copy is returned. A value of
-            False does not guarantee that the underlying data is not
-            copied.
-        na_value : object, default lib.no_default
-            Value to be used as the missing value sentinel.
-
-        Returns
-        -------
-        arr : ndarray
-        """
-        if len(self.arrays) == 0:
-            arr = np.empty(self.shape, dtype=float)
-            return arr.transpose() if transpose else arr
-
-        # We want to copy when na_value is provided to avoid
-        # mutating the original object
-        copy = copy or na_value is not lib.no_default
-
-        if not dtype:
-            dtype = interleaved_dtype([arr.dtype for arr in self.arrays])
-
-        if isinstance(dtype, SparseDtype):
-            dtype = dtype.subtype
-        elif isinstance(dtype, PandasDtype):
-            dtype = dtype.numpy_dtype
-        elif is_extension_array_dtype(dtype):
-            dtype = "object"
-        elif is_dtype_equal(dtype, str):
-            dtype = "object"
-
-        result = np.empty(self.shape_proper, dtype=dtype)
-
-        # error: Incompatible types in assignment (expression has type "Union[ndarray,
-        # ExtensionArray]", variable has type "ndarray")
-        for i, arr in enumerate(self.arrays):  # type: ignore[assignment]
-            arr = arr.astype(dtype, copy=copy)
-            result[:, i] = arr
-
-        if na_value is not lib.no_default:
-            result[isna(result)] = na_value
-
-        return result
-        # return arr.transpose() if transpose else arr
 
     def reindex_indexer(
         self: T,
@@ -1035,6 +914,55 @@ class ArrayManager(BaseArrayManager):
     # --------------------------------------------------------------------
     # Array-wise Operation
 
+    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+        """
+        Apply grouped reduction function columnwise, returning a new ArrayManager.
+
+        Parameters
+        ----------
+        func : grouped reduction function
+        ignore_failures : bool, default False
+            Whether to drop columns where func raises TypeError.
+
+        Returns
+        -------
+        ArrayManager
+        """
+        result_arrays: list[np.ndarray] = []
+        result_indices: list[int] = []
+
+        for i, arr in enumerate(self.arrays):
+            # grouped_reduce functions all expect 2D arrays
+            arr = ensure_block_shape(arr, ndim=2)
+            try:
+                res = func(arr)
+            except (TypeError, NotImplementedError):
+                if not ignore_failures:
+                    raise
+                continue
+
+            if res.ndim == 2:
+                # reverse of ensure_block_shape
+                assert res.shape[0] == 1
+                res = res[0]
+
+            result_arrays.append(res)
+            result_indices.append(i)
+
+        if len(result_arrays) == 0:
+            index = Index([None])  # placeholder
+        else:
+            index = Index(range(result_arrays[0].shape[0]))
+
+        if ignore_failures:
+            columns = self.items[np.array(result_indices, dtype="int64")]
+        else:
+            columns = self.items
+
+        # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
+        # expected "List[Union[ndarray, ExtensionArray]]"
+        return type(self)(result_arrays, [index, columns])  # type: ignore[arg-type]
+
     def reduce(
         self: T, func: Callable, ignore_failures: bool = False
     ) -> tuple[T, np.ndarray]:
@@ -1122,6 +1050,27 @@ class ArrayManager(BaseArrayManager):
         axes = [qs, self._axes[1]]
         return type(self)(new_arrs, axes)
 
+    def apply_2d(
+        self: ArrayManager, f, ignore_failures: bool = False, **kwargs
+    ) -> ArrayManager:
+        """
+        Variant of `apply`, but where the function should not be applied to
+        each column independently, but to the full data as a 2D array.
+        """
+        values = self.as_array()
+        try:
+            result = f(values, **kwargs)
+        except (TypeError, NotImplementedError):
+            if not ignore_failures:
+                raise
+            result_arrays = []
+            new_axes = [self._axes[0], self.axes[1].take([])]
+        else:
+            result_arrays = [result[:, i] for i in range(len(self._axes[1]))]
+            new_axes = self._axes
+
+        return type(self)(result_arrays, new_axes)
+
     # ----------------------------------------------------------------
 
     def unstack(self, unstacker, fill_value) -> ArrayManager:
@@ -1165,6 +1114,67 @@ class ArrayManager(BaseArrayManager):
         new_axes = [new_index, new_columns]
 
         return type(self)(new_arrays, new_axes, verify_integrity=False)
+
+    def as_array(
+        self,
+        transpose: bool = False,
+        dtype=None,
+        copy: bool = False,
+        na_value=lib.no_default,
+    ) -> np.ndarray:
+        """
+        Convert the blockmanager data into an numpy array.
+
+        Parameters
+        ----------
+        transpose : bool, default False
+            If True, transpose the return array.
+        dtype : object, default None
+            Data type of the return array.
+        copy : bool, default False
+            If True then guarantee that a copy is returned. A value of
+            False does not guarantee that the underlying data is not
+            copied.
+        na_value : object, default lib.no_default
+            Value to be used as the missing value sentinel.
+
+        Returns
+        -------
+        arr : ndarray
+        """
+        if len(self.arrays) == 0:
+            arr = np.empty(self.shape, dtype=float)
+            return arr.transpose() if transpose else arr
+
+        # We want to copy when na_value is provided to avoid
+        # mutating the original object
+        copy = copy or na_value is not lib.no_default
+
+        if not dtype:
+            dtype = interleaved_dtype([arr.dtype for arr in self.arrays])
+
+        if isinstance(dtype, SparseDtype):
+            dtype = dtype.subtype
+        elif isinstance(dtype, PandasDtype):
+            dtype = dtype.numpy_dtype
+        elif is_extension_array_dtype(dtype):
+            dtype = "object"
+        elif is_dtype_equal(dtype, str):
+            dtype = "object"
+
+        result = np.empty(self.shape_proper, dtype=dtype)
+
+        # error: Incompatible types in assignment (expression has type "Union[ndarray,
+        # ExtensionArray]", variable has type "ndarray")
+        for i, arr in enumerate(self.arrays):  # type: ignore[assignment]
+            arr = arr.astype(dtype, copy=copy)
+            result[:, i] = arr
+
+        if na_value is not lib.no_default:
+            result[isna(result)] = na_value
+
+        return result
+        # return arr.transpose() if transpose else arr
 
 
 class SingleArrayManager(BaseArrayManager, SingleDataManager):
