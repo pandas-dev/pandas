@@ -2923,9 +2923,11 @@ class Index(IndexOpsMixin, PandasObject):
         other, result_name = self._convert_can_do_setop(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
-            if isinstance(self, ABCMultiIndex) and not is_object_dtype(
-                unpack_nested_dtype(other)
-            ) and len(other) > 0:
+            if (
+                isinstance(self, ABCMultiIndex)
+                and not is_object_dtype(unpack_nested_dtype(other))
+                and len(other) > 0
+            ):
                 raise NotImplementedError(
                     "Can only union MultiIndex with MultiIndex or Index of tuples, "
                     "try mi.to_flat_index().union(other) instead."
