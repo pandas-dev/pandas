@@ -6152,26 +6152,26 @@ class DataFrame(NDFrame, OpsMixin):
             return labels.astype("i8", copy=False), len(shape)
 
         if subset is None:
-            subset = self.columns
+            subset_iterable: Iterable = self.columns
         elif (
             not np.iterable(subset)
             or isinstance(subset, str)
             or isinstance(subset, tuple)
             and subset in self.columns
         ):
-            subset = (subset,)
-
-        #  needed for mypy since can't narrow types using np.iterable
-        subset = cast(Iterable, subset)
+            subset_iterable = (subset,)
+        else:
+            #  needed for mypy since can't narrow types using np.iterable
+            subset_iterable = cast(Iterable, subset)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
         # key that doesn't exist.
-        diff = Index(subset).difference(self.columns)
+        diff = Index(subset_iterable).difference(self.columns)
         if not diff.empty:
             raise KeyError(diff)
 
-        vals = (col.values for name, col in self.items() if name in subset)
+        vals = (col.values for name, col in self.items() if name in subset_iterable)
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(
