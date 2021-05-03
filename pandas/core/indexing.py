@@ -446,8 +446,6 @@ class IndexingMixin:
         **Setting values using Series**
 
         Assign column using Series
-        warning:: Preferred syntax to assign a column: `df['shield']` instead
-        of allocation through `df.loc[]`
 
         >>> df.loc[:, 'shield'] = pd.Series({7: 8, 8: 10, 9: 13})
         >>> df
@@ -456,8 +454,8 @@ class IndexingMixin:
         8          4      10
         9          7      13
 
-        Assigning column to a Series with non matching indexes aligns the
-        right hand side to the index of the left
+        Assign partial column with certain aligned indexes in dataframe
+        missing from Series
 
         >>> df.loc[:, 'shield'] = pd.Series({8: 10})
         >>> df
