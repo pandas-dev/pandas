@@ -1842,20 +1842,14 @@ def validate_periods(periods):
 
 def validate_endpoints(closed):
     """
-    Check that the ``closed`` argument is a valid string input, or, 
-    for backwards compatibility, one of ``{True, False, or None}``.
-
+    Check that the `closed` argument is among [None, "left", "right"]
     Parameters
     ----------
-    closed : {"neither", "left", "right", "both"}
-    Whether to set each bound as closed or open. For backwards compatibility this can also
-    be set to ``True`` ("both"), False ("neither") or None (..)
-
+    closed : {None, "left", "right"}
     Returns
     -------
     left_closed : bool
     right_closed : bool
-
     Raises
     ------
     ValueError : if argument is not among valid values
@@ -1863,21 +1857,16 @@ def validate_endpoints(closed):
     left_closed = False
     right_closed = False
 
-    if closed == "both" or closed is True or closed is None:
+    if closed is None:
         left_closed = True
         right_closed = True
     elif closed == "left":
         left_closed = True
     elif closed == "right":
         right_closed = True
-    elif closed == "neither" or closed is False:
-        left_closed = False
-        right_closed = False
     else:
-        raise ValueError(
-            "Closed has to be either 'left', 'right', 'neither', 'both' or "
-            "None, or a boolean value"
-        )
+        raise ValueError("Closed has to be either 'left', 'right' or None")
+
     return left_closed, right_closed
 
 
