@@ -970,6 +970,7 @@ class BaseGrouper:
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
+        cast_back = True
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             result, counts = self._aggregate_series_pure_python(obj, func)
@@ -987,9 +988,14 @@ class BaseGrouper:
 
         else:
             result, counts = self._aggregate_series_fast(obj, func)
+            cast_back = False
 
         npvalues = lib.maybe_convert_objects(result, try_float=False)
-        out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
+        if cast_back:
+            # TODO: Is there a documented reason why we dont always cast_back?
+            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
+        else:
+            out = npvalues
         return out, counts
 
     def _aggregate_series_fast(
