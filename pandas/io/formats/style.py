@@ -324,7 +324,7 @@ class Styler(StylerRenderer):
             )
         if not ttips.index.is_unique or not ttips.columns.is_unique:
             raise KeyError(
-                "Tooltips renders only if `ttips` has unique index and columns."
+                "Tooltips render only if `ttips` has unique index and columns."
             )
         if self.tooltips is None:  # create a default instance if necessary
             self.tooltips = Tooltips()
