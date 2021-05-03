@@ -35,7 +35,7 @@ class OpenpyxlWriter(ExcelWriter):
         engine=None,
         date_format=None,
         datetime_format=None,
-        num_formats=None,
+        formatters: dict[Any, str] | None = None,
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
@@ -44,11 +44,9 @@ class OpenpyxlWriter(ExcelWriter):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
-        if num_formats is not None:
-            raise NotImplementedError
-
         super().__init__(
             path,
+            formatters=formatters,
             mode=mode,
             storage_options=storage_options,
             if_sheet_exists=if_sheet_exists,

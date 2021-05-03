@@ -28,7 +28,7 @@ class ODSWriter(ExcelWriter):
         engine: Optional[str] = None,
         date_format=None,
         datetime_format=None,
-        num_formats=None,
+        formatters: Optional[Dict[Any, str]] = None,
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: Optional[str] = None,
@@ -39,11 +39,9 @@ class ODSWriter(ExcelWriter):
         if mode == "a":
             raise ValueError("Append mode is not supported with odf!")
 
-        if num_formats is not None:
-            raise NotImplementedError
-
         super().__init__(
             path,
+            formatters=formatters,
             mode=mode,
             storage_options=storage_options,
             if_sheet_exists=if_sheet_exists,

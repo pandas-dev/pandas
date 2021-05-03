@@ -25,7 +25,7 @@ class XlwtWriter(ExcelWriter):
         engine=None,
         date_format=None,
         datetime_format=None,
-        num_formats=None,
+        formatters: Optional[Dict[Any, str]] = None,
         encoding=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
@@ -38,11 +38,9 @@ class XlwtWriter(ExcelWriter):
         if mode == "a":
             raise ValueError("Append mode is not supported with xlwt!")
 
-        if num_formats is not None:
-            raise NotImplementedError
-
         super().__init__(
             path,
+            formatters=formatters,
             mode=mode,
             storage_options=storage_options,
             if_sheet_exists=if_sheet_exists,

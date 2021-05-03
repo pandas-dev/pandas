@@ -1,4 +1,3 @@
-import datetime
 from typing import (
     Any,
     Dict,
@@ -10,12 +9,7 @@ from typing import (
 import pandas._libs.json as json
 from pandas._typing import StorageOptions
 
-from pandas.core.dtypes.common import (
-    is_bool,
-    is_float,
-    is_hashable,
-    is_integer,
-)
+from pandas.core.dtypes.common import is_hashable
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import validate_freeze_panes
@@ -183,7 +177,7 @@ class XlsxWriter(ExcelWriter):
         engine=None,
         date_format=None,
         datetime_format=None,
-        num_formats: Optional[Dict[Any, str]] = None,
+        formatters: Optional[Dict[Any, str]] = None,
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: Optional[str] = None,
@@ -197,19 +191,10 @@ class XlsxWriter(ExcelWriter):
         if mode == "a":
             raise ValueError("Append mode is not supported with xlsxwriter!")
 
-        if num_formats is not None:
-            if not isinstance(num_formats, dict):
-                raise TypeError(
-                    f"Invalid type {type(num_formats).__name__}, "
-                    "num_formats must be dict."
-                )
-            for col_name, fmt in num_formats.items():
-                if not isinstance(fmt, str):
-                    raise TypeError(f"Format for '{col_name}' is not a string.")
-
         super().__init__(
             path,
             engine=engine,
+            formatters=formatters,
             date_format=date_format,
             datetime_format=datetime_format,
             mode=mode,
@@ -218,7 +203,6 @@ class XlsxWriter(ExcelWriter):
             engine_kwargs=engine_kwargs,
         )
 
-        self.num_formats = num_formats
         self.col_mapping = None
         self.book = Workbook(self.handles.handle, **engine_kwargs)
 
@@ -237,6 +221,7 @@ class XlsxWriter(ExcelWriter):
         freeze_panes=None,
     ):
         # Write the frame cells using xlsxwriter.
+
         sheet_name = self._get_sheet_name(sheet_name)
 
         if sheet_name in self.sheets:
@@ -251,14 +236,15 @@ class XlsxWriter(ExcelWriter):
             wks.freeze_panes(*(freeze_panes))
 
         # Mapping the column numbers to the formats
-        if self.col_mapping and self.num_formats:
-            self.num_formats = {
-                colno: self.num_formats[colname]
+        self.formatters: Optional[Dict[Any, str]]
+        if self.col_mapping and self.formatters:
+            self.formatters = {
+                colno: self.formatters[colname]
                 for colno, colname in self.col_mapping.items()
-                if is_hashable(colname) and colname in self.num_formats
+                if is_hashable(colname) and colname in self.formatters
             }
         else:
-            self.num_formats = None
+            self.formatters = None
 
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val, cell.col)
@@ -283,45 +269,3 @@ class XlsxWriter(ExcelWriter):
                 )
             else:
                 wks.write(startrow + cell.row, startcol + cell.col, val, style)
-
-    def _value_with_fmt(
-        self, val: Any, col: Optional[int] = None
-    ) -> Tuple[Any, Optional[str]]:
-        """
-        Convert numpy types to Python types for the Excel writer.
-
-        Parameters
-        ----------
-        val : object
-            Value to be written into cells.
-        col : int, optional
-            Column number of the cell.
-
-        Returns
-        -------
-        Tuple with the first element being the converted value and the second
-            being an optional format
-        """
-        col_format = None
-        fmt = None
-
-        if self.num_formats:
-            col_format = self.num_formats.get(col, None)
-
-        if is_integer(val):
-            val = int(val)
-        elif is_float(val):
-            val = float(val)
-        elif is_bool(val):
-            val = bool(val)
-        elif isinstance(val, datetime.datetime):
-            fmt = col_format if col_format else self.datetime_format
-        elif isinstance(val, datetime.date):
-            fmt = col_format if col_format else self.date_format
-        elif isinstance(val, datetime.timedelta):
-            val = val.total_seconds() / 86400
-            fmt = "0"
-        else:
-            val = str(val)
-
-        return val, fmt

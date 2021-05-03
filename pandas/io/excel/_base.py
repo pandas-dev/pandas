@@ -658,11 +658,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS').
-    num_formats : dict, default None
-        Add number formats to columns of type date and datetime.
+    formatters : dict, default None
+        Add formats to columns of type date and datetime.
         Accepts a dictionary of column name(key) and format strings(value).
         Formats for columns specified here will take precedence over the
-        ``datetime_format`` and ``date_format`` parameters for those specific columns.
+        ``datetime_format`` and ``date_format`` parameters for the specified columns.
+        Not supported for multiindex columns.
         Supported only for engine 'xlsxwriter'.
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
@@ -729,10 +730,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...                   datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
     ...     df.to_excel(writer)
 
-    You can set the num_formats for date/datetime columns when the engine is xlsxwriter:
+    You can use formatters for date/datetime columns when the engine is xlsxwriter:
 
     >>> with ExcelWriter('path_to_file.xlsx',
-    ...                   num_formats={'col1:'YYYY-MM-DD','col2':'MMM'}) as writer:
+    ...                   formatters={'col1:'YYYY-MM-DD','col2':'MMM'}) as writer:
     ...     df.to_excel(writer)
 
     You can also append to an existing Excel file:
@@ -783,7 +784,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         engine=None,
         date_format=None,
         datetime_format=None,
-        num_formats: dict | None = None,
+        formatters: dict | None = None,
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
@@ -833,6 +834,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         FutureWarning,
                         stacklevel=4,
                     )
+
+            if engine != "xlsxwriter" and formatters is not None:
+                raise NotImplementedError
+
             cls = get_writer(engine)
 
         return object.__new__(cls)
@@ -885,6 +890,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         engine=None,
         date_format=None,
         datetime_format=None,
+        formatters: dict | None = None,
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
@@ -921,6 +927,17 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         else:
             self.datetime_format = datetime_format
 
+        if formatters is not None:
+            if not isinstance(formatters, dict):
+                raise TypeError(
+                    f"Invalid type {type(formatters).__name__}, "
+                    "formatters must be dict."
+                )
+            for col_name, fmt in formatters.items():
+                if not isinstance(fmt, str):
+                    raise TypeError(f"Format for '{col_name}' is not a string.")
+
+        self.formatters = formatters
         self.mode = mode
 
         if if_sheet_exists not in [None, "error", "new", "replace"]:
@@ -944,21 +961,27 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             raise ValueError("Must pass explicit sheet_name or set cur_sheet property")
         return sheet_name
 
-    def _value_with_fmt(self, val):
+    def _value_with_fmt(self, val, col: int | None = None) -> tuple:
         """
         Convert numpy types to Python types for the Excel writers.
 
         Parameters
         ----------
         val : object
-            Value to be written into cells
+            Value to be written into cells.
+        col : int, optional
+            Column number of the cell.
 
         Returns
         -------
         Tuple with the first element being the converted value and the second
             being an optional format
         """
+        col_format = None
         fmt = None
+
+        if self.formatters and isinstance(self.formatters, dict):
+            col_format = self.formatters.get(col, None)
 
         if is_integer(val):
             val = int(val)
@@ -967,9 +990,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         elif is_bool(val):
             val = bool(val)
         elif isinstance(val, datetime.datetime):
-            fmt = self.datetime_format
+            fmt = col_format if col_format else self.datetime_format
         elif isinstance(val, datetime.date):
-            fmt = self.date_format
+            fmt = col_format if col_format else self.date_format
         elif isinstance(val, datetime.timedelta):
             val = val.total_seconds() / 86400
             fmt = "0"
