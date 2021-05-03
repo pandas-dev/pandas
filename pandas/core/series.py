@@ -4190,7 +4190,7 @@ Keep all original rows and also all original values
         Notes
         -----
         Functions that mutate the passed object can produce unexpected
-        behavior or errors and are not supported. See :ref:`udf-mutation`
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
         Examples
