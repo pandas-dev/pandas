@@ -723,8 +723,8 @@ class BaseGrouper:
 
         __finalize__ has not been called for the subsetted objects returned.
         """
-        comp_ids, _, ngroups = self.group_info
-        return get_splitter(data, comp_ids, ngroups, axis=axis)
+        ids, _, ngroups = self.group_info
+        return get_splitter(data, ids, ngroups, axis=axis)
 
     def _get_grouper(self):
         """
@@ -740,10 +740,10 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.levels[0]
         else:
-            comp_ids, _, ngroups = self.group_info
+            ids, _, ngroups = self.group_info
 
             # provide "flattened" iterator for multi-group setting
-            return get_flattened_list(comp_ids, ngroups, self.levels, self.codes)
+            return get_flattened_list(ids, ngroups, self.levels, self.codes)
 
     @final
     def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
@@ -846,9 +846,9 @@ class BaseGrouper:
         """
         Compute group sizes.
         """
-        ids, _, ngroup = self.group_info
-        if ngroup:
-            out = np.bincount(ids[ids != -1], minlength=ngroup)
+        ids, _, ngroups = self.group_info
+        if ngroups:
+            out = np.bincount(ids[ids != -1], minlength=ngroups)
         else:
             out = []
         return Series(out, index=self.result_index, dtype="int64")
@@ -882,11 +882,11 @@ class BaseGrouper:
     @cache_readonly
     def codes_info(self) -> np.ndarray:
         # return the codes of items in original grouped axis
-        codes, _, _ = self.group_info
+        ids, _, _ = self.group_info
         if self.indexer is not None:
-            sorter = np.lexsort((codes, self.indexer))
-            codes = codes[sorter]
-        return codes
+            sorter = np.lexsort((ids, self.indexer))
+            ids = ids[sorter]
+        return ids
 
     @final
     def _get_compressed_codes(self) -> tuple[np.ndarray, np.ndarray]:
@@ -906,8 +906,8 @@ class BaseGrouper:
     @property
     def reconstructed_codes(self) -> list[np.ndarray]:
         codes = self.codes
-        comp_ids, obs_ids, _ = self.group_info
-        return decons_obs_group_ids(comp_ids, obs_ids, self.shape, codes, xnull=True)
+        ids, obs_ids, _ = self.group_info
+        return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
 
     @cache_readonly
     def result_index(self) -> Index:
@@ -954,13 +954,13 @@ class BaseGrouper:
 
         cy_op = WrappedCythonOp(kind=kind, how=how)
 
-        comp_ids, _, _ = self.group_info
+        ids, _, _ = self.group_info
         ngroups = self.ngroups
         return cy_op.cython_operation(
             values=values,
             axis=axis,
             min_count=min_count,
-            comp_ids=comp_ids,
+            comp_ids=ids,
             ngroups=ngroups,
             **kwargs,
         )
@@ -997,26 +997,26 @@ class BaseGrouper:
         #  - ngroups != 0
         func = com.is_builtin_func(func)
 
-        group_index, _, ngroups = self.group_info
+        ids, _, ngroups = self.group_info
 
         # avoids object / Series creation overhead
-        indexer = get_group_index_sorter(group_index, ngroups)
+        indexer = get_group_index_sorter(ids, ngroups)
         obj = obj.take(indexer)
-        group_index = group_index.take(indexer)
-        sgrouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups)
+        ids = ids.take(indexer)
+        sgrouper = libreduction.SeriesGrouper(obj, func, ids, ngroups)
         result, counts = sgrouper.get_result()
         return result, counts
 
     @final
     def _aggregate_series_pure_python(self, obj: Series, func: F):
-        group_index, _, ngroups = self.group_info
+        ids, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
         result = np.empty(ngroups, dtype="O")
         initialized = False
 
         # equiv: splitter = self._get_splitter(obj, axis=0)
-        splitter = get_splitter(obj, group_index, ngroups, axis=0)
+        splitter = get_splitter(obj, ids, ngroups, axis=0)
 
         for i, group in enumerate(splitter):
 
@@ -1152,7 +1152,7 @@ class BinGrouper(BaseGrouper):
     @cache_readonly
     def group_info(self):
         ngroups = self.ngroups
-        obs_group_ids = np.arange(ngroups)
+        obs_group_ids = np.arange(ngroups, dtype=np.int64)
         rep = np.diff(np.r_[0, self.bins])
 
         rep = ensure_platform_int(rep)
@@ -1163,7 +1163,7 @@ class BinGrouper(BaseGrouper):
 
         return (
             ensure_platform_int(comp_ids),
-            obs_group_ids.astype("int64", copy=False),
+            obs_group_ids,
             ngroups,
         )
 

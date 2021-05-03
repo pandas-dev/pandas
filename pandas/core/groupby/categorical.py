@@ -1,7 +1,4 @@
-from typing import (
-    Optional,
-    Tuple,
-)
+from __future__ import annotations
 
 import numpy as np
 
@@ -16,7 +13,7 @@ from pandas.core.indexes.api import CategoricalIndex
 
 def recode_for_groupby(
     c: Categorical, sort: bool, observed: bool
-) -> Tuple[Categorical, Optional[Categorical]]:
+) -> tuple[Categorical, Categorical | None]:
     """
     Code the categories to ensure we can groupby for categoricals.
 

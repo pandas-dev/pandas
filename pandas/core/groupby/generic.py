@@ -366,7 +366,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 )
             except NotImplementedError:
                 ser = Series(values)  # equiv 'obj' from outer frame
-                if self.grouper.ngroups > 0:
+                if self.ngroups > 0:
                     res_values, _ = self.grouper.agg_series(ser, alt)
                 else:
                     # equiv: res_values = self._python_agg_general(alt)
@@ -604,12 +604,12 @@ class SeriesGroupBy(GroupBy[Series]):
         fast version of transform, only applicable to
         builtin/cythonizable functions
         """
-        ids, _, ngroup = self.grouper.group_info
+        ids, _, _ = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
         out = algorithms.take_nd(result._values, ids)
         return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
 
-    def filter(self, func, dropna=True, *args, **kwargs):
+    def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
         Return a copy of a Series excluding elements from groups that
         do not satisfy the boolean criterion specified by func.
@@ -1445,7 +1445,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         obj = self._obj_with_exclusions
 
         # for each col, reshape to size of original frame by take operation
-        ids, _, ngroup = self.grouper.group_info
+        ids, _, _ = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
         output = [
             algorithms.take_nd(result.iloc[:, i].values, ids)

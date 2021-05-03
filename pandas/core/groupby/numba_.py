@@ -1,11 +1,10 @@
 """Common utilities for Numba operations with groupby ops"""
+from __future__ import annotations
+
 import inspect
 from typing import (
     Any,
     Callable,
-    Dict,
-    Optional,
-    Tuple,
 )
 
 import numpy as np
@@ -57,10 +56,10 @@ def validate_udf(func: Callable) -> None:
 
 
 def generate_numba_agg_func(
-    args: Tuple,
-    kwargs: Dict[str, Any],
+    args: tuple,
+    kwargs: dict[str, Any],
     func: Callable[..., Scalar],
-    engine_kwargs: Optional[Dict[str, bool]],
+    engine_kwargs: dict[str, bool] | None,
 ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int], np.ndarray]:
     """
     Generate a numba jitted agg function specified by values from engine_kwargs.
@@ -117,10 +116,10 @@ def generate_numba_agg_func(
 
 
 def generate_numba_transform_func(
-    args: Tuple,
-    kwargs: Dict[str, Any],
+    args: tuple,
+    kwargs: dict[str, Any],
     func: Callable[..., np.ndarray],
-    engine_kwargs: Optional[Dict[str, bool]],
+    engine_kwargs: dict[str, bool] | None,
 ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int], np.ndarray]:
     """
     Generate a numba jitted transform function specified by values from engine_kwargs.
