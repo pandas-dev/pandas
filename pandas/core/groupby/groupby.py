@@ -1103,13 +1103,13 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             raise NotImplementedError(
                 "Numba engine can only be used with a single function."
             )
-        labels, _, n_groups = self.grouper.group_info
-        sorted_index = get_group_index_sorter(labels, n_groups)
-        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
+        ids, _, ngroups = self.grouper.group_info
+        sorted_index = get_group_index_sorter(ids, ngroups)
+        sorted_ids = algorithms.take_nd(ids, sorted_index, allow_fill=False)
 
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
 
-        starts, ends = lib.generate_slices(sorted_labels, n_groups)
+        starts, ends = lib.generate_slices(sorted_ids, ngroups)
         return starts, ends, sorted_index, sorted_data
 
     @final
@@ -1253,11 +1253,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # iterate through "columns" ex exclusions to populate output dict
         output: dict[base.OutputKey, ArrayLike] = {}
 
+        if self.ngroups == 0:
+            # agg_series below assumes ngroups > 0
+            return self._python_apply_general(f, self._selected_obj)
+
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
-            if self.grouper.ngroups == 0:
-                # agg_series below assumes ngroups > 0
-                continue
 
             try:
                 # if this function is invalid for this dtype, we will ignore it.
@@ -1368,7 +1369,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         return filtered
 
     @final
-    def _cumcount_array(self, ascending: bool = True):
+    def _cumcount_array(self, ascending: bool = True) -> np.ndarray:
         """
         Parameters
         ----------
@@ -2721,7 +2722,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         grouper = self.grouper
 
-        labels, _, ngroups = grouper.group_info
+        ids, _, ngroups = grouper.group_info
         output: dict[base.OutputKey, np.ndarray] = {}
         base_func = getattr(libgroupby, how)
 
@@ -2754,15 +2755,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 if pre_processing:
                     try:
                         vals, inferences = pre_processing(vals)
-                    except TypeError as e:
-                        error_msg = str(e)
+                    except TypeError as err:
+                        error_msg = str(err)
                         continue
                 vals = vals.astype(cython_dtype, copy=False)
                 if needs_2d:
                     vals = vals.reshape((-1, 1))
                 func = partial(func, vals)
 
-            func = partial(func, labels)
+            func = partial(func, ids)
 
             if min_count is not None:
                 func = partial(func, min_count)
