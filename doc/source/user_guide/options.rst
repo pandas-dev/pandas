@@ -456,6 +456,10 @@ io.hdf.dropna_table                     True         drop ALL nan rows when appe
 io.parquet.engine                       None         The engine to use as a default for
                                                      parquet reading and writing. If None
                                                      then try 'pyarrow' and 'fastparquet'
+io.sql.engine                           None         The engine to use as a default for
+                                                     sql reading and writing, with SQLAlchemy
+                                                     as a higher level interface. If None
+                                                     then try 'sqlalchemy'
 mode.chained_assignment                 warn         Controls ``SettingWithCopyWarning``:
                                                      'raise', 'warn', or None. Raise an
                                                      exception, warn, or no action if

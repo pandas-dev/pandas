@@ -652,6 +652,22 @@ with cf.config_prefix("io.parquet"):
         validator=is_one_of_factory(["auto", "pyarrow", "fastparquet"]),
     )
 
+
+# Set up the io.sql specific configuration.
+sql_engine_doc = """
+: string
+    The default sql reader/writer engine. Available options:
+    'auto', 'sqlalchemy', the default is 'auto'
+"""
+
+with cf.config_prefix("io.sql"):
+    cf.register_option(
+        "engine",
+        "auto",
+        sql_engine_doc,
+        validator=is_one_of_factory(["auto", "sqlalchemy"]),
+    )
+
 # --------
 # Plotting
 # ---------
