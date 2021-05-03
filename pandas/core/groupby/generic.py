@@ -1230,6 +1230,21 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self.obj._constructor(result, columns=result_columns)
 
     def _wrap_applied_output(self, data, keys, values, not_indexed_same=False):
+        # Note: `data` is _usually_ self._selected_obj or self._obj_with_exclusions
+
+        # TODO: write this case in a more principled manner; ATM it is written
+        #  just to pass the one relevant test
+        if self.ndim == data.ndim == 1 and len(keys) == 0:
+            # corner case where self._selected_obj is a Series
+            # reached in test_groupby_as_index_select_column_sum_empty_df
+            res_ser = self.obj._constructor_sliced(
+                values, index=self.grouper.result_index, name=data.name
+            )
+            result = res_ser.to_frame()
+            if not self.as_index:
+                self._insert_inaxis_grouper_inplace(result)
+            return result
+
         if len(keys) == 0:
             result = self.obj._constructor(
                 index=self.grouper.result_index, columns=data.columns

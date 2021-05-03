@@ -1296,21 +1296,34 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         npfunc: Callable,
     ):
         with group_selection_context(self):
-            # try a cython aggregation if we can
-            result = None
-            try:
-                result = self._cython_agg_general(
-                    how=alias,
-                    alt=npfunc,
-                    numeric_only=numeric_only,
-                    min_count=min_count,
-                )
-            except DataError:
-                pass
+            sso = self._selected_obj
 
-            # apply a non-cython aggregation
-            if result is None:
-                result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+            # Note: self.ndim can be one for DataFrameGroupBy in corner cases
+            if self.ndim == 1 and numeric_only and not is_numeric_dtype(sso.dtype):
+                # _cython_agg_general would raise DataError
+                # Note: this is equivalent to the self.aggregate call below,
+                #  but skips some unnecessary checks.
+                result = self._python_agg_general(npfunc)
+                return result.__finalize__(self.obj, method="groupby")
+
+            if self.ndim == 2:
+
+                mgr = self._get_data_to_aggregate()
+                if numeric_only:
+                    mgr = mgr.get_numeric_data(copy=False)
+
+                if mgr.shape[0] == 0:
+                    # _cython_agg_general would raise DataError
+                    result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+                    return result.__finalize__(self.obj, method="groupby")
+
+            result = self._cython_agg_general(
+                how=alias,
+                alt=npfunc,
+                numeric_only=numeric_only,
+                min_count=min_count,
+            )
+
             return result.__finalize__(self.obj, method="groupby")
 
     def _cython_agg_general(
