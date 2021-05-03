@@ -5,6 +5,8 @@ from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
 from pandas import (
+    CategoricalDtype,
+    CategoricalIndex,
     Float64Index,
     Index,
     Int64Index,
@@ -533,3 +535,28 @@ class TestRangeIndex(Numeric):
         result = base.isin(values)
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("copy", [True, False])
+    @pytest.mark.parametrize("name", [None, "foo"])
+    @pytest.mark.parametrize("ordered", [True, False])
+    def test_astype_category(self, copy, name, ordered, simple_index):
+        super().test_astype_category(copy, name, ordered, simple_index)
+
+        # GH 41263
+        idx = simple_index
+        if name:
+            idx = idx.rename(name)
+
+        # standard categories
+        dtype = CategoricalDtype(ordered=ordered)
+        result = idx.astype(dtype, copy=copy)
+        assert isinstance(result, CategoricalIndex)
+        assert isinstance(result.categories, RangeIndex)
+        assert (result.categories == idx).all()
+
+        if ordered is False:
+            # dtype='category' defaults to ordered=False, so only test once
+            result = idx.astype("category", copy=copy)
+            assert isinstance(result, CategoricalIndex)
+            assert isinstance(result.categories, RangeIndex)
+            assert (result.categories == idx).all()
