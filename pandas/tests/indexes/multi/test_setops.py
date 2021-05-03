@@ -418,8 +418,8 @@ def test_union_multiindex_empty_rangeindex():
     # GH#41234
     mi = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
     ri = pd.RangeIndex(0)
-    result = mi.union(ri)
-    tm.assert_index_equal(mi, result, check_names=False)
+    tm.assert_index_equal(mi, mi.union(ri), check_names=False)
+    tm.assert_index_equal(mi, ri.union(mi), check_names=False)
 
 
 @pytest.mark.parametrize(
