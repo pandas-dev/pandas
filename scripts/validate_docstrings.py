@@ -56,6 +56,7 @@ PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
     "GL04": "Private classes ({mentioned_private_classes}) should not be "
     "mentioned in public docstrings",
+    "GL05": "Use 'array-like' rather than 'array_like' in docstrings.",
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
     "prefix, use {right_reference} instead.",
     "EX02": "Examples do not pass tests:\n{doctest_log}",
@@ -257,6 +258,9 @@ def pandas_validate(func_name: str):
                 result["errors"].append(
                     pandas_error("EX04", imported_library=wrong_import)
                 )
+
+    if "array_like" in doc.raw_doc:
+        result["errors"].append(pandas_error("GL05"))
 
     return result
 
