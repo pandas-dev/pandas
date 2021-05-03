@@ -82,8 +82,6 @@ class StylerRenderer:
             data = data.to_frame()
         if not isinstance(data, DataFrame):
             raise TypeError("``data`` must be a Series or DataFrame")
-        # if not data.index.is_unique or not data.columns.is_unique:
-        #     raise ValueError("style is not supported for non-unique indices.")
         self.data: DataFrame = data
         self.index: Index = data.index
         self.columns: Index = data.columns
