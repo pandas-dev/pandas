@@ -955,7 +955,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if not inplace:
             return cat
 
-    def rename_categories(self, new_categories, inplace=False):
+    def rename_categories(self, new_categories, inplace=no_default):
         """
         Rename categories.
 
@@ -979,6 +979,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace : bool, default False
             Whether or not to rename the categories inplace or return a copy of
             this categorical with renamed categories.
+
+            .. deprecated:: 1.3.0
 
         Returns
         -------
@@ -1019,6 +1021,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ['A', 'A', 'B']
         Categories (2, object): ['A', 'B']
         """
+        if inplace is not no_default:
+            warn(
+                "The `inplace` parameter in pandas.Categorical."
+                "rename_categories is deprecated and will be removed in "
+                "a future version. Removing unused categories will always "
+                "return a new Categorical object.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
 
@@ -1031,7 +1045,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if not inplace:
             return cat
 
-    def reorder_categories(self, new_categories, ordered=None, inplace=False):
+    def reorder_categories(self, new_categories, ordered=None, inplace=no_default):
         """
         Reorder categories as specified in new_categories.
 
@@ -1048,6 +1062,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace : bool, default False
            Whether or not to reorder the categories inplace or return a copy of
            this categorical with reordered categories.
+
+           .. deprecated:: 1.3.0
 
         Returns
         -------
@@ -1068,6 +1084,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
         """
+        if inplace is not no_default:
+            warn(
+                "The `inplace` parameter in pandas.Categorical."
+                "reorder_categories is deprecated and will be removed in "
+                "a future version. Removing unused categories will always "
+                "return a new Categorical object.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if set(self.dtype.categories) != set(new_categories):
             raise ValueError(
@@ -2403,7 +2431,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                         cat.remove_categories(replace_value, inplace=True)
                 else:
                     categories[index] = new_value
-                    cat.rename_categories(categories, inplace=True)
+                    with catch_warnings():
+                        simplefilter("ignore")
+                        cat.rename_categories(categories, inplace=True)
         if not inplace:
             return cat
 

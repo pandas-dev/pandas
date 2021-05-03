@@ -12,6 +12,7 @@ import pytest
 from pandas.compat import (
     IS64,
     PY38,
+    PY310,
     is_platform_windows,
 )
 import pandas.util._test_decorators as td
@@ -26,6 +27,8 @@ from pandas import (
     read_json,
 )
 import pandas._testing as tm
+
+pytestmark = pytest.mark.skipif(PY310, reason="timeout with coverage")
 
 _seriesd = tm.getSeriesData()
 
@@ -857,8 +860,6 @@ class TestPandasContainer:
         result = read_json(dumps(data))[["id", infer_word]]
         tm.assert_frame_equal(result, expected)
 
-    # TODO(ArrayManager) JSON
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize(
         "date,date_unit",
         [
