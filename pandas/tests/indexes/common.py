@@ -31,7 +31,11 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 class Base:
     """ base class for index sub-class tests """
 
-    _holder: Type[Index]
+    _index_cls: Type[Index]
+
+    @pytest.fixture
+    def simple_index(self) -> Index:
+        raise NotImplementedError("Method not implemented")
 
     def create_index(self) -> Index:
         raise NotImplementedError("Method not implemented")
@@ -45,12 +49,12 @@ class Base:
             r"__new__\(\) takes at least 2 arguments \(1 given\)"
         )
         with pytest.raises(TypeError, match=msg):
-            self._holder()
+            self._index_cls()
 
     @pytest.mark.parametrize("name", [None, "new_name"])
-    def test_to_frame(self, name):
+    def test_to_frame(self, name, simple_index):
         # see GH-15230, GH-22580
-        idx = self.create_index()
+        idx = simple_index
 
         if name:
             idx_name = name
@@ -67,10 +71,10 @@ class Base:
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
 
-    def test_shift(self):
+    def test_shift(self, simple_index):
 
         # GH8083 test the base class for shift
-        idx = self.create_index()
+        idx = simple_index
         msg = (
             f"This method is only implemented for DatetimeIndex, PeriodIndex and "
             f"TimedeltaIndex; Got type {type(idx).__name__}"
@@ -80,18 +84,18 @@ class Base:
         with pytest.raises(NotImplementedError, match=msg):
             idx.shift(1, 2)
 
-    def test_constructor_name_unhashable(self):
+    def test_constructor_name_unhashable(self, simple_index):
         # GH#29069 check that name is hashable
         # See also same-named test in tests.series.test_constructors
-        idx = self.create_index()
+        idx = simple_index
         with pytest.raises(TypeError, match="Index.name must be a hashable type"):
             type(idx)(idx, name=[])
 
-    def test_create_index_existing_name(self):
+    def test_create_index_existing_name(self, simple_index):
 
         # GH11193, when an existing index is passed, and a new name is not
         # specified, the new index should inherit the previous object name
-        expected = self.create_index()
+        expected = simple_index
         if not isinstance(expected, MultiIndex):
             expected.name = "foo"
             result = Index(expected)
@@ -140,9 +144,9 @@ class Base:
                 ),
             )
 
-    def test_numeric_compat(self):
+    def test_numeric_compat(self, simple_index):
 
-        idx = self.create_index()
+        idx = simple_index
         # Check that this doesn't cover MultiIndex case, if/when it does,
         #  we can remove multi.test_compat.test_numeric_compat
         assert not isinstance(idx, MultiIndex)
@@ -183,21 +187,21 @@ class Base:
         with pytest.raises(TypeError, match=floordiv_err):
             1 // idx
 
-    def test_logical_compat(self):
-        idx = self.create_index()
+    def test_logical_compat(self, simple_index):
+        idx = simple_index
         with pytest.raises(TypeError, match="cannot perform all"):
             idx.all()
         with pytest.raises(TypeError, match="cannot perform any"):
             idx.any()
 
-    def test_repr_roundtrip(self):
+    def test_repr_roundtrip(self, simple_index):
 
-        idx = self.create_index()
+        idx = simple_index
         tm.assert_index_equal(eval(repr(idx)), idx)
 
-    def test_repr_max_seq_item_setting(self):
+    def test_repr_max_seq_item_setting(self, simple_index):
         # GH10182
-        idx = self.create_index()
+        idx = simple_index
         idx = idx.repeat(50)
         with pd.option_context("display.max_seq_items", None):
             repr(idx)
@@ -331,42 +335,42 @@ class Base:
             with pytest.raises(ValueError, match=msg):
                 np.argsort(index, order=("a", "b"))
 
-    def test_repeat(self):
+    def test_repeat(self, simple_index):
         rep = 2
-        i = self.create_index()
-        expected = Index(i.values.repeat(rep), name=i.name)
-        tm.assert_index_equal(i.repeat(rep), expected)
+        idx = simple_index.copy()
+        expected = Index(idx.values.repeat(rep), name=idx.name)
+        tm.assert_index_equal(idx.repeat(rep), expected)
 
-        i = self.create_index()
-        rep = np.arange(len(i))
-        expected = Index(i.values.repeat(rep), name=i.name)
-        tm.assert_index_equal(i.repeat(rep), expected)
+        idx = simple_index
+        rep = np.arange(len(idx))
+        expected = Index(idx.values.repeat(rep), name=idx.name)
+        tm.assert_index_equal(idx.repeat(rep), expected)
 
-    def test_numpy_repeat(self):
+    def test_numpy_repeat(self, simple_index):
         rep = 2
-        i = self.create_index()
-        expected = i.repeat(rep)
-        tm.assert_index_equal(np.repeat(i, rep), expected)
+        idx = simple_index
+        expected = idx.repeat(rep)
+        tm.assert_index_equal(np.repeat(idx, rep), expected)
 
         msg = "the 'axis' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
-            np.repeat(i, rep, axis=0)
+            np.repeat(idx, rep, axis=0)
 
     @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
-    def test_where(self, klass):
-        i = self.create_index()
-        if isinstance(i, (DatetimeIndex, TimedeltaIndex)):
+    def test_where(self, klass, simple_index):
+        idx = simple_index
+        if isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
             # where does not preserve freq
-            i = i._with_freq(None)
+            idx = idx._with_freq(None)
 
-        cond = [True] * len(i)
-        result = i.where(klass(cond))
-        expected = i
+        cond = [True] * len(idx)
+        result = idx.where(klass(cond))
+        expected = idx
         tm.assert_index_equal(result, expected)
 
-        cond = [False] + [True] * len(i[1:])
-        expected = Index([i._na_value] + i[1:].tolist(), dtype=i.dtype)
-        result = i.where(klass(cond))
+        cond = [False] + [True] * len(idx[1:])
+        expected = Index([idx._na_value] + idx[1:].tolist(), dtype=idx.dtype)
+        result = idx.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
     def test_insert_base(self, index):
@@ -424,9 +428,9 @@ class Base:
             # do not test MultiIndex
             assert not index.equals(Series(index))
 
-    def test_equals_op(self):
+    def test_equals_op(self, simple_index):
         # GH9947, GH10637
-        index_a = self.create_index()
+        index_a = simple_index
 
         n = len(index_a)
         index_b = index_a[0:-1]
@@ -487,15 +491,15 @@ class Base:
             # For RangeIndex we can convert to Int64Index
             tm.assert_series_equal(series_a == item, Series(expected3))
 
-    def test_format(self):
+    def test_format(self, simple_index):
         # GH35439
-        idx = self.create_index()
+        idx = simple_index
         expected = [str(x) for x in idx]
         assert idx.format() == expected
 
     def test_format_empty(self):
         # GH35712
-        empty_idx = self._holder([])
+        empty_idx = self._index_cls([])
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 
@@ -588,29 +592,29 @@ class Base:
             tm.assert_numpy_array_equal(index.isna(), result)
             tm.assert_numpy_array_equal(index.notna(), ~result)
 
-    def test_empty(self):
+    def test_empty(self, simple_index):
         # GH 15270
-        index = self.create_index()
-        assert not index.empty
-        assert index[:0].empty
+        idx = simple_index
+        assert not idx.empty
+        assert idx[:0].empty
 
-    def test_join_self_unique(self, join_type):
-        index = self.create_index()
-        if index.is_unique:
-            joined = index.join(index, how=join_type)
-            assert (index == joined).all()
+    def test_join_self_unique(self, join_type, simple_index):
+        idx = simple_index
+        if idx.is_unique:
+            joined = idx.join(idx, how=join_type)
+            assert (idx == joined).all()
 
-    def test_map(self):
+    def test_map(self, simple_index):
         # callable
-        index = self.create_index()
+        idx = simple_index
 
         # we don't infer UInt64
-        if isinstance(index, UInt64Index):
-            expected = index.astype("int64")
+        if isinstance(idx, UInt64Index):
+            expected = idx.astype("int64")
         else:
-            expected = index
+            expected = idx
 
-        result = index.map(lambda x: x)
+        result = idx.map(lambda x: x)
         # For RangeIndex we convert to Int64Index
         tm.assert_index_equal(result, expected)
 
@@ -621,66 +625,66 @@ class Base:
             lambda values, index: Series(values, index),
         ],
     )
-    def test_map_dictlike(self, mapper):
+    def test_map_dictlike(self, mapper, simple_index):
 
-        index = self.create_index()
-        if isinstance(index, CategoricalIndex):
-            pytest.skip(f"skipping tests for {type(index)}")
+        idx = simple_index
+        if isinstance(idx, CategoricalIndex):
+            pytest.skip(f"skipping tests for {type(idx)}")
 
-        identity = mapper(index.values, index)
+        identity = mapper(idx.values, idx)
 
         # we don't infer to UInt64 for a dict
-        if isinstance(index, UInt64Index) and isinstance(identity, dict):
-            expected = index.astype("int64")
+        if isinstance(idx, UInt64Index) and isinstance(identity, dict):
+            expected = idx.astype("int64")
         else:
-            expected = index
+            expected = idx
 
-        result = index.map(identity)
+        result = idx.map(identity)
         # For RangeIndex we convert to Int64Index
         tm.assert_index_equal(result, expected)
 
         # empty mappable
-        expected = Index([np.nan] * len(index))
-        result = index.map(mapper(expected, index))
+        expected = Index([np.nan] * len(idx))
+        result = idx.map(mapper(expected, idx))
         tm.assert_index_equal(result, expected)
 
-    def test_map_str(self):
+    def test_map_str(self, simple_index):
         # GH 31202
-        index = self.create_index()
-        result = index.map(str)
-        expected = Index([str(x) for x in index], dtype=object)
+        idx = simple_index
+        result = idx.map(str)
+        expected = Index([str(x) for x in idx], dtype=object)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("copy", [True, False])
     @pytest.mark.parametrize("name", [None, "foo"])
     @pytest.mark.parametrize("ordered", [True, False])
-    def test_astype_category(self, copy, name, ordered):
+    def test_astype_category(self, copy, name, ordered, simple_index):
         # GH 18630
-        index = self.create_index()
+        idx = simple_index
         if name:
-            index = index.rename(name)
+            idx = idx.rename(name)
 
         # standard categories
         dtype = CategoricalDtype(ordered=ordered)
-        result = index.astype(dtype, copy=copy)
-        expected = CategoricalIndex(index.values, name=name, ordered=ordered)
+        result = idx.astype(dtype, copy=copy)
+        expected = CategoricalIndex(idx.values, name=name, ordered=ordered)
         tm.assert_index_equal(result, expected)
 
         # non-standard categories
-        dtype = CategoricalDtype(index.unique().tolist()[:-1], ordered)
-        result = index.astype(dtype, copy=copy)
-        expected = CategoricalIndex(index.values, name=name, dtype=dtype)
+        dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
+        result = idx.astype(dtype, copy=copy)
+        expected = CategoricalIndex(idx.values, name=name, dtype=dtype)
         tm.assert_index_equal(result, expected)
 
         if ordered is False:
             # dtype='category' defaults to ordered=False, so only test once
-            result = index.astype("category", copy=copy)
-            expected = CategoricalIndex(index.values, name=name)
+            result = idx.astype("category", copy=copy)
+            expected = CategoricalIndex(idx.values, name=name)
             tm.assert_index_equal(result, expected)
 
-    def test_is_unique(self):
+    def test_is_unique(self, simple_index):
         # initialize a unique index
-        index = self.create_index().drop_duplicates()
+        index = simple_index.drop_duplicates()
         assert index.is_unique is True
 
         # empty index should be unique
@@ -700,32 +704,32 @@ class Base:
         assert index_na_dup.is_unique is False
 
     @pytest.mark.arm_slow
-    def test_engine_reference_cycle(self):
+    def test_engine_reference_cycle(self, simple_index):
         # GH27585
-        index = self.create_index()
+        index = simple_index
         nrefs_pre = len(gc.get_referrers(index))
         index._engine
         assert len(gc.get_referrers(index)) == nrefs_pre
 
-    def test_getitem_2d_deprecated(self):
+    def test_getitem_2d_deprecated(self, simple_index):
         # GH#30588
-        idx = self.create_index()
+        idx = simple_index
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             res = idx[:, None]
 
         assert isinstance(res, np.ndarray), type(res)
 
-    def test_copy_shares_cache(self):
+    def test_copy_shares_cache(self, simple_index):
         # GH32898, GH36840
-        idx = self.create_index()
+        idx = simple_index
         idx.get_loc(idx[0])  # populates the _cache.
         copy = idx.copy()
 
         assert copy._cache is idx._cache
 
-    def test_shallow_copy_shares_cache(self):
+    def test_shallow_copy_shares_cache(self, simple_index):
         # GH32669, GH36840
-        idx = self.create_index()
+        idx = simple_index
         idx.get_loc(idx[0])  # populates the _cache.
         shallow_copy = idx._view()
 

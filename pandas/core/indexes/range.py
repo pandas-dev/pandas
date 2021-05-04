@@ -8,6 +8,8 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    List,
+    cast,
 )
 import warnings
 
@@ -94,6 +96,7 @@ class RangeIndex(NumericIndex):
 
     _typ = "rangeindex"
     _engine_type = libindex.Int64Engine
+    _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _can_hold_na = False
     _range: range
 
@@ -109,13 +112,7 @@ class RangeIndex(NumericIndex):
         copy: bool = False,
         name: Hashable = None,
     ) -> RangeIndex:
-
-        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected
-        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object]]"
-        cls._validate_dtype(dtype)  # type: ignore[arg-type]
+        cls._validate_dtype(dtype)
         name = maybe_extract_name(name, start, cls)
 
         # RangeIndex
@@ -158,13 +155,7 @@ class RangeIndex(NumericIndex):
                 f"{cls.__name__}(...) must be called with object coercible to a "
                 f"range, {repr(data)} was passed"
             )
-
-        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected
-        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object]]"
-        cls._validate_dtype(dtype)  # type: ignore[arg-type]
+        cls._validate_dtype(dtype)
         return cls._simple_new(data, name=name)
 
     @classmethod
@@ -249,7 +240,7 @@ class RangeIndex(NumericIndex):
     )
 
     @property
-    def start(self):
+    def start(self) -> int:
         """
         The value of the `start` parameter (``0`` if this was not supplied).
         """
@@ -257,7 +248,7 @@ class RangeIndex(NumericIndex):
         return self._range.start
 
     @property
-    def _start(self):
+    def _start(self) -> int:
         """
         The value of the `start` parameter (``0`` if this was not supplied).
 
@@ -272,14 +263,14 @@ class RangeIndex(NumericIndex):
         return self.start
 
     @property
-    def stop(self):
+    def stop(self) -> int:
         """
         The value of the `stop` parameter.
         """
         return self._range.stop
 
     @property
-    def _stop(self):
+    def _stop(self) -> int:
         """
         The value of the `stop` parameter.
 
@@ -295,7 +286,7 @@ class RangeIndex(NumericIndex):
         return self.stop
 
     @property
-    def step(self):
+    def step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
         """
@@ -303,7 +294,7 @@ class RangeIndex(NumericIndex):
         return self._range.step
 
     @property
-    def _step(self):
+    def _step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
 
@@ -405,6 +396,7 @@ class RangeIndex(NumericIndex):
         limit: int | None = None,
         tolerance=None,
     ) -> np.ndarray:
+        # -> np.ndarray[np.intp]
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -437,9 +429,8 @@ class RangeIndex(NumericIndex):
     def repeat(self, repeats, axis=None) -> Int64Index:
         return self._int64index.repeat(repeats, axis=axis)
 
-    def delete(self, loc) -> Int64Index:
-        # error: Incompatible return value type (got "Index", expected "Int64Index")
-        return self._int64index.delete(loc)  # type: ignore[return-value]
+    def delete(self, loc) -> Int64Index:  # type: ignore[override]
+        return self._int64index.delete(loc)
 
     def take(
         self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
@@ -522,7 +513,7 @@ class RangeIndex(NumericIndex):
 
         Returns
         -------
-        argsorted : numpy array
+        np.ndarray[np.intp]
 
         See Also
         --------
@@ -532,9 +523,9 @@ class RangeIndex(NumericIndex):
         nv.validate_argsort(args, kwargs)
 
         if self._range.step > 0:
-            result = np.arange(len(self))
+            result = np.arange(len(self), dtype=np.intp)
         else:
-            result = np.arange(len(self) - 1, -1, -1)
+            result = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
 
         if not ascending:
             result = result[::-1]
@@ -759,7 +750,7 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
-    def _concat(self, indexes, name: Hashable):
+    def _concat(self, indexes: list[Index], name: Hashable) -> Index:
         """
         Overriding parent method for the case of all RangeIndex instances.
 
@@ -774,13 +765,15 @@ class RangeIndex(NumericIndex):
         elif len(indexes) == 1:
             return indexes[0]
 
+        rng_indexes = cast(List[RangeIndex], indexes)
+
         start = step = next_ = None
 
         # Filter the empty indexes
-        non_empty_indexes = [obj for obj in indexes if len(obj)]
+        non_empty_indexes = [obj for obj in rng_indexes if len(obj)]
 
         for obj in non_empty_indexes:
-            rng: range = obj._range
+            rng = obj._range
 
             if start is None:
                 # This is set by the first non-empty index
@@ -790,7 +783,8 @@ class RangeIndex(NumericIndex):
             elif step is None:
                 # First non-empty index had only one element
                 if rng.start == start:
-                    result = Int64Index(np.concatenate([x._values for x in indexes]))
+                    values = np.concatenate([x._values for x in rng_indexes])
+                    result = Int64Index(values)
                     return result.rename(name)
 
                 step = rng.start - start
@@ -799,7 +793,7 @@ class RangeIndex(NumericIndex):
                 next_ is not None and rng.start != next_
             )
             if non_consecutive:
-                result = Int64Index(np.concatenate([x._values for x in indexes]))
+                result = Int64Index(np.concatenate([x._values for x in rng_indexes]))
                 return result.rename(name)
 
             if step is not None:

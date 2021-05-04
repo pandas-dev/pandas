@@ -36,7 +36,10 @@ import numpy as np
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
-    from typing import final
+    from typing import (
+        TypedDict,
+        final,
+    )
 
     from pandas._libs import (
         Period,
@@ -70,6 +73,8 @@ if TYPE_CHECKING:
 else:
     # typing.final does not exist until py38
     final = lambda x: x
+    # typing.TypedDict does not exist until py38
+    TypedDict = dict
 
 
 # array-like
@@ -185,11 +190,11 @@ ColspaceArgType = Union[
 ]
 
 # internals
-Manager = Union["ArrayManager", "BlockManager", "SingleBlockManager"]
+Manager = Union[
+    "ArrayManager", "SingleArrayManager", "BlockManager", "SingleBlockManager"
+]
 SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
 Manager2D = Union["ArrayManager", "BlockManager"]
-# TODO: Manager2d excludes SingleBlockManager, but does not exclude
-#  SingleArrayManager
 
 # indexing
 # PositionalIndexer -> valid 1D positional indexer, e.g. can pass
