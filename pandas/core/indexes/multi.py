@@ -1611,7 +1611,7 @@ class MultiIndex(Index):
 
     @doc(Index.duplicated)
     def duplicated(self, keep="first") -> np.ndarray:
-        shape = map(len, self.levels)
+        shape = tuple(len(lev) for lev in self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
         return duplicated_int64(ids, keep)
