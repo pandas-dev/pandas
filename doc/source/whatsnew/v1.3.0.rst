@@ -145,7 +145,6 @@ Other enhancements
 - :class:`RangeIndex` can now be constructed by passing a ``range`` object directly e.g. ``pd.RangeIndex(range(3))`` (:issue:`12067`)
 - :meth:`round` being enabled for the nullable integer and floating dtypes (:issue:`38844`)
 - :meth:`pandas.read_csv` and :meth:`pandas.read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
-- Add consistency of arguments in :meth:`Series.between` and :meth:`.datetimelike.validate_endpoints` to have ``{"left", "right", "neither", "both"}`` as standard argument values for both methods (:issue:`40628`)
 
 .. ---------------------------------------------------------------------------
 
@@ -427,6 +426,7 @@ Deprecations
 - Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like and raises anything but ``TypeError``; ``func`` raising anything but a ``TypeError`` will raise in a future version (:issue:`40211`)
 - Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
 - Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
+- Deprecated boolean arguments of ``inclusive`` in :meth:`Series.between` to have ``{"left", "right", "neither", "both"}`` as standard argument values (:issue:`40628`)
 
 .. ---------------------------------------------------------------------------
 
