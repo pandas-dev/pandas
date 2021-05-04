@@ -60,7 +60,7 @@ from pandas.util._validators import (
 from pandas.core.dtypes.cast import (
     convert_dtypes,
     maybe_box_native,
-    maybe_cast_result,
+    maybe_cast_pointwise_result,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -100,6 +100,7 @@ from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
+    ensure_wrapped_if_datetimelike,
     extract_array,
     is_empty_data,
     sanitize_array,
@@ -112,15 +113,15 @@ from pandas.core.indexers import (
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     CategoricalIndex,
+    DatetimeIndex,
     Float64Index,
     Index,
     MultiIndex,
+    PeriodIndex,
+    TimedeltaIndex,
     ensure_index,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import (
     SingleArrayManager,
@@ -863,7 +864,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = self._constructor(new_values, index=new_index, fastpath=True)
         return result.__finalize__(self, method="take")
 
-    def _take_with_is_copy(self, indices, axis=0):
+    def _take_with_is_copy(self, indices, axis=0) -> Series:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
@@ -1019,7 +1020,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         loc = self.index.get_loc(label)
         return self.index._get_values_for_loc(self, loc, label)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()
 
@@ -1058,7 +1059,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if cacher_needs_updating:
             self._maybe_update_cacher()
 
-    def _set_with_engine(self, key, value):
+    def _set_with_engine(self, key, value) -> None:
         # fails with AttributeError for IntervalIndex
         loc = self.index._engine.get_loc(key)
         # error: Argument 1 to "validate_numeric_casting" has incompatible type
@@ -1094,7 +1095,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 self.loc[key] = value
 
-    def _set_labels(self, key, value):
+    def _set_labels(self, key, value) -> None:
         key = com.asarray_tuplesafe(key)
         indexer: np.ndarray = self.index.get_indexer(key)
         mask = indexer == -1
@@ -1102,7 +1103,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             raise KeyError(f"{key[mask]} not in index")
         self._set_values(indexer, value)
 
-    def _set_values(self, key, value):
+    def _set_values(self, key, value) -> None:
         if isinstance(key, Series):
             key = key._values
 
@@ -1891,7 +1892,7 @@ Name: Max Speed, dtype: float64
         2
         """
         if level is None:
-            return notna(self._values).sum()
+            return notna(self._values).sum().astype("int64")
         else:
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
@@ -1993,15 +1994,12 @@ Name: Max Speed, dtype: float64
         ['2016-01-01 00:00:00-05:00']
         Length: 1, dtype: datetime64[ns, US/Eastern]
 
-        An unordered Categorical will return categories in the order of
-        appearance.
+        An Categorical will return categories in the order of
+        appearance and with the same dtype.
 
         >>> pd.Series(pd.Categorical(list('baabc'))).unique()
         ['b', 'a', 'c']
-        Categories (3, object): ['b', 'a', 'c']
-
-        An ordered Categorical preserves the category ordering.
-
+        Categories (3, object): ['a', 'b', 'c']
         >>> pd.Series(pd.Categorical(list('baabc'), categories=list('abc'),
         ...                          ordered=True)).unique()
         ['b', 'a', 'c']
@@ -2756,13 +2754,15 @@ Name: Max Speed, dtype: float64
         return self.dot(np.transpose(other))
 
     @doc(base.IndexOpsMixin.searchsorted, klass="Series")
-    def searchsorted(self, value, side="left", sorter=None):
+    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     # -------------------------------------------------------------------
     # Combination
 
-    def append(self, to_append, ignore_index=False, verify_integrity=False):
+    def append(
+        self, to_append, ignore_index: bool = False, verify_integrity: bool = False
+    ):
         """
         Concatenate two or more Series.
 
@@ -2846,7 +2846,7 @@ Name: Max Speed, dtype: float64
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )
 
-    def _binop(self, other, func, level=None, fill_value=None):
+    def _binop(self, other: Series, func, level=None, fill_value=None):
         """
         Perform generic binary operation with optional fill value.
 
@@ -2873,7 +2873,7 @@ Name: Max Speed, dtype: float64
         if not self.index.equals(other.index):
             this, other = self.align(other, level=level, join="outer", copy=False)
 
-        this_vals, other_vals = ops.fill_binop(this.values, other.values, fill_value)
+        this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
 
         with np.errstate(all="ignore"):
             result = func(this_vals, other_vals)
@@ -3071,22 +3071,24 @@ Keep all original rows and also all original values
             # so do this element by element
             new_index = self.index.union(other.index)
             new_name = ops.get_op_result_name(self, other)
-            new_values = []
-            for idx in new_index:
+            new_values = np.empty(len(new_index), dtype=object)
+            for i, idx in enumerate(new_index):
                 lv = self.get(idx, fill_value)
                 rv = other.get(idx, fill_value)
                 with np.errstate(all="ignore"):
-                    new_values.append(func(lv, rv))
+                    new_values[i] = func(lv, rv)
         else:
             # Assume that other is a scalar, so apply the function for
             # each element in the Series
             new_index = self.index
+            new_values = np.empty(len(new_index), dtype=object)
             with np.errstate(all="ignore"):
-                new_values = [func(lv, other) for lv in self._values]
+                new_values[:] = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        res_values = sanitize_array(new_values, None)
-        res_values = maybe_cast_result(res_values, self.dtype, same_dtype=False)
+        # try_float=False is to match _aggregate_series_pure_python
+        npvalues = lib.maybe_convert_objects(new_values, try_float=False)
+        res_values = maybe_cast_pointwise_result(npvalues, self.dtype, same_dtype=False)
         return self._constructor(res_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> Series:
@@ -3609,7 +3611,7 @@ Keep all original rows and also all original values
 
         Returns
         -------
-        Series
+        Series[np.intp]
             Positions of values within the sort order with -1 indicating
             nan values.
 
@@ -3730,7 +3732,7 @@ Keep all original rows and also all original values
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nlargest()
 
-    def nsmallest(self, n=5, keep="first") -> Series:
+    def nsmallest(self, n: int = 5, keep: str = "first") -> Series:
         """
         Return the smallest `n` elements.
 
@@ -3942,7 +3944,7 @@ Keep all original rows and also all original values
 
         return self._constructor(values, index=index, name=self.name)
 
-    def unstack(self, level=-1, fill_value=None):
+    def unstack(self, level=-1, fill_value=None) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
 
@@ -4167,7 +4169,8 @@ Keep all original rows and also all original values
             Python function or NumPy ufunc to apply.
         convert_dtype : bool, default True
             Try to find better dtype for elementwise function results. If
-            False, leave as dtype=object.
+            False, leave as dtype=object. Note that the dtype is always
+            preserved for extension array dtypes, such as Categorical.
         args : tuple
             Positional arguments passed to func after the series value.
         **kwargs
@@ -4187,7 +4190,7 @@ Keep all original rows and also all original values
         Notes
         -----
         Functions that mutate the passed object can produce unexpected
-        behavior or errors and are not supported. See :ref:`udf-mutation`
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
         Examples
@@ -4294,7 +4297,11 @@ Keep all original rows and also all original values
             with np.errstate(all="ignore"):
                 return op(delegate, skipna=skipna, **kwds)
 
-    def _reindex_indexer(self, new_index, indexer, copy):
+    def _reindex_indexer(
+        self, new_index: Index | None, indexer: np.ndarray | None, copy: bool
+    ) -> Series:
+        # Note: new_index is None iff indexer is None
+        # if not None, indexer is np.intp
         if indexer is None:
             if copy:
                 return self.copy()
@@ -4312,8 +4319,9 @@ Keep all original rows and also all original values
         """
         return False
 
+    # error: Cannot determine type of 'align'
     @doc(
-        NDFrame.align,
+        NDFrame.align,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
         axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
     )
@@ -4465,8 +4473,9 @@ Keep all original rows and also all original values
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
+    # error: Cannot determine type of 'reindex'
     @doc(
-        NDFrame.reindex,
+        NDFrame.reindex,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
         axes=_shared_doc_kwargs["axes"],
         optional_labels=_shared_doc_kwargs["optional_labels"],
@@ -4696,7 +4705,8 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
-    @doc(NDFrame.fillna, **_shared_doc_kwargs)
+    # error: Cannot determine type of 'fillna'
+    @doc(NDFrame.fillna, **_shared_doc_kwargs)  # type: ignore[has-type]
     def fillna(
         self,
         value=None,
@@ -4742,8 +4752,9 @@ Keep all original rows and also all original values
         """
         return super().pop(item=item)
 
+    # error: Cannot determine type of 'replace'
     @doc(
-        NDFrame.replace,
+        NDFrame.replace,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
         inplace=_shared_doc_kwargs["inplace"],
         replace_iloc=_shared_doc_kwargs["replace_iloc"],
@@ -4791,7 +4802,8 @@ Keep all original rows and also all original values
 
         return result
 
-    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'shift'
+    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> Series:
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
@@ -5026,19 +5038,23 @@ Keep all original rows and also all original values
             result = input_series.copy()
         return result
 
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'isna'
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isna(self) -> Series:
         return generic.NDFrame.isna(self)
 
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'isna'
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isnull(self) -> Series:
         return super().isnull()
 
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'notna'
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def notna(self) -> Series:
         return super().notna()
 
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'notna'
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def notnull(self) -> Series:
         return super().notnull()
 
@@ -5133,7 +5149,8 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Time series-oriented methods
 
-    @doc(NDFrame.asfreq, **_shared_doc_kwargs)
+    # error: Cannot determine type of 'asfreq'
+    @doc(NDFrame.asfreq, **_shared_doc_kwargs)  # type: ignore[has-type]
     def asfreq(
         self,
         freq,
@@ -5150,7 +5167,8 @@ Keep all original rows and also all original values
             fill_value=fill_value,
         )
 
-    @doc(NDFrame.resample, **_shared_doc_kwargs)
+    # error: Cannot determine type of 'resample'
+    @doc(NDFrame.resample, **_shared_doc_kwargs)  # type: ignore[has-type]
     def resample(
         self,
         rule,
@@ -5295,6 +5313,8 @@ Keep all original rows and also all original values
 
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
+        rvalues = ops.maybe_prepare_scalar_for_op(rvalues, lvalues.shape)
+        rvalues = ensure_wrapped_if_datetimelike(rvalues)
 
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)

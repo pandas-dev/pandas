@@ -16,6 +16,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     ensure_platform_int,
+    is_1d_only_ea_dtype,
     is_bool_dtype,
     is_extension_array_dtype,
     is_integer,
@@ -130,7 +131,12 @@ class _Unstacker:
         self._make_selectors()
 
     @cache_readonly
-    def _indexer_and_to_sort(self):
+    def _indexer_and_to_sort(
+        self,
+    ) -> tuple[
+        np.ndarray,  # np.ndarray[np.intp]
+        list[np.ndarray],  # each has _some_ signed integer dtype
+    ]:
         v = self.level
 
         codes = list(self.index.codes)
@@ -142,7 +148,6 @@ class _Unstacker:
         ngroups = len(obs_ids)
 
         indexer = get_group_index_sorter(comp_index, ngroups)
-        indexer = ensure_platform_int(indexer)
         return indexer, to_sort
 
     @cache_readonly
@@ -438,7 +443,7 @@ def unstack(obj, level, fill_value=None):
             f"index must be a MultiIndex to unstack, {type(obj.index)} was passed"
         )
     else:
-        if is_extension_array_dtype(obj.dtype):
+        if is_1d_only_ea_dtype(obj.dtype):
             return _unstack_extension_series(obj, level, fill_value)
         unstacker = _Unstacker(
             obj.index, level=level, constructor=obj._constructor_expanddim
