@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from pandas import (
     Series,
@@ -41,10 +40,29 @@ class TestBetween:
         tm.assert_series_equal(result, expected)
 
     def test_between_inclusive_is_boolean_string(self):
-        msg_1 = "Inclusive has to be either string of 'both','left', "
-        msg_2 = "'right', or 'neither', or a boolean value"
-        msg = msg_1 + msg_2
-        with pytest.raises(ValueError, match=msg):
-            ser = Series(period_range("2000-01-01", periods=10, freq="D"))
-            left, right = ser[[2, 7]]
-            assert ser.between(left, right, 8)
+        series = Series(date_range("1/1/2000", periods=10))
+        left, right = series[[2, 7]]
+
+        result = series.between(left, right, inclusive="both")
+        expected = (series >= left) & (series <= right)
+        tm.assert_series_equal(result, expected)
+
+        result = series.between(left, right, inclusive="left")
+        expected = (series >= left) & (series < right)
+        tm.assert_series_equal(result, expected)
+
+        result = series.between(left, right, inclusive="right")
+        expected = (series > left) & (series <= right)
+        tm.assert_series_equal(result, expected)
+
+        result = series.between(left, right, inclusive="neither")
+        expected = (series > left) & (series < right)
+        tm.assert_series_equal(result, expected)
+
+        result = series.between(left, right, inclusive=True)
+        expected = (series >= left) & (series <= right)
+        tm.assert_series_equal(result, expected)
+
+        result = series.between(left, right, inclusive=False)
+        expected = (series > left) & (series < right)
+        tm.assert_series_equal(result, expected)
