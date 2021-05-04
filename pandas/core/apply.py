@@ -360,7 +360,10 @@ class Apply(metaclass=abc.ABCMeta):
                         # raised directly in _aggregate_named
                         pass
                     elif "no results" in str(err):
-                        # raised directly in _aggregate_multiple_funcs
+                        # reached in test_frame_apply.test_nuiscance_columns
+                        #  where the colg.aggregate(arg) ends up going through
+                        #  the selected_obj.ndim == 1 branch above with arg == ["sum"]
+                        #  on a datetime64[ns] column
                         pass
                     else:
                         raise
