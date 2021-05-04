@@ -368,8 +368,7 @@ class WrappedCythonOp:
                 return res_values
 
             # otherwise res_values has the same dtype as original values
-            result = type(orig_values)(res_values)
-            return result
+            return type(orig_values)(res_values)
 
         elif isinstance(values.dtype, (BooleanDtype, _IntegerDtype)):
             # IntegerArray or BooleanArray
