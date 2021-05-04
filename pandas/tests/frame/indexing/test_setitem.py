@@ -18,6 +18,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
+import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
@@ -31,7 +32,6 @@ from pandas import (
     PeriodIndex,
     Series,
     Timestamp,
-    array,
     cut,
     date_range,
     notna,
@@ -793,7 +793,7 @@ class TestDataFrameSetItemSlicing:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("indexer", [tm.setitem, tm.iloc])
-    @pytest.mark.parametrize("box", [Series, np.array, list, array])
+    @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
     @pytest.mark.parametrize("n", [1, 2, 3])
     def test_setitem_slice_indexer_broadcasting_rhs(self, n, box, indexer):
         # GH#40440
@@ -802,7 +802,7 @@ class TestDataFrameSetItemSlicing:
         expected = DataFrame([[1, 3, 5]] + [[10, 11, 12]] * n, columns=["a", "b", "c"])
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("box", [Series, np.array, list, array])
+    @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
     @pytest.mark.parametrize("n", [1, 2, 3])
     def test_setitem_list_indexer_broadcasting_rhs(self, n, box):
         # GH#40440
@@ -812,7 +812,7 @@ class TestDataFrameSetItemSlicing:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("indexer", [tm.setitem, tm.iloc])
-    @pytest.mark.parametrize("box", [Series, np.array, list, array])
+    @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
     @pytest.mark.parametrize("n", [1, 2, 3])
     def test_setitem_slice_broadcasting_rhs_mixed_dtypes(self, n, box, indexer):
         # GH#40440
