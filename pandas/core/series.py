@@ -113,15 +113,15 @@ from pandas.core.indexers import (
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     CategoricalIndex,
+    DatetimeIndex,
     Float64Index,
     Index,
     MultiIndex,
+    PeriodIndex,
+    TimedeltaIndex,
     ensure_index,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import (
     SingleArrayManager,
@@ -3087,10 +3087,8 @@ Keep all original rows and also all original values
             new_name = self.name
 
         # try_float=False is to match _aggregate_series_pure_python
-        res_values = lib.maybe_convert_objects(new_values, try_float=False)
-        res_values = maybe_cast_pointwise_result(
-            res_values, self.dtype, same_dtype=False
-        )
+        npvalues = lib.maybe_convert_objects(new_values, try_float=False)
+        res_values = maybe_cast_pointwise_result(npvalues, self.dtype, same_dtype=False)
         return self._constructor(res_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> Series:
@@ -4171,7 +4169,8 @@ Keep all original rows and also all original values
             Python function or NumPy ufunc to apply.
         convert_dtype : bool, default True
             Try to find better dtype for elementwise function results. If
-            False, leave as dtype=object.
+            False, leave as dtype=object. Note that the dtype is always
+            preserved for extension array dtypes, such as Categorical.
         args : tuple
             Positional arguments passed to func after the series value.
         **kwargs
@@ -4191,7 +4190,7 @@ Keep all original rows and also all original values
         Notes
         -----
         Functions that mutate the passed object can produce unexpected
-        behavior or errors and are not supported. See :ref:`udf-mutation`
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
         Examples
@@ -5314,6 +5313,7 @@ Keep all original rows and also all original values
 
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
+        rvalues = ops.maybe_prepare_scalar_for_op(rvalues, lvalues.shape)
         rvalues = ensure_wrapped_if_datetimelike(rvalues)
 
         with np.errstate(all="ignore"):
