@@ -946,6 +946,7 @@ Other
 - Bug in :meth:`Series.where` with numeric dtype and ``other = None`` not casting to ``nan`` (:issue:`39761`)
 - :meth:`Index.where` behavior now mirrors :meth:`Index.putmask` behavior, i.e. ``index.where(mask, other)`` matches ``index.putmask(~mask, other)`` (:issue:`39412`)
 - Bug in :func:`pandas.testing.assert_series_equal`, :func:`pandas.testing.assert_frame_equal`, :func:`pandas.testing.assert_index_equal` and :func:`pandas.testing.assert_extension_array_equal` incorrectly raising when an attribute has an unrecognized NA type (:issue:`39461`)
+- Bug in :func:`pandas.testing.assert_index_equal` with ``exact=True`` not raising when comparing :class:`CategoricalIndex` instances with ``Int64Index`` and ``RangeIndex`` categories (:issue:`41263`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)
