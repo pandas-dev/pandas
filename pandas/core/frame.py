@@ -62,7 +62,6 @@ from pandas._typing import (
     IndexLabel,
     Level,
     NpDtype,
-    NumpyAxis,
     PythonFuncType,
     Renamer,
     Scalar,
@@ -3190,7 +3189,7 @@ class DataFrame(NDFrame, OpsMixin):
             ).append(result)
         return result
 
-    def transpose(self, axes: NumpyAxis = None, copy: bool = False) -> DataFrame:
+    def transpose(self, *args, copy: bool = False) -> DataFrame:
         """
         Transpose index and columns.
 
@@ -3200,7 +3199,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axes : tuple or list, optional
+        *args : tuple, optional
             Accepted for compatibility with NumPy.
         copy : bool, default False
             Whether to copy the data after transposing, even for DataFrames
@@ -3287,7 +3286,7 @@ class DataFrame(NDFrame, OpsMixin):
         1    object
         dtype: object
         """
-        nv.validate_transpose(axes, {})
+        nv.validate_transpose(args, {})
         # construct the args
 
         dtypes = list(self.dtypes)
@@ -5130,7 +5129,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
-        value: Any | ArrayLike | None = None,
+        value: object | ArrayLike | None = None,
         method: Literal["backfill", "bfill", "ffill", "pad"] | None = None,
         axis: Axis | None = None,
         inplace: bool = False,

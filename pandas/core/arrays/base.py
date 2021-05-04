@@ -25,7 +25,6 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Dtype,
-    NumpyAxis,
     PositionalIndexer,
     Shape,
 )
@@ -388,7 +387,7 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __contains__(self, item: Any) -> bool | np.bool_:
+    def __contains__(self, item: object) -> bool | np.bool_:
         """
         Return for `item in self`.
         """
@@ -403,7 +402,9 @@ class ExtensionArray:
             else:
                 return False
         else:
-            return (item == self).any()
+            # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
+            # attribute "any"
+            return (item == self).any()  # type: ignore[union-attr]
 
     # error: Signature of "__eq__" incompatible with supertype "object"
     def __eq__(self, other: Any) -> ArrayLike:  # type: ignore[override]
@@ -685,7 +686,7 @@ class ExtensionArray:
 
     def fillna(
         self,
-        value: Any | ArrayLike | None = None,
+        value: object | ArrayLike | None = None,
         method: Literal["backfill", "bfill", "ffill", "pad"] | None = None,
         limit: int | None = None,
     ):
@@ -1215,7 +1216,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self, axes: NumpyAxis = None) -> ExtensionArray:
+    def transpose(self, *axes: int) -> ExtensionArray:
         """
         Return a transposed view on this array.
 

@@ -112,7 +112,6 @@ FrameOrSeriesUnion = Union["DataFrame", "Series"]
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 
 Axis = Union[str, int]
-NumpyAxis = Union[Tuple[int], List[int], None]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Union[Hashable, int]
 Shape = Tuple[int, ...]

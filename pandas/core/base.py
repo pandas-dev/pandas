@@ -20,7 +20,6 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     IndexLabel,
-    NumpyAxis,
     Shape,
     final,
 )
@@ -300,7 +299,7 @@ class IndexOpsMixin(OpsMixin):
         # must be defined here as a property for mypy
         raise AbstractMethodError(self)
 
-    def transpose(self: _T, axes: NumpyAxis = None) -> _T:
+    def transpose(self: _T, *args, **kwargs) -> _T:
         """
         Return the transpose, which is by definition self.
 
@@ -308,11 +307,7 @@ class IndexOpsMixin(OpsMixin):
         -------
         %(klass)s
         """
-        if not (isinstance(axes, list) and isinstance(axes, tuple)):
-            args = (axes,)
-        else:
-            args = axes
-        nv.validate_transpose(args, {})
+        nv.validate_transpose(args, kwargs)
         return self
 
     T = property(

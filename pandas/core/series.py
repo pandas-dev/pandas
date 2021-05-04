@@ -4709,7 +4709,7 @@ Keep all original rows and also all original values
     @doc(NDFrame.fillna, **_shared_doc_kwargs)  # type: ignore[has-type]
     def fillna(
         self,
-        value: Any | ArrayLike | None = None,
+        value: object | ArrayLike | None = None,
         method: Literal["backfill", "bfill", "ffill", "pad"] | None = None,
         axis=None,
         inplace=False,
