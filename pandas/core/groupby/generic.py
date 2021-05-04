@@ -526,35 +526,9 @@ class SeriesGroupBy(GroupBy[Series]):
     @Substitution(klass="Series")
     @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
-
-        if maybe_use_numba(engine):
-            with group_selection_context(self):
-                data = self._selected_obj
-            result = self._transform_with_numba(
-                data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
-            )
-            return self.obj._constructor(
-                result.ravel(), index=data.index, name=data.name
-            )
-
-        func = com.get_cython_func(func) or func
-
-        if not isinstance(func, str):
-            return self._transform_general(func, *args, **kwargs)
-
-        elif func not in base.transform_kernel_allowlist:
-            msg = f"'{func}' is not a valid function name for transform(name)"
-            raise ValueError(msg)
-        elif func in base.cythonized_kernels or func in base.transformation_kernels:
-            # cythonized transform or canned "agg+broadcast"
-            return getattr(self, func)(*args, **kwargs)
-        # If func is a reduction, we need to broadcast the
-        # result to the whole group. Compute func result
-        # and deal with possible broadcasting below.
-        # Temporarily set observed for dealing with categoricals.
-        with com.temp_setattr(self, "observed", True):
-            result = getattr(self, func)(*args, **kwargs)
-        return self._wrap_transform_fast_result(result)
+        return self._transform(
+            func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        )
 
     def _transform_general(self, func: Callable, *args, **kwargs) -> Series:
         """
@@ -585,6 +559,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         result.name = self._selected_obj.name
         return result
+
+    def _can_use_transform_fast(self, result) -> bool:
+        return True
 
     def _wrap_transform_fast_result(self, result: Series) -> Series:
         """
@@ -1334,43 +1311,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @Substitution(klass="DataFrame")
     @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
+        return self._transform(
+            func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        )
 
-        if maybe_use_numba(engine):
-            with group_selection_context(self):
-                data = self._selected_obj
-            result = self._transform_with_numba(
-                data, func, *args, engine_kwargs=engine_kwargs, **kwargs
-            )
-            return self.obj._constructor(result, index=data.index, columns=data.columns)
-
-        # optimized transforms
-        func = com.get_cython_func(func) or func
-
-        if not isinstance(func, str):
-            return self._transform_general(func, *args, **kwargs)
-
-        elif func not in base.transform_kernel_allowlist:
-            msg = f"'{func}' is not a valid function name for transform(name)"
-            raise ValueError(msg)
-        elif func in base.cythonized_kernels or func in base.transformation_kernels:
-            # cythonized transformation or canned "reduction+broadcast"
-            return getattr(self, func)(*args, **kwargs)
-        # GH 30918
-        # Use _transform_fast only when we know func is an aggregation
-        if func in base.reduction_kernels:
-            # If func is a reduction, we need to broadcast the
-            # result to the whole group. Compute func result
-            # and deal with possible broadcasting below.
-            # Temporarily set observed for dealing with categoricals.
-            with com.temp_setattr(self, "observed", True):
-                result = getattr(self, func)(*args, **kwargs)
-
-            if isinstance(result, DataFrame) and result.columns.equals(
-                self._obj_with_exclusions.columns
-            ):
-                return self._wrap_transform_fast_result(result)
-
-        return self._transform_general(func, *args, **kwargs)
+    def _can_use_transform_fast(self, result) -> bool:
+        return isinstance(result, DataFrame) and result.columns.equals(
+            self._obj_with_exclusions.columns
+        )
 
     def _wrap_transform_fast_result(self, result: DataFrame) -> DataFrame:
         """
