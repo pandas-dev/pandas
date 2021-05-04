@@ -9203,7 +9203,7 @@ NaN 12.3   33.0
                 raise ValueError("Index of decimals must be unique")
             if (
                 isinstance(decimals, dict)
-                and not all((is_integer(value) for value in decimals.values()))
+                and not all(is_integer(value) for value in decimals.values())
             ) or (
                 isinstance(decimals, Series)
                 and not all(is_integer(value) for value in decimals.values)
