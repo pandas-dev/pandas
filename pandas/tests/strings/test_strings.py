@@ -14,7 +14,6 @@ from pandas import (
     MultiIndex,
     Series,
     isna,
-    notna,
 )
 import pandas._testing as tm
 
@@ -402,14 +401,19 @@ def test_join():
     tm.assert_almost_equal(rs, xp)
 
 
-def test_len():
-    values = Series(["foo", "fooo", "fooooo", np.nan, "fooooooo"])
+def test_len(any_string_dtype):
+    values = Series(
+        ["foo", "fooo", "fooooo", np.nan, "fooooooo", "foo\n", "あ"],
+        dtype=any_string_dtype,
+    )
 
     result = values.str.len()
-    exp = values.map(lambda x: len(x) if notna(x) else np.nan)
-    tm.assert_series_equal(result, exp)
+    expected_dtype = "float64" if any_string_dtype == "object" else "Int64"
+    expected = Series([3, 4, 6, np.nan, 8, 4, 1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
-    # mixed
+
+def test_len_mixed():
     mixed = Series(
         [
             "a_b",

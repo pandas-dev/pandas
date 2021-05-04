@@ -42,6 +42,7 @@ from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.integer import Int64Dtype
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
@@ -877,6 +878,14 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return BooleanDtype().__from_arrow__(result)
         else:
             return super()._str_isupper()
+
+    def _str_len(self):
+        # utf8_length added in pyarrow 4.0.0
+        if hasattr(pc, "utf8_length"):
+            result = pc.utf8_length(self._data)
+            return Int64Dtype().__from_arrow__(result)
+        else:
+            return super()._str_len()
 
     def _str_lower(self):
         return type(self)(pc.utf8_lower(self._data))
