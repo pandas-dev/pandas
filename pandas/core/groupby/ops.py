@@ -56,7 +56,6 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCCategoricalIndex
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
@@ -89,6 +88,7 @@ from pandas.core.groupby import (
     grouper,
 )
 from pandas.core.indexes.api import (
+    CategoricalIndex,
     Index,
     MultiIndex,
     ensure_index,
@@ -676,7 +676,6 @@ class BaseGrouper:
     ):
         assert isinstance(axis, Index), axis
 
-        self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
         self.sort = sort
@@ -822,9 +821,7 @@ class BaseGrouper:
     @cache_readonly
     def indices(self):
         """ dict {group name -> group indices} """
-        if len(self.groupings) == 1 and isinstance(
-            self.result_index, ABCCategoricalIndex
-        ):
+        if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
             # This shows unused categories in indices GH#38642
             return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
@@ -913,7 +910,7 @@ class BaseGrouper:
 
     @cache_readonly
     def result_index(self) -> Index:
-        if not self.compressed and len(self.groupings) == 1:
+        if len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
 
         codes = self.reconstructed_codes
@@ -924,7 +921,9 @@ class BaseGrouper:
 
     @final
     def get_group_levels(self) -> list[Index]:
-        if not self.compressed and len(self.groupings) == 1:
+        # Note: only called from _insert_inaxis_grouper_inplace, which
+        #  is only called for BaseGrouper, never for BinGrouper
+        if len(self.groupings) == 1:
             return [self.groupings[0].result_index]
 
         name_list = []
@@ -1091,7 +1090,6 @@ class BinGrouper(BaseGrouper):
     ):
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
-        self._filter_empty_groups = False
         self.mutated = mutated
         self.indexer = indexer
 
@@ -1201,10 +1199,9 @@ class BinGrouper(BaseGrouper):
 
     @property
     def groupings(self) -> list[grouper.Grouping]:
-        return [
-            grouper.Grouping(lvl, lvl, in_axis=False, level=None, name=name)
-            for lvl, name in zip(self.levels, self.names)
-        ]
+        lev = self.binlabels
+        ping = grouper.Grouping(lev, lev, in_axis=False, level=None, name=lev.name)
+        return [ping]
 
     def _aggregate_series_fast(
         self, obj: Series, func: F
