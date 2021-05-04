@@ -110,7 +110,7 @@ class ArrowStringDtype(StringDtype):
         return str
 
     @classmethod
-    def construct_array_type(cls) -> type_t[ArrowStringArray]:
+    def construct_array_type(cls) -> type_t[ArrowStringArray]:  # type: ignore[override]
         """
         Return the array type associated with this dtype.
 
@@ -126,7 +126,9 @@ class ArrowStringDtype(StringDtype):
     def __repr__(self) -> str:
         return "ArrowStringDtype"
 
-    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray) -> ArrowStringArray:
+    def __from_arrow__(
+        self, array: pa.Array | pa.ChunkedArray
+    ) -> ArrowStringArray:  # type: ignore[override]
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
