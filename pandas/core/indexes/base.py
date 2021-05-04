@@ -3414,7 +3414,7 @@ class Index(IndexOpsMixin, PandasObject):
         limit: int | None = None,
         tolerance=None,
     ) -> np.ndarray:
-
+        # returned ndarray is np.intp
         method = missing.clean_reindex_fill_method(method)
         target = ensure_index(target)
 
@@ -4099,7 +4099,10 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def _join_non_unique(self, other, how="left"):
+    def _join_non_unique(
+        self, other: Index, how: str_t = "left"
+    ) -> tuple[Index, np.ndarray, np.ndarray]:
+        # returned ndarrays are np.intp
         from pandas.core.reshape.merge import get_join_indexers
 
         # We only get here if dtypes match
@@ -4125,7 +4128,10 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, left_idx, right_idx
 
     @final
-    def _join_level(self, other, level, how="left", keep_order=True):
+    def _join_level(
+        self, other: Index, level, how: str_t = "left", keep_order: bool = True
+    ) -> tuple[MultiIndex, np.ndarray | None, np.ndarray | None]:
+        # Any returned ndarrays are np.intp
         """
         The join method *only* affects the level of the resulting
         MultiIndex. Otherwise it just exactly aligns the Index data to the

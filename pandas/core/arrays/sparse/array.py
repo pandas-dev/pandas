@@ -550,7 +550,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # Data
     # ------------------------------------------------------------------------
     @property
-    def sp_index(self):
+    def sp_index(self) -> SparseIndex:
         """
         The SparseIndex containing the location of non- ``fill_value`` points.
         """
@@ -570,7 +570,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self._sparse_values
 
     @property
-    def dtype(self):
+    def dtype(self) -> SparseDtype:
         return self._dtype
 
     @property
@@ -597,7 +597,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return "block"
 
     @property
-    def _valid_sp_values(self):
+    def _valid_sp_values(self) -> np.ndarray:
         sp_vals = self.sp_values
         mask = notna(sp_vals)
         return sp_vals[mask]
@@ -620,7 +620,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self.sp_values.nbytes + self.sp_index.nbytes
 
     @property
-    def density(self):
+    def density(self) -> float:
         """
         The percent of non- ``fill_value`` points, as decimal.
 
