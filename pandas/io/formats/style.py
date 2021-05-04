@@ -545,22 +545,42 @@ class Styler(StylerRenderer):
         **Table Styles**
 
         Internally Styler uses its ``table_styles`` object to parse the
-        ``column_format``, ``position``, ``position_float``, ``hrules`` and ``label``
-        input arguments. There is additional scope to add custom LaTeX commands,
-        which are included and positioned
-        immediately above the '\\begin{tabular}' command. For example to add odd and
-        even row coloring, from the {colortbl} package, use:
+        ``column_format``, ``position``, ``position_float``, and ``label``
+        input arguments. These arguments are added to table styles in the format:
 
-        >>> s.set_table_styles([{'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}],
-        ...                    overwrite=False)
+        .. code-block:: python
 
-        Instead of using ``hrules`` it is also possible to change the rule definition,
-        for example by setting just a ``toprule`` and ``bottomrule`` and ignoring
-        any ``midrule``:
+            set_table_styles([
+                {"selector": "column_format", "props": f":{column_format};"},
+                {"selector": "position", "props": f":{position};"},
+                {"selector": "position_float", "props": f":{position_float};"},
+                {"selector": "label", "props": f":{{{label.replace(':','§')}}};"}
+            ], overwrite=False)
 
-        >>> s.set_table_styles([{'selector': 'toprule', 'props': ':toprule;'},
-        ...                     {'selector': 'bottomrule', 'props': ':hline;'}],
-        ...                    overwrite=False)
+        Exception is made for the ``hrules`` argument which, in fact, controls all three
+        commands: ``toprule``, ``bottomrule`` and ``midrule`` simultaneously. Instead of
+        setting ``hrules`` to ``True``, it is also possible to set each
+        individual rule definition, by manually setting the ``table_styles``,
+        for example below we set a regular ``toprule``, set an ``hline`` for
+        ``bottomrule`` and exclude the ``midrule``:
+
+        .. code-block:: python
+
+            set_table_styles([
+                {'selector': 'toprule', 'props': ':toprule;'},
+                {'selector': 'bottomrule', 'props': ':hline;'},
+            ], overwrite=False)
+
+        If other ``commands`` are added to table styles they will be detected, and
+        positioned immediately above the '\\begin{tabular}' command. For example to
+        add odd and even row coloring, from the {colortbl} package, in format
+        ``\rowcolors{1}{pink}{red}``, use:
+
+        .. code-block:: python
+
+            set_table_styles([
+                {'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}
+            ], overwrite=False)
 
         A more comprehensive example using these arguments is as follows:
 
@@ -586,7 +606,7 @@ class Styler(StylerRenderer):
         **Formatting**
 
         To format values :meth:`Styler.format` should be used prior to calling
-        `Styler.to_latex`, as well as other method such as :meth:`Styler.hide_index`
+        `Styler.to_latex`, as well as other methods such as :meth:`Styler.hide_index`
         or :meth:`Styler.hide_columns`, for example:
 
         >>> s.clear()
@@ -598,13 +618,13 @@ class Styler(StylerRenderer):
         ...    ("Non-Numeric", "Strings"): str.upper
         ... })
         >>> s.to_latex()
-        \\begin{tabular}{llrrl}
-        {} & {} & \\multicolumn{2}{r}{Numeric} & {Non-Numeric} \\\\
-        {} & {} & {Integers} & {Floats} & {Strings} \\\\
-        \\multirow[c]{2}{*}{L0} & ix1 & \\$1 & 2.200 & DOGS \\
-         & ix2 & \\$3 & 4.400 & CATS \\\\
-        L1 & ix3 & \\$2 & 6.600 & COWS \\\\
-        \\end{tabular}
+        \begin{tabular}{llrrl}
+        {} & {} & \multicolumn{2}{r}{Numeric} & {Non-Numeric} \\
+        {} & {} & {Integers} & {Floats} & {Strings} \\
+        \multirow[c]{2}{*}{L0} & ix1 & \\$1 & 2.200 & DOGS \\
+         & ix2 & \$3 & 4.400 & CATS \\
+        L1 & ix3 & \$2 & 6.600 & COWS \\
+        \end{tabular}
         """
         table_selectors = (
             [style["selector"] for style in self.table_styles]
