@@ -1,3 +1,4 @@
+from datetime import datetime
 import gc
 from typing import Type
 
@@ -5,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -13,6 +15,7 @@ import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
+    Float64Index,
     Index,
     Int64Index,
     IntervalIndex,
@@ -29,7 +32,9 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 class Base:
-    """ base class for index sub-class tests """
+    """
+    Base class for index sub-class tests.
+    """
 
     _index_cls: Type[Index]
 
@@ -738,3 +743,91 @@ class Base:
         shallow_copy = idx._shallow_copy(idx._data)
         assert shallow_copy._cache is not idx._cache
         assert shallow_copy._cache == {}
+
+    def test_index_groupby(self, simple_index):
+        idx = simple_index[:5]
+        to_groupby = np.array([1, 2, np.nan, 2, 1])
+        tm.assert_dict_equal(
+            idx.groupby(to_groupby), {1.0: idx[[0, 4]], 2.0: idx[[1, 3]]}
+        )
+
+        to_groupby = DatetimeIndex(
+            [
+                datetime(2011, 11, 1),
+                datetime(2011, 12, 1),
+                pd.NaT,
+                datetime(2011, 12, 1),
+                datetime(2011, 11, 1),
+            ],
+            tz="UTC",
+        ).values
+
+        ex_keys = [Timestamp("2011-11-01"), Timestamp("2011-12-01")]
+        expected = {ex_keys[0]: idx[[0, 4]], ex_keys[1]: idx[[1, 3]]}
+        tm.assert_dict_equal(idx.groupby(to_groupby), expected)
+
+
+class NumericBase(Base):
+    """
+    Base class for numeric index (incl. RangeIndex) sub-class tests.
+    """
+
+    def test_where(self):
+        # Tested in numeric.test_indexing
+        pass
+
+    def test_can_hold_identifiers(self, simple_index):
+        idx = simple_index
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
+
+    def test_format(self, simple_index):
+        # GH35439
+        idx = simple_index
+        max_width = max(len(str(x)) for x in idx)
+        expected = [str(x).ljust(max_width) for x in idx]
+        assert idx.format() == expected
+
+    def test_numeric_compat(self):
+        pass  # override Base method
+
+    def test_insert_na(self, nulls_fixture, simple_index):
+        # GH 18295 (test missing)
+        index = simple_index
+        na_val = nulls_fixture
+
+        if na_val is pd.NaT:
+            expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
+        else:
+            expected = Float64Index([index[0], np.nan] + list(index[1:]))
+
+        result = index.insert(1, na_val)
+        tm.assert_index_equal(result, expected)
+
+    def test_arithmetic_explicit_conversions(self):
+        # GH 8608
+        # add/sub are overridden explicitly for Float/Int Index
+        index_cls = self._index_cls
+        if index_cls is RangeIndex:
+            idx = RangeIndex(5)
+        else:
+            idx = index_cls(np.arange(5, dtype="int64"))
+
+        # float conversions
+        arr = np.arange(5, dtype="int64") * 3.2
+        expected = Float64Index(arr)
+        fidx = idx * 3.2
+        tm.assert_index_equal(fidx, expected)
+        fidx = 3.2 * idx
+        tm.assert_index_equal(fidx, expected)
+
+        # interops with numpy arrays
+        expected = Float64Index(arr)
+        a = np.zeros(5, dtype="float64")
+        result = fidx - a
+        tm.assert_index_equal(result, expected)
+
+        expected = Float64Index(-arr)
+        a = np.zeros(5, dtype="float64")
+        result = a - fidx
+        tm.assert_index_equal(result, expected)
