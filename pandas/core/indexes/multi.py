@@ -3597,7 +3597,7 @@ class MultiIndex(Index):
     def _maybe_match_names(self, other):
         """
         Try to find common names to attach to the result of an operation between
-        a and b.  Return a consensus list of names if they match at least partly
+        a and b. Return a consensus list of names if they match at least partly
         or list of None if they have completely different names.
         """
         if len(self.names) != len(other.names):
