@@ -1047,7 +1047,6 @@ class BinGrouper(BaseGrouper):
     ----------
     bins : the split index of binlabels to group the item of axis
     binlabels : the label list
-    filter_empty : bool, default False
     mutated : bool, default False
     indexer : np.ndarray[np.intp]
 
@@ -1069,17 +1068,20 @@ class BinGrouper(BaseGrouper):
 
     """
 
+    bins: np.ndarray  # np.ndarray[np.int64]
+    binlabels: Index
+    mutated: bool
+
     def __init__(
         self,
         bins,
         binlabels,
-        filter_empty: bool = False,
         mutated: bool = False,
         indexer=None,
     ):
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
-        self._filter_empty_groups = filter_empty
+        self._filter_empty_groups = False
         self.mutated = mutated
         self.indexer = indexer
 
