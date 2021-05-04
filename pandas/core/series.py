@@ -4747,11 +4747,12 @@ Keep all original rows and also all original values
         right : scalar or list-like
             Right boundary.
         inclusive : {"both", "neither", "left", "right"}
-            Whether to set each bound as closed or open. For backwards
-            compatibility this can also be set to ``True`` ("both") or
-            False ("neither")
+            Include boundaries. Whether to set each bound as closed or open.
+            For backwards compatibility this can also be set to ``True``
+            ("both") or false ("neither")
 
-            Include boundaries.
+            .. versionchanged:: 1.3.0
+
 
         Returns
         -------
