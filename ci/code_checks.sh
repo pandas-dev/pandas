@@ -123,6 +123,11 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests for directories' ; echo $MSG
     pytest -q --doctest-modules \
+      pandas/_libs/ \
+      pandas/api/ \
+      pandas/arrays/ \
+      pandas/compat/ \
+      pandas/core/array_algos/ \
       pandas/core/arrays/ \
       pandas/core/computation/ \
       pandas/core/dtypes/ \
@@ -133,6 +138,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
       pandas/core/strings/ \
       pandas/core/tools/ \
       pandas/core/window/ \
+      pandas/errors/ \
+      pandas/io/clipboard/ \
+      pandas/io/parsers/ \
+      pandas/io/sas/ \
       pandas/tseries/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
