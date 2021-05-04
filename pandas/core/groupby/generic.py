@@ -517,7 +517,7 @@ class SeriesGroupBy(GroupBy[Series]):
             output = libreduction.extract_result(output)
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(output)
+                libreduction.check_result_array(output, group.dtype)
                 initialized = True
             result[name] = output
 

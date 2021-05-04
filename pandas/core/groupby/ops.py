@@ -1040,7 +1040,7 @@ class BaseGrouper:
 
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(res)
+                libreduction.check_result_array(res, group.dtype)
                 initialized = True
 
             counts[i] = group.shape[0]
