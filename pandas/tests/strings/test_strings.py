@@ -6,8 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Index,
@@ -16,27 +14,6 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-
-
-@pytest.fixture(
-    params=[
-        "object",
-        "string",
-        pytest.param(
-            "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
-    ]
-)
-def any_string_dtype(request):
-    """
-    Parametrized fixture for string dtypes.
-    * 'object'
-    * 'string'
-    * 'arrow_string'
-    """
-    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-    return request.param
 
 
 def assert_series_or_index_equal(left, right):
