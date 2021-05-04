@@ -25,7 +25,6 @@ from pandas._typing import (
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -42,6 +41,7 @@ from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
@@ -74,7 +74,7 @@ if TYPE_CHECKING:
 
 
 @register_extension_dtype
-class ArrowStringDtype(ExtensionDtype):
+class ArrowStringDtype(StringDtype):
     """
     Extension dtype for string data in a ``pyarrow.ChunkedArray``.
 
