@@ -438,6 +438,9 @@ class TestReaders:
             match="convert_float is deprecated",
             raise_on_extra_warnings=False,
         ):
+            # raise_on_extra_warnings because xlrd raises a PendingDeprecationWarning
+            # on database job Linux_py37_IO (ci/deps/actions-37-db.yaml)
+            # See GH#41176
             actual = pd.read_excel(
                 basename + read_ext, sheet_name="Sheet1", convert_float=False
             )
