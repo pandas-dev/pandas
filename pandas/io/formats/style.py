@@ -1072,147 +1072,13 @@ class Styler(StylerRenderer):
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
-    def text_gradient(
-        self,
-        cmap="PuBu",
-        low: float = 0,
-        high: float = 0,
-        axis: Axis | None = 0,
-        subset=None,
-        vmin: float | None = None,
-        vmax: float | None = None,
-        gmap: Sequence | None = None,
-    ) -> Styler:
-        """
-        Color the text in a gradient style.
-
-        The text color is determined according
-        to the data in each column, row or frame, or by a given
-        gradient map. Requires matplotlib.
-
-        .. versionadded:: 1.3.0
-
-        Parameters
-        ----------
-        cmap : str or colormap
-            Matplotlib colormap.
-        low : float
-            Compress the color range at the low end. This is a multiple of the data
-            range to extend below the minimum; good values usually in [0, 1],
-            defaults to 0.
-        high : float
-            Compress the color range at the high end. This is a multiple of the data
-            range to extend above the maximum; good values usually in [0, 1],
-            defaults to 0.
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
-            Apply to each column (``axis=0`` or ``'index'``), to each row
-            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
-            with ``axis=None``.
-        subset : IndexSlice
-            A valid slice for ``data`` to limit the style application to.
-        vmin : float, optional
-            Minimum data value that corresponds to colormap minimum value.
-            If not specified the minimum value of the data (or gmap) will be used.
-        vmax : float, optional
-            Maximum data value that corresponds to colormap maximum value.
-            If not specified the maximum value of the data (or gmap) will be used.
-        gmap : array-like, optional
-            Gradient map for determining the background colors. If not supplied
-            will use the underlying data from rows, columns or frame. If given as an
-            ndarray or list-like must be an identical shape to the underlying data
-            considering ``axis`` and ``subset``. If given as DataFrame or Series must
-            have same index and column labels considering ``axis`` and ``subset``.
-            If supplied, ``vmin`` and ``vmax`` should be given relative to this
-            gradient map.
-
-        Returns
-        -------
-        self : Styler
-
-        See Also
-        --------
-        Styler.background_gradient: Color the background in a gradient style.
-
-        Notes
-        -----
-        When using ``low`` and ``high`` the range
-        of the gradient, given by the data if ``gmap`` is not given or by ``gmap``,
-        is extended at the low end effectively by
-        `map.min - low * map.range` and at the high end by
-        `map.max + high * map.range` before the colors are normalized and determined.
-
-        If combining with ``vmin`` and ``vmax`` the `map.min`, `map.max` and
-        `map.range` are replaced by values according to the values derived from
-        ``vmin`` and ``vmax``.
-
-        This method will preselect numeric columns and ignore non-numeric columns
-        unless a ``gmap`` is supplied in which case no preselection occurs.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({
-        ...          'City': ['Stockholm', 'Oslo', 'Copenhagen'],
-        ...          'Temp (c)': [21.6, 22.4, 24.5],
-        ...          'Rain (mm)': [5.0, 13.3, 0.0],
-        ...          'Wind (m/s)': [3.2, 3.1, 6.7]
-        ... })
-
-        Shading the values column-wise, with ``axis=0``, preselecting numeric columns
-
-        >>> df.style.background_gradient(axis=0)
-
-        .. figure:: ../../_static/style/tg_ax0.png
-
-        Shading all values collectively using ``axis=None``
-
-        >>> df.style.background_gradient(axis=None)
-
-        .. figure:: ../../_static/style/tg_axNone.png
-
-        Compress the color map from the both ``low`` and ``high`` ends
-
-        >>> df.style.background_gradient(axis=None, low=0.75, high=1.0)
-
-        .. figure:: ../../_static/style/tg_axNone_lowhigh.png
-
-        Manually setting ``vmin`` and ``vmax`` gradient thresholds
-
-        >>> df.style.background_gradient(axis=None, vmin=6.7, vmax=21.6)
-
-        .. figure:: ../../_static/style/tg_axNone_vminvmax.png
-
-        Setting a ``gmap`` and applying to all columns with another ``cmap``
-
-        >>> df.style.background_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
-
-        .. figure:: ../../_static/style/tg_gmap.png
-
-        Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to
-        explicitly state ``subset`` to match the ``gmap`` shape
-
-        >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
-        >>> df.style.background_gradient(axis=None, gmap=gmap,
-        ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
-        ... )
-
-        .. figure:: ../../_static/style/tg_axNone_gmap.png
-        """
-        if subset is None and gmap is None:
-            subset = self.data.select_dtypes(include=np.number).columns
-
-        return self.apply(
-            _background_gradient,
-            cmap=cmap,
-            subset=subset,
-            axis=axis,
-            low=low,
-            high=high,
-            vmin=vmin,
-            vmax=vmax,
-            gmap=gmap,
-            text_only=True,
-        )
-
+    @doc(
+        name="background",
+        alt="text",
+        image_prefix="bg",
+        axis="{0 or 'index', 1 or 'columns', None}",
+        text_threshold="",
+    )
     def background_gradient(
         self,
         cmap="PuBu",
@@ -1226,9 +1092,9 @@ class Styler(StylerRenderer):
         gmap: Sequence | None = None,
     ) -> Styler:
         """
-        Color the background in a gradient style.
+        Color the {name} in a gradient style.
 
-        The background color is determined according
+        The {name} color is determined according
         to the data in each column, row or frame, or by a given
         gradient map. Requires matplotlib.
 
@@ -1244,13 +1110,14 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
+        axis : {axis}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         subset : IndexSlice
             A valid slice for ``data`` to limit the style application to.
         text_color_threshold : float or int
+            {text_threshold}
             Luminance threshold for determining text color in [0, 1]. Facilitates text
             visibility across varying background colors. All text is dark if 0, and
             light if 1, defaults to 0.408.
@@ -1270,7 +1137,7 @@ class Styler(StylerRenderer):
             .. versionadded:: 1.0.0
 
         gmap : array-like, optional
-            Gradient map for determining the background colors. If not supplied
+            Gradient map for determining the {name} colors. If not supplied
             will use the underlying data from rows, columns or frame. If given as an
             ndarray or list-like must be an identical shape to the underlying data
             considering ``axis`` and ``subset``. If given as DataFrame or Series must
@@ -1286,7 +1153,7 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.text_gradient: Color the text in a gradient style.
+        Styler.{alt}_gradient: Color the {alt} in a gradient style.
 
         Notes
         -----
@@ -1305,52 +1172,50 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({
-        ...          'City': ['Stockholm', 'Oslo', 'Copenhagen'],
-        ...          'Temp (c)': [21.6, 22.4, 24.5],
-        ...          'Rain (mm)': [5.0, 13.3, 0.0],
-        ...          'Wind (m/s)': [3.2, 3.1, 6.7]
-        ... })
+        >>> df = pd.DataFrame(columns=["City", "Temp (c)", "Rain (mm)", "Wind (m/s)"],
+        ...                   data=[["Stockholm", 21.6, 5.0, 3.2],
+        ...                         ["Oslo", 22.4, 13.3, 3.1],
+        ...                         ["Copenhagen", 24.5, 0.0, 6.7]])
 
         Shading the values column-wise, with ``axis=0``, preselecting numeric columns
 
-        >>> df.style.background_gradient(axis=0)
+        >>> df.style.{name}_gradient(axis=0)
 
-        .. figure:: ../../_static/style/bg_ax0.png
+        .. figure:: ../../_static/style/{image_prefix}_ax0.png
 
         Shading all values collectively using ``axis=None``
 
-        >>> df.style.background_gradient(axis=None)
+        >>> df.style.{name}_gradient(axis=None)
 
-        .. figure:: ../../_static/style/bg_axNone.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone.png
 
         Compress the color map from the both ``low`` and ``high`` ends
 
-        >>> df.style.background_gradient(axis=None, low=0.75, high=1.0)
+        >>> df.style.{name}_gradient(axis=None, low=0.75, high=1.0)
 
-        .. figure:: ../../_static/style/bg_axNone_lowhigh.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone_lowhigh.png
 
         Manually setting ``vmin`` and ``vmax`` gradient thresholds
 
-        >>> df.style.background_gradient(axis=None, vmin=6.7, vmax=21.6)
+        >>> df.style.{name}_gradient(axis=None, vmin=6.7, vmax=21.6)
 
-        .. figure:: ../../_static/style/bg_axNone_vminvmax.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone_vminvmax.png
 
         Setting a ``gmap`` and applying to all columns with another ``cmap``
 
-        >>> df.style.background_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
+        >>> df.style.{name}_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
 
-        .. figure:: ../../_static/style/bg_gmap.png
+        .. figure:: ../../_static/style/{image_prefix}_gmap.png
 
         Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to
         explicitly state ``subset`` to match the ``gmap`` shape
 
         >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
-        >>> df.style.background_gradient(axis=None, gmap=gmap,
+        >>> df.style.{name}_gradient(axis=None, gmap=gmap,
         ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
         ... )
 
-        .. figure:: ../../_static/style/bg_axNone_gmap.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
         if subset is None and gmap is None:
             subset = self.data.select_dtypes(include=np.number).columns
@@ -1368,6 +1233,41 @@ class Styler(StylerRenderer):
             gmap=gmap,
         )
         return self
+
+    @doc(
+        background_gradient,
+        name="text",
+        alt="background",
+        image_prefix="tg",
+        axis="{0 or 'index', 1 or 'columns', None}",
+        text_threshold="This argument is ignored (only used in `background_gradient`).",
+    )
+    def text_gradient(
+        self,
+        cmap="PuBu",
+        low: float = 0,
+        high: float = 0,
+        axis: Axis | None = 0,
+        subset=None,
+        vmin: float | None = None,
+        vmax: float | None = None,
+        gmap: Sequence | None = None,
+    ) -> Styler:
+        if subset is None and gmap is None:
+            subset = self.data.select_dtypes(include=np.number).columns
+
+        return self.apply(
+            _background_gradient,
+            cmap=cmap,
+            subset=subset,
+            axis=axis,
+            low=low,
+            high=high,
+            vmin=vmin,
+            vmax=vmax,
+            gmap=gmap,
+            text_only=True,
+        )
 
     def set_properties(self, subset=None, **kwargs) -> Styler:
         """
