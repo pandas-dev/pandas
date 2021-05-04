@@ -1843,13 +1843,16 @@ def validate_periods(periods):
 def validate_endpoints(closed):
     """
     Check that the `closed` argument is among [None, "left", "right"]
+    
     Parameters
     ----------
     closed : {None, "left", "right"}
+    
     Returns
     -------
     left_closed : bool
     right_closed : bool
+    
     Raises
     ------
     ValueError : if argument is not among valid values
