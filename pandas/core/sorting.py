@@ -18,7 +18,10 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import unique_label_indices
-from pandas._typing import IndexKeyFunc
+from pandas._typing import (
+    IndexKeyFunc,
+    Shape,
+)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -93,7 +96,7 @@ def get_indexer_indexer(
     return indexer
 
 
-def get_group_index(labels, shape, sort: bool, xnull: bool):
+def get_group_index(labels, shape: Shape, sort: bool, xnull: bool):
     """
     For the particular label_list, gets the offsets into the hypothetical list
     representing the totally ordered cartesian product of all possible label
@@ -108,7 +111,7 @@ def get_group_index(labels, shape, sort: bool, xnull: bool):
     ----------
     labels : sequence of arrays
         Integers identifying levels at each location
-    shape : sequence of ints
+    shape : tuple[int, ...]
         Number of unique levels at each location
     sort : bool
         If the ranks of returned ids should match lexical ranks of labels
@@ -134,33 +137,36 @@ def get_group_index(labels, shape, sort: bool, xnull: bool):
                 return i
         return len(shape)
 
-    def maybe_lift(lab, size):
+    def maybe_lift(lab, size) -> tuple[np.ndarray, int]:
         # promote nan values (assigned -1 label in lab array)
         # so that all output values are non-negative
         return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
 
-    labels = map(ensure_int64, labels)
+    labels = [ensure_int64(x) for x in labels]
+    lshape = list(shape)
     if not xnull:
-        labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
+        for i, (lab, size) in enumerate(zip(labels, shape)):
+            lab, size = maybe_lift(lab, size)
+            labels[i] = lab
+            lshape[i] = size
 
     labels = list(labels)
-    shape = list(shape)
 
     # Iteratively process all the labels in chunks sized so less
     # than _INT64_MAX unique int ids will be required for each chunk
     while True:
         # how many levels can be done without overflow:
-        nlev = _int64_cut_off(shape)
+        nlev = _int64_cut_off(lshape)
 
         # compute flat ids for the first `nlev` levels
-        stride = np.prod(shape[1:nlev], dtype="i8")
+        stride = np.prod(lshape[1:nlev], dtype="i8")
         out = stride * labels[0].astype("i8", subok=False, copy=False)
 
         for i in range(1, nlev):
-            if shape[i] == 0:
-                stride = 0
+            if lshape[i] == 0:
+                stride = np.int64(0)
             else:
-                stride //= shape[i]
+                stride //= lshape[i]
             out += labels[i] * stride
 
         if xnull:  # exclude nulls
@@ -169,7 +175,7 @@ def get_group_index(labels, shape, sort: bool, xnull: bool):
                 mask |= lab == -1
             out[mask] = -1
 
-        if nlev == len(shape):  # all levels done!
+        if nlev == len(lshape):  # all levels done!
             break
 
         # compress what has been done so far in order to avoid overflow
@@ -177,12 +183,12 @@ def get_group_index(labels, shape, sort: bool, xnull: bool):
         comp_ids, obs_ids = compress_group_index(out, sort=sort)
 
         labels = [comp_ids] + labels[nlev:]
-        shape = [len(obs_ids)] + shape[nlev:]
+        lshape = [len(obs_ids)] + lshape[nlev:]
 
     return out
 
 
-def get_compressed_ids(labels, sizes) -> tuple[np.ndarray, np.ndarray]:
+def get_compressed_ids(labels, sizes: Shape) -> tuple[np.ndarray, np.ndarray]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
@@ -191,7 +197,7 @@ def get_compressed_ids(labels, sizes) -> tuple[np.ndarray, np.ndarray]:
     Parameters
     ----------
     labels : list of label arrays
-    sizes : list of size of the levels
+    sizes : tuple[int] of size of the levels
 
     Returns
     -------
@@ -252,12 +258,11 @@ def decons_obs_group_ids(comp_ids: np.ndarray, obs_ids, shape, labels, xnull: bo
         return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
     # TODO: unique_label_indices only used here, should take ndarray[np.intp]
-    i = unique_label_indices(ensure_int64(comp_ids))
-    i8copy = lambda a: a.astype("i8", subok=False, copy=True)
-    return [i8copy(lab[i]) for lab in labels]
+    indexer = unique_label_indices(ensure_int64(comp_ids))
+    return [lab[indexer].astype(np.intp, subok=False, copy=True) for lab in labels]
 
 
-def indexer_from_factorized(labels, shape, compress: bool = True) -> np.ndarray:
+def indexer_from_factorized(labels, shape: Shape, compress: bool = True) -> np.ndarray:
     # returned ndarray is np.intp
     ids = get_group_index(labels, shape, sort=True, xnull=False)
 
@@ -334,7 +339,7 @@ def lexsort_indexer(
         shape.append(n)
         labels.append(codes)
 
-    return indexer_from_factorized(labels, shape)
+    return indexer_from_factorized(labels, tuple(shape))
 
 
 def nargsort(
@@ -576,7 +581,7 @@ def get_indexer_dict(
     """
     shape = [len(x) for x in keys]
 
-    group_index = get_group_index(label_list, shape, sort=True, xnull=True)
+    group_index = get_group_index(label_list, tuple(shape), sort=True, xnull=True)
     if np.all(group_index == -1):
         # Short-circuit, lib.indices_fast will return the same
         return {}

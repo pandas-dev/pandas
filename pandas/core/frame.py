@@ -6146,7 +6146,7 @@ class DataFrame(NDFrame, OpsMixin):
         if self.empty:
             return self._constructor_sliced(dtype=bool)
 
-        def f(vals):
+        def f(vals) -> tuple[np.ndarray, int]:
             labels, shape = algorithms.factorize(vals, size_hint=len(self))
             return labels.astype("i8", copy=False), len(shape)
 
@@ -6173,7 +6173,14 @@ class DataFrame(NDFrame, OpsMixin):
         vals = (col.values for name, col in self.items() if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
 
-        ids = get_group_index(labels, shape, sort=False, xnull=False)
+        ids = get_group_index(
+            labels,
+            # error: Argument 1 to "tuple" has incompatible type "List[_T]";
+            # expected "Iterable[int]"
+            tuple(shape),  # type: ignore[arg-type]
+            sort=False,
+            xnull=False,
+        )
         result = self._constructor_sliced(duplicated_int64(ids, keep), index=self.index)
         return result.__finalize__(self, method="duplicated")
 
