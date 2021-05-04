@@ -266,144 +266,157 @@ def test_endswith_nullable_string_dtype(nullable_string_dtype, na):
     tm.assert_series_equal(result, exp)
 
 
-def test_replace():
-    values = Series(["fooBAD__barBAD", np.nan])
+def test_replace(any_string_dtype):
+    values = Series(["fooBAD__barBAD", np.nan], dtype=any_string_dtype)
 
     result = values.str.replace("BAD[_]*", "", regex=True)
-    exp = Series(["foobar", np.nan])
-    tm.assert_series_equal(result, exp)
+    expected = Series(["foobar", np.nan], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
 
     result = values.str.replace("BAD[_]*", "", n=1, regex=True)
-    exp = Series(["foobarBAD", np.nan])
-    tm.assert_series_equal(result, exp)
+    expected = Series(["foobarBAD", np.nan], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
 
-    # mixed
+
+def test_replace_mixed_object():
     mixed = Series(
         ["aBAD", np.nan, "bBAD", True, datetime.today(), "fooBAD", None, 1, 2.0]
     )
 
-    rs = Series(mixed).str.replace("BAD[_]*", "", regex=True)
-    xp = Series(["a", np.nan, "b", np.nan, np.nan, "foo", np.nan, np.nan, np.nan])
-    assert isinstance(rs, Series)
-    tm.assert_almost_equal(rs, xp)
+    result = Series(mixed).str.replace("BAD[_]*", "", regex=True)
+    expected = Series(["a", np.nan, "b", np.nan, np.nan, "foo", np.nan, np.nan, np.nan])
+    assert isinstance(result, Series)
+    tm.assert_almost_equal(result, expected)
 
-    # flags + unicode
-    values = Series([b"abcd,\xc3\xa0".decode("utf-8")])
-    exp = Series([b"abcd, \xc3\xa0".decode("utf-8")])
+
+def test_replace_unicode(any_string_dtype):
+    values = Series([b"abcd,\xc3\xa0".decode("utf-8")], dtype=any_string_dtype)
+    expected = Series([b"abcd, \xc3\xa0".decode("utf-8")], dtype=any_string_dtype)
     result = values.str.replace(r"(?<=\w),(?=\w)", ", ", flags=re.UNICODE, regex=True)
-    tm.assert_series_equal(result, exp)
+    tm.assert_series_equal(result, expected)
 
-    # GH 13438
+
+@pytest.mark.parametrize("klass", [Series, Index])
+@pytest.mark.parametrize("repl", [None, 3, {"a": "b"}])
+@pytest.mark.parametrize("data", [["a", "b", None], ["a", "b", "c", "ad"]])
+def test_replace_raises(any_string_dtype, klass, repl, data):
+    # https://github.com/pandas-dev/pandas/issues/13438
     msg = "repl must be a string or callable"
-    for klass in (Series, Index):
-        for repl in (None, 3, {"a": "b"}):
-            for data in (["a", "b", None], ["a", "b", "c", "ad"]):
-                values = klass(data)
-                with pytest.raises(TypeError, match=msg):
-                    values.str.replace("a", repl)
+    values = klass(data, dtype=any_string_dtype)
+    with pytest.raises(TypeError, match=msg):
+        values.str.replace("a", repl)
 
 
-def test_replace_callable():
+def test_replace_callable(any_string_dtype):
     # GH 15055
-    values = Series(["fooBAD__barBAD", np.nan])
+    values = Series(["fooBAD__barBAD", np.nan], dtype=any_string_dtype)
 
     # test with callable
     repl = lambda m: m.group(0).swapcase()
     result = values.str.replace("[a-z][A-Z]{2}", repl, n=2, regex=True)
-    exp = Series(["foObaD__baRbaD", np.nan])
-    tm.assert_series_equal(result, exp)
+    expected = Series(["foObaD__baRbaD", np.nan], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "repl", [lambda: None, lambda m, x: None, lambda m, x, y=None: None]
+)
+def test_replace_callable_raises(any_string_dtype, repl):
+    # GH 15055
+    values = Series(["fooBAD__barBAD", np.nan], dtype=any_string_dtype)
 
     # test with wrong number of arguments, raising an error
-    p_err = (
+    msg = (
         r"((takes)|(missing)) (?(2)from \d+ to )?\d+ "
         r"(?(3)required )positional arguments?"
     )
-
-    repl = lambda: None
-    with pytest.raises(TypeError, match=p_err):
+    with pytest.raises(TypeError, match=msg):
         values.str.replace("a", repl)
 
-    repl = lambda m, x: None
-    with pytest.raises(TypeError, match=p_err):
-        values.str.replace("a", repl)
 
-    repl = lambda m, x, y=None: None
-    with pytest.raises(TypeError, match=p_err):
-        values.str.replace("a", repl)
-
+def test_replace_callable_named_groups(any_string_dtype):
     # test regex named groups
-    values = Series(["Foo Bar Baz", np.nan])
+    values = Series(["Foo Bar Baz", np.nan], dtype=any_string_dtype)
     pat = r"(?P<first>\w+) (?P<middle>\w+) (?P<last>\w+)"
     repl = lambda m: m.group("middle").swapcase()
     result = values.str.replace(pat, repl, regex=True)
-    exp = Series(["bAR", np.nan])
-    tm.assert_series_equal(result, exp)
+    expected = Series(["bAR", np.nan], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
 
 
-def test_replace_compiled_regex():
+def test_replace_compiled_regex(any_string_dtype):
     # GH 15446
-    values = Series(["fooBAD__barBAD", np.nan])
+    values = Series(["fooBAD__barBAD", np.nan], dtype=any_string_dtype)
 
     # test with compiled regex
     pat = re.compile(r"BAD_*")
     result = values.str.replace(pat, "", regex=True)
-    exp = Series(["foobar", np.nan])
-    tm.assert_series_equal(result, exp)
+    expected = Series(["foobar", np.nan], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
 
     result = values.str.replace(pat, "", n=1, regex=True)
-    exp = Series(["foobarBAD", np.nan])
-    tm.assert_series_equal(result, exp)
+    expected = Series(["foobarBAD", np.nan], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
 
-    # mixed
+
+def test_replace_compiled_regex_mixed_object():
+    pat = re.compile(r"BAD_*")
     mixed = Series(
         ["aBAD", np.nan, "bBAD", True, datetime.today(), "fooBAD", None, 1, 2.0]
     )
 
-    rs = Series(mixed).str.replace(pat, "", regex=True)
-    xp = Series(["a", np.nan, "b", np.nan, np.nan, "foo", np.nan, np.nan, np.nan])
-    assert isinstance(rs, Series)
-    tm.assert_almost_equal(rs, xp)
+    result = Series(mixed).str.replace(pat, "", regex=True)
+    expected = Series(["a", np.nan, "b", np.nan, np.nan, "foo", np.nan, np.nan, np.nan])
+    assert isinstance(result, Series)
+    tm.assert_almost_equal(result, expected)
 
-    # flags + unicode
-    values = Series([b"abcd,\xc3\xa0".decode("utf-8")])
-    exp = Series([b"abcd, \xc3\xa0".decode("utf-8")])
+
+def test_replace_compiled_regex_unicode(any_string_dtype):
+    values = Series([b"abcd,\xc3\xa0".decode("utf-8")], dtype=any_string_dtype)
+    expected = Series([b"abcd, \xc3\xa0".decode("utf-8")], dtype=any_string_dtype)
     pat = re.compile(r"(?<=\w),(?=\w)", flags=re.UNICODE)
     result = values.str.replace(pat, ", ")
-    tm.assert_series_equal(result, exp)
+    tm.assert_series_equal(result, expected)
 
+
+def test_replace_compiled_regex_raises(any_string_dtype):
     # case and flags provided to str.replace will have no effect
     # and will produce warnings
-    values = Series(["fooBAD__barBAD__bad", np.nan])
+    values = Series(["fooBAD__barBAD__bad", np.nan], dtype=any_string_dtype)
     pat = re.compile(r"BAD_*")
 
-    with pytest.raises(ValueError, match="case and flags cannot be"):
-        result = values.str.replace(pat, "", flags=re.IGNORECASE)
+    msg = "case and flags cannot be set when pat is a compiled regex"
 
-    with pytest.raises(ValueError, match="case and flags cannot be"):
-        result = values.str.replace(pat, "", case=False)
+    with pytest.raises(ValueError, match=msg):
+        values.str.replace(pat, "", flags=re.IGNORECASE)
 
-    with pytest.raises(ValueError, match="case and flags cannot be"):
-        result = values.str.replace(pat, "", case=True)
+    with pytest.raises(ValueError, match=msg):
+        values.str.replace(pat, "", case=False)
 
+    with pytest.raises(ValueError, match=msg):
+        values.str.replace(pat, "", case=True)
+
+
+def test_replace_compiled_regex_callable(any_string_dtype):
     # test with callable
-    values = Series(["fooBAD__barBAD", np.nan])
+    values = Series(["fooBAD__barBAD", np.nan], dtype=any_string_dtype)
     repl = lambda m: m.group(0).swapcase()
     pat = re.compile("[a-z][A-Z]{2}")
     result = values.str.replace(pat, repl, n=2)
-    exp = Series(["foObaD__baRbaD", np.nan])
-    tm.assert_series_equal(result, exp)
+    expected = Series(["foObaD__baRbaD", np.nan], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
 
 
-def test_replace_literal():
+def test_replace_literal(any_string_dtype):
     # GH16808 literal replace (regex=False vs regex=True)
-    values = Series(["f.o", "foo", np.nan])
-    exp = Series(["bao", "bao", np.nan])
+    values = Series(["f.o", "foo", np.nan], dtype=any_string_dtype)
+    expected = Series(["bao", "bao", np.nan], dtype=any_string_dtype)
     result = values.str.replace("f.", "ba", regex=True)
-    tm.assert_series_equal(result, exp)
+    tm.assert_series_equal(result, expected)
 
-    exp = Series(["bao", "foo", np.nan])
+    expected = Series(["bao", "foo", np.nan], dtype=any_string_dtype)
     result = values.str.replace("f.", "ba", regex=False)
-    tm.assert_series_equal(result, exp)
+    tm.assert_series_equal(result, expected)
 
     # Cannot do a literal replace if given a callable repl or compiled
     # pattern
@@ -680,13 +693,17 @@ def test_contains_nan(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_replace_moar():
+def test_replace_moar(any_string_dtype):
     # PR #1179
-    s = Series(["A", "B", "C", "Aaba", "Baca", "", np.nan, "CABA", "dog", "cat"])
+    s = Series(
+        ["A", "B", "C", "Aaba", "Baca", "", np.nan, "CABA", "dog", "cat"],
+        dtype=any_string_dtype,
+    )
 
     result = s.str.replace("A", "YYY")
     expected = Series(
-        ["YYY", "B", "C", "YYYaba", "Baca", "", np.nan, "CYYYBYYY", "dog", "cat"]
+        ["YYY", "B", "C", "YYYaba", "Baca", "", np.nan, "CYYYBYYY", "dog", "cat"],
+        dtype=any_string_dtype,
     )
     tm.assert_series_equal(result, expected)
 
@@ -703,7 +720,8 @@ def test_replace_moar():
             "CYYYBYYY",
             "dog",
             "cYYYt",
-        ]
+        ],
+        dtype=any_string_dtype,
     )
     tm.assert_series_equal(result, expected)
 
@@ -720,7 +738,8 @@ def test_replace_moar():
             "XX-XX BA",
             "XX-XX ",
             "XX-XX t",
-        ]
+        ],
+        dtype=any_string_dtype,
     )
     tm.assert_series_equal(result, expected)
 
