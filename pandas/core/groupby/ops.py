@@ -970,22 +970,33 @@ class BaseGrouper:
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
+        cast_back = True
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
-            return self._aggregate_series_pure_python(obj, func)
+            result, counts = self._aggregate_series_pure_python(obj, func)
 
         elif is_extension_array_dtype(obj.dtype):
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
             # In the datetime64tz case it would incorrectly cast to tz-naive
             # TODO: can we get a performant workaround for EAs backed by ndarray?
-            return self._aggregate_series_pure_python(obj, func)
+            result, counts = self._aggregate_series_pure_python(obj, func)
 
         elif obj.index._has_complex_internals:
             # Preempt TypeError in _aggregate_series_fast
-            return self._aggregate_series_pure_python(obj, func)
+            result, counts = self._aggregate_series_pure_python(obj, func)
 
-        return self._aggregate_series_fast(obj, func)
+        else:
+            result, counts = self._aggregate_series_fast(obj, func)
+            cast_back = False
+
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
+        if cast_back:
+            # TODO: Is there a documented reason why we dont always cast_back?
+            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
+        else:
+            out = npvalues
+        return out, counts
 
     def _aggregate_series_fast(
         self, obj: Series, func: F
@@ -1033,10 +1044,7 @@ class BaseGrouper:
             counts[i] = group.shape[0]
             result[i] = res
 
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
-        out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
-
-        return out, counts
+        return result, counts
 
 
 class BinGrouper(BaseGrouper):
