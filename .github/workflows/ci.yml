@@ -99,14 +99,29 @@ jobs:
     - name: Set up pandas
       uses: ./.github/actions/setup
 
+    # Github workflows built-in path filters
+    # don't work on a level of individual jobs or steps.
+    # So, we use this.
+    - uses: dorny/paths-filter@v2
+      id: changes
+      with:
+        filters: |
+        doc:
+          - 'doc/**'
+        web:
+          - 'web/**'
+
     - name: Build website
       run: |
         source activate pandas-dev
         python web/pandas_web.py web/pandas --target-path=web/build
+      if: steps.changes.outputs.web == 'true'
+
     - name: Build documentation
       run: |
         source activate pandas-dev
         doc/make.py --warnings-are-errors | tee sphinx.log ; exit ${PIPESTATUS[0]}
+      if: steps.changes.outputs.doc == 'true'
 
     # This can be removed when the ipython directive fails when there are errors,
     # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
@@ -123,14 +138,15 @@ jobs:
 
     - name: Upload web
       run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='Pandas_Cheat_Sheet*' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
-      if: github.event_name == 'push'
+      if: ${{ github.event_name == 'push' && steps.changes.outputs.web == 'true' }}
 
     - name: Upload dev docs
       run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
-      if: github.event_name == 'push'
+      if: ${{ github.event_name == 'push' && steps.changes.outputs.doc == 'true' }}
 
     - name: Move docs into site directory
       run: mv doc/build/html web/build/docs
+
     - name: Save website as an artifact
       uses: actions/upload-artifact@v2
       with:
