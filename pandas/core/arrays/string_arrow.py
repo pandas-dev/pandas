@@ -863,27 +863,33 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
     def _str_strip(self, to_strip=None):
         if to_strip is None:
+            # utf8_trim_whitespace added in pyarrow 4.0.0
             if hasattr(pc, "utf8_trim_whitespace"):
                 return type(self)(pc.utf8_trim_whitespace(self._data))
         else:
+            # utf8_trim added in pyarrow 4.0.0
             if hasattr(pc, "utf8_trim"):
                 return type(self)(pc.utf8_trim(self._data, characters=to_strip))
         return super()._str_strip(to_strip)
 
     def _str_lstrip(self, to_strip=None):
         if to_strip is None:
+            # utf8_ltrim_whitespace added in pyarrow 4.0.0
             if hasattr(pc, "utf8_ltrim_whitespace"):
                 return type(self)(pc.utf8_ltrim_whitespace(self._data))
         else:
+            # utf8_ltrim added in pyarrow 4.0.0
             if hasattr(pc, "utf8_ltrim"):
                 return type(self)(pc.utf8_ltrim(self._data, characters=to_strip))
         return super()._str_lstrip(to_strip)
 
     def _str_rstrip(self, to_strip=None):
         if to_strip is None:
+            # utf8_rtrim_whitespace added in pyarrow 4.0.0
             if hasattr(pc, "utf8_rtrim_whitespace"):
                 return type(self)(pc.utf8_rtrim_whitespace(self._data))
         else:
+            # utf8_rtrim added in pyarrow 4.0.0
             if hasattr(pc, "utf8_rtrim"):
                 return type(self)(pc.utf8_rtrim(self._data, characters=to_strip))
         return super()._str_rstrip(to_strip)
