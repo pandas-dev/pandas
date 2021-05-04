@@ -1450,14 +1450,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # for each col, reshape to size of original frame by take operation
         ids, _, _ = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
-        output = [
-            algorithms.take_nd(result.iloc[:, i].values, ids)
-            for i, _ in enumerate(result.columns)
-        ]
-
-        return self.obj._constructor._from_arrays(
-            output, columns=result.columns, index=obj.index
-        )
+        output = result.take(ids, axis=0)
+        output.index = obj.index
+        return output
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, str):
