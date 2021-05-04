@@ -106,10 +106,10 @@ jobs:
       id: changes
       with:
         filters: |
-        doc:
-          - 'doc/**'
-        web:
-          - 'web/**'
+          doc:
+            - 'doc/**'
+          web:
+            - 'web/**'
 
     - name: Build website
       run: |
