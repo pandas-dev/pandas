@@ -823,7 +823,7 @@ class TestBlockManager:
 
     def test_single_mgr_ctor(self):
         mgr = create_single_mgr("f8", num_rows=5)
-        assert mgr.as_array().tolist() == [0.0, 1.0, 2.0, 3.0, 4.0]
+        assert mgr.external_values().tolist() == [0.0, 1.0, 2.0, 3.0, 4.0]
 
     @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
     def test_validate_bool_args(self, value):
@@ -835,6 +835,12 @@ class TestBlockManager:
         )
         with pytest.raises(ValueError, match=msg):
             bm1.replace_list([1], [2], inplace=value)
+
+
+def _as_array(mgr):
+    if mgr.ndim == 1:
+        return mgr.external_values()
+    return mgr.as_array()
 
 
 class TestIndexing:
@@ -859,7 +865,7 @@ class TestIndexing:
     @pytest.mark.parametrize("mgr", MANAGERS)
     def test_get_slice(self, mgr):
         def assert_slice_ok(mgr, axis, slobj):
-            mat = mgr.as_array()
+            mat = _as_array(mgr)
 
             # we maybe using an ndarray to test slicing and
             # might not be the full length of the axis
@@ -881,7 +887,7 @@ class TestIndexing:
 
             mat_slobj = (slice(None),) * axis + (slobj,)
             tm.assert_numpy_array_equal(
-                mat[mat_slobj], sliced.as_array(), check_dtype=False
+                mat[mat_slobj], _as_array(sliced), check_dtype=False
             )
             tm.assert_index_equal(mgr.axes[axis][slobj], sliced.axes[axis])
 
@@ -919,10 +925,10 @@ class TestIndexing:
     @pytest.mark.parametrize("mgr", MANAGERS)
     def test_take(self, mgr):
         def assert_take_ok(mgr, axis, indexer):
-            mat = mgr.as_array()
+            mat = _as_array(mgr)
             taken = mgr.take(indexer, axis)
             tm.assert_numpy_array_equal(
-                np.take(mat, indexer, axis), taken.as_array(), check_dtype=False
+                np.take(mat, indexer, axis), _as_array(taken), check_dtype=False
             )
             tm.assert_index_equal(mgr.axes[axis].take(indexer), taken.axes[axis])
 
@@ -940,13 +946,13 @@ class TestIndexing:
     @pytest.mark.parametrize("fill_value", [None, np.nan, 100.0])
     def test_reindex_axis(self, fill_value, mgr):
         def assert_reindex_axis_is_ok(mgr, axis, new_labels, fill_value):
-            mat = mgr.as_array()
+            mat = _as_array(mgr)
             indexer = mgr.axes[axis].get_indexer_for(new_labels)
 
             reindexed = mgr.reindex_axis(new_labels, axis, fill_value=fill_value)
             tm.assert_numpy_array_equal(
                 algos.take_nd(mat, indexer, axis, fill_value=fill_value),
-                reindexed.as_array(),
+                _as_array(reindexed),
                 check_dtype=False,
             )
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
@@ -971,13 +977,13 @@ class TestIndexing:
     @pytest.mark.parametrize("fill_value", [None, np.nan, 100.0])
     def test_reindex_indexer(self, fill_value, mgr):
         def assert_reindex_indexer_is_ok(mgr, axis, new_labels, indexer, fill_value):
-            mat = mgr.as_array()
+            mat = _as_array(mgr)
             reindexed_mat = algos.take_nd(mat, indexer, axis, fill_value=fill_value)
             reindexed = mgr.reindex_indexer(
                 new_labels, indexer, axis, fill_value=fill_value
             )
             tm.assert_numpy_array_equal(
-                reindexed_mat, reindexed.as_array(), check_dtype=False
+                reindexed_mat, _as_array(reindexed), check_dtype=False
             )
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
