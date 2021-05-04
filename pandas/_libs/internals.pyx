@@ -372,7 +372,9 @@ cdef slice indexer_as_slice(intp_t[:] vals):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_blkno_indexers(int64_t[:] blknos, bint group=True):
+def get_blkno_indexers(
+    int64_t[:] blknos, bint group=True
+) -> list[tuple[int, slice | np.ndarray]]:
     """
     Enumerate contiguous runs of integers in ndarray.
 
