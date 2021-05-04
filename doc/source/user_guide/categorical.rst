@@ -954,6 +954,7 @@ categorical (categories and ordering). So if you read back the CSV file you have
 relevant columns back to ``category`` and assign the right categories and categories ordering.
 
 .. ipython:: python
+    :okwarning:
 
     import io
 

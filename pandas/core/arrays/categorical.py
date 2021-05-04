@@ -882,7 +882,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace = validate_bool_kwarg(inplace, "inplace")
         return self.set_ordered(False, inplace=inplace)
 
-    def set_categories(self, new_categories, ordered=None, rename=False, inplace=False):
+    def set_categories(
+        self, new_categories, ordered=None, rename=False, inplace=no_default
+    ):
         """
         Set the categories to the specified new_categories.
 
@@ -916,6 +918,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
            Whether or not to reorder the categories in-place or return a copy
            of this categorical with reordered categories.
 
+           .. deprecated:: 1.3.0
+
         Returns
         -------
         Categorical with reordered categories or None if inplace.
@@ -933,6 +937,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         remove_unused_categories : Remove categories which are not used.
         """
+        if inplace is not no_default:
+            warn(
+                "The `inplace` parameter in pandas.Categorical."
+                "set_categories is deprecated and will be removed in "
+                "a future version. Removing unused categories will always "
+                "return a new Categorical object.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if ordered is None:
             ordered = self.dtype.ordered
@@ -1101,7 +1117,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise ValueError(
                 "items in new_categories are not the same as in old categories"
             )
-        return self.set_categories(new_categories, ordered=ordered, inplace=inplace)
+
+        with catch_warnings():
+            simplefilter("ignore")
+            return self.set_categories(new_categories, ordered=ordered, inplace=inplace)
 
     def add_categories(self, new_categories, inplace=no_default):
         """
@@ -1231,9 +1250,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if len(not_included) != 0:
             raise ValueError(f"removals must all be in old categories: {not_included}")
 
-        return self.set_categories(
-            new_categories, ordered=self.ordered, rename=False, inplace=inplace
-        )
+        with catch_warnings():
+            simplefilter("ignore")
+            return self.set_categories(
+                new_categories, ordered=self.ordered, rename=False, inplace=inplace
+            )
 
     def remove_unused_categories(self, inplace=no_default):
         """
