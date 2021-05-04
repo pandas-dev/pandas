@@ -8,7 +8,6 @@ from typing import (
     Sequence,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -767,20 +766,13 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
-    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
+    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex: bool = True):
         if flags:
             return super()._str_contains(pat, case, flags, na, regex)
 
         if regex:
             # match_substring_regex added in pyarrow 4.0.0
             if hasattr(pc, "match_substring_regex") and case:
-                if re.compile(pat).groups:
-                    warnings.warn(
-                        "This pattern has match groups. To actually get the "
-                        "groups, use str.extract.",
-                        UserWarning,
-                        stacklevel=3,
-                    )
                 result = pc.match_substring_regex(self._data, pat)
             else:
                 return super()._str_contains(pat, case, flags, na, regex)
@@ -817,48 +809,31 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return super()._str_endswith(pat, na)
 
     def _str_isalnum(self):
-        if hasattr(pc, "utf8_is_alnum"):
-            result = pc.utf8_is_alnum(self._data)
-            return BooleanDtype().__from_arrow__(result)
-        else:
-            return super()._str_isalnum()
+        result = pc.utf8_is_alnum(self._data)
+        return BooleanDtype().__from_arrow__(result)
 
     def _str_isalpha(self):
-        if hasattr(pc, "utf8_is_alpha"):
-            result = pc.utf8_is_alpha(self._data)
-            return BooleanDtype().__from_arrow__(result)
-        else:
-            return super()._str_isalpha()
+        result = pc.utf8_is_alpha(self._data)
+        return BooleanDtype().__from_arrow__(result)
 
     def _str_isdecimal(self):
-        if hasattr(pc, "utf8_is_decimal"):
-            result = pc.utf8_is_decimal(self._data)
-            return BooleanDtype().__from_arrow__(result)
-        else:
-            return super()._str_isdecimal()
+        result = pc.utf8_is_decimal(self._data)
+        return BooleanDtype().__from_arrow__(result)
 
     def _str_isdigit(self):
-        if hasattr(pc, "utf8_is_digit"):
-            result = pc.utf8_is_digit(self._data)
-            return BooleanDtype().__from_arrow__(result)
-        else:
-            return super()._str_isdigit()
+        result = pc.utf8_is_digit(self._data)
+        return BooleanDtype().__from_arrow__(result)
 
     def _str_islower(self):
-        if hasattr(pc, "utf8_is_lower"):
-            result = pc.utf8_is_lower(self._data)
-            return BooleanDtype().__from_arrow__(result)
-        else:
-            return super()._str_islower()
+        result = pc.utf8_is_lower(self._data)
+        return BooleanDtype().__from_arrow__(result)
 
     def _str_isnumeric(self):
-        if hasattr(pc, "utf8_is_numeric"):
-            result = pc.utf8_is_numeric(self._data)
-            return BooleanDtype().__from_arrow__(result)
-        else:
-            return super()._str_isnumeric()
+        result = pc.utf8_is_numeric(self._data)
+        return BooleanDtype().__from_arrow__(result)
 
     def _str_isspace(self):
+        # utf8_is_space added in pyarrow 2.0.0
         if hasattr(pc, "utf8_is_space"):
             result = pc.utf8_is_space(self._data)
             return BooleanDtype().__from_arrow__(result)
@@ -866,18 +841,12 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return super()._str_isspace()
 
     def _str_istitle(self):
-        if hasattr(pc, "utf8_is_title"):
-            result = pc.utf8_is_title(self._data)
-            return BooleanDtype().__from_arrow__(result)
-        else:
-            return super()._str_istitle()
+        result = pc.utf8_is_title(self._data)
+        return BooleanDtype().__from_arrow__(result)
 
     def _str_isupper(self):
-        if hasattr(pc, "utf8_is_upper"):
-            result = pc.utf8_is_upper(self._data)
-            return BooleanDtype().__from_arrow__(result)
-        else:
-            return super()._str_isupper()
+        result = pc.utf8_is_upper(self._data)
+        return BooleanDtype().__from_arrow__(result)
 
     def _str_len(self):
         # utf8_length added in pyarrow 4.0.0
@@ -895,27 +864,33 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
     def _str_strip(self, to_strip=None):
         if to_strip is None:
+            # utf8_trim_whitespace added in pyarrow 4.0.0
             if hasattr(pc, "utf8_trim_whitespace"):
                 return type(self)(pc.utf8_trim_whitespace(self._data))
         else:
+            # utf8_trim added in pyarrow 4.0.0
             if hasattr(pc, "utf8_trim"):
                 return type(self)(pc.utf8_trim(self._data, characters=to_strip))
         return super()._str_strip(to_strip)
 
     def _str_lstrip(self, to_strip=None):
         if to_strip is None:
+            # utf8_ltrim_whitespace added in pyarrow 4.0.0
             if hasattr(pc, "utf8_ltrim_whitespace"):
                 return type(self)(pc.utf8_ltrim_whitespace(self._data))
         else:
+            # utf8_ltrim added in pyarrow 4.0.0
             if hasattr(pc, "utf8_ltrim"):
                 return type(self)(pc.utf8_ltrim(self._data, characters=to_strip))
         return super()._str_lstrip(to_strip)
 
     def _str_rstrip(self, to_strip=None):
         if to_strip is None:
+            # utf8_rtrim_whitespace added in pyarrow 4.0.0
             if hasattr(pc, "utf8_rtrim_whitespace"):
                 return type(self)(pc.utf8_rtrim_whitespace(self._data))
         else:
+            # utf8_rtrim added in pyarrow 4.0.0
             if hasattr(pc, "utf8_rtrim"):
                 return type(self)(pc.utf8_rtrim(self._data, characters=to_strip))
         return super()._str_rstrip(to_strip)
