@@ -469,18 +469,19 @@ def group_any_all(int8_t[::1] out,
 # group_add, group_prod, group_var, group_mean, group_ohlc
 # ----------------------------------------------------------------------
 
-ctypedef fused complexfloating_t:
+ctypedef fused add_t:
     float64_t
     float32_t
     complex64_t
     complex128_t
+    object
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_add(complexfloating_t[:, ::1] out,
+def group_add(add_t[:, ::1] out,
               int64_t[::1] counts,
-              ndarray[complexfloating_t, ndim=2] values,
+              ndarray[add_t, ndim=2] values,
               const intp_t[:] labels,
               Py_ssize_t min_count=0) -> None:
     """
@@ -488,8 +489,8 @@ def group_add(complexfloating_t[:, ::1] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        complexfloating_t val, count, t, y
-        complexfloating_t[:, ::1] sumx, compensation
+        add_t val, t, y
+        add_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
@@ -503,7 +504,8 @@ def group_add(complexfloating_t[:, ::1] out,
 
     N, K = (<object>values).shape
 
-    with nogil:
+    if add_t is object:
+        # NB: this does not use 'compensation' like the non-object track does.
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -516,9 +518,13 @@ def group_add(complexfloating_t[:, ::1] out,
                 # not nan
                 if val == val:
                     nobs[lab, j] += 1
-                    y = val - compensation[lab, j]
-                    t = sumx[lab, j] + y
-                    compensation[lab, j] = t - sumx[lab, j] - y
+
+                    if nobs[lab, j] == 1:
+                        # i.e. we havent added anything yet; avoid TypeError
+                        #  if e.g. val is a str and sumx[lab, j] is 0
+                        t = val
+                    else:
+                        t = sumx[lab, j] + val
                     sumx[lab, j] = t
 
         for i in range(ncounts):
@@ -527,6 +533,31 @@ def group_add(complexfloating_t[:, ::1] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j]
+    else:
+        with nogil:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[lab, j] += 1
+                        y = val - compensation[lab, j]
+                        t = sumx[lab, j] + y
+                        compensation[lab, j] = t - sumx[lab, j] - y
+                        sumx[lab, j] = t
+
+            for i in range(ncounts):
+                for j in range(K):
+                    if nobs[i, j] < min_count:
+                        out[i, j] = NAN
+                    else:
+                        out[i, j] = sumx[i, j]
 
 
 @cython.wraparound(False)
