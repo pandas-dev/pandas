@@ -138,6 +138,8 @@ The :meth:`.Styler.format` has had upgrades to easily format missing data,
 precision, and perform HTML escaping (:issue:`40437` :issue:`40134`). There have been numerous other bug fixes to
 properly format HTML and eliminate some inconsistencies (:issue:`39942` :issue:`40356` :issue:`39807` :issue:`39889` :issue:`39627`)
 
+:class:`.Styler` has also been compatible with non-unique index or columns, at least for as many features as are fully compatible, others made only partially compatible (:issue:`41269`).
+
 Documentation has also seen major revisions in light of new features (:issue:`39720` :issue:`39317` :issue:`40493`)
 
 .. _whatsnew_130.dataframe_honors_copy_with_dict:
