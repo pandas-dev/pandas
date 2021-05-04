@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from distutils.version import LooseVersion
+import re
 from typing import (
     TYPE_CHECKING,
     Any,
     Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -228,10 +230,21 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
     @classmethod
     def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
+        from pandas.core.arrays.masked import BaseMaskedArray
+
         cls._chk_pyarrow_available()
-        # convert non-na-likes to str, and nan-likes to ArrowStringDtype.na_value
-        scalars = lib.ensure_string_array(scalars, copy=False)
-        return cls(pa.array(scalars, type=pa.string(), from_pandas=True))
+
+        if isinstance(scalars, BaseMaskedArray):
+            # avoid costly conversion to object dtype in ensure_string_array and
+            # numerical issues with Float32Dtype
+            na_values = scalars._mask
+            result = scalars._data
+            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            return cls(pa.array(result, mask=na_values, type=pa.string()))
+
+        # convert non-na-likes to str
+        result = lib.ensure_string_array(scalars, copy=copy)
+        return cls(pa.array(result, type=pa.string(), from_pandas=True))
 
     @classmethod
     def _from_sequence_of_strings(
@@ -420,10 +433,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                # error: Argument 1 to "to_numpy" of "ArrowStringArray" has incompatible
-                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
                 new_values, _ = func(
-                    self.to_numpy(object),  # type: ignore[arg-type]
+                    self.to_numpy("object"),
                     limit=limit,
                     mask=mask,
                 )
@@ -740,11 +751,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             if not na_value_is_na:
                 mask[:] = False
 
-            # error: Argument 1 to "IntegerArray" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            # error: Argument 1 to "BooleanArray" has incompatible type
-            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            return constructor(result, mask)  # type: ignore[arg-type]
+            return constructor(result, mask)
 
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype
@@ -760,14 +767,53 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
     def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
-        if not regex and case:
-            result = pc.match_substring(self._data, pat)
+        if flags:
+            return super()._str_contains(pat, case, flags, na, regex)
+
+        if regex:
+            # match_substring_regex added in pyarrow 4.0.0
+            if hasattr(pc, "match_substring_regex") and case:
+                if re.compile(pat).groups:
+                    warnings.warn(
+                        "This pattern has match groups. To actually get the "
+                        "groups, use str.extract.",
+                        UserWarning,
+                        stacklevel=3,
+                    )
+                result = pc.match_substring_regex(self._data, pat)
+            else:
+                return super()._str_contains(pat, case, flags, na, regex)
+        else:
+            if case:
+                result = pc.match_substring(self._data, pat)
+            else:
+                result = pc.match_substring(pc.utf8_upper(self._data), pat.upper())
+        result = BooleanDtype().__from_arrow__(result)
+        if not isna(na):
+            result[isna(result)] = bool(na)
+        return result
+
+    def _str_startswith(self, pat, na=None):
+        # match_substring_regex added in pyarrow 4.0.0
+        if hasattr(pc, "match_substring_regex"):
+            result = pc.match_substring_regex(self._data, "^" + re.escape(pat))
             result = BooleanDtype().__from_arrow__(result)
             if not isna(na):
                 result[isna(result)] = bool(na)
             return result
         else:
-            return super()._str_contains(pat, case, flags, na, regex)
+            return super()._str_startswith(pat, na)
+
+    def _str_endswith(self, pat, na=None):
+        # match_substring_regex added in pyarrow 4.0.0
+        if hasattr(pc, "match_substring_regex"):
+            result = pc.match_substring_regex(self._data, re.escape(pat) + "$")
+            result = BooleanDtype().__from_arrow__(result)
+            if not isna(na):
+                result[isna(result)] = bool(na)
+            return result
+        else:
+            return super()._str_endswith(pat, na)
 
     def _str_isalnum(self):
         if hasattr(pc, "utf8_is_alnum"):
@@ -837,3 +883,30 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
     def _str_upper(self):
         return type(self)(pc.utf8_upper(self._data))
+
+    def _str_strip(self, to_strip=None):
+        if to_strip is None:
+            if hasattr(pc, "utf8_trim_whitespace"):
+                return type(self)(pc.utf8_trim_whitespace(self._data))
+        else:
+            if hasattr(pc, "utf8_trim"):
+                return type(self)(pc.utf8_trim(self._data, characters=to_strip))
+        return super()._str_strip(to_strip)
+
+    def _str_lstrip(self, to_strip=None):
+        if to_strip is None:
+            if hasattr(pc, "utf8_ltrim_whitespace"):
+                return type(self)(pc.utf8_ltrim_whitespace(self._data))
+        else:
+            if hasattr(pc, "utf8_ltrim"):
+                return type(self)(pc.utf8_ltrim(self._data, characters=to_strip))
+        return super()._str_lstrip(to_strip)
+
+    def _str_rstrip(self, to_strip=None):
+        if to_strip is None:
+            if hasattr(pc, "utf8_rtrim_whitespace"):
+                return type(self)(pc.utf8_rtrim_whitespace(self._data))
+        else:
+            if hasattr(pc, "utf8_rtrim"):
+                return type(self)(pc.utf8_rtrim(self._data, characters=to_strip))
+        return super()._str_rstrip(to_strip)
