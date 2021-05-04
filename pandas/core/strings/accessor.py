@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer,
     is_list_like,
+    is_re,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -195,8 +196,6 @@ class StringMethods(NoNewAttributesMixin):
         -------
         dtype : inferred dtype of data
         """
-        from pandas import StringDtype
-
         if isinstance(data, ABCMultiIndex):
             raise AttributeError(
                 "Can only use .str accessor with Index, not MultiIndex"
@@ -207,10 +206,6 @@ class StringMethods(NoNewAttributesMixin):
 
         values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
-
-        # explicitly allow StringDtype
-        if isinstance(values.dtype, StringDtype):
-            return "string"
 
         inferred_dtype = lib.infer_dtype(values, skipna=True)
 
@@ -1132,6 +1127,14 @@ class StringMethods(NoNewAttributesMixin):
         4    False
         dtype: bool
         """
+        if regex and re.compile(pat).groups:
+            warnings.warn(
+                "This pattern has match groups. To actually get the "
+                "groups, use str.extract.",
+                UserWarning,
+                stacklevel=3,
+            )
+
         result = self._data.array._str_contains(pat, case, flags, na, regex)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
@@ -1333,6 +1336,29 @@ class StringMethods(NoNewAttributesMixin):
                     )
                 warnings.warn(msg, FutureWarning, stacklevel=3)
             regex = True
+
+        # Check whether repl is valid (GH 13438, GH 15055)
+        if not (isinstance(repl, str) or callable(repl)):
+            raise TypeError("repl must be a string or callable")
+
+        is_compiled_re = is_re(pat)
+        if regex:
+            if is_compiled_re:
+                if (case is not None) or (flags != 0):
+                    raise ValueError(
+                        "case and flags cannot be set when pat is a compiled regex"
+                    )
+            elif case is None:
+                # not a compiled regex, set default case
+                case = True
+
+        elif is_compiled_re:
+            raise ValueError(
+                "Cannot use a compiled regex as replacement pattern with regex=False"
+            )
+        elif callable(repl):
+            raise ValueError("Cannot use a callable replacement when regex=False")
+
         result = self._data.array._str_replace(
             pat, repl, n=n, case=case, flags=flags, regex=regex
         )

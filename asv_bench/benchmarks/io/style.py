@@ -1,6 +1,9 @@
 import numpy as np
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    IndexSlice,
+)
 
 
 class Render:
@@ -31,6 +34,14 @@ class Render:
         self._style_classes()
         self.st._render_html()
 
+    def time_format_render(self, cols, rows):
+        self._style_format()
+        self.st.render()
+
+    def peakmem_format_render(self, cols, rows):
+        self._style_format()
+        self.st.render()
+
     def _style_apply(self):
         def _apply_func(s):
             return [
@@ -43,3 +54,12 @@ class Render:
         classes = self.df.applymap(lambda v: ("cls-1" if v > 0 else ""))
         classes.index, classes.columns = self.df.index, self.df.columns
         self.st = self.df.style.set_td_classes(classes)
+
+    def _style_format(self):
+        ic = int(len(self.df.columns) / 4 * 3)
+        ir = int(len(self.df.index) / 4 * 3)
+        # apply a formatting function
+        # subset is flexible but hinders vectorised solutions
+        self.st = self.df.style.format(
+            "{:,.3f}", subset=IndexSlice["row_1":f"row_{ir}", "float_1":f"float_{ic}"]
+        )
