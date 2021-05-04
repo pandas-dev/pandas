@@ -707,12 +707,14 @@ class BaseGrouper:
         how: str,
         axis: int,
         min_count: int = -1,
+        skipna: bool = True,
         mask: np.ndarray | None = None,
         **kwargs,
     ) -> ArrayLike:
         """
         Returns the values of a cython operation.
         """
+        #MAYUKH
         orig_values = values
         assert kind in ["transform", "aggregate"]
 
@@ -726,6 +728,7 @@ class BaseGrouper:
         dtype = values.dtype
         is_numeric = is_numeric_dtype(dtype)
 
+        #MAYUKH
         cy_op = WrappedCythonOp(kind=kind, how=how)
 
         # can we do this operation with our cython functions
@@ -736,11 +739,11 @@ class BaseGrouper:
         if is_extension_array_dtype(dtype):
             if isinstance(values, BaseMaskedArray) and func_uses_mask:
                 return self._masked_ea_wrap_cython_operation(
-                    cy_op, kind, values, how, axis, min_count, **kwargs
+                    cy_op, kind, values, how, axis, min_count, skipna, **kwargs
                 )
             else:
                 return self._ea_wrap_cython_operation(
-                    cy_op, kind, values, how, axis, min_count, **kwargs
+                    cy_op, kind, values, how, axis, min_count, skipna, **kwargs
                 )
 
         elif values.ndim == 1:
@@ -752,6 +755,7 @@ class BaseGrouper:
                 how=how,
                 axis=1,
                 min_count=min_count,
+                skipna=skipna,
                 mask=mask,
                 **kwargs,
             )
@@ -802,7 +806,8 @@ class BaseGrouper:
                     is_datetimelike=is_datetimelike,
                 )
             else:
-                func(result, counts, values, comp_ids, min_count)
+                #MAYUKH
+                func(result, counts, values, comp_ids, min_count, skipna)
         elif kind == "transform":
             # TODO: min_count
             if func_uses_mask:

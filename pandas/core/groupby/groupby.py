@@ -1269,6 +1269,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         *,
         alias: str,
         npfunc: Callable,
+        skipna=True,
     ):
         with group_selection_context(self):
             # try a cython aggregation if we can
@@ -1279,6 +1280,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     alt=npfunc,
                     numeric_only=numeric_only,
                     min_count=min_count,
+                    skipna=skipna
                 )
             except DataError:
                 pass
@@ -1298,7 +1300,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             return result.__finalize__(self.obj, method="groupby")
 
     def _cython_agg_general(
-        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1, skipna: bool = False
     ):
         raise AbstractMethodError(self)
 
@@ -1691,7 +1693,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
-    def sum(self, numeric_only: bool = True, min_count: int = 0):
+    def sum(self, numeric_only: bool = True, min_count: int = 0, skipna=True):
 
         # If we are grouping on categoricals we want unobserved categories to
         # return zero, rather than the default of NaN which the reindexing in
@@ -1702,15 +1704,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 min_count=min_count,
                 alias="add",
                 npfunc=np.sum,
+                skipna=skipna
             )
 
         return self._reindex_output(result, fill_value=0)
 
     @final
     @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
-    def prod(self, numeric_only: bool = True, min_count: int = 0):
+    def prod(self, numeric_only: bool = True, min_count: int = 0, skipna: bool = True):
         return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
+            numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod, skipna=skipna
         )
 
     @final

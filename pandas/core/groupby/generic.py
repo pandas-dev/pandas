@@ -346,9 +346,10 @@ class SeriesGroupBy(GroupBy[Series]):
         return self.obj._constructor_expanddim(output, columns=columns)
 
     def _cython_agg_general(
-        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1, skipna: bool = True
     ):
         output: dict[base.OutputKey, ArrayLike] = {}
+        # MAYUKH
         # Ideally we would be able to enumerate self._iterate_slices and use
         # the index from enumeration as the key of output, but ohlc in particular
         # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
@@ -361,7 +362,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 continue
 
             result = self.grouper._cython_operation(
-                "aggregate", obj._values, how, axis=0, min_count=min_count
+                "aggregate", obj._values, how, axis=0, min_count=min_count, skipna=skipna
             )
             assert result.ndim == 1
             key = base.OutputKey(label=name, position=idx)

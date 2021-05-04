@@ -482,7 +482,8 @@ def group_add(complexfloating_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[complexfloating_t, ndim=2] values,
               const intp_t[:] labels,
-              Py_ssize_t min_count=0) -> None:
+              Py_ssize_t min_count=0,
+              bint skipna=True) -> None:
     """
     Only aggregates on axis=0 using Kahan summation
     """
@@ -520,6 +521,13 @@ def group_add(complexfloating_t[:, ::1] out,
                     t = sumx[lab, j] + y
                     compensation[lab, j] = t - sumx[lab, j] - y
                     sumx[lab, j] = t
+                # dont skip nan
+                elif skipna == False:
+                    sumx[lab, j] = NAN
+                    break
+                # skip nan
+                else:
+                    continue
 
         for i in range(ncounts):
             for j in range(K):
@@ -535,7 +543,8 @@ def group_prod(floating[:, ::1] out,
                int64_t[::1] counts,
                ndarray[floating, ndim=2] values,
                const intp_t[:] labels,
-               Py_ssize_t min_count=0) -> None:
+               Py_ssize_t min_count=0,
+               bint skipna=True) -> None:
     """
     Only aggregates on axis=0
     """
@@ -568,6 +577,11 @@ def group_prod(floating[:, ::1] out,
                 if val == val:
                     nobs[lab, j] += 1
                     prodx[lab, j] *= val
+                elif skipna == False:
+                    prodx[lab, j] = NAN
+                    break
+                else:
+                    continue
 
         for i in range(ncounts):
             for j in range(K):
@@ -585,6 +599,7 @@ def group_var(floating[:, ::1] out,
               ndarray[floating, ndim=2] values,
               const intp_t[:] labels,
               Py_ssize_t min_count=-1,
+              bint skipna=True,
               int64_t ddof=1) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
@@ -622,6 +637,11 @@ def group_var(floating[:, ::1] out,
                     oldmean = mean[lab, j]
                     mean[lab, j] += (val - oldmean) / nobs[lab, j]
                     out[lab, j] += (val - mean[lab, j]) * (val - oldmean)
+                elif skipna == False:
+                    out[lab, j] = NAN
+                    break
+                else:
+                    continue
 
         for i in range(ncounts):
             for j in range(K):
