@@ -552,7 +552,7 @@ class Styler(StylerRenderer):
         even row coloring, from the {colortbl} package, use:
 
         >>> s.set_table_styles([{'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}],
-        ...                    overwrite=False])
+        ...                    overwrite=False)
 
         Instead of using ``hrules`` it is also possible to change the rule definition,
         for example by setting just a ``toprule`` and ``bottomrule`` and ignoring
@@ -560,7 +560,7 @@ class Styler(StylerRenderer):
 
         >>> s.set_table_styles([{'selector': 'toprule', 'props': ':toprule;'},
         ...                     {'selector': 'bottomrule', 'props': ':hline;'}],
-        ...                    overwrite=False])
+        ...                    overwrite=False)
 
         A more comprehensive example using these arguments is as follows:
 
