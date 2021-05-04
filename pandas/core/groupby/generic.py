@@ -524,7 +524,8 @@ class SeriesGroupBy(GroupBy[Series]):
         for name, group in self:
             # Each step of this loop corresponds to
             #  libreduction._BaseGrouper._apply_to_group
-            group.name = name  # NB: libreduction does not pin name
+            # NB: libreduction does not pin name
+            object.__setattr__(group, "name", name)
 
             output = func(group, *args, **kwargs)
             output = libreduction.extract_result(output)
@@ -567,9 +568,9 @@ class SeriesGroupBy(GroupBy[Series]):
         # Temporarily set observed for dealing with categoricals.
         with com.temp_setattr(self, "observed", True):
             result = getattr(self, func)(*args, **kwargs)
-        return self._transform_fast(result)
+        return self._wrap_transform_fast_result(result)
 
-    def _transform_general(self, func, *args, **kwargs):
+    def _transform_general(self, func: Callable, *args, **kwargs) -> Series:
         """
         Transform with a callable func`.
         """
@@ -599,7 +600,7 @@ class SeriesGroupBy(GroupBy[Series]):
         result.name = self._selected_obj.name
         return result
 
-    def _transform_fast(self, result) -> Series:
+    def _wrap_transform_fast_result(self, result: Series) -> Series:
         """
         fast version of transform, only applicable to
         builtin/cythonizable functions
@@ -1436,11 +1437,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if isinstance(result, DataFrame) and result.columns.equals(
                 self._obj_with_exclusions.columns
             ):
-                return self._transform_fast(result)
+                return self._wrap_transform_fast_result(result)
 
         return self._transform_general(func, *args, **kwargs)
 
-    def _transform_fast(self, result: DataFrame) -> DataFrame:
+    def _wrap_transform_fast_result(self, result: DataFrame) -> DataFrame:
         """
         Fast transform path for aggregations
         """
@@ -1653,7 +1654,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         raise AssertionError("invalid ndim for _gotitem")
 
-    def _wrap_frame_output(self, result, obj: DataFrame) -> DataFrame:
+    def _wrap_frame_output(self, result: dict, obj: DataFrame) -> DataFrame:
         result_index = self.grouper.levels[0]
 
         if self.axis == 0:
