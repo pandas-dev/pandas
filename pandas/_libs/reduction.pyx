@@ -21,10 +21,7 @@ from pandas._libs.util cimport (
     set_array_not_contiguous,
 )
 
-from pandas._libs.lib import (
-    is_scalar,
-    maybe_convert_objects,
-)
+from pandas._libs.lib import is_scalar
 
 
 cpdef check_result_array(object obj):
@@ -187,7 +184,6 @@ cdef class SeriesBinGrouper(_BaseGrouper):
             islider.reset()
             vslider.reset()
 
-        result = maybe_convert_objects(result)
         return result, counts
 
 
@@ -291,8 +287,6 @@ cdef class SeriesGrouper(_BaseGrouper):
         # We check for empty series in the constructor, so should always
         #  have result initialized by this point.
         assert initialized, "`result` has not been initialized."
-
-        result = maybe_convert_objects(result)
 
         return result, counts
 
