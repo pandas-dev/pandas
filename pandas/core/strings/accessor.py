@@ -195,8 +195,6 @@ class StringMethods(NoNewAttributesMixin):
         -------
         dtype : inferred dtype of data
         """
-        from pandas import StringDtype
-
         if isinstance(data, ABCMultiIndex):
             raise AttributeError(
                 "Can only use .str accessor with Index, not MultiIndex"
@@ -207,10 +205,6 @@ class StringMethods(NoNewAttributesMixin):
 
         values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
-
-        # explicitly allow StringDtype
-        if isinstance(values.dtype, StringDtype):
-            return "string"
 
         inferred_dtype = lib.infer_dtype(values, skipna=True)
 
