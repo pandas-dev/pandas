@@ -742,7 +742,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         assert isinstance(other, (datetime, np.datetime64))
         assert other is not NaT
         other = Timestamp(other)
-        if other is NaT:
+        # error: Non-overlapping identity check (left operand type: "Timestamp",
+        # right operand type: "NaTType")
+        if other is NaT:  # type: ignore[comparison-overlap]
             return self - NaT
 
         if not self._has_same_tz(other):
@@ -855,8 +857,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         This method takes a time zone (tz) naive Datetime Array/Index object
         and makes this time zone aware. It does not move the time to another
         time zone.
-        Time zone localization helps to switch from time zone aware to time
-        zone unaware objects.
+
+        This method can also be used to do the inverse -- to create a time
+        zone unaware object from an aware object. To that end, pass `tz=None`.
 
         Parameters
         ----------
