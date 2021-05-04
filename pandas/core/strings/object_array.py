@@ -7,7 +7,6 @@ from typing import (
     Union,
 )
 import unicodedata
-import warnings
 
 import numpy as np
 
@@ -115,22 +114,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             raise ValueError("Invalid side")
         return self._str_map(f)
 
-    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
+    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex: bool = True):
         if regex:
             if not case:
                 flags |= re.IGNORECASE
 
-            regex = re.compile(pat, flags=flags)
+            pat = re.compile(pat, flags=flags)
 
-            if regex.groups > 0:
-                warnings.warn(
-                    "This pattern has match groups. To actually get the "
-                    "groups, use str.extract.",
-                    UserWarning,
-                    stacklevel=3,
-                )
-
-            f = lambda x: regex.search(x) is not None
+            f = lambda x: pat.search(x) is not None
         else:
             if case:
                 f = lambda x: pat in x

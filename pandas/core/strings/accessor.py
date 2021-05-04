@@ -1132,6 +1132,14 @@ class StringMethods(NoNewAttributesMixin):
         4    False
         dtype: bool
         """
+        if regex and re.compile(pat).groups:
+            warnings.warn(
+                "This pattern has match groups. To actually get the "
+                "groups, use str.extract.",
+                UserWarning,
+                stacklevel=3,
+            )
+
         result = self._data.array._str_contains(pat, case, flags, na, regex)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 

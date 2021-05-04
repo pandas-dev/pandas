@@ -728,6 +728,7 @@ def test_flags_kwarg(any_string_dtype):
     result = data.str.count(pat, flags=re.IGNORECASE)
     assert result[0] == 1
 
-    with tm.assert_produces_warning(UserWarning):
+    msg = "This pattern has match groups"
+    with tm.assert_produces_warning(UserWarning, match=msg):
         result = data.str.contains(pat, flags=re.IGNORECASE)
     assert result[0]
