@@ -18,6 +18,7 @@ import inspect
 from textwrap import dedent
 import types
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Generic,
     Hashable,
@@ -103,6 +104,9 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 _common_see_also = """
         See Also
@@ -1989,7 +1993,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         )
 
     @final
-    def _fill(self, direction, limit=None):
+    def _fill(self, direction: Literal["ffill", "bfill"], limit=None):
         """
         Shared function for `pad` and `backfill` to call Cython method.
 
@@ -2731,7 +2735,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             name = obj.name
             values = obj._values
 
-            if numeric_only and not is_numeric_dtype(values):
+            if numeric_only and not is_numeric_dtype(values.dtype):
                 continue
 
             if aggregate:

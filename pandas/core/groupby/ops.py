@@ -662,6 +662,8 @@ class BaseGrouper:
 
     """
 
+    axis: Index
+
     def __init__(
         self,
         axis: Index,

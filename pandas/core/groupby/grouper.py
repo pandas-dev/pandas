@@ -249,6 +249,10 @@ class Grouper:
     Freq: 17T, dtype: int64
     """
 
+    axis: int
+    sort: bool
+    dropna: bool
+
     _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
 
     def __new__(cls, *args, **kwargs):
@@ -260,7 +264,13 @@ class Grouper:
         return super().__new__(cls)
 
     def __init__(
-        self, key=None, level=None, freq=None, axis=0, sort=False, dropna=True
+        self,
+        key=None,
+        level=None,
+        freq=None,
+        axis: int = 0,
+        sort: bool = False,
+        dropna: bool = True,
     ):
         self.key = key
         self.level = level
@@ -281,11 +291,11 @@ class Grouper:
     def ax(self):
         return self.grouper
 
-    def _get_grouper(self, obj, validate: bool = True):
+    def _get_grouper(self, obj: FrameOrSeries, validate: bool = True):
         """
         Parameters
         ----------
-        obj : the subject object
+        obj : Series or DataFrame
         validate : bool, default True
             if True, validate the grouper
 
@@ -296,7 +306,9 @@ class Grouper:
         self._set_grouper(obj)
         # error: Value of type variable "FrameOrSeries" of "get_grouper" cannot be
         # "Optional[Any]"
-        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var]
+        # error: Incompatible types in assignment (expression has type "BaseGrouper",
+        # variable has type "None")
+        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var,assignment]
             self.obj,
             [self.key],
             axis=self.axis,
@@ -375,15 +387,19 @@ class Grouper:
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=self.axis)
 
-        self.obj = obj
-        self.grouper = ax
+        # error: Incompatible types in assignment (expression has type
+        # "FrameOrSeries", variable has type "None")
+        self.obj = obj  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "Index",
+        # variable has type "None")
+        self.grouper = ax  # type: ignore[assignment]
         return self.grouper
 
     @final
     @property
     def groups(self):
-        # error: Item "None" of "Optional[Any]" has no attribute "groups"
-        return self.grouper.groups  # type: ignore[union-attr]
+        # error: "None" has no attribute "groups"
+        return self.grouper.groups  # type: ignore[attr-defined]
 
     @final
     def __repr__(self) -> str:
@@ -428,7 +444,7 @@ class Grouping:
         index: Index,
         grouper=None,
         obj: FrameOrSeries | None = None,
-        name=None,
+        name: Hashable = None,
         level=None,
         sort: bool = True,
         observed: bool = False,
@@ -478,7 +494,12 @@ class Grouping:
             # what key/level refer to exactly, don't need to
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
-            _, grouper, _ = self.grouper._get_grouper(self.obj, validate=False)
+            _, grouper, _ = self.grouper._get_grouper(
+                # error: Value of type variable "FrameOrSeries" of "_get_grouper"
+                # of "Grouper" cannot be "Optional[FrameOrSeries]"
+                self.obj,  # type: ignore[type-var]
+                validate=False,
+            )
             if self.name is None:
                 self.name = grouper.result_index.name
             self.obj = self.grouper.obj
