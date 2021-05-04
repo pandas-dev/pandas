@@ -1840,19 +1840,42 @@ def validate_periods(periods):
     return periods
 
 
+def validate_periods(periods):
+    """
+    If a `periods` argument is passed to the Datetime/Timedelta Array/Index
+    constructor, cast it to an integer.
+    Parameters
+    ----------
+    periods : None, float, int
+    Returns
+    -------
+    periods : None or int
+    Raises
+    ------
+    TypeError
+        if periods is None, float, or int
+    """
+    if periods is not None:
+        if lib.is_float(periods):
+            periods = int(periods)
+        elif not lib.is_integer(periods):
+            raise TypeError(f"periods must be a number, got {periods}")
+    return periods
+
+
 def validate_endpoints(closed):
     """
     Check that the `closed` argument is among [None, "left", "right"]
-    
+
     Parameters
     ----------
     closed : {None, "left", "right"}
-    
+
     Returns
     -------
     left_closed : bool
     right_closed : bool
-    
+
     Raises
     ------
     ValueError : if argument is not among valid values
