@@ -155,11 +155,10 @@ class StringMethods(NoNewAttributesMixin):
 
     def __init__(self, data):
         from pandas.core.arrays.string_ import StringDtype
-        from pandas.core.arrays.string_arrow import ArrowStringDtype
 
         self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data.dtype)
-        self._is_string = isinstance(data.dtype, (StringDtype, ArrowStringDtype))
+        self._is_string = isinstance(data.dtype, StringDtype)
         self._data = data
 
         self._index = self._name = None
@@ -3028,9 +3027,8 @@ def _result_dtype(arr):
     # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
     # when the list of values is empty.
     from pandas.core.arrays.string_ import StringDtype
-    from pandas.core.arrays.string_arrow import ArrowStringDtype
 
-    if isinstance(arr.dtype, (StringDtype, ArrowStringDtype)):
+    if isinstance(arr.dtype, StringDtype):
         return arr.dtype.name
     else:
         return object
