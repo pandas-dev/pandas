@@ -801,9 +801,8 @@ Plotting
 
 - Bug in :func:`scatter_matrix` raising when 2d ``ax`` argument passed (:issue:`16253`)
 - Prevent warnings when matplotlib's ``constrained_layout`` is enabled (:issue:`25261`)
-- Bug in :meth:`BoxPlot._validate_color_args` caps or min/max markers on box plot would not be visible with 'dark_background' theme (:issue:`40769`)
+- Bug in :meth:`BoxPlot._validate_color_args` In box plot when 'dark_background' theme was selected caps or min/max markers for the plot was not visible (:issue:`40769`) 
 - Bug in :func:`DataFrame.plot` was showing the wrong colors in the legend if the function was called repeatedly and some calls used ``yerr`` while others didn't (partial fix of :issue:`39522`)
-- Bug in :meth:`BoxPlot._validate_color_args` caps or min/max markers on box plot would not be visible with 'dark_background' theme (:issue:`40769`)
 - Bug in :func:`DataFrame.plot` was showing the wrong colors in the legend if the function was called repeatedly and some calls used ``secondary_y`` and others use ``legend=False`` (:issue:`40044`)
 
 
