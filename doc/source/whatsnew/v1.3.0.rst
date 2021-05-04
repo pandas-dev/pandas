@@ -665,7 +665,7 @@ Performance improvements
 - Performance improvement in the conversion of pyarrow boolean array to a pandas nullable boolean array (:issue:`41051`)
 - Performance improvement for concatenation of data with type :class:`CategoricalDtype` (:issue:`40193`)
 - Performance improvement in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` with nullable data types (:issue:`37493`)
--
+- Performance improvement in :meth:`Series.nunique` with nan values (:issue:`40865`)
 
 .. ---------------------------------------------------------------------------
 
