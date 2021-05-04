@@ -140,6 +140,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
       pandas/core/window/ \
       pandas/errors/ \
       pandas/io/clipboard/ \
+      pandas/io/json/ \
       pandas/io/excel/ \
       pandas/io/parsers/ \
       pandas/io/sas/ \
