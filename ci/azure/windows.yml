@@ -5,7 +5,9 @@ trigger:
     - 1.2.*
   paths:
     include:
-    - doc
+    - '*'  # same as '/' for the repository root
+    exclude:
+    - 'doc/*'
 
 parameters:
   name: ''
