@@ -676,7 +676,7 @@ class ParserBase:
         if try_num_bool and is_object_dtype(values.dtype):
             # exclude e.g DatetimeIndex here
             try:
-                result = lib.maybe_convert_numeric(values, na_values, False)
+                result, _ = lib.maybe_convert_numeric(values, na_values, False)
             except (ValueError, TypeError):
                 # e.g. encountering datetime string gets ValueError
                 #  TypeError can be raised in floatify
@@ -690,7 +690,7 @@ class ParserBase:
                 na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
-            result = libops.maybe_convert_bool(
+            result, _ = libops.maybe_convert_bool(
                 np.asarray(values),
                 true_values=self.true_values,
                 false_values=self.false_values,
