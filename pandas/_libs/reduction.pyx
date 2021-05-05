@@ -24,12 +24,18 @@ from pandas._libs.util cimport (
 from pandas._libs.lib import is_scalar
 
 
-cpdef check_result_array(object obj):
+cdef cnp.dtype _dtype_obj = np.dtype("object")
 
-    if (is_array(obj) or
-            (isinstance(obj, list) and len(obj) == 0) or
-            getattr(obj, 'shape', None) == (0,)):
-        raise ValueError('Must produce aggregated value')
+
+cpdef check_result_array(object obj, object dtype):
+    # Our operation is supposed to be an aggregation/reduction. If
+    #  it returns an ndarray, this likely means an invalid operation has
+    #  been passed. See test_apply_without_aggregation, test_agg_must_agg
+    if is_array(obj):
+        if dtype != _dtype_obj:
+            # If it is object dtype, the function can be a reduction/aggregation
+            #  and still return an ndarray e.g. test_agg_over_numpy_arrays
+            raise ValueError("Must produce aggregated value")
 
 
 cdef class _BaseGrouper:
@@ -86,7 +92,7 @@ cdef class _BaseGrouper:
             # On the first pass, we check the output shape to see
             #  if this looks like a reduction.
             initialized = True
-            check_result_array(res)
+            check_result_array(res, cached_series.dtype)
 
         return res, initialized
 
