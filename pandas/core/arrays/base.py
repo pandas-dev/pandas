@@ -25,6 +25,7 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    FillnaOptions,
     PositionalIndexer,
     Shape,
 )
@@ -687,7 +688,7 @@ class ExtensionArray:
     def fillna(
         self,
         value: object | ArrayLike | None = None,
-        method: Literal["backfill", "bfill", "ffill", "pad"] | None = None,
+        method: FillnaOptions | None = None,
         limit: int | None = None,
     ):
         """

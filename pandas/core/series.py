@@ -38,6 +38,7 @@ from pandas._typing import (
     Axis,
     Dtype,
     DtypeObj,
+    FillnaOptions,
     FrameOrSeriesUnion,
     IndexKeyFunc,
     NpDtype,
@@ -4594,7 +4595,7 @@ Keep all original rows and also all original values
     def fillna(
         self,
         value=...,
-        method: Literal["backfill", "bfill", "ffill", "pad"] | None = ...,
+        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
         limit=...,
@@ -4606,7 +4607,7 @@ Keep all original rows and also all original values
     def fillna(
         self,
         value,
-        method: Literal["backfill", "bfill", "ffill", "pad"] | None,
+        method: FillnaOptions | None,
         axis: Axis | None,
         inplace: Literal[True],
         limit=...,
@@ -4639,7 +4640,7 @@ Keep all original rows and also all original values
     def fillna(
         self,
         *,
-        method: Literal["backfill", "bfill", "ffill", "pad"] | None,
+        method: FillnaOptions | None,
         inplace: Literal[True],
         limit=...,
         downcast=...,
@@ -4661,19 +4662,7 @@ Keep all original rows and also all original values
     def fillna(
         self,
         *,
-        method: Literal["backfill", "bfill", "ffill", "pad"] | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        *,
+        method: FillnaOptions | None,
         axis: Axis | None,
         inplace: Literal[True],
         limit=...,
@@ -4685,7 +4674,19 @@ Keep all original rows and also all original values
     def fillna(
         self,
         value,
-        method: Literal["backfill", "bfill", "ffill", "pad"] | None,
+        *,
+        axis: Axis | None,
+        inplace: Literal[True],
+        limit=...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def fillna(
+        self,
+        value,
+        method: FillnaOptions | None,
         *,
         inplace: Literal[True],
         limit=...,
@@ -4697,7 +4698,7 @@ Keep all original rows and also all original values
     def fillna(
         self,
         value=...,
-        method: Literal["backfill", "bfill", "ffill", "pad"] | None = ...,
+        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: bool = ...,
         limit=...,
@@ -4710,7 +4711,7 @@ Keep all original rows and also all original values
     def fillna(
         self,
         value: object | ArrayLike | None = None,
-        method: Literal["backfill", "bfill", "ffill", "pad"] | None = None,
+        method: FillnaOptions | None = None,
         axis=None,
         inplace=False,
         limit=None,
