@@ -44,6 +44,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_float_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -61,7 +62,10 @@ from pandas.core.api import (
     array as pd_array,
 )
 from pandas.core.arrays import (
+    BooleanArray,
     Categorical,
+    FloatingArray,
+    IntegerArray,
     StringArray,
 )
 from pandas.core.indexes.api import (
@@ -707,10 +711,12 @@ class ParserBase:
         if try_num_bool and is_object_dtype(values.dtype):
             # exclude e.g DatetimeIndex here
             try:
-                result, mask = lib.maybe_convert_numeric(values, 
-                                   na_values, 
-                                   False, 
-                                   convert_to_masked_nullable=self.use_nullable_dtypes)
+                result, mask = lib.maybe_convert_numeric(
+                    values,
+                    na_values,
+                    False,
+                    convert_to_masked_nullable=self.use_nullable_dtypes,
+                )
                 if mask is not None:
                     if is_integer_dtype(result):
                         result = IntegerArray(result, mask)
@@ -728,22 +734,27 @@ class ParserBase:
             if values.dtype == np.object_:
                 na_count = parsers.sanitize_objects(values, na_values, False)
 
-        if result.dtype == np.object_:
-            if try_num_bool:
-                result = libops.maybe_convert_bool(
-                    np.asarray(values),
-                    true_values=self.true_values,
-                    false_values=self.false_values,
-                    convert_to_masked_nullable=self.use_nullable_dtypes,
-                )
-            # Maybe StringArray? Must have NA value to trigger
-            # Since it is called use_nullable_dtypes after all
-            # However, all NA -> Float64 not StringArray
-            if self.use_nullable_dtypes and 0 < na_count < len(result):
-                try:
-                    result = StringArray(result)
-                except ValueError:
-                    pass
+        if result.dtype == np.object_ and try_num_bool:
+            result, mask = libops.maybe_convert_bool(
+                np.asarray(values),
+                true_values=self.true_values,
+                false_values=self.false_values,
+                convert_to_masked_nullable=self.use_nullable_dtypes,
+            )
+            if mask is not None:
+                result = BooleanArray(result, mask)
+        # Maybe StringArray? Must have NA value to trigger
+        # Since it is called use_nullable_dtypes after all
+        # However, all NA -> Float64 not StringArray
+        if (
+            result.dtype == np.object_
+            and self.use_nullable_dtypes
+            and 0 < na_count < len(result)
+        ):
+            try:
+                result = StringArray(result)
+            except ValueError:
+                pass
 
         return result, na_count
 
