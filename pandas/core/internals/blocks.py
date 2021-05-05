@@ -970,12 +970,7 @@ class Block(PandasObject):
             values[indexer] = value
 
         elif is_ea_value:
-            # GH#38952
-            if values.ndim == 1:
-                values[indexer] = value
-            else:
-                # TODO(EA2D): special case not needed with 2D EA
-                values[indexer] = value.to_numpy(values.dtype).reshape(-1, 1)
+            values[indexer] = value
 
         else:
             # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
