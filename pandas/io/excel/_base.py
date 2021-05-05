@@ -10,7 +10,6 @@ from textwrap import fill
 from typing import (
     Any,
     Mapping,
-    Union,
     cast,
 )
 import warnings
@@ -1030,7 +1029,7 @@ PEEK_SIZE = max(map(len, SIGNATURES.values()))
 def inspect_excel_format(
     content_or_path: FilePathOrBuffer,
     storage_options: StorageOptions = None,
-) -> Union[str, None]:
+) -> str | None:
     """
     Inspect the path or content of an excel file and get its format.
 
