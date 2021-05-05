@@ -727,7 +727,10 @@ class TestReaders:
             )
         elif engine == "xlrd":
             error = XLRDError
-            msg = "Unsupported format, or corrupt file.*"
+            msg = (
+                "Unsupported format, or corrupt file: Expected BOF "
+                "record; found b'foo'"
+            )
         else:
             error = BadZipFile
             msg = "File is not a zip file"
