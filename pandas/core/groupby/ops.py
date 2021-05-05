@@ -48,7 +48,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_sparse,
@@ -975,7 +974,7 @@ class BaseGrouper:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             result, counts = self._aggregate_series_pure_python(obj, func)
 
-        elif is_extension_array_dtype(obj.dtype):
+        elif not isinstance(obj._values, np.ndarray):
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
             # In the datetime64tz case it would incorrectly cast to tz-naive
