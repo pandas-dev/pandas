@@ -3,10 +3,14 @@ name: Database
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - "doc/**"
   pull_request:
     branches:
       - master
       - 1.2.x
+    paths-ignore:
+      - "doc/**"
 
 env:
   PYTEST_WORKERS: "auto"

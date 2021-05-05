@@ -2,8 +2,15 @@ name: pre-commit
 
 on:
   pull_request:
+    paths-ignore:
+      - "doc/**"
   push:
     branches: [master]
+    # NOTE: Is this really needed?
+    # The pre-commit also checks "rst" files,
+    # and also the checks are very fast.
+    paths-ignore:
+      - "doc/**"
 
 jobs:
   pre-commit:
