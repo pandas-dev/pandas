@@ -24,6 +24,7 @@ from pandas._typing import (
 )
 from pandas.compat import (
     pa_version_under2p0,
+    pa_version_under3p0,
     pa_version_under4p0,
 )
 from pandas.util._decorators import doc
@@ -671,9 +672,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return type(self)(self._data.take(indices_array))
 
     def isin(self, values):
-
-        # pyarrow.compute.is_in added in pyarrow 2.0.0
-        if not hasattr(pc, "is_in"):
+        if pa_version_under2p0:
             return super().isin(values)
 
         value_set = [
@@ -688,7 +687,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return np.zeros(len(self), dtype=bool)
 
         kwargs = {}
-        if LooseVersion(pa.__version__) < "3.0.0":
+        if pa_version_under3p0:
             # in pyarrow 2.0.0 skip_null is ignored but is a required keyword and raises
             # with unexpected keyword argument in pyarrow 3.0.0+
             kwargs["skip_null"] = True
