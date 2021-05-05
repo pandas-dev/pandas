@@ -24,7 +24,6 @@ from pandas._typing import (
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -42,6 +41,7 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
@@ -74,7 +74,7 @@ if TYPE_CHECKING:
 
 
 @register_extension_dtype
-class ArrowStringDtype(ExtensionDtype):
+class ArrowStringDtype(StringDtype):
     """
     Extension dtype for string data in a ``pyarrow.ChunkedArray``.
 
@@ -110,7 +110,7 @@ class ArrowStringDtype(ExtensionDtype):
         return str
 
     @classmethod
-    def construct_array_type(cls) -> type_t[ArrowStringArray]:
+    def construct_array_type(cls) -> type_t[ArrowStringArray]:  # type: ignore[override]
         """
         Return the array type associated with this dtype.
 
@@ -126,7 +126,9 @@ class ArrowStringDtype(ExtensionDtype):
     def __repr__(self) -> str:
         return "ArrowStringDtype"
 
-    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray) -> ArrowStringArray:
+    def __from_arrow__(  # type: ignore[override]
+        self, array: pa.Array | pa.ChunkedArray
+    ) -> ArrowStringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
