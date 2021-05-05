@@ -409,19 +409,39 @@ def test_replace_literal(any_string_dtype):
         values.str.replace(compiled_pat, "", regex=False)
 
 
-def test_match():
+def test_match(any_string_dtype):
     # New match behavior introduced in 0.13
-    values = Series(["fooBAD__barBAD", np.nan, "foo"])
+    expected_dtype = "object" if any_string_dtype == "object" else "boolean"
+
+    values = Series(["fooBAD__barBAD", np.nan, "foo"], dtype=any_string_dtype)
     result = values.str.match(".*(BAD[_]+).*(BAD)")
-    exp = Series([True, np.nan, False])
-    tm.assert_series_equal(result, exp)
+    expected = Series([True, np.nan, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
-    values = Series(["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"])
+    values = Series(
+        ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
+    )
     result = values.str.match(".*BAD[_]+.*BAD")
-    exp = Series([True, True, np.nan, False])
-    tm.assert_series_equal(result, exp)
+    expected = Series([True, True, np.nan, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
-    # mixed
+    result = values.str.match("BAD[_]+.*BAD")
+    expected = Series([False, True, np.nan, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    values = Series(
+        ["fooBAD__barBAD", "^BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
+    )
+    result = values.str.match("^BAD[_]+.*BAD")
+    expected = Series([False, False, np.nan, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = values.str.match("\\^BAD[_]+.*BAD")
+    expected = Series([False, True, np.nan, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_match_mixed_object():
     mixed = Series(
         [
             "aBAD_BAD",
@@ -435,22 +455,34 @@ def test_match():
             2.0,
         ]
     )
-    rs = Series(mixed).str.match(".*(BAD[_]+).*(BAD)")
-    xp = Series([True, np.nan, True, np.nan, np.nan, False, np.nan, np.nan, np.nan])
-    assert isinstance(rs, Series)
-    tm.assert_series_equal(rs, xp)
+    result = Series(mixed).str.match(".*(BAD[_]+).*(BAD)")
+    expected = Series(
+        [True, np.nan, True, np.nan, np.nan, False, np.nan, np.nan, np.nan]
+    )
+    assert isinstance(result, Series)
+    tm.assert_series_equal(result, expected)
 
-    # na GH #6609
-    res = Series(["a", 0, np.nan]).str.match("a", na=False)
-    exp = Series([True, False, False])
-    tm.assert_series_equal(exp, res)
-    res = Series(["a", 0, np.nan]).str.match("a")
-    exp = Series([True, np.nan, np.nan])
-    tm.assert_series_equal(exp, res)
 
-    values = Series(["ab", "AB", "abc", "ABC"])
+def test_match_na_kwarg(any_string_dtype):
+    # GH #6609
+    s = Series(["a", "b", np.nan], dtype=any_string_dtype)
+
+    result = s.str.match("a", na=False)
+    expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
+    expected = Series([True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = s.str.match("a")
+    expected_dtype = "object" if any_string_dtype == "object" else "boolean"
+    expected = Series([True, False, np.nan], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_match_case_kwarg(any_string_dtype):
+    values = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
     result = values.str.match("ab", case=False)
-    expected = Series([True, True, True, True])
+    expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
+    expected = Series([True, True, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 

@@ -19,6 +19,7 @@ from pandas._typing import (
     Dtype,
     NpDtype,
     PositionalIndexer,
+    Scalar,
     type_t,
 )
 from pandas.util._decorators import doc
@@ -809,6 +810,13 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return result
         else:
             return super()._str_endswith(pat, na)
+
+    def _str_match(
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
+    ):
+        if not pat.startswith("^"):
+            pat = "^" + pat
+        return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._data)
