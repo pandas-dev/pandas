@@ -10,7 +10,6 @@ trigger:
     exclude:
     - 'doc/*'
 
-trigger:
 pr:
 - master
 - 1.2.x
