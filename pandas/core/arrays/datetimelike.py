@@ -584,6 +584,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
         elif isinstance(fill_value, self._recognized_scalars):
             fill_value = self._scalar_type(fill_value)
         else:
+            new_fill: DatetimeLikeScalar
+
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
