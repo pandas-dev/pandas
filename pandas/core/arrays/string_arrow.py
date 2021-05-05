@@ -21,6 +21,10 @@ from pandas._typing import (
     PositionalIndexer,
     type_t,
 )
+from pandas.compat import (
+    pa_version_under2p0,
+    pa_version_under4p0,
+)
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
@@ -773,11 +777,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return super()._str_contains(pat, case, flags, na, regex)
 
         if regex:
-            # match_substring_regex added in pyarrow 4.0.0
-            if hasattr(pc, "match_substring_regex") and case:
-                result = pc.match_substring_regex(self._data, pat)
-            else:
+            if pa_version_under4p0 or case is False:
                 return super()._str_contains(pat, case, flags, na, regex)
+            else:
+                result = pc.match_substring_regex(self._data, pat)
         else:
             if case:
                 result = pc.match_substring(self._data, pat)
@@ -789,26 +792,24 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         return result
 
     def _str_startswith(self, pat, na=None):
-        # match_substring_regex added in pyarrow 4.0.0
-        if hasattr(pc, "match_substring_regex"):
-            result = pc.match_substring_regex(self._data, "^" + re.escape(pat))
-            result = BooleanDtype().__from_arrow__(result)
-            if not isna(na):
-                result[isna(result)] = bool(na)
-            return result
-        else:
+        if pa_version_under4p0:
             return super()._str_startswith(pat, na)
 
+        result = pc.match_substring_regex(self._data, "^" + re.escape(pat))
+        result = BooleanDtype().__from_arrow__(result)
+        if not isna(na):
+            result[isna(result)] = bool(na)
+        return result
+
     def _str_endswith(self, pat, na=None):
-        # match_substring_regex added in pyarrow 4.0.0
-        if hasattr(pc, "match_substring_regex"):
-            result = pc.match_substring_regex(self._data, re.escape(pat) + "$")
-            result = BooleanDtype().__from_arrow__(result)
-            if not isna(na):
-                result[isna(result)] = bool(na)
-            return result
-        else:
+        if pa_version_under4p0:
             return super()._str_endswith(pat, na)
+
+        result = pc.match_substring_regex(self._data, re.escape(pat) + "$")
+        result = BooleanDtype().__from_arrow__(result)
+        if not isna(na):
+            result[isna(result)] = bool(na)
+        return result
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._data)
@@ -835,12 +836,11 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         return BooleanDtype().__from_arrow__(result)
 
     def _str_isspace(self):
-        # utf8_is_space added in pyarrow 2.0.0
-        if hasattr(pc, "utf8_is_space"):
-            result = pc.utf8_is_space(self._data)
-            return BooleanDtype().__from_arrow__(result)
-        else:
+        if pa_version_under2p0:
             return super()._str_isspace()
+
+        result = pc.utf8_is_space(self._data)
+        return BooleanDtype().__from_arrow__(result)
 
     def _str_istitle(self):
         result = pc.utf8_is_title(self._data)
@@ -851,12 +851,11 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         return BooleanDtype().__from_arrow__(result)
 
     def _str_len(self):
-        # utf8_length added in pyarrow 4.0.0
-        if hasattr(pc, "utf8_length"):
-            result = pc.utf8_length(self._data)
-            return Int64Dtype().__from_arrow__(result)
-        else:
+        if pa_version_under4p0:
             return super()._str_len()
+
+        result = pc.utf8_length(self._data)
+        return Int64Dtype().__from_arrow__(result)
 
     def _str_lower(self):
         return type(self)(pc.utf8_lower(self._data))
@@ -865,34 +864,31 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         return type(self)(pc.utf8_upper(self._data))
 
     def _str_strip(self, to_strip=None):
+        if pa_version_under4p0:
+            return super()._str_strip(to_strip)
+
         if to_strip is None:
-            # utf8_trim_whitespace added in pyarrow 4.0.0
-            if hasattr(pc, "utf8_trim_whitespace"):
-                return type(self)(pc.utf8_trim_whitespace(self._data))
+            result = pc.utf8_trim_whitespace(self._data)
         else:
-            # utf8_trim added in pyarrow 4.0.0
-            if hasattr(pc, "utf8_trim"):
-                return type(self)(pc.utf8_trim(self._data, characters=to_strip))
-        return super()._str_strip(to_strip)
+            result = pc.utf8_trim(self._data, characters=to_strip)
+        return type(self)(result)
 
     def _str_lstrip(self, to_strip=None):
+        if pa_version_under4p0:
+            return super()._str_lstrip(to_strip)
+
         if to_strip is None:
-            # utf8_ltrim_whitespace added in pyarrow 4.0.0
-            if hasattr(pc, "utf8_ltrim_whitespace"):
-                return type(self)(pc.utf8_ltrim_whitespace(self._data))
+            result = pc.utf8_ltrim_whitespace(self._data)
         else:
-            # utf8_ltrim added in pyarrow 4.0.0
-            if hasattr(pc, "utf8_ltrim"):
-                return type(self)(pc.utf8_ltrim(self._data, characters=to_strip))
-        return super()._str_lstrip(to_strip)
+            result = pc.utf8_ltrim(self._data, characters=to_strip)
+        return type(self)(result)
 
     def _str_rstrip(self, to_strip=None):
+        if pa_version_under4p0:
+            return super()._str_rstrip(to_strip)
+
         if to_strip is None:
-            # utf8_rtrim_whitespace added in pyarrow 4.0.0
-            if hasattr(pc, "utf8_rtrim_whitespace"):
-                return type(self)(pc.utf8_rtrim_whitespace(self._data))
+            result = pc.utf8_rtrim_whitespace(self._data)
         else:
-            # utf8_rtrim added in pyarrow 4.0.0
-            if hasattr(pc, "utf8_rtrim"):
-                return type(self)(pc.utf8_rtrim(self._data, characters=to_strip))
-        return super()._str_rstrip(to_strip)
+            result = pc.utf8_rtrim(self._data, characters=to_strip)
+        return type(self)(result)
