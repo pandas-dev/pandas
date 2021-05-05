@@ -554,7 +554,7 @@ def factorize_array(
 
     Returns
     -------
-    codes : ndarray
+    codes : ndarray[np.intp]
     uniques : ndarray
     """
     hash_klass, values = get_data_algo(values)
@@ -906,9 +906,9 @@ def value_counts_arraylike(values, dropna: bool):
         f = getattr(htable, f"value_count_{ndtype}")
         keys, counts = f(values, dropna)
 
-    keys = _reconstruct_data(keys, original.dtype, original)
+    res_keys = _reconstruct_data(keys, original.dtype, original)
 
-    return keys, counts
+    return res_keys, counts
 
 
 def duplicated(values: ArrayLike, keep: str | bool = "first") -> np.ndarray:

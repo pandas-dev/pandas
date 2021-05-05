@@ -680,6 +680,7 @@ cdef class {{name}}HashTable(HashTable):
     def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
+        # -> np.ndarray[np.intp]
         _, labels = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
                                  ignore_na=True, return_inverse=True)
@@ -1012,7 +1013,7 @@ cdef class StringHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse)
+        labels : ndarray[intp_t] (if return_inverse)
             The labels from values to uniques
         """
         uniques = ObjectVector()
@@ -1045,7 +1046,7 @@ cdef class StringHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64]
+        labels : ndarray[intp]
             The labels from values to uniques
         """
         uniques_vector = ObjectVector()
@@ -1056,6 +1057,7 @@ cdef class StringHashTable(HashTable):
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
+        # -> np.ndarray[np.intp]
         _, labels = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
                                  ignore_na=True, return_inverse=True)
@@ -1310,6 +1312,7 @@ cdef class PyObjectHashTable(HashTable):
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
+        # -> np.ndarray[np.intp]
         _, labels = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
                                  ignore_na=True, return_inverse=True)
