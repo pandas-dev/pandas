@@ -56,7 +56,6 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCCategoricalIndex
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
@@ -89,6 +88,7 @@ from pandas.core.groupby import (
     grouper,
 )
 from pandas.core.indexes.api import (
+    CategoricalIndex,
     Index,
     MultiIndex,
     ensure_index,
@@ -368,8 +368,7 @@ class WrappedCythonOp:
                 return res_values
 
             # otherwise res_values has the same dtype as original values
-            result = type(orig_values)(res_values)
-            return result
+            return type(orig_values)(res_values)
 
         elif isinstance(values.dtype, (BooleanDtype, _IntegerDtype)):
             # IntegerArray or BooleanArray
@@ -662,6 +661,8 @@ class BaseGrouper:
 
     """
 
+    axis: Index
+
     def __init__(
         self,
         axis: Index,
@@ -674,7 +675,6 @@ class BaseGrouper:
     ):
         assert isinstance(axis, Index), axis
 
-        self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
         self.sort = sort
@@ -723,8 +723,8 @@ class BaseGrouper:
 
         __finalize__ has not been called for the subsetted objects returned.
         """
-        comp_ids, _, ngroups = self.group_info
-        return get_splitter(data, comp_ids, ngroups, axis=axis)
+        ids, _, ngroups = self.group_info
+        return get_splitter(data, ids, ngroups, axis=axis)
 
     def _get_grouper(self):
         """
@@ -740,10 +740,10 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.levels[0]
         else:
-            comp_ids, _, ngroups = self.group_info
+            ids, _, ngroups = self.group_info
 
             # provide "flattened" iterator for multi-group setting
-            return get_flattened_list(comp_ids, ngroups, self.levels, self.codes)
+            return get_flattened_list(ids, ngroups, self.levels, self.codes)
 
     @final
     def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
@@ -820,9 +820,7 @@ class BaseGrouper:
     @cache_readonly
     def indices(self):
         """ dict {group name -> group indices} """
-        if len(self.groupings) == 1 and isinstance(
-            self.result_index, ABCCategoricalIndex
-        ):
+        if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
             # This shows unused categories in indices GH#38642
             return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
@@ -846,9 +844,9 @@ class BaseGrouper:
         """
         Compute group sizes.
         """
-        ids, _, ngroup = self.group_info
-        if ngroup:
-            out = np.bincount(ids[ids != -1], minlength=ngroup)
+        ids, _, ngroups = self.group_info
+        if ngroups:
+            out = np.bincount(ids[ids != -1], minlength=ngroups)
         else:
             out = []
         return Series(out, index=self.result_index, dtype="int64")
@@ -882,11 +880,11 @@ class BaseGrouper:
     @cache_readonly
     def codes_info(self) -> np.ndarray:
         # return the codes of items in original grouped axis
-        codes, _, _ = self.group_info
+        ids, _, _ = self.group_info
         if self.indexer is not None:
-            sorter = np.lexsort((codes, self.indexer))
-            codes = codes[sorter]
-        return codes
+            sorter = np.lexsort((ids, self.indexer))
+            ids = ids[sorter]
+        return ids
 
     @final
     def _get_compressed_codes(self) -> tuple[np.ndarray, np.ndarray]:
@@ -906,12 +904,12 @@ class BaseGrouper:
     @property
     def reconstructed_codes(self) -> list[np.ndarray]:
         codes = self.codes
-        comp_ids, obs_ids, _ = self.group_info
-        return decons_obs_group_ids(comp_ids, obs_ids, self.shape, codes, xnull=True)
+        ids, obs_ids, _ = self.group_info
+        return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
 
     @cache_readonly
     def result_index(self) -> Index:
-        if not self.compressed and len(self.groupings) == 1:
+        if len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
 
         codes = self.reconstructed_codes
@@ -922,7 +920,9 @@ class BaseGrouper:
 
     @final
     def get_group_levels(self) -> list[Index]:
-        if not self.compressed and len(self.groupings) == 1:
+        # Note: only called from _insert_inaxis_grouper_inplace, which
+        #  is only called for BaseGrouper, never for BinGrouper
+        if len(self.groupings) == 1:
             return [self.groupings[0].result_index]
 
         name_list = []
@@ -954,13 +954,13 @@ class BaseGrouper:
 
         cy_op = WrappedCythonOp(kind=kind, how=how)
 
-        comp_ids, _, _ = self.group_info
+        ids, _, _ = self.group_info
         ngroups = self.ngroups
         return cy_op.cython_operation(
             values=values,
             axis=axis,
             min_count=min_count,
-            comp_ids=comp_ids,
+            comp_ids=ids,
             ngroups=ngroups,
             **kwargs,
         )
@@ -970,22 +970,33 @@ class BaseGrouper:
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
+        cast_back = True
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
-            return self._aggregate_series_pure_python(obj, func)
+            result, counts = self._aggregate_series_pure_python(obj, func)
 
         elif is_extension_array_dtype(obj.dtype):
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
             # In the datetime64tz case it would incorrectly cast to tz-naive
             # TODO: can we get a performant workaround for EAs backed by ndarray?
-            return self._aggregate_series_pure_python(obj, func)
+            result, counts = self._aggregate_series_pure_python(obj, func)
 
         elif obj.index._has_complex_internals:
             # Preempt TypeError in _aggregate_series_fast
-            return self._aggregate_series_pure_python(obj, func)
+            result, counts = self._aggregate_series_pure_python(obj, func)
 
-        return self._aggregate_series_fast(obj, func)
+        else:
+            result, counts = self._aggregate_series_fast(obj, func)
+            cast_back = False
+
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
+        if cast_back:
+            # TODO: Is there a documented reason why we dont always cast_back?
+            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
+        else:
+            out = npvalues
+        return out, counts
 
     def _aggregate_series_fast(
         self, obj: Series, func: F
@@ -997,26 +1008,26 @@ class BaseGrouper:
         #  - ngroups != 0
         func = com.is_builtin_func(func)
 
-        group_index, _, ngroups = self.group_info
+        ids, _, ngroups = self.group_info
 
         # avoids object / Series creation overhead
-        indexer = get_group_index_sorter(group_index, ngroups)
+        indexer = get_group_index_sorter(ids, ngroups)
         obj = obj.take(indexer)
-        group_index = group_index.take(indexer)
-        sgrouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups)
+        ids = ids.take(indexer)
+        sgrouper = libreduction.SeriesGrouper(obj, func, ids, ngroups)
         result, counts = sgrouper.get_result()
         return result, counts
 
     @final
     def _aggregate_series_pure_python(self, obj: Series, func: F):
-        group_index, _, ngroups = self.group_info
+        ids, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
         result = np.empty(ngroups, dtype="O")
         initialized = False
 
         # equiv: splitter = self._get_splitter(obj, axis=0)
-        splitter = get_splitter(obj, group_index, ngroups, axis=0)
+        splitter = get_splitter(obj, ids, ngroups, axis=0)
 
         for i, group in enumerate(splitter):
 
@@ -1027,16 +1038,13 @@ class BaseGrouper:
 
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(res)
+                libreduction.check_result_array(res, group.dtype)
                 initialized = True
 
             counts[i] = group.shape[0]
             result[i] = res
 
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
-        out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
-
-        return out, counts
+        return result, counts
 
 
 class BinGrouper(BaseGrouper):
@@ -1047,7 +1055,6 @@ class BinGrouper(BaseGrouper):
     ----------
     bins : the split index of binlabels to group the item of axis
     binlabels : the label list
-    filter_empty : bool, default False
     mutated : bool, default False
     indexer : np.ndarray[np.intp]
 
@@ -1069,17 +1076,19 @@ class BinGrouper(BaseGrouper):
 
     """
 
+    bins: np.ndarray  # np.ndarray[np.int64]
+    binlabels: Index
+    mutated: bool
+
     def __init__(
         self,
         bins,
         binlabels,
-        filter_empty: bool = False,
         mutated: bool = False,
         indexer=None,
     ):
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
-        self._filter_empty_groups = filter_empty
         self.mutated = mutated
         self.indexer = indexer
 
@@ -1152,7 +1161,7 @@ class BinGrouper(BaseGrouper):
     @cache_readonly
     def group_info(self):
         ngroups = self.ngroups
-        obs_group_ids = np.arange(ngroups)
+        obs_group_ids = np.arange(ngroups, dtype=np.int64)
         rep = np.diff(np.r_[0, self.bins])
 
         rep = ensure_platform_int(rep)
@@ -1163,7 +1172,7 @@ class BinGrouper(BaseGrouper):
 
         return (
             ensure_platform_int(comp_ids),
-            obs_group_ids.astype("int64", copy=False),
+            obs_group_ids,
             ngroups,
         )
 
@@ -1189,10 +1198,9 @@ class BinGrouper(BaseGrouper):
 
     @property
     def groupings(self) -> list[grouper.Grouping]:
-        return [
-            grouper.Grouping(lvl, lvl, in_axis=False, level=None, name=name)
-            for lvl, name in zip(self.levels, self.names)
-        ]
+        lev = self.binlabels
+        ping = grouper.Grouping(lev, lev, in_axis=False, level=None, name=lev.name)
+        return [ping]
 
     def _aggregate_series_fast(
         self, obj: Series, func: F
