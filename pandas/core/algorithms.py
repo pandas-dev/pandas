@@ -84,6 +84,8 @@ from pandas.core.construction import (
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas import (
         Categorical,
         DataFrame,
@@ -468,10 +470,9 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
-    if is_extension_array_dtype(comps.dtype):
-        # error: Incompatible return value type (got "Series", expected "ndarray")
-        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute "isin"
-        return comps.isin(values)  # type: ignore[return-value,union-attr]
+    if not isinstance(comps, np.ndarray):
+        # i.e. Extension Array
+        return comps.isin(values)
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
@@ -552,7 +553,7 @@ def factorize_array(
 
     Returns
     -------
-    codes : ndarray
+    codes : ndarray[np.intp]
     uniques : ndarray
     """
     hash_klass, values = get_data_algo(values)
@@ -897,12 +898,13 @@ def value_counts_arraylike(values, dropna: bool):
             msk = keys != iNaT
             keys, counts = keys[msk], counts[msk]
 
-    keys = _reconstruct_data(keys, original.dtype, original)
+    res_keys = _reconstruct_data(keys, original.dtype, original)
+    return res_keys, counts
 
-    return keys, counts
 
-
-def duplicated(values: ArrayLike, keep: str | bool = "first") -> np.ndarray:
+def duplicated(
+    values: ArrayLike, keep: Literal["first", "last", False] = "first"
+) -> np.ndarray:
     """
     Return boolean ndarray denoting duplicate values.
 
@@ -961,13 +963,13 @@ def mode(values, dropna: bool = True) -> Series:
 
     values, _ = _ensure_data(values)
 
-    result = htable.mode(values, dropna=dropna)
+    npresult = htable.mode(values, dropna=dropna)
     try:
-        result = np.sort(result)
+        npresult = np.sort(npresult)
     except TypeError as err:
         warn(f"Unable to sort modes: {err}")
 
-    result = _reconstruct_data(result, original.dtype, original)
+    result = _reconstruct_data(npresult, original.dtype, original)
     # Ensure index is type stable (should always use int index)
     return Series(result, index=ibase.default_index(len(result)))
 
