@@ -831,6 +831,7 @@ I/O
 - Bug in :meth:`DataFrame.to_string` misplacing the truncation column when ``index=False`` (:issue:`40907`)
 - Bug in :func:`read_orc` always raising ``AttributeError`` (:issue:`40918`)
 - Bug in the conversion from pyarrow to pandas (e.g. for reading Parquet) with nullable dtypes and a pyarrow array whose data buffer size is not a multiple of dtype size (:issue:`40896`)
+- Loosen XLS signatures used in :func:`read_excel` to determine if the `xlrd` engine should be used (:issue:`41225`)
 
 Period
 ^^^^^^
