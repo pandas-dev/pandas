@@ -398,6 +398,7 @@ cdef convert_to_tsobject(object ts, tzinfo tz, str unit,
     ------
     OutOfBoundsDatetime : ts cannot be converted within implementation bounds
     """
+    print("In convert_to_tsobject")
     cdef:
         _TSObject obj
 

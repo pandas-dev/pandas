@@ -819,6 +819,7 @@ class Timestamp(_Timestamp):
         tz : str or timezone object, default None
             Timezone to localize to.
         """
+        print("In Timestamp.now")
         if isinstance(tz, str):
             tz = maybe_get_tz(tz)
         return cls(datetime.now(tz))
@@ -1042,6 +1043,8 @@ class Timestamp(_Timestamp):
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
                              "the tz parameter. Use tz_convert instead.")
 
+        print(tz)
+        print("Type in _new_: ", type(tz))
         tzobj = maybe_get_tz(tz)
         ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond or 0)
 
