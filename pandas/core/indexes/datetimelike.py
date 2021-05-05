@@ -1,16 +1,14 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
+from __future__ import annotations
+
 from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
-    Optional,
     Sequence,
-    Tuple,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -86,12 +84,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     """
 
     _can_hold_strings = False
-    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
-    freq: Optional[BaseOffset]
-    freqstr: Optional[str]
+    _data: DatetimeArray | TimedeltaArray | PeriodArray
+    freq: BaseOffset | None
+    freqstr: str | None
     _resolution_obj: Resolution
-    _bool_ops: List[str] = []
-    _field_ops: List[str] = []
+    _bool_ops: list[str] = []
+    _field_ops: list[str] = []
 
     # error: "Callable[[Any], Any]" has no attribute "fget"
     hasnans = cache_readonly(
@@ -196,7 +194,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
         return super()._convert_tolerance(tolerance, target)
 
-    def tolist(self) -> List:
+    def tolist(self) -> list:
         """
         Return a list of the underlying data.
         """
@@ -322,10 +320,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def format(
         self,
         name: bool = False,
-        formatter: Optional[Callable] = None,
+        formatter: Callable | None = None,
         na_rep: str = "NaT",
-        date_format: Optional[str] = None,
-    ) -> List[str]:
+        date_format: str | None = None,
+    ) -> list[str]:
         """
         Render a string representation of the Index.
         """
@@ -343,8 +341,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
 
     def _format_with_header(
-        self, header: List[str], na_rep: str = "NaT", date_format: Optional[str] = None
-    ) -> List[str]:
+        self, header: list[str], na_rep: str = "NaT", date_format: str | None = None
+    ) -> list[str]:
         return header + list(
             self._format_native_types(na_rep=na_rep, date_format=date_format)
         )
@@ -506,7 +504,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # List-like Methods
 
-    def _get_delete_freq(self, loc: Union[int, slice, Sequence[int]]):
+    def _get_delete_freq(self, loc: int | slice | Sequence[int]):
         """
         Find the `freq` for self.delete(loc).
         """
@@ -612,6 +610,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     Mixin class for methods shared by DatetimeIndex and TimedeltaIndex,
     but not PeriodIndex
     """
+
+    _data: DatetimeArray | TimedeltaArray
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
@@ -828,6 +828,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             sort=sort,
         )
 
-    def _maybe_utc_convert(self: _T, other: Index) -> Tuple[_T, Index]:
+    def _maybe_utc_convert(self: _T, other: Index) -> tuple[_T, Index]:
         # Overridden by DatetimeIndex
         return self, other
