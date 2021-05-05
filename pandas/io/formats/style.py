@@ -1093,15 +1093,6 @@ class Styler(StylerRenderer):
            a      b      c      a      b      c
          0.7    1.0    1.3    1.5   -0.0   -0.2
         -0.6    1.2    1.8    1.9    0.3    0.3
-
-        Exclusively show specific rows:
-
-        >>> df.style.format("{:.1f}")
-        ...     .hide_index(subset=(slice(None), ["b"]), show=True)
-                                 x                    y
-                   a      b      c      a      b      c
-        x   b    0.7    1.0    1.3    1.5   -0.0   -0.2
-        y   b   -0.6    1.2    1.8    1.9    0.3    0.3
         """
         if subset is None:
             self.hidden_index = True
