@@ -21,6 +21,7 @@ from pandas.io.parsers import (
     TextFileReader,
     read_csv,
 )
+from pandas.io.parsers.c_parser_wrapper import ensure_dtype_objs
 
 
 class TestTextReader:
@@ -198,6 +199,8 @@ aaaa,4
 aaaaa,5"""
 
         def _make_reader(**kwds):
+            if "dtype" in kwds:
+                kwds["dtype"] = ensure_dtype_objs(kwds["dtype"])
             return TextReader(StringIO(data), delimiter=",", header=None, **kwds)
 
         reader = _make_reader(dtype="S5,i4")
@@ -225,6 +228,8 @@ one,two
 4,d"""
 
         def _make_reader(**kwds):
+            if "dtype" in kwds:
+                kwds["dtype"] = ensure_dtype_objs(kwds["dtype"])
             return TextReader(StringIO(data), delimiter=",", **kwds)
 
         reader = _make_reader(dtype={"one": "u1", 1: "S1"})
