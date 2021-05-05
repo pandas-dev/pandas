@@ -1,5 +1,4 @@
 import collections
-from distutils.version import LooseVersion
 from functools import partial
 import string
 
@@ -13,6 +12,7 @@ from pandas import Series
 import pandas._testing as tm
 from pandas.core import ops
 import pandas.core.common as com
+from pandas.util.version import Version
 
 
 def test_get_callable_name():
@@ -142,9 +142,9 @@ def test_git_version():
 
 
 def test_version_tag():
-    version = pd.__version__
+    version = Version(pd.__version__)
     try:
-        version > LooseVersion("0.0.1")
+        version > Version("0.0.1")
     except TypeError:
         raise ValueError(
             "No git tags exist, please sync tags between upstream and your repo"

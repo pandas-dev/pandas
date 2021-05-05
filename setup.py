@@ -7,17 +7,16 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
 import argparse
-from distutils.command.build import build
-from distutils.sysconfig import get_config_vars
-from distutils.version import LooseVersion
 import multiprocessing
 import os
 from os.path import join as pjoin
 import platform
 import shutil
 import sys
+from sysconfig import get_config_vars
 
 import numpy
+from pkg_resources import parse_version
 from setuptools import (
     Command,
     Extension,
@@ -47,7 +46,7 @@ try:
     )
     from Cython.Build import cythonize
 
-    _CYTHON_INSTALLED = _CYTHON_VERSION >= LooseVersion(min_cython_ver)
+    _CYTHON_INSTALLED = parse_version(_CYTHON_VERSION) >= parse_version(min_cython_ver)
 except ImportError:
     _CYTHON_VERSION = None
     _CYTHON_INSTALLED = False
@@ -106,7 +105,7 @@ class build_ext(_build_ext):
 
 
 class CleanCommand(Command):
-    """Custom distutils command to clean the .so and .pyc files."""
+    """Custom command to clean the .so and .pyc files."""
 
     user_options = [("all", "a", "")]
 
@@ -278,7 +277,7 @@ class CheckingBuildExt(build_ext):
 
 class CythonCommand(build_ext):
     """
-    Custom distutils command subclassed from Cython.Distutils.build_ext
+    Custom command subclassed from Cython.Distutils.build_ext
     to compile pyx->c, and stop there. All this does is override the
     C-compile method build_extension() with a no-op.
     """
@@ -302,7 +301,7 @@ class DummyBuildSrc(Command):
         pass
 
 
-cmdclass.update({"clean": CleanCommand, "build": build})
+cmdclass["clean"] = CleanCommand
 cmdclass["build_ext"] = CheckingBuildExt
 
 if _CYTHON_INSTALLED:
@@ -351,11 +350,13 @@ if is_platform_mac():
         python_target = get_config_vars().get(
             "MACOSX_DEPLOYMENT_TARGET", current_system
         )
+        target_macos_version = "10.9"
+        parsed_macos_version = parse_version(target_macos_version)
         if (
-            LooseVersion(str(python_target)) < "10.9"
-            and LooseVersion(current_system) >= "10.9"
+            parse_version(str(python_target)) < parsed_macos_version
+            and parse_version(current_system) >= parsed_macos_version
         ):
-            os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
+            os.environ["MACOSX_DEPLOYMENT_TARGET"] = target_macos_version
 
     if sys.version_info[:2] == (3, 8):  # GH 33239
         extra_compile_args.append("-Wno-error=deprecated-declarations")

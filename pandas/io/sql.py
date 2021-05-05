@@ -11,7 +11,6 @@ from datetime import (
     datetime,
     time,
 )
-from distutils.version import LooseVersion
 from functools import partial
 import re
 from typing import (
@@ -45,6 +44,7 @@ from pandas.core.api import (
 )
 from pandas.core.base import PandasObject
 from pandas.core.tools.datetimes import to_datetime
+from pandas.util.version import Version
 
 
 class SQLAlchemyRequired(ImportError):
@@ -86,7 +86,7 @@ def _gt14() -> bool:
     """
     import sqlalchemy
 
-    return LooseVersion(sqlalchemy.__version__) >= LooseVersion("1.4.0")
+    return Version(sqlalchemy.__version__) >= Version("1.4.0")
 
 
 def _convert_params(sql, params):

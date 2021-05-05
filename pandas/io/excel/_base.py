@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 import datetime
-from distutils.version import LooseVersion
 import inspect
 from io import BytesIO
 import os
@@ -44,6 +43,7 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.frame import DataFrame
 from pandas.core.shared_docs import _shared_docs
+from pandas.util.version import Version
 
 from pandas.io.common import (
     IOHandles,
@@ -1163,7 +1163,7 @@ class ExcelFile:
         else:
             import xlrd
 
-            xlrd_version = LooseVersion(get_version(xlrd))
+            xlrd_version = Version(get_version(xlrd))
 
         ext = None
         if engine is None:
@@ -1190,7 +1190,7 @@ class ExcelFile:
                         path_or_buffer, storage_options=storage_options
                     )
 
-            if ext != "xls" and xlrd_version >= "2":
+            if ext != "xls" and xlrd_version >= Version("2"):
                 raise ValueError(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install openpyxl instead."

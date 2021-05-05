@@ -1,4 +1,3 @@
-from distutils.version import LooseVersion
 from functools import reduce
 from itertools import product
 import operator
@@ -52,6 +51,7 @@ from pandas.core.computation.ops import (
     _binary_ops_dict,
     _unary_math_ops,
 )
+from pandas.util.version import Version
 
 
 @pytest.fixture(
@@ -78,14 +78,14 @@ def parser(request):
 
 @pytest.fixture
 def ne_lt_2_6_9():
-    if NUMEXPR_INSTALLED and NUMEXPR_VERSION >= LooseVersion("2.6.9"):
+    if NUMEXPR_INSTALLED and Version(NUMEXPR_VERSION) >= Version("2.6.9"):
         pytest.skip("numexpr is >= 2.6.9")
     return "numexpr"
 
 
 def _get_unary_fns_for_ne():
     if NUMEXPR_INSTALLED:
-        if NUMEXPR_VERSION >= LooseVersion("2.6.9"):
+        if Version(NUMEXPR_VERSION) >= Version("2.6.9"):
             return list(_unary_math_ops)
         else:
             return [x for x in _unary_math_ops if x not in ["floor", "ceil"]]

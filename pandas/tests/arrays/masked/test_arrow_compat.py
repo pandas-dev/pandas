@@ -43,7 +43,7 @@ def test_arrow_roundtrip(data):
     tm.assert_frame_equal(result, df)
 
 
-@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+@td.skip_if_no("pyarrow", min_version="0.16.0")
 def test_arrow_load_from_zero_chunks(data):
     # GH-41040
 

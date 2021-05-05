@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import distutils.version
 import importlib
 import sys
 import types
 import warnings
+
+from pandas.util.version import Version
 
 # Update install.rst when updating versions!
 
@@ -128,7 +129,7 @@ def import_optional_dependency(
     minimum_version = min_version if min_version is not None else VERSIONS.get(parent)
     if minimum_version:
         version = get_version(module_to_get)
-        if distutils.version.LooseVersion(version) < minimum_version:
+        if Version(version) < Version(minimum_version):
             msg = (
                 f"Pandas requires version '{minimum_version}' or newer of '{parent}' "
                 f"(version '{version}' currently installed)."

@@ -21,6 +21,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.tests.io.excel import xlrd_version
+from pandas.util.version import Version
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -70,7 +71,7 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
     if (
         engine == "xlrd"
         and xlrd_version is not None
-        and xlrd_version >= "2"
+        and xlrd_version >= Version("2")
         and read_ext != ".xls"
     ):
         return False
@@ -1404,7 +1405,7 @@ class TestExcelFileRead:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(
-        xlrd_version is not None and xlrd_version >= "2",
+        xlrd_version is not None and xlrd_version >= Version("2"),
         reason="xlrd no longer supports xlsx",
     )
     def test_excel_high_surrogate(self, engine):
