@@ -19,4 +19,4 @@ dependencies:
   # optional dependencies
   - pytables
   - scipy
-  - pyarrow=1.0
+  - pyarrow=1.0.0
