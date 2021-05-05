@@ -52,15 +52,7 @@ def test_apply_applymap_non_unique_raises(df, func):
         op = lambda v: "color: red;"
 
     with pytest.raises(KeyError, match="`Styler.apply` and `.applymap` are not"):
-        # slice is non-unique on columns
-        getattr(df.style, func)(op, subset=("i", "d"))._compute()
-
-    with pytest.raises(KeyError, match="`Styler.apply` and `.applymap` are not"):
-        # slice is non-unique on rows
-        getattr(df.style, func)(op, subset=("j", "c"))._compute()
-
-    # unique subset OK
-    getattr(df.style, func)(op, subset=("i", "c"))._compute()
+        getattr(df.style, func)(op)._compute()
 
 
 def test_table_styles_dict_non_unique_index(styler):
@@ -81,12 +73,6 @@ def test_table_styles_dict_non_unique_columns(styler):
         {"selector": "td.col1", "props": [("a", "v")]},
         {"selector": "td.col2", "props": [("a", "v")]},
     ]
-
-
-def test_maybe_convert_css_raises(styler):
-    # test _update_ctx() detects the right ValueError where non-unique columns present
-    with pytest.raises(ValueError, match="Styles supplied as string must follow CSS"):
-        styler.applymap(lambda x: "bad-css;")._compute()
 
 
 def test_tooltips_non_unique_raises(styler):

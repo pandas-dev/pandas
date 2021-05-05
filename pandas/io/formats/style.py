@@ -472,26 +472,19 @@ class Styler(StylerRenderer):
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
-        err = KeyError(
-            "`Styler.apply` and `.applymap` are not compatible with subset slices "
-            "containing non-unique index or column keys."
-        )
+        if not self.index.is_unique or not self.columns.is_unique:
+            raise KeyError(
+                "`Styler.apply` and `.applymap` are not compatible "
+                "with non-unique index or columns."
+            )
 
         for cn in attrs.columns:
-            try:
-                for rn, c in attrs[[cn]].itertuples():
-                    if not c:
-                        continue
-                    css_list = maybe_convert_css_to_tuples(c)
-                    i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
-                    self.ctx[(i, j)].extend(css_list)
-            except ValueError as ve:
-                if "Styles supplied as string must follow CSS rule formats" in str(ve):
-                    raise ve  # error is from maybe_convert_css_to_tuples()
-                else:
-                    raise err  # 'too many values to unpack': caught non-unique column
-            except TypeError:
-                raise err  # 'unhashable type: slice' caught a non-unique index
+            for rn, c in attrs[[cn]].itertuples():
+                if not c:
+                    continue
+                css_list = maybe_convert_css_to_tuples(c)
+                i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
+                self.ctx[(i, j)].extend(css_list)
 
     def _copy(self, deepcopy: bool = False) -> Styler:
         styler = Styler(
