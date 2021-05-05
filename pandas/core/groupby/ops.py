@@ -970,8 +970,8 @@ class BaseGrouper:
 
     @final
     def agg_series(self, obj: Series, func: F) -> tuple[ArrayLike, np.ndarray]:
-        # Caller is responsible for checking ngroups != 0
-        assert self.ngroups != 0
+        # test_groupby_empty_with_category gets here with self.ngroups == 0
+        #  and len(obj) > 0
 
         cast_back = True
         if len(obj) == 0:
@@ -1008,7 +1008,6 @@ class BaseGrouper:
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
         #  - len(obj) > 0
-        #  - ngroups != 0
         func = com.is_builtin_func(func)
 
         ids, _, ngroups = self.group_info
