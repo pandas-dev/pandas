@@ -9,7 +9,6 @@ from zipfile import BadZipFile
 
 import numpy as np
 import pytest
-from xlrd import XLRDError
 
 import pandas.util._test_decorators as td
 
@@ -726,6 +725,7 @@ class TestReaders:
                 "specify an engine manually."
             )
         elif engine == "xlrd":
+            from xlrd import XLRDError
             error = XLRDError
             msg = (
                 "Unsupported format, or corrupt file: Expected BOF "
