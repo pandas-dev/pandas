@@ -1101,6 +1101,24 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
+    def _resolve_numeric_only(self, numeric_only: bool | lib.NoDefault) -> bool:
+        """
+        For SeriesGroupBy we want the default to be False (to match Series behavior).
+        For DataFrameGroupBy we want it to be True (for backwards-compat).
+        """
+        # GH#41291
+        if numeric_only is lib.no_default:
+            # i.e. not explicitly passed by user
+            if self.obj.ndim == 2:
+                # i.e. DataFrameGroupBy
+                numeric_only = True
+            else:
+                numeric_only = False
+
+        # error: Incompatible return value type (got "Union[bool, NoDefault]",
+        # expected "bool")
+        return numeric_only  # type: ignore[return-value]
+
     # -----------------------------------------------------------------
     # numba
 
@@ -1290,6 +1308,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         alias: str,
         npfunc: Callable,
     ):
+
         with group_selection_context(self):
             # try a cython aggregation if we can
             result = None
@@ -1357,7 +1376,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         return ensure_block_shape(res_values, ndim=ndim)
 
     def _cython_agg_general(
-        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
     ):
         raise AbstractMethodError(self)
 
@@ -1599,7 +1618,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def mean(self, numeric_only: bool = True):
+    def mean(self, numeric_only: bool | lib.NoDefault = lib.no_default):
         """
         Compute mean of groups, excluding missing values.
 
@@ -1647,6 +1666,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         2    4.0
         Name: B, dtype: float64
         """
+        numeric_only = self._resolve_numeric_only(numeric_only)
+
         result = self._cython_agg_general(
             "mean",
             alt=lambda x: Series(x).mean(numeric_only=numeric_only),
@@ -1657,7 +1678,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def median(self, numeric_only=True):
+    def median(self, numeric_only: bool | lib.NoDefault = lib.no_default):
         """
         Compute median of groups, excluding missing values.
 
@@ -1674,6 +1695,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
             Median of values within each group.
         """
+        numeric_only = self._resolve_numeric_only(numeric_only)
+
         result = self._cython_agg_general(
             "median",
             alt=lambda x: Series(x).median(numeric_only=numeric_only),
@@ -1731,8 +1754,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Variance of values within each group.
         """
         if ddof == 1:
+            numeric_only = self._resolve_numeric_only(lib.no_default)
             return self._cython_agg_general(
-                "var", alt=lambda x: Series(x).var(ddof=ddof)
+                "var", alt=lambda x: Series(x).var(ddof=ddof), numeric_only=numeric_only
             )
         else:
             func = lambda x: x.var(ddof=ddof)
@@ -1797,7 +1821,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
-    def sum(self, numeric_only: bool = True, min_count: int = 0):
+    def sum(
+        self, numeric_only: bool | lib.NoDefault = lib.no_default, min_count: int = 0
+    ):
+        numeric_only = self._resolve_numeric_only(numeric_only)
 
         # If we are grouping on categoricals we want unobserved categories to
         # return zero, rather than the default of NaN which the reindexing in
@@ -1814,7 +1841,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
-    def prod(self, numeric_only: bool = True, min_count: int = 0):
+    def prod(
+        self, numeric_only: bool | lib.NoDefault = lib.no_default, min_count: int = 0
+    ):
+        numeric_only = self._resolve_numeric_only(numeric_only)
+
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
@@ -2739,7 +2770,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         how: str,
         cython_dtype: np.dtype,
         aggregate: bool = False,
-        numeric_only: bool = True,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
         needs_counts: bool = False,
         needs_values: bool = False,
         needs_2d: bool = False,
@@ -2807,6 +2838,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         -------
         `Series` or `DataFrame`  with filled values
         """
+        numeric_only = self._resolve_numeric_only(numeric_only)
+
         if result_is_index and aggregate:
             raise ValueError("'result_is_index' and 'aggregate' cannot both be True!")
         if post_processing and not callable(post_processing):
