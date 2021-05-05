@@ -9834,10 +9834,10 @@ NaN 12.3   33.0
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 1, 1]})
+        >>> df = pd.DataFrame({'A': [5, 6, 7], 'B': [5, 1, 1]})
         >>> df.nunique()
         A    3
-        B    1
+        B    2
         dtype: int64
 
         >>> df.nunique(axis=1)
