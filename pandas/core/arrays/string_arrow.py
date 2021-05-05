@@ -817,33 +817,44 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             result[isna(result)] = bool(na)
         return result
 
-    def _str_startswith(self, pat, na=None):
+    def _str_startswith(self, pat: str, na=None):
         # match_substring_regex added in pyarrow 4.0.0
-        if hasattr(pc, "match_substring_regex"):
-            result = pc.match_substring_regex(self._data, "^" + re.escape(pat))
-            result = BooleanDtype().__from_arrow__(result)
-            if not isna(na):
-                result[isna(result)] = bool(na)
-            return result
-        else:
+        if not hasattr(pc, "match_substring_regex"):
             return super()._str_startswith(pat, na)
 
-    def _str_endswith(self, pat, na=None):
+        pat = "^" + re.escape(pat)
+        return self._str_contains(pat, na=na, regex=True)
+
+    def _str_endswith(self, pat: str, na=None):
         # match_substring_regex added in pyarrow 4.0.0
-        if hasattr(pc, "match_substring_regex"):
-            result = pc.match_substring_regex(self._data, re.escape(pat) + "$")
-            result = BooleanDtype().__from_arrow__(result)
-            if not isna(na):
-                result[isna(result)] = bool(na)
-            return result
-        else:
+        if not hasattr(pc, "match_substring_regex"):
             return super()._str_endswith(pat, na)
+
+        pat = re.escape(pat) + "$"
+        return self._str_contains(pat, na=na, regex=True)
 
     def _str_match(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
     ):
+        # match_substring_regex added in pyarrow 4.0.0
+        if not hasattr(pc, "match_substring_regex"):
+            return super()._str_match(pat, case, flags, na)
+
         if not pat.startswith("^"):
             pat = "^" + pat
+        return self._str_contains(pat, case, flags, na, regex=True)
+
+    def _str_fullmatch(
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
+    ):
+        # match_substring_regex added in pyarrow 4.0.0
+        if not hasattr(pc, "match_substring_regex"):
+            return super()._str_fullmatch(pat, case, flags, na)
+
+        if not pat.startswith("^"):
+            pat = "^" + pat
+        if not pat.endswith("$") or pat.endswith("//$"):
+            pat = pat + "$"
         return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_isalnum(self):

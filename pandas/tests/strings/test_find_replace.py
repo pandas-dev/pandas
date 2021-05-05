@@ -486,27 +486,20 @@ def test_match_case_kwarg(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_fullmatch():
+def test_fullmatch(any_string_dtype):
     # GH 32806
-    ser = Series(["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"])
-    result = ser.str.fullmatch(".*BAD[_]+.*BAD")
-    expected = Series([True, False, np.nan, False])
-    tm.assert_series_equal(result, expected)
-
-    ser = Series(["ab", "AB", "abc", "ABC"])
-    result = ser.str.fullmatch("ab", case=False)
-    expected = Series([True, True, False, False])
-    tm.assert_series_equal(result, expected)
-
-
-def test_fullmatch_nullable_string_dtype(nullable_string_dtype):
     ser = Series(
-        ["fooBAD__barBAD", "BAD_BADleroybrown", None, "foo"],
-        dtype=nullable_string_dtype,
+        ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
     )
     result = ser.str.fullmatch(".*BAD[_]+.*BAD")
-    # Result is nullable boolean
-    expected = Series([True, False, np.nan, False], dtype="boolean")
+    expected_dtype = "object" if any_string_dtype == "object" else "boolean"
+    expected = Series([True, False, np.nan, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
+    result = ser.str.fullmatch("ab", case=False)
+    expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
+    expected = Series([True, True, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 

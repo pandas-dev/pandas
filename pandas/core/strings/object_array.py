@@ -2,9 +2,7 @@ import re
 import textwrap
 from typing import (
     Optional,
-    Pattern,
     Set,
-    Union,
 )
 import unicodedata
 
@@ -197,11 +195,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_fullmatch(
-        self,
-        pat: Union[str, Pattern],
-        case: bool = True,
-        flags: int = 0,
-        na: Scalar = None,
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
     ):
         if not case:
             flags |= re.IGNORECASE
