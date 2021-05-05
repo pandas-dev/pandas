@@ -1189,7 +1189,7 @@ def count_empty_vals(vals) -> int:
     return sum(1 for v in vals if v == "" or v is None)
 
 
-def _validate_skipfooter_arg(skipfooter):
+def _validate_skipfooter_arg(skipfooter: int) -> int:
     """
     Validate the 'skipfooter' parameter.
 

@@ -192,7 +192,7 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
 
 def test_readjson_unicode(monkeypatch):
     with tm.ensure_clean("test.json") as path:
-        monkeypatch.setattr("_bootlocale.getpreferredencoding", lambda l: "cp949")
+        monkeypatch.setattr("locale.getpreferredencoding", lambda l: "cp949")
         with open(path, "w", encoding="utf-8") as f:
             f.write('{"£©µÀÆÖÞßéöÿ":["АБВГДабвгд가"]}')
 

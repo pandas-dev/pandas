@@ -242,7 +242,7 @@ def test_transform_bug():
     # transforming on a datetime column
     df = DataFrame({"A": Timestamp("20130101"), "B": np.arange(5)})
     result = df.groupby("A")["B"].transform(lambda x: x.rank(ascending=False))
-    expected = Series(np.arange(5, 0, step=-1), name="B")
+    expected = Series(np.arange(5, 0, step=-1), name="B", dtype="float64")
     tm.assert_series_equal(result, expected)
 
 
@@ -493,7 +493,7 @@ def test_groupby_transform_with_int():
     )
     with np.errstate(all="ignore"):
         result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
-    expected = DataFrame({"B": np.nan, "C": [-1, 0, 1, -1, 0, 1]})
+    expected = DataFrame({"B": np.nan, "C": [-1.0, 0.0, 1.0, -1.0, 0.0, 1.0]})
     tm.assert_frame_equal(result, expected)
 
     # int that needs float conversion
@@ -509,9 +509,9 @@ def test_groupby_transform_with_int():
     expected = DataFrame({"B": np.nan, "C": concat([s1, s2])})
     tm.assert_frame_equal(result, expected)
 
-    # int downcasting
+    # int doesn't get downcasted
     result = df.groupby("A").transform(lambda x: x * 2 / 2)
-    expected = DataFrame({"B": 1, "C": [2, 3, 4, 10, 5, -1]})
+    expected = DataFrame({"B": 1.0, "C": [2.0, 3.0, 4.0, 10.0, 5.0, -1.0]})
     tm.assert_frame_equal(result, expected)
 
 

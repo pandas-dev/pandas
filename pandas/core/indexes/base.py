@@ -907,9 +907,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_categorical_dtype(dtype):
             from pandas.core.indexes.category import CategoricalIndex
 
-            return CategoricalIndex(
-                self._values, name=self.name, dtype=dtype, copy=copy
-            )
+            return CategoricalIndex(self, name=self.name, dtype=dtype, copy=copy)
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
@@ -2923,8 +2921,10 @@ class Index(IndexOpsMixin, PandasObject):
         other, result_name = self._convert_can_do_setop(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
-            if isinstance(self, ABCMultiIndex) and not is_object_dtype(
-                unpack_nested_dtype(other)
+            if (
+                isinstance(self, ABCMultiIndex)
+                and not is_object_dtype(unpack_nested_dtype(other))
+                and len(other) > 0
             ):
                 raise NotImplementedError(
                     "Can only union MultiIndex with MultiIndex or Index of tuples, "
@@ -3414,7 +3414,7 @@ class Index(IndexOpsMixin, PandasObject):
         limit: int | None = None,
         tolerance=None,
     ) -> np.ndarray:
-
+        # returned ndarray is np.intp
         method = missing.clean_reindex_fill_method(method)
         target = ensure_index(target)
 
@@ -4099,7 +4099,10 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def _join_non_unique(self, other, how="left"):
+    def _join_non_unique(
+        self, other: Index, how: str_t = "left"
+    ) -> tuple[Index, np.ndarray, np.ndarray]:
+        # returned ndarrays are np.intp
         from pandas.core.reshape.merge import get_join_indexers
 
         # We only get here if dtypes match
@@ -4125,7 +4128,10 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, left_idx, right_idx
 
     @final
-    def _join_level(self, other, level, how="left", keep_order=True):
+    def _join_level(
+        self, other: Index, level, how: str_t = "left", keep_order: bool = True
+    ) -> tuple[MultiIndex, np.ndarray | None, np.ndarray | None]:
+        # Any returned ndarrays are np.intp
         """
         The join method *only* affects the level of the resulting
         MultiIndex. Otherwise it just exactly aligns the Index data to the
@@ -5874,7 +5880,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return start_slice, end_slice
 
-    def delete(self, loc) -> Index:
+    def delete(self: _IndexT, loc) -> _IndexT:
         """
         Make new Index with passed location(-s) deleted.
 
@@ -6425,8 +6431,8 @@ def _maybe_cast_data_without_dtype(subarr):
             return tda
         elif inferred == "period":
             try:
-                data = PeriodArray._from_sequence(subarr)
-                return data
+                parr = PeriodArray._from_sequence(subarr)
+                return parr
             except IncompatibleFrequency:
                 pass
 

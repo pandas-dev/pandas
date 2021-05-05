@@ -299,10 +299,9 @@ def test_with_na_groups(dtype):
         return float(len(x))
 
     agged = grouped.agg(f)
-    expected = Series([4, 2], index=["bar", "foo"])
+    expected = Series([4.0, 2.0], index=["bar", "foo"])
 
-    tm.assert_series_equal(agged, expected, check_dtype=False)
-    assert issubclass(agged.dtype.type, np.dtype(dtype).type)
+    tm.assert_series_equal(agged, expected)
 
 
 def test_indices_concatenation_order():
@@ -2019,6 +2018,12 @@ def test_groupby_crash_on_nunique(axis):
         expected = expected.T
 
     tm.assert_frame_equal(result, expected)
+
+    # same thing, but empty columns
+    gb = df[[]].groupby(axis=axis_number, level=0)
+    res = gb.nunique()
+    exp = expected[[]]
+    tm.assert_frame_equal(res, exp)
 
 
 def test_groupby_list_level():

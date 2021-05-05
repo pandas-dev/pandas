@@ -28,6 +28,7 @@ from pandas.io.parsers.base_parser import (
 
 class CParserWrapper(ParserBase):
     low_memory: bool
+    _reader: parsers.TextReader
 
     def __init__(self, src: FilePathOrBuffer, **kwds):
         self.kwds = kwds
@@ -55,6 +56,7 @@ class CParserWrapper(ParserBase):
         except Exception:
             self.handles.close()
             raise
+
         self.unnamed_cols = self._reader.unnamed_cols
 
         # error: Cannot determine type of 'names'
@@ -314,7 +316,7 @@ class CParserWrapper(ParserBase):
 
         return names, idx_names
 
-    def _maybe_parse_dates(self, values, index: int, try_parse_dates=True):
+    def _maybe_parse_dates(self, values, index: int, try_parse_dates: bool = True):
         if try_parse_dates and self._should_parse_dates(index):
             values = self._date_conv(values)
         return values

@@ -1,5 +1,7 @@
 from datetime import (
+    date,
     datetime,
+    time,
     timedelta,
     tzinfo,
 )
@@ -84,10 +86,10 @@ AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 
 # scalars
 
-PythonScalar = Union[str, int, float, bool]
+PythonScalar = Optional[Union[str, int, float, bool, date, time, timedelta]]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
-Scalar = Union[PythonScalar, PandasScalar]
+Scalar = Union[PythonScalar, PandasScalar, np.number]
 
 # timestamp and timedelta convertible types
 
