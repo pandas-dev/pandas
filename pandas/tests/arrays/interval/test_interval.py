@@ -165,7 +165,7 @@ def test_repr():
 # Arrow interaction
 
 
-pyarrow_skip = td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+pyarrow_skip = td.skip_if_no("pyarrow", min_version="0.16.0")
 
 
 @pyarrow_skip
