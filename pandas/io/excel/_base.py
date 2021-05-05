@@ -1073,7 +1073,7 @@ def inspect_excel_format(
         if any(
             peek.startswith(signature)
             for (file_format, signature) in SIGNATURES.items()
-            if file_format.startswith('biff')
+            if file_format.startswith("biff")
         ):
             return "xls"
         elif not peek.startswith(SIGNATURES["zip"]):
