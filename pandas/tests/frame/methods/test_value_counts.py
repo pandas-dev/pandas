@@ -104,15 +104,17 @@ def test_data_frame_value_counts_empty_normalize():
 
 def test_data_frame_value_counts_dropna_true():
     df = pd.DataFrame(
-        {'first_name': ['John', 'Anne', 'John', 'Beth'],
-         'middle_name': ['Smith', pd.NA, pd.NA, 'Louise']},
+        {
+            "first_name": ["John", "Anne", "John", "Beth"],
+            "middle_name": ["Smith", pd.NA, pd.NA, "Louise"],
+        },
     )
 
     result = df.value_counts()
     expected = pd.Series(
         data=[1, 1],
         index=pd.MultiIndex.from_arrays(
-            [('Beth', 'John'), ('Louise', 'Smith')], names=["first_name", "middle_name"]
+            [("Beth", "John"), ("Louise", "Smith")], names=["first_name", "middle_name"]
         ),
     )
 
@@ -121,20 +123,23 @@ def test_data_frame_value_counts_dropna_true():
 
 def test_data_frame_value_counts_dropna_false():
     df = pd.DataFrame(
-        {'first_name': ['John', 'Anne', 'John', 'Beth'],
-         'middle_name': ['Smith', pd.NA, pd.NA, 'Louise']},
+        {
+            "first_name": ["John", "Anne", "John", "Beth"],
+            "middle_name": ["Smith", pd.NA, pd.NA, "Louise"],
+        },
     )
 
     result = df.value_counts(dropna=False)
     expected = pd.Series(
         data=[1, 1, 1, 1],
         index=pd.MultiIndex(
-            levels=[pd.Index(['Anne', 'Beth', 'John']),
-                    pd.Index(['Louise', 'Smith', pd.NA])],
-            codes=[[0, 1, 2, 2],
-                   [2, 0, 1, 2]],
-            names=['first_name', 'middle_name'],
-        )
+            levels=[
+                pd.Index(["Anne", "Beth", "John"]),
+                pd.Index(["Louise", "Smith", pd.NA]),
+            ],
+            codes=[[0, 1, 2, 2], [2, 0, 1, 2]],
+            names=["first_name", "middle_name"],
+        ),
     )
 
     tm.assert_series_equal(result, expected)
