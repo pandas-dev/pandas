@@ -108,8 +108,8 @@ class TestCategoricalIndexConstructors:
         tm.assert_index_equal(result, ci, exact=True)
 
         # make sure indexes are handled
-        expected = CategoricalIndex([0, 1, 2], categories=[0, 1, 2], ordered=True)
         idx = Index(range(3))
+        expected = CategoricalIndex([0, 1, 2], categories=idx, ordered=True)
         result = CategoricalIndex(idx, categories=idx, ordered=True)
         tm.assert_index_equal(result, expected, exact=True)
 
