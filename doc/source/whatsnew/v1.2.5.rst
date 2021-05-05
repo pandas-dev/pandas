@@ -34,8 +34,7 @@ Bug fixes
 
 Other
 ~~~~~
-
--
+- Loosen XLS signatures used in :func:`read_excel` to determine if the `xlrd` engine should be used (:issue:`41225`)
 -
 
 .. ---------------------------------------------------------------------------
