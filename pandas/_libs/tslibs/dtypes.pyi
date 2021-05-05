@@ -7,6 +7,8 @@ _period_code_map: dict[str, int]
 
 
 class PeriodDtypeBase:
+    _dtype_code: int  # PeriodDtypeCode
+
     # actually __cinit__
     def __new__(self, code: int): ...
 

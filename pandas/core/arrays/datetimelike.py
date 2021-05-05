@@ -23,7 +23,6 @@ from pandas._libs import (
     algos,
     lib,
 )
-from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
     IncompatibleFrequency,
@@ -142,7 +141,7 @@ class InvalidComparison(Exception):
     pass
 
 
-class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArray):
+class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -1110,7 +1109,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        return type(self)._simple_new(new_values, dtype=self.dtype, freq=new_freq)
+        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
+        return type(self)._simple_new(  # type: ignore[call-arg]
+            new_values, dtype=self.dtype, freq=new_freq
+        )
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -1684,13 +1686,16 @@ _ceil_example = """>>> rng.ceil('H')
     """
 
 
+TimelikeOpsT = TypeVar("TimelikeOpsT", bound="TimelikeOps")
+
+
 class TimelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
 
-    def copy(self: TimelikeOps) -> TimelikeOps:
-        result = NDArrayBacked.copy(self)
+    def copy(self: TimelikeOpsT) -> TimelikeOpsT:
+        result = super().copy()
         result._freq = self._freq
         return result
 
