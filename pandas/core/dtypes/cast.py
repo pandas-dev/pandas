@@ -1356,7 +1356,7 @@ def soft_convert_objects(
             return converted
 
     if numeric and is_object_dtype(values.dtype):
-        converted = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
+        converted, _ = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
 
         # If all NaNs, then do not-alter
         values = converted if not isna(converted).all() else values
