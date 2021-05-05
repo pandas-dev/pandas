@@ -806,8 +806,6 @@ Plotting
 - Bug in :func:`DataFrame.plot` was showing the wrong colors in the legend if the function was called repeatedly and some calls used ``secondary_y`` and others use ``legend=False`` (:issue:`40044`)
 
 
-
-
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg` with :class:`PeriodDtype` columns incorrectly casting results too aggressively (:issue:`38254`)
@@ -841,7 +839,6 @@ Groupby/resample/rolling
 - Bug in :meth:`.GroupBy.any` and :meth:`.GroupBy.all` raising ``ValueError`` when using with nullable type columns holding ``NA`` even with ``skipna=True`` (:issue:`40585`)
 - Bug in :meth:`GroupBy.cummin` and :meth:`GroupBy.cummax` incorrectly rounding integer values near the ``int64`` implementations bounds (:issue:`40767`)
 - Bug in :meth:`.GroupBy.rank` with nullable dtypes incorrectly raising ``TypeError`` (:issue:`41010`)
-
 
 Reshaping
 ^^^^^^^^^
@@ -898,21 +895,13 @@ Other
 - Bug in :func:`pandas.api.types.infer_dtype` not recognizing Series, Index or array with a period dtype (:issue:`23553`)
 - Bug in :func:`pandas.api.types.infer_dtype` raising an error for general :class:`.ExtensionArray` objects. It will now return ``"unknown-array"`` instead of raising (:issue:`37367`)
 - Bug in constructing a :class:`Series` from a list and a :class:`PandasDtype` (:issue:`39357`)
-- Bug in :class:`Styler` which caused CSS to duplicate on multiple renders. (:issue:`39395`, :issue:`40334`)
 - ``inspect.getmembers(Series)`` no longer raises an ``AbstractMethodError`` (:issue:`38782`)
 - Bug in :meth:`Series.where` with numeric dtype and ``other = None`` not casting to ``nan`` (:issue:`39761`)
 - :meth:`Index.where` behavior now mirrors :meth:`Index.putmask` behavior, i.e. ``index.where(mask, other)`` matches ``index.putmask(~mask, other)`` (:issue:`39412`)
 - Bug in :func:`pandas.testing.assert_series_equal`, :func:`pandas.testing.assert_frame_equal`, :func:`pandas.testing.assert_index_equal` and :func:`pandas.testing.assert_extension_array_equal` incorrectly raising when an attribute has an unrecognized NA type (:issue:`39461`)
-- Bug in :class:`Styler` where ``subset`` arg in methods raised an error for some valid multiindex slices (:issue:`33562`)
-- :class:`Styler` rendered HTML output minor alterations to support w3 good code standard (:issue:`39626`)
-- Bug in :class:`Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
-- Bug in :meth:`Styler.background_gradient` where text-color was not determined correctly (:issue:`39888`)
-- Bug in :class:`Styler` where multiple elements in CSS-selectors were not correctly added to ``table_styles`` (:issue:`39942`)
-- Bug in :class:`.Styler` where copying from Jupyter dropped top left cell and misaligned headers (:issue:`12147`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)
-
 
 .. ---------------------------------------------------------------------------
 
