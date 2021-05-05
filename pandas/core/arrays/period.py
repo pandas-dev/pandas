@@ -181,6 +181,8 @@ class PeriodArray(dtl.DatelikeOps):
     _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
     _datetimelike_methods: list[str] = ["strftime", "to_timestamp", "asfreq"]
 
+    _dtype: PeriodDtype
+
     # --------------------------------------------------------------------
     # Constructors
 
@@ -210,8 +212,9 @@ class PeriodArray(dtl.DatelikeOps):
             raise ValueError("freq is not specified and cannot be inferred")
         NDArrayBacked.__init__(self, values, PeriodDtype(freq))
 
+    # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
-    def _simple_new(
+    def _simple_new(  # type: ignore[override]
         cls,
         values: np.ndarray,
         freq: BaseOffset | None = None,

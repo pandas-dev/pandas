@@ -6431,8 +6431,8 @@ def _maybe_cast_data_without_dtype(subarr):
             return tda
         elif inferred == "period":
             try:
-                data = PeriodArray._from_sequence(subarr)
-                return data
+                parr = PeriodArray._from_sequence(subarr)
+                return parr
             except IncompatibleFrequency:
                 pass
 
