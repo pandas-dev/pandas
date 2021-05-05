@@ -2,7 +2,7 @@ trigger:
   branches:
     include:
     - master
-    - 1.2.*
+    - 1.2.x
   paths:
     include:
     - '*'  # same as '/' for the repository root
