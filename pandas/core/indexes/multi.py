@@ -1611,7 +1611,7 @@ class MultiIndex(Index):
 
     @doc(Index.duplicated)
     def duplicated(self, keep="first") -> np.ndarray:
-        shape = map(len, self.levels)
+        shape = tuple(len(lev) for lev in self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
         return duplicated_int64(ids, keep)
@@ -3597,7 +3597,7 @@ class MultiIndex(Index):
     def _maybe_match_names(self, other):
         """
         Try to find common names to attach to the result of an operation between
-        a and b.  Return a consensus list of names if they match at least partly
+        a and b. Return a consensus list of names if they match at least partly
         or list of None if they have completely different names.
         """
         if len(self.names) != len(other.names):
@@ -3613,14 +3613,12 @@ class MultiIndex(Index):
 
     def _intersection(self, other, sort=False) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
-
-        lvals = self._values
-        rvals = other._values.astype(object, copy=False)
+        other = other.astype(object, copy=False)
 
         uniq_tuples = None  # flag whether _inner_indexer was successful
         if self.is_monotonic and other.is_monotonic:
             try:
-                inner_tuples = self._inner_indexer(lvals, rvals)[0]
+                inner_tuples = self._inner_indexer(other)[0]
                 sort = False  # inner_tuples is already sorted
             except TypeError:
                 pass
