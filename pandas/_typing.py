@@ -86,10 +86,10 @@ AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 
 # scalars
 
-PythonScalar = Optional[Union[str, int, float, bool, date, time, timedelta]]
+PythonScalar = Optional[Union[str, int, float, complex, bool, date, time, timedelta]]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
-Scalar = Union[PythonScalar, PandasScalar, np.number]
+Scalar = Union[PythonScalar, PandasScalar, np.number, np.datetime64, np.timedelta64]
 
 # timestamp and timedelta convertible types
 

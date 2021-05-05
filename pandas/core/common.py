@@ -30,7 +30,6 @@ from pandas._libs import lib
 from pandas._typing import (
     AnyArrayLike,
     NpDtype,
-    Scalar,
     T,
 )
 from pandas.compat import np_version_under1p18
@@ -490,7 +489,7 @@ def get_rename_function(mapper):
 
 
 def convert_to_list_like(
-    values: Scalar | Iterable | AnyArrayLike,
+    values: Any,
 ) -> list | AnyArrayLike:
     """
     Convert list-like or scalar input to list-like. List, numpy and pandas array-like

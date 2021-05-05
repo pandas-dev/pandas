@@ -37,6 +37,7 @@ from pandas._typing import (
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
+    Appender,
     cache_readonly,
     doc,
 )
@@ -269,7 +270,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # methods that dispatch to DatetimeArray and wrap result
 
     # error: Cannot determine type of 'strftime'
-    @doc(DatetimeArray.strftime)  # type: ignore[has-type]
+    @Appender(DatetimeArray.strftime.__doc__)  # type: ignore[has-type]
     def strftime(self, date_format) -> Index:
         arr = self._data.strftime(date_format)
         return Index(arr, name=self.name)

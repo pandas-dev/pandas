@@ -215,7 +215,11 @@ def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
         # GH#36541: can't fill array directly with pd.NaT
         # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
         # ValueError: cannot convert float NaN to integer
-        value = dtype.type("NaT", "ns")
+        # error: Incompatible types in assignment (expression has type
+        # "Union[generic, Any]", variable has type "Union[Union[str, int, float,
+        # complex, bool, date, time, timedelta, None], Union[Period, Timestamp,
+        # Timedelta, Interval], number[Any], datetime64, timedelta64]")
+        value = dtype.type("NaT", "ns")  # type: ignore[assignment]
     elif isinstance(value, Timestamp):
         if value.tz is None:
             value = value.to_datetime64()
