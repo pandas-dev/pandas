@@ -907,9 +907,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_categorical_dtype(dtype):
             from pandas.core.indexes.category import CategoricalIndex
 
-            return CategoricalIndex(
-                self._values, name=self.name, dtype=dtype, copy=copy
-            )
+            return CategoricalIndex(self, name=self.name, dtype=dtype, copy=copy)
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
@@ -6433,8 +6431,8 @@ def _maybe_cast_data_without_dtype(subarr):
             return tda
         elif inferred == "period":
             try:
-                data = PeriodArray._from_sequence(subarr)
-                return data
+                parr = PeriodArray._from_sequence(subarr)
+                return parr
             except IncompatibleFrequency:
                 pass
 

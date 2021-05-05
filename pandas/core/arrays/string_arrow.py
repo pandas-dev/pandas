@@ -19,6 +19,7 @@ from pandas._typing import (
     Dtype,
     NpDtype,
     PositionalIndexer,
+    Scalar,
     type_t,
 )
 from pandas.util._decorators import doc
@@ -665,6 +666,34 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
                 indices_array[indices_array < 0] += len(self._data)
             return type(self)(self._data.take(indices_array))
 
+    def isin(self, values):
+
+        # pyarrow.compute.is_in added in pyarrow 2.0.0
+        if not hasattr(pc, "is_in"):
+            return super().isin(values)
+
+        value_set = [
+            pa_scalar.as_py()
+            for pa_scalar in [pa.scalar(value, from_pandas=True) for value in values]
+            if pa_scalar.type in (pa.string(), pa.null())
+        ]
+
+        # for an empty value_set pyarrow 3.0.0 segfaults and pyarrow 2.0.0 returns True
+        # for null values, so we short-circuit to return all False array.
+        if not len(value_set):
+            return np.zeros(len(self), dtype=bool)
+
+        kwargs = {}
+        if LooseVersion(pa.__version__) < "3.0.0":
+            # in pyarrow 2.0.0 skip_null is ignored but is a required keyword and raises
+            # with unexpected keyword argument in pyarrow 3.0.0+
+            kwargs["skip_null"] = True
+
+        result = pc.is_in(self._data, value_set=pa.array(value_set), **kwargs)
+        # pyarrow 2.0.0 returned nulls, so we explicily specify dtype to convert nulls
+        # to False
+        return np.array(result, dtype=np.bool_)
+
     def value_counts(self, dropna: bool = True) -> Series:
         """
         Return a Series containing counts of each unique value.
@@ -809,6 +838,13 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return result
         else:
             return super()._str_endswith(pat, na)
+
+    def _str_match(
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
+    ):
+        if not pat.startswith("^"):
+            pat = "^" + pat
+        return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._data)
