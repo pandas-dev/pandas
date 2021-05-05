@@ -820,16 +820,14 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         return result
 
     def _str_startswith(self, pat: str, na=None):
-        # match_substring_regex added in pyarrow 4.0.0
-        if not hasattr(pc, "match_substring_regex"):
+        if pa_version_under4p0:
             return super()._str_startswith(pat, na)
 
         pat = "^" + re.escape(pat)
         return self._str_contains(pat, na=na, regex=True)
 
     def _str_endswith(self, pat: str, na=None):
-        # match_substring_regex added in pyarrow 4.0.0
-        if not hasattr(pc, "match_substring_regex"):
+        if pa_version_under4p0:
             return super()._str_endswith(pat, na)
 
         pat = re.escape(pat) + "$"
@@ -838,8 +836,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     def _str_match(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
     ):
-        # match_substring_regex added in pyarrow 4.0.0
-        if not hasattr(pc, "match_substring_regex"):
+        if pa_version_under4p0:
             return super()._str_match(pat, case, flags, na)
 
         if not pat.startswith("^"):
@@ -849,15 +846,12 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     def _str_fullmatch(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
     ):
-        # match_substring_regex added in pyarrow 4.0.0
-        if not hasattr(pc, "match_substring_regex"):
+        if pa_version_under4p0:
             return super()._str_fullmatch(pat, case, flags, na)
 
-        if not pat.startswith("^"):
-            pat = "^" + pat
         if not pat.endswith("$") or pat.endswith("//$"):
             pat = pat + "$"
-        return self._str_contains(pat, case, flags, na, regex=True)
+        return self._str_match(pat, case, flags, na)
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._data)
