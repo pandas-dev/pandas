@@ -6400,6 +6400,8 @@ class DataFrame(NDFrame, OpsMixin):
         dropna : bool, default True
             Don’t include counts of rows that contain NA values.
 
+            .. versionadded:: 1.3.0
+
         Returns
         -------
         Series
