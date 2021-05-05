@@ -886,6 +886,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.rolling` returning sum not zero for all ``NaN`` window with ``min_periods=0`` if calculation is not numerical stable (:issue:`41053`)
 - Bug in :meth:`SeriesGroupBy.agg` failing to retain ordered :class:`CategoricalDtype` on order-preserving aggregations (:issue:`41147`)
 - Bug in :meth:`DataFrameGroupBy.min` and :meth:`DataFrameGroupBy.max` with multiple object-dtype columns and ``numeric_only=False`` incorrectly raising ``ValueError`` (:issue:41111`)
+- Bug in :meth:`DataFrameGroupBy.rank` with the GroupBy object's ``axis=0`` and the ``rank`` method's keyword ``axis=1`` (:issue:`41320`)
 
 Reshaping
 ^^^^^^^^^
