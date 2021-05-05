@@ -60,9 +60,7 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
-    ensure_float,
     is_bool_dtype,
     is_datetime64_dtype,
     is_integer_dtype,
@@ -1275,19 +1273,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             except TypeError:
                 continue
 
-            assert result is not None
             key = base.OutputKey(label=name, position=idx)
-
-            if self.grouper._filter_empty_groups:
-                mask = counts.ravel() > 0
-
-                # since we are masking, make sure that we have a float object
-                values = result
-                if is_numeric_dtype(values.dtype):
-                    values = ensure_float(values)
-
-                    result = maybe_downcast_numeric(values[mask], result.dtype)
-
             output[key] = result
 
         if not output:
@@ -3086,9 +3072,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Object (potentially) re-indexed to include all possible groups.
         """
         groupings = self.grouper.groupings
-        if groupings is None:
-            return output
-        elif len(groupings) == 1:
+        if len(groupings) == 1:
             return output
 
         # if we only care about the observed values
