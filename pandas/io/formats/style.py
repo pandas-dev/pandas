@@ -1036,7 +1036,7 @@ class Styler(StylerRenderer):
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
 
-    def hide_index(self, subset=None, show: bool = False) -> Styler:
+    def hide_index(self, subset=None) -> Styler:
         """
         Hide the entire index, or specific keys in the index from rendering.
 
@@ -1052,9 +1052,6 @@ class Styler(StylerRenderer):
         subset : IndexSlice
             An argument to ``DataFrame.loc[subset, :]``, i.e. along the index, that
             identifies which index key rows will be hidden.
-        show : bool
-            Indicates whether the function `hides` the index or selected rows,
-            by default, or operates inversely by exclusively showing them.
 
         Returns
         -------
@@ -1107,20 +1104,18 @@ class Styler(StylerRenderer):
         y   b   -0.6    1.2    1.8    1.9    0.3    0.3
         """
         if subset is None:
-            self.hidden_index = not show
+            self.hidden_index = True
         else:
             subset = IndexSlice[subset, :]
             subset = non_reducing_slice(subset)
             hide = self.data.loc[subset]
-            if show:  # invert the display
-                hide = self.data.loc[~self.data.index.isin(hide.index.to_list()), :]
             hrows = self.index.get_indexer_for(hide.index)
             # error: Incompatible types in assignment (expression has type
             # "ndarray", variable has type "Sequence[int]")
             self.hidden_rows = hrows  # type: ignore[assignment]
         return self
 
-    def hide_columns(self, subset=None, show: bool = False) -> Styler:
+    def hide_columns(self, subset=None) -> Styler:
         """
         Hide the column headers or specific keys in the columns from rendering.
 
@@ -1136,9 +1131,6 @@ class Styler(StylerRenderer):
         subset : IndexSlice
             An argument to ``DataFrame.loc[:, subset]``, i.e. along the columns, that
             identifies which columns keys will be hidden.
-        show : bool
-            Indicates whether the function `hides` the columns headers or selected
-            columns, by default, or operates inversely by exclusively showing them.
 
         Returns
         -------
@@ -1184,28 +1176,13 @@ class Styler(StylerRenderer):
         y   a    1.0   -1.2
             b    1.2    0.3
             c    0.5    2.2
-
-        Exclusively show specific columns:
-
-        >>> df.style.format("{:.1f}")
-        ...     .hide_columns(subset=(slice(None), ["b"]), show=True)
-                   x      y
-                   b      b
-        x   a    0.0    0.6
-            b    1.0   -0.0
-            c   -0.8   -0.4
-        y   a    1.0   -1.2
-            b    1.2    0.3
-            c    0.5    2.2
         """
         if subset is None:
-            self.hidden_colheads = not show
+            self.hidden_colheads = True
         else:
             subset = IndexSlice[:, subset]
             subset = non_reducing_slice(subset)
             hide = self.data.loc[subset]
-            if show:  # invert the display
-                hide = self.data.loc[:, ~self.data.columns.isin(hide.columns.to_list())]
             hcols = self.columns.get_indexer_for(hide.columns)
             # error: Incompatible types in assignment (expression has type
             # "ndarray", variable has type "Sequence[int]")
