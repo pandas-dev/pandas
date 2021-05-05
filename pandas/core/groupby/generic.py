@@ -44,10 +44,6 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    maybe_downcast_numeric,
-)
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool,
@@ -73,7 +69,6 @@ from pandas.core.aggregation import (
     validate_func_kwargs,
 )
 from pandas.core.apply import GroupByApply
-from pandas.core.arrays import Categorical
 from pandas.core.base import (
     DataError,
     SpecificationError,
@@ -88,7 +83,6 @@ from pandas.core.groupby.groupby import (
     _agg_template,
     _apply_docs,
     _transform_template,
-    get_groupby,
     group_selection_context,
 )
 from pandas.core.indexes.api import (
@@ -226,7 +220,16 @@ class SeriesGroupBy(GroupBy[Series]):
     ... )
        minimum  maximum
     1        1        2
-    2        3        4"""
+    2        3        4
+
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the aggregating function.
+
+    >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
+    1    1.0
+    2    3.0
+    dtype: float64"""
     )
 
     @Appender(
@@ -345,47 +348,36 @@ class SeriesGroupBy(GroupBy[Series]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output: dict[base.OutputKey, ArrayLike] = {}
-        # Ideally we would be able to enumerate self._iterate_slices and use
-        # the index from enumeration as the key of output, but ohlc in particular
-        # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
-        # need to slice that up into 1D arrays
-        idx = 0
-        for obj in self._iterate_slices():
-            name = obj.name
-            is_numeric = is_numeric_dtype(obj.dtype)
-            if numeric_only and not is_numeric:
-                continue
 
-            objvals = obj._values
+        obj = self._selected_obj
+        objvals = obj._values
+        data = obj._mgr
 
-            if isinstance(objvals, Categorical):
-                if self.grouper.ngroups > 0:
-                    # without special-casing, we would raise, then in fallback
-                    # would eventually call agg_series but without re-casting
-                    # to Categorical
-                    # equiv: res_values, _ = self.grouper.agg_series(obj, alt)
-                    res_values, _ = self.grouper._aggregate_series_pure_python(obj, alt)
-                else:
-                    # equiv: res_values = self._python_agg_general(alt)
-                    res_values = self._python_apply_general(alt, self._selected_obj)
-
-                result = type(objvals)._from_sequence(res_values, dtype=objvals.dtype)
-
-            else:
-                result = self.grouper._cython_operation(
-                    "aggregate", obj._values, how, axis=0, min_count=min_count
-                )
-
-            assert result.ndim == 1
-            key = base.OutputKey(label=name, position=idx)
-            output[key] = result
-            idx += 1
-
-        if not output:
+        if numeric_only and not is_numeric_dtype(obj.dtype):
             raise DataError("No numeric types to aggregate")
 
-        return self._wrap_aggregated_output(output)
+        # This is overkill because it is only called once, but is here to
+        #  mirror the array_func used in DataFrameGroupBy._cython_agg_general
+        def array_func(values: ArrayLike) -> ArrayLike:
+            try:
+                result = self.grouper._cython_operation(
+                    "aggregate", values, how, axis=data.ndim - 1, min_count=min_count
+                )
+            except NotImplementedError:
+                # generally if we have numeric_only=False
+                # and non-applicable functions
+                # try to python agg
+                # TODO: shouldn't min_count matter?
+                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
+
+            return result
+
+        result = array_func(objvals)
+
+        ser = self.obj._constructor(
+            result, index=self.grouper.result_index, name=obj.name
+        )
+        return self._reindex_output(ser)
 
     def _wrap_aggregated_output(
         self,
@@ -518,13 +510,14 @@ class SeriesGroupBy(GroupBy[Series]):
         for name, group in self:
             # Each step of this loop corresponds to
             #  libreduction._BaseGrouper._apply_to_group
-            group.name = name  # NB: libreduction does not pin name
+            # NB: libreduction does not pin name
+            object.__setattr__(group, "name", name)
 
             output = func(group, *args, **kwargs)
             output = libreduction.extract_result(output)
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(output)
+                libreduction.check_result_array(output, group.dtype)
                 initialized = True
             result[name] = output
 
@@ -533,40 +526,15 @@ class SeriesGroupBy(GroupBy[Series]):
     @Substitution(klass="Series")
     @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
+        return self._transform(
+            func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        )
 
-        if maybe_use_numba(engine):
-            with group_selection_context(self):
-                data = self._selected_obj
-            result = self._transform_with_numba(
-                data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
-            )
-            return self.obj._constructor(
-                result.ravel(), index=data.index, name=data.name
-            )
-
-        func = com.get_cython_func(func) or func
-
-        if not isinstance(func, str):
-            return self._transform_general(func, *args, **kwargs)
-
-        elif func not in base.transform_kernel_allowlist:
-            msg = f"'{func}' is not a valid function name for transform(name)"
-            raise ValueError(msg)
-        elif func in base.cythonized_kernels or func in base.transformation_kernels:
-            # cythonized transform or canned "agg+broadcast"
-            return getattr(self, func)(*args, **kwargs)
-        # If func is a reduction, we need to broadcast the
-        # result to the whole group. Compute func result
-        # and deal with possible broadcasting below.
-        # Temporarily set observed for dealing with categoricals.
-        with com.temp_setattr(self, "observed", True):
-            result = getattr(self, func)(*args, **kwargs)
-        return self._transform_fast(result)
-
-    def _transform_general(self, func, *args, **kwargs):
+    def _transform_general(self, func: Callable, *args, **kwargs) -> Series:
         """
-        Transform with a non-str `func`.
+        Transform with a callable func`.
         """
+        assert callable(func)
         klass = type(self._selected_obj)
 
         results = []
@@ -588,28 +556,24 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self._set_result_index_ordered(concatenated)
         else:
             result = self.obj._constructor(dtype=np.float64)
-        # we will only try to coerce the result type if
-        # we have a numeric dtype, as these are *always* user-defined funcs
-        # the cython take a different path (and casting)
-        if is_numeric_dtype(result.dtype):
-            common_dtype = find_common_type([self._selected_obj.dtype, result.dtype])
-            if common_dtype is result.dtype:
-                result = maybe_downcast_numeric(result, self._selected_obj.dtype)
 
         result.name = self._selected_obj.name
         return result
 
-    def _transform_fast(self, result) -> Series:
+    def _can_use_transform_fast(self, result) -> bool:
+        return True
+
+    def _wrap_transform_fast_result(self, result: Series) -> Series:
         """
         fast version of transform, only applicable to
         builtin/cythonizable functions
         """
-        ids, _, ngroup = self.grouper.group_info
+        ids, _, _ = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
         out = algorithms.take_nd(result._values, ids)
         return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
 
-    def filter(self, func, dropna=True, *args, **kwargs):
+    def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
         Return a copy of a Series excluding elements from groups that
         do not satisfy the boolean criterion specified by func.
@@ -624,7 +588,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Notes
         -----
         Functions that mutate the passed object can produce unexpected
-        behavior or errors and are not supported. See :ref:`udf-mutation`
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
         Examples
@@ -1005,7 +969,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
       ``['column', 'aggfunc']`` to make it clearer what the arguments are.
       As usual, the aggregation can be a callable or a string alias.
 
-    See :ref:`groupby.aggregate.named` for more."""
+    See :ref:`groupby.aggregate.named` for more.
+
+    .. versionchanged:: 1.3.0
+
+        The resulting dtype will reflect the return value of the aggregating function.
+
+    >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
+          B
+    A
+    1   1.0
+    2   3.0"""
     )
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
@@ -1100,76 +1074,22 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # Note: we never get here with how="ohlc"; that goes through SeriesGroupBy
 
         data: Manager2D = self._get_data_to_aggregate()
+        orig = data
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
-        def cast_agg_result(result: ArrayLike, values: ArrayLike) -> ArrayLike:
-            # see if we can cast the values to the desired dtype
-            # this may not be the original dtype
-
-            if isinstance(result.dtype, np.dtype) and result.ndim == 1:
-                # We went through a SeriesGroupByPath and need to reshape
-                # GH#32223 includes case with IntegerArray values
-                # We only get here with values.dtype == object
-                result = result.reshape(1, -1)
-                # test_groupby_duplicate_columns gets here with
-                #  result.dtype == int64, values.dtype=object, how="min"
-
-            return result
-
-        def py_fallback(values: ArrayLike) -> ArrayLike:
-            # if self.grouper.aggregate fails, we fall back to a pure-python
-            #  solution
-
-            # We get here with a) EADtypes and b) object dtype
-            obj: FrameOrSeriesUnion
-
-            # call our grouper again with only this block
-            if values.ndim == 1:
-                # We only get here with ExtensionArray
-
-                obj = Series(values)
-            else:
-                # We only get here with values.dtype == object
-                # TODO special case not needed with ArrayManager
-                df = DataFrame(values.T)
-                # bc we split object blocks in grouped_reduce, we have only 1 col
-                # otherwise we'd have to worry about block-splitting GH#39329
-                assert df.shape[1] == 1
-                # Avoid call to self.values that can occur in DataFrame
-                #  reductions; see GH#28949
-                obj = df.iloc[:, 0]
-
-            # Create SeriesGroupBy with observed=True so that it does
-            # not try to add missing categories if grouping over multiple
-            # Categoricals. This will done by later self._reindex_output()
-            # Doing it here creates an error. See GH#34951
-            sgb = get_groupby(obj, self.grouper, observed=True)
-
-            # Note: bc obj is always a Series here, we can ignore axis and pass
-            #  `alt` directly instead of `lambda x: alt(x, axis=self.axis)`
-            # use _agg_general bc it will go through _cython_agg_general
-            #  which will correctly cast Categoricals.
-            res_ser = sgb._agg_general(
-                numeric_only=False, min_count=min_count, alias=how, npfunc=alt
-            )
-
-            # unwrap Series to get array
-            res_values = res_ser._mgr.arrays[0]
-            return cast_agg_result(res_values, values)
-
         def array_func(values: ArrayLike) -> ArrayLike:
-
             try:
                 result = self.grouper._cython_operation(
-                    "aggregate", values, how, axis=1, min_count=min_count
+                    "aggregate", values, how, axis=data.ndim - 1, min_count=min_count
                 )
             except NotImplementedError:
                 # generally if we have numeric_only=False
                 # and non-applicable functions
                 # try to python agg
-                result = py_fallback(values)
+                # TODO: shouldn't min_count matter?
+                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
 
             return result
 
@@ -1177,7 +1097,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  continue and exclude the block
         new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
-        if not len(new_mgr):
+        if not len(new_mgr) and len(orig):
+            # If the original Manager was already empty, no need to raise
             raise DataError("No numeric types to aggregate")
 
         return self._wrap_agged_manager(new_mgr)
@@ -1390,61 +1311,27 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @Substitution(klass="DataFrame")
     @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
+        return self._transform(
+            func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        )
 
-        if maybe_use_numba(engine):
-            with group_selection_context(self):
-                data = self._selected_obj
-            result = self._transform_with_numba(
-                data, func, *args, engine_kwargs=engine_kwargs, **kwargs
-            )
-            return self.obj._constructor(result, index=data.index, columns=data.columns)
+    def _can_use_transform_fast(self, result) -> bool:
+        return isinstance(result, DataFrame) and result.columns.equals(
+            self._obj_with_exclusions.columns
+        )
 
-        # optimized transforms
-        func = com.get_cython_func(func) or func
-
-        if not isinstance(func, str):
-            return self._transform_general(func, *args, **kwargs)
-
-        elif func not in base.transform_kernel_allowlist:
-            msg = f"'{func}' is not a valid function name for transform(name)"
-            raise ValueError(msg)
-        elif func in base.cythonized_kernels or func in base.transformation_kernels:
-            # cythonized transformation or canned "reduction+broadcast"
-            return getattr(self, func)(*args, **kwargs)
-        # GH 30918
-        # Use _transform_fast only when we know func is an aggregation
-        if func in base.reduction_kernels:
-            # If func is a reduction, we need to broadcast the
-            # result to the whole group. Compute func result
-            # and deal with possible broadcasting below.
-            # Temporarily set observed for dealing with categoricals.
-            with com.temp_setattr(self, "observed", True):
-                result = getattr(self, func)(*args, **kwargs)
-
-            if isinstance(result, DataFrame) and result.columns.equals(
-                self._obj_with_exclusions.columns
-            ):
-                return self._transform_fast(result)
-
-        return self._transform_general(func, *args, **kwargs)
-
-    def _transform_fast(self, result: DataFrame) -> DataFrame:
+    def _wrap_transform_fast_result(self, result: DataFrame) -> DataFrame:
         """
         Fast transform path for aggregations
         """
         obj = self._obj_with_exclusions
 
         # for each col, reshape to size of original frame by take operation
-        ids, _, ngroup = self.grouper.group_info
+        ids, _, _ = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
-        output = [
-            algorithms.take_nd(result.iloc[:, i].values, ids)
-            for i, _ in enumerate(result.columns)
-        ]
-
-        return self.obj._constructor._from_arrays(
-            output, columns=result.columns, index=obj.index
-        )
+        output = result.take(ids, axis=0)
+        output.index = obj.index
+        return output
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, str):
@@ -1532,7 +1419,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         which group you are working on.
 
         Functions that mutate the passed object can produce unexpected
-        behavior or errors and are not supported. See :ref:`udf-mutation`
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
         Examples
@@ -1641,7 +1528,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         raise AssertionError("invalid ndim for _gotitem")
 
-    def _wrap_frame_output(self, result, obj: DataFrame) -> DataFrame:
+    def _wrap_frame_output(self, result: dict, obj: DataFrame) -> DataFrame:
         result_index = self.grouper.levels[0]
 
         if self.axis == 0:
