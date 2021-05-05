@@ -9,6 +9,7 @@ from zipfile import BadZipFile
 
 import numpy as np
 import pytest
+from xlrd import XLRDError
 
 import pandas.util._test_decorators as td
 
@@ -718,9 +719,15 @@ class TestReaders:
 
     def test_corrupt_bytes_raises(self, read_ext, engine):
         bad_stream = b"foo"
-        if engine is None or engine == "xlrd":
+        if engine is None:
             error = ValueError
-            msg = "File is not a recognized excel file"
+            msg = (
+                "Excel file format cannot be determined, you must "
+                "specify an engine manually."
+            )
+        elif engine == "xlrd":
+            error = XLRDError
+            msg = "Unsupported format, or corrupt file.*"
         else:
             error = BadZipFile
             msg = "File is not a zip file"
