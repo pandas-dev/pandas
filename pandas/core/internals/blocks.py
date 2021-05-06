@@ -2036,7 +2036,7 @@ def to_native_types(
     elif isinstance(values, ExtensionArray):
         mask = isna(values)
 
-        new_values = np.array(values, dtype="object")
+        new_values = np.asarray(values, dtype="object")
 
         new_values[mask] = na_rep
         return new_values
