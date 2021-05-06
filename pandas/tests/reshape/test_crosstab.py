@@ -559,6 +559,8 @@ class TestCrosstab:
         expected = DataFrame(
             expected_data, index=expected_index, columns=expected_column
         )
+        # aggfunc is np.size, resulting in integers
+        expected["All"] = expected["All"].astype("int64")
         tm.assert_frame_equal(result, expected)
 
     def test_crosstab_duplicate_names(self):

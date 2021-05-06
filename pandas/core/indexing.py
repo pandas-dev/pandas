@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCMultiIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -48,11 +47,15 @@ import pandas.core.common as com
 from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
     check_array_indexer,
+    is_empty_indexer,
     is_exact_shape_match,
     is_list_like_indexer,
     length_of_indexer,
 )
-from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -641,7 +644,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         ax = self.obj._get_axis(0)
 
-        if isinstance(ax, ABCMultiIndex) and self.name != "iloc":
+        if isinstance(ax, MultiIndex) and self.name != "iloc":
             with suppress(TypeError, KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
                 return ax.get_loc(key)
@@ -689,7 +692,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         if (
             axis == column_axis
-            and not isinstance(self.obj.columns, ABCMultiIndex)
+            and not isinstance(self.obj.columns, MultiIndex)
             and is_list_like_indexer(key)
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
@@ -698,11 +701,12 @@ class _LocationIndexer(NDFrameIndexerBase):
             keys = self.obj.columns.union(key, sort=False)
 
             self.obj._mgr = self.obj._mgr.reindex_axis(
-                keys, axis=0, copy=False, consolidate=False, only_slice=True
+                keys, axis=0, consolidate=False, only_slice=True
             )
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
+            key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
             key = com.apply_if_callable(key, self.obj)
@@ -754,7 +758,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         -------
         bool
         """
-        if any(isinstance(ax, ABCMultiIndex) for ax in self.obj.axes):
+        if any(isinstance(ax, MultiIndex) for ax in self.obj.axes):
             return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
 
@@ -815,7 +819,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         ax0 = self.obj._get_axis(0)
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
-        if isinstance(ax0, ABCMultiIndex) and self.name != "iloc":
+        if isinstance(ax0, MultiIndex) and self.name != "iloc":
             with suppress(IndexingError):
                 return self._handle_lowerdim_multi_index_axis0(tup)
 
@@ -911,6 +915,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     def __getitem__(self, key):
         if type(key) is tuple:
+            key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
                 with suppress(KeyError, IndexError, AttributeError):
@@ -993,7 +998,7 @@ class _LocIndexer(_LocationIndexer):
                 return False
 
             ax = self.obj.axes[i]
-            if isinstance(ax, ABCMultiIndex):
+            if isinstance(ax, MultiIndex):
                 return False
 
             if isinstance(k, str) and ax._supports_partial_string_indexing:
@@ -1139,7 +1144,7 @@ class _LocIndexer(_LocationIndexer):
         elif is_list_like_indexer(key):
 
             # an iterable multi-selection
-            if not (isinstance(key, tuple) and isinstance(labels, ABCMultiIndex)):
+            if not (isinstance(key, tuple) and isinstance(labels, MultiIndex)):
 
                 if hasattr(key, "ndim") and key.ndim > 1:
                     raise ValueError("Cannot index with multidimensional key")
@@ -1202,20 +1207,20 @@ class _LocIndexer(_LocationIndexer):
         is_int_index = labels.is_integer()
         is_int_positional = is_integer(key) and not is_int_index
 
-        if is_scalar(key) or isinstance(labels, ABCMultiIndex):
+        if is_scalar(key) or isinstance(labels, MultiIndex):
             # Otherwise get_loc will raise InvalidIndexError
 
             # if we are a label return me
             try:
                 return labels.get_loc(key)
             except LookupError:
-                if isinstance(key, tuple) and isinstance(labels, ABCMultiIndex):
+                if isinstance(key, tuple) and isinstance(labels, MultiIndex):
                     if len(key) == labels.nlevels:
                         return {"key": key}
                     raise
             except InvalidIndexError:
                 # GH35015, using datetime as column indices raises exception
-                if not isinstance(labels, ABCMultiIndex):
+                if not isinstance(labels, MultiIndex):
                     raise
             except TypeError:
                 pass
@@ -1241,6 +1246,9 @@ class _LocIndexer(_LocationIndexer):
             return labels.get_locs(key)
 
         elif is_list_like_indexer(key):
+
+            if is_iterator(key):
+                key = list(key)
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(labels, key)
@@ -1530,6 +1538,9 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
 
+        if is_iterator(key):
+            key = list(key)
+
         if isinstance(key, list):
             key = np.asarray(key)
 
@@ -1571,6 +1582,8 @@ class _iLocIndexer(_LocationIndexer):
 
     def _get_setitem_indexer(self, key):
         # GH#32257 Fall through to let numpy do validation
+        if is_iterator(key):
+            return list(key)
         return key
 
     # -------------------------------------------------------------------
@@ -1609,7 +1622,7 @@ class _iLocIndexer(_LocationIndexer):
         # GH 10360, GH 27841
         if isinstance(indexer, tuple) and len(indexer) == len(self.obj.axes):
             for i, ax in zip(indexer, self.obj.axes):
-                if isinstance(ax, ABCMultiIndex) and not (
+                if isinstance(ax, MultiIndex) and not (
                     is_integer(i) or com.is_null_slice(i)
                 ):
                     take_split_path = True
@@ -1808,7 +1821,7 @@ class _iLocIndexer(_LocationIndexer):
         sub_indexer = list(indexer)
         pi = indexer[0]
 
-        multiindex_indexer = isinstance(self.obj.columns, ABCMultiIndex)
+        multiindex_indexer = isinstance(self.obj.columns, MultiIndex)
 
         unique_cols = value.columns.is_unique
 
@@ -1872,7 +1885,11 @@ class _iLocIndexer(_LocationIndexer):
         # GH#6149 (null slice), GH#10408 (full bounds)
         if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
             ser = value
-        elif is_array_like(value) and is_exact_shape_match(ser, value):
+        elif (
+            is_array_like(value)
+            and is_exact_shape_match(ser, value)
+            and not is_empty_indexer(pi, value)
+        ):
             if is_list_like(pi):
                 ser = value[np.argsort(pi)]
             else:
@@ -2148,8 +2165,8 @@ class _iLocIndexer(_LocationIndexer):
                 # we have a multi-index and are trying to align
                 # with a particular, level GH3738
                 if (
-                    isinstance(ax, ABCMultiIndex)
-                    and isinstance(df.index, ABCMultiIndex)
+                    isinstance(ax, MultiIndex)
+                    and isinstance(df.index, MultiIndex)
                     and ax.nlevels != df.index.nlevels
                 ):
                     raise TypeError(
@@ -2413,7 +2430,7 @@ def is_nested_tuple(tup, labels) -> bool:
 
     for k in tup:
         if is_list_like(k) or isinstance(k, slice):
-            return isinstance(labels, ABCMultiIndex)
+            return isinstance(labels, MultiIndex)
 
     return False
 
