@@ -211,20 +211,9 @@ class BaseBlockManager(DataManager):
             axis = 1 if axis == 0 else 0
         return axis
 
-    def set_axis(
-        self, axis: int, new_labels: Index, verify_integrity: bool = True
-    ) -> None:
+    def set_axis(self, axis: int, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
-        if verify_integrity:
-            old_len = len(self.axes[axis])
-            new_len = len(new_labels)
-
-            if new_len != old_len:
-                raise ValueError(
-                    f"Length mismatch: Expected axis has {old_len} elements, new "
-                    f"values have {new_len} elements"
-                )
-
+        self._validate_set_axis(axis, new_labels)
         self.axes[axis] = new_labels
 
     @property
