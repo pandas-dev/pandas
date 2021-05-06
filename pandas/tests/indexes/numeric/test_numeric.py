@@ -19,6 +19,12 @@ class TestFloat64Index(NumericBase):
     _index_cls = Float64Index
     _dtype = np.float64
 
+    @pytest.fixture(
+        params=["int64", "uint64", "category", "datetime64"],
+    )
+    def invalid_dtype(self, request):
+        return request.param
+
     @pytest.fixture
     def simple_index(self) -> Index:
         values = np.arange(5, dtype=self._dtype)
@@ -102,18 +108,6 @@ class TestFloat64Index(NumericBase):
         assert isinstance(result, index_cls)
         assert result.dtype == dtype
         assert pd.isna(result.values).all()
-
-    @pytest.mark.parametrize(
-        "dtype",
-        [
-            "int64",
-            "uint64",
-            "category",
-            "datetime64",
-        ],
-    )
-    def test_invalid_dtype(self, dtype):
-        self.check_invalid_dtype(dtype)
 
     def test_constructor_invalid(self):
         index_cls = self._index_cls
@@ -388,6 +382,12 @@ class TestInt64Index(NumericInt):
     _index_cls = Int64Index
     _dtype = np.int64
 
+    @pytest.fixture(
+        params=["uint64", "float64", "category", "datetime64"],
+    )
+    def invalid_dtype(self, request):
+        return request.param
+
     @pytest.fixture
     def simple_index(self) -> Index:
         return self._index_cls(range(0, 20, 2), dtype=self._dtype)
@@ -480,23 +480,17 @@ class TestInt64Index(NumericInt):
         arr = Index([1, 2, 3, 4], dtype=object)
         assert isinstance(arr, Index)
 
-    @pytest.mark.parametrize(
-        "dtype",
-        [
-            "uint64",
-            "float64",
-            "category",
-            "datetime64",
-        ],
-    )
-    def test_invalid_dtype(self, dtype):
-        self.check_invalid_dtype(dtype)
-
 
 class TestUInt64Index(NumericInt):
 
     _index_cls = UInt64Index
     _dtype = np.uint64
+
+    @pytest.fixture(
+        params=["int64", "float64", "category", "datetime64"],
+    )
+    def invalid_dtype(self, request):
+        return request.param
 
     @pytest.fixture
     def simple_index(self) -> Index:
@@ -537,18 +531,6 @@ class TestUInt64Index(NumericInt):
         idx = index_cls([1, 2 ** 63 + 1], dtype=dtype)
         res = Index([1, 2 ** 63 + 1], dtype=dtype)
         tm.assert_index_equal(res, idx)
-
-    @pytest.mark.parametrize(
-        "dtype",
-        [
-            "int64",
-            "float64",
-            "category",
-            "datetime64",
-        ],
-    )
-    def test_invalid_dtype(self, dtype):
-        self.check_invalid_dtype(dtype)
 
 
 @pytest.mark.parametrize(

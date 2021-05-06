@@ -832,8 +832,9 @@ class NumericBase(Base):
         result = a - fidx
         tm.assert_index_equal(result, expected)
 
-    def check_invalid_dtype(self, dtype):
+    def test_invalid_dtype(self, invalid_dtype):
         # GH 29539
+        dtype = invalid_dtype
         with pytest.raises(
             ValueError,
             match=rf"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}",

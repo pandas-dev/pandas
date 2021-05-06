@@ -23,6 +23,12 @@ OI = Index
 class TestRangeIndex(NumericBase):
     _index_cls = RangeIndex
 
+    @pytest.fixture(
+        params=["uint64", "float64", "category", "datetime64"],
+    )
+    def invalid_dtype(self, request):
+        return request.param
+
     @pytest.fixture
     def simple_index(self) -> Index:
         return self._index_cls(start=0, stop=20, step=2)
@@ -375,18 +381,6 @@ class TestRangeIndex(NumericBase):
     def test_pickle_compat_construction(self):
         # RangeIndex() is a valid constructor
         pass
-
-    @pytest.mark.parametrize(
-        "dtype",
-        [
-            "uint64",
-            "float64",
-            "category",
-            "datetime64",
-        ],
-    )
-    def test_invalid_dtype(self, dtype):
-        self.check_invalid_dtype(dtype)
 
     def test_slice_specialised(self, simple_index):
         index = simple_index
