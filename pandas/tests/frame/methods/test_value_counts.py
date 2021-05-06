@@ -103,6 +103,7 @@ def test_data_frame_value_counts_empty_normalize():
 
 
 def test_data_frame_value_counts_dropna_true():
+    # GH 41334
     df = pd.DataFrame(
         {
             "first_name": ["John", "Anne", "John", "Beth"],
@@ -122,6 +123,7 @@ def test_data_frame_value_counts_dropna_true():
 
 
 def test_data_frame_value_counts_dropna_false():
+    # GH 41334
     df = pd.DataFrame(
         {
             "first_name": ["John", "Anne", "John", "Beth"],
