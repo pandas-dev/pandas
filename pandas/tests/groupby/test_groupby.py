@@ -1236,7 +1236,7 @@ def test_groupby_keys_same_size_as_index():
     )
     df = DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=index)
     result = df.groupby([Grouper(level=0, freq=freq), "metric"]).mean()
-    expected = df.set_index([df.index, "metric"])
+    expected = df.set_index([df.index, "metric"]).astype(float)
 
     tm.assert_frame_equal(result, expected)
 
