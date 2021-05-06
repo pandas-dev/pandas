@@ -7,6 +7,7 @@ from inspect import signature
 from io import StringIO
 import os
 from pathlib import Path
+import sys
 
 import numpy as np
 import pytest
@@ -628,6 +629,20 @@ def test_read_table_equivalency_to_read_csv(all_parsers):
     data = "a\tb\n1\t2\n3\t4"
     expected = parser.read_csv(StringIO(data), sep="\t")
     result = parser.read_table(StringIO(data))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("read_func", ["read_csv", "read_table"])
+def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
+    # GH#41069
+    parser = all_parsers
+    data = "a b\n0 1"
+
+    sys.setprofile(lambda *a, **k: None)
+    result = getattr(parser, read_func)(StringIO(data))
+    sys.setprofile(None)
+
+    expected = DataFrame({"a b": ["0 1"]})
     tm.assert_frame_equal(result, expected)
 
 
