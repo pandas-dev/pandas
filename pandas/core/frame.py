@@ -54,6 +54,7 @@ from pandas._typing import (
     CompressionOptions,
     Dtype,
     FilePathOrBuffer,
+    FillnaOptions,
     FloatFormatType,
     FormattersType,
     FrameOrSeriesUnion,
@@ -5015,7 +5016,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value=...,
-        method: str | None = ...,
+        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
         limit=...,
@@ -5027,7 +5028,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value,
-        method: str | None,
+        method: FillnaOptions | None,
         axis: Axis | None,
         inplace: Literal[True],
         limit=...,
@@ -5060,7 +5061,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         *,
-        method: str | None,
+        method: FillnaOptions | None,
         inplace: Literal[True],
         limit=...,
         downcast=...,
@@ -5082,19 +5083,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         *,
-        method: str | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        *,
+        method: FillnaOptions | None,
         axis: Axis | None,
         inplace: Literal[True],
         limit=...,
@@ -5106,7 +5095,19 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value,
-        method: str | None,
+        *,
+        axis: Axis | None,
+        inplace: Literal[True],
+        limit=...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def fillna(
+        self,
+        value,
+        method: FillnaOptions | None,
         *,
         inplace: Literal[True],
         limit=...,
@@ -5118,7 +5119,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value=...,
-        method: str | None = ...,
+        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: bool = ...,
         limit=...,
@@ -5129,8 +5130,8 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
-        value=None,
-        method: str | None = None,
+        value: object | ArrayLike | None = None,
+        method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
         limit=None,

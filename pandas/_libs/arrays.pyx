@@ -45,9 +45,9 @@ cdef class NDArrayBacked:
     # TODO: implement take in terms of cnp.PyArray_TakeFrom
     # TODO: implement concat_same_type in terms of cnp.PyArray_Concatenate
 
-    cdef:
-        readonly ndarray _ndarray
-        readonly object _dtype
+    # cdef:
+    #    readonly ndarray _ndarray
+    #    readonly object _dtype
 
     def __init__(self, ndarray values, object dtype):
         self._ndarray = values
