@@ -1044,7 +1044,7 @@ def inspect_excel_format(
     Returns
     -------
     str or None
-        Format of file (if it can be determined)
+        Format of file if it can be determined.
 
     Raises
     ------
