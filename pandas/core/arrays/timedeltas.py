@@ -234,8 +234,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         if inferred_freq is None and freq is not None:
             type(self)._validate_frequency(self, freq)
 
+    # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
-    def _simple_new(
+    def _simple_new(  # type: ignore[override]
         cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=TD64NS_DTYPE
     ) -> TimedeltaArray:
         assert dtype == TD64NS_DTYPE, dtype

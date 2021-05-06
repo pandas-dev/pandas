@@ -54,6 +54,7 @@ from pandas._typing import (
     CompressionOptions,
     Dtype,
     FilePathOrBuffer,
+    FillnaOptions,
     FloatFormatType,
     FormattersType,
     FrameOrSeriesUnion,
@@ -5015,7 +5016,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value=...,
-        method: str | None = ...,
+        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
         limit=...,
@@ -5027,7 +5028,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value,
-        method: str | None,
+        method: FillnaOptions | None,
         axis: Axis | None,
         inplace: Literal[True],
         limit=...,
@@ -5060,7 +5061,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         *,
-        method: str | None,
+        method: FillnaOptions | None,
         inplace: Literal[True],
         limit=...,
         downcast=...,
@@ -5082,19 +5083,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         *,
-        method: str | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        *,
+        method: FillnaOptions | None,
         axis: Axis | None,
         inplace: Literal[True],
         limit=...,
@@ -5106,7 +5095,19 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value,
-        method: str | None,
+        *,
+        axis: Axis | None,
+        inplace: Literal[True],
+        limit=...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def fillna(
+        self,
+        value,
+        method: FillnaOptions | None,
         *,
         inplace: Literal[True],
         limit=...,
@@ -5118,7 +5119,7 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value=...,
-        method: str | None = ...,
+        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: bool = ...,
         limit=...,
@@ -5129,8 +5130,8 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
-        value=None,
-        method: str | None = None,
+        value: object | ArrayLike | None = None,
+        method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
         limit=None,
@@ -5954,7 +5955,7 @@ class DataFrame(NDFrame, OpsMixin):
     def drop_duplicates(
         self,
         subset: Hashable | Sequence[Hashable] | None = None,
-        keep: str | bool = "first",
+        keep: Literal["first"] | Literal["last"] | Literal[False] = "first",
         inplace: bool = False,
         ignore_index: bool = False,
     ) -> DataFrame | None:
@@ -6051,7 +6052,7 @@ class DataFrame(NDFrame, OpsMixin):
     def duplicated(
         self,
         subset: Hashable | Sequence[Hashable] | None = None,
-        keep: str | bool = "first",
+        keep: Literal["first"] | Literal["last"] | Literal[False] = "first",
     ) -> Series:
         """
         Return boolean Series denoting duplicate rows.
@@ -6146,7 +6147,7 @@ class DataFrame(NDFrame, OpsMixin):
         if self.empty:
             return self._constructor_sliced(dtype=bool)
 
-        def f(vals):
+        def f(vals) -> tuple[np.ndarray, int]:
             labels, shape = algorithms.factorize(vals, size_hint=len(self))
             return labels.astype("i8", copy=False), len(shape)
 
@@ -6173,7 +6174,14 @@ class DataFrame(NDFrame, OpsMixin):
         vals = (col.values for name, col in self.items() if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
 
-        ids = get_group_index(labels, shape, sort=False, xnull=False)
+        ids = get_group_index(
+            labels,
+            # error: Argument 1 to "tuple" has incompatible type "List[_T]";
+            # expected "Iterable[int]"
+            tuple(shape),  # type: ignore[arg-type]
+            sort=False,
+            xnull=False,
+        )
         result = self._constructor_sliced(duplicated_int64(ids, keep), index=self.index)
         return result.__finalize__(self, method="duplicated")
 
