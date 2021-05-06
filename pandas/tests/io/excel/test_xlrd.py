@@ -77,3 +77,22 @@ def test_read_excel_warning_with_xlsx_file(datapath):
     else:
         with tm.assert_produces_warning(None):
             pd.read_excel(path, "Sheet1", engine=None)
+
+
+def test_read_old_xls_files():
+    # GH 41226
+    import io
+    import struct
+
+    headers = {
+        "biff2": b"\x09\x00\x04\x00\x07\x00\x10\x00",
+        "biff3": b"\x09\x02\x06\x00\x00\x00\x10\x00",
+        "biff4": b"\x09\x04\x06\x00\x00\x00\x10\x00",
+        "biff5": b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",
+    }
+    body = b"\x00" * 16 + b"\x3e\x00\x03\x00\xfe\xff"  # Required for biff5
+    for file_format, header in headers.items():
+        f = io.BytesIO(header + body)
+        with pytest.raises(struct.error, match="unpack requires a buffer "):
+            # If struct.error is raised, file has passed xlrd's filetype checks
+            pd.read_excel(f)
