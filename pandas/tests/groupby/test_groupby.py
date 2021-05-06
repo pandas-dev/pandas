@@ -1739,7 +1739,15 @@ def test_pivot_table_values_key_error():
 def test_empty_groupby(columns, keys, values, method, op, request):
     # GH8093 & GH26411
 
-    if isinstance(values, Categorical) and len(keys) == 1 and method == "apply":
+    if (
+        isinstance(values, Categorical)
+        and not isinstance(columns, list)
+        and op in ["sum", "prod"]
+        and method != "apply"
+    ):
+        # handled below GH#41291
+        pass
+    elif isinstance(values, Categorical) and len(keys) == 1 and method == "apply":
         mark = pytest.mark.xfail(raises=TypeError, match="'str' object is not callable")
         request.node.add_marker(mark)
     elif (
@@ -1820,6 +1828,13 @@ def test_empty_groupby(columns, keys, values, method, op, request):
                     # GH#41291
                     # datetime64 -> prod and sum are invalid
                     msg = "datetime64 type does not support"
+                    with pytest.raises(TypeError, match=msg):
+                        get_result()
+
+                    return
+                elif isinstance(values, Categorical):
+                    # GH#41291
+                    msg = "category type does not support"
                     with pytest.raises(TypeError, match=msg):
                         get_result()
 
