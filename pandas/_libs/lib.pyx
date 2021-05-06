@@ -679,11 +679,14 @@ cpdef ndarray[object] ensure_string_array(
         arr,
         object na_value=np.nan,
         bint convert_na_value=True,
+        bint coerce=True,
         bint copy=True,
         bint skipna=True,
 ):
     """
-    Returns a new numpy array with object dtype and only strings and na values.
+    Checks that all elements in numpy are string or null and returns a new numpy array
+    with object dtype and only strings and na values if so. Otherwise,
+    raise a ValueError.
 
     Parameters
     ----------
@@ -693,6 +696,9 @@ cpdef ndarray[object] ensure_string_array(
         The value to use for na. For example, np.nan or pd.NA.
     convert_na_value : bool, default True
         If False, existing na values will be used unchanged in the new array.
+    coerce : bool, default True
+        Whether to coerce non-null non-string elements to strings.
+        Will raise ValueError otherwise.
     copy : bool, default True
         Whether to ensure that a new array is returned.
     skipna : bool, default True
@@ -724,7 +730,10 @@ cpdef ndarray[object] ensure_string_array(
             continue
 
         if not checknull(val):
-            result[i] = str(val)
+            if coerce:
+                result[i] = str(val)
+            else:
+                raise ValueError("Non-string element encountered in array.")
         else:
             if convert_na_value:
                 val = na_value

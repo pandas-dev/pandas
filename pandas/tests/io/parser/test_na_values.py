@@ -283,7 +283,6 @@ hello,NA,hi,NA
 hey,hello,hey,NA"""
     parser = all_parsers
     result = parser.read_csv(StringIO(data), use_nullable_dtypes=use_nullable_dtypes)
-    print(result)
     tm.assert_frame_equal(result, expected)
 
 
