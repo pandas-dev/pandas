@@ -141,7 +141,10 @@ class InvalidComparison(Exception):
     pass
 
 
-class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
+# error: Cannot determine type of 'repeat' in base class 'ExtensionArray'
+class DatetimeLikeArrayMixin(  # type: ignore[misc]
+    OpsMixin, NDArrayBackedExtensionArray
+):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 

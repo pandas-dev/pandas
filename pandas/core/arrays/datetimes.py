@@ -147,7 +147,8 @@ def _field_accessor(name, field, docstring=None):
     return property(f)
 
 
-class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
+# error: Cannot determine type of 'repeat' in base class 'ExtensionArray'
+class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 

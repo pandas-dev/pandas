@@ -243,7 +243,10 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
+# error: Cannot determine type of 'repeat' in base class 'ExtensionArray'
+class Categorical(  # type: ignore[misc]
+    NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin
+):
     """
     Represent a categorical variable in classic R / S-plus fashion.
 

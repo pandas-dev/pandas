@@ -27,7 +27,8 @@ from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
-class PandasArray(
+# error: Cannot determine type of 'repeat' in base class 'ExtensionArray'
+class PandasArray(  # type: ignore[misc]
     OpsMixin,
     NDArrayBackedExtensionArray,
     NDArrayOperatorsMixin,
