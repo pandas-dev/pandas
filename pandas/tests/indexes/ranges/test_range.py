@@ -381,7 +381,7 @@ class TestRangeIndex(NumericBase):
         [
             "uint64",
             "float64",
-            "categorical",
+            "category",
             "datetime64",
         ],
     )

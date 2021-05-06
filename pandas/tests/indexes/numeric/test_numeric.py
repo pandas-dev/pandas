@@ -108,7 +108,7 @@ class TestFloat64Index(NumericBase):
         [
             "int64",
             "uint64",
-            "categorical",
+            "category",
             "datetime64",
         ],
     )
@@ -485,7 +485,7 @@ class TestInt64Index(NumericInt):
         [
             "uint64",
             "float64",
-            "categorical",
+            "category",
             "datetime64",
         ],
     )
@@ -543,7 +543,7 @@ class TestUInt64Index(NumericInt):
         [
             "int64",
             "float64",
-            "categorical",
+            "category",
             "datetime64",
         ],
     )
