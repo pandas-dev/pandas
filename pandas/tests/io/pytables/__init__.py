@@ -9,4 +9,7 @@ pytestmark = [
     pytest.mark.filterwarnings(
         r"ignore:`np\.object` is a deprecated alias:DeprecationWarning"
     ),
+    pytest.mark.filterwarnings(
+        r"ignore:`np\.bool` is a deprecated alias:DeprecationWarning"
+    ),
 ]

@@ -3,7 +3,10 @@ import datetime
 from io import BytesIO
 import os
 import pathlib
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+    filterwarnings,
+)
 
 import numpy as np
 import pytest
@@ -36,7 +39,10 @@ except ImportError:
     _HAVE_PYARROW = False
 
 try:
-    import fastparquet
+    with catch_warnings():
+        # `np.bool` is a deprecated alias...
+        filterwarnings("ignore", "`np.bool`", category=DeprecationWarning)
+        import fastparquet
 
     _HAVE_FASTPARQUET = True
 except ImportError:
