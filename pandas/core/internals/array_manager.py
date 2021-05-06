@@ -274,9 +274,6 @@ class BaseArrayManager(DataManager):
         else:
             new_axes = self._axes
 
-        if len(result_arrays) == 0:
-            return self.make_empty(new_axes)
-
         # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
         # expected "List[Union[ndarray, ExtensionArray]]"
         return type(self)(result_arrays, new_axes)  # type: ignore[arg-type]
@@ -487,7 +484,7 @@ class BaseArrayManager(DataManager):
         indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
         arrays = [self.arrays[i] for i in indices]
         # TODO copy?
-        new_axes = [self._axes[0], self._axes[1][np.array(indices, dtype="int64")]]
+        new_axes = [self._axes[0], self._axes[1][np.array(indices, dtype="intp")]]
         return type(self)(arrays, new_axes, verify_integrity=False)
 
     def get_bool_data(self: T, copy: bool = False) -> T:
@@ -696,7 +693,6 @@ class BaseArrayManager(DataManager):
             return True
 
     # TODO
-    # equals
     # to_dict
 
 
