@@ -401,7 +401,7 @@ class Styler(StylerRenderer):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
 
-        .. versionadded:: TODO
+        .. versionadded:: 1.3.0
 
         Parameters
         ----------
