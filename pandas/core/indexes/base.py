@@ -907,9 +907,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_categorical_dtype(dtype):
             from pandas.core.indexes.category import CategoricalIndex
 
-            return CategoricalIndex(
-                self._values, name=self.name, dtype=dtype, copy=copy
-            )
+            return CategoricalIndex(self, name=self.name, dtype=dtype, copy=copy)
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
@@ -2923,8 +2921,10 @@ class Index(IndexOpsMixin, PandasObject):
         other, result_name = self._convert_can_do_setop(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
-            if isinstance(self, ABCMultiIndex) and not is_object_dtype(
-                unpack_nested_dtype(other)
+            if (
+                isinstance(self, ABCMultiIndex)
+                and not is_object_dtype(unpack_nested_dtype(other))
+                and len(other) > 0
             ):
                 raise NotImplementedError(
                     "Can only union MultiIndex with MultiIndex or Index of tuples, "
@@ -6431,8 +6431,8 @@ def _maybe_cast_data_without_dtype(subarr):
             return tda
         elif inferred == "period":
             try:
-                data = PeriodArray._from_sequence(subarr)
-                return data
+                parr = PeriodArray._from_sequence(subarr)
+                return parr
             except IncompatibleFrequency:
                 pass
 

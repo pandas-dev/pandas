@@ -460,7 +460,7 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
-@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+@td.skip_if_no("pyarrow", min_version="0.16.0")
 def test_arrow_roundtrip(dtype, dtype_object):
     # roundtrip possible from arrow 1.0.0
     import pyarrow as pa
@@ -476,7 +476,7 @@ def test_arrow_roundtrip(dtype, dtype_object):
     assert result.loc[2, "a"] is pd.NA
 
 
-@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+@td.skip_if_no("pyarrow", min_version="0.16.0")
 def test_arrow_load_from_zero_chunks(dtype, dtype_object):
     # GH-41040
     import pyarrow as pa
@@ -566,3 +566,23 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     result = arr.to_numpy(na_value=na_value)
     expected = np.array(["a", na_value, "b"], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_isin(dtype, request):
+    s = pd.Series(["a", "b", None], dtype=dtype)
+
+    result = s.isin(["a", "c"])
+    expected = pd.Series([True, False, False])
+    tm.assert_series_equal(result, expected)
+
+    result = s.isin(["a", pd.NA])
+    expected = pd.Series([True, False, True])
+    tm.assert_series_equal(result, expected)
+
+    result = s.isin([])
+    expected = pd.Series([False, False, False])
+    tm.assert_series_equal(result, expected)
+
+    result = s.isin(["a", pd.Timestamp.now()])
+    expected = pd.Series([True, False, False])
+    tm.assert_series_equal(result, expected)

@@ -31,8 +31,8 @@ class TextReader:
         source,
         delimiter: bytes | str = ...,  # single-character only
         header=...,
-        header_start=...,
-        header_end=...,
+        header_start: int = ...,  # int64_t
+        header_end: int = ...,  # uint64_t
         index_col=...,
         names=...,
         tokenize_chunksize: int = ...,  # int64_t

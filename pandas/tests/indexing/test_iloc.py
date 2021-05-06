@@ -122,7 +122,11 @@ class TestiLocBaseIndependent:
         else:
             values = obj[0].values
 
-        obj.iloc[:2] = box(arr[2:])
+        if frame_or_series is Series:
+            obj.iloc[:2] = box(arr[2:])
+        else:
+            obj.iloc[:2, 0] = box(arr[2:])
+
         expected = frame_or_series(np.array([3, 4, 3, 4], dtype="i8"))
         tm.assert_equal(obj, expected)
 
