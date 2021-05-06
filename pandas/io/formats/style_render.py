@@ -486,13 +486,8 @@ class StylerRenderer:
             formatter = {col: formatter for col in columns}
 
         for col in columns:
-            try:
-                format_func = formatter[col]
-            except KeyError:
-                format_func = None
-
             format_func = _maybe_wrap_formatter(
-                format_func,
+                formatter.get(col),
                 na_rep=na_rep,
                 precision=precision,
                 decimal=decimal,

@@ -51,6 +51,7 @@ import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     create_series_with_explicit_dtype,
+    ensure_wrapped_if_datetimelike,
 )
 
 if TYPE_CHECKING:
@@ -360,7 +361,10 @@ class Apply(metaclass=abc.ABCMeta):
                         # raised directly in _aggregate_named
                         pass
                     elif "no results" in str(err):
-                        # raised directly in _aggregate_multiple_funcs
+                        # reached in test_frame_apply.test_nuiscance_columns
+                        #  where the colg.aggregate(arg) ends up going through
+                        #  the selected_obj.ndim == 1 branch above with arg == ["sum"]
+                        #  on a datetime64[ns] column
                         pass
                     else:
                         raise
@@ -905,6 +909,7 @@ class FrameColumnApply(FrameApply):
     @property
     def series_generator(self):
         values = self.values
+        values = ensure_wrapped_if_datetimelike(values)
         assert len(values) > 0
 
         # We create one Series object, and will swap out the data inside

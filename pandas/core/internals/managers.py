@@ -1470,9 +1470,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
         elif isinstance(dtype, ExtensionDtype):
-            dtype = "object"
+            dtype = np.dtype("object")
         elif is_dtype_equal(dtype, str):
-            dtype = "object"
+            dtype = np.dtype("object")
 
         # error: Argument "dtype" to "empty" has incompatible type
         # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected

@@ -439,7 +439,8 @@ def test_median_empty_bins(observed):
 
     result = df.groupby(bins, observed=observed).median()
     expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
-    tm.assert_frame_equal(result, expected)
+    # TODO: GH 41137
+    tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
 @pytest.mark.parametrize(
@@ -619,7 +620,7 @@ def test_ops_general(op, targop):
     df = DataFrame(np.random.randn(1000))
     labels = np.random.randint(0, 50, size=1000).astype(float)
 
-    result = getattr(df.groupby(labels), op)().astype(float)
+    result = getattr(df.groupby(labels), op)()
     expected = df.groupby(labels).agg(targop)
     tm.assert_frame_equal(result, expected)
 
@@ -1077,6 +1078,7 @@ def test_describe_with_duplicate_output_column_names(as_index):
             "c": [10, 20, 30, 40, 50, 60],
         },
         columns=["a", "b", "b"],
+        copy=False,
     )
 
     expected = (
