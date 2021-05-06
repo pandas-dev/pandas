@@ -4410,7 +4410,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return result
 
-    @Appender(IndexOpsMixin._memory_usage.__doc__)
+    @doc(IndexOpsMixin._memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
         result = self._memory_usage(deep=deep)
 
