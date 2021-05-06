@@ -495,7 +495,7 @@ class StylerRenderer:
                 )
 
                 j = self.columns.get_loc(col)  # single value
-                for row in data[[col]].itertuples():
+                for row, value in data[[col]].itertuples():
                     i = self.index.get_loc(row)  # single value
                     self._display_funcs[(i, j)] = format_func
         else:  # will get multiple index value locs to loop over at performance cost
