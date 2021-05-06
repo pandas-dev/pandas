@@ -296,14 +296,13 @@ def test_constructor_raises(cls):
     with pytest.raises(ValueError, match=msg):
         cls(np.array([]))
 
-    with pytest.raises(ValueError, match=msg):
-        cls(np.array(["a", np.nan], dtype=object))
 
-    with pytest.raises(ValueError, match=msg):
-        cls(np.array(["a", None], dtype=object))
-
-    with pytest.raises(ValueError, match=msg):
-        cls(np.array(["a", pd.NaT], dtype=object))
+@pytest.mark.parametrize("na", [np.nan, pd.NaT, None, pd.NA])
+def test_constructor_nan_like(na):
+    expected = pd.arrays.StringArray(np.array(["a", pd.NA]))
+    tm.assert_extension_array_equal(
+        pd.arrays.StringArray(np.array(["a", na], dtype="object")), expected
+    )
 
 
 @pytest.mark.parametrize("copy", [True, False])

@@ -222,11 +222,12 @@ class StringArray(PandasArray):
                 f"'{self._ndarray.dtype}' dtype instead."
             )
         try:
+            lib.ensure_string_array(
+                self._ndarray, na_value=StringDtype.na_value, coerce=False, copy=False
+            ),
             NDArrayBacked.__init__(
                 self,
-                lib.ensure_string_array(
-                    self._ndarray, na_value=StringDtype.na_value, coerce=False
-                ),
+                self._ndarray,
                 StringDtype(),
             )
         except ValueError:
