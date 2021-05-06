@@ -2556,8 +2556,6 @@ class MultiIndex(Index):
                 target = self
             elif (indexer >= 0).all():
                 target = self.take(indexer)
-            # elif (indexer == -1).all():
-            #     target = self
             else:
                 # hopefully?
                 target = MultiIndex.from_tuples(target)
