@@ -726,6 +726,7 @@ Numeric
 - Bug in :meth:`DataFrame.transform` would raise ``SpecificationError`` when passed a dictionary and columns were missing; will now raise a ``KeyError`` instead (:issue:`40004`)
 - Bug in :meth:`DataFrameGroupBy.rank` giving incorrect results with ``pct=True`` and equal values between consecutive groups (:issue:`40518`)
 - Bug in :meth:`Series.count` would result in an ``int32`` result on 32-bit platforms when argument ``level=None`` (:issue:`40908`)
+- Bug in :class:`Series` and :class:`DataFrame` reductions with methods ``any`` and ``all`` not returning boolean results for object data (:issue:`12863`, :issue:`35450`, :issue:`27709`)
 - Bug in :meth:`Series.clip` would fail if series contains NA values and has nullable int or float as a data type (:issue:`40851`)
 
 Conversion
@@ -828,9 +829,11 @@ I/O
 - Bug in :func:`read_hdf` returning unexpected records when filtering on categorical string columns using ``where`` parameter (:issue:`39189`)
 - Bug in :func:`read_sas` raising ``ValueError`` when ``datetimes`` were null (:issue:`39725`)
 - Bug in :func:`read_excel` dropping empty values from single-column spreadsheets (:issue:`39808`)
+- Bug in :func:`read_excel` loading trailing empty rows/columns for some filetypes (:issue:`41167`)
 - Bug in :func:`read_excel` raising ``AttributeError`` with ``MultiIndex`` header followed by two empty rows and no index, and bug affecting :func:`read_excel`, :func:`read_csv`, :func:`read_table`, :func:`read_fwf`, and :func:`read_clipboard` where one blank row after a ``MultiIndex`` header with no index would be dropped (:issue:`40442`)
 - Bug in :meth:`DataFrame.to_string` misplacing the truncation column when ``index=False`` (:issue:`40907`)
 - Bug in :func:`read_orc` always raising ``AttributeError`` (:issue:`40918`)
+- Bug in :func:`read_csv` and :func:`read_table` misinterpreting arguments when ``sys.setprofile`` had been previously called (:issue:`41069`)
 - Bug in the conversion from pyarrow to pandas (e.g. for reading Parquet) with nullable dtypes and a pyarrow array whose data buffer size is not a multiple of dtype size (:issue:`40896`)
 
 Period
@@ -886,6 +889,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.rolling` returning sum not zero for all ``NaN`` window with ``min_periods=0`` if calculation is not numerical stable (:issue:`41053`)
 - Bug in :meth:`SeriesGroupBy.agg` failing to retain ordered :class:`CategoricalDtype` on order-preserving aggregations (:issue:`41147`)
 - Bug in :meth:`DataFrameGroupBy.min` and :meth:`DataFrameGroupBy.max` with multiple object-dtype columns and ``numeric_only=False`` incorrectly raising ``ValueError`` (:issue:41111`)
+- Bug in :meth:`DataFrameGroupBy.rank` with the GroupBy object's ``axis=0`` and the ``rank`` method's keyword ``axis=1`` (:issue:`41320`)
 
 Reshaping
 ^^^^^^^^^
