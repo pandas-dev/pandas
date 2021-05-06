@@ -327,6 +327,14 @@ class WrappedCythonOp:
         re-wrap if appropriate.
         """
         # TODO: general case implementation overridable by EAs.
+        if isinstance(values, BaseMaskedArray) and self.uses_mask():
+            return self._masked_ea_wrap_cython_operation(
+                values,
+                min_count=min_count,
+                ngroups=ngroups,
+                comp_ids=comp_ids,
+                **kwargs,
+            )
         orig_values = values
 
         if isinstance(orig_values, (DatetimeArray, PeriodArray)):
@@ -614,22 +622,13 @@ class WrappedCythonOp:
 
         if not isinstance(values, np.ndarray):
             # i.e. ExtensionArray
-            if isinstance(values, BaseMaskedArray) and self.uses_mask():
-                return self._masked_ea_wrap_cython_operation(
-                    values,
-                    min_count=min_count,
-                    ngroups=ngroups,
-                    comp_ids=comp_ids,
-                    **kwargs,
-                )
-            else:
-                return self._ea_wrap_cython_operation(
-                    values,
-                    min_count=min_count,
-                    ngroups=ngroups,
-                    comp_ids=comp_ids,
-                    **kwargs,
-                )
+            return self._ea_wrap_cython_operation(
+                values,
+                min_count=min_count,
+                ngroups=ngroups,
+                comp_ids=comp_ids,
+                **kwargs,
+            )
 
         return self._cython_op_ndim_compat(
             values,
