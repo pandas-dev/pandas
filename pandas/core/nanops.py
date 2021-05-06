@@ -486,6 +486,12 @@ def nanany(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=False, mask=mask)
+
+    # For object type, any won't necessarily return
+    # boolean values (numpy/numpy#4352)
+    if is_object_dtype(values):
+        values = values.astype(bool)
+
     # error: Incompatible return value type (got "Union[bool_, ndarray]", expected
     # "bool")
     return values.any(axis)  # type: ignore[return-value]
@@ -526,6 +532,12 @@ def nanall(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=True, mask=mask)
+
+    # For object type, all won't necessarily return
+    # boolean values (numpy/numpy#4352)
+    if is_object_dtype(values):
+        values = values.astype(bool)
+
     # error: Incompatible return value type (got "Union[bool_, ndarray]", expected
     # "bool")
     return values.all(axis)  # type: ignore[return-value]

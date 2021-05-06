@@ -270,6 +270,7 @@ class TestnanopsDataFrame:
                 value = value.astype("f8")
         return func(value, **kwargs)
 
+    @pytest.mark.xfail(reason="GH12863: numpy result won't match for object type")
     @pytest.mark.parametrize(
         "nan_op,np_op", [(nanops.nanany, np.any), (nanops.nanall, np.all)]
     )
