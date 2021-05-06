@@ -540,7 +540,8 @@ def read_csv(
     float_precision=None,
     storage_options: StorageOptions = None,
 ):
-    kwds = locals()
+    # locals() should never be modified
+    kwds = locals().copy()
     del kwds["filepath_or_buffer"]
     del kwds["sep"]
 
@@ -620,7 +621,8 @@ def read_table(
     memory_map=False,
     float_precision=None,
 ):
-    kwds = locals()
+    # locals() should never be modified
+    kwds = locals().copy()
     del kwds["filepath_or_buffer"]
     del kwds["sep"]
 
