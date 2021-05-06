@@ -493,9 +493,9 @@ class StylerRenderer:
                 escape=escape,
             )
 
+            j_ = self.columns.get_indexer_for([col])  # handle non-unique columns
             for row in data[[col]].itertuples():
-                i_ = self.index.get_indexer_for([row[0]])  # handle duplicate keys in
-                j_ = self.columns.get_indexer_for([col])  # non-unique indexes
+                i_ = self.index.get_indexer_for([row[0]])  # handle non-unique index
                 for i in i_:
                     for j in j_:
                         self._display_funcs[(i, j)] = format_func
