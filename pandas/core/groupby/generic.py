@@ -1625,14 +1625,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         if not self.as_index:
             index = np.arange(mgr.shape[1])
-            mgr.set_axis(1, ibase.Index(index), verify_integrity=False)
+            mgr.set_axis(1, ibase.Index(index))
             result = self.obj._constructor(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            mgr.set_axis(1, index, verify_integrity=False)
+            mgr.set_axis(1, index)
             result = self.obj._constructor(mgr)
 
         if self.axis == 1:
