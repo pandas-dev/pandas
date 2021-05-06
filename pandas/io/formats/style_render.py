@@ -496,39 +496,6 @@ class StylerRenderer:
             for ri in ris:
                 self._display_funcs[(ri, ci)] = format_func
 
-        # if self.index.is_unique and self.columns.is_unique:
-        #     for col in columns:
-        #         format_func = _maybe_wrap_formatter(
-        #             formatter.get(col),
-        #             na_rep=na_rep,
-        #             precision=precision,
-        #             decimal=decimal,
-        #             thousands=thousands,
-        #             escape=escape,
-        #         )
-        #
-        #         j = self.columns.get_loc(col)  # single value
-        #         for row, value in data[[col]].itertuples():
-        #             i = self.index.get_loc(row)  # single value
-        #             self._display_funcs[(i, j)] = format_func
-        # else:  # will get multiple index value locs to loop over at performance cost
-        #     for col in columns:
-        #         format_func = _maybe_wrap_formatter(
-        #             formatter.get(col),
-        #             na_rep=na_rep,
-        #             precision=precision,
-        #             decimal=decimal,
-        #             thousands=thousands,
-        #             escape=escape,
-        #         )
-        #
-        #         j_ = self.columns.get_indexer_for([col])  # handle non-unique columns
-        #         for row in data[[col]].itertuples():
-        #           i_ = self.index.get_indexer_for([row[0]])  # handle non-unique index
-        #             for i in i_:
-        #                 for j in j_:
-        #                     self._display_funcs[(i, j)] = format_func
-
         return self
 
 
