@@ -160,21 +160,10 @@ class BaseArrayManager(DataManager):
         axis = 1 if axis == 0 else 0
         return axis
 
-    def set_axis(
-        self, axis: int, new_labels: Index, verify_integrity: bool = True
-    ) -> None:
+    def set_axis(self, axis: int, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
+        self._validate_set_axis(axis, new_labels)
         axis = self._normalize_axis(axis)
-        if verify_integrity:
-            old_len = len(self._axes[axis])
-            new_len = len(new_labels)
-
-            if new_len != old_len:
-                raise ValueError(
-                    f"Length mismatch: Expected axis has {old_len} elements, new "
-                    f"values have {new_len} elements"
-                )
-
         self._axes[axis] = new_labels
 
     def consolidate(self: T) -> T:
