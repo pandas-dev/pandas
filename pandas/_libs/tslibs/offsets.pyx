@@ -2016,17 +2016,17 @@ cdef class QuarterOffset(SingleConstructorOffset):
         int month
 
     def __init__(self, n: int=1, normalize: bool=False, month: int=None,
-                 *, startingMonth: int=None):  # GH#5307 backwards compatibility
+                 *, startingMonth: int=None):
+        # GH#5307 startingMonth retained for backwards compatibility
         BaseOffset.__init__(self, n, normalize)
 
-        # GH#5307 backwards compatibility
+        # GH#5307 startingMonth retained for backwards compatibility
         if month and startingMonth and month != startingMonth:
             raise TypeError("Offset received both month and startingMonth")
         elif month is None and startingMonth is not None:
             warnings.warn(
                 "startingMonth is deprecated, use month instead.",
-                FutureWarning,
-                stacklevel=2
+                FutureWarning, stacklevel=2
             )
             month = startingMonth
 
