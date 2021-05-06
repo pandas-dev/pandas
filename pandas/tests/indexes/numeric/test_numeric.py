@@ -8,7 +8,6 @@ from pandas import (
     Float64Index,
     Index,
     Int64Index,
-    RangeIndex,
     Series,
     UInt64Index,
 )
@@ -105,21 +104,16 @@ class TestFloat64Index(NumericBase):
         assert pd.isna(result.values).all()
 
     @pytest.mark.parametrize(
-        "index, dtype",
+        "dtype",
         [
-            (Int64Index, "float64"),
-            (UInt64Index, "categorical"),
-            (Float64Index, "datetime64"),
-            (RangeIndex, "float64"),
+            "int64",
+            "uint64",
+            "categorical",
+            "datetime64",
         ],
     )
-    def test_invalid_dtype(self, index, dtype):
-        # GH 29539
-        with pytest.raises(
-            ValueError,
-            match=rf"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}",
-        ):
-            index([1, 2, 3], dtype=dtype)
+    def test_invalid_dtype(self, dtype):
+        self.check_invalid_dtype(dtype)
 
     def test_constructor_invalid(self):
         index_cls = self._index_cls
@@ -486,6 +480,18 @@ class TestInt64Index(NumericInt):
         arr = Index([1, 2, 3, 4], dtype=object)
         assert isinstance(arr, Index)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "uint64",
+            "float64",
+            "categorical",
+            "datetime64",
+        ],
+    )
+    def test_invalid_dtype(self, dtype):
+        self.check_invalid_dtype(dtype)
+
 
 class TestUInt64Index(NumericInt):
 
@@ -531,6 +537,18 @@ class TestUInt64Index(NumericInt):
         idx = index_cls([1, 2 ** 63 + 1], dtype=dtype)
         res = Index([1, 2 ** 63 + 1], dtype=dtype)
         tm.assert_index_equal(res, idx)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "int64",
+            "float64",
+            "categorical",
+            "datetime64",
+        ],
+    )
+    def test_invalid_dtype(self, dtype):
+        self.check_invalid_dtype(dtype)
 
 
 @pytest.mark.parametrize(

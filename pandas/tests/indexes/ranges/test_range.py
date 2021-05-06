@@ -376,6 +376,18 @@ class TestRangeIndex(NumericBase):
         # RangeIndex() is a valid constructor
         pass
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "uint64",
+            "float64",
+            "categorical",
+            "datetime64",
+        ],
+    )
+    def test_invalid_dtype(self, dtype):
+        self.check_invalid_dtype(dtype)
+
     def test_slice_specialised(self, simple_index):
         index = simple_index
         index.name = "foo"

@@ -831,3 +831,11 @@ class NumericBase(Base):
         a = np.zeros(5, dtype="float64")
         result = a - fidx
         tm.assert_index_equal(result, expected)
+
+    def check_invalid_dtype(self, dtype):
+        # GH 29539
+        with pytest.raises(
+            ValueError,
+            match=rf"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}",
+        ):
+            self._index_cls([1, 2, 3], dtype=dtype)
