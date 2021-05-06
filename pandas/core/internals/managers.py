@@ -535,9 +535,8 @@ class BaseBlockManager(DataManager):
                     axes = [self.items[:0], index]
                 else:
                     axes = [self.items[:0]] + self.axes[1:]
-            else:
-                axes = None
-            return self.make_empty(axes)
+                return self.make_empty(axes)
+            return self.make_empty()
 
         # FIXME: optimization potential
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
