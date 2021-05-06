@@ -64,6 +64,7 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
+    initializer: NDFrame | None = None,
 ) -> DataFrame:
     ...
 
@@ -80,6 +81,7 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
+    initializer: NDFrame | None = None,
 ) -> FrameOrSeriesUnion:
     ...
 
@@ -95,6 +97,7 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
+    initializer: NDFrame | None = None,
 ) -> FrameOrSeriesUnion:
     """
     Concatenate pandas objects along a particular axis with optional set logic
@@ -144,6 +147,12 @@ def concat(
 
     copy : bool, default True
         If False, do not copy data unnecessarily.
+    initializer : a Series or DataFrame object, default None
+        If the optional initializer is present, it is placed before the items of
+        ``objs`` before the concatenation, and serves as a default when the
+        sequence is empty.
+
+        .. versionadded:: 1.3.0
 
     Returns
     -------
@@ -151,7 +160,9 @@ def concat(
         When concatenating all ``Series`` along the index (axis=0), a
         ``Series`` is returned. When ``objs`` contains at least one
         ``DataFrame``, a ``DataFrame`` is returned. When concatenating along
-        the columns (axis=1), a ``DataFrame`` is returned.
+        the columns (axis=1), a ``DataFrame`` is returned. When concatenating
+        on an empty sequence, the ``DataFrame`` or ``Series`` object specified
+        in the ``initializer`` parameter will be returned.
 
     See Also
     --------
@@ -286,6 +297,23 @@ def concat(
     Traceback (most recent call last):
         ...
     ValueError: Indexes have overlapping values: ['a']
+
+    >>> pd.concat([])
+    Traceback (most recent call last):
+        ...
+    ValueError: No objects to concatenate and no initializer not set
+
+    >>> pd.concat([], initializer=pd.Series())
+    Series([], dtype: object)
+
+    >>> pd.concat([], initializer=pd.DataFrame())
+    Empty DataFrame
+    Columns: []
+    Index: []
+
+    Concatenating on an empty sequence with an initializer would yield
+    the object specified by the initializer.
+    >>>
     """
     op = _Concatenator(
         objs,
@@ -298,6 +326,7 @@ def concat(
         verify_integrity=verify_integrity,
         copy=copy,
         sort=sort,
+        initializer=initializer,
     )
 
     return op.get_result()
@@ -320,6 +349,7 @@ class _Concatenator:
         verify_integrity: bool = False,
         copy: bool = True,
         sort=False,
+        initializer: NDFrame | None = None,
     ):
         if isinstance(objs, (ABCSeries, ABCDataFrame, str)):
             raise TypeError(
@@ -344,7 +374,11 @@ class _Concatenator:
             objs = list(objs)
 
         if len(objs) == 0:
-            raise ValueError("No objects to concatenate")
+            if initializer is None:
+                raise ValueError("No objects to concatenate and no initializer set")
+
+        if initializer is not None:
+            objs = [initializer] + objs
 
         if keys is None:
             objs = list(com.not_none(*objs))

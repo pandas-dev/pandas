@@ -348,9 +348,43 @@ class TestConcatenate:
         expected = concat([df, df], keys=["foo", "bar"])
         tm.assert_frame_equal(result, expected[:10])
 
-    def test_concat_no_items_raises(self):
-        with pytest.raises(ValueError, match="No objects to concatenate"):
+    def test_concat_no_items_and_initializer_raises(self):
+        with pytest.raises(
+            ValueError, match="No objects to concatenate and no initializer set"
+        ):
             concat([])
+
+    def test_concat_no_items_and_series_initializer(self):
+        result = concat([], initializer=Series())
+        expected = Series()
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(np.random.randn(10))
+        series = expected.copy()
+        result = concat([], initializer=series)
+        tm.assert_series_equal(result, expected)
+
+    def test_concat_series_and_series_initializer(self):
+        series = Series(np.random.randn(10))
+
+        result = concat([series[5:]], initializer=series[:5])
+        tm.assert_series_equal(result, series)
+
+    def test_concat_no_items_and_df_initializer(self):
+        result = concat([], initializer=DataFrame())
+        expected = DataFrame()
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame(np.random.randn(1, 3))
+        df = expected.copy()
+        result = concat([], initializer=df)
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_df_and_df_initializer(self):
+        df = DataFrame(np.random.randn(10, 4))
+
+        result = concat([df[5:]], initializer=df[:5])
+        tm.assert_frame_equal(result, df)
 
     def test_concat_exclude_none(self):
         df = DataFrame(np.random.randn(10, 4))
@@ -360,6 +394,13 @@ class TestConcatenate:
         tm.assert_frame_equal(result, df)
         with pytest.raises(ValueError, match="All objects passed were None"):
             concat([None, None])
+
+    def test_concat_exclude_none_with_initializer(self):
+        df = DataFrame(np.random.randn(10, 4))
+
+        result = concat([None, None], initializer=df)
+        expected = df.copy()
+        tm.assert_frame_equal(result, expected)
 
     def test_concat_keys_with_none(self):
         # #1649
