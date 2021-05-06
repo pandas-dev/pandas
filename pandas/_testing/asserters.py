@@ -16,6 +16,8 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_categorical_dtype,
     is_extension_array_dtype,
+    is_float_dtype,
+    is_integer_dtype,
     is_interval_dtype,
     is_number,
     is_numeric_dtype,
@@ -268,8 +270,8 @@ def assert_index_equal(
     exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', RangeIndex can be substituted for
-        Int64Index and signed integer dtypes will be equivalent to each other, unsigned
-        integer to each other and float dtypes equivalent to each other.
+        Int64Index and integer dtypes will be equivalent to each other and
+        float dtypes equivalent to each other.
     check_names : bool, default True
         Whether to check the names attribute.
     check_less_precise : bool or int, default False
