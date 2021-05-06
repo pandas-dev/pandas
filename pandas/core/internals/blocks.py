@@ -2036,9 +2036,9 @@ def to_native_types(
     elif isinstance(values, ExtensionArray):
         mask = isna(values)
 
-        new_values = np.asarray(values.astype(object))
-        new_values[mask] = na_rep
-        return new_values
+        new_values_2 = np.asarray(values.astype(object))
+        new_values_2[mask] = na_rep
+        return new_values_2
 
     elif values.dtype.kind == "f":
         # see GH#13418: no special formatting is desired at the
