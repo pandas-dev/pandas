@@ -105,10 +105,11 @@ cdef class SeriesBinGrouper(_BaseGrouper):
         Py_ssize_t nresults, ngroups
 
     cdef public:
+        ndarray bins  # ndarray[int64_t]
         ndarray arr, index, dummy_arr, dummy_index
-        object values, f, bins, typ, ityp, name, idtype
+        object values, f, typ, ityp, name, idtype
 
-    def __init__(self, object series, object f, object bins):
+    def __init__(self, object series, object f, ndarray[int64_t] bins):
 
         assert len(bins) > 0  # otherwise we get IndexError in get_result
 
@@ -133,6 +134,8 @@ cdef class SeriesBinGrouper(_BaseGrouper):
         if len(bins) > 0 and bins[-1] == len(series):
             self.ngroups = len(bins)
         else:
+            # TODO: not reached except in test_series_bin_grouper directly
+            #  constructing SeriesBinGrouper; can we rule this case out?
             self.ngroups = len(bins) + 1
 
     def get_result(self):
