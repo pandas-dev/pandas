@@ -792,7 +792,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             result = lib.map_infer_mask(
                 arr, f, mask.view("uint8"), convert=False, na_value=na_value
             )
-            return self._from_sequence(result)
+            result = pa.array(result, mask=mask, type=pa.string(), from_pandas=True)
+            return type(self)(result)
         else:
             # This is when the result type is object. We reach this when
             # -> We know the result type is truly object (e.g. .encode returns bytes
