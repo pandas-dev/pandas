@@ -12,6 +12,7 @@ from pandas._typing import (
 )
 
 from pandas import Index
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.internals.blocks import Block as B
 
 def slice_len(slc: slice, objlen: int = ...) -> int: ...
@@ -65,6 +66,10 @@ class SharedBlock:
 
 class NumpyBlock(SharedBlock):
     values: np.ndarray
+    def getitem_block_index(self: T, slicer: slice) -> T: ...
+
+class NDArrayBackedBlock(SharedBlock):
+    values: NDArrayBackedExtensionArray
     def getitem_block_index(self: T, slicer: slice) -> T: ...
 
 class Block(SharedBlock):
