@@ -9208,12 +9208,8 @@ NaN 12.3   33.0
         if isinstance(decimals, (dict, Series)):
             if isinstance(decimals, Series) and not decimals.index.is_unique:
                 raise ValueError("Index of decimals must be unique")
-            if (
-                isinstance(decimals, dict)
-                and not all(is_integer(value) for value in decimals.values())
-            ) or (
-                isinstance(decimals, Series)
-                and not all(is_integer(value) for value in decimals.values)
+            if is_dict_like(decimals) and not all(
+                is_integer(value) for _, value in decimals.items()
             ):
                 raise TypeError("Values in decimals must be integers")
             new_cols = list(_dict_round(self, decimals))
