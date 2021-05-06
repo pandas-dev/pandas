@@ -1269,7 +1269,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             try:
                 # if this function is invalid for this dtype, we will ignore it.
-                result, counts = self.grouper.agg_series(obj, f)
+                result = self.grouper.agg_series(obj, f)
             except TypeError:
                 continue
 
@@ -1339,7 +1339,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # For SeriesGroupBy we could just use self instead of sgb
 
         if self.ngroups > 0:
-            res_values, _ = self.grouper.agg_series(ser, alt)
+            res_values = self.grouper.agg_series(ser, alt)
         else:
             # equiv: res_values = self._python_agg_general(alt)
             res_values = sgb._python_apply_general(alt, ser)._values

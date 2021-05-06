@@ -968,28 +968,28 @@ class BaseGrouper:
         )
 
     @final
-    def agg_series(self, obj: Series, func: F) -> tuple[ArrayLike, np.ndarray]:
+    def agg_series(self, obj: Series, func: F) -> ArrayLike:
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
         cast_back = True
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
-            result, counts = self._aggregate_series_pure_python(obj, func)
+            result = self._aggregate_series_pure_python(obj, func)
 
         elif not isinstance(obj._values, np.ndarray):
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
             # In the datetime64tz case it would incorrectly cast to tz-naive
             # TODO: can we get a performant workaround for EAs backed by ndarray?
-            result, counts = self._aggregate_series_pure_python(obj, func)
+            result = self._aggregate_series_pure_python(obj, func)
 
         elif obj.index._has_complex_internals:
             # Preempt TypeError in _aggregate_series_fast
-            result, counts = self._aggregate_series_pure_python(obj, func)
+            result = self._aggregate_series_pure_python(obj, func)
 
         else:
-            result, counts = self._aggregate_series_fast(obj, func)
+            result = self._aggregate_series_fast(obj, func)
             cast_back = False
 
         npvalues = lib.maybe_convert_objects(result, try_float=False)
@@ -998,11 +998,11 @@ class BaseGrouper:
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
             out = npvalues
-        return out, counts
+        return out
 
-    def _aggregate_series_fast(
-        self, obj: Series, func: F
-    ) -> tuple[ArrayLike, np.ndarray]:
+    def _aggregate_series_fast(self, obj: Series, func: F) -> np.ndarray:
+        # -> np.ndarray[object]
+
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
@@ -1017,11 +1017,12 @@ class BaseGrouper:
         obj = obj.take(indexer)
         ids = ids.take(indexer)
         sgrouper = libreduction.SeriesGrouper(obj, func, ids, ngroups)
-        result, counts = sgrouper.get_result()
-        return result, counts
+        result, _ = sgrouper.get_result()
+        return result
 
     @final
-    def _aggregate_series_pure_python(self, obj: Series, func: F):
+    def _aggregate_series_pure_python(self, obj: Series, func: F) -> np.ndarray:
+        # -> np.ndarray[object]
         ids, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
@@ -1046,7 +1047,7 @@ class BaseGrouper:
             counts[i] = group.shape[0]
             result[i] = res
 
-        return result, counts
+        return result
 
 
 class BinGrouper(BaseGrouper):
@@ -1204,16 +1205,17 @@ class BinGrouper(BaseGrouper):
         ping = grouper.Grouping(lev, lev, in_axis=False, level=None, name=lev.name)
         return [ping]
 
-    def _aggregate_series_fast(
-        self, obj: Series, func: F
-    ) -> tuple[ArrayLike, np.ndarray]:
+    def _aggregate_series_fast(self, obj: Series, func: F) -> np.ndarray:
+        # -> np.ndarray[object]
+
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
         #  - ngroups != 0
         #  - len(self.bins) > 0
         sbg = libreduction.SeriesBinGrouper(obj, func, self.bins)
-        return sbg.get_result()
+        result, _ = sbg.get_result()
+        return result
 
 
 def _is_indexed_like(obj, axes, axis: int) -> bool:
