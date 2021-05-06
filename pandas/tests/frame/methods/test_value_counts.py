@@ -102,15 +102,14 @@ def test_data_frame_value_counts_empty_normalize():
     tm.assert_series_equal(result, expected)
 
 
-def test_data_frame_value_counts_dropna_true():
+def test_data_frame_value_counts_dropna_true(nulls_fixture):
     # GH 41334
     df = pd.DataFrame(
         {
             "first_name": ["John", "Anne", "John", "Beth"],
-            "middle_name": ["Smith", pd.NA, pd.NA, "Louise"],
+            "middle_name": ["Smith", nulls_fixture, nulls_fixture, "Louise"],
         },
     )
-
     result = df.value_counts()
     expected = pd.Series(
         data=[1, 1],
@@ -122,12 +121,12 @@ def test_data_frame_value_counts_dropna_true():
     tm.assert_series_equal(result, expected)
 
 
-def test_data_frame_value_counts_dropna_false():
+def test_data_frame_value_counts_dropna_false(nulls_fixture):
     # GH 41334
     df = pd.DataFrame(
         {
             "first_name": ["John", "Anne", "John", "Beth"],
-            "middle_name": ["Smith", pd.NA, pd.NA, "Louise"],
+            "middle_name": ["Smith", nulls_fixture, nulls_fixture, "Louise"],
         },
     )
 
@@ -137,7 +136,7 @@ def test_data_frame_value_counts_dropna_false():
         index=pd.MultiIndex(
             levels=[
                 pd.Index(["Anne", "Beth", "John"]),
-                pd.Index(["Louise", "Smith", pd.NA]),
+                pd.Index(["Louise", "Smith", nulls_fixture]),
             ],
             codes=[[0, 1, 2, 2], [2, 0, 1, 2]],
             names=["first_name", "middle_name"],
