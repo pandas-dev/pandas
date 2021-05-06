@@ -663,7 +663,9 @@ class StataValueLabel:
         self.labname = catarray.name
         self._encoding = encoding
         categories = catarray.cat.categories
-        self.value_labels = list(zip(np.arange(len(categories)), categories))
+        self.value_labels: list[tuple[int | float, str], ...] = list(
+            zip(np.arange(len(categories)), categories)
+        )
         self.value_labels.sort(key=lambda x: x[0])
 
         self.text_len = 0
@@ -787,8 +789,9 @@ class StataNonCatValueLabel(StataValueLabel):
 
         self.labname = labname
         self._encoding = encoding
-        self.value_labels = list(value_labels.items())
-        self.value_labels.sort(key=lambda x: x[0])
+        self.value_labels: list[tuple[int | float, str], ...] = sorted(
+            value_labels.items(), key=lambda x: x[0]
+        )
 
         self.text_len = 0
         self.txt: list[bytes] = []

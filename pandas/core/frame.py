@@ -2470,6 +2470,8 @@ class DataFrame(NDFrame, OpsMixin):
             to labels as values. Labels for a single variable must be 32,000
             characters or smaller.
 
+            .. versionadded:: 1.3.0
+
         Raises
         ------
         NotImplementedError
