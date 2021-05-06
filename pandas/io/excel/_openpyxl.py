@@ -571,15 +571,18 @@ class OpenpyxlReader(BaseExcelReader):
         last_row_with_data = -1
         for row_number, row in enumerate(sheet.rows):
             converted_row = [self._convert_cell(cell, convert_float) for cell in row]
-            if not all(cell == "" for cell in converted_row):
+            while converted_row and converted_row[-1] == "":
+                # trim trailing empty elements
+                converted_row.pop()
+            if converted_row:
                 last_row_with_data = row_number
             data.append(converted_row)
 
         # Trim trailing empty rows
         data = data[: last_row_with_data + 1]
 
-        if self.book.read_only and len(data) > 0:
-            # With dimension reset, openpyxl no longer pads rows
+        if len(data) > 0:
+            # extend rows to max width
             max_width = max(len(data_row) for data_row in data)
             if min(len(data_row) for data_row in data) < max_width:
                 empty_cell: list[Scalar] = [""]

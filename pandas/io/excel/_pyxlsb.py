@@ -75,7 +75,27 @@ class PyxlsbReader(BaseExcelReader):
         return cell.v
 
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
-        return [
-            [self._convert_cell(c, convert_float) for c in r]
-            for r in sheet.rows(sparse=False)
-        ]
+        data: list[list[Scalar]] = []
+        prevous_row_number = -1
+        # When sparse=True the rows can have different lengths and empty rows are
+        # not returned. The cells are namedtuples of row, col, value (r, c, v).
+        for row in sheet.rows(sparse=True):
+            row_number = row[0].r
+            converted_row = [self._convert_cell(cell, convert_float) for cell in row]
+            while converted_row and converted_row[-1] == "":
+                # trim trailing empty elements
+                converted_row.pop()
+            if converted_row:
+                data.extend([[]] * (row_number - prevous_row_number - 1))
+                data.append(converted_row)
+                prevous_row_number = row_number
+        if data:
+            # extend rows to max_width
+            max_width = max(len(data_row) for data_row in data)
+            if min(len(data_row) for data_row in data) < max_width:
+                empty_cell: list[Scalar] = [""]
+                data = [
+                    data_row + (max_width - len(data_row)) * empty_cell
+                    for data_row in data
+                ]
+        return data

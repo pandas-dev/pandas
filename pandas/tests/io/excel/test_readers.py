@@ -1205,6 +1205,15 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_trailing_blanks(self, read_ext):
+        """
+        Sheets can contain blank cells with no data. Some of our readers
+        were including those cells, creating many empty rows and columns
+        """
+        file_name = "trailing_blanks" + read_ext
+        result = pd.read_excel(file_name)
+        assert result.shape == (3, 3)
+
 
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)
