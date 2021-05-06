@@ -1269,7 +1269,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             try:
                 # if this function is invalid for this dtype, we will ignore it.
-                result, counts = self.grouper.agg_series(obj, f)
+                result = self.grouper.agg_series(obj, f)
             except TypeError:
                 continue
 
@@ -1331,7 +1331,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             #  reductions; see GH#28949
             ser = df.iloc[:, 0]
 
-        res_values, _ = self.grouper.agg_series(ser, alt)
+        res_values = self.grouper.agg_series(ser, alt)
 
         if isinstance(values, Categorical):
             # Because we only get here with known dtype-preserving
