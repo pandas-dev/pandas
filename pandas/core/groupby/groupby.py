@@ -1269,7 +1269,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             try:
                 # if this function is invalid for this dtype, we will ignore it.
-                result, counts = self.grouper.agg_series(obj, f)
+                result = self.grouper.agg_series(obj, f)
             except TypeError:
                 continue
 
@@ -1339,7 +1339,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # For SeriesGroupBy we could just use self instead of sgb
 
         if self.ngroups > 0:
-            res_values, _ = self.grouper.agg_series(ser, alt)
+            res_values = self.grouper.agg_series(ser, alt)
         else:
             # equiv: res_values = self._python_agg_general(alt)
             res_values = sgb._python_apply_general(alt, ser)._values
@@ -2648,14 +2648,23 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if na_option not in {"keep", "top", "bottom"}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
+
+        kwargs = {
+            "ties_method": method,
+            "ascending": ascending,
+            "na_option": na_option,
+            "pct": pct,
+        }
+        if axis != 0:
+            # DataFrame uses different keyword name
+            kwargs["method"] = kwargs.pop("ties_method")
+            return self.apply(lambda x: x.rank(axis=axis, numeric_only=False, **kwargs))
+
         return self._cython_transform(
             "rank",
             numeric_only=False,
-            ties_method=method,
-            ascending=ascending,
-            na_option=na_option,
-            pct=pct,
             axis=axis,
+            **kwargs,
         )
 
     @final
