@@ -2626,10 +2626,8 @@ class MultiIndex(Index):
 
         # are we indexing a specific level
         if indexer is None and len(keyarr) and not isinstance(keyarr[0], tuple):
-            indexer = None
-            if len(self):
-                level = 0
-                _, indexer = self.reindex(keyarr, level=level)
+            level = 0
+            _, indexer = self.reindex(keyarr, level=level)
 
             # take all
             if indexer is None:
