@@ -466,7 +466,7 @@ Changed default periods in :class:`~pandas.tseries.offsets.QuarterBegin` and :cl
 Quarter-based time offset classes :class:`~pandas.tseries.offsets.QuarterEnd`,
 :class:`~pandas.tseries.offsets.QuarterBegin`, :class:`~pandas.tseries.offsets.BQuarterEnd`,
 :class:`~pandas.tseries.offsets.BQuarterBegin` now use ``month`` instead of ``startingMonth``
-as a time anchor parameter (:issue:`5307`). Its default value for :class:`~pandas.tseries.offsets.QuarterBegin`
+as a time anchor parameter (:issue:`5307`). The default value for :class:`~pandas.tseries.offsets.QuarterBegin`
 and :class:`~pandas.tseries.offsets.BQuarterBegin` is now 1 (January) instead of 3 (March),
 as a result these offsets are aligned with standard calendar quarters (:issue:`8435`).
 
