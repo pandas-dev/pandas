@@ -226,13 +226,6 @@ class Block(PandasObject):
         # expected "ndarray")
         return self.values  # type: ignore[return-value]
 
-    def get_block_values_for_json(self) -> np.ndarray:
-        """
-        This is used in the JSON C code.
-        """
-        # TODO(EA2D): reshape will be unnecessary with 2D EAs
-        return np.asarray(self.values).reshape(self.shape)
-
     @final
     @cache_readonly
     def fill_value(self):
@@ -270,7 +263,7 @@ class Block(PandasObject):
         if placement is None:
             placement = self._mgr_locs
 
-        if values.dtype.kind == "m":
+        if values.dtype.kind in ["m", "M"]:
             # TODO: remove this once fastparquet has stopped relying on it
             values = ensure_wrapped_if_datetimelike(values)
 
@@ -977,12 +970,7 @@ class Block(PandasObject):
             values[indexer] = value
 
         elif is_ea_value:
-            # GH#38952
-            if values.ndim == 1:
-                values[indexer] = value
-            else:
-                # TODO(EA2D): special case not needed with 2D EA
-                values[indexer] = value.to_numpy(values.dtype).reshape(-1, 1)
+            values[indexer] = value
 
         else:
             # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
@@ -1675,12 +1663,13 @@ class NumericBlock(NumpyBlock):
     is_numeric = True
 
 
-class NDArrayBackedExtensionBlock(libinternals.Block, EABackedBlock):
+class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock):
     """
     Block backed by an NDArrayBackedExtensionArray
     """
 
     values: NDArrayBackedExtensionArray
+    getitem_block_index = libinternals.NDArrayBackedBlock.getitem_block_index
 
     @property
     def is_view(self) -> bool:
@@ -1777,10 +1766,6 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     __slots__ = ()
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
-
-    def get_block_values_for_json(self):
-        # Not necessary to override, but helps perf
-        return self.values._ndarray
 
 
 class DatetimeTZBlock(DatetimeLikeBlock):
@@ -1903,7 +1888,9 @@ def get_block_type(values, dtype: Dtype | None = None):
         cls = ExtensionBlock
     elif isinstance(dtype, CategoricalDtype):
         cls = CategoricalBlock
-    elif vtype is Timestamp:
+    # error: Non-overlapping identity check (left operand type: "Type[generic]",
+    # right operand type: "Type[Timestamp]")
+    elif vtype is Timestamp:  # type: ignore[comparison-overlap]
         cls = DatetimeTZBlock
     elif isinstance(dtype, ExtensionDtype):
         # Note: need to be sure PandasArray is unwrapped before we get here

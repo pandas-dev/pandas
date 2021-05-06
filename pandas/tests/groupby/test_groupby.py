@@ -299,8 +299,8 @@ def test_with_na_groups(dtype):
         return float(len(x))
 
     agged = grouped.agg(f)
-
     expected = Series([4.0, 2.0], index=["bar", "foo"])
+
     tm.assert_series_equal(agged, expected)
 
 
@@ -1236,7 +1236,7 @@ def test_groupby_keys_same_size_as_index():
     )
     df = DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=index)
     result = df.groupby([Grouper(level=0, freq=freq), "metric"]).mean()
-    expected = df.set_index([df.index, "metric"]).astype(float)
+    expected = df.set_index([df.index, "metric"])
 
     tm.assert_frame_equal(result, expected)
 
@@ -2018,6 +2018,12 @@ def test_groupby_crash_on_nunique(axis):
         expected = expected.T
 
     tm.assert_frame_equal(result, expected)
+
+    # same thing, but empty columns
+    gb = df[[]].groupby(axis=axis_number, level=0)
+    res = gb.nunique()
+    exp = expected[[]]
+    tm.assert_frame_equal(res, exp)
 
 
 def test_groupby_list_level():
