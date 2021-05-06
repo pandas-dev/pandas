@@ -386,6 +386,7 @@ class Styler(StylerRenderer):
     def to_latex(
         self,
         buf: FilePathOrBuffer[str] | None = None,
+        *,
         column_format: str | None = None,
         position: str | None = None,
         position_float: str | None = None,
