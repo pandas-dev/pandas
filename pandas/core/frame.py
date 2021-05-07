@@ -9814,9 +9814,9 @@ NaN 12.3   33.0
 
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
         """
-        Count distinct observations over requested axis.
+        Count number of distinct elements in specified axis.
 
-        Return Series with number of distinct observations. Can ignore NaN
+        Return Series with number of distinct elements. Can ignore NaN
         values.
 
         Parameters
@@ -9838,10 +9838,10 @@ NaN 12.3   33.0
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 1, 1]})
+        >>> df = pd.DataFrame({'A': [4, 5, 6], 'B': [4, 1, 1]})
         >>> df.nunique()
         A    3
-        B    1
+        B    2
         dtype: int64
 
         >>> df.nunique(axis=1)
