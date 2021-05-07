@@ -351,9 +351,11 @@ def test_reindex_periodindex_with_object(p_values, o_values, values, expected_va
 @pytest.mark.parametrize("values", [[["a"], ["x"]], [[], []]])
 def test_reindex_empty_with_level(values):
     # GH41170
-    ser = Series(range(len(values[0])), index=MultiIndex.from_arrays(values))
+    ser = Series(
+        range(len(values[0])), index=MultiIndex.from_arrays(values), dtype="object"
+    )
     result = ser.reindex(np.array(["b"]), level=0)
     expected = Series(
-        index=MultiIndex(levels=[["b"], values[1]], codes=[[], []]), dtype=result.dtype
+        index=MultiIndex(levels=[["b"], values[1]], codes=[[], []]), dtype="object"
     )
     tm.assert_series_equal(result, expected)
