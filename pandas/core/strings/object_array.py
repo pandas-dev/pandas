@@ -38,7 +38,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         # For typing, _str_map relies on the object being sized.
         raise NotImplementedError
 
-    def _str_map(self, f, na_value=None, dtype: Optional[Dtype] = None):
+    def _str_map(
+        self, f, na_value=None, dtype: Optional[Dtype] = None, convert: bool = True
+    ):
         """
         Map a callable over valid element of the array.
 
@@ -53,6 +55,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             for object-dtype and Categorical and ``pd.NA`` for StringArray.
         dtype : Dtype, optional
             The dtype of the result array.
+        convert : bool, default True
+            Whether to call `maybe_convert_objects` on the resulting ndarray
         """
         if dtype is None:
             dtype = np.dtype("object")
@@ -66,9 +70,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         arr = np.asarray(self, dtype=object)
         mask = isna(arr)
-        convert = not np.all(mask)
+        map_convert = convert and not np.all(mask)
         try:
-            result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
+            result = lib.map_infer_mask(arr, f, mask.view(np.uint8), map_convert)
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.
             # The user may want to be warned by this, instead of getting NaN
@@ -94,7 +98,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             return result
         if na_value is not np.nan:
             np.putmask(result, mask, na_value)
-            if result.dtype == object:
+            if convert and result.dtype == object:
                 result = lib.maybe_convert_objects(result)
         return result
 
@@ -314,7 +318,21 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                     n = 0
                 regex = re.compile(pat)
                 f = lambda x: regex.split(x, maxsplit=n)
-        return self._str_map(f, dtype=object)
+
+        result = self._str_map(f, dtype=object)
+
+        # propagate nan values to match longest sequence (GH 18450)
+        if expand:
+            mask = isna(result)
+            valid = result[~mask]
+            if len(valid):
+                max_len = max(len(x) for x in valid)
+                na_value = self._str_na_value
+                empty_row = [na_value] * max_len
+                for idx in np.argwhere(mask):
+                    result[idx[0]] = empty_row
+
+        return result
 
     def _str_rsplit(self, pat=None, n=-1):
         if n is None or n == 0:
@@ -408,3 +426,30 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_rstrip(self, to_strip=None):
         return self._str_map(lambda x: x.rstrip(to_strip))
+
+    def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
+        regex = re.compile(pat, flags=flags)
+        na_value = self._str_na_value
+
+        if regex.groups == 1:
+
+            def mapper(x):
+                m = regex.search(x)
+                return m.groups()[0] if m else na_value
+
+            return self._str_map(mapper, convert=False)
+        else:
+            empty_row = [self._str_na_value] * regex.groups
+
+            def mapper(x):
+                m = regex.search(x)
+                return (
+                    [na_value if item is None else item for item in m.groups()]
+                    if m
+                    else empty_row
+                )
+
+            result = self._str_map(mapper, dtype="object")
+            for idx in np.argwhere(isna(result)):
+                result[idx[0]] = empty_row
+            return result

@@ -13,30 +13,31 @@ from pandas import (
 )
 
 
-def test_extract_expand_None():
-    values = Series(["fooBAD__barBAD", np.nan, "foo"])
+def test_extract_expand_kwarg_wrong_type_raises(any_string_dtype):
+    # TODO: should this raise TypeError
+    values = Series(["fooBAD__barBAD", np.nan, "foo"], dtype=any_string_dtype)
     with pytest.raises(ValueError, match="expand must be True or False"):
         values.str.extract(".*(BAD[_]+).*(BAD)", expand=None)
 
 
-def test_extract_expand_unspecified():
-    values = Series(["fooBAD__barBAD", np.nan, "foo"])
-    result_unspecified = values.str.extract(".*(BAD[_]+).*")
-    assert isinstance(result_unspecified, DataFrame)
-    result_true = values.str.extract(".*(BAD[_]+).*", expand=True)
-    tm.assert_frame_equal(result_unspecified, result_true)
+def test_extract_expand_kwarg(any_string_dtype):
+    s = Series(["fooBAD__barBAD", np.nan, "foo"], dtype=any_string_dtype)
+    expected = DataFrame(["BAD__", np.nan, np.nan], dtype=any_string_dtype)
+
+    result = s.str.extract(".*(BAD[_]+).*")
+    tm.assert_frame_equal(result, expected)
+
+    result = s.str.extract(".*(BAD[_]+).*", expand=True)
+    tm.assert_frame_equal(result, expected)
+
+    expected = DataFrame(
+        [["BAD__", "BAD"], [np.nan, np.nan], [np.nan, np.nan]], dtype=any_string_dtype
+    )
+    result = s.str.extract(".*(BAD[_]+).*(BAD)", expand=False)
+    tm.assert_frame_equal(result, expected)
 
 
-def test_extract_expand_False():
-    # Contains tests like those in test_match and some others.
-    values = Series(["fooBAD__barBAD", np.nan, "foo"])
-    er = [np.nan, np.nan]  # empty row
-
-    result = values.str.extract(".*(BAD[_]+).*(BAD)", expand=False)
-    exp = DataFrame([["BAD__", "BAD"], er, er])
-    tm.assert_frame_equal(result, exp)
-
-    # mixed
+def test_extract_expand_mixed_object():
     mixed = Series(
         [
             "aBAD_BAD",
@@ -51,47 +52,51 @@ def test_extract_expand_False():
         ]
     )
 
-    rs = Series(mixed).str.extract(".*(BAD[_]+).*(BAD)", expand=False)
-    exp = DataFrame([["BAD_", "BAD"], er, ["BAD_", "BAD"], er, er, er, er, er, er])
-    tm.assert_frame_equal(rs, exp)
+    result = Series(mixed).str.extract(".*(BAD[_]+).*(BAD)", expand=False)
+    er = [np.nan, np.nan]  # empty row
+    expected = DataFrame([["BAD_", "BAD"], er, ["BAD_", "BAD"], er, er, er, er, er, er])
+    tm.assert_frame_equal(result, expected)
 
-    # unicode
-    values = Series(["fooBAD__barBAD", np.nan, "foo"])
 
-    result = values.str.extract(".*(BAD[_]+).*(BAD)", expand=False)
-    exp = DataFrame([["BAD__", "BAD"], er, er])
-    tm.assert_frame_equal(result, exp)
-
+def test_extract_expand_index_raises():
     # GH9980
     # Index only works with one regex group since
     # multi-group would expand to a frame
     idx = Index(["A1", "A2", "A3", "A4", "B5"])
-    with pytest.raises(ValueError, match="supported"):
+    msg = "only one regex group is supported with Index"
+    with pytest.raises(ValueError, match=msg):
         idx.str.extract("([AB])([123])", expand=False)
 
-    # these should work for both Series and Index
-    for klass in [Series, Index]:
-        # no groups
-        s_or_idx = klass(["A1", "B2", "C3"])
-        msg = "pattern contains no capture groups"
-        with pytest.raises(ValueError, match=msg):
-            s_or_idx.str.extract("[ABC][123]", expand=False)
 
-        # only non-capturing groups
-        with pytest.raises(ValueError, match=msg):
-            s_or_idx.str.extract("(?:[AB]).*", expand=False)
+@pytest.mark.parametrize("klass", [Series, Index])
+def test_extract_expand_no_capture_groups_raises(klass, any_string_dtype):
+    s_or_idx = klass(["A1", "B2", "C3"], dtype=any_string_dtype)
+    msg = "pattern contains no capture groups"
 
-        # single group renames series/index properly
-        s_or_idx = klass(["A1", "A2"])
-        result = s_or_idx.str.extract(r"(?P<uno>A)\d", expand=False)
-        assert result.name == "uno"
+    # no groups
+    with pytest.raises(ValueError, match=msg):
+        s_or_idx.str.extract("[ABC][123]", expand=False)
 
-        exp = klass(["A", "A"], name="uno")
-        if klass == Series:
-            tm.assert_series_equal(result, exp)
-        else:
-            tm.assert_index_equal(result, exp)
+    # only non-capturing groups
+    with pytest.raises(ValueError, match=msg):
+        s_or_idx.str.extract("(?:[AB]).*", expand=False)
 
+
+@pytest.mark.parametrize("klass", [Series, Index])
+def test_extract_expand_single_capture_group(klass, any_string_dtype):
+    # single group renames series/index properly
+    s_or_idx = klass(["A1", "A2"], dtype=any_string_dtype)
+    result = s_or_idx.str.extract(r"(?P<uno>A)\d", expand=False)
+    assert result.name == "uno"
+
+    expected = klass(["A", "A"], dtype=any_string_dtype, name="uno")
+    if klass == Series:
+        tm.assert_series_equal(result, expected)
+    else:
+        tm.assert_index_equal(result, expected)
+
+
+def test_extract_expand_capture_groups():
     s = Series(["A1", "B2", "C3"])
     # one group, no matches
     result = s.str.extract("(_)", expand=False)
@@ -162,7 +167,9 @@ def test_extract_expand_False():
     )
     tm.assert_frame_equal(result, exp)
 
-    # GH6348
+
+def test_extract_expand_capture_groups_index():
+    # https://github.com/pandas-dev/pandas/issues/6348
     # not passing index to the extractor
     def check_index(index):
         data = ["A1", "B2", "C"]

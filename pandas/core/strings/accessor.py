@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
+from pandas._typing import IndexLabel
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -150,7 +151,6 @@ class StringMethods(NoNewAttributesMixin):
     # TODO: Dispatch all the methods
     # Currently the following are not dispatched to the array
     # * cat
-    # * extract
     # * extractall
 
     def __init__(self, data):
@@ -233,7 +233,7 @@ class StringMethods(NoNewAttributesMixin):
         self,
         result,
         name=None,
-        expand=None,
+        expand: Optional[bool] = None,
         fill_value=np.nan,
         returns_string=True,
     ):
@@ -256,24 +256,6 @@ class StringMethods(NoNewAttributesMixin):
         if expand is None:
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
-
-        elif expand is True and not isinstance(self._orig, ABCIndex):
-            # required when expand=True is explicitly specified
-            # not needed when inferred
-
-            def cons_row(x):
-                if is_list_like(x):
-                    return x
-                else:
-                    return [x]
-
-            result = [cons_row(x) for x in result]
-            if result:
-                # propagate nan values to match longest sequence (GH 18450)
-                max_len = max(len(x) for x in result)
-                result = [
-                    x * max_len if len(x) == 0 or x[0] is np.nan else x for x in result
-                ]
 
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
@@ -310,14 +292,14 @@ class StringMethods(NoNewAttributesMixin):
             index = self._orig.index
             # This is a mess.
             dtype: Optional[str]
-            if self._is_string and returns_string:
+            if not self._is_categorical and returns_string:
                 dtype = self._orig.dtype
             else:
                 dtype = None
 
             if expand:
                 cons = self._orig._constructor_expanddim
-                result = cons(result, columns=name, index=index, dtype=dtype)
+                result = cons(list(result), columns=name, index=index, dtype=dtype)
             else:
                 # Must be a Series
                 cons = self._orig._constructor
@@ -2272,7 +2254,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def extract(self, pat, flags=0, expand=True):
+    def extract(self, pat: str, flags: int = 0, expand: bool = True):
         r"""
         Extract capture groups in the regex `pat` as columns in a DataFrame.
 
@@ -2353,8 +2335,34 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
-        # TODO: dispatch
-        return str_extract(self, pat, flags, expand=expand)
+        if not isinstance(expand, bool):
+            raise ValueError("expand must be True or False")
+
+        regex = re.compile(pat, flags=flags)
+        if regex.groups == 0:
+            raise ValueError("pattern contains no capture groups")
+
+        if not expand and regex.groups > 1 and isinstance(self._data, ABCIndex):
+            raise ValueError("only one regex group is supported with Index")
+
+        result = self._data.array._str_extract(pat, flags, expand)
+
+        returns_df = regex.groups > 1 or expand
+        name: IndexLabel
+        if returns_df:
+            names = {v: k for k, v in regex.groupindex.items()}
+            name = [names.get(1 + i, i) for i in range(regex.groups)]
+        else:
+            name = next(iter(regex.groupindex)) if regex.groupindex else None
+
+        # extract is inconsistent for Indexes when expand is True. To avoid special
+        # casing _wrap_result we handle that case here
+        if expand and isinstance(self._data, ABCIndex):
+            from pandas import DataFrame
+
+            return DataFrame(list(result), columns=name, dtype=object)
+
+        return self._wrap_result(result, name=name, expand=returns_df)
 
     @forbid_nonstring_types(["bytes"])
     def extractall(self, pat, flags=0):
@@ -3004,24 +3012,6 @@ def cat_core(list_of_columns: List, sep: str):
     return np.sum(arr_with_sep, axis=0)
 
 
-def _groups_or_na_fun(regex):
-    """Used in both extract_noexpand and extract_frame"""
-    if regex.groups == 0:
-        raise ValueError("pattern contains no capture groups")
-    empty_row = [np.nan] * regex.groups
-
-    def f(x):
-        if not isinstance(x, str):
-            return empty_row
-        m = regex.search(x)
-        if m:
-            return [np.nan if item is None else item for item in m.groups()]
-        else:
-            return empty_row
-
-    return f
-
-
 def _result_dtype(arr):
     # workaround #27953
     # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
@@ -3032,100 +3022,6 @@ def _result_dtype(arr):
         return arr.dtype.name
     else:
         return object
-
-
-def _get_single_group_name(rx):
-    try:
-        return list(rx.groupindex.keys()).pop()
-    except IndexError:
-        return None
-
-
-def _str_extract_noexpand(arr, pat, flags=0):
-    """
-    Find groups in each string in the Series using passed regular
-    expression. This function is called from
-    str_extract(expand=False), and can return Series, DataFrame, or
-    Index.
-
-    """
-    from pandas import (
-        DataFrame,
-        array as pd_array,
-    )
-
-    regex = re.compile(pat, flags=flags)
-    groups_or_na = _groups_or_na_fun(regex)
-    result_dtype = _result_dtype(arr)
-
-    if regex.groups == 1:
-        result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
-        name = _get_single_group_name(regex)
-        # not dispatching, so we have to reconstruct here.
-        result = pd_array(result, dtype=result_dtype)
-    else:
-        if isinstance(arr, ABCIndex):
-            raise ValueError("only one regex group is supported with Index")
-        name = None
-        names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
-        columns = [names.get(1 + i, i) for i in range(regex.groups)]
-        if arr.size == 0:
-            # error: Incompatible types in assignment (expression has type
-            # "DataFrame", variable has type "ndarray")
-            result = DataFrame(  # type: ignore[assignment]
-                columns=columns, dtype=object
-            )
-        else:
-            dtype = _result_dtype(arr)
-            # error: Incompatible types in assignment (expression has type
-            # "DataFrame", variable has type "ndarray")
-            result = DataFrame(  # type:ignore[assignment]
-                [groups_or_na(val) for val in arr],
-                columns=columns,
-                index=arr.index,
-                dtype=dtype,
-            )
-    return result, name
-
-
-def _str_extract_frame(arr, pat, flags=0):
-    """
-    For each subject string in the Series, extract groups from the
-    first match of regular expression pat. This function is called from
-    str_extract(expand=True), and always returns a DataFrame.
-
-    """
-    from pandas import DataFrame
-
-    regex = re.compile(pat, flags=flags)
-    groups_or_na = _groups_or_na_fun(regex)
-    names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
-    columns = [names.get(1 + i, i) for i in range(regex.groups)]
-
-    if len(arr) == 0:
-        return DataFrame(columns=columns, dtype=object)
-    try:
-        result_index = arr.index
-    except AttributeError:
-        result_index = None
-    dtype = _result_dtype(arr)
-    return DataFrame(
-        [groups_or_na(val) for val in arr],
-        columns=columns,
-        index=result_index,
-        dtype=dtype,
-    )
-
-
-def str_extract(arr, pat, flags=0, expand=True):
-    if not isinstance(expand, bool):
-        raise ValueError("expand must be True or False")
-    if expand:
-        result = _str_extract_frame(arr._orig, pat, flags=flags)
-        return result.__finalize__(arr._orig, method="str_extract")
-    else:
-        result, name = _str_extract_noexpand(arr._orig, pat, flags=flags)
-        return arr._wrap_result(result, name=name, expand=expand)
 
 
 def str_extractall(arr, pat, flags=0):
