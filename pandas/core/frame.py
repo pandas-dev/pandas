@@ -6457,8 +6457,6 @@ class DataFrame(NDFrame, OpsMixin):
         6         0            0.25
         dtype: float64
 
-        **dropna**
-
         With `dropna` set to `False` we can also count rows with NA values.
 
         >>> df = pd.DataFrame({'first_name': ['John', 'Anne', 'John', 'Beth'],
@@ -6470,7 +6468,7 @@ class DataFrame(NDFrame, OpsMixin):
         2       John        <NA>
         3       Beth      Louise
 
-        >>> df.value_counts()  # dropna is True per default
+        >>> df.value_counts()
         first_name  middle_name
         Beth        Louise         1
         John        Smith          1
