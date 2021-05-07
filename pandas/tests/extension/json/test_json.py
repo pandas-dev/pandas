@@ -312,10 +312,6 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         we'll be able to dispatch unique.
         """
 
-    @pytest.mark.parametrize("as_index", [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        super().test_groupby_extension_agg(as_index, data_for_grouping)
-
     @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
     def test_groupby_agg_extension(self, data_for_grouping):
         super().test_groupby_agg_extension(data_for_grouping)

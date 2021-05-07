@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 
 from pandas._typing import (
+    ArrayLike,
     FrameOrSeries,
     final,
 )
@@ -462,6 +463,8 @@ class Grouping:
         self.in_axis = in_axis
         self.dropna = dropna
 
+        self._group_arraylike = None
+
         # right place for this?
         if isinstance(grouper, (Series, Index)) and name is None:
             self.name = grouper.name
@@ -602,6 +605,22 @@ class Grouping:
         return self._codes  # type: ignore[return-value]
 
     @cache_readonly
+    def result_arraylike(self) -> ArrayLike:
+        """
+        Analogous to result_index, but holding an ArrayLike to ensure
+        we can can retain ExtensionDtypes.
+        """
+        ridx = self.result_index  # initialized _group_arraylike
+
+        if self._group_arraylike is None:
+            # This should only occur when ridx is CategoricalIndex
+            self._group_arraylike = ridx._values
+
+        # error: Incompatible return value type (got "None", expected
+        # "Union[ExtensionArray, ndarray]")
+        return self._group_arraylike  # type: ignore[return-value]
+
+    @cache_readonly
     def result_index(self) -> Index:
         if self.all_grouper is not None:
             group_idx = self.group_index
@@ -623,7 +642,7 @@ class Grouping:
         # we have a list of groupers
         if isinstance(self.grouper, ops.BaseGrouper):
             codes = self.grouper.codes_info
-            uniques = self.grouper.result_index
+            uniques = self.grouper.result_arraylike
         else:
             # GH35667, replace dropna=False with na_sentinel=None
             if not self.dropna:
@@ -633,9 +652,9 @@ class Grouping:
             codes, uniques = algorithms.factorize(
                 self.grouper, sort=self.sort, na_sentinel=na_sentinel
             )
-            uniques = Index(uniques, name=self.name)
         self._codes = codes
-        self._group_index = uniques
+        self._group_arraylike = uniques
+        self._group_index = Index(uniques, name=self.name)
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:

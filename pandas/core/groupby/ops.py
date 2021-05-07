@@ -909,6 +909,23 @@ class BaseGrouper:
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
 
     @cache_readonly
+    def result_arraylike(self) -> ArrayLike:
+        """
+        Analogous to result_index, but returning an ndarray/ExtensionArray
+        allowing us to retain ExtensionDtypes not supported by Index.
+        """
+        # TODO: once Index supports arbitrary EAs, this can be removed in favor
+        #  of result_index
+        if len(self.groupings) == 1:
+            return self.groupings[0].result_arraylike
+
+        codes = self.reconstructed_codes
+        levels = [ping.result_arraylike for ping in self.groupings]
+        return MultiIndex(
+            levels=levels, codes=codes, verify_integrity=False, names=self.names
+        )._values
+
+    @cache_readonly
     def result_index(self) -> Index:
         if len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
@@ -924,12 +941,12 @@ class BaseGrouper:
         # Note: only called from _insert_inaxis_grouper_inplace, which
         #  is only called for BaseGrouper, never for BinGrouper
         if len(self.groupings) == 1:
-            return [self.groupings[0].result_index]
+            return [self.groupings[0].result_arraylike]
 
         name_list = []
         for ping, codes in zip(self.groupings, self.reconstructed_codes):
             codes = ensure_platform_int(codes)
-            levels = ping.result_index.take(codes)
+            levels = ping.result_arraylike.take(codes)
 
             name_list.append(levels)
 
@@ -991,7 +1008,10 @@ class BaseGrouper:
             result = self._aggregate_series_fast(obj, func)
             cast_back = False
 
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
+        convert_datetime = obj.dtype.kind == "M"
+        npvalues = lib.maybe_convert_objects(
+            result, try_float=False, convert_datetime=convert_datetime
+        )
         if cast_back:
             # TODO: Is there a documented reason why we dont always cast_back?
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)

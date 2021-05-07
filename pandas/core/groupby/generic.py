@@ -1046,7 +1046,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             self._insert_inaxis_grouper_inplace(result)
             result.index = np.arange(len(result))
 
-        return result._convert(datetime=True)
+        return result
 
     agg = aggregate
 
@@ -1633,7 +1633,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if self.axis == 1:
             result = result.T
 
-        return self._reindex_output(result)._convert(datetime=True)
+        return self._reindex_output(result)
 
     def _iterate_column_groupbys(self):
         for i, colname in enumerate(self._selected_obj.columns):
