@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Iterator,
     Sequence,
     TypeVar,
     cast,
@@ -24,6 +25,7 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    FillnaOptions,
     PositionalIndexer,
     Shape,
 )
@@ -69,6 +71,7 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from typing import Literal
 
     class ExtensionArraySupportsAnyAll("ExtensionArray"):
         def any(self, *, skipna: bool = True) -> bool:
@@ -375,7 +378,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         """
         Iterate over elements of the array.
         """
@@ -385,7 +388,7 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __contains__(self, item) -> bool | np.bool_:
+    def __contains__(self, item: object) -> bool | np.bool_:
         """
         Return for `item in self`.
         """
@@ -400,7 +403,9 @@ class ExtensionArray:
             else:
                 return False
         else:
-            return (item == self).any()
+            # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
+            # attribute "any"
+            return (item == self).any()  # type: ignore[union-attr]
 
     # error: Signature of "__eq__" incompatible with supertype "object"
     def __eq__(self, other: Any) -> ArrayLike:  # type: ignore[override]
@@ -678,7 +683,12 @@ class ExtensionArray:
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
-    def fillna(self, value=None, method=None, limit=None):
+    def fillna(
+        self,
+        value: object | ArrayLike | None = None,
+        method: FillnaOptions | None = None,
+        limit: int | None = None,
+    ):
         """
         Fill NA/NaN values using the specified method.
 
@@ -1205,7 +1215,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self, *axes) -> ExtensionArray:
+    def transpose(self, *axes: int) -> ExtensionArray:
         """
         Return a transposed view on this array.
 
@@ -1218,7 +1228,7 @@ class ExtensionArray:
     def T(self) -> ExtensionArray:
         return self.transpose()
 
-    def ravel(self, order="C") -> ExtensionArray:
+    def ravel(self, order: Literal["C", "F", "A", "K"] | None = "C") -> ExtensionArray:
         """
         Return a flattened view on this array.
 
@@ -1292,7 +1302,7 @@ class ExtensionArray:
         """
         raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
 
     # ------------------------------------------------------------------------
