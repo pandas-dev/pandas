@@ -776,3 +776,12 @@ def test_loc_getitem_drops_levels_for_one_row_dataframe():
     result = ser.loc["x", :, "z"]
     expected = Series([0], index=Index(["y"], name="b"))
     tm.assert_series_equal(result, expected)
+
+
+def test_loc_get_scalar_casting_to_float():
+    # GH#41369
+    df = DataFrame(
+        {"a": 1.0, "b": 2}, index=MultiIndex.from_arrays([[3], [4]], names=["c", "d"])
+    )
+    result = df.loc[(3, 4), "b"]
+    assert result == 2
