@@ -99,7 +99,7 @@ dependencies:
   - xlwt
   - odfpy
 
-  - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
+  - fastparquet>=0.3.2, <=0.5.0  # pandas.read_parquet, DataFrame.to_parquet
   - pyarrow>=0.15.0  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
   - python-snappy  # required by pyarrow
 
