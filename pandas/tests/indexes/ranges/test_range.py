@@ -23,6 +23,12 @@ OI = Index
 class TestRangeIndex(NumericBase):
     _index_cls = RangeIndex
 
+    @pytest.fixture(
+        params=["uint64", "float64", "category", "datetime64"],
+    )
+    def invalid_dtype(self, request):
+        return request.param
+
     @pytest.fixture
     def simple_index(self) -> Index:
         return self._index_cls(start=0, stop=20, step=2)
