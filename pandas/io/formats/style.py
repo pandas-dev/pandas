@@ -389,6 +389,7 @@ class Styler(StylerRenderer):
     def to_html(
         self,
         buf: FilePathOrBuffer[str] | None = None,
+        *,
         table_uuid: str | None = None,
         table_attributes: str | None = None,
         encoding: str | None = None,
