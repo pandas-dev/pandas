@@ -1331,18 +1331,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             #  reductions; see GH#28949
             ser = df.iloc[:, 0]
 
-        # Create SeriesGroupBy with observed=True so that it does
-        # not try to add missing categories if grouping over multiple
-        # Categoricals. This will done by later self._reindex_output()
-        # Doing it here creates an error. See GH#34951
-        sgb = get_groupby(ser, self.grouper, observed=True)
-        # For SeriesGroupBy we could just use self instead of sgb
-
-        if self.ngroups > 0:
-            res_values = self.grouper.agg_series(ser, alt)
-        else:
-            # equiv: res_values = self._python_agg_general(alt)
-            res_values = sgb._python_apply_general(alt, ser)._values
+        res_values = self.grouper.agg_series(ser, alt)
 
         if isinstance(values, Categorical):
             # Because we only get here with known dtype-preserving

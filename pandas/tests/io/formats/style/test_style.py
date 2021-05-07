@@ -671,15 +671,6 @@ class TestStyler:
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "-"
 
-    def test_nonunique_raises(self):
-        df = DataFrame([[1, 2]], columns=["A", "A"])
-        msg = "style is not supported for non-unique indices."
-        with pytest.raises(ValueError, match=msg):
-            df.style
-
-        with pytest.raises(ValueError, match=msg):
-            Styler(df)
-
     def test_caption(self):
         styler = Styler(self.df, caption="foo")
         result = styler.render()
