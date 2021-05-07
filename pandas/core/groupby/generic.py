@@ -90,7 +90,6 @@ from pandas.core.indexes.api import (
     MultiIndex,
     all_indexes_same,
 )
-import pandas.core.indexes.base as ibase
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 
@@ -1611,8 +1610,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         if not self.as_index:
-            index = np.arange(mgr.shape[1])
-            mgr.set_axis(1, ibase.Index(index))
+            index = Index(range(mgr.shape[1]))
+            mgr.set_axis(1, index)
             result = self.obj._constructor(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
@@ -1761,7 +1760,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         results._get_axis(other_axis).names = obj._get_axis(other_axis).names
 
         if not self.as_index:
-            results.index = ibase.default_index(len(results))
+            results.index = Index(range(len(results)))
             self._insert_inaxis_grouper_inplace(results)
         return results
 
