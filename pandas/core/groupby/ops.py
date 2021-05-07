@@ -276,11 +276,11 @@ class WrappedCythonOp:
 
     @overload
     def _get_result_dtype(self, dtype: np.dtype) -> np.dtype:
-        ...
+        ...  # pragma: no cover
 
     @overload
     def _get_result_dtype(self, dtype: ExtensionDtype) -> ExtensionDtype:
-        ...
+        ...  # pragma: no cover
 
     def _get_result_dtype(self, dtype: DtypeObj) -> DtypeObj:
         """

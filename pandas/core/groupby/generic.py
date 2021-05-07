@@ -688,9 +688,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def value_counts(
         self,
-        normalize=False,
-        sort=True,
-        ascending=False,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
         bins=None,
         dropna: bool = True,
     ):
@@ -715,7 +715,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 # scalar bins cannot be done at top level
                 # in a backward compatible way
                 return apply_series_value_counts()
-        elif is_categorical_dtype(val):
+        elif is_categorical_dtype(val.dtype):
             # GH38672
             return apply_series_value_counts()
 
@@ -807,44 +807,36 @@ class SeriesGroupBy(GroupBy[Series]):
             sorter = np.lexsort((out if ascending else -out, cat))
             out, codes[-1] = out[sorter], codes[-1][sorter]
 
-        if bins is None:
-            mi = MultiIndex(
-                levels=levels, codes=codes, names=names, verify_integrity=False
-            )
+        if bins is not None:
+            # for compat. with libgroupby.value_counts need to ensure every
+            # bin is present at every index level, null filled with zeros
+            diff = np.zeros(len(out), dtype="bool")
+            for level_codes in codes[:-1]:
+                diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
 
-            if is_integer_dtype(out):
-                out = ensure_int64(out)
-            return self.obj._constructor(out, index=mi, name=self._selection_name)
+            ncat, nbin = diff.sum(), len(levels[-1])
 
-        # for compat. with libgroupby.value_counts need to ensure every
-        # bin is present at every index level, null filled with zeros
-        diff = np.zeros(len(out), dtype="bool")
-        for level_codes in codes[:-1]:
-            diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
+            left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
 
-        ncat, nbin = diff.sum(), len(levels[-1])
+            right = [diff.cumsum() - 1, codes[-1]]
 
-        left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
+            _, idx = get_join_indexers(left, right, sort=False, how="left")
+            out = np.where(idx != -1, out[idx], 0)
 
-        right = [diff.cumsum() - 1, codes[-1]]
+            if sort:
+                sorter = np.lexsort((out if ascending else -out, left[0]))
+                out, left[-1] = out[sorter], left[-1][sorter]
 
-        _, idx = get_join_indexers(left, right, sort=False, how="left")
-        out = np.where(idx != -1, out[idx], 0)
+            # build the multi-index w/ full levels
+            def build_codes(lev_codes: np.ndarray) -> np.ndarray:
+                return np.repeat(lev_codes[diff], nbin)
 
-        if sort:
-            sorter = np.lexsort((out if ascending else -out, left[0]))
-            out, left[-1] = out[sorter], left[-1][sorter]
-
-        # build the multi-index w/ full levels
-        def build_codes(lev_codes: np.ndarray) -> np.ndarray:
-            return np.repeat(lev_codes[diff], nbin)
-
-        codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
-        codes.append(left[-1])
+            codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
+            codes.append(left[-1])
 
         mi = MultiIndex(levels=levels, codes=codes, names=names, verify_integrity=False)
 
-        if is_integer_dtype(out):
+        if is_integer_dtype(out.dtype):
             out = ensure_int64(out)
         return self.obj._constructor(out, index=mi, name=self._selection_name)
 
