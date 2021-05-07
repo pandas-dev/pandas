@@ -247,12 +247,12 @@ class TestFancy:
         tm.assert_frame_equal(result, expected)
 
         rows = ["C", "B", "E"]
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[rows]
 
         # see GH5553, make sure we use the right indexer
         rows = ["F", "G", "H", "C", "B", "E"]
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[rows]
 
     def test_dups_fancy_indexing_only_missing_label(self):
@@ -274,14 +274,14 @@ class TestFancy:
 
         # GH 4619; duplicate indexer with missing label
         df = DataFrame({"A": vals})
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[[0, 8, 0]]
 
     def test_dups_fancy_indexing_non_unique(self):
 
         # non unique with non unique selector
         df = DataFrame({"test": [5, 7, 9, 11]}, index=["A", "A", "B", "C"])
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[["A", "A", "E"]]
 
     def test_dups_fancy_indexing2(self):
@@ -289,7 +289,7 @@ class TestFancy:
         # dups on index and missing values
         df = DataFrame(np.random.randn(5, 5), columns=["A", "B", "B", "B", "A"])
 
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[:, ["A", "B", "C"]]
 
     def test_dups_fancy_indexing3(self):

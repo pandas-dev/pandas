@@ -3412,7 +3412,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             if is_iterator(key):
                 key = list(key)
-            indexer = self.loc._get_listlike_indexer(key, axis=1, raise_missing=True)[1]
+            indexer = self.loc._get_listlike_indexer(key, axis=1)[1]
 
         # take() does not accept boolean indexers
         if getattr(indexer, "dtype", None) == bool:

@@ -11,8 +11,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import option_context
-
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.errors import (
@@ -1089,7 +1087,7 @@ class _LocIndexer(_LocationIndexer):
         self._validate_key(key, axis)
 
         # A collection of keys
-        keyarr, indexer = self._get_listlike_indexer(key, axis, raise_missing=False)
+        keyarr, indexer = self._get_listlike_indexer(key, axis)
         return self.obj._reindex_with_indexers(
             {axis: [keyarr, indexer]}, copy=True, allow_dups=True
         )
@@ -1255,8 +1253,7 @@ class _LocIndexer(_LocationIndexer):
                 (inds,) = key.nonzero()
                 return inds
             else:
-                # When setting, missing keys are not allowed, even with .loc:
-                return self._get_listlike_indexer(key, axis, raise_missing=True)[1]
+                return self._get_listlike_indexer(key, axis)[1]
         else:
             try:
                 return labels.get_loc(key)
@@ -1266,7 +1263,7 @@ class _LocIndexer(_LocationIndexer):
                     return {"key": key}
                 raise
 
-    def _get_listlike_indexer(self, key, axis: int, raise_missing: bool = False):
+    def _get_listlike_indexer(self, key, axis: int):
         """
         Transform a list-like of keys into a new index and an indexer.
 
@@ -1276,16 +1273,11 @@ class _LocIndexer(_LocationIndexer):
             Targeted labels.
         axis:  int
             Dimension on which the indexing is being made.
-        raise_missing: bool, default False
-            Whether to raise a KeyError if some labels were not found.
-            Will be removed in the future, and then this method will always behave as
-            if ``raise_missing=True``.
 
         Raises
         ------
         KeyError
-            If at least one key was requested but none was found, and
-            raise_missing=True.
+            If at least one key was requested but none was found.
 
         Returns
         -------
@@ -1310,12 +1302,10 @@ class _LocIndexer(_LocationIndexer):
         else:
             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
 
-        self._validate_read_indexer(keyarr, indexer, axis, raise_missing=raise_missing)
+        self._validate_read_indexer(keyarr, indexer, axis)
         return keyarr, indexer
 
-    def _validate_read_indexer(
-        self, key, indexer, axis: int, raise_missing: bool = False
-    ):
+    def _validate_read_indexer(self, key, indexer, axis: int):
         """
         Check that indexer can be used to return a result.
 
@@ -1331,16 +1321,11 @@ class _LocIndexer(_LocationIndexer):
             (with -1 indicating not found).
         axis : int
             Dimension on which the indexing is being made.
-        raise_missing: bool
-            Whether to raise a KeyError if some labels are not found. Will be
-            removed in the future, and then this method will always behave as
-            if raise_missing=True.
 
         Raises
         ------
         KeyError
-            If at least one key was requested but none was found, and
-            raise_missing=True.
+            If at least one key was requested but none was found.
         """
         if len(key) == 0:
             return
@@ -1356,21 +1341,8 @@ class _LocIndexer(_LocationIndexer):
 
             ax = self.obj._get_axis(axis)
 
-            # We (temporarily) allow for some missing keys with .loc, except in
-            # some cases (e.g. setting) in which "raise_missing" will be False
-            if raise_missing:
-                not_found = list(set(key) - set(ax))
-                raise KeyError(f"{not_found} not in index")
-
-            not_found = key[missing_mask]
-
-            with option_context("display.max_seq_items", 10, "display.width", 80):
-                raise KeyError(
-                    "Passing list-likes to .loc or [] with any missing labels "
-                    "is no longer supported. "
-                    f"The following labels were missing: {not_found}. "
-                    "See https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
-                )
+            not_found = list(set(key) - set(ax))
+            raise KeyError(f"{not_found} not in index")
 
 
 @doc(IndexingMixin.iloc)
