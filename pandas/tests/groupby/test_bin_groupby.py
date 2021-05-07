@@ -56,7 +56,7 @@ def test_series_grouper_requires_nonempty_raises():
 def test_series_bin_grouper():
     obj = Series(np.random.randn(10))
 
-    bins = np.array([3, 6])
+    bins = np.array([3, 6], dtype=np.int64)
 
     grouper = libreduction.SeriesBinGrouper(obj, np.mean, bins)
     result, counts = grouper.get_result()
