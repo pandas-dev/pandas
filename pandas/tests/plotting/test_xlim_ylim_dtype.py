@@ -1,10 +1,12 @@
 from datetime import datetime as dt
 
-import matplotlib
 import numpy as np
 import pytest
 
+pytest.importorskip("matplotlib")
 from pandas import DataFrame
+
+pytestmark = pytest.mark.slow
 
 
 @pytest.mark.parametrize("df, lim", [
