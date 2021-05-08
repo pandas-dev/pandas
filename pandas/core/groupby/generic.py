@@ -266,7 +266,11 @@ class SeriesGroupBy(GroupBy[Series]):
             func = maybe_mangle_lambdas(func)
             ret = self._aggregate_multiple_funcs(func)
             if relabeling:
-                ret.columns = columns
+                # error: Incompatible types in assignment (expression has type
+                # "Optional[List[str]]", variable has type "Index")
+                ret.columns = columns  # type: ignore[assignment]
+            return ret
+
         else:
             cyfunc = com.get_cython_func(func)
             if cyfunc and not args and not kwargs:
@@ -282,33 +286,21 @@ class SeriesGroupBy(GroupBy[Series]):
                 #  see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
 
-            index = Index(sorted(result), name=self.grouper.names[0])
-            ret = create_series_with_explicit_dtype(
-                result, index=index, dtype_if_empty=object
-            )
-
-        if not self.as_index:  # pragma: no cover
-            print("Warning, ignoring as_index=True")
-
-        if isinstance(ret, dict):
-            from pandas import concat
-
-            ret = concat(ret.values(), axis=1, keys=[key.label for key in ret.keys()])
-        return ret
+                index = Index(sorted(result), name=self.grouper.names[0])
+                return create_series_with_explicit_dtype(
+                    result, index=index, dtype_if_empty=object
+                )
 
     agg = aggregate
 
-    def _aggregate_multiple_funcs(self, arg):
+    def _aggregate_multiple_funcs(self, arg) -> DataFrame:
         if isinstance(arg, dict):
 
             # show the deprecation, but only if we
             # have not shown a higher level one
             # GH 15931
-            if isinstance(self._selected_obj, Series):
-                raise SpecificationError("nested renamer is not supported")
+            raise SpecificationError("nested renamer is not supported")
 
-            columns = list(arg.keys())
-            arg = arg.items()
         elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
 
@@ -335,8 +327,14 @@ class SeriesGroupBy(GroupBy[Series]):
             results[base.OutputKey(label=name, position=idx)] = obj.aggregate(func)
 
         if any(isinstance(x, DataFrame) for x in results.values()):
-            # let higher level handle
-            return results
+            from pandas import concat
+
+            res_df = concat(
+                results.values(), axis=1, keys=[key.label for key in results.keys()]
+            )
+            # error: Incompatible return value type (got "Union[DataFrame, Series]",
+            # expected "DataFrame")
+            return res_df  # type: ignore[return-value]
 
         indexed_output = {key.position: val for key, val in results.items()}
         output = self.obj._constructor_expanddim(indexed_output, index=None)
@@ -690,9 +688,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def value_counts(
         self,
-        normalize=False,
-        sort=True,
-        ascending=False,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
         bins=None,
         dropna: bool = True,
     ):
@@ -717,7 +715,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 # scalar bins cannot be done at top level
                 # in a backward compatible way
                 return apply_series_value_counts()
-        elif is_categorical_dtype(val):
+        elif is_categorical_dtype(val.dtype):
             # GH38672
             return apply_series_value_counts()
 
@@ -809,44 +807,36 @@ class SeriesGroupBy(GroupBy[Series]):
             sorter = np.lexsort((out if ascending else -out, cat))
             out, codes[-1] = out[sorter], codes[-1][sorter]
 
-        if bins is None:
-            mi = MultiIndex(
-                levels=levels, codes=codes, names=names, verify_integrity=False
-            )
+        if bins is not None:
+            # for compat. with libgroupby.value_counts need to ensure every
+            # bin is present at every index level, null filled with zeros
+            diff = np.zeros(len(out), dtype="bool")
+            for level_codes in codes[:-1]:
+                diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
 
-            if is_integer_dtype(out):
-                out = ensure_int64(out)
-            return self.obj._constructor(out, index=mi, name=self._selection_name)
+            ncat, nbin = diff.sum(), len(levels[-1])
 
-        # for compat. with libgroupby.value_counts need to ensure every
-        # bin is present at every index level, null filled with zeros
-        diff = np.zeros(len(out), dtype="bool")
-        for level_codes in codes[:-1]:
-            diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
+            left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
 
-        ncat, nbin = diff.sum(), len(levels[-1])
+            right = [diff.cumsum() - 1, codes[-1]]
 
-        left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
+            _, idx = get_join_indexers(left, right, sort=False, how="left")
+            out = np.where(idx != -1, out[idx], 0)
 
-        right = [diff.cumsum() - 1, codes[-1]]
+            if sort:
+                sorter = np.lexsort((out if ascending else -out, left[0]))
+                out, left[-1] = out[sorter], left[-1][sorter]
 
-        _, idx = get_join_indexers(left, right, sort=False, how="left")
-        out = np.where(idx != -1, out[idx], 0)
+            # build the multi-index w/ full levels
+            def build_codes(lev_codes: np.ndarray) -> np.ndarray:
+                return np.repeat(lev_codes[diff], nbin)
 
-        if sort:
-            sorter = np.lexsort((out if ascending else -out, left[0]))
-            out, left[-1] = out[sorter], left[-1][sorter]
-
-        # build the multi-index w/ full levels
-        def build_codes(lev_codes: np.ndarray) -> np.ndarray:
-            return np.repeat(lev_codes[diff], nbin)
-
-        codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
-        codes.append(left[-1])
+            codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
+            codes.append(left[-1])
 
         mi = MultiIndex(levels=levels, codes=codes, names=names, verify_integrity=False)
 
-        if is_integer_dtype(out):
+        if is_integer_dtype(out.dtype):
             out = ensure_int64(out)
         return self.obj._constructor(out, index=mi, name=self._selection_name)
 
@@ -1000,6 +990,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = op.agg()
         if not is_dict_like(func) and result is not None:
             return result
+        elif relabeling and result is not None:
+            # this should be the only (non-raising) case with relabeling
+            # used reordered index of columns
+            result = result.iloc[:, order]
+            result.columns = columns
 
         if result is None:
 
@@ -1038,12 +1033,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         result.columns = result.columns.rename(
                             [sobj.columns.name] * result.columns.nlevels
                         ).droplevel(-1)
-
-        if relabeling:
-
-            # used reordered index of columns
-            result = result.iloc[:, order]
-            result.columns = columns
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -1389,9 +1378,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if not output:
             raise TypeError("Transform function invalid for data types")
 
-        columns = obj.columns
-        if len(output) < len(obj.columns):
-            columns = columns.take(inds)
+        columns = obj.columns.take(inds)
 
         return self.obj._constructor(output, index=obj.index, columns=columns)
 
@@ -1625,14 +1612,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         if not self.as_index:
             index = np.arange(mgr.shape[1])
-            mgr.set_axis(1, ibase.Index(index), verify_integrity=False)
+            mgr.set_axis(1, ibase.Index(index))
             result = self.obj._constructor(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            mgr.set_axis(1, index, verify_integrity=False)
+            mgr.set_axis(1, index)
             result = self.obj._constructor(mgr)
 
         if self.axis == 1:
