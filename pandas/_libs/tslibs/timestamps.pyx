@@ -1032,6 +1032,10 @@ class Timestamp(_Timestamp):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, nanosecond[, tzinfo]]]]]])
+            print("Integer object input: ", ts_input)
+            print(type(ts_input))
+            print("Timezone: ", tz)
+            print(type(tz))
             ts_input = datetime(ts_input, freq, tz, unit or 0,
                                 year or 0, month or 0, day or 0, fold=fold or 0)
             nanosecond = hour
@@ -1047,6 +1051,9 @@ class Timestamp(_Timestamp):
         print("Type in _new_: ", type(tz))
         tzobj = maybe_get_tz(tz)
         ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond or 0)
+        print("Timestamp: ", ts)
+
+        # value = tz_localize_to_utc_single(ts, tzobj, "raise", "raise")
 
         if ts.value == NPY_NAT:
             return NaT
@@ -1056,6 +1063,14 @@ class Timestamp(_Timestamp):
             freq = getattr(ts_input, 'freq', None)
         elif not is_offset_object(freq):
             freq = to_offset(freq)
+
+        naive_ts = convert_to_tsobject(ts_input, None, unit, 0, 0, nanosecond or 0)
+
+        print("ts.value: ", ts.value)
+        print("naive_ts.value: ", naive_ts.value)
+        print("Timezone: ", ts.tzinfo)
+
+        tz_localize_to_utc_single(naive_ts.value, ts.tzinfo, "raise", "raise")
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
 
@@ -1225,7 +1240,7 @@ timedelta}, default 'raise'
         return getattr(self.freq, 'freqstr', self.freq)
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
-        print("In localize")
+        print("In tz_localize")
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -1287,6 +1302,8 @@ default 'raise'
                 "The nonexistent argument must be one of 'raise', "
                 "'NaT', 'shift_forward', 'shift_backward' or a timedelta object"
             )
+        print("Value in localize: ", self.value)
+        print("Type in localize: ", type(self.value))
 
         if self.tzinfo is None:
             # tz naive, localize
@@ -1441,6 +1458,7 @@ default 'raise'
         value = ts.value + (dts.ps // 1000)
         if value != NPY_NAT:
             check_dts_bounds(&dts)
+        # tz_localize(ts)
 
         return create_timestamp_from_ts(value, dts, tzobj, self.freq, fold)
 
