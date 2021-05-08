@@ -2,8 +2,8 @@
 Copyright (c) 2020 Evan Miller
 */
 
-#ifndef PANDAS_IO_RDATA_LIBRDATA_RDATA_H_
-#define PANDAS_IO_RDATA_LIBRDATA_RDATA_H_
+#ifndef PANDAS_IO_RDATA_RDATA_H_
+#define PANDAS_IO_RDATA_RDATA_H_
 
 #include <stdint.h>
 #include <sys/types.h>
@@ -254,4 +254,4 @@ rdata_error_t rdata_end_file(rdata_writer_t *writer);
 }  // extern c block
 #endif
 
-#endif  // PANDAS_IO_RDATA_LIBRDATA_RDATA_H_
+#endif  // PANDAS_IO_RDATA_RDATA_H_

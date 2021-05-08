@@ -1,8 +1,8 @@
 // CKHashTable - A simple hash table
 // Copyright 2010-2020 Evan Miller (see LICENSE)
 
-#ifndef PANDAS_IO_RDATA_LIBRDATA_CKHASHTABLE_H_
-#define PANDAS_IO_RDATA_LIBRDATA_CKHASHTABLE_H_
+#ifndef PANDAS__LIBS_SRC_LIBRDATA_CKHASHTABLE_H_
+#define PANDAS__LIBS_SRC_LIBRDATA_CKHASHTABLE_H_
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -52,4 +52,4 @@ int ck_hash_table_grow(ck_hash_table_t *table);
 void ck_hash_table_free(ck_hash_table_t *table);
 uint64_t ck_hash_str(const char *str, size_t keylen);
 
-#endif  // PANDAS_IO_RDATA_LIBRDATA_CKHASHTABLE_H_
+#endif  // PANDAS__LIBS_SRC_LIBRDATA_CKHASHTABLE_H_

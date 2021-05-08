@@ -6,8 +6,8 @@ Copyright (c) 2020 Evan Miller
 //  rdata_internal.h
 //
 
-#ifndef PANDAS_IO_RDATA_LIBRDATA_RDATA_INTERNAL_H_
-#define PANDAS_IO_RDATA_LIBRDATA_RDATA_INTERNAL_H_
+#ifndef PANDAS__LIBS_SRC_LIBRDATA_RDATA_INTERNAL_H_
+#define PANDAS__LIBS_SRC_LIBRDATA_RDATA_INTERNAL_H_
 
 #include "rdata_bits.h"
 
@@ -86,4 +86,4 @@ typedef struct rdata_sexptype_info_s {
 #define RDATA_SEXPTYPE_PAIRLIST_ATTR           239
 #define RDATA_PSEUDO_SXP_ALTREP                238
 
-#endif  // PANDAS_IO_RDATA_LIBRDATA_RDATA_INTERNAL_H_
+#endif  // PANDAS__LIBS_SRC_LIBRDATA_RDATA_INTERNAL_H_

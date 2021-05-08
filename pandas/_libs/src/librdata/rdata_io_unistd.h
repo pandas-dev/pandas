@@ -2,8 +2,8 @@
 Copyright (c) 2020 Evan Miller
 */
 
-#ifndef PANDAS_IO_RDATA_LIBRDATA_RDATA_IO_UNISTD_H_
-#define PANDAS_IO_RDATA_LIBRDATA_RDATA_IO_UNISTD_H_
+#ifndef PANDAS__LIBS_SRC_LIBRDATA_RDATA_IO_UNISTD_H_
+#define PANDAS__LIBS_SRC_LIBRDATA_RDATA_IO_UNISTD_H_
 
 typedef struct rdata_unistd_io_ctx_s {
     int               fd;
@@ -23,4 +23,4 @@ rdata_error_t rdata_unistd_update_handler(
 );
 void rdata_unistd_io_init(rdata_parser_t *parser);
 
-#endif  // PANDAS_IO_RDATA_LIBRDATA_RDATA_IO_UNISTD_H_
+#endif  // PANDAS__LIBS_SRC_LIBRDATA_RDATA_IO_UNISTD_H_

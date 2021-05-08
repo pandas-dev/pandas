@@ -5,8 +5,8 @@
  * This file is placed in the public domain.
  */
 
-#ifndef PANDAS_IO_RDATA_LIBRDATA_WIN_ICONV_H_
-#define PANDAS_IO_RDATA_LIBRDATA_WIN_ICONV_H_
+#ifndef PANDAS__LIBS_SRC_LIBRDATA_WIN_ICONV_H_
+#define PANDAS__LIBS_SRC_LIBRDATA_WIN_ICONV_H_
 
 //  #ifndef _LIBICONV_H
     #define _LIBICONV_H
@@ -37,4 +37,4 @@
     #endif
 //  #endif
 
-#endif  // PANDAS_IO_RDATA_LIBRDATA_WIN_ICONV_H_
+#endif  // PANDAS__LIBS_SRC_LIBRDATA_WIN_ICONV_H_

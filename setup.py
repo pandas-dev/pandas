@@ -226,7 +226,7 @@ class CheckSDist(sdist_class):
         "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
-        "pandas/io/rdata/rdata.pyx",
+        "pandas/io/rdata/_rdata.pyx",
     ]
 
     _cpp_pyxfiles = [
@@ -437,17 +437,17 @@ tseries_depends = [
 ]
 
 rdata_srcs = [
-    "pandas/io/rdata/librdata/rdata_parser.c",
-    "pandas/io/rdata/librdata/rdata_read.c",
-    "pandas/io/rdata/librdata/rdata_write.c",
-    "pandas/io/rdata/librdata/rdata_io_unistd.c",
-    "pandas/io/rdata/librdata/rdata_error.c",
-    "pandas/io/rdata/librdata/rdata_bits.c",
-    "pandas/io/rdata/librdata/CKHashTable.c",
+    "pandas/_libs/src/librdata/rdata_parser.c",
+    "pandas/_libs/src/librdata/rdata_read.c",
+    "pandas/_libs/src/librdata/rdata_write.c",
+    "pandas/_libs/src/librdata/rdata_io_unistd.c",
+    "pandas/_libs/src/librdata/rdata_error.c",
+    "pandas/_libs/src/librdata/rdata_bits.c",
+    "pandas/_libs/src/librdata/CKHashTable.c",
 ]
 
 if is_platform_windows():
-    rdata_srcs.append("pandas/io/rdata/librdata/win_iconv.c")
+    rdata_srcs.append("pandas/_libs/src/librdata/win_iconv.c")
 
 ext_data = {
     "_libs.algos": {
