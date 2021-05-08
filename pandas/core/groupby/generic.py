@@ -481,14 +481,13 @@ class SeriesGroupBy(GroupBy[Series]):
         if isinstance(values[0], dict):
             # GH #823 #24880
             index = _get_index()
-            result: FrameOrSeriesUnion = self._reindex_output(
-                self.obj._constructor_expanddim(values, index=index)
-            )
+            res_df = self.obj._constructor_expanddim(values, index=index)
+            res_df = self._reindex_output(res_df)
             # if self.observed is False,
             # keep all-NaN rows created while re-indexing
-            result = result.stack(dropna=self.observed)
-            result.name = self._selection_name
-            return result
+            res_ser = res_df.stack(dropna=self.observed)
+            res_ser.name = self._selection_name
+            return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
         else:
@@ -1005,7 +1004,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             elif self.axis == 1:
                 # _aggregate_multiple_funcs does not allow self.axis == 1
+                # Note: axis == 1 precludes 'not self.as_index', see __init__
                 result = self._aggregate_frame(func)
+                return result
 
             else:
 
@@ -1035,7 +1036,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
-            result.index = np.arange(len(result))
+            result.index = Index(range(len(result)))
 
         return result._convert(datetime=True)
 
@@ -1161,7 +1162,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if self.as_index:
                 return self.obj._constructor_sliced(values, index=key_index)
             else:
-                result = DataFrame(values, index=key_index, columns=[self._selection])
+                result = self.obj._constructor(
+                    values, index=key_index, columns=[self._selection]
+                )
                 self._insert_inaxis_grouper_inplace(result)
                 return result
         else:

@@ -889,9 +889,8 @@ class BaseGrouper:
 
     @final
     def _get_compressed_codes(self) -> tuple[np.ndarray, np.ndarray]:
-        all_codes = self.codes
-        if len(all_codes) > 1:
-            group_index = get_group_index(all_codes, self.shape, sort=True, xnull=True)
+        if len(self.groupings) > 1:
+            group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self.sort)
 
         ping = self.groupings[0]
@@ -1111,6 +1110,7 @@ class BinGrouper(BaseGrouper):
 
     @property
     def nkeys(self) -> int:
+        # still matches len(self.groupings), but we can hard-code
         return 1
 
     def _get_grouper(self):
