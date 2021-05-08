@@ -5920,14 +5920,21 @@ Reading R data
 The top-level function ``read_rdata`` will read the native serialization types
 in the R language and environment. For .RData and its synonymous shorthand, .rda,
 that can hold multiple R objects, method will return a ``dict`` of ``DataFrames``.
-For .rds types that only contains a single R object, method will return a single
-``DataFrame``.
+For .rds types that only contains a single R object, method will return a ``dict``
+of a single ``DataFrame``.
 
 .. note::
 
    Since any R object can be saved in these types, this method will only return
    data.frame objects or objects coercible to data.frames including matrices,
-   tibbles, and data.tables and to some extent, arrays.
+   tibbles, and data.tables.
+
+For more information of R serialization data types, see docs on `rds`_
+and `rda`_ data formats.
+
+.. _rds: https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/readRDS
+
+.. _rda: https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/save
 
 For example, consider the following generated data.frames in R using environment
 data samples from US EPA, UK BGCI, and NOAA pubilc data:
@@ -5984,7 +5991,7 @@ With ``read_rdata``, you can read these above .rds or .rda files:
 .. ipython:: python
 
    rds_file = os.path.join(file_path, "ghg_df.rds")
-   ghg_df = pd.read_rdata(rds_file).tail()
+   ghg_df = pd.read_rdata(rds_file)["r_dataframe"].tail()
    ghg_df
 
    rda_file = os.path.join(file_path, "env_data_dfs.rda")
@@ -5996,7 +6003,7 @@ To ignore the rownames of data.frame, use option ``rownames=False``:
 .. ipython:: python
 
    rds_file = os.path.join(file_path, "plants_df.rds")
-   plants_df = pd.read_rdata(rds_file, rownames=False).tail()
+   plants_df = pd.read_rdata(rds_file, rownames=False)["r_dataframe"].tail()
    plants_df
 
 
@@ -6014,7 +6021,10 @@ To read from a file-like object, read object in argument, ``path_or_buffer``:
 
    rds_file = os.path.join(file_path, "plants_df.rds")
    with open(rds_file, "rb") as f:
-       plants_df = pd.read_rdata(f.read(), file_format="rds")
+       plants_df = pd.read_rdata(
+           f,
+           file_format="rds",
+       )["r_dataframe"]
 
    plants_df
 
@@ -6044,21 +6054,34 @@ will occur:
 
    In [608]: rds_file = os.path.join(file_path, "env_data_non_dfs.rda")
    ...
-   LibrdataError: Invalid file, or file has unsupported features
+   LibrdataParserError: Invalid file, or file has unsupported features
 
 
 .. _io.rdata_writer:
 
-Please note R's ``Date`` (without time component) will translate to ``object`` type
-in pandas. Also, R's date/time field type, ``POSIXct``, will translate to UTC time
-in pandas.
+Finally, please note R's ``Date`` (without time component) will translate to
+``datetime64`` in pandas. Also, R's date/time field type, ``POSIXct``, that can
+carry varying timezones will translate to UTC time in pandas. For example, in R,
+the following data sample from an .rda shows date/time in 'America/Chicago' local
+timezone:
+
+.. code-block:: r
+
+   load("ppm_df.rda")
+   tail(ppm_df, 5)
+                      date decimal_date monthly_average deseasonalized num_days std_dev_of_days unc_of_mon_mean
+   612 2020-12-16 17:42:25     2020.958          414.25         414.98       30            0.47            0.17
+   613 2021-01-16 05:17:31     2021.042          415.52         415.26       29            0.44            0.16
+   614 2021-02-15 15:00:00     2021.125          416.75         415.93       28            1.02            0.37
+   615 2021-03-18 01:42:28     2021.208          417.64         416.18       28            0.86            0.31
+   616 2021-04-17 12:17:31     2021.292          419.05         416.23       24            1.12            0.44
+
+In pandas, conversion shows adjustment in hours to UTC:
 
 .. ipython:: python
 
-   ppm_df = pd.read_rdata(os.path.join(file_path, "ppm_df.rds"))
-   ppm_df.head()
-   ppm_df.tail()
-   ppm_df.dtypes
+   r_dfs = pd.read_rdata(os.path.join(file_path, "ppm_df.rda"))
+   r_dfs["ppm_df"].tail()
 
 Writing R data
 ''''''''''''''
@@ -6066,7 +6089,7 @@ Writing R data
 .. versionadded:: 1.3.0
 
 The method :func:`~pandas.core.frame.DataFrame.to_rdata` will write a DataFrame
-or multiple DataFrames into R data files (.RData, .rda, and .rds).
+into R data files (.RData, .rda, and .rds).
 
 For a single DataFrame in rds type, pass in a file or buffer in method:
 
@@ -6084,17 +6107,24 @@ and optionally give it a name:
 While RData and rda types can hold multiple R objects, this method currently
 only supports writing out a single DataFrame.
 
-Even write to a buffer and read its content:
+Even write to a buffer and read its content (and be sure to adjust default
+``gzip`` compression to ``compression=None``):
 
 .. ipython:: python
 
     with BytesIO() as b_io:
-        env_dfs["sea_ice_df"].to_rdata(b_io, file_format="rda", index=False)
+        env_dfs["sea_ice_df"].to_rdata(
+            b_io,
+            file_format="rda",
+            index=False,
+            compression=None,
+        )
         print(
             pd.read_rdata(
                 b_io.getvalue(),
                 file_format="rda",
                 rownames=False,
+                compression=None,
             )["pandas_dataframe"].tail()
         )
 
@@ -6105,7 +6135,7 @@ will output as a named column or multiple columns for MultiIndex.
 
     ghg_df.rename_axis(None).to_rdata("ghg_df.rds")
 
-    pd.read_rdata("ghg_df.rds").tail()
+    pd.read_rdata("ghg_df.rds")["r_dataframe"].tail()
 
 To ignore the index, use ``index=False``:
 
@@ -6113,11 +6143,11 @@ To ignore the index, use ``index=False``:
 
     ghg_df.rename_axis(None).to_rdata("ghg_df.rds", index=False)
 
-    pd.read_rdata("ghg_df.rds").tail()
+    pd.read_rdata("ghg_df.rds")["r_dataframe"].tail()
 
 By default, these R serialized types are compressed files in either gzip, bzip2,
-or xz algorithms. Similarly to R, the default type in this method is "gzip" or
-"gz". Notice difference of compressed and uncompressed files
+or xz algorithms. Similar to R, the default ``compression`` type in this method
+is "gzip" or "gz". Notice size difference of compressed and uncompressed files:
 
 .. ipython:: python
 
@@ -6151,8 +6181,7 @@ Like other IO methods, ``storage_options`` are enabled to write to those platfor
    os.remove("plants_df_xz.rds")
    os.remove("plants_df_non_comp.rds")
 
-Once exported, the single DataFrame can be read back in R or multiple DataFrames
-loaded in R:
+Once exported, the single DataFrame can be read or loaded in R:
 
 .. code-block:: r
 
@@ -6175,17 +6204,6 @@ loaded in R:
    143     Nitrous oxide 2018  434.5286
    144 Fluorinated gases 2018  182.7824
    145             Total 2018 6676.6496
-
-For more information of the underlying ``pyreadr`` package, see main page of
-`pyreadr`_ for further notes on support and limitations. For more information of R
-serialization data types, see docs on `rds`_ and `rda`_ data files.
-
-.. _pyreadr: https://github.com/ofajardo/pyreadr
-
-.. _rds: https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/readRDS
-
-.. _rda: https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/save
-
 
 .. _io.stata:
 

@@ -117,10 +117,10 @@ Read and write R data files
 
 We added I/O support to read and write R data files (.RData, .rda, .rds) using
 :func:`pandas.read_rdata` and :meth:`DataFrame.to_rdata`. Both methods rely on
-the `pyreadr`_ package to support open source data migration between R and
+the `librdata`_ C library to support open source data migration between R and
 Python pandas. (:issue:`40287`)
 
-.. _pyreadr: https://github.com/ofajardo/pyreadr
+.. _librdata: https://github.com/WizardMac/librdata
 
 For example, consider the below generated data frame and matrix in R:
 
@@ -164,27 +164,29 @@ for .rds types or ``dict`` of DataFrames for .RData and .rda types:
 
 .. code-block:: ipython
 
-    In [1]: ppm_df = pd.read_rdata("ppm_df_r.rds")
+    In [1]: ppm_df = pd.read_rdata("ppm_df_r.rda")["r_dataframe"]
     In [2]: ppm_df
     Out[3]:
-       year  month  monthly_average  num_days  st_dev_of_days  unc_mon_mean
-    0  2020     10           411.51        30            0.22          0.08
-    1  2020     11           413.11        27            0.80          0.29
-    2  2020     12           414.25        30            0.48          0.17
-    3  2021      1           415.52        29            0.44          0.16
-    4  2021      2           416.75        28            1.01          0.36
+              year month monthly_average deseasonalized num_days std_dev_of_days unc_of_mon_mean
+    rownames
+    1         2020    12          414.25         414.98       30            0.47            0.17
+    2         2021     1          415.52         415.26       29            0.44            0.16
+    3         2021     2          416.75         415.93       28            1.02            0.37
+    4         2021     3          417.64         416.18       28            0.86            0.31
+    5         2021     4          419.05         416.23       24            1.12            0.44
 
     In [4]: env_objs = pd.read_rdata("env_objs_r.rda")
     Out[5]:
     {'carbon_ppm_df':
-        year  month  monthly_average  num_days  st_dev_of_days  unc_mon_mean
-     0  2020     10           411.51        30            0.22          0.08
-     1  2020     11           413.11        27            0.80          0.29
-     2  2020     12           414.25        30            0.48          0.17
-     3  2021      1           415.52        29            0.44          0.16
-     4  2021      2           416.75        28            1.01          0.36
+               year month monthly_average deseasonalized num_days std_dev_of_days unc_of_mon_mean
+     rownames
+     1         2020    12          414.25         414.98       30            0.47            0.17
+     2         2021     1          415.52         415.26       29            0.44            0.16
+     3         2021     2          416.75         415.93       28            1.02            0.37
+     4         2021     3          417.64         416.18       28            0.86            0.31
+     5         2021     4          419.05         416.23       24            1.12            0.44
 
-     [5 rows x 6 columns],
+     [5 rows x 7 columns],
      'iucn_species_mtx':
                       EX  EW  CR(PE)  CR(PEW)    CR     EN     VU     DD   Total
      rownames

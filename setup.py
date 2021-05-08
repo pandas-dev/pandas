@@ -226,6 +226,7 @@ class CheckSDist(sdist_class):
         "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
+        "pandas/io/rdata/rdata.pyx",
     ]
 
     _cpp_pyxfiles = [
@@ -435,6 +436,19 @@ tseries_depends = [
     "pandas/_libs/tslibs/src/datetime/np_datetime_strings.h",
 ]
 
+rdata_srcs = [
+    "pandas/io/rdata/librdata/rdata_parser.c",
+    "pandas/io/rdata/librdata/rdata_read.c",
+    "pandas/io/rdata/librdata/rdata_write.c",
+    "pandas/io/rdata/librdata/rdata_io_unistd.c",
+    "pandas/io/rdata/librdata/rdata_error.c",
+    "pandas/io/rdata/librdata/rdata_bits.c",
+    "pandas/io/rdata/librdata/CKHashTable.c",
+]
+
+if is_platform_windows():
+    rdata_srcs.append("pandas/io/rdata/librdata/win_iconv.c")
+
 ext_data = {
     "_libs.algos": {
         "pyxfile": "_libs/algos",
@@ -555,6 +569,10 @@ ext_data = {
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
+    "io.rdata._rdata": {
+        "pyxfile": "io/rdata/_rdata",
+        "sources": rdata_srcs,
+    },
 }
 
 extensions = []
@@ -568,6 +586,9 @@ for name, data in ext_data.items():
 
     include = data.get("include", [])
     include.append(numpy.get_include())
+
+    if name == "io.rdata._rdata" and not is_platform_windows():
+        extra_link_args.append("-liconv")
 
     obj = Extension(
         f"pandas.{name}",

@@ -6,13 +6,17 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Timestamp,
+)
 import pandas._testing as tm
 
-from pandas.io.rdata import read_rdata
-
-pyreadr = pytest.importorskip("pyreadr")
-
+from pandas.io.rdata._rdata import (
+    LibrdataParserError,
+    LibrdataWriterError,
+)
+from pandas.io.rdata.rdata_reader import read_rdata
 
 ghg_df = DataFrame(
     {
@@ -71,6 +75,42 @@ sea_ice_df = DataFrame(
     }
 ).rename_axis("rownames")
 
+ppm_df = DataFrame(
+    {
+        "date": {
+            612: Timestamp("2020-12-16 23:42:25.920000256"),
+            613: Timestamp("2021-01-16 11:17:31.199999744"),
+            614: Timestamp("2021-02-15 21:00:00"),
+            615: Timestamp("2021-03-18 06:42:28.800000256"),
+            616: Timestamp("2021-04-17 17:17:31.199999744"),
+        },
+        "decimal_date": {
+            612: 2020.9583,
+            613: 2021.0417,
+            614: 2021.125,
+            615: 2021.2083,
+            616: 2021.2917,
+        },
+        "monthly_average": {
+            612: 414.25,
+            613: 415.52,
+            614: 416.75,
+            615: 417.64,
+            616: 419.05,
+        },
+        "deseasonalized": {
+            612: 414.98,
+            613: 415.26,
+            614: 415.93,
+            615: 416.18,
+            616: 416.23,
+        },
+        "num_days": {612: 30, 613: 29, 614: 28, 615: 28, 616: 24},
+        "std_dev_of_days": {612: 0.47, 613: 0.44, 614: 1.02, 615: 0.86, 616: 1.12},
+        "unc_of_mon_mean": {612: 0.17, 613: 0.16, 614: 0.37, 615: 0.31, 616: 0.44},
+    }
+).rename_axis("rownames")
+
 
 @pytest.fixture(params=["rda", "rds"])
 def rtype(request):
@@ -82,45 +122,22 @@ def comp(request):
     return request.param
 
 
-def adj_int(df):
-    """
-    Convert int32 columns to int64.
+# RDATA READER
 
-    Since pyreadr engine reads ints int int32 and writes ints
-    to floats  this method converts such columns for testing.
-    """
-    int_cols = df.select_dtypes("int32").columns
-    df[int_cols] = df[int_cols].astype("int64")
-
-    if "index" in df.columns:
-        df["index"] = df["index"].astype("int64")
-
-    if "year" in df.columns:
-        df["year"] = df["year"].astype("int64")
-    if "mo" in df.columns:
-        df["mo"] = df["mo"].astype("int64")
-
-    return df
-
-
-# RDA READER
 
 # PATH_OR_BUFFER
 
 
 def test_read_rds_file(datapath):
     filename = datapath("io", "data", "rdata", "ghg_df.rds")
-    r_df = read_rdata(filename)
-    output = adj_int(r_df).tail()
+    r_dfs = read_rdata(filename)
 
-    tm.assert_frame_equal(ghg_df, output)
+    tm.assert_frame_equal(ghg_df, r_dfs["r_dataframe"].tail())
 
 
 def test_read_rda_file(datapath):
     filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
     r_dfs = read_rdata(filename)
-
-    r_dfs = {str(k): adj_int(v) for k, v in r_dfs.items()}
 
     assert list(r_dfs.keys()) == ["ghg_df", "plants_df", "sea_ice_df"]
 
@@ -133,11 +150,9 @@ def test_read_rds_filelike(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
 
     with open(filename, "rb") as f:
-        r_df = read_rdata(f, file_format="rds")
+        r_dfs = read_rdata(f, file_format="rds")
 
-    output = adj_int(r_df).tail()
-
-    tm.assert_frame_equal(sea_ice_df, output)
+    tm.assert_frame_equal(sea_ice_df, r_dfs["r_dataframe"].tail())
 
 
 def test_read_rda_filelike(datapath):
@@ -145,8 +160,6 @@ def test_read_rda_filelike(datapath):
 
     with open(filename, "rb") as f:
         r_dfs = read_rdata(f, file_format="rda")
-
-    r_dfs = {str(k): adj_int(v) for k, v in r_dfs.items()}
 
     assert list(r_dfs.keys()) == ["ghg_df", "plants_df", "sea_ice_df"]
 
@@ -160,11 +173,9 @@ def test_bytesio_rds(datapath):
 
     with open(filename, "rb") as f:
         with BytesIO(f.read()) as b_io:
-            r_df = read_rdata(b_io, file_format="rds")
+            r_dfs = read_rdata(b_io, file_format="rds")
 
-    output = adj_int(r_df).tail()
-
-    tm.assert_frame_equal(sea_ice_df, output)
+    tm.assert_frame_equal(sea_ice_df, r_dfs["r_dataframe"].tail())
 
 
 def test_bytesio_rda(datapath):
@@ -173,8 +184,6 @@ def test_bytesio_rda(datapath):
     with open(filename, "rb") as f:
         with BytesIO(f.read()) as b_io:
             r_dfs = read_rdata(b_io, file_format="rda")
-
-    r_dfs = {str(k): adj_int(v) for k, v in r_dfs.items()}
 
     assert list(r_dfs.keys()) == ["ghg_df", "plants_df", "sea_ice_df"]
 
@@ -199,10 +208,8 @@ def test_read_wrong_file():
 
 
 def test_read_rds_non_df(datapath):
-    from pyreadr import custom_errors
-
     with pytest.raises(
-        custom_errors.LibrdataError,
+        LibrdataParserError,
         match="Invalid file, or file has unsupported features",
     ):
         filename = datapath("io", "data", "rdata", "ppm_ts.rds")
@@ -210,10 +217,8 @@ def test_read_rds_non_df(datapath):
 
 
 def test_read_rda_non_dfs(datapath):
-    from pyreadr import custom_errors
-
     with pytest.raises(
-        custom_errors.LibrdataError,
+        LibrdataParserError,
         match="Invalid file, or file has unsupported features",
     ):
         filename = datapath("io", "data", "rdata", "env_data_non_dfs.rda")
@@ -221,13 +226,11 @@ def test_read_rda_non_dfs(datapath):
 
 
 def test_read_not_rda_file(datapath):
-    from pyreadr import custom_errors
-
     with pytest.raises(
-        custom_errors.LibrdataError, match="The file contains an unrecognized object"
+        LibrdataParserError, match="The file contains an unrecognized object"
     ):
         filename = datapath("io", "data", "rdata", "ppm_df.csv")
-        read_rdata(filename, file_format="rda")
+        read_rdata(filename, file_format="rda", compression=None)
 
 
 def test_bytes_read_infer_rds(datapath):
@@ -313,22 +316,22 @@ def test_read_rda_s3():
         }
     ).rename_axis("rownames")
     r_dfs = read_rdata(s3)
-    r_dfs["wine"] = adj_int(r_dfs["wine"])
 
-    # pyreadr remove dots in colnames
+    # librdata remove dots in colnames
     r_dfs["wine"].columns = r_dfs["wine"].columns.str.replace(" ", ".")
 
     tm.assert_frame_equal(s3_df, r_dfs["wine"].head())
 
 
-# ENGINE
+# TYPE
 
 
 def test_read_rds_df_output(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
-    r_df = read_rdata(filename)
+    r_dfs = read_rdata(filename)
 
-    assert isinstance(r_df, DataFrame)
+    assert isinstance(r_dfs, dict)
+    assert list(r_dfs.keys()) == ["r_dataframe"]
 
 
 def test_read_rda_dict_output(datapath):
@@ -362,7 +365,7 @@ def test_read_wrong_select_frames(datapath):
 
 def test_read_rownames_true_rds(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
-    r_df = read_rdata(filename, rownames=True)
+    r_df = read_rdata(filename, rownames=True)["r_dataframe"]
 
     if isinstance(r_df, DataFrame):
         assert r_df.index.name == "rownames"
@@ -370,7 +373,7 @@ def test_read_rownames_true_rds(datapath):
 
 def test_read_rownames_false_rds(datapath):
     filename = datapath("io", "data", "rdata", "sea_ice_df.rds")
-    r_df = read_rdata(filename, rownames=False)
+    r_df = read_rdata(filename, rownames=False)["r_dataframe"]
 
     if isinstance(r_df, DataFrame):
         assert r_df.index.name != "rownames"
@@ -399,11 +402,23 @@ def test_read_rownames_false_rda(datapath):
 
 def test_non_utf8_data(datapath, rtype):
     filename = datapath("io", "data", "rdata", f"climate_non_utf8_df.{rtype}")
-    with pytest.raises(UnicodeDecodeError, match=("'utf-8' codec can't decode byte")):
+    with pytest.raises(SystemError, match=("returned a result with an error set")):
         read_rdata(filename)
 
 
-# RDA WRITER
+# DATE / TIME
+
+
+def test_utc_datetime_convert(datapath):
+    filename = datapath("io", "data", "rdata", "ppm_df.rda")
+    r_dfs = read_rdata(filename)
+
+    assert str(r_dfs["ppm_df"]["date"].dtype) == "datetime64[ns]"
+
+    tm.assert_frame_equal(ppm_df, r_dfs["ppm_df"].tail())
+
+
+# RDATA WRITER
 
 # PATH_OR_BUFFER
 
@@ -414,9 +429,7 @@ def test_write_read_file(rtype):
         r_dfs = read_rdata(path, file_format=rtype, rownames=False)
 
         expected = ghg_df.reset_index(drop=True)
-        output = (
-            adj_int(r_dfs["pandas_dataframe"]) if rtype == "rda" else adj_int(r_dfs)
-        )
+        output = r_dfs["pandas_dataframe"] if rtype == "rda" else r_dfs["r_dataframe"]
 
         tm.assert_frame_equal(output, expected)
 
@@ -430,26 +443,23 @@ def test_write_read_pathlib(rtype):
         r_dfs = read_rdata(tmp_file, file_format=rtype, rownames=False)
 
         expected = sea_ice_df.reset_index(drop=True)
-        output = (
-            adj_int(r_dfs["pandas_dataframe"]) if rtype == "rda" else adj_int(r_dfs)
-        )
+        output = r_dfs["pandas_dataframe"] if rtype == "rda" else r_dfs["r_dataframe"]
 
         tm.assert_frame_equal(output, expected)
 
 
 def test_write_read_filelike(rtype):
     with BytesIO() as b_io:
-        sea_ice_df.to_rdata(b_io, file_format=rtype, index=False)
+        sea_ice_df.to_rdata(b_io, file_format=rtype, compression=None, index=False)
         r_dfs = read_rdata(
             b_io.getvalue(),
             file_format=rtype,
             rownames=False,
+            compression=None,
         )
 
         expected = sea_ice_df.reset_index(drop=True)
-        output = (
-            adj_int(r_dfs["pandas_dataframe"]) if rtype == "rda" else adj_int(r_dfs)
-        )
+        output = r_dfs["pandas_dataframe"] if rtype == "rda" else r_dfs["r_dataframe"]
 
         tm.assert_frame_equal(output, expected)
 
@@ -474,7 +484,7 @@ def test_write_unable_to_infer():
 # INDEX
 
 
-def test_index_true(rtype):
+def test_write_index_true(rtype):
     with tm.ensure_clean("test.out") as path:
         plants_df.rename_axis(None).to_rdata(path, file_format=rtype, index=True)
         r_dfs = read_rdata(path, file_format=rtype)
@@ -485,7 +495,7 @@ def test_index_true(rtype):
         assert "index" in r_df.columns
 
 
-def test_index_false(rtype):
+def test_write_index_false(rtype):
     with tm.ensure_clean("test.out") as path:
         plants_df.rename_axis(None).to_rdata(path, file_format=rtype, index=False)
         r_dfs = read_rdata(path, file_format=rtype)
@@ -499,20 +509,18 @@ def test_index_false(rtype):
 # COMPRESS
 
 
-def test_compress_ok_comp(rtype, comp):
+def test_write_compress_all(rtype, comp):
     with tm.ensure_clean("test.out") as path:
         ghg_df.to_rdata(path, file_format=rtype, compression=comp, index=False)
-        r_dfs = read_rdata(path, file_format=rtype, rownames=False)
+        r_dfs = read_rdata(path, file_format=rtype, compression=comp, rownames=False)
 
         expected = ghg_df.reset_index(drop=True)
-        output = (
-            adj_int(r_dfs["pandas_dataframe"]) if rtype == "rda" else adj_int(r_dfs)
-        )
+        output = r_dfs["pandas_dataframe"] if rtype == "rda" else r_dfs["r_dataframe"]
 
         tm.assert_frame_equal(output, expected)
 
 
-def test_compress_zip(rtype):
+def test_write_compress_zip(rtype):
     with tm.ensure_clean("test.out") as path:
         with pytest.raises(ValueError, match=("not a supported value for compression")):
             ghg_df.to_rdata(path, file_format=rtype, index=False, compression="zip")
@@ -521,9 +529,37 @@ def test_compress_zip(rtype):
 # RDA_NAMES
 
 
-def test_new_rda_name():
+def test_write_new_rda_name():
     with tm.ensure_clean("test.rda") as path:
         ghg_df.to_rdata(path, rda_name="py_df")
         r_dfs = read_rdata(path)
 
         assert "py_df" in list(r_dfs.keys())
+
+
+# PROBLEM DATA
+
+
+def test_write_nested_list(rtype, comp):
+    plants_df["plants_dict"] = plants_df["plant_group"].apply(
+        lambda x: plants_df["plant_group"].unique()
+    )
+    with tm.ensure_clean("test") as path:
+        with pytest.raises(
+            LibrdataWriterError,
+            match=("DataFrame contains one more invalid types or data values"),
+        ):
+            plants_df.to_rdata(path, file_format=rtype, compression=comp)
+
+
+# DATE / TIME
+
+
+def test_write_read_utc_dateteime():
+    with tm.ensure_clean("test.rda") as path:
+        ppm_df.to_rdata(path, index=False)
+        r_dfs = read_rdata(path, rownames=False)
+
+        ppm_df["date"] = ppm_df["date"].dt.floor("S")
+
+        tm.assert_frame_equal(ppm_df.reset_index(drop=True), r_dfs["pandas_dataframe"])

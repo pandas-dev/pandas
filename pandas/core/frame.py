@@ -2322,8 +2322,8 @@ class DataFrame(NDFrame, OpsMixin):
         index : bool, default True
             Include index or MulitIndex in output as separate columns. Since
             DataFrame indexes can include multiple columns and R rownames can
-            only include one column, DataFrame index will not map to R data.frame
-            rownames.
+            only include one column, DataFrame index will not map to R
+            data.frame rownames.
 
         compression : {{'gzip', 'bz2', 'xz', None}}, default 'gzip'
             Compression type for on-the-fly decompression of on-disk data.
@@ -2338,8 +2338,17 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         to_stata : Convert DataFrame to a Stata dataset.
-        to_parquet : Convert DataFrame to parquet format.
-        to_feather: Convert DataFrame to feather formatt.
+
+        Notes
+        -----
+        For more information of R serialization data types, see docs on
+        `rda`_ and `rds`_ formats.
+
+        .. _rda: https://www.rdocumentation.org/packages/base/versions/3.6.2/
+        topics/save
+
+        .. _rds: https://www.rdocumentation.org/packages/base/versions/3.6.2/
+        topics/readRDS
 
         Examples
         --------
@@ -2354,7 +2363,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...      'emissions': [5424.88, 634.46, 434.53,
         ...                    182.78, 6676.65]
         ...      }})
-        >>> ghg_df.to_rdata("ghg_df.rds")
+        >>> ghg_df.to_rdata("ghg_df.rds")  # doctest: +SKIP
 
         >>> R_code = '''
         ... ghg_df <- readRDS("ghg_df.rds")
@@ -2367,7 +2376,7 @@ class DataFrame(NDFrame, OpsMixin):
         ... 5     4             Total 2018   6676.65
         ... '''
 
-        To save an .rda or .RData file:
+        To save an .RData or .rda file:
 
         >>> plants_df = pd.DataFrame(
         ...     {{'plant_group': ['Pteridophytes',
@@ -2400,11 +2409,9 @@ class DataFrame(NDFrame, OpsMixin):
         ... 5     4 Pteridophytes          Threatened  1275
         ... '''
         """
-        from pandas.io.rdata import PyReadrWriter
+        from pandas.io.rdata.rdata_writer import RDataWriter
 
-        import_optional_dependency("pyreadr")
-
-        rdata_writer = PyReadrWriter(
+        r = RDataWriter(
             self,
             path_or_buffer=path_or_buffer,
             file_format=file_format,
@@ -2414,7 +2421,7 @@ class DataFrame(NDFrame, OpsMixin):
             storage_options=storage_options,
         )
 
-        return rdata_writer.write_data()
+        return r.write_data()
 
     @doc(storage_options=generic._shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")

@@ -1,12 +1,14 @@
+"""
+Read R data files (RData, rda, rds).
+
+This IO module interfaces with the librdata C library by Evan Miller:
+  https://github.com/WizardMac/librdata
+"""
+from __future__ import annotations
+
 import io
 import os
 from tempfile import TemporaryDirectory
-from typing import (
-    Dict,
-    List,
-    Optional,
-    Union,
-)
 
 from pandas._typing import (
     Buffer,
@@ -14,13 +16,17 @@ from pandas._typing import (
     FilePathOrBuffer,
     StorageOptions,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_list_like
 
-from pandas.core.frame import DataFrame
+from pandas.core.api import to_datetime
+from pandas.core.arrays import Categorical
+from pandas.core.frame import (
+    DataFrame,
+    Index,
+    Series,
+)
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
@@ -30,16 +36,18 @@ from pandas.io.common import (
     is_url,
     stringify_path,
 )
+from pandas.io.rdata._rdata import LibrdataReader
 
 
 @doc(storage_options=_shared_docs["storage_options"])
 def read_rdata(
     path_or_buffer: FilePathOrBuffer,
     file_format: str = "infer",
-    select_frames: Optional[List[str]] = None,
+    select_frames: list[str] | None = None,
     rownames: bool = True,
+    compression: CompressionOptions = "gzip",
     storage_options: StorageOptions = None,
-) -> Union[DataFrame, Dict[str, DataFrame]]:
+) -> dict[str, DataFrame]:
     r"""
     Read R data (.RData, .rda, .rds) into DataFrame or ``dict`` of DataFrames.
 
@@ -56,20 +64,30 @@ def read_rdata(
         commands. Default 'infer' will use extension in file name to
         to determine the format type.
 
-    select_frames : list, default None
-        Selected names of DataFrames to return from R rda and RData types that
+    select_frames : list, default returns all DataFrames
+        Selected names of DataFrames to return from R RData and rdata types that
         can contain multiple objects.
 
     rownames : bool, default True
         Include original rownames in R data frames to map into a DataFrame index.
 
+    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'gzip'
+        For on-the-fly decompression of on-disk data. If 'infer', then use
+        gzip, bz2, zip or xz if path_or_buffer is a string ending in
+        '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
+        otherwise. If using 'zip', the ZIP file must contain only one data
+        file to be read in. Set to None for no decompression. This method will
+        default to 'gzip' since 'gzip2` is the default compression in R for
+        RData and rds types.
+
     {storage_options}
 
     Returns
     -------
-    DataFrame or dict of DataFrames
-        Depends on R data type where rds formats returns a single DataFrame and
-        rda or RData formats return ``dict`` of DataFrames.
+    Dict of DataFrames
+        Depends on R data type where rds formats returns a ``dict`` of a single
+        DataFrame and RData or rda formats can return ``dict`` of one or more
+        DataFrames.
 
     See Also
     --------
@@ -80,12 +98,11 @@ def read_rdata(
     Notes
     -----
     Any R data file that contains a non-data.frame object may raise parsing errors.
-    Method will return data.frame, matrix, and data.frame like object such as
-    tibbles and data.tables.
-
-    For ``pyreadr`` engine, ``select_frames`` above is synonymous to ``use_objects``
-    in package's `read_r` method. Also, ``timezone`` argument defaults to current
-    system regional timezone in order to correspond to original date/times in R.
+    Method will return data.frame and data.frame like objects such as tibbles and
+    data.tables. For more information of R serialization data types, see docs on
+    `rds`<https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/readRDS>__
+    and `rda`<https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/save>__
+    formats.
 
     Examples
     --------
@@ -115,13 +132,14 @@ def read_rdata(
 
     >>> ghg_df = pd.read_rdata("ghg_df.rds")  # doctest: +SKIP
     >>> ghg_df  # doctest: +SKIP
-                            gas  year  emissions
+    {{'r_dataframe':
+                          gas  year  emissions
     rownames
-    1            Carbon dioxide  2018    5424.88
-    2                   Methane  2018     634.46
-    3             Nitrous oxide  2018     434.53
-    4         Fluorinated gases  2018     182.78
-    5                     Total  2018    6676.65
+    1          Carbon dioxide  2018    5424.88
+    2                 Methane  2018     634.46
+    3           Nitrous oxide  2018     434.53
+    4       Fluorinated gases  2018     182.79
+    5                   Total  2018    6676.65}}
 
     For an .RData or .rda file which can contain multiple R objects, method
     returns a ``dict`` of DataFrames:
@@ -183,25 +201,26 @@ def read_rdata(
     5      2020  12   NRTSI-G      S   10.44  6.50}}
     """
 
-    import_optional_dependency("pyreadr")
-
-    rdr = _PyReadrParser(
+    rdr = _RDataReader(
         path_or_buffer,
         file_format,
         select_frames,
         rownames,
+        compression,
         storage_options,
     )
 
-    return rdr.parse_data()
+    r_dfs = rdr.parse_data()
+
+    return r_dfs
 
 
-def _get_data_from_filepath(
+def get_data_from_filepath(
     filepath_or_buffer,
     encoding,
     compression,
     storage_options,
-) -> Union[str, bytes, Buffer]:
+) -> str | bytes | Buffer:
     """
     Extract raw R data.
 
@@ -240,7 +259,7 @@ def _get_data_from_filepath(
     return filepath_or_buffer
 
 
-def _preprocess_data(data) -> Union[io.StringIO, io.BytesIO]:
+def preprocess_data(data) -> io.StringIO | io.BytesIO:
     """
     Convert extracted raw data.
 
@@ -277,22 +296,13 @@ class _RDataReader:
     rownames : bool, default True
         Include original rownames in R data frames.
 
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
+        Compression type for on-the-fly decompression of on-disk data.
+        If 'infer', then use extension for gzip, bz2, zip or xz.
+
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection,
-        e.g. host, port, username, password, etc.,
-
-    See also
-    --------
-    pandas.io.rdata._PyReadrParser
-
-    Notes
-    -----
-    To subclass this class effectively you must override the following methods:`
-        * :func:`handle_rownames`
-        * :func:`parse_data`
-
-    See each method's respective documentation for details on their
-    functionality.
+        e.g. host, port, username, password, etc.
     """
 
     def __init__(
@@ -301,13 +311,16 @@ class _RDataReader:
         file_format,
         select_frames,
         rownames,
+        compression,
         storage_options,
     ) -> None:
         self.path_or_buffer = path_or_buffer
         self.file_format = file_format.lower()
         self.select_frames = select_frames
         self.rownames = rownames
+        self.compression = compression
         self.storage_options = storage_options
+        self.verify_params()
 
     def verify_params(self) -> None:
         """
@@ -317,7 +330,7 @@ class _RDataReader:
         and raise appropriate errors.
         """
 
-        path_ext: Optional[str] = (
+        path_ext: str | None = (
             os.path.splitext(self.path_or_buffer.lower())[1][1:]
             if isinstance(self.path_or_buffer, str)
             else None
@@ -352,247 +365,93 @@ class _RDataReader:
         Convert path or buffer to disk file.
 
         This method will convert path_or_buffer to temp file
-        for pyreadr to parse from disk.
+        to parse RData from disk.
         """
 
         r_temp = os.path.join(tmp_dir, "rdata.rda")
 
-        handle_data = _get_data_from_filepath(
+        handle_data = get_data_from_filepath(
             filepath_or_buffer=self.path_or_buffer,
             encoding="utf-8",
-            compression=None,
+            compression=self.compression,
             storage_options=self.storage_options,
         )
 
-        with _preprocess_data(handle_data) as r_data:
+        with preprocess_data(handle_data) as r_data:
             if isinstance(r_data, io.BytesIO):
                 with open(r_temp, "wb") as f:
                     f.write(r_data.read())
 
         return r_temp
 
-    def handle_row_names(self) -> DataFrame:
+    def build_frame(self, data_dict: dict) -> DataFrame:
         """
-        Migrate R rownames to DataFrame index.
+        Builds DataFrame from raw, nested parsed RData dict.
 
-        This method will conditionally adjust index to reflect
-        original R rownames.
-        """
-
-        raise AbstractMethodError(self)
-
-    def parse_data(self) -> Union[DataFrame, Dict[str, DataFrame]]:
-        """
-        Parse R data files.
-
-        This method will run engine methods to return a single DataFrame
-        for rds type or dictionary of DataFrames for RData or rda types.
+        Converts special class variables (bools, factors, dates, datetimes),
+        then binds all columns together with DataFrame constructor.
         """
 
-        raise AbstractMethodError(self)
+        final_dict = {
+            k: Series(v)
+            for k, v in data_dict["data"].items()
+            if k not in ["dtypes", "colnames", "rownames"]
+        }
 
+        rdf = DataFrame(data=final_dict)
 
-class _PyReadrParser(_RDataReader):
-    """
-    Internal class to parse R data types using third-party
-    package, pyreadr.
-    """
+        for col, dtype in data_dict["dtypes"].items():
+            if dtype == "bool":
+                rdf[col] = rdf[col].astype(bool)
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.verify_params()
+            if dtype == "factor":
+                rdf[col] = Categorical(rdf[col])
 
-    def handle_rownames(self, df) -> DataFrame:
-        if not self.rownames:
-            df = df.reset_index(drop=True)
-            df.index.name = None
+            if dtype == "date":
+                rdf[col] = to_datetime(rdf[col], unit="d")
 
-        if self.rownames and df.index.name != "rownames":
-            df.index.name = "rownames"
-            if df.index[0] == 0:
-                df.index += 1
+            if dtype == "datetime":
+                rdf[col] = to_datetime(rdf[col], unit="s")
 
-        return df
+        colnames = (
+            None
+            if data_dict["colnames"] is None
+            else list(data_dict["colnames"].values())
+        )
+        if colnames is not None:
+            rdf.columns = Index(colnames)
 
-    def parse_data(self) -> Union[DataFrame, Dict[str, DataFrame]]:
-        from pyreadr import read_r
+        rownames = (
+            None
+            if data_dict["rownames"] is None
+            else list(data_dict["rownames"].values())
+        )
+        if self.rownames:
+            if rownames is not None:
+                rdf.index = Index(rownames)
+            else:
+                rdf.index += 1
+            rdf.index.name = "rownames"
+
+        return rdf
+
+    def parse_data(self) -> dict[str, DataFrame]:
+        """
+        Parse R data files into DataFrames
+
+        This method will retrieve dictionary of R data and build
+        DataFrame for each item in data file
+        """
+
+        lbr = LibrdataReader()
 
         with TemporaryDirectory() as tmp_dir:
             r_temp = self.buffer_to_disk(tmp_dir)
-            rdata = read_r(r_temp, use_objects=self.select_frames)
+            rdict = lbr.read_rdata(r_temp)
 
-        rdata = {k: self.handle_rownames(df) for k, df in rdata.items()}
-        rdata = rdata[None] if self.file_format == "rds" else dict(rdata)
+        r_dfs = {k: self.build_frame(v) for k, v in rdict.items()}
 
-        return rdata
+        if self.select_frames:
+            r_dfs = {k: v for k, v in r_dfs.items() if k in self.select_frames}
 
-
-class RDataWriter:
-    """
-    Subclass to write pandas DataFrames into R data files.
-
-    Parameters
-    ----------
-    path_or_buffer : a valid str, path object or file-like object
-        Any valid string path is acceptable.
-
-    file_format : {{'infer', 'rdata', 'rda', 'rds'}}, default 'infer'
-        R serialization type.
-
-    rda_name : str, default "pandas_dataframe"
-        Name for exported DataFrame in rda file.
-
-    index : bool, default True
-        Include index or MultiIndex in output as separate columns.
-
-    compression : {'gzip', 'bz2', 'xz', None}, default 'gzip'
-        Compression type for on-the-fly decompression of on-disk data.
-
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection,
-        e.g. host, port, username, password, etc.
-
-    See also
-    --------
-    pandas.io.rdata.PyReadrWriter
-
-    Notes
-    -----
-    To subclass this class effectively you must override the following methods:`
-        * :func:`write_data`
-
-    See each method's respective documentation for details on their
-    functionality.
-    """
-
-    def __init__(
-        self,
-        frame: DataFrame,
-        path_or_buffer: FilePathOrBuffer,
-        file_format: str = "infer",
-        rda_name: str = "pandas_dataframe",
-        index: bool = True,
-        compression: CompressionOptions = "gzip",
-        storage_options: StorageOptions = None,
-    ) -> None:
-        self.frame = frame
-        self.path_or_buffer = path_or_buffer
-        self.file_format = file_format.lower()
-        self.rda_name = rda_name
-        self.index = index
-        self.compression = compression
-        self.storage_options = storage_options
-
-    def verify_params(self) -> None:
-        """
-        Verify user entries of parameters.
-
-        This method will check the values and types of select parameters
-        and raise appropriate errors.
-        """
-
-        path_ext: Optional[str] = (
-            os.path.splitext(self.path_or_buffer.lower())[1][1:]
-            if isinstance(self.path_or_buffer, str)
-            else None
-        )
-
-        if self.file_format not in ["infer", "rdata", "rda", "rds"]:
-            raise ValueError(
-                f"{self.file_format} is not a valid value for file_format."
-            )
-
-        if (
-            self.file_format == "infer"
-            and isinstance(self.path_or_buffer, str)
-            and path_ext not in ["rdata", "rda", "rds"]
-        ):
-            raise ValueError(
-                f"Unable to infer file format from file name: {self.path_or_buffer}"
-                "Please use known R data type (rdata, rda, rds)."
-            )
-
-        if self.file_format == "infer" and isinstance(path_ext, str):
-            self.file_format = path_ext
-
-        if self.compression is not None and self.compression not in [
-            "gzip",
-            "bz2",
-            "xz",
-        ]:
-            raise ValueError(
-                f"{self.compression} is not a supported value for compression."
-            )
-
-    def disk_to_buffer(self, r_file: str) -> None:
-        """
-        Save temp file to path or buffer.
-
-        This method will convert written R data to path_or_buffer.
-        """
-
-        with open(r_file, "rb") as rdata:
-            with get_handle(
-                self.path_or_buffer,
-                "wb",
-                compression=self.compression,
-                storage_options=self.storage_options,
-                is_text=False,
-            ) as handles:
-                handles.handle.write(rdata.read())  # type: ignore[arg-type]
-
-        return None
-
-    def write_data(self) -> None:
-        """
-        Write DataFrames to R data files.
-
-        This method will run engine methods to export DataFrames
-        to R data files.
-        """
-
-        raise AbstractMethodError(self)
-
-
-class PyReadrWriter(RDataWriter):
-    """
-    Main class called in `pandas.core.frame` to write DataFrame to R
-    data types using third-party package, pyreadr.
-    """
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.verify_params()
-
-    def write_data(self) -> None:
-        from pyreadr import (
-            write_rdata,
-            write_rds,
-        )
-
-        self.frame = (
-            self.frame.reset_index()
-            if self.index
-            else self.frame.reset_index(drop=True)
-        )
-
-        with TemporaryDirectory() as tmp_dir:
-            r_temp = os.path.join(tmp_dir, "rdata.rda")
-
-            if self.file_format in ["rda", "rdata"]:
-                write_rdata(
-                    path=r_temp,
-                    df=self.frame,
-                    df_name=self.rda_name,
-                    compress=None,
-                )
-            elif self.file_format == "rds":
-                write_rds(
-                    path=r_temp,
-                    df=self.frame,
-                    compress=None,
-                )
-
-            self.disk_to_buffer(r_temp)
-
-        return None
+        return r_dfs
