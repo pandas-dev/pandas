@@ -998,8 +998,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
+                # test_groupby_as_index_series_scalar gets here with 'not self.as_index'
                 return self._python_agg_general(func, *args, **kwargs)
             elif args or kwargs:
+                # test_pass_args_kwargs gets here (with and without as_index)
+                # can't return early
                 result = self._aggregate_frame(func, *args, **kwargs)
 
             elif self.axis == 1:
