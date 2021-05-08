@@ -11,7 +11,6 @@ from pandas import (
     concat,
 )
 import pandas._testing as tm
-from pandas.core.base import DataError
 
 
 def test_rank_apply():
@@ -462,7 +461,6 @@ def test_rank_avg_even_vals(dtype, upper):
     tm.assert_frame_equal(result, exp_df)
 
 
-@pytest.mark.xfail(reason="Works now, needs tests")
 @pytest.mark.parametrize("ties_method", ["average", "min", "max", "first", "dense"])
 @pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
@@ -472,11 +470,23 @@ def test_rank_avg_even_vals(dtype, upper):
 )
 def test_rank_object_raises(ties_method, ascending, na_option, pct, vals):
     df = DataFrame({"key": ["foo"] * 5, "val": vals})
+    mask = df["val"].isna()
 
-    with pytest.raises(DataError, match="No numeric types to aggregate"):
-        df.groupby("key").rank(
-            method=ties_method, ascending=ascending, na_option=na_option, pct=pct
-        )
+    gb = df.groupby("key")
+    res = gb.rank(method=ties_method, ascending=ascending, na_option=na_option, pct=pct)
+
+    # construct our expected by using numeric values with the same ordering
+    if mask.any():
+        df2 = DataFrame({"key": ["foo"] * 5, "val": [0, np.nan, 2, np.nan, 1]})
+    else:
+        df2 = DataFrame({"key": ["foo"] * 5, "val": [0, 0, 2, 0, 1]})
+
+    gb2 = df2.groupby("key")
+    alt = gb2.rank(
+        method=ties_method, ascending=ascending, na_option=na_option, pct=pct
+    )
+
+    tm.assert_frame_equal(res, alt)
 
 
 @pytest.mark.parametrize("na_option", [True, "bad", 1])
