@@ -1627,21 +1627,21 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _iterate_column_groupbys(self):
-        for i, colname in enumerate(self._selected_obj.columns):
+    def _iterate_column_groupbys(self, obj: FrameOrSeries):
+        for i, colname in enumerate(obj.columns):
             yield colname, SeriesGroupBy(
-                self._selected_obj.iloc[:, i],
+                obj.iloc[:, i],
                 selection=colname,
                 grouper=self.grouper,
                 exclusions=self.exclusions,
             )
 
-    def _apply_to_column_groupbys(self, func) -> DataFrame:
+    def _apply_to_column_groupbys(self, func, obj: FrameOrSeries) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
-        columns = self._selected_obj.columns
+        columns = obj.columns
         results = [
-            func(col_groupby) for _, col_groupby in self._iterate_column_groupbys()
+            func(col_groupby) for _, col_groupby in self._iterate_column_groupbys(obj)
         ]
 
         if not len(results):
@@ -1730,39 +1730,46 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         from pandas.core.reshape.concat import concat
 
-        # TODO: this is duplicative of how GroupBy naturally works
-        # Try to consolidate with normal wrapping functions
-
         obj = self._obj_with_exclusions
+
         if self.axis == 0:
-            iter_func = obj.items
+            results = self._apply_to_column_groupbys(
+                lambda sgb: sgb.nunique(dropna), obj=obj
+            )
+            results.columns.names = obj.columns.names  # TODO: do at higher level?
         else:
+            # see test_groupby_crash_on_nunique
+            # TODO: this is duplicative of how GroupBy naturally works
+            # Try to consolidate with normal wrapping functions
+
             iter_func = obj.iterrows
 
-        res_list = [
-            SeriesGroupBy(content, selection=label, grouper=self.grouper).nunique(
-                dropna
-            )
-            for label, content in iter_func()
-        ]
-        if res_list:
-            results = concat(res_list, axis=1)
-            results = cast(DataFrame, results)
-        else:
-            # concat would raise
-            results = DataFrame(
-                [], index=self.grouper.result_index, columns=obj.columns[:0]
-            )
+            res_list = [
+                SeriesGroupBy(content, selection=label, grouper=self.grouper).nunique(
+                    dropna
+                )
+                for label, content in iter_func()
+            ]
+            if res_list:
+                results = concat(res_list, axis=1)
+                results = cast(DataFrame, results)
+            else:
+                # concat would raise
+                results = DataFrame(
+                    [], index=self.grouper.result_index, columns=obj.columns[:0]
+                )
 
-        if self.axis == 1:
             results = results.T
 
-        other_axis = 1 - self.axis
-        results._get_axis(other_axis).names = obj._get_axis(other_axis).names
+            results.index.names = obj.index.names
+            if results.index.equals(obj.index):
+                # retain freq attribute on DatetimeIndex/TimedeltaIndex
+                results.index = obj.index.copy()
 
         if not self.as_index:
             results.index = ibase.default_index(len(results))
             self._insert_inaxis_grouper_inplace(results)
+
         return results
 
     @Appender(DataFrame.idxmax.__doc__)
