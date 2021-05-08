@@ -5686,6 +5686,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         to_numeric : Convert argument to a numeric type.
         numpy.ndarray.astype : Cast a numpy array to a specified type.
 
+        Notes
+        -----
+        .. deprecated:: 1.3.0
+
+            Using ``astype`` to convert from timezone-naive dtype to
+            timezone-aware dtype is deprecated and will raise in a
+            future version.  Use :meth:`Series.dt.tz_localize` instead.
+
         Examples
         --------
         Create a DataFrame:
@@ -5761,15 +5769,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1   2020-01-02
         2   2020-01-03
         dtype: datetime64[ns]
-
-        Datetimes are localized to UTC first before
-        converting to the specified timezone:
-
-        >>> ser_date.astype('datetime64[ns, US/Eastern]')
-        0   2019-12-31 19:00:00-05:00
-        1   2020-01-01 19:00:00-05:00
-        2   2020-01-02 19:00:00-05:00
-        dtype: datetime64[ns, US/Eastern]
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
