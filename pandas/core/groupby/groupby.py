@@ -588,7 +588,9 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     axis: int
     grouper: ops.BaseGrouper
-    obj: FrameOrSeries
+    # error: Incompatible types in assignment (expression has type "FrameOrSeries",
+    # base class "SelectionMixin" defined the type as "Union[DataFrame, Series]")
+    obj: FrameOrSeries  # type: ignore[assignment]
     group_keys: bool
 
     @final
@@ -852,7 +854,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         axis: int = 0,
         level: IndexLabel | None = None,
         grouper: ops.BaseGrouper | None = None,
-        exclusions: set[Hashable] | None = None,
+        exclusions: frozenset[Hashable] | None = None,
         selection: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -901,7 +903,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         self.obj = obj
         self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
-        self.exclusions = exclusions or set()
+        self.exclusions = frozenset(exclusions) if exclusions else frozenset()
 
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
