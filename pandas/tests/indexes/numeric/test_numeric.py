@@ -29,7 +29,7 @@ class TestFloat64Index(NumericBase):
         return request.param
 
     @pytest.fixture
-    def simple_index(self, dtype) -> Index:
+    def simple_index(self, dtype):
         values = np.arange(5, dtype=dtype)
         return self._index_cls(values)
 
@@ -393,7 +393,7 @@ class TestInt64Index(NumericInt):
         return request.param
 
     @pytest.fixture
-    def simple_index(self, dtype) -> Index:
+    def simple_index(self, dtype):
         return self._index_cls(range(0, 20, 2), dtype=dtype)
 
     @pytest.fixture(
@@ -492,7 +492,7 @@ class TestUInt64Index(NumericInt):
         return request.param
 
     @pytest.fixture
-    def simple_index(self, dtype) -> Index:
+    def simple_index(self, dtype):
         # compat with shared Int64/Float64 tests
         return self._index_cls(np.arange(5, dtype=dtype))
 
