@@ -8,6 +8,7 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
+    Generic,
     Hashable,
     TypeVar,
     cast,
@@ -20,7 +21,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     DtypeObj,
-    FrameOrSeriesUnion,
+    FrameOrSeries,
     IndexLabel,
     Shape,
     final,
@@ -165,13 +166,13 @@ class SpecificationError(Exception):
     pass
 
 
-class SelectionMixin:
+class SelectionMixin(Generic[FrameOrSeries]):
     """
     mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
     """
 
-    obj: FrameOrSeriesUnion
+    obj: FrameOrSeries
     _selection: IndexLabel | None = None
     exclusions: frozenset[Hashable]
     _internal_names = ["_cache", "__setstate__"]

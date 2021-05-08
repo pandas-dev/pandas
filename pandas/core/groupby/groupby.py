@@ -20,7 +20,6 @@ import types
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Generic,
     Hashable,
     Iterable,
     Iterator,
@@ -567,7 +566,7 @@ _KeysArgType = Union[
 ]
 
 
-class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
+class BaseGroupBy(PandasObject, SelectionMixin[FrameOrSeries]):
     _group_selection: IndexLabel | None = None
     _apply_allowlist: frozenset[str] = frozenset()
     _hidden_attrs = PandasObject._hidden_attrs | {
@@ -588,9 +587,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     axis: int
     grouper: ops.BaseGrouper
-    # error: Incompatible types in assignment (expression has type "FrameOrSeries",
-    # base class "SelectionMixin" defined the type as "Union[DataFrame, Series]")
-    obj: FrameOrSeries  # type: ignore[assignment]
     group_keys: bool
 
     @final
@@ -842,7 +838,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     more
     """
 
-    obj: FrameOrSeries
     grouper: ops.BaseGrouper
     as_index: bool
 

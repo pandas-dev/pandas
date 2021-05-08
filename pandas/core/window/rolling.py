@@ -124,9 +124,7 @@ class BaseWindow(SelectionMixin):
         closed: str | None = None,
         method: str = "single",
     ):
-        # error: Incompatible types in assignment (expression has type "FrameOrSeries",
-        # variable has type "Union[DataFrame, Series]")
-        self.obj = obj  # type: ignore[assignment]
+        self.obj = obj
         self.on = on
         self.closed = closed
         self.window = window
