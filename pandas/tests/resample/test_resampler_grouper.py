@@ -258,6 +258,8 @@ def test_apply():
         return x.resample("2s").apply(lambda y: y.sum())
 
     result = g.apply(f)
+    # y.sum() results in int64 instead of int32 on 32-bit architectures
+    expected = expected.astype("int64")
     tm.assert_frame_equal(result, expected)
 
 
@@ -289,7 +291,7 @@ def test_apply_columns_multilevel():
     agg_dict = {col: (np.sum if col[3] == "one" else np.mean) for col in df.columns}
     result = df.resample("H").apply(lambda x: agg_dict[x.name](x))
     expected = DataFrame(
-        np.array([0] * 4).reshape(2, 2),
+        2 * [[0, 0.0]],
         index=date_range(start="2017-01-01", freq="1H", periods=2),
         columns=pd.MultiIndex.from_tuples(
             [("A", "a", "", "one"), ("B", "b", "i", "two")]
@@ -354,11 +356,15 @@ def test_apply_to_one_column_of_df():
         {"col": range(10), "col1": range(10, 20)},
         index=date_range("2012-01-01", periods=10, freq="20min"),
     )
+
+    # access "col" via getattr -> make sure we handle AttributeError
     result = df.resample("H").apply(lambda group: group.col.sum())
     expected = Series(
         [3, 12, 21, 9], index=date_range("2012-01-01", periods=4, freq="H")
     )
     tm.assert_series_equal(result, expected)
+
+    # access "col" via _getitem__ -> make sure we handle KeyErrpr
     result = df.resample("H").apply(lambda group: group["col"].sum())
     tm.assert_series_equal(result, expected)
 

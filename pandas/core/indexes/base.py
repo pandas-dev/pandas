@@ -13,6 +13,7 @@ from typing import (
     Sequence,
     TypeVar,
     cast,
+    overload,
 )
 import warnings
 
@@ -159,6 +160,8 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas import (
         CategoricalIndex,
         DataFrame,
@@ -904,9 +907,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_categorical_dtype(dtype):
             from pandas.core.indexes.category import CategoricalIndex
 
-            return CategoricalIndex(
-                self._values, name=self.name, dtype=dtype, copy=copy
-            )
+            return CategoricalIndex(self, name=self.name, dtype=dtype, copy=copy)
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
@@ -2920,8 +2921,10 @@ class Index(IndexOpsMixin, PandasObject):
         other, result_name = self._convert_can_do_setop(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
-            if isinstance(self, ABCMultiIndex) and not is_object_dtype(
-                unpack_nested_dtype(other)
+            if (
+                isinstance(self, ABCMultiIndex)
+                and not is_object_dtype(unpack_nested_dtype(other))
+                and len(other) > 0
             ):
                 raise NotImplementedError(
                     "Can only union MultiIndex with MultiIndex or Index of tuples, "
@@ -3026,9 +3029,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _wrap_setop_result(self, other: Index, result) -> Index:
-        if is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
-            result = Categorical(result, dtype=self.dtype)
-
         name = get_op_result_name(self, other)
         if isinstance(result, Index):
             if result.name != name:
@@ -3414,7 +3414,7 @@ class Index(IndexOpsMixin, PandasObject):
         limit: int | None = None,
         tolerance=None,
     ) -> np.ndarray:
-
+        # returned ndarray is np.intp
         method = missing.clean_reindex_fill_method(method)
         target = ensure_index(target)
 
@@ -4025,7 +4025,7 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, lindexer, rindexer
 
     @final
-    def _join_multi(self, other, how):
+    def _join_multi(self, other: Index, how: str_t):
         from pandas.core.indexes.multi import MultiIndex
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
@@ -4099,7 +4099,10 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def _join_non_unique(self, other, how="left"):
+    def _join_non_unique(
+        self, other: Index, how: str_t = "left"
+    ) -> tuple[Index, np.ndarray, np.ndarray]:
+        # returned ndarrays are np.intp
         from pandas.core.reshape.merge import get_join_indexers
 
         # We only get here if dtypes match
@@ -4125,7 +4128,10 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, left_idx, right_idx
 
     @final
-    def _join_level(self, other, level, how="left", keep_order=True):
+    def _join_level(
+        self, other: Index, level, how: str_t = "left", keep_order: bool = True
+    ) -> tuple[MultiIndex, np.ndarray | None, np.ndarray | None]:
+        # Any returned ndarrays are np.intp
         """
         The join method *only* affects the level of the resulting
         MultiIndex. Otherwise it just exactly aligns the Index data to the
@@ -4270,7 +4276,7 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, left_indexer, right_indexer
 
     @final
-    def _join_monotonic(self, other: Index, how="left"):
+    def _join_monotonic(self, other: Index, how: str_t = "left"):
         # We only get here with matching dtypes
         assert other.dtype == self.dtype
 
@@ -5212,7 +5218,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
+    def get_indexer_non_unique(self, target) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
         target = ensure_index(target)
 
         if not self._should_compare(target) and not is_interval_dtype(self.dtype):
@@ -5236,7 +5243,7 @@ class Index(IndexOpsMixin, PandasObject):
         tgt_values = target._get_engine_target()
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
-        return ensure_platform_int(indexer), missing
+        return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @final
     def get_indexer_for(self, target, **kwargs) -> np.ndarray:
@@ -5256,8 +5263,31 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
+    @overload
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: Literal[True] = ...
+    ) -> np.ndarray:
+        # returned ndarray is np.intp
+        ...
+
+    @overload
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: Literal[False]
+    ) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
+        ...
+
+    @overload
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: bool = True
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+        # any returned ndarrays are np.intp
+        ...
+
     @final
-    def _get_indexer_non_comparable(self, target: Index, method, unique: bool = True):
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: bool = True
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         """
         Called from get_indexer or get_indexer_non_unique when the target
         is of a non-comparable dtype.
@@ -5500,7 +5530,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        is_contained : ndarray[bool]
+        np.ndarray[bool]
             NumPy array of boolean values.
 
         See Also
@@ -5850,7 +5880,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return start_slice, end_slice
 
-    def delete(self, loc) -> Index:
+    def delete(self: _IndexT, loc) -> _IndexT:
         """
         Make new Index with passed location(-s) deleted.
 
@@ -6401,8 +6431,8 @@ def _maybe_cast_data_without_dtype(subarr):
             return tda
         elif inferred == "period":
             try:
-                data = PeriodArray._from_sequence(subarr)
-                return data
+                parr = PeriodArray._from_sequence(subarr)
+                return parr
             except IncompatibleFrequency:
                 pass
 
