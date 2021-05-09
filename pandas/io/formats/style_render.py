@@ -132,11 +132,16 @@ class StylerRenderer:
             r = func(self)(*args, **kwargs)
         return r
 
-    def _translate(self):
+    def _translate(self, sparsify_index=None, sparsify_cols=None):
         """
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`
         into a dictionary of {head, body, uuid, cellstyle}.
         """
+        if sparsify_index is None:
+            sparsify_index = get_option("display.multi_sparse")
+        if sparsify_cols is None:
+            sparsify_cols = get_option("display.multi_sparse")
+
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
         INDEX_NAME_CLASS = "index_name"
@@ -153,14 +158,14 @@ class StylerRenderer:
         }
 
         head = self._translate_header(
-            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS
+            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS, sparsify_cols
         )
         d.update({"head": head})
 
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS)
+        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS, sparsify_index)
         d.update({"body": body})
 
         cellstyle: list[dict[str, CSSList | list[str]]] = [
@@ -185,7 +190,12 @@ class StylerRenderer:
         return d
 
     def _translate_header(
-        self, blank_class, blank_value, index_name_class, col_heading_class
+        self,
+        blank_class,
+        blank_value,
+        index_name_class,
+        col_heading_class,
+        sparsify_cols,
     ):
         """
         Build each <tr> within table <head>, using the structure:
@@ -198,7 +208,9 @@ class StylerRenderer:
              +----------------------------+---------------+---------------------------+
         """
         # for sparsifying a MultiIndex
-        col_lengths = _get_level_lengths(self.columns, self.hidden_columns)
+        col_lengths = _get_level_lengths(
+            self.columns, sparsify_cols, self.hidden_columns
+        )
 
         clabels = self.data.columns.tolist()
         if self.data.columns.nlevels == 1:
@@ -268,7 +280,7 @@ class StylerRenderer:
 
         return head
 
-    def _translate_body(self, data_class, row_heading_class):
+    def _translate_body(self, data_class, row_heading_class, sparsify_index):
         """
         Build each <tr> in table <body> in the following format:
           +--------------------------------------------+---------------------------+
@@ -279,7 +291,7 @@ class StylerRenderer:
         <style></style> block
         """
         # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(self.index)
+        idx_lengths = _get_level_lengths(self.index, sparsify_index)
 
         rlabels = self.data.index.tolist()
         if self.data.index.nlevels == 1:
@@ -520,14 +532,23 @@ def _element(
     }
 
 
-def _get_level_lengths(index, hidden_elements=None):
+def _get_level_lengths(index, sparsify, hidden_elements=None):
     """
     Given an index, find the level length for each element.
 
-    Optional argument is a list of index positions which
-    should not be visible.
-
-    Result is a dictionary of (level, initial_position): span
+    Parameters
+    ----------
+        index : Index
+            Index or columns to determine lengths of each element
+        sparsify : bool
+            Whether to hide or show each distinct element in a MultiIndex
+        hidden_element : list
+            Index positions of elements hidden from display in the index affecting
+            length
+    Returns
+    -------
+        Dict :
+            Result is a dictionary of (level, initial_position): span
     """
     if isinstance(index, MultiIndex):
         levels = index.format(sparsify=lib.no_default, adjoin=False)
@@ -546,7 +567,7 @@ def _get_level_lengths(index, hidden_elements=None):
 
     for i, lvl in enumerate(levels):
         for j, row in enumerate(lvl):
-            if not get_option("display.multi_sparse"):
+            if not sparsify:
                 lengths[(i, j)] = 1
             elif (row is not lib.no_default) and (j not in hidden_elements):
                 last_label = j
