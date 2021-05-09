@@ -468,7 +468,7 @@ def test_rank_avg_even_vals(dtype, upper):
 @pytest.mark.parametrize(
     "vals", [["bar", "bar", "foo", "bar", "baz"], ["bar", np.nan, "foo", np.nan, "baz"]]
 )
-def test_rank_object_raises(ties_method, ascending, na_option, pct, vals):
+def test_rank_object_dtype(ties_method, ascending, na_option, pct, vals):
     df = DataFrame({"key": ["foo"] * 5, "val": vals})
     mask = df["val"].isna()
 
