@@ -41,9 +41,10 @@ def cartesian_product(X):
 
     if np.any(cumprodX < 0):
         raise ValueError(
-            "Product space too large to allocate arrays! If calling `DataFrame.groupby`, "
-            "you are trying to group over too complex a column cross-product to fit in memory. "
-            "If any of those columns are categorical, you may be able to circumvent this issue "
+            "Product space too large to allocate arrays! If calling "
+            "`DataFrame.groupby`, you are trying to group over too complex "
+            "a column cross-product to fit in memory. If any of those columns "
+            "are categorical, you may be able to circumvent this issue "
             "by passing `observed=True`"
         )
 
