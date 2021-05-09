@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import Series
 from pandas.core import strings as strings
 
@@ -173,3 +175,24 @@ def any_allowed_skipna_inferred_dtype(request):
 
     # correctness of inference tested in tests/dtypes/test_inference.py
     return inferred_dtype, values
+
+
+@pytest.fixture(
+    params=[
+        "object",
+        "string",
+        pytest.param(
+            "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+        ),
+    ]
+)
+def any_string_dtype(request):
+    """
+    Parametrized fixture for string dtypes.
+    * 'object'
+    * 'string'
+    * 'arrow_string'
+    """
+    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+    return request.param

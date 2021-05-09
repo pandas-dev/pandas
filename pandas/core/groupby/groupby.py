@@ -18,6 +18,7 @@ import inspect
 from textwrap import dedent
 import types
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Generic,
     Hashable,
@@ -28,6 +29,7 @@ from typing import (
     Sequence,
     TypeVar,
     Union,
+    cast,
 )
 
 import numpy as np
@@ -58,9 +60,7 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
-    ensure_float,
     is_bool_dtype,
     is_datetime64_dtype,
     is_integer_dtype,
@@ -100,9 +100,16 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+from pandas.core.internals.blocks import ensure_block_shape
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
-from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
+from pandas.core.util.numba_ import (
+    NUMBA_FUNC_CACHE,
+    maybe_use_numba,
+)
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 _common_see_also = """
         See Also
@@ -1262,23 +1269,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             try:
                 # if this function is invalid for this dtype, we will ignore it.
-                result, counts = self.grouper.agg_series(obj, f)
+                result = self.grouper.agg_series(obj, f)
             except TypeError:
                 continue
 
-            assert result is not None
             key = base.OutputKey(label=name, position=idx)
-
-            if self.grouper._filter_empty_groups:
-                mask = counts.ravel() > 0
-
-                # since we are masking, make sure that we have a float object
-                values = result
-                if is_numeric_dtype(values.dtype):
-                    values = ensure_float(values)
-
-                    result = maybe_downcast_numeric(values[mask], result.dtype)
-
             output[key] = result
 
         if not output:
@@ -1313,6 +1308,43 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
             return result.__finalize__(self.obj, method="groupby")
 
+    def _agg_py_fallback(
+        self, values: ArrayLike, ndim: int, alt: Callable
+    ) -> ArrayLike:
+        """
+        Fallback to pure-python aggregation if _cython_operation raises
+        NotImplementedError.
+        """
+        # We get here with a) EADtypes and b) object dtype
+
+        if values.ndim == 1:
+            # For DataFrameGroupBy we only get here with ExtensionArray
+            ser = Series(values)
+        else:
+            # We only get here with values.dtype == object
+            # TODO: special case not needed with ArrayManager
+            df = DataFrame(values.T)
+            # bc we split object blocks in grouped_reduce, we have only 1 col
+            # otherwise we'd have to worry about block-splitting GH#39329
+            assert df.shape[1] == 1
+            # Avoid call to self.values that can occur in DataFrame
+            #  reductions; see GH#28949
+            ser = df.iloc[:, 0]
+
+        res_values = self.grouper.agg_series(ser, alt)
+
+        if isinstance(values, Categorical):
+            # Because we only get here with known dtype-preserving
+            #  reductions, we cast back to Categorical.
+            # TODO: if we ever get "rank" working, exclude it here.
+            res_values = type(values)._from_sequence(res_values, dtype=values.dtype)
+
+        # If we are DataFrameGroupBy and went through a SeriesGroupByPath
+        # then we need to reshape
+        # GH#32223 includes case with IntegerArray values, ndarray res_values
+        # test_groupby_duplicate_columns with object dtype values
+        return ensure_block_shape(res_values, ndim=ndim)
+
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
@@ -1345,8 +1377,55 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         return self._wrap_transformed_output(output)
 
-    def transform(self, func, *args, **kwargs):
-        raise AbstractMethodError(self)
+    @final
+    def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
+
+        if maybe_use_numba(engine):
+            # TODO: tests with self._selected_obj.ndim == 1 on DataFrameGroupBy
+            with group_selection_context(self):
+                data = self._selected_obj
+            df = data if data.ndim == 2 else data.to_frame()
+            result = self._transform_with_numba(
+                df, func, *args, engine_kwargs=engine_kwargs, **kwargs
+            )
+            if self.obj.ndim == 2:
+                return cast(DataFrame, self.obj)._constructor(
+                    result, index=data.index, columns=data.columns
+                )
+            else:
+                return cast(Series, self.obj)._constructor(
+                    result.ravel(), index=data.index, name=data.name
+                )
+
+        # optimized transforms
+        func = com.get_cython_func(func) or func
+
+        if not isinstance(func, str):
+            return self._transform_general(func, *args, **kwargs)
+
+        elif func not in base.transform_kernel_allowlist:
+            msg = f"'{func}' is not a valid function name for transform(name)"
+            raise ValueError(msg)
+        elif func in base.cythonized_kernels or func in base.transformation_kernels:
+            # cythonized transform or canned "agg+broadcast"
+            return getattr(self, func)(*args, **kwargs)
+
+        else:
+            # i.e. func in base.reduction_kernels
+
+            # GH#30918 Use _transform_fast only when we know func is an aggregation
+            # If func is a reduction, we need to broadcast the
+            # result to the whole group. Compute func result
+            # and deal with possible broadcasting below.
+            # Temporarily set observed for dealing with categoricals.
+            with com.temp_setattr(self, "observed", True):
+                result = getattr(self, func)(*args, **kwargs)
+
+            if self._can_use_transform_fast(result):
+                return self._wrap_transform_fast_result(result)
+
+            # only reached for DataFrameGroupBy
+            return self._transform_general(func, *args, **kwargs)
 
     # -----------------------------------------------------------------
     # Utilities
@@ -1559,7 +1638,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         result = self._cython_agg_general(
             "mean",
-            alt=lambda x, axis: Series(x).mean(numeric_only=numeric_only),
+            alt=lambda x: Series(x).mean(numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
         return result.__finalize__(self.obj, method="groupby")
@@ -1586,7 +1665,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         result = self._cython_agg_general(
             "median",
-            alt=lambda x, axis: Series(x).median(axis=axis, numeric_only=numeric_only),
+            alt=lambda x: Series(x).median(numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
         return result.__finalize__(self.obj, method="groupby")
@@ -1642,7 +1721,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         if ddof == 1:
             return self._cython_agg_general(
-                "var", alt=lambda x, axis: Series(x).var(ddof=ddof)
+                "var", alt=lambda x: Series(x).var(ddof=ddof)
             )
         else:
             func = lambda x: x.var(ddof=ddof)
@@ -1758,7 +1837,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 return obj.apply(first, axis=axis)
             elif isinstance(obj, Series):
                 return first(obj)
-            else:
+            else:  # pragma: no cover
                 raise TypeError(type(obj))
 
         return self._agg_general(
@@ -1783,7 +1862,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 return obj.apply(last, axis=axis)
             elif isinstance(obj, Series):
                 return last(obj)
-            else:
+            else:  # pragma: no cover
                 raise TypeError(type(obj))
 
         return self._agg_general(
@@ -1989,7 +2068,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         )
 
     @final
-    def _fill(self, direction, limit=None):
+    def _fill(self, direction: Literal["ffill", "bfill"], limit=None):
         """
         Shared function for `pad` and `backfill` to call Cython method.
 
@@ -2084,7 +2163,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def nth(self, n: int | list[int], dropna: str | None = None) -> DataFrame:
+    def nth(
+        self, n: int | list[int], dropna: Literal["any", "all", None] = None
+    ) -> DataFrame:
         """
         Take the nth row from each group if n is an int, or a subset of rows
         if n is a list of ints.
@@ -2097,9 +2178,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         ----------
         n : int or list of ints
             A single nth value for the row or a list of nth values.
-        dropna : None or str, optional
+        dropna : {'any', 'all', None}, default None
             Apply the specified dropna operation before counting which row is
-            the nth row. Needs to be None, 'any' or 'all'.
+            the nth row.
 
         Returns
         -------
@@ -2558,14 +2639,23 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if na_option not in {"keep", "top", "bottom"}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
+
+        kwargs = {
+            "ties_method": method,
+            "ascending": ascending,
+            "na_option": na_option,
+            "pct": pct,
+        }
+        if axis != 0:
+            # DataFrame uses different keyword name
+            kwargs["method"] = kwargs.pop("ties_method")
+            return self.apply(lambda x: x.rank(axis=axis, numeric_only=False, **kwargs))
+
         return self._cython_transform(
             "rank",
             numeric_only=False,
-            ties_method=method,
-            ascending=ascending,
-            na_option=na_option,
-            pct=pct,
             axis=axis,
+            **kwargs,
         )
 
     @final
@@ -2731,7 +2821,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             name = obj.name
             values = obj._values
 
-            if numeric_only and not is_numeric_dtype(values):
+            if numeric_only and not is_numeric_dtype(values.dtype):
                 continue
 
             if aggregate:
@@ -2982,9 +3072,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Object (potentially) re-indexed to include all possible groups.
         """
         groupings = self.grouper.groupings
-        if groupings is None:
-            return output
-        elif len(groupings) == 1:
+        if len(groupings) == 1:
             return output
 
         # if we only care about the observed values
@@ -3183,7 +3271,7 @@ def get_groupby(
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         klass = DataFrameGroupBy
-    else:
+    else:  # pragma: no cover
         raise TypeError(f"invalid type: {obj}")
 
     return klass(

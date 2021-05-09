@@ -122,7 +122,11 @@ class TestiLocBaseIndependent:
         else:
             values = obj[0].values
 
-        obj.iloc[:2] = box(arr[2:])
+        if frame_or_series is Series:
+            obj.iloc[:2] = box(arr[2:])
+        else:
+            obj.iloc[:2, 0] = box(arr[2:])
+
         expected = frame_or_series(np.array([3, 4, 3, 4], dtype="i8"))
         tm.assert_equal(obj, expected)
 
@@ -796,7 +800,7 @@ class TestiLocBaseIndependent:
         df2 = DataFrame({"A": [0.1] * 1000, "B": [1] * 1000})
         df2 = concat([df2, 2 * df2, 3 * df2])
 
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df2.loc[idx]
 
     def test_iloc_empty_list_indexer_is_ok(self):

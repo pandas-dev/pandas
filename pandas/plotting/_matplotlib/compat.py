@@ -1,6 +1,7 @@
 # being a bit too dynamic
-from distutils.version import LooseVersion
 import operator
+
+from pandas.util.version import Version
 
 
 def _mpl_version(version, op):
@@ -10,7 +11,7 @@ def _mpl_version(version, op):
         except ImportError:
             return False
         return (
-            op(LooseVersion(mpl.__version__), LooseVersion(version))
+            op(Version(mpl.__version__), Version(version))
             and str(mpl.__version__)[0] != "0"
         )
 
