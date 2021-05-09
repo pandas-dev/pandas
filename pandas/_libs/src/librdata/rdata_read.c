@@ -17,7 +17,7 @@ Copyright (c) 2020 Evan Miller
 #ifdef _WIN32
 #include "win_iconv.h"
 #else
-#include <iconv.h>
+#include "unix_iconv.h"
 #endif
 
 #include <errno.h>
@@ -877,6 +877,9 @@ static rdata_error_t read_toplevel_object(
     rdata_sexptype_info_t sexptype_info;
     rdata_error_t retval = RDATA_OK;
 
+    sexptype_info.attributes = 0;
+    sexptype_info.tag = 0;
+    sexptype_info.ref = 0;
     if ((retval = read_sexptype_header(&sexptype_info, ctx)) != RDATA_OK)
         goto cleanup;
 
@@ -1037,8 +1040,7 @@ static rdata_error_t read_sexptype_header(
                 goto cleanup;
             }
             if (ctx->machine_needs_byteswap) {
-                int32_t hdr_info_attrs = header_info->attributes;
-                header_info->attributes = byteswap4(hdr_info_attrs);
+                header_info->attributes = byteswap4(header_info->attributes);
             }
         }
         if (header.tag) {

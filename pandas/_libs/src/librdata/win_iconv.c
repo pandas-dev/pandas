@@ -592,7 +592,7 @@ static struct {
      * IBM EBCDIC France (20297 + Euro symbol);
      * IBM EBCDIC (France-Euro)
      */
-    {1147, "IBM01147"}
+    {1147, "IBM01147"},
     /*
      * IBM EBCDIC International (500 + Euro symbol);
      * IBM EBCDIC (International-Euro)
