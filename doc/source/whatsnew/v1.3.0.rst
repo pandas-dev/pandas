@@ -806,7 +806,6 @@ MultiIndex
 - Bug in :meth:`MultiIndex.intersection` duplicating ``NaN`` in result (:issue:`38623`)
 - Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when :class:`MultiIndex` containing ``NaN`` even when they are differently ordered (:issue:`38439`)
 - Bug in :meth:`MultiIndex.intersection` always returning empty when intersecting with :class:`CategoricalIndex` (:issue:`38653`)
-- Bug in :meth:`DataFrame.concat` does not match index names when concatenating two dataframes with a multiindex (:issue:`40849`)
 
 
 I/O
@@ -915,6 +914,8 @@ Reshaping
 - Bug in :func:`to_datetime` raising error when input sequence contains unhashable items (:issue:`39756`)
 - Bug in :meth:`Series.explode` preserving index when ``ignore_index`` was ``True`` and values were scalars (:issue:`40487`)
 - Bug in :func:`to_datetime` raising ``ValueError`` when :class:`Series` contains ``None`` and ``NaT`` and has more than 50 elements (:issue:`39882`)
+- Bug in :meth:`DataFrame.concat` does not match index names when concatenating two dataframes with a multiindex (:issue:`40849`)
+
 
 Sparse
 ^^^^^^
