@@ -278,12 +278,7 @@ def test_split_to_multiindex_expand():
         idx.str.split("_", expand="not_a_boolean")
 
 
-def test_rsplit_to_dataframe_expand(any_string_dtype, request):
-    if any_string_dtype != "object":
-        reason = 'Attribute "dtype" are different'
-        mark = pytest.mark.xfail(reason=reason, raises=AssertionError)
-        request.node.add_marker(mark)
-
+def test_rsplit_to_dataframe_expand(any_string_dtype):
     s = Series(["nosplit", "alsonosplit"], dtype=any_string_dtype)
     result = s.str.rsplit("_", expand=True)
     exp = DataFrame({0: Series(["nosplit", "alsonosplit"])}, dtype=any_string_dtype)
@@ -298,17 +293,26 @@ def test_rsplit_to_dataframe_expand(any_string_dtype, request):
     tm.assert_frame_equal(result, exp)
 
     result = s.str.rsplit("_", expand=True, n=2)
-    exp = DataFrame({0: ["some", "with"], 1: ["equal", "no"], 2: ["splits", "nans"]})
+    exp = DataFrame(
+        {0: ["some", "with"], 1: ["equal", "no"], 2: ["splits", "nans"]},
+        dtype=any_string_dtype,
+    )
     tm.assert_frame_equal(result, exp)
 
     result = s.str.rsplit("_", expand=True, n=1)
-    exp = DataFrame({0: ["some_equal", "with_no"], 1: ["splits", "nans"]})
+    exp = DataFrame(
+        {0: ["some_equal", "with_no"], 1: ["splits", "nans"]}, dtype=any_string_dtype
+    )
     tm.assert_frame_equal(result, exp)
 
-    s = Series(["some_splits", "with_index"], index=["preserve", "me"])
+    s = Series(
+        ["some_splits", "with_index"], index=["preserve", "me"], dtype=any_string_dtype
+    )
     result = s.str.rsplit("_", expand=True)
     exp = DataFrame(
-        {0: ["some", "with"], 1: ["splits", "index"]}, index=["preserve", "me"]
+        {0: ["some", "with"], 1: ["splits", "index"]},
+        index=["preserve", "me"],
+        dtype=any_string_dtype,
     )
     tm.assert_frame_equal(result, exp)
 
