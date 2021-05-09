@@ -464,7 +464,7 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_mismatched_dtype_different_length(self, non_comparable_idx):
-        # without method we arent checking inequalities, so get all-missing
+        # without method we aren't checking inequalities, so get all-missing
         #  but do not raise
         dti = date_range("2016-01-01", periods=3)
         pi = dti.to_period("D")
@@ -589,7 +589,7 @@ class TestWhere:
     def test_where_other(self):
         i = period_range("20130101", periods=5, freq="D")
         for arr in [np.nan, NaT]:
-            result = i.where(notna(i), other=np.nan)
+            result = i.where(notna(i), other=arr)
             expected = i
             tm.assert_index_equal(result, expected)
 

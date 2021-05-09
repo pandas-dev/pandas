@@ -71,7 +71,7 @@ class TestIntervalIndex:
         with pytest.raises(KeyError, match=r"^\[-1\]$"):
             indexer_sl(ser)[[-1, 3]]
 
-    @pytest.mark.arm_slow
+    @pytest.mark.slow
     def test_loc_getitem_large_series(self):
         ser = Series(
             np.arange(1000000), index=IntervalIndex.from_breaks(np.arange(1000001))
@@ -124,7 +124,7 @@ class TestIntervalIndexInsideMultiIndex:
                 pd.Index(
                     ["RID1", "RID1", "RID2", "RID2", "RID1", "RID1", "RID2", "RID2"]
                 ),
-                pd.IntervalIndex.from_arrays(
+                IntervalIndex.from_arrays(
                     [0, 1, 10, 11, 0, 1, 10, 11], [1, 2, 11, 12, 1, 2, 11, 12]
                 ),
             ]

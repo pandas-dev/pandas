@@ -27,7 +27,9 @@ DEF dROUNDS = 4
 
 
 @cython.boundscheck(False)
-def hash_object_array(ndarray[object] arr, str key, str encoding="utf8"):
+def hash_object_array(
+    ndarray[object] arr, str key, str encoding="utf8"
+) -> np.ndarray[np.uint64]:
     """
     Parameters
     ----------

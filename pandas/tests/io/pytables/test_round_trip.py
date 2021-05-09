@@ -30,7 +30,7 @@ from pandas.util import _test_decorators as td
 _default_compressor = "blosc"
 
 
-pytestmark = pytest.mark.single
+pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
 
 
 def test_conv_read_write(setup_path):
@@ -350,7 +350,7 @@ def test_timeseries_preepoch(setup_path):
     try:
         _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
     except OverflowError:
-        pytest.skip("known failer on some windows platforms")
+        pytest.skip("known failure on some windows platforms")
 
 
 @pytest.mark.parametrize(

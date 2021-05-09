@@ -5,14 +5,11 @@ Operator classes for eval.
 from __future__ import annotations
 
 from datetime import datetime
-from distutils.version import LooseVersion
 from functools import partial
 import operator
 from typing import (
     Callable,
     Iterable,
-    Optional,
-    Union,
 )
 
 import numpy as np
@@ -30,6 +27,7 @@ from pandas.core.computation.common import (
     result_type_many,
 )
 from pandas.core.computation.scope import DEFAULT_GLOBALS
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import (
     pprint_thing,
@@ -73,7 +71,7 @@ class UndefinedVariableError(NameError):
     NameError subclass for local variables.
     """
 
-    def __init__(self, name: str, is_local: Optional[bool] = None):
+    def __init__(self, name: str, is_local: bool | None = None):
         base_msg = f"{repr(name)} is not defined"
         if is_local:
             msg = f"local variable {base_msg}"
@@ -218,7 +216,7 @@ class Op:
 
     op: str
 
-    def __init__(self, op: str, operands: Iterable[Union[Term, Op]], encoding=None):
+    def __init__(self, op: str, operands: Iterable[Term | Op], encoding=None):
         self.op = _bool_op_map.get(op, op)
         self.operands = operands
         self.encoding = encoding
@@ -625,7 +623,7 @@ class FuncNode:
 
         if name not in MATHOPS or (
             NUMEXPR_INSTALLED
-            and NUMEXPR_VERSION < LooseVersion("2.6.9")
+            and Version(NUMEXPR_VERSION) < Version("2.6.9")
             and name in ("floor", "ceil")
         ):
             raise ValueError(f'"{name}" is not a supported function')

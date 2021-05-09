@@ -6,11 +6,12 @@ from datetime import datetime
 from inspect import signature
 from io import StringIO
 import os
+from pathlib import Path
+import sys
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import Timestamp
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -20,6 +21,7 @@ from pandas import (
     DataFrame,
     Index,
     Series,
+    Timestamp,
     compat,
 )
 import pandas._testing as tm
@@ -355,7 +357,7 @@ def test_escapechar(all_parsers):
     # https://stackoverflow.com/questions/13824840/feature-request-for-
     # pandas-read-csv
     data = '''SEARCH_TERM,ACTUAL_URL
-"bra tv bord","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
+"bra tv board","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
 "tv p\xc3\xa5 hjul","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
 "SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals series","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''  # noqa
 
@@ -630,6 +632,20 @@ def test_read_table_equivalency_to_read_csv(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("read_func", ["read_csv", "read_table"])
+def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
+    # GH#41069
+    parser = all_parsers
+    data = "a b\n0 1"
+
+    sys.setprofile(lambda *a, **k: None)
+    result = getattr(parser, read_func)(StringIO(data))
+    sys.setprofile(None)
+
+    expected = DataFrame({"a b": ["0 1"]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_first_row_bom(all_parsers):
     # see gh-26545
     parser = all_parsers
@@ -733,4 +749,31 @@ def test_dict_keys_as_names(all_parsers):
 
     result = parser.read_csv(StringIO(data), names=keys)
     expected = DataFrame({"a": [1], "b": [2]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_encoding_surrogatepass(all_parsers):
+    # GH39017
+    parser = all_parsers
+    content = b"\xed\xbd\xbf"
+    decoded = content.decode("utf-8", errors="surrogatepass")
+    expected = DataFrame({decoded: [decoded]}, index=[decoded * 2])
+    expected.index.name = decoded * 2
+
+    with tm.ensure_clean() as path:
+        Path(path).write_bytes(
+            content * 2 + b"," + content + b"\n" + content * 2 + b"," + content
+        )
+        df = parser.read_csv(path, encoding_errors="surrogatepass", index_col=0)
+        tm.assert_frame_equal(df, expected)
+        with pytest.raises(UnicodeDecodeError, match="'utf-8' codec can't decode byte"):
+            parser.read_csv(path)
+
+
+def test_malformed_second_line(all_parsers):
+    # see GH14782
+    parser = all_parsers
+    data = "\na\nb\n"
+    result = parser.read_csv(StringIO(data), skip_blank_lines=False, header=1)
+    expected = DataFrame({"a": ["b"]})
     tm.assert_frame_equal(result, expected)

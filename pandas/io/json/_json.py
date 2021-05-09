@@ -334,6 +334,7 @@ def read_json(
     precise_float: bool = False,
     date_unit=None,
     encoding=None,
+    encoding_errors: Optional[str] = "strict",
     lines: bool = False,
     chunksize: Optional[int] = None,
     compression: CompressionOptions = "infer",
@@ -456,6 +457,12 @@ def read_json(
     encoding : str, default is 'utf-8'
         The encoding to use to decode py3 bytes.
 
+    encoding_errors : str, optional, default "strict"
+        How encoding errors are treated. `List of possible values
+        <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
+
+        .. versionadded:: 1.3
+
     lines : bool, default False
         Read the file as a json object per line.
 
@@ -519,9 +526,13 @@ def read_json(
     Encoding/decoding a Dataframe using ``'split'`` formatted JSON:
 
     >>> df.to_json(orient='split')
-    '{{"columns":["col 1","col 2"],
-      "index":["row 1","row 2"],
-      "data":[["a","b"],["c","d"]]}}'
+        '\
+{{\
+"columns":["col 1","col 2"],\
+"index":["row 1","row 2"],\
+"data":[["a","b"],["c","d"]]\
+}}\
+'
     >>> pd.read_json(_, orient='split')
           col 1 col 2
     row 1     a     b
@@ -531,6 +542,7 @@ def read_json(
 
     >>> df.to_json(orient='index')
     '{{"row 1":{{"col 1":"a","col 2":"b"}},"row 2":{{"col 1":"c","col 2":"d"}}}}'
+
     >>> pd.read_json(_, orient='index')
           col 1 col 2
     row 1     a     b
@@ -549,13 +561,18 @@ def read_json(
     Encoding with Table Schema
 
     >>> df.to_json(orient='table')
-    '{{"schema": {{"fields": [{{"name": "index", "type": "string"}},
-                            {{"name": "col 1", "type": "string"}},
-                            {{"name": "col 2", "type": "string"}}],
-                    "primaryKey": "index",
-                    "pandas_version": "0.20.0"}},
-        "data": [{{"index": "row 1", "col 1": "a", "col 2": "b"}},
-                {{"index": "row 2", "col 1": "c", "col 2": "d"}}]}}'
+        '\
+{{"schema":{{"fields":[\
+{{"name":"index","type":"string"}},\
+{{"name":"col 1","type":"string"}},\
+{{"name":"col 2","type":"string"}}],\
+"primaryKey":["index"],\
+"pandas_version":"0.20.0"}},\
+"data":[\
+{{"index":"row 1","col 1":"a","col 2":"b"}},\
+{{"index":"row 2","col 1":"c","col 2":"d"}}]\
+}}\
+'
     """
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
@@ -563,7 +580,12 @@ def read_json(
         raise ValueError("cannot pass both convert_axes and orient='table'")
 
     if dtype is None and orient != "table":
-        dtype = True
+        # error: Incompatible types in assignment (expression has type "bool", variable
+        # has type "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object], Dict[Hashable,
+        # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object]]], None]")
+        dtype = True  # type: ignore[assignment]
     if convert_axes is None and orient != "table":
         convert_axes = True
 
@@ -584,6 +606,7 @@ def read_json(
         compression=compression,
         nrows=nrows,
         storage_options=storage_options,
+        encoding_errors=encoding_errors,
     )
 
     if chunksize:
@@ -620,6 +643,7 @@ class JsonReader(abc.Iterator):
         compression: CompressionOptions,
         nrows: Optional[int],
         storage_options: StorageOptions = None,
+        encoding_errors: Optional[str] = "strict",
     ):
 
         self.orient = orient
@@ -638,6 +662,7 @@ class JsonReader(abc.Iterator):
         self.chunksize = chunksize
         self.nrows_seen = 0
         self.nrows = nrows
+        self.encoding_errors = encoding_errors
         self.handles: Optional[IOHandles] = None
 
         if self.chunksize is not None:
@@ -661,8 +686,8 @@ class JsonReader(abc.Iterator):
         Otherwise, we read it into memory for the `read` method.
         """
         if hasattr(data, "read") and not (self.chunksize or self.nrows):
-            data = data.read()
-            self.close()
+            with self:
+                data = data.read()
         if not hasattr(data, "read") and (self.chunksize or self.nrows):
             data = StringIO(data)
 
@@ -692,6 +717,7 @@ class JsonReader(abc.Iterator):
                 encoding=self.encoding,
                 compression=self.compression,
                 storage_options=self.storage_options,
+                errors=self.encoding_errors,
             )
             filepath_or_buffer = self.handles.handle
 
@@ -903,7 +929,12 @@ class Parser:
                     return data, False
                 return data.fillna(np.nan), True
 
-            elif self.dtype is True:
+            # error: Non-overlapping identity check (left operand type:
+            # "Union[ExtensionDtype, str, dtype[Any], Type[object],
+            # Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]],
+            # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+            # Type[object]]]]", right operand type: "Literal[True]")
+            elif self.dtype is True:  # type: ignore[comparison-overlap]
                 pass
             else:
                 # dtype to force
@@ -912,7 +943,10 @@ class Parser:
                 )
                 if dtype is not None:
                     try:
-                        dtype = np.dtype(dtype)
+                        # error: Argument 1 to "dtype" has incompatible type
+                        # "Union[ExtensionDtype, str, dtype[Any], Type[object]]";
+                        # expected "Type[Any]"
+                        dtype = np.dtype(dtype)  # type: ignore[arg-type]
                         return data.astype(dtype), True
                     except (TypeError, ValueError):
                         return data, False

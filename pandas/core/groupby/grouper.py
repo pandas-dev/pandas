@@ -4,14 +4,7 @@ split-apply-combine paradigm.
 """
 from __future__ import annotations
 
-from typing import (
-    Dict,
-    Hashable,
-    List,
-    Optional,
-    Set,
-    Tuple,
-)
+from typing import Hashable
 import warnings
 
 import numpy as np
@@ -256,7 +249,11 @@ class Grouper:
     Freq: 17T, dtype: int64
     """
 
-    _attributes: Tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
+    axis: int
+    sort: bool
+    dropna: bool
+
+    _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
@@ -267,7 +264,13 @@ class Grouper:
         return super().__new__(cls)
 
     def __init__(
-        self, key=None, level=None, freq=None, axis=0, sort=False, dropna=True
+        self,
+        key=None,
+        level=None,
+        freq=None,
+        axis: int = 0,
+        sort: bool = False,
+        dropna: bool = True,
     ):
         self.key = key
         self.level = level
@@ -288,12 +291,12 @@ class Grouper:
     def ax(self):
         return self.grouper
 
-    def _get_grouper(self, obj, validate: bool = True):
+    def _get_grouper(self, obj: FrameOrSeries, validate: bool = True):
         """
         Parameters
         ----------
-        obj : the subject object
-        validate : boolean, default True
+        obj : Series or DataFrame
+        validate : bool, default True
             if True, validate the grouper
 
         Returns
@@ -303,7 +306,9 @@ class Grouper:
         self._set_grouper(obj)
         # error: Value of type variable "FrameOrSeries" of "get_grouper" cannot be
         # "Optional[Any]"
-        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var]
+        # error: Incompatible types in assignment (expression has type "BaseGrouper",
+        # variable has type "None")
+        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var,assignment]
             self.obj,
             [self.key],
             axis=self.axis,
@@ -382,15 +387,19 @@ class Grouper:
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=self.axis)
 
-        self.obj = obj
-        self.grouper = ax
+        # error: Incompatible types in assignment (expression has type
+        # "FrameOrSeries", variable has type "None")
+        self.obj = obj  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "Index",
+        # variable has type "None")
+        self.grouper = ax  # type: ignore[assignment]
         return self.grouper
 
     @final
     @property
     def groups(self):
-        # error: Item "None" of "Optional[Any]" has no attribute "groups"
-        return self.grouper.groups  # type: ignore[union-attr]
+        # error: "None" has no attribute "groups"
+        return self.grouper.groups  # type: ignore[attr-defined]
 
     @final
     def __repr__(self) -> str:
@@ -434,8 +443,8 @@ class Grouping:
         self,
         index: Index,
         grouper=None,
-        obj: Optional[FrameOrSeries] = None,
-        name=None,
+        obj: FrameOrSeries | None = None,
+        name: Hashable = None,
         level=None,
         sort: bool = True,
         observed: bool = False,
@@ -485,7 +494,12 @@ class Grouping:
             # what key/level refer to exactly, don't need to
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
-            _, grouper, _ = self.grouper._get_grouper(self.obj, validate=False)
+            _, grouper, _ = self.grouper._get_grouper(
+                # error: Value of type variable "FrameOrSeries" of "_get_grouper"
+                # of "Grouper" cannot be "Optional[FrameOrSeries]"
+                self.obj,  # type: ignore[type-var]
+                validate=False,
+            )
             if self.name is None:
                 self.name = grouper.result_index.name
             self.obj = self.grouper.obj
@@ -563,8 +577,8 @@ class Grouping:
     def __iter__(self):
         return iter(self.indices)
 
-    _codes: Optional[np.ndarray] = None
-    _group_index: Optional[Index] = None
+    _codes: np.ndarray | None = None
+    _group_index: Index | None = None
 
     @property
     def ngroups(self) -> int:
@@ -583,7 +597,9 @@ class Grouping:
     def codes(self) -> np.ndarray:
         if self._codes is None:
             self._make_codes()
-        return self._codes
+        # error: Incompatible return value type (got "Optional[ndarray]",
+        # expected "ndarray")
+        return self._codes  # type: ignore[return-value]
 
     @cache_readonly
     def result_index(self) -> Index:
@@ -622,7 +638,7 @@ class Grouping:
         self._group_index = uniques
 
     @cache_readonly
-    def groups(self) -> Dict[Hashable, np.ndarray]:
+    def groups(self) -> dict[Hashable, np.ndarray]:
         return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
@@ -636,7 +652,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> Tuple[ops.BaseGrouper, Set[Hashable], FrameOrSeries]:
+) -> tuple[ops.BaseGrouper, set[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -760,8 +776,8 @@ def get_grouper(
     else:
         levels = [level] * len(keys)
 
-    groupings: List[Grouping] = []
-    exclusions: Set[Hashable] = set()
+    groupings: list[Grouping] = []
+    exclusions: set[Hashable] = set()
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
@@ -787,7 +803,7 @@ def get_grouper(
             #  lambda here
             return False
 
-    for i, (gpr, level) in enumerate(zip(keys, levels)):
+    for gpr, level in zip(keys, levels):
 
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis, name = True, gpr.name

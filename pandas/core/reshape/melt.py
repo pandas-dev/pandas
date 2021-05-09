@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from typing import (
     TYPE_CHECKING,
-    List,
     cast,
 )
 import warnings
@@ -143,10 +142,17 @@ def melt(
 
     mcolumns = id_vars + var_name + [value_name]
 
-    mdata[value_name] = frame._values.ravel("F")
+    # error: Incompatible types in assignment (expression has type "ndarray",
+    # target has type "Series")
+    mdata[value_name] = frame._values.ravel("F")  # type: ignore[assignment]
     for i, col in enumerate(var_name):
         # asanyarray will keep the columns as an Index
-        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
+
+        # error: Incompatible types in assignment (expression has type "ndarray", target
+        # has type "Series")
+        mdata[col] = np.asanyarray(  # type: ignore[assignment]
+            frame.columns._get_level_values(i)
+        ).repeat(N)
 
     result = frame._constructor(mdata, columns=mcolumns)
 
@@ -487,7 +493,7 @@ def wide_to_long(
                 two  2.9
     """
 
-    def get_var_names(df, stub: str, sep: str, suffix: str) -> List[str]:
+    def get_var_names(df, stub: str, sep: str, suffix: str) -> list[str]:
         regex = fr"^{re.escape(stub)}{re.escape(sep)}{suffix}$"
         pattern = re.compile(regex)
         return [col for col in df.columns if pattern.match(col)]

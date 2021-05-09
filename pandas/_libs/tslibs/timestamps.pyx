@@ -388,6 +388,16 @@ cdef class _Timestamp(ABCTimestamp):
     def is_month_start(self) -> bool:
         """
         Return True if date is first day of month.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_month_start
+        False
+
+        >>> ts = pd.Timestamp(2020, 1, 1)
+        >>> ts.is_month_start
+        True
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -398,6 +408,16 @@ cdef class _Timestamp(ABCTimestamp):
     def is_month_end(self) -> bool:
         """
         Return True if date is last day of month.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_month_end
+        False
+
+        >>> ts = pd.Timestamp(2020, 12, 31)
+        >>> ts.is_month_end
+        True
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -408,6 +428,16 @@ cdef class _Timestamp(ABCTimestamp):
     def is_quarter_start(self) -> bool:
         """
         Return True if date is first day of the quarter.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_quarter_start
+        False
+
+        >>> ts = pd.Timestamp(2020, 4, 1)
+        >>> ts.is_quarter_start
+        True
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -418,6 +448,16 @@ cdef class _Timestamp(ABCTimestamp):
     def is_quarter_end(self) -> bool:
         """
         Return True if date is last day of the quarter.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_quarter_end
+        False
+
+        >>> ts = pd.Timestamp(2020, 3, 31)
+        >>> ts.is_quarter_end
+        True
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -428,6 +468,16 @@ cdef class _Timestamp(ABCTimestamp):
     def is_year_start(self) -> bool:
         """
         Return True if date is first day of the year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_year_start
+        False
+
+        >>> ts = pd.Timestamp(2020, 1, 1)
+        >>> ts.is_year_start
+        True
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -438,6 +488,16 @@ cdef class _Timestamp(ABCTimestamp):
     def is_year_end(self) -> bool:
         """
         Return True if date is last day of the year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_year_end
+        False
+
+        >>> ts = pd.Timestamp(2020, 12, 31)
+        >>> ts.is_year_end
+        True
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -466,6 +526,17 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         str
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.day_name()
+        'Saturday'
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.day_name()
+        nan
         """
         return self._get_date_name_field("day_name", locale)
 
@@ -481,6 +552,17 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         str
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.month_name()
+        'March'
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.month_name()
+        nan
         """
         return self._get_date_name_field("month_name", locale)
 
@@ -488,6 +570,12 @@ cdef class _Timestamp(ABCTimestamp):
     def is_leap_year(self) -> bool:
         """
         Return True if year is a leap year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_leap_year
+        True
         """
         return bool(ccalendar.is_leapyear(self.year))
 
@@ -495,6 +583,12 @@ cdef class _Timestamp(ABCTimestamp):
     def day_of_week(self) -> int:
         """
         Return day of the week.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.day_of_week
+        5
         """
         return self.weekday()
 
@@ -502,6 +596,12 @@ cdef class _Timestamp(ABCTimestamp):
     def day_of_year(self) -> int:
         """
         Return the day of the year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.day_of_year
+        74
         """
         return ccalendar.get_day_of_year(self.year, self.month, self.day)
 
@@ -509,6 +609,12 @@ cdef class _Timestamp(ABCTimestamp):
     def quarter(self) -> int:
         """
         Return the quarter of the year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.quarter
+        1
         """
         return ((self.month - 1) // 3) + 1
 
@@ -516,6 +622,12 @@ cdef class _Timestamp(ABCTimestamp):
     def week(self) -> int:
         """
         Return the week number of the year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.week
+        11
         """
         return ccalendar.get_week_of_year(self.year, self.month, self.day)
 
@@ -523,6 +635,12 @@ cdef class _Timestamp(ABCTimestamp):
     def days_in_month(self) -> int:
         """
         Return the number of days in the month.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.days_in_month
+        31
         """
         return ccalendar.get_days_in_month(self.year, self.month)
 
@@ -532,6 +650,12 @@ cdef class _Timestamp(ABCTimestamp):
     def normalize(self) -> "Timestamp":
         """
         Normalize Timestamp to midnight, preserving tz information.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14, 15, 30)
+        >>> ts.normalize()
+        Timestamp('2020-03-14 00:00:00')
         """
         cdef:
             local_val = self._maybe_convert_value_to_local()
@@ -641,11 +765,25 @@ cdef class _Timestamp(ABCTimestamp):
     def asm8(self) -> np.datetime64:
         """
         Return numpy datetime64 format in nanoseconds.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14, 15)
+        >>> ts.asm8
+        numpy.datetime64('2020-03-14T15:00:00.000000000')
         """
         return np.datetime64(self.value, 'ns')
 
     def timestamp(self):
-        """Return POSIX timestamp as float."""
+        """
+        Return POSIX timestamp as float.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548')
+        >>> ts.timestamp()
+        1584199972.192548
+        """
         # GH 17329
         # Note: Naive timestamps will not match datetime.stdlib
         return round(self.value / 1e9, 6)
@@ -655,6 +793,17 @@ cdef class _Timestamp(ABCTimestamp):
         Convert a Timestamp object to a native Python datetime object.
 
         If warn=True, issue a warning if nanoseconds is nonzero.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548')
+        >>> ts.to_pydatetime()
+        datetime.datetime(2020, 3, 14, 15, 32, 52, 192548)
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.to_pydatetime()
+        NaT
         """
         if self.nanosecond != 0 and warn:
             warnings.warn("Discarding nonzero nanoseconds in conversion",
@@ -687,12 +836,38 @@ cdef class _Timestamp(ABCTimestamp):
         See Also
         --------
         DatetimeIndex.to_numpy : Similar method for DatetimeIndex.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.to_numpy()
+        numpy.datetime64('2020-03-14T15:32:52.192548651')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.to_numpy()
+        numpy.datetime64('NaT')
         """
         return self.to_datetime64()
 
     def to_period(self, freq=None):
         """
         Return an period of which this timestamp is an observation.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.to_period(freq='Y) # Year end frequency
+        numpy.datetime64('2020-03-14T15:32:52.192548651')
+
+        >>> ts.to_period(freq='M') # Month end frequency
+        Period('2020-03', 'M')
+
+        >>> ts.to_period(freq='W') # Weekly frequency
+        Period('2020-03-09/2020-03-15', 'W-SUN')
+
+        >>> ts.to_period(freq='Q') # Quarter end frequency
+        Period('2020Q1', 'Q-DEC')
         """
         from pandas import Period
 
@@ -802,6 +977,11 @@ class Timestamp(_Timestamp):
             Offset to apply to the Timestamp.
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromordinal(737425)
+        Timestamp('2020-01-01 00:00:00')
         """
         return cls(datetime.fromordinal(ordinal),
                    freq=freq, tz=tz)
@@ -818,6 +998,16 @@ class Timestamp(_Timestamp):
         ----------
         tz : str or timezone object, default None
             Timezone to localize to.
+
+        Examples
+        --------
+        >>> pd.Timestamp.now()
+        Timestamp('2020-11-16 22:06:16.378782')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.now()
+        NaT
         """
         print("In Timestamp.now")
         if isinstance(tz, str):
@@ -837,6 +1027,16 @@ class Timestamp(_Timestamp):
         ----------
         tz : str or timezone object, default None
             Timezone to localize to.
+
+        Examples
+        --------
+        >>> pd.Timestamp.today()
+        Timestamp('2020-11-16 22:37:39.969883')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.today()
+        NaT
         """
         return cls.now(tz)
 
@@ -846,6 +1046,11 @@ class Timestamp(_Timestamp):
         Timestamp.utcnow()
 
         Return a new Timestamp representing UTC day and time.
+
+        Examples
+        --------
+        >>> pd.Timestamp.utcnow()
+        Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """
         return cls.now(UTC)
 
@@ -855,6 +1060,11 @@ class Timestamp(_Timestamp):
         Timestamp.utcfromtimestamp(ts)
 
         Construct a naive UTC datetime from a POSIX timestamp.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromtimestamp(1584199972)
+        Timestamp('2020-03-14 15:32:52')
         """
         return cls(datetime.utcfromtimestamp(ts))
 
@@ -864,6 +1074,13 @@ class Timestamp(_Timestamp):
         Timestamp.fromtimestamp(ts)
 
         Transform timestamp[, tz] to tz's local time from POSIX timestamp.
+
+        Examples
+        --------
+        >>> pd.Timestamp.utcfromtimestamp(1584199972)
+        Timestamp('2020-03-14 15:32:52')
+
+        Note that the output may change depending on your local time.
         """
         return cls(datetime.fromtimestamp(ts))
 
@@ -880,6 +1097,12 @@ class Timestamp(_Timestamp):
             Format string to convert Timestamp to string.
             See strftime documentation for more information on the format string:
             https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.strftime('%Y-%m-%d %X')
+        '2020-03-14 15:32:52'
         """
         return datetime.strftime(self, format)
 
@@ -902,6 +1125,12 @@ class Timestamp(_Timestamp):
         Timestamp.combine(date, time)
 
         Combine date, time into datetime with same date and time fields.
+
+        Examples
+        --------
+        >>> from datetime import date, time
+        >>> pd.Timestamp.combine(date(2020, 3, 14), time(15, 30, 15))
+        Timestamp('2020-03-14 15:30:15')
         """
         return cls(datetime.combine(date, time))
 
@@ -1134,6 +1363,41 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted
+
+        Examples
+        --------
+        Create a timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+
+        A timestamp can be rounded using multiple frequency units:
+
+        >>> ts.round(freq='H') # hour
+        Timestamp('2020-03-14 16:00:00')
+
+        >>> ts.round(freq='T') # minute
+        Timestamp('2020-03-14 15:33:00')
+
+        >>> ts.round(freq='S') # seconds
+        Timestamp('2020-03-14 15:32:52')
+
+        >>> ts.round(freq='L') # milliseconds
+        Timestamp('2020-03-14 15:32:52.193000')
+
+        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+
+        >>> ts.round(freq='5T')
+        Timestamp('2020-03-14 15:35:00')
+
+        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+
+        >>> ts.round(freq='1H30T')
+        Timestamp('2020-03-14 15:00:00')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.round()
+        NaT
         """
         return self._round(
             freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
@@ -1175,6 +1439,41 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted.
+
+        Examples
+        --------
+        Create a timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+
+        A timestamp can be floored using multiple frequency units:
+
+        >>> ts.floor(freq='H') # hour
+        Timestamp('2020-03-14 15:00:00')
+
+        >>> ts.floor(freq='T') # minute
+        Timestamp('2020-03-14 15:32:00')
+
+        >>> ts.floor(freq='S') # seconds
+        Timestamp('2020-03-14 15:32:52')
+
+        >>> ts.floor(freq='N') # nanoseconds
+        Timestamp('2020-03-14 15:32:52.192548651')
+
+        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+
+        >>> ts.floor(freq='5T')
+        Timestamp('2020-03-14 15:30:00')
+
+        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+
+        >>> ts.floor(freq='1H30T')
+        Timestamp('2020-03-14 15:00:00')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.floor()
+        NaT
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
@@ -1214,6 +1513,41 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted.
+
+        Examples
+        --------
+        Create a timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+
+        A timestamp can be ceiled using multiple frequency units:
+
+        >>> ts.ceil(freq='H') # hour
+        Timestamp('2020-03-14 16:00:00')
+
+        >>> ts.ceil(freq='T') # minute
+        Timestamp('2020-03-14 15:33:00')
+
+        >>> ts.ceil(freq='S') # seconds
+        Timestamp('2020-03-14 15:32:53')
+
+        >>> ts.ceil(freq='U') # microseconds
+        Timestamp('2020-03-14 15:32:52.192549')
+
+        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+
+        >>> ts.ceil(freq='5T')
+        Timestamp('2020-03-14 15:35:00')
+
+        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+
+        >>> ts.ceil(freq='1H30T')
+        Timestamp('2020-03-14 16:30:00')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.ceil()
+        NaT
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
@@ -1221,6 +1555,12 @@ timedelta}, default 'raise'
     def tz(self):
         """
         Alias for tzinfo.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(1584226800, unit='s', tz='Europe/Stockholm')
+        >>> ts.tz
+        <DstTzInfo 'Europe/Stockholm' CET+1:00:00 STD>
         """
         return self.tzinfo
 
@@ -1292,6 +1632,24 @@ default 'raise'
         ------
         TypeError
             If the Timestamp is tz-aware and tz is not None.
+
+        Examples
+        --------
+        Create a naive timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts
+        Timestamp('2020-03-14 15:32:52.192548651')
+
+        Add 'Europe/Stockholm' as timezone:
+
+        >>> ts.tz_localize(tz='Europe/Stockholm')
+        Timestamp('2020-03-14 15:32:52.192548651+0100', tz='Europe/Stockholm')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.tz_localize()
+        NaT
         """
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
@@ -1342,6 +1700,29 @@ default 'raise'
         ------
         TypeError
             If Timestamp is tz-naive.
+
+        Examples
+        --------
+        Create a timestamp object with UTC timezone:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651', tz='UTC')
+        >>> ts
+        Timestamp('2020-03-14 15:32:52.192548651+0000', tz='UTC')
+
+        Change to Tokyo timezone:
+
+        >>> ts.tz_convert(tz='Asia/Tokyo')
+        Timestamp('2020-03-15 00:32:52.192548651+0900', tz='Asia/Tokyo')
+
+        Can also use ``astimezone``:
+
+        >>> ts.astimezone(tz='Asia/Tokyo')
+        Timestamp('2020-03-15 00:32:52.192548651+0900', tz='Asia/Tokyo')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.tz_convert(tz='Asia/Tokyo')
+        NaT
         """
         if self.tzinfo is None:
             # tz naive, use tz_localize
@@ -1386,6 +1767,30 @@ default 'raise'
         Returns
         -------
         Timestamp with fields replaced
+
+        Examples
+        --------
+        Create a timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651', tz='UTC')
+        >>> ts
+        Timestamp('2020-03-14 15:32:52.192548651+0000', tz='UTC')
+
+        Replace year and the hour:
+
+        >>> ts.replace(year=1999, hour=10)
+        Timestamp('1999-03-14 10:32:52.192548651+0000', tz='UTC')
+
+        Replace timezone (not a conversion):
+
+        >>> import pytz
+        >>> ts.replace(tzinfo=pytz.timezone('US/Pacific'))
+        Timestamp('2020-03-14 15:32:52.192548651-0700', tz='US/Pacific')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.replace(tzinfo=pytz.timezone('US/Pacific'))
+        NaT
         """
 
         cdef:
@@ -1466,6 +1871,12 @@ default 'raise'
         """
         Convert TimeStamp to a Julian Date.
         0 Julian date is noon January 1, 4713 BC.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52')
+        >>> ts.to_julian_date()
+        2458923.147824074
         """
         year = self.year
         month = self.month

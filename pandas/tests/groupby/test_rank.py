@@ -1,9 +1,12 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import (
     DataFrame,
+    NaT,
     Series,
     concat,
 )
@@ -441,8 +444,19 @@ def test_rank_resets_each_group(pct, exp):
     tm.assert_frame_equal(result, exp_df)
 
 
-def test_rank_avg_even_vals():
+@pytest.mark.parametrize(
+    "dtype", ["int64", "int32", "uint64", "uint32", "float64", "float32"]
+)
+@pytest.mark.parametrize("upper", [True, False])
+def test_rank_avg_even_vals(dtype, upper):
+    if upper:
+        # use IntegerDtype/FloatingDtype
+        dtype = dtype[0].upper() + dtype[1:]
+        dtype = dtype.replace("Ui", "UI")
     df = DataFrame({"key": ["a"] * 4, "val": [1] * 4})
+    df["val"] = df["val"].astype(dtype)
+    assert df["val"].dtype == dtype
+
     result = df.groupby("key").rank()
     exp_df = DataFrame([2.5, 2.5, 2.5, 2.5], columns=["val"])
     tm.assert_frame_equal(result, exp_df)
@@ -517,3 +531,87 @@ def test_rank_zero_div(input_key, input_value, output_value):
     result = df.groupby("A").rank(method="dense", pct=True)
     expected = DataFrame({"B": output_value})
     tm.assert_frame_equal(result, expected)
+
+
+def test_rank_min_int():
+    # GH-32859
+    df = DataFrame(
+        {
+            "grp": [1, 1, 2],
+            "int_col": [
+                np.iinfo(np.int64).min,
+                np.iinfo(np.int64).max,
+                np.iinfo(np.int64).min,
+            ],
+            "datetimelike": [NaT, datetime(2001, 1, 1), NaT],
+        }
+    )
+
+    result = df.groupby("grp").rank()
+    expected = DataFrame(
+        {"int_col": [1.0, 2.0, 1.0], "datetimelike": [np.NaN, 1.0, np.NaN]}
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("use_nan", [True, False])
+def test_rank_pct_equal_values_on_group_transition(use_nan):
+    # GH#40518
+    fill_value = np.nan if use_nan else 3
+    df = DataFrame(
+        [
+            [-1, 1],
+            [-1, 2],
+            [1, fill_value],
+            [-1, fill_value],
+        ],
+        columns=["group", "val"],
+    )
+    result = df.groupby(["group"])["val"].rank(
+        method="dense",
+        pct=True,
+    )
+    if use_nan:
+        expected = Series([0.5, 1, np.nan, np.nan], name="val")
+    else:
+        expected = Series([1 / 3, 2 / 3, 1, 1], name="val")
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_rank_multiindex():
+    # GH27721
+    df = concat(
+        {
+            "a": DataFrame({"col1": [1, 2], "col2": [3, 4]}),
+            "b": DataFrame({"col3": [5, 6], "col4": [7, 8]}),
+        },
+        axis=1,
+    )
+
+    result = df.groupby(level=0, axis=1).rank(axis=1, ascending=False, method="first")
+    expected = concat(
+        {
+            "a": DataFrame({"col1": [2.0, 2.0], "col2": [1.0, 1.0]}),
+            "b": DataFrame({"col3": [2.0, 2.0], "col4": [1.0, 1.0]}),
+        },
+        axis=1,
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_axis0_rank_axis1():
+    # GH#41320
+    df = DataFrame(
+        {0: [1, 3, 5, 7], 1: [2, 4, 6, 8], 2: [1.5, 3.5, 5.5, 7.5]},
+        index=["a", "a", "b", "b"],
+    )
+    gb = df.groupby(level=0, axis=0)
+
+    res = gb.rank(axis=1)
+
+    # This should match what we get when "manually" operating group-by-group
+    expected = concat([df.loc["a"].rank(axis=1), df.loc["b"].rank(axis=1)], axis=0)
+    tm.assert_frame_equal(res, expected)

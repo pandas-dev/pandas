@@ -137,8 +137,8 @@ class TestResetIndex:
 
         # preserve column names
         float_frame.columns.name = "columns"
-        resetted = float_frame.reset_index()
-        assert resetted.columns.name == "columns"
+        reset = float_frame.reset_index()
+        assert reset.columns.name == "columns"
 
         # only remove certain columns
         df = float_frame.reset_index().set_index(["index", "A", "B"])
@@ -159,10 +159,10 @@ class TestResetIndex:
 
         # test resetting in place
         df = float_frame.copy()
-        resetted = float_frame.reset_index()
+        reset = float_frame.reset_index()
         return_value = df.reset_index(inplace=True)
         assert return_value is None
-        tm.assert_frame_equal(df, resetted, check_names=False)
+        tm.assert_frame_equal(df, reset, check_names=False)
 
         df = float_frame.reset_index().set_index(["index", "A", "B"])
         rs = df.reset_index("A", drop=True)
@@ -224,11 +224,11 @@ class TestResetIndex:
         )
         df = DataFrame(s1)
 
-        resetted = s1.reset_index()
-        assert resetted["time"].dtype == np.float64
+        reset = s1.reset_index()
+        assert reset["time"].dtype == np.float64
 
-        resetted = df.reset_index()
-        assert resetted["time"].dtype == np.float64
+        reset = df.reset_index()
+        assert reset["time"].dtype == np.float64
 
     def test_reset_index_multiindex_col(self):
         vals = np.random.randn(3, 3).astype(object)

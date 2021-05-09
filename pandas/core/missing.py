@@ -10,10 +10,6 @@ from functools import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
-    Optional,
-    Set,
-    Union,
     cast,
 )
 
@@ -36,7 +32,11 @@ from pandas.core.dtypes.common import (
     is_numeric_v_string_like,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+    na_value_for_dtype,
+)
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -75,7 +75,11 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     #  known to be holdable by arr.
     # When called from Series._single_replace, values_to_mask is tuple or list
     dtype, values_to_mask = infer_dtype_from(values_to_mask)
-    values_to_mask = np.array(values_to_mask, dtype=dtype)
+    # error: Argument "dtype" to "array" has incompatible type "Union[dtype[Any],
+    # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+    # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+    # _DTypeDict, Tuple[Any, Any]]]"
+    values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
 
     na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
@@ -141,7 +145,7 @@ SP_METHODS = [
 ]
 
 
-def clean_interp_method(method: str, **kwargs) -> str:
+def clean_interp_method(method: str, index: Index, **kwargs) -> str:
     order = kwargs.get("order")
 
     if method in ("spline", "polynomial") and order is None:
@@ -151,10 +155,16 @@ def clean_interp_method(method: str, **kwargs) -> str:
     if method not in valid:
         raise ValueError(f"method must be one of {valid}. Got '{method}' instead.")
 
+    if method in ("krogh", "piecewise_polynomial", "pchip"):
+        if not index.is_monotonic:
+            raise ValueError(
+                f"{method} interpolation requires that the index be monotonic."
+            )
+
     return method
 
 
-def find_valid_index(values, how: str):
+def find_valid_index(values, *, how: str) -> int | None:
     """
     Retrieves the index of the first valid value.
 
@@ -191,16 +201,112 @@ def find_valid_index(values, how: str):
     return idxpos
 
 
+def interpolate_array_2d(
+    data: np.ndarray,
+    method: str = "pad",
+    axis: int = 0,
+    index: Index | None = None,
+    limit: int | None = None,
+    limit_direction: str = "forward",
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
+    coerce: bool = False,
+    downcast: str | None = None,
+    **kwargs,
+):
+    """
+    Wrapper to dispatch to either interpolate_2d or interpolate_2d_with_fill.
+    """
+    try:
+        m = clean_fill_method(method)
+    except ValueError:
+        m = None
+
+    if m is not None:
+        if fill_value is not None:
+            # similar to validate_fillna_kwargs
+            raise ValueError("Cannot pass both fill_value and method")
+
+        interp_values = interpolate_2d(
+            data,
+            method=m,
+            axis=axis,
+            limit=limit,
+            limit_area=limit_area,
+        )
+    else:
+        assert index is not None  # for mypy
+
+        interp_values = interpolate_2d_with_fill(
+            data=data,
+            index=index,
+            axis=axis,
+            method=method,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            **kwargs,
+        )
+    return interp_values
+
+
+def interpolate_2d_with_fill(
+    data: np.ndarray,  # floating dtype
+    index: Index,
+    axis: int,
+    method: str = "linear",
+    limit: int | None = None,
+    limit_direction: str = "forward",
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
+    **kwargs,
+) -> np.ndarray:
+    """
+    Column-wise application of interpolate_1d.
+
+    Notes
+    -----
+    The signature does differs from interpolate_1d because it only
+    includes what is needed for Block.interpolate.
+    """
+    # validate the interp method
+    clean_interp_method(method, index, **kwargs)
+
+    if is_valid_na_for_dtype(fill_value, data.dtype):
+        fill_value = na_value_for_dtype(data.dtype, compat=False)
+
+    def func(yvalues: np.ndarray) -> np.ndarray:
+        # process 1-d slices in the axis direction, returning it
+
+        # should the axis argument be handled below in apply_along_axis?
+        # i.e. not an arg to interpolate_1d
+        return interpolate_1d(
+            xvalues=index,
+            yvalues=yvalues,
+            method=method,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            bounds_error=False,
+            **kwargs,
+        )
+
+    # interp each column independently
+    return np.apply_along_axis(func, axis, data)
+
+
 def interpolate_1d(
     xvalues: Index,
     yvalues: np.ndarray,
-    method: Optional[str] = "linear",
-    limit: Optional[int] = None,
+    method: str | None = "linear",
+    limit: int | None = None,
     limit_direction: str = "forward",
-    limit_area: Optional[str] = None,
-    fill_value: Optional[Any] = None,
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
     bounds_error: bool = False,
-    order: Optional[int] = None,
+    order: int | None = None,
     **kwargs,
 ):
     """
@@ -252,8 +358,17 @@ def interpolate_1d(
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
-    start_nans = set(range(find_valid_index(yvalues, "first")))
-    end_nans = set(range(1 + find_valid_index(yvalues, "last"), len(valid)))
+
+    first_valid_index = find_valid_index(yvalues, how="first")
+    if first_valid_index is None:  # no nan found in start
+        first_valid_index = 0
+    start_nans = set(range(first_valid_index))
+
+    last_valid_index = find_valid_index(yvalues, how="last")
+    if last_valid_index is None:  # no nan found in end
+        last_valid_index = len(yvalues)
+    end_nans = set(range(1 + last_valid_index, len(valid)))
+
     mid_nans = all_nans - start_nans - end_nans
 
     # Like the sets above, preserve_nans contains indices of invalid values,
@@ -265,7 +380,7 @@ def interpolate_1d(
     # are more than'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
-    preserve_nans: Union[List, Set]
+    preserve_nans: list | set
     if limit_direction == "forward":
         preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
@@ -305,7 +420,12 @@ def interpolate_1d(
 
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
-        indexer = np.argsort(inds[valid])
+
+        # error: Argument 1 to "argsort" has incompatible type "Union[ExtensionArray,
+        # Any]"; expected "Union[Union[int, float, complex, str, bytes, generic],
+        # Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
+        indexer = np.argsort(inds[valid])  # type: ignore[arg-type]
         result[invalid] = np.interp(
             inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
         )
@@ -561,7 +681,7 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
 
 def _interpolate_with_limit_area(
-    values: ArrayLike, method: str, limit: Optional[int], limit_area: Optional[str]
+    values: ArrayLike, method: str, limit: int | None, limit_area: str | None
 ) -> ArrayLike:
     """
     Apply interpolation and limit_area logic to values along a to-be-specified axis.
@@ -586,8 +706,12 @@ def _interpolate_with_limit_area(
     invalid = isna(values)
 
     if not invalid.all():
-        first = find_valid_index(values, "first")
-        last = find_valid_index(values, "last")
+        first = find_valid_index(values, how="first")
+        if first is None:
+            first = 0
+        last = find_valid_index(values, how="last")
+        if last is None:
+            last = len(values)
 
         values = interpolate_2d(
             values,
@@ -609,14 +733,14 @@ def interpolate_2d(
     values,
     method: str = "pad",
     axis: Axis = 0,
-    limit: Optional[int] = None,
-    limit_area: Optional[str] = None,
+    limit: int | None = None,
+    limit_area: str | None = None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
 
-       Parameters
+    Parameters
     ----------
     values: array-like
         Input array.
@@ -646,8 +770,6 @@ def interpolate_2d(
             values,
         )
 
-    orig_values = values
-
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
     # reshape a 1 dim if needed
@@ -669,14 +791,10 @@ def interpolate_2d(
     if ndim == 1:
         result = result[0]
 
-    if orig_values.dtype.kind in ["m", "M"]:
-        # convert float back to datetime64/timedelta64
-        result = result.view(orig_values.dtype)
-
     return result
 
 
-def _fillna_prep(values, mask=None):
+def _fillna_prep(values, mask: np.ndarray | None = None) -> np.ndarray:
     # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
 
     if mask is None:
@@ -755,23 +873,25 @@ def _backfill_2d(values, limit=None, mask=None):
 _fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
 
 
-def get_fill_func(method):
+def get_fill_func(method, ndim: int = 1):
     method = clean_fill_method(method)
-    return _fill_methods[method]
+    if ndim == 1:
+        return _fill_methods[method]
+    return {"pad": _pad_2d, "backfill": _backfill_2d}[method]
 
 
 def clean_reindex_fill_method(method):
     return clean_fill_method(method, allow_nearest=True)
 
 
-def _interp_limit(invalid, fw_limit, bw_limit):
+def _interp_limit(invalid: np.ndarray, fw_limit, bw_limit):
     """
     Get indexers of values that won't be filled
     because they exceed the limits.
 
     Parameters
     ----------
-    invalid : boolean ndarray
+    invalid : np.ndarray[bool]
     fw_limit : int or None
         forward limit to index
     bw_limit : int or None
