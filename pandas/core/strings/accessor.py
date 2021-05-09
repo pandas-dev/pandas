@@ -1322,7 +1322,11 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
         """
         if regex is None:
-            if isinstance(pat, str) and any(c in pat for c in ".+*|^$?[](){}\\"):
+            if (
+                isinstance(pat, str)
+                and not callable(repl)
+                and any(c in pat for c in ".+*|^$?[](){}\\")
+            ):
                 # warn only in cases where regex behavior would differ from literal
                 msg = (
                     "The default value of regex will change from True to False "
@@ -1334,6 +1338,7 @@ class StringMethods(NoNewAttributesMixin):
                         "*not* be treated as literal strings when regex=True."
                     )
                 warnings.warn(msg, FutureWarning, stacklevel=3)
+            # When changing default False, do not use False when repl is callable
             regex = True
 
         # Check whether repl is valid (GH 13438, GH 15055)
