@@ -3239,11 +3239,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx2 = pd.Index([2, 3, 4, 5])
         >>> idx1.symmetric_difference(idx2)
         Int64Index([1, 5], dtype='int64')
-
-        You can also use the ``^`` operator:
-
-        >>> idx1 ^ idx2
-        Int64Index([1, 5], dtype='int64')
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
