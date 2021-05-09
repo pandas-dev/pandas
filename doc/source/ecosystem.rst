@@ -405,6 +405,11 @@ Blaze provides a standard API for doing computations with various
 in-memory and on-disk backends: NumPy, pandas, SQLAlchemy, MongoDB, PyTables,
 PySpark.
 
+`Cylon <https://cylondata.org/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Cylon is a fast, scalable, distributed memory parallel runtime with a Pandas like Python DataFrame API. ”Core Cylon” is implemented with C++ using Apache Arrow format to represent the data in-memory. Cylon DataFrame API implements most of the core operators of Pandas such as merge, filter, join, concat, group-by, drop_duplicates, etc. These operators are designed to work across thousands of cores to scale applications. It can interoperate with Pandas DataFrame by reading data from Pandas or convert data to Pandas so users can selectively scale parts of their Pandas DataFrame applications. 
+
 `Dask <https://dask.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
