@@ -46,11 +46,9 @@ def test_ffill_missing_arguments():
 @pytest.mark.parametrize("method", ["ffill", "bfill"])
 def test_fillna_with_string_dtype(method):
     # GH 40250
-    result = (
-        DataFrame({"a": pd.array([None, "a", None], dtype="string"), "b": [0, 0, 0]})
-        .groupby("b")
-        .fillna(method=method)
-    )
+    df = DataFrame({"a": pd.array([None, "a", None], dtype="string"), "b": [0, 0, 0]})
+    grp = df.groupby("b") 
+    result = grp.fillna(method=method)
     if method == "ffill":
         expected = DataFrame({"a": pd.array([None, "a", "a"], dtype="string")})
     elif method == "bfill":
