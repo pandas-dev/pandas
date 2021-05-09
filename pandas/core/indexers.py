@@ -164,7 +164,7 @@ def check_setitem_lengths(indexer, value, values) -> bool:
         #  a) not necessarily 1-D indexers, e.g. tuple
         #  b) boolean indexers e.g. BoolArray
         if is_list_like(value):
-            if len(indexer) != len(value):
+            if len(indexer) != len(value) and values.ndim == 1:
                 # boolean with truth values == len of the value is ok too
                 if not (
                     isinstance(indexer, np.ndarray)

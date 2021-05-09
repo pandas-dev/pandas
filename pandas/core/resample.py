@@ -1734,7 +1734,8 @@ class TimeGrouper(Grouper):
 
             # Get offset for bin edge (not label edge) adjustment
             start_offset = Period(start, self.freq) - Period(p_start, self.freq)
-            bin_shift = start_offset.n % freq_mult
+            # error: Item "Period" of "Union[Period, Any]" has no attribute "n"
+            bin_shift = start_offset.n % freq_mult  # type: ignore[union-attr]
             start = p_start
 
         labels = binner = period_range(
@@ -1903,17 +1904,17 @@ def _get_period_range_edges(
         raise TypeError("'first' and 'last' must be instances of type Period")
 
     # GH 23882
-    first = first.to_timestamp()
-    last = last.to_timestamp()
-    adjust_first = not freq.is_on_offset(first)
-    adjust_last = freq.is_on_offset(last)
+    first_ts = first.to_timestamp()
+    last_ts = last.to_timestamp()
+    adjust_first = not freq.is_on_offset(first_ts)
+    adjust_last = freq.is_on_offset(last_ts)
 
-    first, last = _get_timestamp_range_edges(
-        first, last, freq, closed=closed, origin=origin, offset=offset
+    first_ts, last_ts = _get_timestamp_range_edges(
+        first_ts, last_ts, freq, closed=closed, origin=origin, offset=offset
     )
 
-    first = (first + int(adjust_first) * freq).to_period(freq)
-    last = (last - int(adjust_last) * freq).to_period(freq)
+    first = (first_ts + int(adjust_first) * freq).to_period(freq)
+    last = (last_ts - int(adjust_last) * freq).to_period(freq)
     return first, last
 
 

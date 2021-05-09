@@ -82,8 +82,6 @@ class StylerRenderer:
             data = data.to_frame()
         if not isinstance(data, DataFrame):
             raise TypeError("``data`` must be a Series or DataFrame")
-        if not data.index.is_unique or not data.columns.is_unique:
-            raise ValueError("style is not supported for non-unique indices.")
         self.data: DataFrame = data
         self.index: Index = data.index
         self.columns: Index = data.columns
@@ -481,23 +479,22 @@ class StylerRenderer:
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
 
-        columns = data.columns
         if not isinstance(formatter, dict):
-            formatter = {col: formatter for col in columns}
+            formatter = {col: formatter for col in data.columns}
 
-        for col in columns:
+        cis = self.columns.get_indexer_for(data.columns)
+        ris = self.index.get_indexer_for(data.index)
+        for ci in cis:
             format_func = _maybe_wrap_formatter(
-                formatter.get(col),
+                formatter.get(self.columns[ci]),
                 na_rep=na_rep,
                 precision=precision,
                 decimal=decimal,
                 thousands=thousands,
                 escape=escape,
             )
-
-            for row, value in data[[col]].itertuples():
-                i, j = self.index.get_loc(row), self.columns.get_loc(col)
-                self._display_funcs[(i, j)] = format_func
+            for ri in ris:
+                self._display_funcs[(ri, ci)] = format_func
 
         return self
 

@@ -468,10 +468,9 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
-    if is_extension_array_dtype(comps.dtype):
-        # error: Incompatible return value type (got "Series", expected "ndarray")
-        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute "isin"
-        return comps.isin(values)  # type: ignore[return-value,union-attr]
+    if not isinstance(comps, np.ndarray):
+        # i.e. Extension Array
+        return comps.isin(values)
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
@@ -555,7 +554,7 @@ def factorize_array(
 
     Returns
     -------
-    codes : ndarray
+    codes : ndarray[np.intp]
     uniques : ndarray
     """
     hash_klass, values = get_data_algo(values)
@@ -907,9 +906,9 @@ def value_counts_arraylike(values, dropna: bool):
         f = getattr(htable, f"value_count_{ndtype}")
         keys, counts = f(values, dropna)
 
-    keys = _reconstruct_data(keys, original.dtype, original)
+    res_keys = _reconstruct_data(keys, original.dtype, original)
 
-    return keys, counts
+    return res_keys, counts
 
 
 def duplicated(values: ArrayLike, keep: str | bool = "first") -> np.ndarray:
