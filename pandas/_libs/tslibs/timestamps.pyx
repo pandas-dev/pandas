@@ -1271,8 +1271,6 @@ class Timestamp(_Timestamp):
         tzobj = maybe_get_tz(tz)
         ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond or 0)
 
-        # value = tz_localize_to_utc_single(ts, tzobj, "raise", "raise")
-
         if ts.value == NPY_NAT:
             return NaT
 
@@ -1844,7 +1842,6 @@ default 'raise'
         value = ts.value + (dts.ps // 1000)
         if value != NPY_NAT:
             check_dts_bounds(&dts)
-        # tz_localize(ts)
 
         return create_timestamp_from_ts(value, dts, tzobj, self.freq, fold)
 
