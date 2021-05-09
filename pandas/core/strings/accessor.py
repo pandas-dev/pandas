@@ -1338,7 +1338,7 @@ class StringMethods(NoNewAttributesMixin):
                         "*not* be treated as literal strings when regex=True."
                     )
                 warnings.warn(msg, FutureWarning, stacklevel=3)
-            # When changing default False, do not use False when repl is callable
+            # When changing default to False, do not use False when repl is callable
             regex = True
 
         # Check whether repl is valid (GH 13438, GH 15055)
