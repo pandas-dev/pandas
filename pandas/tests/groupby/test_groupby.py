@@ -299,10 +299,9 @@ def test_with_na_groups(dtype):
         return float(len(x))
 
     agged = grouped.agg(f)
-    expected = Series([4, 2], index=["bar", "foo"])
+    expected = Series([4.0, 2.0], index=["bar", "foo"])
 
-    tm.assert_series_equal(agged, expected, check_dtype=False)
-    assert issubclass(agged.dtype.type, np.dtype(dtype).type)
+    tm.assert_series_equal(agged, expected)
 
 
 def test_indices_concatenation_order():
@@ -1725,27 +1724,82 @@ def test_pivot_table_values_key_error():
         [0],
         [0.0],
         ["a"],
-        [Categorical([0])],
+        Categorical([0]),
         [to_datetime(0)],
-        [date_range(0, 1, 1, tz="US/Eastern")],
-        [pd.array([0], dtype="Int64")],
-        [pd.array([0], dtype="Float64")],
-        [pd.array([False], dtype="boolean")],
+        date_range(0, 1, 1, tz="US/Eastern"),
+        pd.array([0], dtype="Int64"),
+        pd.array([0], dtype="Float64"),
+        pd.array([False], dtype="boolean"),
     ],
 )
 @pytest.mark.parametrize("method", ["attr", "agg", "apply"])
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "mad", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(columns, keys, values, method, op):
+def test_empty_groupby(columns, keys, values, method, op, request):
     # GH8093 & GH26411
+
+    if isinstance(values, Categorical) and len(keys) == 1 and method == "apply":
+        mark = pytest.mark.xfail(raises=TypeError, match="'str' object is not callable")
+        request.node.add_marker(mark)
+    elif (
+        isinstance(values, Categorical)
+        and len(keys) == 1
+        and op in ["idxmax", "idxmin"]
+    ):
+        mark = pytest.mark.xfail(
+            raises=ValueError, match="attempt to get arg(min|max) of an empty sequence"
+        )
+        request.node.add_marker(mark)
+    elif (
+        isinstance(values, Categorical)
+        and len(keys) == 1
+        and not isinstance(columns, list)
+    ):
+        mark = pytest.mark.xfail(
+            raises=TypeError, match="'Categorical' does not implement"
+        )
+        request.node.add_marker(mark)
+    elif (
+        isinstance(values, Categorical)
+        and len(keys) == 1
+        and op in ["mad", "min", "max", "sum", "prod", "skew"]
+    ):
+        mark = pytest.mark.xfail(
+            raises=AssertionError, match="(DataFrame|Series) are different"
+        )
+        request.node.add_marker(mark)
+    elif (
+        isinstance(values, Categorical)
+        and len(keys) == 2
+        and op in ["min", "max", "sum"]
+        and method != "apply"
+    ):
+        mark = pytest.mark.xfail(
+            raises=AssertionError, match="(DataFrame|Series) are different"
+        )
+        request.node.add_marker(mark)
+    elif (
+        isinstance(values, pd.core.arrays.BooleanArray)
+        and op in ["sum", "prod"]
+        and method != "apply"
+    ):
+        mark = pytest.mark.xfail(
+            raises=AssertionError, match="(DataFrame|Series) are different"
+        )
+        request.node.add_marker(mark)
 
     override_dtype = None
     if isinstance(values[0], bool) and op in ("prod", "sum") and method != "apply":
         # sum/product of bools is an integer
         override_dtype = "int64"
 
-    df = DataFrame([3 * values], columns=list("ABC"))
+    df = DataFrame({"A": values, "B": values, "C": values}, columns=list("ABC"))
+
+    if hasattr(values, "dtype"):
+        # check that we did the construction right
+        assert (df.dtypes == values.dtype).all()
+
     df = df.iloc[:0]
 
     gb = df.groupby(keys)[columns]
@@ -2019,6 +2073,12 @@ def test_groupby_crash_on_nunique(axis):
         expected = expected.T
 
     tm.assert_frame_equal(result, expected)
+
+    # same thing, but empty columns
+    gb = df[[]].groupby(axis=axis_number, level=0)
+    res = gb.nunique()
+    exp = expected[[]]
+    tm.assert_frame_equal(res, exp)
 
 
 def test_groupby_list_level():

@@ -1313,15 +1313,23 @@ def test_dropna(fill_value):
     tm.assert_equal(df.dropna(), expected_df)
 
 
-def test_maxmin():
-    data = np.arange(10).astype(float)
-    max_out = SparseArray(data).max()
-    min_out = SparseArray(data).min()
-    assert max_out == 9
-    assert min_out == 0
+class TestMinMax:
+    plain_data = np.arange(5).astype(float)
+    data_neg = plain_data * (-1)
+    data_NaN = SparseArray(np.array([0, 1, 2, np.nan, 4]))
+    data_all_NaN = SparseArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan]))
 
-    data = data * (-1)
-    max_out = SparseArray(data).max()
-    min_out = SparseArray(data).min()
-    assert max_out == 0
-    assert min_out == -9
+    @pytest.mark.parametrize(
+        "raw_data,max_expected,min_expected",
+        [
+            (plain_data, [4], [0]),
+            (data_neg, [0], [-4]),
+            (data_NaN, [4], [0]),
+            (data_all_NaN, [np.nan], [np.nan]),
+        ],
+    )
+    def test_maxmin(self, raw_data, max_expected, min_expected):
+        max_result = SparseArray(raw_data).max()
+        min_result = SparseArray(raw_data).min()
+        assert max_result in max_expected
+        assert min_result in min_expected

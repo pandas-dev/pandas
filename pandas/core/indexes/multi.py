@@ -1611,7 +1611,7 @@ class MultiIndex(Index):
 
     @doc(Index.duplicated)
     def duplicated(self, keep="first") -> np.ndarray:
-        shape = map(len, self.levels)
+        shape = tuple(len(lev) for lev in self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
         return duplicated_int64(ids, keep)
@@ -2144,7 +2144,7 @@ class MultiIndex(Index):
             levels=self.levels, codes=taken, names=self.names, verify_integrity=False
         )
 
-    def append(self, other, concat_indexes = False):
+    def append(self, other, concat_indexes=False):
         """
         Append a collection of Index options together
 
@@ -2165,9 +2165,10 @@ class MultiIndex(Index):
             arrays = []
             for i in range(self.nlevels):
                 label = self._get_level_values(i)
-                if label.names[0] and concat_indexes == True:
-                    appended = [o._get_level_values
-                    (o.names.index(label.names[0])) for o in other]
+                if label.names[0] and concat_indexes is True:
+                    appended = [
+                        o._get_level_values(o.names.index(label.name)) for o in other
+                    ]
                 else:
                     appended = [o._get_level_values(i) for o in other]
                 arrays.append(label.append(appended))
@@ -3601,7 +3602,7 @@ class MultiIndex(Index):
     def _maybe_match_names(self, other):
         """
         Try to find common names to attach to the result of an operation between
-        a and b.  Return a consensus list of names if they match at least partly
+        a and b. Return a consensus list of names if they match at least partly
         or list of None if they have completely different names.
         """
         if len(self.names) != len(other.names):

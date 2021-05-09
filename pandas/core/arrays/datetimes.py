@@ -320,8 +320,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if inferred_freq is None and freq is not None:
             type(self)._validate_frequency(self, freq)
 
+    # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
-    def _simple_new(
+    def _simple_new(  # type: ignore[override]
         cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=DT64NS_DTYPE
     ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
@@ -742,7 +743,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         assert isinstance(other, (datetime, np.datetime64))
         assert other is not NaT
         other = Timestamp(other)
-        if other is NaT:
+        # error: Non-overlapping identity check (left operand type: "Timestamp",
+        # right operand type: "NaTType")
+        if other is NaT:  # type: ignore[comparison-overlap]
             return self - NaT
 
         if not self._has_same_tz(other):

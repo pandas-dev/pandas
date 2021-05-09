@@ -12,7 +12,6 @@ from typing import (
     Sequence,
     Tuple,
     Union,
-    cast,
 )
 from uuid import uuid4
 
@@ -21,7 +20,10 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import FrameOrSeriesUnion
+from pandas._typing import (
+    FrameOrSeriesUnion,
+    TypedDict,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.generic import ABCSeries
@@ -45,10 +47,14 @@ ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
 CSSPair = Tuple[str, Union[str, int, float]]
 CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
-CSSStyles = List[Dict[str, CSSProperties]]  # = List[CSSDict]
-# class CSSDict(TypedDict):  # available when TypedDict is valid in pandas
-#     selector: str
-#     props: CSSProperties
+
+
+class CSSDict(TypedDict):
+    selector: str
+    props: CSSProperties
+
+
+CSSStyles = List[CSSDict]
 
 
 class StylerRenderer:
@@ -76,8 +82,6 @@ class StylerRenderer:
             data = data.to_frame()
         if not isinstance(data, DataFrame):
             raise TypeError("``data`` must be a Series or DataFrame")
-        if not data.index.is_unique or not data.columns.is_unique:
-            raise ValueError("style is not supported for non-unique indices.")
         self.data: DataFrame = data
         self.index: Index = data.index
         self.columns: Index = data.columns
@@ -102,42 +106,10 @@ class StylerRenderer:
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
 
-    def render(self, **kwargs) -> str:
+    def _render_html(self, **kwargs) -> str:
         """
-        Render the ``Styler`` including all applied styles to HTML.
-
-        Parameters
-        ----------
-        **kwargs
-            Any additional keyword arguments are passed
-            through to ``self.template.render``.
-            This is useful when you need to provide
-            additional variables for a custom template.
-
-        Returns
-        -------
-        rendered : str
-            The rendered HTML.
-
-        Notes
-        -----
-        Styler objects have defined the ``_repr_html_`` method
-        which automatically calls ``self.render()`` when it's the
-        last item in a Notebook cell. When calling ``Styler.render()``
-        directly, wrap the result in ``IPython.display.HTML`` to view
-        the rendered HTML in the notebook.
-
-        Pandas uses the following keys in render. Arguments passed
-        in ``**kwargs`` take precedence, so think carefully if you want
-        to override them:
-
-        * head
-        * cellstyle
-        * body
-        * uuid
-        * table_styles
-        * caption
-        * table_attributes
+        Renders the ``Styler`` including all applied styles to HTML.
+        Generates a dict with necessary kwargs passed to jinja2 template.
         """
         self._compute()
         # TODO: namespace all the pandas keys
@@ -507,28 +479,22 @@ class StylerRenderer:
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
 
-        columns = data.columns
         if not isinstance(formatter, dict):
-            formatter = {col: formatter for col in columns}
+            formatter = {col: formatter for col in data.columns}
 
-        for col in columns:
-            try:
-                format_func = formatter[col]
-            except KeyError:
-                format_func = None
-
+        cis = self.columns.get_indexer_for(data.columns)
+        ris = self.index.get_indexer_for(data.index)
+        for ci in cis:
             format_func = _maybe_wrap_formatter(
-                format_func,
+                formatter.get(self.columns[ci]),
                 na_rep=na_rep,
                 precision=precision,
                 decimal=decimal,
                 thousands=thousands,
                 escape=escape,
             )
-
-            for row, value in data[[col]].itertuples():
-                i, j = self.index.get_loc(row), self.columns.get_loc(col)
-                self._display_funcs[(i, j)] = format_func
+            for ri in ris:
+                self._display_funcs[(ri, ci)] = format_func
 
         return self
 
@@ -615,15 +581,9 @@ def _format_table_styles(styles: CSSStyles) -> CSSStyles:
               {'selector': 'th', 'props': 'a:v;'}]
     """
     return [
-        item
-        for sublist in [
-            [  # this is a CSSDict when TypedDict is available to avoid cast.
-                {"selector": x, "props": style["props"]}
-                for x in cast(str, style["selector"]).split(",")
-            ]
-            for style in styles
-        ]
-        for item in sublist
+        {"selector": selector, "props": css_dict["props"]}
+        for css_dict in styles
+        for selector in css_dict["selector"].split(",")
     ]
 
 
