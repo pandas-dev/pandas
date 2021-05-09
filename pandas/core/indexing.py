@@ -888,8 +888,8 @@ class _LocationIndexer(NDFrameIndexerBase):
         # handle the multi-axis by taking sections and reducing
         # this is iterative
         obj = self.obj
-        # GH#41369 Loop in reverse order to avoid dtype conversion when converting df
-        # row to a series
+        # GH#41369 Loop in reverse order ensures indexing along columns before rows
+        # which selects only necessary blocks which avoids dtype conversion if possible
         axis = len(tup) - 1
         for key in tup[::-1]:
 
