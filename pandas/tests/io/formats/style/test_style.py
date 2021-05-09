@@ -12,9 +12,11 @@ import pandas._testing as tm
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import (  # isort:skip
     Styler,
+)
+from pandas.io.formats.style_render import (
     _get_level_lengths,
-    _maybe_convert_css_to_tuples,
-    _non_reducing_slice,
+    maybe_convert_css_to_tuples,
+    non_reducing_slice,
 )
 
 
@@ -38,6 +40,7 @@ class TestStyler:
                 {"f": [1.0, 2.0], "o": ["a", "b"], "c": pd.Categorical(["a", "b"])}
             ),
         ]
+        self.blank_value = "&nbsp;"
 
     def test_init_non_pandas(self):
         msg = "``data`` must be a Series or DataFrame"
@@ -84,13 +87,13 @@ class TestStyler:
             self.styler.set_table_attributes('class="foo" data-bar')
             self.styler.hidden_index = not self.styler.hidden_index
             self.styler.hide_columns("A")
-            classes = pd.DataFrame(
+            classes = DataFrame(
                 [["favorite-val red", ""], [None, "blue my-val"]],
                 index=self.df.index,
                 columns=self.df.columns,
             )
             self.styler.set_td_classes(classes)
-            ttips = pd.DataFrame(
+            ttips = DataFrame(
                 data=[["Favorite", ""], [np.nan, "my"]],
                 columns=self.df.columns,
                 index=self.df.index,
@@ -173,23 +176,27 @@ class TestStyler:
         tt = DataFrame({"A": [None, "tt"]})
         css = DataFrame({"A": [None, "cls-a"]})
         s = self.df.style.highlight_max().set_tooltips(tt).set_td_classes(css)
+        s = s.hide_index().hide_columns("A")
         # _todo, tooltips and cell_context items added to..
         assert len(s._todo) > 0
         assert s.tooltips
         assert len(s.cell_context) > 0
+        assert s.hidden_index is True
+        assert len(s.hidden_columns) > 0
 
         s = s._compute()
-        # ctx and _todo items affected when a render takes place
+        # ctx item affected when a render takes place. _todo is maintained
         assert len(s.ctx) > 0
-        assert len(s._todo) == 0  # _todo is emptied after compute.
+        assert len(s._todo) > 0
 
-        s._todo = [1]
         s.clear()
         # ctx, _todo, tooltips and cell_context items all revert to null state.
         assert len(s.ctx) == 0
         assert len(s._todo) == 0
         assert not s.tooltips
         assert len(s.cell_context) == 0
+        assert s.hidden_index is False
+        assert len(s.hidden_columns) == 0
 
     def test_render(self):
         df = DataFrame({"A": [0, 1]})
@@ -256,9 +263,9 @@ class TestStyler:
                 {
                     "class": "blank level0",
                     "type": "th",
-                    "value": "",
+                    "value": self.blank_value,
                     "is_visible": True,
-                    "display_value": "",
+                    "display_value": self.blank_value,
                 },
                 {
                     "class": "col_heading level0 col0",
@@ -266,6 +273,7 @@ class TestStyler:
                     "type": "th",
                     "value": "A",
                     "is_visible": True,
+                    "attributes": "",
                 },
                 {
                     "class": "col_heading level0 col1",
@@ -273,6 +281,7 @@ class TestStyler:
                     "type": "th",
                     "value": "B",
                     "is_visible": True,
+                    "attributes": "",
                 },
                 {
                     "class": "col_heading level0 col2",
@@ -280,6 +289,7 @@ class TestStyler:
                     "type": "th",
                     "value": "C",
                     "is_visible": True,
+                    "attributes": "",
                 },
             ]
         ]
@@ -288,6 +298,7 @@ class TestStyler:
 
     def test_index_name(self):
         # https://github.com/pandas-dev/pandas/issues/11655
+        # TODO: this test can be minimised to address the test more directly
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
         result = df.set_index("A").style._translate()
 
@@ -296,8 +307,8 @@ class TestStyler:
                 {
                     "class": "blank level0",
                     "type": "th",
-                    "value": "",
-                    "display_value": "",
+                    "value": self.blank_value,
+                    "display_value": self.blank_value,
                     "is_visible": True,
                 },
                 {
@@ -306,6 +317,7 @@ class TestStyler:
                     "value": "B",
                     "display_value": "B",
                     "is_visible": True,
+                    "attributes": "",
                 },
                 {
                     "class": "col_heading level0 col1",
@@ -313,12 +325,31 @@ class TestStyler:
                     "value": "C",
                     "display_value": "C",
                     "is_visible": True,
+                    "attributes": "",
                 },
             ],
             [
-                {"class": "index_name level0", "type": "th", "value": "A"},
-                {"class": "blank col0", "type": "th", "value": ""},
-                {"class": "blank col1", "type": "th", "value": ""},
+                {
+                    "class": "index_name level0",
+                    "type": "th",
+                    "value": "A",
+                    "is_visible": True,
+                    "display_value": "A",
+                },
+                {
+                    "class": "blank col0",
+                    "type": "th",
+                    "value": self.blank_value,
+                    "is_visible": True,
+                    "display_value": self.blank_value,
+                },
+                {
+                    "class": "blank col1",
+                    "type": "th",
+                    "value": self.blank_value,
+                    "is_visible": True,
+                    "display_value": self.blank_value,
+                },
             ],
         ]
 
@@ -326,6 +357,7 @@ class TestStyler:
 
     def test_multiindex_name(self):
         # https://github.com/pandas-dev/pandas/issues/11655
+        # TODO: this test can be minimised to address the test more directly
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
         result = df.set_index(["A", "B"]).style._translate()
 
@@ -334,15 +366,15 @@ class TestStyler:
                 {
                     "class": "blank",
                     "type": "th",
-                    "value": "",
-                    "display_value": "",
+                    "value": self.blank_value,
+                    "display_value": self.blank_value,
                     "is_visible": True,
                 },
                 {
                     "class": "blank level0",
                     "type": "th",
-                    "value": "",
-                    "display_value": "",
+                    "value": self.blank_value,
+                    "display_value": self.blank_value,
                     "is_visible": True,
                 },
                 {
@@ -351,12 +383,31 @@ class TestStyler:
                     "value": "C",
                     "display_value": "C",
                     "is_visible": True,
+                    "attributes": "",
                 },
             ],
             [
-                {"class": "index_name level0", "type": "th", "value": "A"},
-                {"class": "index_name level1", "type": "th", "value": "B"},
-                {"class": "blank col0", "type": "th", "value": ""},
+                {
+                    "class": "index_name level0",
+                    "type": "th",
+                    "value": "A",
+                    "is_visible": True,
+                    "display_value": "A",
+                },
+                {
+                    "class": "index_name level1",
+                    "type": "th",
+                    "value": "B",
+                    "is_visible": True,
+                    "display_value": "B",
+                },
+                {
+                    "class": "blank col0",
+                    "type": "th",
+                    "value": self.blank_value,
+                    "is_visible": True,
+                    "display_value": self.blank_value,
+                },
             ],
         ]
 
@@ -490,7 +541,8 @@ class TestStyler:
 
         style1 = "foo: bar"
 
-        result = self.df.style.where(f, style1)._compute().ctx
+        with tm.assert_produces_warning(FutureWarning):
+            result = self.df.style.where(f, style1)._compute().ctx
         expected = {
             (r, c): [("foo", "bar")]
             for r, row in enumerate(self.df.index)
@@ -517,14 +569,15 @@ class TestStyler:
         style1 = "foo: bar"
         style2 = "baz: foo"
 
-        result = self.df.style.where(f, style1, style2, subset=slice_)._compute().ctx
+        with tm.assert_produces_warning(FutureWarning):
+            res = self.df.style.where(f, style1, style2, subset=slice_)._compute().ctx
         expected = {
             (r, c): [("foo", "bar") if f(self.df.loc[row, col]) else ("baz", "foo")]
             for r, row in enumerate(self.df.index)
             for c, col in enumerate(self.df.columns)
             if row in self.df.loc[slice_].index and col in self.df.loc[slice_].columns
         }
-        assert result == expected
+        assert res == expected
 
     def test_where_subset_compare_with_applymap(self):
         # GH 17474
@@ -546,11 +599,28 @@ class TestStyler:
         ]
 
         for slice_ in slices:
-            result = (
-                self.df.style.where(f, style1, style2, subset=slice_)._compute().ctx
-            )
+            with tm.assert_produces_warning(FutureWarning):
+                result = (
+                    self.df.style.where(f, style1, style2, subset=slice_)._compute().ctx
+                )
             expected = self.df.style.applymap(g, subset=slice_)._compute().ctx
             assert result == expected
+
+    def test_where_kwargs(self):
+        df = DataFrame([[1, 2], [3, 4]])
+
+        def f(x, val):
+            return x > val
+
+        with tm.assert_produces_warning(FutureWarning):
+            res = df.style.where(f, "color:green;", "color:red;", val=2)._compute().ctx
+        expected = {
+            (0, 0): [("color", "red")],
+            (0, 1): [("color", "red")],
+            (1, 0): [("color", "green")],
+            (1, 1): [("color", "green")],
+        }
+        assert res == expected
 
     def test_empty(self):
         df = DataFrame({"A": [1, 0]})
@@ -575,24 +645,6 @@ class TestStyler:
         ]
         assert result == expected
 
-    def test_format_with_na_rep(self):
-        # GH 21527 28358
-        df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
-
-        ctx = df.style.format(None, na_rep="-")._translate()
-        assert ctx["body"][0][1]["display_value"] == "-"
-        assert ctx["body"][0][2]["display_value"] == "-"
-
-        ctx = df.style.format("{:.2%}", na_rep="-")._translate()
-        assert ctx["body"][0][1]["display_value"] == "-"
-        assert ctx["body"][0][2]["display_value"] == "-"
-        assert ctx["body"][1][1]["display_value"] == "110.00%"
-        assert ctx["body"][1][2]["display_value"] == "120.00%"
-
-        ctx = df.style.format("{:.2%}", na_rep="-", subset=["B"])._translate()
-        assert ctx["body"][0][2]["display_value"] == "-"
-        assert ctx["body"][1][2]["display_value"] == "120.00%"
-
     def test_init_with_na_rep(self):
         # GH 21527 28358
         df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
@@ -605,54 +657,19 @@ class TestStyler:
         # GH 21527 28358
         df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
 
-        ctx = df.style.set_na_rep("NA")._translate()
+        with tm.assert_produces_warning(FutureWarning):
+            ctx = df.style.set_na_rep("NA")._translate()
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "NA"
 
-        ctx = (
-            df.style.set_na_rep("NA")
-            .format(None, na_rep="-", subset=["B"])
-            ._translate()
-        )
+        with tm.assert_produces_warning(FutureWarning):
+            ctx = (
+                df.style.set_na_rep("NA")
+                .format(None, na_rep="-", subset=["B"])
+                ._translate()
+            )
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "-"
-
-    def test_format_non_numeric_na(self):
-        # GH 21527 28358
-        df = DataFrame(
-            {
-                "object": [None, np.nan, "foo"],
-                "datetime": [None, pd.NaT, pd.Timestamp("20120101")],
-            }
-        )
-
-        ctx = df.style.set_na_rep("NA")._translate()
-        assert ctx["body"][0][1]["display_value"] == "NA"
-        assert ctx["body"][0][2]["display_value"] == "NA"
-        assert ctx["body"][1][1]["display_value"] == "NA"
-        assert ctx["body"][1][2]["display_value"] == "NA"
-
-        ctx = df.style.format(None, na_rep="-")._translate()
-        assert ctx["body"][0][1]["display_value"] == "-"
-        assert ctx["body"][0][2]["display_value"] == "-"
-        assert ctx["body"][1][1]["display_value"] == "-"
-        assert ctx["body"][1][2]["display_value"] == "-"
-
-    def test_format_with_bad_na_rep(self):
-        # GH 21527 28358
-        df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
-        msg = "Expected a string, got -1 instead"
-        with pytest.raises(TypeError, match=msg):
-            df.style.format(None, na_rep=-1)
-
-    def test_nonunique_raises(self):
-        df = DataFrame([[1, 2]], columns=["A", "A"])
-        msg = "style is not supported for non-unique indices."
-        with pytest.raises(ValueError, match=msg):
-            df.style
-
-        with pytest.raises(ValueError, match=msg):
-            Styler(df)
 
     def test_caption(self):
         styler = Styler(self.df, caption="foo")
@@ -714,15 +731,15 @@ class TestStyler:
 
     def test_maybe_convert_css_to_tuples(self):
         expected = [("a", "b"), ("c", "d e")]
-        assert _maybe_convert_css_to_tuples("a:b;c:d e;") == expected
-        assert _maybe_convert_css_to_tuples("a: b ;c:  d e  ") == expected
+        assert maybe_convert_css_to_tuples("a:b;c:d e;") == expected
+        assert maybe_convert_css_to_tuples("a: b ;c:  d e  ") == expected
         expected = []
-        assert _maybe_convert_css_to_tuples("") == expected
+        assert maybe_convert_css_to_tuples("") == expected
 
     def test_maybe_convert_css_to_tuples_err(self):
         msg = "Styles supplied as string must follow CSS rule formats"
         with pytest.raises(ValueError, match=msg):
-            _maybe_convert_css_to_tuples("err")
+            maybe_convert_css_to_tuples("err")
 
     def test_table_attributes(self):
         attributes = 'class="foo" data-bar'
@@ -734,13 +751,11 @@ class TestStyler:
         assert 'class="foo" data-bar' in result
 
     def test_precision(self):
-        with pd.option_context("display.precision", 10):
-            s = Styler(self.df)
-        assert s.precision == 10
         s = Styler(self.df, precision=2)
         assert s.precision == 2
 
-        s2 = s.set_precision(4)
+        with tm.assert_produces_warning(FutureWarning):
+            s2 = s.set_precision(4)
         assert s is s2
         assert s.precision == 4
 
@@ -766,100 +781,12 @@ class TestStyler:
         f = lambda x: "color: red" if x > 0 else "color: blue"
         g = lambda x, z: f"color: {z}" if x > 0 else f"color: {z}"
         style1 = self.styler
-        style1.applymap(f).applymap(g, z="b").highlight_max()
+        style1.applymap(f).applymap(g, z="b").highlight_max()._compute()  # = render
         result = style1.export()
         style2 = self.df.style
         style2.use(result)
         assert style1._todo == style2._todo
         style2.render()
-
-    def test_display_format(self):
-        df = DataFrame(np.random.random(size=(2, 2)))
-        ctx = df.style.format("{:0.1f}")._translate()
-
-        assert all(["display_value" in c for c in row] for row in ctx["body"])
-        assert all(
-            [len(c["display_value"]) <= 3 for c in row[1:]] for row in ctx["body"]
-        )
-        assert len(ctx["body"][0][1]["display_value"].lstrip("-")) <= 3
-
-    def test_display_format_raises(self):
-        df = DataFrame(np.random.randn(2, 2))
-        msg = "Expected a template string or callable, got 5 instead"
-        with pytest.raises(TypeError, match=msg):
-            df.style.format(5)
-
-        msg = "Expected a template string or callable, got True instead"
-        with pytest.raises(TypeError, match=msg):
-            df.style.format(True)
-
-    def test_display_set_precision(self):
-        # Issue #13257
-        df = DataFrame(data=[[1.0, 2.0090], [3.2121, 4.566]], columns=["a", "b"])
-        s = Styler(df)
-
-        ctx = s.set_precision(1)._translate()
-
-        assert s.precision == 1
-        assert ctx["body"][0][1]["display_value"] == "1.0"
-        assert ctx["body"][0][2]["display_value"] == "2.0"
-        assert ctx["body"][1][1]["display_value"] == "3.2"
-        assert ctx["body"][1][2]["display_value"] == "4.6"
-
-        ctx = s.set_precision(2)._translate()
-        assert s.precision == 2
-        assert ctx["body"][0][1]["display_value"] == "1.00"
-        assert ctx["body"][0][2]["display_value"] == "2.01"
-        assert ctx["body"][1][1]["display_value"] == "3.21"
-        assert ctx["body"][1][2]["display_value"] == "4.57"
-
-        ctx = s.set_precision(3)._translate()
-        assert s.precision == 3
-        assert ctx["body"][0][1]["display_value"] == "1.000"
-        assert ctx["body"][0][2]["display_value"] == "2.009"
-        assert ctx["body"][1][1]["display_value"] == "3.212"
-        assert ctx["body"][1][2]["display_value"] == "4.566"
-
-    def test_display_subset(self):
-        df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
-        ctx = df.style.format(
-            {"a": "{:0.1f}", "b": "{0:.2%}"}, subset=pd.IndexSlice[0, :]
-        )._translate()
-        expected = "0.1"
-        raw_11 = "1.123400"
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == raw_11
-        assert ctx["body"][0][2]["display_value"] == "12.34%"
-
-        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, :])._translate()
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == raw_11
-
-        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice["a"])._translate()
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][0][2]["display_value"] == "0.123400"
-
-        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, "a"])._translate()
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == raw_11
-
-        ctx = df.style.format(
-            "{:0.1f}", subset=pd.IndexSlice[[0, 1], ["a"]]
-        )._translate()
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == "1.1"
-        assert ctx["body"][0][2]["display_value"] == "0.123400"
-        assert ctx["body"][1][2]["display_value"] == raw_11
-
-    def test_display_dict(self):
-        df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
-        ctx = df.style.format({"a": "{:0.1f}", "b": "{0:.2%}"})._translate()
-        assert ctx["body"][0][1]["display_value"] == "0.1"
-        assert ctx["body"][0][2]["display_value"] == "12.34%"
-        df["c"] = ["aaa", "bbb"]
-        ctx = df.style.format({"a": "{:0.1f}", "c": str.upper})._translate()
-        assert ctx["body"][0][1]["display_value"] == "0.1"
-        assert ctx["body"][0][3]["display_value"] == "AAA"
 
     def test_bad_apply_shape(self):
         df = DataFrame([[1, 2], [3, 4]])
@@ -950,7 +877,7 @@ class TestStyler:
             "class": "row_heading level0 row0",
             "id": "level0_row0",
         }
-        tm.assert_dict_equal(body_0, expected_0)
+        assert body_0 == expected_0
 
         body_1 = result["body"][0][1]
         expected_1 = {
@@ -960,8 +887,9 @@ class TestStyler:
             "type": "th",
             "class": "row_heading level1 row0",
             "id": "level1_row0",
+            "attributes": "",
         }
-        tm.assert_dict_equal(body_1, expected_1)
+        assert body_1 == expected_1
 
         body_10 = result["body"][1][0]
         expected_10 = {
@@ -971,24 +899,25 @@ class TestStyler:
             "type": "th",
             "class": "row_heading level0 row1",
             "id": "level0_row1",
+            "attributes": "",
         }
-        tm.assert_dict_equal(body_10, expected_10)
+        assert body_10 == expected_10
 
         head = result["head"][0]
         expected = [
             {
                 "type": "th",
                 "class": "blank",
-                "value": "",
+                "value": self.blank_value,
                 "is_visible": True,
-                "display_value": "",
+                "display_value": self.blank_value,
             },
             {
                 "type": "th",
                 "class": "blank level0",
-                "value": "",
+                "value": self.blank_value,
                 "is_visible": True,
-                "display_value": "",
+                "display_value": self.blank_value,
             },
             {
                 "type": "th",
@@ -996,21 +925,26 @@ class TestStyler:
                 "value": "A",
                 "is_visible": True,
                 "display_value": "A",
+                "attributes": "",
             },
         ]
         assert head == expected
 
     def test_mi_sparse_disabled(self):
+        df = DataFrame(
+            {"A": [1, 2]}, index=pd.MultiIndex.from_arrays([["a", "a"], [0, 1]])
+        )
+        result = df.style._translate()["body"]
+        assert 'rowspan="2"' in result[0][0]["attributes"]
+        assert result[1][0]["is_visible"] is False
+
         with pd.option_context("display.multi_sparse", False):
-            df = DataFrame(
-                {"A": [1, 2]}, index=pd.MultiIndex.from_arrays([["a", "a"], [0, 1]])
-            )
-            result = df.style._translate()
-        body = result["body"]
-        for row in body:
-            assert "attributes" not in row[0]
+            result = df.style._translate()["body"]
+        assert 'rowspan="2"' not in result[0][0]["attributes"]
+        assert result[1][0]["is_visible"] is True
 
     def test_mi_sparse_index_names(self):
+        # TODO this test is verbose can be minimised to more directly target test
         df = DataFrame(
             {"A": [1, 2]},
             index=pd.MultiIndex.from_arrays(
@@ -1020,14 +954,33 @@ class TestStyler:
         result = df.style._translate()
         head = result["head"][1]
         expected = [
-            {"class": "index_name level0", "value": "idx_level_0", "type": "th"},
-            {"class": "index_name level1", "value": "idx_level_1", "type": "th"},
-            {"class": "blank col0", "value": "", "type": "th"},
+            {
+                "class": "index_name level0",
+                "value": "idx_level_0",
+                "type": "th",
+                "is_visible": True,
+                "display_value": "idx_level_0",
+            },
+            {
+                "class": "index_name level1",
+                "value": "idx_level_1",
+                "type": "th",
+                "is_visible": True,
+                "display_value": "idx_level_1",
+            },
+            {
+                "class": "blank col0",
+                "value": self.blank_value,
+                "type": "th",
+                "is_visible": True,
+                "display_value": self.blank_value,
+            },
         ]
 
         assert head == expected
 
     def test_mi_sparse_column_names(self):
+        # TODO this test is verbose - could be minimised
         df = DataFrame(
             np.arange(16).reshape(4, 4),
             index=pd.MultiIndex.from_arrays(
@@ -1043,8 +996,8 @@ class TestStyler:
         expected = [
             {
                 "class": "blank",
-                "value": "",
-                "display_value": "",
+                "value": self.blank_value,
+                "display_value": self.blank_value,
                 "type": "th",
                 "is_visible": True,
             },
@@ -1061,6 +1014,7 @@ class TestStyler:
                 "is_visible": True,
                 "type": "th",
                 "value": 1,
+                "attributes": "",
             },
             {
                 "class": "col_heading level1 col1",
@@ -1068,6 +1022,7 @@ class TestStyler:
                 "is_visible": True,
                 "type": "th",
                 "value": 0,
+                "attributes": "",
             },
             {
                 "class": "col_heading level1 col2",
@@ -1075,6 +1030,7 @@ class TestStyler:
                 "is_visible": True,
                 "type": "th",
                 "value": 1,
+                "attributes": "",
             },
             {
                 "class": "col_heading level1 col3",
@@ -1082,6 +1038,7 @@ class TestStyler:
                 "is_visible": True,
                 "type": "th",
                 "value": 0,
+                "attributes": "",
             },
         ]
         assert head == expected
@@ -1352,7 +1309,7 @@ class TestStyler:
   <caption>A comprehensive test</caption>
   <thead>
     <tr>
-      <th class="blank level0" ></th>
+      <th class="blank level0" >&nbsp;</th>
       <th class="col_heading level0 col0" >A</th>
     </tr>
   </thead>
@@ -1390,7 +1347,7 @@ class TestStyler:
     def test_non_reducing_slice(self, slc):
         df = DataFrame([[0, 1], [2, 3]])
 
-        tslice_ = _non_reducing_slice(slc)
+        tslice_ = non_reducing_slice(slc)
         assert isinstance(df.loc[tslice_], DataFrame)
 
     @pytest.mark.parametrize("box", [list, pd.Series, np.array])
@@ -1401,7 +1358,7 @@ class TestStyler:
         df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
         expected = pd.IndexSlice[:, ["A"]]
 
-        result = _non_reducing_slice(subset)
+        result = non_reducing_slice(subset)
         tm.assert_frame_equal(df.loc[result], df.loc[expected])
 
     def test_non_reducing_slice_on_multiindex(self):
@@ -1415,7 +1372,7 @@ class TestStyler:
         df = DataFrame(dic, index=[0, 1])
         idx = pd.IndexSlice
         slice_ = idx[:, idx["b", "d"]]
-        tslice_ = _non_reducing_slice(slice_)
+        tslice_ = non_reducing_slice(slice_)
 
         result = df.loc[tslice_]
         expected = DataFrame({("b", "d"): [4, 1]})
@@ -1454,7 +1411,7 @@ class TestStyler:
         df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
 
         expected = df.loc[slice_]
-        result = df.loc[_non_reducing_slice(slice_)]
+        result = df.loc[non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
 
 
@@ -1479,7 +1436,7 @@ def test_block_names():
         "tr",
         "after_rows",
     }
-    result = set(Styler.template.blocks)
+    result = set(Styler.template_html.blocks)
     assert result == expected
 
 
@@ -1498,6 +1455,6 @@ def test_from_custom_template(tmpdir):
     result = Styler.from_custom_template(str(tmpdir.join("templates")), "myhtml.tpl")
     assert issubclass(result, Styler)
     assert result.env is not Styler.env
-    assert result.template is not Styler.template
+    assert result.template_html is not Styler.template_html
     styler = result(DataFrame({"A": [1, 2]}))
     assert styler.render()

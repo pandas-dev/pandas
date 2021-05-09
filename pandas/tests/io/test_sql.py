@@ -52,12 +52,16 @@ import pandas._testing as tm
 
 import pandas.io.sql as sql
 from pandas.io.sql import (
+    SQLAlchemyEngine,
+    _gt14,
+    get_engine,
     read_sql_query,
     read_sql_table,
 )
 
 try:
     import sqlalchemy
+    from sqlalchemy import inspect
     from sqlalchemy.ext import declarative
     from sqlalchemy.orm import session as sa_session
     import sqlalchemy.schema
@@ -300,7 +304,7 @@ class PandasSQLTest:
         self.drop_table("iris")
         self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
 
-        with open(iris_csv_file, mode="r", newline=None) as iris_csv:
+        with open(iris_csv_file, newline=None) as iris_csv:
             r = csv.reader(iris_csv)
             next(r)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]
@@ -570,6 +574,23 @@ class PandasSQLTest:
         num_entries = len(self.test_frame1)
         num_rows = self._count_rows("test_frame1")
         assert num_rows == num_entries
+        # Nuke table
+        self.drop_table("test_frame1")
+
+    def _to_sql_with_sql_engine(self, engine="auto", **engine_kwargs):
+        """`to_sql` with the `engine` param"""
+        # mostly copied from this class's `_to_sql()` method
+        self.drop_table("test_frame1")
+
+        self.pandasSQL.to_sql(
+            self.test_frame1, "test_frame1", engine=engine, **engine_kwargs
+        )
+        assert self.pandasSQL.has_table("test_frame1")
+
+        num_entries = len(self.test_frame1)
+        num_rows = self._count_rows("test_frame1")
+        assert num_rows == num_entries
+
         # Nuke table
         self.drop_table("test_frame1")
 
@@ -1487,7 +1508,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pandasSQL = sql.SQLDatabase(temp_conn)
         pandasSQL.to_sql(temp_frame, "temp_frame")
 
-        assert temp_conn.has_table("temp_frame")
+        if _gt14():
+            insp = inspect(temp_conn)
+            assert insp.has_table("temp_frame")
+        else:
+            assert temp_conn.has_table("temp_frame")
 
     def test_drop_table(self):
         temp_conn = self.connect()
@@ -1499,11 +1524,18 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pandasSQL = sql.SQLDatabase(temp_conn)
         pandasSQL.to_sql(temp_frame, "temp_frame")
 
-        assert temp_conn.has_table("temp_frame")
+        if _gt14():
+            insp = inspect(temp_conn)
+            assert insp.has_table("temp_frame")
+        else:
+            assert temp_conn.has_table("temp_frame")
 
         pandasSQL.drop_table("temp_frame")
 
-        assert not temp_conn.has_table("temp_frame")
+        if _gt14():
+            assert not insp.has_table("temp_frame")
+        else:
+            assert not temp_conn.has_table("temp_frame")
 
     def test_roundtrip(self):
         self._roundtrip()
@@ -1843,9 +1875,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         tm.assert_frame_equal(result, df)
 
     def _get_index_columns(self, tbl_name):
-        from sqlalchemy.engine import reflection
+        from sqlalchemy import inspect
 
-        insp = reflection.Inspector.from_engine(self.conn)
+        insp = inspect(self.conn)
+
         ixs = insp.get_indexes(tbl_name)
         ixs = [i["column_names"] for i in ixs]
         return ixs
@@ -1977,8 +2010,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         def main(connectable):
             with connectable.connect() as conn:
                 with conn.begin():
-                    foo_data = conn.run_callable(foo)
-                    conn.run_callable(bar, foo_data)
+                    if _gt14():
+                        # https://github.com/sqlalchemy/sqlalchemy/commit/
+                        #  00b5c10846e800304caa86549ab9da373b42fa5d#r48323973
+                        foo_data = foo(conn)
+                        bar(conn, foo_data)
+                    else:
+                        foo_data = conn.run_callable(foo)
+                        conn.run_callable(bar, foo_data)
 
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
@@ -1987,12 +2026,22 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         "input",
         [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
     )
-    def test_to_sql_with_negative_npinf(self, input):
+    def test_to_sql_with_negative_npinf(self, input, request):
         # GH 34431
 
         df = DataFrame(input)
 
         if self.flavor == "mysql":
+            # GH 36465
+            # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
+            # for pymysql version >= 0.10
+            # TODO: remove this version check after GH 36465 is fixed
+            import pymysql
+
+            if pymysql.VERSION[0:3] >= (0, 10, 0) and "infe0" in df.columns:
+                mark = pytest.mark.xfail(reason="GH 36465")
+                request.node.add_marker(mark)
+
             msg = "inf cannot be used with MySQL"
             with pytest.raises(ValueError, match=msg):
                 df.to_sql("foobar", self.conn, index=False)
@@ -2022,6 +2071,41 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             df = sql.read_sql_query(sql=sqlalchemy.select([Temporary.spam]), con=conn)
 
         tm.assert_frame_equal(df, expected)
+
+    # -- SQL Engine tests (in the base class for now)
+    def test_invalid_engine(self):
+        msg = "engine must be one of 'auto', 'sqlalchemy'"
+        with pytest.raises(ValueError, match=msg):
+            self._to_sql_with_sql_engine("bad_engine")
+
+    def test_options_sqlalchemy(self):
+        # use the set option
+
+        with pd.option_context("io.sql.engine", "sqlalchemy"):
+            self._to_sql_with_sql_engine()
+
+    def test_options_auto(self):
+        # use the set option
+
+        with pd.option_context("io.sql.engine", "auto"):
+            self._to_sql_with_sql_engine()
+
+    def test_options_get_engine(self):
+        assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
+
+        with pd.option_context("io.sql.engine", "sqlalchemy"):
+            assert isinstance(get_engine("auto"), SQLAlchemyEngine)
+            assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
+
+        with pd.option_context("io.sql.engine", "auto"):
+            assert isinstance(get_engine("auto"), SQLAlchemyEngine)
+            assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
+
+    def test_get_engine_auto_error_message(self):
+        # Expect different error messages from get_engine(engine="auto")
+        # if engines aren't installed vs. are installed but bad version
+        pass
+        # TODO fill this in when we add more engines
 
 
 class _TestSQLAlchemyConn(_EngineToConnMixin, _TestSQLAlchemy):

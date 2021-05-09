@@ -241,6 +241,28 @@ def test_level_get_group(observed):
     tm.assert_frame_equal(result, expected)
 
 
+def test_sorting_with_different_categoricals():
+    # GH 24271
+    df = DataFrame(
+        {
+            "group": ["A"] * 6 + ["B"] * 6,
+            "dose": ["high", "med", "low"] * 4,
+            "outcomes": np.arange(12.0),
+        }
+    )
+
+    df.dose = Categorical(df.dose, categories=["low", "med", "high"], ordered=True)
+
+    result = df.groupby("group")["dose"].value_counts()
+    result = result.sort_index(level=0, sort_remaining=True)
+    index = ["low", "med", "high", "low", "med", "high"]
+    index = Categorical(index, categories=["low", "med", "high"], ordered=True)
+    index = [["A", "A", "A", "B", "B", "B"], CategoricalIndex(index)]
+    index = MultiIndex.from_arrays(index, names=["group", None])
+    expected = Series([2] * 6, index=index, name="dose")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -777,6 +799,12 @@ def test_preserve_on_ordered_ops(func, values):
         {"payload": [-2, -1], "col": Series(values, dtype=c.dtype)}
     ).set_index("payload")
     tm.assert_frame_equal(result, expected)
+
+    # we should also preserve categorical for SeriesGroupBy
+    sgb = df.groupby("payload")["col"]
+    result = getattr(sgb, func)()
+    expected = expected["col"]
+    tm.assert_series_equal(result, expected)
 
 
 def test_categorical_no_compress():
@@ -1472,7 +1500,11 @@ def test_groupy_first_returned_categorical_instead_of_dataframe(func):
     df = DataFrame({"A": [1997], "B": Series(["b"], dtype="category").cat.as_ordered()})
     df_grouped = df.groupby("A")["B"]
     result = getattr(df_grouped, func)()
-    expected = Series(["b"], index=Index([1997], name="A"), name="B")
+
+    # ordered categorical dtype should be preserved
+    expected = Series(
+        ["b"], index=Index([1997], name="A"), name="B", dtype=df["B"].dtype
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -1539,7 +1571,15 @@ def test_agg_cython_category_not_implemented_fallback():
     df["col_cat"] = df["col_num"].astype("category")
 
     result = df.groupby("col_num").col_cat.first()
-    expected = Series([1, 2, 3], index=Index([1, 2, 3], name="col_num"), name="col_cat")
+
+    # ordered categorical dtype should definitely be preserved;
+    #  this is unordered, so is less-clear case (if anything, it should raise)
+    expected = Series(
+        [1, 2, 3],
+        index=Index([1, 2, 3], name="col_num"),
+        name="col_cat",
+        dtype=df["col_cat"].dtype,
+    )
     tm.assert_series_equal(result, expected)
 
     result = df.groupby("col_num").agg({"col_cat": "first"})
@@ -1554,6 +1594,10 @@ def test_aggregate_categorical_lost_index(func: str):
     df = DataFrame({"A": [1997], "B": ds})
     result = df.groupby("A").agg({"B": func})
     expected = DataFrame({"B": ["b"]}, index=Index([1997], name="A"))
+
+    # ordered categorical dtype should be preserved
+    expected["B"] = expected["B"].astype(ds.dtype)
+
     tm.assert_frame_equal(result, expected)
 
 
@@ -1575,7 +1619,7 @@ def test_aggregate_categorical_with_isnan():
     index = MultiIndex.from_arrays([[1, 1], [1, 2]], names=("A", "B"))
     expected = DataFrame(
         data={
-            "numerical_col": [1.0, 0.0],
+            "numerical_col": [1, 0],
             "object_col": [0, 0],
             "categorical_col": [0, 0],
         },
@@ -1630,6 +1674,9 @@ def test_categorical_transform():
     )
 
     expected["status"] = expected["status"].astype(delivery_status_type)
+
+    # .transform(max) should preserve ordered categoricals
+    expected["last_status"] = expected["last_status"].astype(delivery_status_type)
 
     tm.assert_frame_equal(result, expected)
 
@@ -1695,9 +1742,9 @@ def test_groupby_categorical_indices_unused_categories():
     grouped = df.groupby("key", sort=False)
     result = grouped.indices
     expected = {
-        "b": np.array([0, 1], dtype="int64"),
-        "a": np.array([2], dtype="int64"),
-        "c": np.array([], dtype="int64"),
+        "b": np.array([0, 1], dtype="intp"),
+        "a": np.array([2], dtype="intp"),
+        "c": np.array([], dtype="intp"),
     }
     assert result.keys() == expected.keys()
     for key in result.keys():

@@ -35,9 +35,9 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_string_dtype,
-    is_string_like_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -232,13 +232,14 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     """
     dtype = values.dtype
 
-    if is_extension_array_dtype(dtype):
+    if not isinstance(values, np.ndarray):
+        # i.e. ExtensionArray
         if inf_as_na and is_categorical_dtype(dtype):
             result = libmissing.isnaobj_old(values.to_numpy())
         else:
             result = values.isna()
     elif is_string_dtype(dtype):
-        result = _isna_string_dtype(values, dtype, inf_as_na=inf_as_na)
+        result = _isna_string_dtype(values, inf_as_na=inf_as_na)
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern
         result = values.view("i8") == iNaT
@@ -251,13 +252,12 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     return result
 
 
-def _isna_string_dtype(
-    values: np.ndarray, dtype: np.dtype, inf_as_na: bool
-) -> np.ndarray:
+def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> np.ndarray:
     # Working around NumPy ticket 1542
+    dtype = values.dtype
     shape = values.shape
 
-    if is_string_like_dtype(dtype):
+    if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
     else:
         result = np.empty(shape, dtype=bool)
@@ -536,12 +536,12 @@ def infer_fill_value(val):
     return np.nan
 
 
-def maybe_fill(arr, fill_value=np.nan):
+def maybe_fill(arr: np.ndarray) -> np.ndarray:
     """
-    if we have a compatible fill_value and arr dtype, then fill
+    Fill numpy.ndarray with NaN, unless we have a integer or boolean dtype.
     """
-    if isna_compat(arr, fill_value):
-        arr.fill(fill_value)
+    if arr.dtype.kind not in ("u", "i", "b"):
+        arr.fill(np.nan)
     return arr
 
 
@@ -572,7 +572,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     numpy.datetime64('NaT')
     """
 
-    if is_extension_array_dtype(dtype):
+    if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
     elif needs_i8_conversion(dtype):
         return dtype.type("NaT", "ns")
@@ -626,7 +626,7 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
         # Numeric
         return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
 
-    elif dtype == np.dtype(object):
+    elif dtype == np.dtype("object"):
         # This is needed for Categorical, but is kind of weird
         return True
 
@@ -650,11 +650,22 @@ def isna_all(arr: ArrayLike) -> bool:
         checker = nan_checker
 
     elif dtype.kind in ["m", "M"] or dtype.type is Period:
-        checker = lambda x: np.asarray(x.view("i8")) == iNaT
+        # error: Incompatible types in assignment (expression has type
+        # "Callable[[Any], Any]", variable has type "ufunc")
+        checker = lambda x: np.asarray(x.view("i8")) == iNaT  # type: ignore[assignment]
 
     else:
-        checker = lambda x: _isna_array(x, inf_as_na=INF_AS_NA)
+        # error: Incompatible types in assignment (expression has type "Callable[[Any],
+        # Any]", variable has type "ufunc")
+        checker = lambda x: _isna_array(  # type: ignore[assignment]
+            x, inf_as_na=INF_AS_NA
+        )
 
     return all(
-        checker(arr[i : i + chunk_len]).all() for i in range(0, total_len, chunk_len)
+        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+        # "Union[ExtensionArray, Any]"; expected "Union[Union[int, float, complex, str,
+        # bytes, generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
+        checker(arr[i : i + chunk_len]).all()  # type: ignore[arg-type]
+        for i in range(0, total_len, chunk_len)
     )

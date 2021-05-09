@@ -64,7 +64,7 @@ _ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
 
 class TestCommon(Base):
-    # exected value created by Base._get_offset
+    # executed value created by Base._get_offset
     # are applied to 2011/01/01 09:00 (Saturday)
     # used for .apply and .rollforward
     expecteds = {

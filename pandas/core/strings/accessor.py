@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer,
     is_list_like,
+    is_re,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -194,8 +195,6 @@ class StringMethods(NoNewAttributesMixin):
         -------
         dtype : inferred dtype of data
         """
-        from pandas import StringDtype
-
         if isinstance(data, ABCMultiIndex):
             raise AttributeError(
                 "Can only use .str accessor with Index, not MultiIndex"
@@ -206,10 +205,6 @@ class StringMethods(NoNewAttributesMixin):
 
         values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
-
-        # explicitly allow StringDtype
-        if isinstance(values.dtype, StringDtype):
-            return "string"
 
         inferred_dtype = lib.infer_dtype(values, skipna=True)
 
@@ -316,7 +311,7 @@ class StringMethods(NoNewAttributesMixin):
             # This is a mess.
             dtype: Optional[str]
             if self._is_string and returns_string:
-                dtype = "string"
+                dtype = self._orig.dtype
             else:
                 dtype = None
 
@@ -548,7 +543,9 @@ class StringMethods(NoNewAttributesMixin):
 
         # concatenate Series/Index with itself if no "others"
         if others is None:
-            data = ensure_object(data)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Series")
+            data = ensure_object(data)  # type: ignore[assignment]
             na_mask = isna(data)
             if na_rep is None and na_mask.any():
                 data = data[~na_mask]
@@ -604,15 +601,27 @@ class StringMethods(NoNewAttributesMixin):
 
         if isinstance(self._orig, ABCIndex):
             # add dtype for case that result is all-NA
-            result = Index(result, dtype=object, name=self._orig.name)
+
+            # error: Incompatible types in assignment (expression has type
+            # "Index", variable has type "ndarray")
+            result = Index(  # type: ignore[assignment]
+                result, dtype=object, name=self._orig.name
+            )
         else:  # Series
             if is_categorical_dtype(self._orig.dtype):
                 # We need to infer the new categories.
                 dtype = None
             else:
                 dtype = self._orig.dtype
-            result = Series(result, dtype=dtype, index=data.index, name=self._orig.name)
-            result = result.__finalize__(self._orig, method="str_cat")
+            # error: Incompatible types in assignment (expression has type
+            # "Series", variable has type "ndarray")
+            result = Series(  # type: ignore[assignment]
+                result, dtype=dtype, index=data.index, name=self._orig.name
+            )
+            # error: "ndarray" has no attribute "__finalize__"
+            result = result.__finalize__(  # type: ignore[attr-defined]
+                self._orig, method="str_cat"
+            )
         return result
 
     _shared_docs[
@@ -1117,6 +1126,14 @@ class StringMethods(NoNewAttributesMixin):
         4    False
         dtype: bool
         """
+        if regex and re.compile(pat).groups:
+            warnings.warn(
+                "This pattern has match groups. To actually get the "
+                "groups, use str.extract.",
+                UserWarning,
+                stacklevel=3,
+            )
+
         result = self._data.array._str_contains(pat, case, flags, na, regex)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
@@ -1318,6 +1335,29 @@ class StringMethods(NoNewAttributesMixin):
                     )
                 warnings.warn(msg, FutureWarning, stacklevel=3)
             regex = True
+
+        # Check whether repl is valid (GH 13438, GH 15055)
+        if not (isinstance(repl, str) or callable(repl)):
+            raise TypeError("repl must be a string or callable")
+
+        is_compiled_re = is_re(pat)
+        if regex:
+            if is_compiled_re:
+                if (case is not None) or (flags != 0):
+                    raise ValueError(
+                        "case and flags cannot be set when pat is a compiled regex"
+                    )
+            elif case is None:
+                # not a compiled regex, set default case
+                case = True
+
+        elif is_compiled_re:
+            raise ValueError(
+                "Cannot use a compiled regex as replacement pattern with regex=False"
+            )
+        elif callable(repl):
+            raise ValueError("Cannot use a callable replacement when regex=False")
+
         result = self._data.array._str_replace(
             pat, repl, n=n, case=case, flags=flags, regex=regex
         )
@@ -1913,13 +1953,13 @@ class StringMethods(NoNewAttributesMixin):
         Examples
         --------
         >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()
-        a  b  c
+           a  b  c
         0  1  1  0
         1  1  0  0
         2  1  0  1
 
         >>> pd.Series(['a|b', np.nan, 'a|c']).str.get_dummies()
-        a  b  c
+           a  b  c
         0  1  1  0
         1  0  0  0
         2  1  0  1
@@ -2360,7 +2400,7 @@ class StringMethods(NoNewAttributesMixin):
                 0
         match
         A 0      1
-        1      2
+          1      2
         B 0      1
 
         Capture group names are used for column names of the result.
@@ -2369,7 +2409,7 @@ class StringMethods(NoNewAttributesMixin):
                 digit
         match
         A 0         1
-        1         2
+          1         2
         B 0         1
 
         A pattern with two groups will return a DataFrame with two columns.
@@ -2378,7 +2418,7 @@ class StringMethods(NoNewAttributesMixin):
                 letter digit
         match
         A 0          a     1
-        1          a     2
+          1          a     2
         B 0          b     1
 
         Optional groups that do not match are NaN in the result.
@@ -2387,7 +2427,7 @@ class StringMethods(NoNewAttributesMixin):
                 letter digit
         match
         A 0          a     1
-        1          a     2
+          1          a     2
         B 0          b     1
         C 0        NaN     1
         """
@@ -3011,7 +3051,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
     """
     from pandas import (
         DataFrame,
-        array,
+        array as pd_array,
     )
 
     regex = re.compile(pat, flags=flags)
@@ -3022,7 +3062,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
         result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
         name = _get_single_group_name(regex)
         # not dispatching, so we have to reconstruct here.
-        result = array(result, dtype=result_dtype)
+        result = pd_array(result, dtype=result_dtype)
     else:
         if isinstance(arr, ABCIndex):
             raise ValueError("only one regex group is supported with Index")
@@ -3030,10 +3070,16 @@ def _str_extract_noexpand(arr, pat, flags=0):
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
         columns = [names.get(1 + i, i) for i in range(regex.groups)]
         if arr.size == 0:
-            result = DataFrame(columns=columns, dtype=object)
+            # error: Incompatible types in assignment (expression has type
+            # "DataFrame", variable has type "ndarray")
+            result = DataFrame(  # type: ignore[assignment]
+                columns=columns, dtype=object
+            )
         else:
             dtype = _result_dtype(arr)
-            result = DataFrame(
+            # error: Incompatible types in assignment (expression has type
+            # "DataFrame", variable has type "ndarray")
+            result = DataFrame(  # type:ignore[assignment]
                 [groups_or_na(val) for val in arr],
                 columns=columns,
                 index=arr.index,

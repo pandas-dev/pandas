@@ -10,6 +10,8 @@ from typing import (
 import numpy as np
 import pytest
 
+from pandas.compat import np_version_under1p20
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -653,6 +655,28 @@ class TestDataFrameReplace:
         res = df.replace(0, "a")
         tm.assert_frame_equal(res, expec)
         assert res.a.dtype == np.object_
+
+    @pytest.mark.parametrize(
+        "to_replace", [{"": np.nan, ",": ""}, {",": "", "": np.nan}]
+    )
+    def test_joint_simple_replace_and_regex_replace(self, to_replace):
+        # GH-39338
+        df = DataFrame(
+            {
+                "col1": ["1,000", "a", "3"],
+                "col2": ["a", "", "b"],
+                "col3": ["a", "b", "c"],
+            }
+        )
+        result = df.replace(regex=to_replace)
+        expected = DataFrame(
+            {
+                "col1": ["1000", "a", "3"],
+                "col2": ["a", np.nan, "b"],
+                "col3": ["a", "b", "c"],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("metachar", ["[]", "()", r"\d", r"\w", r"\s"])
     def test_replace_regex_metachar(self, metachar):
@@ -1439,8 +1463,8 @@ class TestDataFrameReplace:
 
         a = pd.Categorical(final_data[:, 0], categories=[3, 2])
 
-        excat = [3, 2] if replace_dict["b"] == 1 else [1, 3]
-        b = pd.Categorical(final_data[:, 1], categories=excat)
+        ex_cat = [3, 2] if replace_dict["b"] == 1 else [1, 3]
+        b = pd.Categorical(final_data[:, 1], categories=ex_cat)
 
         expected = DataFrame({"a": a, "b": b})
         result = df.replace(replace_dict, 3)
@@ -1492,8 +1516,14 @@ class TestDataFrameReplace:
             np.float64(1),
         ],
     )
-    def test_replace_replacer_dtype(self, replacer):
+    def test_replace_replacer_dtype(self, request, replacer):
         # GH26632
+        if np.isscalar(replacer) and replacer.dtype.itemsize < 8:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    np_version_under1p20, reason="np.putmask doesn't coerce dtype"
+                )
+            )
         df = DataFrame(["a"])
         result = df.replace({"a": replacer, "b": replacer})
         expected = DataFrame([replacer])

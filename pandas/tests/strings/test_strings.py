@@ -12,7 +12,6 @@ from pandas import (
     MultiIndex,
     Series,
     isna,
-    notna,
 )
 import pandas._testing as tm
 
@@ -136,23 +135,28 @@ def test_repeat():
     tm.assert_series_equal(rs, xp)
 
 
-def test_repeat_with_null():
+def test_repeat_with_null(nullable_string_dtype):
     # GH: 31632
-    values = Series(["a", None], dtype="string")
-    result = values.str.repeat([3, 4])
-    exp = Series(["aaa", None], dtype="string")
-    tm.assert_series_equal(result, exp)
+    ser = Series(["a", None], dtype=nullable_string_dtype)
+    result = ser.str.repeat([3, 4])
+    expected = Series(["aaa", None], dtype=nullable_string_dtype)
+    tm.assert_series_equal(result, expected)
 
-    values = Series(["a", "b"], dtype="string")
-    result = values.str.repeat([3, None])
-    exp = Series(["aaa", None], dtype="string")
-    tm.assert_series_equal(result, exp)
+    ser = Series(["a", "b"], dtype=nullable_string_dtype)
+    result = ser.str.repeat([3, None])
+    expected = Series(["aaa", None], dtype=nullable_string_dtype)
+    tm.assert_series_equal(result, expected)
 
 
-def test_empty_str_methods():
-    empty_str = empty = Series(dtype=object)
-    empty_int = Series(dtype="int64")
-    empty_bool = Series(dtype=bool)
+def test_empty_str_methods(any_string_dtype):
+    empty_str = empty = Series(dtype=any_string_dtype)
+    if any_string_dtype == "object":
+        empty_int = Series(dtype="int64")
+        empty_bool = Series(dtype=bool)
+    else:
+        empty_int = Series(dtype="Int64")
+        empty_bool = Series(dtype="boolean")
+    empty_object = Series(dtype=object)
     empty_bytes = Series(dtype=object)
 
     # GH7241
@@ -184,15 +188,15 @@ def test_empty_str_methods():
     tm.assert_frame_equal(DataFrame(dtype=str), empty.str.get_dummies())
     tm.assert_series_equal(empty_str, empty_str.str.join(""))
     tm.assert_series_equal(empty_int, empty.str.len())
-    tm.assert_series_equal(empty_str, empty_str.str.findall("a"))
+    tm.assert_series_equal(empty_object, empty_str.str.findall("a"))
     tm.assert_series_equal(empty_int, empty.str.find("a"))
     tm.assert_series_equal(empty_int, empty.str.rfind("a"))
     tm.assert_series_equal(empty_str, empty.str.pad(42))
     tm.assert_series_equal(empty_str, empty.str.center(42))
-    tm.assert_series_equal(empty_str, empty.str.split("a"))
-    tm.assert_series_equal(empty_str, empty.str.rsplit("a"))
-    tm.assert_series_equal(empty_str, empty.str.partition("a", expand=False))
-    tm.assert_series_equal(empty_str, empty.str.rpartition("a", expand=False))
+    tm.assert_series_equal(empty_object, empty.str.split("a"))
+    tm.assert_series_equal(empty_object, empty.str.rsplit("a"))
+    tm.assert_series_equal(empty_object, empty.str.partition("a", expand=False))
+    tm.assert_series_equal(empty_object, empty.str.rpartition("a", expand=False))
     tm.assert_series_equal(empty_str, empty.str.slice(stop=1))
     tm.assert_series_equal(empty_str, empty.str.slice(step=1))
     tm.assert_series_equal(empty_str, empty.str.strip())
@@ -200,7 +204,7 @@ def test_empty_str_methods():
     tm.assert_series_equal(empty_str, empty.str.rstrip())
     tm.assert_series_equal(empty_str, empty.str.wrap(42))
     tm.assert_series_equal(empty_str, empty.str.get(0))
-    tm.assert_series_equal(empty_str, empty_bytes.str.decode("ascii"))
+    tm.assert_series_equal(empty_object, empty_bytes.str.decode("ascii"))
     tm.assert_series_equal(empty_bytes, empty.str.encode("ascii"))
     # ismethods should always return boolean (GH 29624)
     tm.assert_series_equal(empty_bool, empty.str.isalnum())
@@ -227,9 +231,9 @@ def test_empty_str_methods_to_frame():
     tm.assert_frame_equal(empty_df, empty.str.rpartition("a"))
 
 
-def test_ismethods():
+def test_ismethods(any_string_dtype):
     values = ["A", "b", "Xy", "4", "3A", "", "TT", "55", "-", "  "]
-    str_s = Series(values)
+    str_s = Series(values, dtype=any_string_dtype)
     alnum_e = [True, True, True, True, True, False, True, True, False, False]
     alpha_e = [True, True, True, False, False, False, True, False, False, False]
     digit_e = [False, False, False, True, False, False, False, True, False, False]
@@ -253,13 +257,14 @@ def test_ismethods():
     upper_e = [True, False, False, False, True, False, True, False, False, False]
     title_e = [True, False, True, False, True, False, False, False, False, False]
 
-    tm.assert_series_equal(str_s.str.isalnum(), Series(alnum_e))
-    tm.assert_series_equal(str_s.str.isalpha(), Series(alpha_e))
-    tm.assert_series_equal(str_s.str.isdigit(), Series(digit_e))
-    tm.assert_series_equal(str_s.str.isspace(), Series(space_e))
-    tm.assert_series_equal(str_s.str.islower(), Series(lower_e))
-    tm.assert_series_equal(str_s.str.isupper(), Series(upper_e))
-    tm.assert_series_equal(str_s.str.istitle(), Series(title_e))
+    dtype = "bool" if any_string_dtype == "object" else "boolean"
+    tm.assert_series_equal(str_s.str.isalnum(), Series(alnum_e, dtype=dtype))
+    tm.assert_series_equal(str_s.str.isalpha(), Series(alpha_e, dtype=dtype))
+    tm.assert_series_equal(str_s.str.isdigit(), Series(digit_e, dtype=dtype))
+    tm.assert_series_equal(str_s.str.isspace(), Series(space_e, dtype=dtype))
+    tm.assert_series_equal(str_s.str.islower(), Series(lower_e, dtype=dtype))
+    tm.assert_series_equal(str_s.str.isupper(), Series(upper_e, dtype=dtype))
+    tm.assert_series_equal(str_s.str.istitle(), Series(title_e, dtype=dtype))
 
     assert str_s.str.isalnum().tolist() == [v.isalnum() for v in values]
     assert str_s.str.isalpha().tolist() == [v.isalpha() for v in values]
@@ -270,28 +275,30 @@ def test_ismethods():
     assert str_s.str.istitle().tolist() == [v.istitle() for v in values]
 
 
-def test_isnumeric():
+def test_isnumeric(any_string_dtype):
     # 0x00bc: ¼ VULGAR FRACTION ONE QUARTER
     # 0x2605: ★ not number
     # 0x1378: ፸ ETHIOPIC NUMBER SEVENTY
     # 0xFF13: ３ Em 3
     values = ["A", "3", "¼", "★", "፸", "３", "four"]
-    s = Series(values)
+    s = Series(values, dtype=any_string_dtype)
     numeric_e = [False, True, True, False, True, True, False]
     decimal_e = [False, True, False, False, False, True, False]
-    tm.assert_series_equal(s.str.isnumeric(), Series(numeric_e))
-    tm.assert_series_equal(s.str.isdecimal(), Series(decimal_e))
+    dtype = "bool" if any_string_dtype == "object" else "boolean"
+    tm.assert_series_equal(s.str.isnumeric(), Series(numeric_e, dtype=dtype))
+    tm.assert_series_equal(s.str.isdecimal(), Series(decimal_e, dtype=dtype))
 
     unicodes = ["A", "3", "¼", "★", "፸", "３", "four"]
     assert s.str.isnumeric().tolist() == [v.isnumeric() for v in unicodes]
     assert s.str.isdecimal().tolist() == [v.isdecimal() for v in unicodes]
 
     values = ["A", np.nan, "¼", "★", np.nan, "３", "four"]
-    s = Series(values)
+    s = Series(values, dtype=any_string_dtype)
     numeric_e = [False, np.nan, True, False, np.nan, True, False]
     decimal_e = [False, np.nan, False, False, np.nan, True, False]
-    tm.assert_series_equal(s.str.isnumeric(), Series(numeric_e))
-    tm.assert_series_equal(s.str.isdecimal(), Series(decimal_e))
+    dtype = "object" if any_string_dtype == "object" else "boolean"
+    tm.assert_series_equal(s.str.isnumeric(), Series(numeric_e, dtype=dtype))
+    tm.assert_series_equal(s.str.isdecimal(), Series(decimal_e, dtype=dtype))
 
 
 def test_get_dummies():
@@ -371,14 +378,19 @@ def test_join():
     tm.assert_almost_equal(rs, xp)
 
 
-def test_len():
-    values = Series(["foo", "fooo", "fooooo", np.nan, "fooooooo"])
+def test_len(any_string_dtype):
+    values = Series(
+        ["foo", "fooo", "fooooo", np.nan, "fooooooo", "foo\n", "あ"],
+        dtype=any_string_dtype,
+    )
 
     result = values.str.len()
-    exp = values.map(lambda x: len(x) if notna(x) else np.nan)
-    tm.assert_series_equal(result, exp)
+    expected_dtype = "float64" if any_string_dtype == "object" else "Int64"
+    expected = Series([3, 4, 6, np.nan, 8, 4, 1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
-    # mixed
+
+def test_len_mixed():
     mixed = Series(
         [
             "a_b",
@@ -539,19 +551,19 @@ def test_slice_replace():
     tm.assert_series_equal(result, exp)
 
 
-def test_strip_lstrip_rstrip():
-    values = Series(["  aa   ", " bb \n", np.nan, "cc  "])
+def test_strip_lstrip_rstrip(any_string_dtype):
+    values = Series(["  aa   ", " bb \n", np.nan, "cc  "], dtype=any_string_dtype)
 
     result = values.str.strip()
-    exp = Series(["aa", "bb", np.nan, "cc"])
+    exp = Series(["aa", "bb", np.nan, "cc"], dtype=any_string_dtype)
     tm.assert_series_equal(result, exp)
 
     result = values.str.lstrip()
-    exp = Series(["aa   ", "bb \n", np.nan, "cc  "])
+    exp = Series(["aa   ", "bb \n", np.nan, "cc  "], dtype=any_string_dtype)
     tm.assert_series_equal(result, exp)
 
     result = values.str.rstrip()
-    exp = Series(["  aa", " bb", np.nan, "cc"])
+    exp = Series(["  aa", " bb", np.nan, "cc"], dtype=any_string_dtype)
     tm.assert_series_equal(result, exp)
 
 
@@ -578,19 +590,19 @@ def test_strip_lstrip_rstrip_mixed():
     tm.assert_almost_equal(rs, xp)
 
 
-def test_strip_lstrip_rstrip_args():
-    values = Series(["xxABCxx", "xx BNSD", "LDFJH xx"])
+def test_strip_lstrip_rstrip_args(any_string_dtype):
+    values = Series(["xxABCxx", "xx BNSD", "LDFJH xx"], dtype=any_string_dtype)
 
     rs = values.str.strip("x")
-    xp = Series(["ABC", " BNSD", "LDFJH "])
+    xp = Series(["ABC", " BNSD", "LDFJH "], dtype=any_string_dtype)
     tm.assert_series_equal(rs, xp)
 
     rs = values.str.lstrip("x")
-    xp = Series(["ABCxx", " BNSD", "LDFJH xx"])
+    xp = Series(["ABCxx", " BNSD", "LDFJH xx"], dtype=any_string_dtype)
     tm.assert_series_equal(rs, xp)
 
     rs = values.str.rstrip("x")
-    xp = Series(["xxABC", "xx BNSD", "LDFJH "])
+    xp = Series(["xxABC", "xx BNSD", "LDFJH "], dtype=any_string_dtype)
     tm.assert_series_equal(rs, xp)
 
 
