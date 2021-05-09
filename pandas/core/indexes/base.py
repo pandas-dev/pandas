@@ -6182,7 +6182,7 @@ class Index(IndexOpsMixin, PandasObject):
         # See GH#27775, GH#27384 for history/reasoning in how this is defined.
         return (len(self),)
 
-    def _deprecated_arg(self, value, name: str, methodname: str) -> None:
+    def _deprecated_arg(self, value, name: str_t, methodname: str_t) -> None:
         """
         Issue a FutureWarning if the arg/kwarg is not no_default.
         """
