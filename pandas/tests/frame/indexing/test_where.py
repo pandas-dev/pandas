@@ -10,6 +10,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Series,
+    StringDtype,
     Timestamp,
     date_range,
     isna,
@@ -708,4 +709,23 @@ def test_where_copies_with_noop(frame_or_series):
     where_res = result.where(col > 5, [1, 2, 3, 4])
     where_res *= 2
 
+    tm.assert_equal(result, expected)
+
+
+def test_where_string_dtype(frame_or_series):
+    # GH40824
+    obj = frame_or_series(
+        ["a", "b", "c", "d"], index=["id1", "id2", "id3", "id4"], dtype=StringDtype()
+    )
+    filtered_obj = frame_or_series(
+        ["b", "c"], index=["id2", "id3"], dtype=StringDtype()
+    )
+    filter_ser = Series([False, True, True, False])
+
+    result = obj.where(filter_ser, filtered_obj)
+    expected = frame_or_series(
+        [pd.NA, "b", "c", pd.NA],
+        index=["id1", "id2", "id3", "id4"],
+        dtype=StringDtype(),
+    )
     tm.assert_equal(result, expected)

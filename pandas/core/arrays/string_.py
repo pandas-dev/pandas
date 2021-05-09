@@ -8,6 +8,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     Dtype,
     Scalar,
@@ -118,7 +119,10 @@ class StringDtype(ExtensionDtype):
             str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
-        return StringArray._concat_same_type(results)
+        if results:
+            return StringArray._concat_same_type(results)
+        else:
+            return StringArray(np.array([], dtype="object"))
 
 
 class StringArray(PandasArray):
@@ -206,7 +210,7 @@ class StringArray(PandasArray):
         super().__init__(values, copy=copy)
         # error: Incompatible types in assignment (expression has type "StringDtype",
         # variable has type "PandasDtype")
-        self._dtype = StringDtype()  # type: ignore[assignment]
+        NDArrayBacked.__init__(self, self._ndarray, StringDtype())
         if not isinstance(values, type(self)):
             self._validate()
 
@@ -242,9 +246,8 @@ class StringArray(PandasArray):
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
-        new_string_array = object.__new__(cls)
-        new_string_array._dtype = StringDtype()
-        new_string_array._ndarray = result
+        new_string_array = cls.__new__(cls)
+        NDArrayBacked.__init__(new_string_array, result, StringDtype())
 
         return new_string_array
 
@@ -253,6 +256,12 @@ class StringArray(PandasArray):
         cls, strings, *, dtype: Dtype | None = None, copy=False
     ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _empty(cls, shape, dtype) -> StringArray:
+        values = np.empty(shape, dtype=object)
+        values[:] = libmissing.NA
+        return cls(values).astype(dtype, copy=False)
 
     def __arrow_array__(self, type=None):
         """
@@ -316,9 +325,7 @@ class StringArray(PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
         elif isinstance(dtype, FloatingDtype):
-            # error: Incompatible types in assignment (expression has type
-            # "StringArray", variable has type "ndarray")
-            arr = self.copy()  # type: ignore[assignment]
+            arr = self.copy()
             mask = self.isna()
             arr[mask] = "0"
             values = arr.astype(dtype.numpy_dtype)

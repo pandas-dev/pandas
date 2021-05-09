@@ -915,15 +915,15 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     """
     import pytest
 
-    return pytest.raises(expected_exception, match=None)
+    return pytest.raises(expected_exception, match=None)  # noqa: PDF010
 
 
-cython_table = pd.core.base.SelectionMixin._cython_table.items()
+cython_table = pd.core.common._cython_table.items()
 
 
 def get_cython_table_params(ndframe, func_names_and_expected):
     """
-    Combine frame, functions from SelectionMixin._cython_table
+    Combine frame, functions from com._cython_table
     keys and expected result.
 
     Parameters

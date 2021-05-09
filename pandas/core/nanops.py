@@ -486,6 +486,12 @@ def nanany(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=False, mask=mask)
+
+    # For object type, any won't necessarily return
+    # boolean values (numpy/numpy#4352)
+    if is_object_dtype(values):
+        values = values.astype(bool)
+
     # error: Incompatible return value type (got "Union[bool_, ndarray]", expected
     # "bool")
     return values.any(axis)  # type: ignore[return-value]
@@ -504,7 +510,7 @@ def nanall(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -526,6 +532,12 @@ def nanall(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=True, mask=mask)
+
+    # For object type, all won't necessarily return
+    # boolean values (numpy/numpy#4352)
+    if is_object_dtype(values):
+        values = values.astype(bool)
+
     # error: Incompatible return value type (got "Union[bool_, ndarray]", expected
     # "bool")
     return values.all(axis)  # type: ignore[return-value]
@@ -547,7 +559,7 @@ def nansum(
     Parameters
     ----------
     values : ndarray[dtype]
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     min_count: int, default 0
     mask : ndarray[bool], optional
@@ -622,7 +634,7 @@ def nanmean(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -678,7 +690,7 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -835,7 +847,7 @@ def nanstd(values, *, axis=None, skipna=True, ddof=1, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     ddof : int, default 1
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
@@ -875,7 +887,7 @@ def nanvar(values, *, axis=None, skipna=True, ddof=1, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     ddof : int, default 1
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
@@ -950,7 +962,7 @@ def nansem(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     ddof : int, default 1
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
@@ -1031,7 +1043,7 @@ def nanargmax(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -1056,7 +1068,7 @@ def nanargmax(
            [ 6.,  7., nan],
            [ 9., 10., nan]])
     >>> nanops.nanargmax(arr, axis=1)
-    array([2, 2, 1, 1], dtype=int64)
+    array([2, 2, 1, 1])
     """
     values, mask, _, _, _ = _get_values(values, True, fill_value_typ="-inf", mask=mask)
     # error: Need type annotation for 'result'
@@ -1077,7 +1089,7 @@ def nanargmin(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -1102,7 +1114,7 @@ def nanargmin(
            [nan,  7.,  8.],
            [nan, 10., 11.]])
     >>> nanops.nanargmin(arr, axis=1)
-    array([0, 0, 1, 1], dtype=int64)
+    array([0, 0, 1, 1])
     """
     values, mask, _, _, _ = _get_values(values, True, fill_value_typ="+inf", mask=mask)
     # error: Need type annotation for 'result'
@@ -1129,7 +1141,7 @@ def nanskew(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -1216,7 +1228,7 @@ def nankurt(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -1307,7 +1319,7 @@ def nanprod(
     Parameters
     ----------
     values : ndarray[dtype]
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     min_count: int, default 0
     mask : ndarray[bool], optional
@@ -1598,7 +1610,7 @@ def _ensure_numeric(x):
     elif not (is_float(x) or is_integer(x) or is_complex(x)):
         try:
             x = float(x)
-        except ValueError:
+        except (TypeError, ValueError):
             # e.g. "1+1j" or "foo"
             try:
                 x = complex(x)

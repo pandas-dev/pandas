@@ -732,6 +732,49 @@ class TestRolling:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "by, expected_data",
+        [
+            [["id"], {"num": [100.0, 150.0, 150.0, 200.0]}],
+            [
+                ["id", "index"],
+                {
+                    "date": [
+                        Timestamp("2018-01-01"),
+                        Timestamp("2018-01-02"),
+                        Timestamp("2018-01-01"),
+                        Timestamp("2018-01-02"),
+                    ],
+                    "num": [100.0, 200.0, 150.0, 250.0],
+                },
+            ],
+        ],
+    )
+    def test_as_index_false(self, by, expected_data):
+        # GH 39433
+        data = [
+            ["A", "2018-01-01", 100.0],
+            ["A", "2018-01-02", 200.0],
+            ["B", "2018-01-01", 150.0],
+            ["B", "2018-01-02", 250.0],
+        ]
+        df = DataFrame(data, columns=["id", "date", "num"])
+        df["date"] = to_datetime(df["date"])
+        df = df.set_index(["date"])
+
+        gp_by = [getattr(df, attr) for attr in by]
+        result = (
+            df.groupby(gp_by, as_index=False).rolling(window=2, min_periods=1).mean()
+        )
+
+        expected = {"id": ["A", "A", "B", "B"]}
+        expected.update(expected_data)
+        expected = DataFrame(
+            expected,
+            index=df.index,
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExpanding:
     def setup_method(self):
@@ -882,4 +925,64 @@ class TestEWM:
         tm.assert_frame_equal(result, expected)
 
         expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
+        tm.assert_frame_equal(result, expected)
+
+    def test_times(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        expected = DataFrame(
+            {
+                "B": [
+                    0.0,
+                    0.507534,
+                    1.020088,
+                    1.537661,
+                    0.0,
+                    0.567395,
+                    1.221209,
+                    0.0,
+                    0.653141,
+                    1.195003,
+                ]
+            },
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", 0),
+                    ("a", 3),
+                    ("a", 6),
+                    ("a", 9),
+                    ("b", 1),
+                    ("b", 4),
+                    ("b", 7),
+                    ("c", 2),
+                    ("c", 5),
+                    ("c", 8),
+                ],
+                names=["A", None],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_times_vs_apply(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        expected = (
+            times_frame.groupby("A")
+            .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
+            .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
+            .reset_index(drop=True)
+        )
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    def test_times_array(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        expected = (
+            times_frame.groupby("A")
+            .ewm(halflife=halflife, times=times_frame["C"].values)
+            .mean()
+        )
         tm.assert_frame_equal(result, expected)

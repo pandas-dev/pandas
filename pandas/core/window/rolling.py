@@ -43,10 +43,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
-    ABCPeriodIndex,
     ABCSeries,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import notna
 
@@ -56,10 +53,13 @@ from pandas.core.base import (
     DataError,
     SelectionMixin,
 )
-import pandas.core.common as common
+import pandas.core.common as com
 from pandas.core.indexes.api import (
+    DatetimeIndex,
     Index,
     MultiIndex,
+    PeriodIndex,
+    TimedeltaIndex,
 )
 from pandas.core.internals import ArrayManager
 from pandas.core.reshape.concat import concat
@@ -101,6 +101,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.groupby.ops import BaseGrouper
     from pandas.core.internals import Block  # noqa:F401
 
 
@@ -309,11 +310,7 @@ class BaseWindow(SelectionMixin):
                 raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
-
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "Optional[ndarray]"; expected "Union[bool, int, float, complex,
-        # _SupportsArray, Sequence[Any]]"
-        inf = np.isinf(values)  # type: ignore[arg-type]
+        inf = np.isinf(values)
         if inf.any():
             values = np.where(inf, np.nan, values)
 
@@ -371,7 +368,9 @@ class BaseWindow(SelectionMixin):
             return self.window
         if self._win_freq_i8 is not None:
             return VariableWindowIndexer(
-                index_array=self._index_array, window_size=self._win_freq_i8
+                index_array=self._index_array,
+                window_size=self._win_freq_i8,
+                center=self.center,
             )
         return FixedWindowIndexer(window_size=self.window)
 
@@ -383,10 +382,11 @@ class BaseWindow(SelectionMixin):
         """
         obj = self._create_data(self._selected_obj)
 
-        try:
+        if name == "count":
             # GH 12541: Special case for count where we support date-like types
-            input = obj.values if name != "count" else notna(obj.values).astype(int)
-            values = self._prep_values(input)
+            obj = notna(obj).astype(int)
+        try:
+            values = self._prep_values(obj._values)
         except (TypeError, NotImplementedError) as err:
             raise DataError("No numeric types to aggregate") from err
 
@@ -539,18 +539,24 @@ class BaseWindowGroupby(BaseWindow):
     Provide the groupby windowing facilities.
     """
 
+    _grouper: BaseGrouper
+    _as_index: bool
     _attributes = ["_grouper"]
 
     def __init__(
         self,
         obj: FrameOrSeries,
         *args,
-        _grouper=None,
+        _grouper: BaseGrouper,
+        _as_index: bool = True,
         **kwargs,
     ):
-        if _grouper is None:
-            raise ValueError("Must pass a Grouper object.")
+        from pandas.core.groupby.ops import BaseGrouper
+
+        if not isinstance(_grouper, BaseGrouper):
+            raise ValueError("Must pass a BaseGrouper object.")
         self._grouper = _grouper
+        self._as_index = _as_index
         # GH 32262: It's convention to keep the grouping column in
         # groupby.<agg_func>, but unexpected to users in
         # groupby.rolling.<agg_func>
@@ -612,6 +618,8 @@ class BaseWindowGroupby(BaseWindow):
         )
 
         result.index = result_index
+        if not self._as_index:
+            result = result.reset_index(level=list(range(len(groupby_keys))))
         return result
 
     def _apply_pairwise(
@@ -641,7 +649,7 @@ class BaseWindowGroupby(BaseWindow):
             )
 
             gb_pairs = (
-                common.maybe_make_list(pair) for pair in self._grouper.indices.keys()
+                com.maybe_make_list(pair) for pair in self._grouper.indices.keys()
             )
             groupby_codes = []
             groupby_levels = []
@@ -656,7 +664,9 @@ class BaseWindowGroupby(BaseWindow):
             # When we evaluate the pairwise=True result, repeat the groupby
             # labels by the number of columns in the original object
             groupby_codes = self._grouper.codes
-            groupby_levels = self._grouper.levels
+            # error: Incompatible types in assignment (expression has type
+            # "List[Index]", variable has type "List[Union[ndarray, Index]]")
+            groupby_levels = self._grouper.levels  # type: ignore[assignment]
 
             group_indices = self._grouper.indices.values()
             if group_indices:
@@ -1049,7 +1059,10 @@ class Window(BaseWindow):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = window_aggregations.roll_weighted_sum
-        return self._apply(window_func, name="sum", **kwargs)
+        # error: Argument 1 to "_apply" of "Window" has incompatible type
+        # "Callable[[ndarray, ndarray, int], ndarray]"; expected
+        # "Callable[[ndarray, int, int], ndarray]"
+        return self._apply(window_func, name="sum", **kwargs)  # type: ignore[arg-type]
 
     @doc(
         template_header,
@@ -1066,7 +1079,10 @@ class Window(BaseWindow):
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func = window_aggregations.roll_weighted_mean
-        return self._apply(window_func, name="mean", **kwargs)
+        # error: Argument 1 to "_apply" of "Window" has incompatible type
+        # "Callable[[ndarray, ndarray, int], ndarray]"; expected
+        # "Callable[[ndarray, int, int], ndarray]"
+        return self._apply(window_func, name="mean", **kwargs)  # type: ignore[arg-type]
 
     @doc(
         template_header,
@@ -1453,19 +1469,10 @@ class Rolling(RollingAndExpandingMixin):
         # we allow rolling on a datetimelike index
         if (
             self.obj.empty
-            or isinstance(
-                self._on, (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
-            )
+            or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
             self._validate_monotonic()
-
-            # we don't allow center
-            if self.center:
-                raise NotImplementedError(
-                    "center is not implemented for "
-                    "datetimelike and offset based windows"
-                )
 
             # this will raise ValueError on non-fixed freqs
             try:
@@ -1475,7 +1482,7 @@ class Rolling(RollingAndExpandingMixin):
                     f"passed window {self.window} is not "
                     "compatible with a datetimelike index"
                 ) from err
-            if isinstance(self._on, ABCPeriodIndex):
+            if isinstance(self._on, PeriodIndex):
                 self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
             else:
                 self._win_freq_i8 = freq.nanos

@@ -580,7 +580,8 @@ class TestDataFrameAnalytics:
         df = DataFrame(np.random.randn(6, 3), index=index)
 
         kurt = df.kurt()
-        kurt2 = df.kurt(level=0).xs("bar")
+        with tm.assert_produces_warning(FutureWarning):
+            kurt2 = df.kurt(level=0).xs("bar")
         tm.assert_series_equal(kurt, kurt2, check_names=False)
         assert kurt.name is None
         assert kurt2.name == "bar"
@@ -1025,6 +1026,28 @@ class TestDataFrameAnalytics:
         expected = Series([0, 2, 1, 2], index=[1, 2, 3, 4])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "op, expected_value",
+        [("idxmax", [0, 4]), ("idxmin", [0, 5])],
+    )
+    def test_idxmax_idxmin_convert_dtypes(self, op, expected_value):
+        # GH 40346
+        df = DataFrame(
+            {
+                "ID": [100, 100, 100, 200, 200, 200],
+                "value": [0, 0, 0, 1, 2, 0],
+            },
+            dtype="Int64",
+        )
+        df = df.groupby("ID")
+
+        result = getattr(df, op)()
+        expected = DataFrame(
+            {"value": expected_value},
+            index=Index([100, 200], dtype="object", name="ID"),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_idxmax_dt64_multicolumn_axis1(self):
         dti = date_range("2016-01-01", periods=3)
         df = DataFrame({3: dti, 4: dti[::-1]})
@@ -1045,12 +1068,16 @@ class TestDataFrameAnalytics:
 
     @pytest.mark.parametrize("opname", ["any", "all"])
     def test_any_all(self, opname, bool_frame_with_na, float_string_frame):
-        assert_bool_op_calc(
-            opname, getattr(np, opname), bool_frame_with_na, has_skipna=True
-        )
         assert_bool_op_api(
             opname, bool_frame_with_na, float_string_frame, has_bool_only=True
         )
+
+    @pytest.mark.parametrize("opname", ["any", "all"])
+    def test_any_all_bool_frame(self, opname, bool_frame_with_na):
+        # GH#12863: numpy gives back non-boolean data for object type
+        # so fill NaNs to compare with pandas behavior
+        df = bool_frame_with_na.fillna(True)
+        assert_bool_op_calc(opname, getattr(np, opname), df, has_skipna=True)
 
     def test_any_all_extra(self):
         df = DataFrame(
@@ -1084,6 +1111,24 @@ class TestDataFrameAnalytics:
 
         result = df[["C"]].all(axis=None).item()
         assert result is True
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_any_all_object_dtype(self, axis, bool_agg_func, skipna):
+        # GH#35450
+        df = DataFrame(
+            data=[
+                [1, np.nan, np.nan, True],
+                [np.nan, 2, np.nan, True],
+                [np.nan, np.nan, np.nan, True],
+                [np.nan, np.nan, "5", np.nan],
+            ]
+        )
+
+        result = getattr(df, bool_agg_func)(axis=axis, skipna=skipna)
+        expected = Series([True, True, True, True])
+        tm.assert_series_equal(result, expected)
 
     def test_any_datetime(self):
 
@@ -1240,7 +1285,8 @@ class TestDataFrameAnalytics:
         )
         xpr = "Must specify 'axis' when aggregating by level."
         with pytest.raises(ValueError, match=xpr):
-            getattr(df, method)(axis=None, level="out")
+            with tm.assert_produces_warning(FutureWarning):
+                getattr(df, method)(axis=None, level="out")
 
     # ---------------------------------------------------------------------
     # Unsorted
@@ -1365,11 +1411,13 @@ class TestDataFrameReductions:
             ],
         )
 
-        result = df.any(level=0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.any(level=0)
         ex = DataFrame({"data": [False, True]}, index=["one", "two"])
         tm.assert_frame_equal(result, ex)
 
-        result = df.all(level=0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.all(level=0)
         ex = DataFrame({"data": [False, False]}, index=["one", "two"])
         tm.assert_frame_equal(result, ex)
 
@@ -1389,6 +1437,34 @@ class TestDataFrameReductions:
         result = df.any(axis=1)
         expected = Series(data=[False, True])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "func",
+        [
+            "any",
+            "all",
+            "count",
+            "sum",
+            "prod",
+            "max",
+            "min",
+            "mean",
+            "median",
+            "skew",
+            "kurt",
+            "sem",
+            "var",
+            "std",
+            "mad",
+        ],
+    )
+    def test_reductions_deprecation_level_argument(self, frame_or_series, func):
+        # GH#39983
+        obj = frame_or_series(
+            [1, 2, 3], index=MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            getattr(obj, func)(level=0)
 
 
 class TestNuisanceColumns:
@@ -1546,3 +1622,19 @@ def test_minmax_extensionarray(method, numeric_only):
         [getattr(int64_info, method)], index=Index(["Int64"], dtype="object")
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("meth", ["max", "min", "sum", "mean", "median"])
+def test_groupy_regular_arithmetic_equivalent(meth):
+    # GH#40660
+    df = DataFrame(
+        {"a": [pd.Timedelta(hours=6), pd.Timedelta(hours=7)], "b": [12.1, 13.3]}
+    )
+    expected = df.copy()
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = getattr(df, meth)(level=0)
+    tm.assert_frame_equal(result, expected)
+
+    result = getattr(df.groupby(level=0), meth)(numeric_only=False)
+    tm.assert_frame_equal(result, expected)

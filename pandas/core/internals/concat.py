@@ -5,6 +5,7 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Sequence,
+    cast,
 )
 
 import numpy as np
@@ -23,12 +24,17 @@ from pandas.core.dtypes.cast import (
     find_common_type,
 )
 from pandas.core.dtypes.common import (
+    is_1d_only_ea_dtype,
+    is_1d_only_ea_obj,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_sparse,
 )
-from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.concat import (
+    cast_to_common_type,
+    concat_compat,
+)
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -37,12 +43,14 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
-    Categorical,
     DatetimeArray,
     ExtensionArray,
 )
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.internals.array_manager import ArrayManager
+from pandas.core.internals.array_manager import (
+    ArrayManager,
+    NullArrayProxy,
+)
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     new_block,
@@ -74,14 +82,16 @@ def _concatenate_array_managers(
     mgrs = []
     for mgr, indexers in mgrs_indexers:
         for ax, indexer in indexers.items():
-            mgr = mgr.reindex_indexer(axes[ax], indexer, axis=ax, allow_dups=True)
+            mgr = mgr.reindex_indexer(
+                axes[ax], indexer, axis=ax, allow_dups=True, use_na_proxy=True
+            )
         mgrs.append(mgr)
 
     if concat_axis == 1:
         # concatting along the rows -> concat the reindexed arrays
         # TODO(ArrayManager) doesn't yet preserve the correct dtype
         arrays = [
-            concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))])
+            concat_arrays([mgrs[i].arrays[j] for i in range(len(mgrs))])
             for j in range(len(mgrs[0].arrays))
         ]
         return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
@@ -90,6 +100,68 @@ def _concatenate_array_managers(
         assert concat_axis == 0
         arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
         return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
+
+
+def concat_arrays(to_concat: list) -> ArrayLike:
+    """
+    Alternative for concat_compat but specialized for use in the ArrayManager.
+
+    Differences: only deals with 1D arrays (no axis keyword), assumes
+    ensure_wrapped_if_datetimelike and does not skip empty arrays to determine
+    the dtype.
+    In addition ensures that all NullArrayProxies get replaced with actual
+    arrays.
+
+    Parameters
+    ----------
+    to_concat : list of arrays
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+    """
+    # ignore the all-NA proxies to determine the resulting dtype
+    to_concat_no_proxy = [x for x in to_concat if not isinstance(x, NullArrayProxy)]
+
+    single_dtype = len({x.dtype for x in to_concat_no_proxy}) == 1
+
+    if not single_dtype:
+        target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
+    else:
+        target_dtype = to_concat_no_proxy[0].dtype
+
+    if target_dtype.kind in ["m", "M"]:
+        # for datetimelike use DatetimeArray/TimedeltaArray concatenation
+        # don't use arr.astype(target_dtype, copy=False), because that doesn't
+        # work for DatetimeArray/TimedeltaArray (returns ndarray)
+        to_concat = [
+            arr.to_array(target_dtype) if isinstance(arr, NullArrayProxy) else arr
+            for arr in to_concat
+        ]
+        return type(to_concat_no_proxy[0])._concat_same_type(to_concat, axis=0)
+
+    to_concat = [
+        arr.to_array(target_dtype)
+        if isinstance(arr, NullArrayProxy)
+        else cast_to_common_type(arr, target_dtype)
+        for arr in to_concat
+    ]
+
+    if isinstance(to_concat[0], ExtensionArray):
+        cls = type(to_concat[0])
+        return cls._concat_same_type(to_concat)
+
+    result = np.concatenate(to_concat)
+
+    # TODO decide on exact behaviour (we shouldn't do this only for empty result)
+    # see https://github.com/pandas-dev/pandas/issues/39817
+    if len(result) == 0:
+        # all empties -> check for bool to not coerce to float
+        kinds = {obj.dtype.kind for obj in to_concat_no_proxy}
+        if len(kinds) != 1:
+            if "b" in kinds:
+                result = result.astype(object)
+    return result
 
 
 def concatenate_managers(
@@ -120,17 +192,17 @@ def concatenate_managers(
     blocks = []
 
     for placement, join_units in concat_plan:
+        unit = join_units[0]
+        blk = unit.block
 
         if len(join_units) == 1 and not join_units[0].indexers:
-            b = join_units[0].block
-            values = b.values
+            values = blk.values
             if copy:
                 values = values.copy()
             else:
                 values = values.view()
-            b = b.make_block_same_class(values, placement=placement)
+            fastpath = True
         elif _is_uniform_join_units(join_units):
-            blk = join_units[0].block
             vals = [ju.block.values for ju in join_units]
 
             if not blk.is_extension:
@@ -140,22 +212,24 @@ def concatenate_managers(
                 values = np.concatenate(vals, axis=blk.ndim - 1)
             else:
                 # TODO(EA2D): special-casing not needed with 2D EAs
-                values = concat_compat(vals)
-                values = ensure_block_shape(values, ndim=2)
+                values = concat_compat(vals, axis=1)
+                values = ensure_block_shape(values, blk.ndim)
 
             values = ensure_wrapped_if_datetimelike(values)
 
-            if blk.values.dtype == values.dtype:
-                # Fast-path
-                b = blk.make_block_same_class(values, placement=placement)
-            else:
-                b = new_block(values, placement=placement, ndim=blk.ndim)
+            fastpath = blk.values.dtype == values.dtype
         else:
-            new_values = _concatenate_join_units(join_units, concat_axis, copy=copy)
-            b = new_block(new_values, placement=placement, ndim=len(axes))
+            values = _concatenate_join_units(join_units, concat_axis, copy=copy)
+            fastpath = False
+
+        if fastpath:
+            b = blk.make_block_same_class(values, placement=placement)
+        else:
+            b = new_block(values, placement=placement, ndim=len(axes))
+
         blocks.append(b)
 
-    return BlockManager(blocks, axes)
+    return BlockManager(tuple(blocks), axes)
 
 
 def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarray]):
@@ -342,13 +416,16 @@ class JoinUnit:
                         fill_value = None
 
                 if is_datetime64tz_dtype(empty_dtype):
-                    # TODO(EA2D): special case unneeded with 2D EAs
-                    i8values = np.full(self.shape[1], fill_value.value)
+                    i8values = np.full(self.shape, fill_value.value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
+
                 elif is_extension_array_dtype(blk_dtype):
                     pass
-                elif isinstance(empty_dtype, ExtensionDtype):
+
+                elif is_1d_only_ea_dtype(empty_dtype):
+                    empty_dtype = cast(ExtensionDtype, empty_dtype)
                     cls = empty_dtype.construct_array_type()
+
                     missing_arr = cls._from_sequence([], dtype=empty_dtype)
                     ncols, nrows = self.shape
                     assert ncols == 1, ncols
@@ -359,6 +436,7 @@ class JoinUnit:
                 else:
                     # NB: we should never get here with empty_dtype integer or bool;
                     #  if we did, the missing_arr.fill would cast to gibberish
+                    empty_dtype = cast(np.dtype, empty_dtype)
 
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
@@ -368,12 +446,10 @@ class JoinUnit:
                 # preserve these for validation in concat_compat
                 return self.block.values
 
-            if self.block.is_bool and not isinstance(self.block.values, Categorical):
+            if self.block.is_bool:
                 # External code requested filling/upcasting, bool values must
                 # be upcasted to object to avoid being upcasted to numeric.
                 values = self.block.astype(np.object_).values
-            elif self.block.is_extension:
-                values = self.block.values
             else:
                 # No dtype upcasting is done here, it will be performed during
                 # concatenation itself.
@@ -423,15 +499,17 @@ def _concatenate_join_units(
                     concat_values = concat_values.copy()
             else:
                 concat_values = concat_values.copy()
-    elif any(isinstance(t, ExtensionArray) and t.ndim == 1 for t in to_concat):
+
+    elif any(is_1d_only_ea_obj(t) for t in to_concat):
+        # TODO(EA2D): special case not needed if all EAs used HybridBlocks
+        # NB: we are still assuming here that Hybrid blocks have shape (1, N)
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
+
         # error: Invalid index type "Tuple[int, slice]" for
         # "Union[ExtensionArray, ndarray]"; expected type "Union[int, slice, ndarray]"
         to_concat = [
-            t
-            if (isinstance(t, ExtensionArray) and t.ndim == 1)
-            else t[0, :]  # type: ignore[index]
+            t if is_1d_only_ea_obj(t) else t[0, :]  # type: ignore[index]
             for t in to_concat
         ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
@@ -454,9 +532,11 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     elif dtype.kind in ["f", "c"]:
         return dtype.type("NaN")
     elif dtype.kind == "b":
+        # different from missing.na_value_for_dtype
         return None
     elif dtype.kind in ["i", "u"]:
         if not has_none_blocks:
+            # different from missing.na_value_for_dtype
             return None
         return np.nan
     elif dtype.kind == "O":

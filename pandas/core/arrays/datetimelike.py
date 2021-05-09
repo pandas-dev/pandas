@@ -47,6 +47,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     NpDtype,
+    PositionalIndexer2D,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -161,15 +162,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def __init__(self, data, dtype: Dtype | None = None, freq=None, copy=False):
         raise AbstractMethodError(self)
 
-    @classmethod
-    def _simple_new(
-        cls: type[DatetimeLikeArrayT],
-        values: np.ndarray,
-        freq: BaseOffset | None = None,
-        dtype: Dtype | None = None,
-    ) -> DatetimeLikeArrayT:
-        raise AbstractMethodError(cls)
-
     @property
     def _scalar_type(self) -> type[DatetimeLikeScalar]:
         """
@@ -253,30 +245,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
 
-    def __setstate__(self, state):
-        if isinstance(state, dict):
-            if "_data" in state and "_ndarray" not in state:
-                # backward compat, changed what is property vs attribute
-                state["_ndarray"] = state.pop("_data")
-            for key, value in state.items():
-                setattr(self, key, value)
-        else:
-            # PeriodArray, bc it mixes in a cython class
-            if isinstance(state, tuple) and len(state) == 1:
-                state = state[0]
-                self.__setstate__(state)
-            else:
-                raise TypeError(state)
-
     @cache_readonly
     def _data(self) -> np.ndarray:
         return self._ndarray
-
-    def _from_backing_data(
-        self: DatetimeLikeArrayT, arr: np.ndarray
-    ) -> DatetimeLikeArrayT:
-        # Note: we do not retain `freq`
-        return type(self)._simple_new(arr, dtype=self.dtype)
 
     # ------------------------------------------------------------------
 
@@ -338,7 +309,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._ndarray
 
     def __getitem__(
-        self, key: int | slice | np.ndarray
+        self, key: PositionalIndexer2D
     ) -> DatetimeLikeArrayMixin | DTScalarOrNaT:
         """
         This getitem defers to the underlying array, which by-definition can
@@ -612,6 +583,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif isinstance(fill_value, self._recognized_scalars):
             fill_value = self._scalar_type(fill_value)
         else:
+            new_fill: DatetimeLikeScalar
+
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
@@ -1136,7 +1109,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        return type(self)._simple_new(new_values, dtype=self.dtype, freq=new_freq)
+        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
+        return type(self)._simple_new(  # type: ignore[call-arg]
+            new_values, dtype=self.dtype, freq=new_freq
+        )
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -1710,10 +1686,18 @@ _ceil_example = """>>> rng.ceil('H')
     """
 
 
+TimelikeOpsT = TypeVar("TimelikeOpsT", bound="TimelikeOps")
+
+
 class TimelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
+
+    def copy(self: TimelikeOpsT) -> TimelikeOpsT:
+        result = super().copy()
+        result._freq = self._freq
+        return result
 
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times

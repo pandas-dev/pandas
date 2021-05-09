@@ -17,7 +17,14 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
+pytestmark = [
+    pytest.mark.single,
+    td.skip_array_manager_not_yet_implemented,
+    # pytables https://github.com/PyTables/PyTables/issues/822
+    pytest.mark.filterwarnings(
+        "ignore:a closed node found in the registry:UserWarning"
+    ),
+]
 
 
 def test_categorical(setup_path):
@@ -209,7 +216,7 @@ def test_convert_value(setup_path, where: str, df: DataFrame, expected: DataFram
     max_widths = {"col": 1}
     categorical_values = sorted(df.col.unique())
     expected.col = expected.col.astype("category")
-    expected.col.cat.set_categories(categorical_values, inplace=True)
+    expected.col = expected.col.cat.set_categories(categorical_values)
 
     with ensure_clean_path(setup_path) as path:
         df.to_hdf(path, "df", format="table", min_itemsize=max_widths)

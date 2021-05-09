@@ -17,6 +17,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     NpDtype,
+    PositionalIndexer,
     Scalar,
     type_t,
 )
@@ -134,7 +135,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 
-    def __getitem__(self, item: int | slice | np.ndarray) -> BaseMaskedArray | Any:
+    def __getitem__(self, item: PositionalIndexer) -> BaseMaskedArray | Any:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
@@ -351,7 +352,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._mask.any()  # type: ignore[return-value]
 
     def isna(self) -> np.ndarray:
-        return self._mask
+        return self._mask.copy()
 
     @property
     def _na_value(self):

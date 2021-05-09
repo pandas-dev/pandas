@@ -2,17 +2,13 @@
 Base and utility classes for pandas objects.
 """
 
-import builtins
+from __future__ import annotations
+
 import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Dict,
-    FrozenSet,
-    Optional,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -20,6 +16,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
+    ArrayLike,
     Dtype,
     DtypeObj,
     IndexLabel,
@@ -66,7 +63,7 @@ import pandas.core.nanops as nanops
 if TYPE_CHECKING:
     from pandas import Categorical
 
-_shared_docs: Dict[str, str] = {}
+_shared_docs: dict[str, str] = {}
 _indexops_doc_kwargs = {
     "klass": "IndexOpsMixin",
     "inplace": "",
@@ -83,7 +80,7 @@ class PandasObject(DirNamesMixin):
     """
 
     # results from calls to methods decorated with cache_readonly get added to _cache
-    _cache: Dict[str, Any]
+    _cache: dict[str, Any]
 
     @property
     def _constructor(self):
@@ -99,7 +96,7 @@ class PandasObject(DirNamesMixin):
         # Should be overwritten by base classes
         return object.__repr__(self)
 
-    def _reset_cache(self, key: Optional[str] = None) -> None:
+    def _reset_cache(self, key: str | None = None) -> None:
         """
         Reset cached properties. If ``key`` is passed, only clears that key.
         """
@@ -172,39 +169,9 @@ class SelectionMixin:
     object sub-classes need to define: obj, exclusions
     """
 
-    _selection: Optional[IndexLabel] = None
+    _selection: IndexLabel | None = None
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
-
-    _builtin_table = {builtins.sum: np.sum, builtins.max: np.max, builtins.min: np.min}
-
-    _cython_table = {
-        builtins.sum: "sum",
-        builtins.max: "max",
-        builtins.min: "min",
-        np.all: "all",
-        np.any: "any",
-        np.sum: "sum",
-        np.nansum: "sum",
-        np.mean: "mean",
-        np.nanmean: "mean",
-        np.prod: "prod",
-        np.nanprod: "prod",
-        np.std: "std",
-        np.nanstd: "std",
-        np.var: "var",
-        np.nanvar: "var",
-        np.median: "median",
-        np.nanmedian: "median",
-        np.max: "max",
-        np.nanmax: "max",
-        np.min: "min",
-        np.nanmin: "min",
-        np.cumprod: "cumprod",
-        np.nancumprod: "cumprod",
-        np.cumsum: "cumsum",
-        np.nancumsum: "cumsum",
-    }
 
     @property
     def _selection_name(self):
@@ -216,6 +183,7 @@ class SelectionMixin:
         """
         return self._selection
 
+    @final
     @property
     def _selection_list(self):
         if not isinstance(
@@ -240,6 +208,7 @@ class SelectionMixin:
     def ndim(self) -> int:
         return self._selected_obj.ndim
 
+    @final
     @cache_readonly
     def _obj_with_exclusions(self):
         # error: "SelectionMixin" has no attribute "obj"
@@ -308,48 +277,6 @@ class SelectionMixin:
 
     agg = aggregate
 
-    def _try_aggregate_string_function(self, arg: str, *args, **kwargs):
-        """
-        if arg is a string, then try to operate on it:
-        - try to find a function (or attribute) on ourselves
-        - try to find a numpy function
-        - raise
-        """
-        assert isinstance(arg, str)
-
-        f = getattr(self, arg, None)
-        if f is not None:
-            if callable(f):
-                return f(*args, **kwargs)
-
-            # people may try to aggregate on a non-callable attribute
-            # but don't let them think they can pass args to it
-            assert len(args) == 0
-            assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
-            return f
-
-        f = getattr(np, arg, None)
-        if f is not None and hasattr(self, "__array__"):
-            # in particular exclude Window
-            return f(self, *args, **kwargs)
-
-        raise AttributeError(
-            f"'{arg}' is not a valid function for '{type(self).__name__}' object"
-        )
-
-    def _get_cython_func(self, arg: Callable) -> Optional[str]:
-        """
-        if we define an internal function for this argument, return it
-        """
-        return self._cython_table.get(arg)
-
-    def _is_builtin_func(self, arg):
-        """
-        if we define an builtin function for this argument, return it,
-        otherwise return the arg
-        """
-        return self._builtin_table.get(arg, arg)
-
 
 class IndexOpsMixin(OpsMixin):
     """
@@ -358,7 +285,7 @@ class IndexOpsMixin(OpsMixin):
 
     # ndarray compatibility
     __array_priority__ = 1000
-    _hidden_attrs: FrozenSet[str] = frozenset(
+    _hidden_attrs: frozenset[str] = frozenset(
         ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
     )
 
@@ -368,7 +295,7 @@ class IndexOpsMixin(OpsMixin):
         raise AbstractMethodError(self)
 
     @property
-    def _values(self) -> Union[ExtensionArray, np.ndarray]:
+    def _values(self) -> ExtensionArray | np.ndarray:
         # must be defined here as a property for mypy
         raise AbstractMethodError(self)
 
@@ -509,7 +436,7 @@ class IndexOpsMixin(OpsMixin):
 
     def to_numpy(
         self,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
         **kwargs,
@@ -1070,7 +997,7 @@ class IndexOpsMixin(OpsMixin):
         values = self._values
 
         if not isinstance(values, np.ndarray):
-            result = values.unique()
+            result: ArrayLike = values.unique()
             if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
                 # GH#31182 Series._values returns EA, unpack for backward-compat
                 if getattr(self.dtype, "tz", None) is None:
@@ -1114,8 +1041,10 @@ class IndexOpsMixin(OpsMixin):
         >>> s.nunique()
         4
         """
-        obj = remove_na_arraylike(self) if dropna else self
-        return len(obj.unique())
+        uniqs = self.unique()
+        if dropna:
+            uniqs = remove_na_arraylike(uniqs)
+        return len(uniqs)
 
     @property
     def is_unique(self) -> bool:
@@ -1194,7 +1123,8 @@ class IndexOpsMixin(OpsMixin):
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
-            v += lib.memory_usage_of_objects(self._values)
+            values = cast(np.ndarray, self._values)
+            v += lib.memory_usage_of_objects(values)
         return v
 
     @doc(
@@ -1210,7 +1140,7 @@ class IndexOpsMixin(OpsMixin):
             """
         ),
     )
-    def factorize(self, sort: bool = False, na_sentinel: Optional[int] = -1):
+    def factorize(self, sort: bool = False, na_sentinel: int | None = -1):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
     _shared_docs[
@@ -1328,5 +1258,5 @@ class IndexOpsMixin(OpsMixin):
         return self[~duplicated]  # type: ignore[index]
 
     @final
-    def _duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
+    def _duplicated(self, keep: str | bool = "first") -> np.ndarray:
         return duplicated(self._values, keep=keep)

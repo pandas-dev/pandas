@@ -669,11 +669,11 @@ class _MergeOperation:
         # warn user when merging between different levels
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
-                "merging between different levels can give an unintended "
-                f"result ({left.columns.nlevels} levels on the left,"
+                "merging between different levels is deprecated and will be removed "
+                f"in a future version. ({left.columns.nlevels} levels on the left,"
                 f"{right.columns.nlevels} on the right)"
             )
-            warnings.warn(msg, UserWarning)
+            warnings.warn(msg, FutureWarning, stacklevel=3)
 
         self._validate_specification()
 
@@ -969,7 +969,16 @@ class _MergeOperation:
                     join_index = self.right.index.take(right_indexer)
                     left_indexer = np.array([-1] * len(join_index), dtype=np.intp)
             elif self.left_index:
-                if len(self.right) > 0:
+                if self.how == "asof":
+                    # GH#33463 asof should always behave like a left merge
+                    join_index = self._create_join_index(
+                        self.left.index,
+                        self.right.index,
+                        left_indexer,
+                        how="left",
+                    )
+
+                elif len(self.right) > 0:
                     join_index = self._create_join_index(
                         self.right.index,
                         self.left.index,
@@ -1485,7 +1494,8 @@ def get_join_indexers(
         "outer": libjoin.full_outer_join,
     }[how]
 
-    return join_func(lkey, rkey, count, **kwargs)
+    # error: Cannot call function of unknown type
+    return join_func(lkey, rkey, count, **kwargs)  # type: ignore[operator]
 
 
 def restore_dropped_levels_multijoin(
@@ -1624,9 +1634,20 @@ class _OrderedMerge(_MergeOperation):
             self.left._info_axis, self.right._info_axis, self.suffixes
         )
 
+        left_join_indexer: np.ndarray | None
+        right_join_indexer: np.ndarray | None
+
         if self.fill_method == "ffill":
-            left_join_indexer = libjoin.ffill_indexer(left_indexer)
-            right_join_indexer = libjoin.ffill_indexer(right_indexer)
+            # error: Argument 1 to "ffill_indexer" has incompatible type
+            # "Optional[ndarray]"; expected "ndarray"
+            left_join_indexer = libjoin.ffill_indexer(
+                left_indexer  # type: ignore[arg-type]
+            )
+            # error: Argument 1 to "ffill_indexer" has incompatible type
+            # "Optional[ndarray]"; expected "ndarray"
+            right_join_indexer = libjoin.ffill_indexer(
+                right_indexer  # type: ignore[arg-type]
+            )
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
@@ -1928,8 +1949,10 @@ class _AsOfMerge(_OrderedMerge):
             # upcast 'by' parameter because HashTable is limited
             by_type = _get_cython_type_upcast(left_by_values.dtype)
             by_type_caster = _type_casters[by_type]
-            left_by_values = by_type_caster(left_by_values)
-            right_by_values = by_type_caster(right_by_values)
+            # error: Cannot call function of unknown type
+            left_by_values = by_type_caster(left_by_values)  # type: ignore[operator]
+            # error: Cannot call function of unknown type
+            right_by_values = by_type_caster(right_by_values)  # type: ignore[operator]
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
@@ -2115,6 +2138,7 @@ def _factorize_keys(
         # "_values_for_factorize"
         rk, _ = rk._values_for_factorize()  # type: ignore[union-attr,assignment]
 
+    klass: type[libhashtable.Factorizer] | type[libhashtable.Int64Factorizer]
     if is_integer_dtype(lk.dtype) and is_integer_dtype(rk.dtype):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype
         #  and rk is datetime-dtype
@@ -2288,4 +2312,22 @@ def _items_overlap_with_suffix(
     lrenamer = partial(renamer, suffix=lsuffix)
     rrenamer = partial(renamer, suffix=rsuffix)
 
-    return (left._transform_index(lrenamer), right._transform_index(rrenamer))
+    llabels = left._transform_index(lrenamer)
+    rlabels = right._transform_index(rrenamer)
+
+    dups = []
+    if not llabels.is_unique:
+        # Only warn when duplicates are caused because of suffixes, already duplicated
+        # columns in origin should not warn
+        dups = llabels[(llabels.duplicated()) & (~left.duplicated())].tolist()
+    if not rlabels.is_unique:
+        dups.extend(rlabels[(rlabels.duplicated()) & (~right.duplicated())].tolist())
+    if dups:
+        warnings.warn(
+            f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
+            f"result is deprecated and will raise a MergeError in a future version.",
+            FutureWarning,
+            stacklevel=4,
+        )
+
+    return llabels, rlabels
