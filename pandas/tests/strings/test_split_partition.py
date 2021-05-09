@@ -335,90 +335,90 @@ def test_split_with_name():
     tm.assert_index_equal(res, exp)
 
 
-def test_partition_series():
+def test_partition_series(any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/23558
 
-    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h", None])
+    s = Series(["a_b_c", "c_d_e", np.nan, "f_g_h", None], dtype=any_string_dtype)
 
-    result = values.str.partition("_", expand=False)
-    exp = Series(
+    result = s.str.partition("_", expand=False)
+    expected = Series(
         [("a", "_", "b_c"), ("c", "_", "d_e"), np.nan, ("f", "_", "g_h"), None]
     )
-    tm.assert_series_equal(result, exp)
+    tm.assert_series_equal(result, expected)
 
-    result = values.str.rpartition("_", expand=False)
-    exp = Series(
+    result = s.str.rpartition("_", expand=False)
+    expected = Series(
         [("a_b", "_", "c"), ("c_d", "_", "e"), np.nan, ("f_g", "_", "h"), None]
     )
-    tm.assert_series_equal(result, exp)
+    tm.assert_series_equal(result, expected)
 
     # more than one char
-    values = Series(["a__b__c", "c__d__e", np.nan, "f__g__h", None])
-    result = values.str.partition("__", expand=False)
-    exp = Series(
+    s = Series(["a__b__c", "c__d__e", np.nan, "f__g__h", None])
+    result = s.str.partition("__", expand=False)
+    expected = Series(
         [
             ("a", "__", "b__c"),
             ("c", "__", "d__e"),
             np.nan,
             ("f", "__", "g__h"),
             None,
-        ]
+        ],
     )
-    tm.assert_series_equal(result, exp)
+    tm.assert_series_equal(result, expected)
 
-    result = values.str.rpartition("__", expand=False)
-    exp = Series(
+    result = s.str.rpartition("__", expand=False)
+    expected = Series(
         [
             ("a__b", "__", "c"),
             ("c__d", "__", "e"),
             np.nan,
             ("f__g", "__", "h"),
             None,
-        ]
+        ],
     )
-    tm.assert_series_equal(result, exp)
+    tm.assert_series_equal(result, expected)
 
     # None
-    values = Series(["a b c", "c d e", np.nan, "f g h", None])
-    result = values.str.partition(expand=False)
-    exp = Series(
+    s = Series(["a b c", "c d e", np.nan, "f g h", None], dtype=any_string_dtype)
+    result = s.str.partition(expand=False)
+    expected = Series(
         [("a", " ", "b c"), ("c", " ", "d e"), np.nan, ("f", " ", "g h"), None]
     )
-    tm.assert_series_equal(result, exp)
+    tm.assert_series_equal(result, expected)
 
-    result = values.str.rpartition(expand=False)
-    exp = Series(
+    result = s.str.rpartition(expand=False)
+    expected = Series(
         [("a b", " ", "c"), ("c d", " ", "e"), np.nan, ("f g", " ", "h"), None]
     )
-    tm.assert_series_equal(result, exp)
+    tm.assert_series_equal(result, expected)
 
     # Not split
-    values = Series(["abc", "cde", np.nan, "fgh", None])
-    result = values.str.partition("_", expand=False)
-    exp = Series([("abc", "", ""), ("cde", "", ""), np.nan, ("fgh", "", ""), None])
-    tm.assert_series_equal(result, exp)
+    s = Series(["abc", "cde", np.nan, "fgh", None], dtype=any_string_dtype)
+    result = s.str.partition("_", expand=False)
+    expected = Series([("abc", "", ""), ("cde", "", ""), np.nan, ("fgh", "", ""), None])
+    tm.assert_series_equal(result, expected)
 
-    result = values.str.rpartition("_", expand=False)
-    exp = Series([("", "", "abc"), ("", "", "cde"), np.nan, ("", "", "fgh"), None])
-    tm.assert_series_equal(result, exp)
+    result = s.str.rpartition("_", expand=False)
+    expected = Series([("", "", "abc"), ("", "", "cde"), np.nan, ("", "", "fgh"), None])
+    tm.assert_series_equal(result, expected)
 
     # unicode
-    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
+    s = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype=any_string_dtype)
 
-    result = values.str.partition("_", expand=False)
-    exp = Series([("a", "_", "b_c"), ("c", "_", "d_e"), np.nan, ("f", "_", "g_h")])
-    tm.assert_series_equal(result, exp)
+    result = s.str.partition("_", expand=False)
+    expected = Series([("a", "_", "b_c"), ("c", "_", "d_e"), np.nan, ("f", "_", "g_h")])
+    tm.assert_series_equal(result, expected)
 
-    result = values.str.rpartition("_", expand=False)
-    exp = Series([("a_b", "_", "c"), ("c_d", "_", "e"), np.nan, ("f_g", "_", "h")])
-    tm.assert_series_equal(result, exp)
+    result = s.str.rpartition("_", expand=False)
+    expected = Series([("a_b", "_", "c"), ("c_d", "_", "e"), np.nan, ("f_g", "_", "h")])
+    tm.assert_series_equal(result, expected)
 
     # compare to standard lib
-    values = Series(["A_B_C", "B_C_D", "E_F_G", "EFGHEF"])
-    result = values.str.partition("_", expand=False).tolist()
-    assert result == [v.partition("_") for v in values]
-    result = values.str.rpartition("_", expand=False).tolist()
-    assert result == [v.rpartition("_") for v in values]
+    s = Series(["A_B_C", "B_C_D", "E_F_G", "EFGHEF"], dtype=any_string_dtype)
+    result = s.str.partition("_", expand=False).tolist()
+    assert result == [v.partition("_") for v in s]
+    result = s.str.rpartition("_", expand=False).tolist()
+    assert result == [v.rpartition("_") for v in s]
 
 
 def test_partition_index():
@@ -475,88 +475,96 @@ def test_partition_index():
     assert result.nlevels == 3
 
 
-def test_partition_to_dataframe():
+def test_partition_to_dataframe(any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/23558
 
-    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h", None])
-    result = values.str.partition("_")
-    exp = DataFrame(
+    s = Series(["a_b_c", "c_d_e", np.nan, "f_g_h", None], dtype=any_string_dtype)
+    result = s.str.partition("_")
+    expected = DataFrame(
         {
             0: ["a", "c", np.nan, "f", None],
             1: ["_", "_", np.nan, "_", None],
             2: ["b_c", "d_e", np.nan, "g_h", None],
-        }
+        },
+        dtype=any_string_dtype,
     )
-    tm.assert_frame_equal(result, exp)
-
-    result = values.str.rpartition("_")
-    exp = DataFrame(
-        {
-            0: ["a_b", "c_d", np.nan, "f_g", None],
-            1: ["_", "_", np.nan, "_", None],
-            2: ["c", "e", np.nan, "h", None],
-        }
-    )
-    tm.assert_frame_equal(result, exp)
-
-    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h", None])
-    result = values.str.partition("_", expand=True)
-    exp = DataFrame(
-        {
-            0: ["a", "c", np.nan, "f", None],
-            1: ["_", "_", np.nan, "_", None],
-            2: ["b_c", "d_e", np.nan, "g_h", None],
-        }
-    )
-    tm.assert_frame_equal(result, exp)
-
-    result = values.str.rpartition("_", expand=True)
-    exp = DataFrame(
-        {
-            0: ["a_b", "c_d", np.nan, "f_g", None],
-            1: ["_", "_", np.nan, "_", None],
-            2: ["c", "e", np.nan, "h", None],
-        }
-    )
-    tm.assert_frame_equal(result, exp)
-
-
-def test_partition_with_name():
-    # GH 12617
-
-    s = Series(["a,b", "c,d"], name="xxx")
-    res = s.str.partition(",")
-    exp = DataFrame({0: ["a", "c"], 1: [",", ","], 2: ["b", "d"]})
-    tm.assert_frame_equal(res, exp)
-
-    # should preserve name
-    res = s.str.partition(",", expand=False)
-    exp = Series([("a", ",", "b"), ("c", ",", "d")], name="xxx")
-    tm.assert_series_equal(res, exp)
-
-    idx = Index(["a,b", "c,d"], name="xxx")
-    res = idx.str.partition(",")
-    exp = MultiIndex.from_tuples([("a", ",", "b"), ("c", ",", "d")])
-    assert res.nlevels == 3
-    tm.assert_index_equal(res, exp)
-
-    # should preserve name
-    res = idx.str.partition(",", expand=False)
-    exp = Index(np.array([("a", ",", "b"), ("c", ",", "d")]), name="xxx")
-    assert res.nlevels == 1
-    tm.assert_index_equal(res, exp)
-
-
-def test_partition_sep_kwarg():
-    # GH 22676; depr kwarg "pat" in favor of "sep"
-    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
-
-    expected = values.str.partition(sep="_")
-    result = values.str.partition("_")
     tm.assert_frame_equal(result, expected)
 
-    expected = values.str.rpartition(sep="_")
-    result = values.str.rpartition("_")
+    result = s.str.rpartition("_")
+    expected = DataFrame(
+        {
+            0: ["a_b", "c_d", np.nan, "f_g", None],
+            1: ["_", "_", np.nan, "_", None],
+            2: ["c", "e", np.nan, "h", None],
+        },
+        dtype=any_string_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+    s = Series(["a_b_c", "c_d_e", np.nan, "f_g_h", None], dtype=any_string_dtype)
+    result = s.str.partition("_", expand=True)
+    expected = DataFrame(
+        {
+            0: ["a", "c", np.nan, "f", None],
+            1: ["_", "_", np.nan, "_", None],
+            2: ["b_c", "d_e", np.nan, "g_h", None],
+        },
+        dtype=any_string_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = s.str.rpartition("_", expand=True)
+    expected = DataFrame(
+        {
+            0: ["a_b", "c_d", np.nan, "f_g", None],
+            1: ["_", "_", np.nan, "_", None],
+            2: ["c", "e", np.nan, "h", None],
+        },
+        dtype=any_string_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_partition_with_name(any_string_dtype):
+    # GH 12617
+
+    s = Series(["a,b", "c,d"], name="xxx", dtype=any_string_dtype)
+    result = s.str.partition(",")
+    expected = DataFrame(
+        {0: ["a", "c"], 1: [",", ","], 2: ["b", "d"]}, dtype=any_string_dtype
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # should preserve name
+    result = s.str.partition(",", expand=False)
+    expected = Series([("a", ",", "b"), ("c", ",", "d")], name="xxx")
+    tm.assert_series_equal(result, expected)
+
+
+def test_partition_index_with_name():
+    idx = Index(["a,b", "c,d"], name="xxx")
+    result = idx.str.partition(",")
+    expected = MultiIndex.from_tuples([("a", ",", "b"), ("c", ",", "d")])
+    assert result.nlevels == 3
+    tm.assert_index_equal(result, expected)
+
+    # should preserve name
+    result = idx.str.partition(",", expand=False)
+    expected = Index(np.array([("a", ",", "b"), ("c", ",", "d")]), name="xxx")
+    assert result.nlevels == 1
+    tm.assert_index_equal(result, expected)
+
+
+def test_partition_sep_kwarg(any_string_dtype):
+    # GH 22676; depr kwarg "pat" in favor of "sep"
+    s = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype=any_string_dtype)
+
+    expected = s.str.partition(sep="_")
+    result = s.str.partition("_")
+    tm.assert_frame_equal(result, expected)
+
+    expected = s.str.rpartition(sep="_")
+    result = s.str.rpartition("_")
     tm.assert_frame_equal(result, expected)
 
 
