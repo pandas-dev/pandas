@@ -1150,7 +1150,7 @@ class TestPeriodArray(SharedTests):
         tm.assert_numpy_array_equal(result, arr.asi8)
 
         # to other dtypes
-        msg = r"float\(\) argument must be a string or a number, not 'Period'"
+        msg = r"float\(\) argument must be a string or a( real)? number, not 'Period'"
         with pytest.raises(TypeError, match=msg):
             np.asarray(arr, dtype="float64")
 
@@ -1372,9 +1372,9 @@ def array_likes(request):
         data = memoryview(arr)
     elif name == "array":
         # stdlib array
-        from array import array as array_stdlib
+        import array
 
-        data = array_stdlib("i", arr)
+        data = array.array("i", arr)
     elif name == "dask":
         import dask.array
 

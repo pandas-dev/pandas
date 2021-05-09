@@ -13,13 +13,9 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Optional,
+    Iterator,
     Sequence,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -29,6 +25,8 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    FillnaOptions,
+    PositionalIndexer,
     Shape,
 )
 from pandas.compat import set_function_name
@@ -73,6 +71,7 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from typing import Literal
 
     class ExtensionArraySupportsAnyAll("ExtensionArray"):
         def any(self, *, skipna: bool = True) -> bool:
@@ -82,7 +81,7 @@ if TYPE_CHECKING:
             pass
 
 
-_extension_array_shared_docs: Dict[str, str] = {}
+_extension_array_shared_docs: dict[str, str] = {}
 
 ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
 
@@ -223,7 +222,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -246,7 +245,7 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+        cls, strings, *, dtype: Dtype | None = None, copy=False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -293,9 +292,7 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
 
-    def __getitem__(
-        self, item: Union[int, slice, np.ndarray]
-    ) -> Union[ExtensionArray, Any]:
+    def __getitem__(self, item: PositionalIndexer) -> ExtensionArray | Any:
         """
         Select a subset of self.
 
@@ -326,7 +323,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __setitem__(self, key: Union[int, slice, np.ndarray], value: Any) -> None:
+    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
         """
         Set one or more values inplace.
 
@@ -381,7 +378,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         """
         Iterate over elements of the array.
         """
@@ -391,7 +388,7 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __contains__(self, item) -> Union[bool, np.bool_]:
+    def __contains__(self, item: object) -> bool | np.bool_:
         """
         Return for `item in self`.
         """
@@ -406,7 +403,9 @@ class ExtensionArray:
             else:
                 return False
         else:
-            return (item == self).any()
+            # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
+            # attribute "any"
+            return (item == self).any()  # type: ignore[union-attr]
 
     # error: Signature of "__eq__" incompatible with supertype "object"
     def __eq__(self, other: Any) -> ArrayLike:  # type: ignore[override]
@@ -430,7 +429,7 @@ class ExtensionArray:
 
     def to_numpy(
         self,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -536,7 +535,6 @@ class ExtensionArray:
             NumPy ndarray with 'dtype' for its dtype.
         """
         from pandas.core.arrays.string_ import StringDtype
-        from pandas.core.arrays.string_arrow import ArrowStringDtype
 
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(dtype, self.dtype):
@@ -546,14 +544,13 @@ class ExtensionArray:
                 return self.copy()
 
         # FIXME: Really hard-code here?
-        if isinstance(
-            dtype, (ArrowStringDtype, StringDtype)
-        ):  # allow conversion to StringArrays
+        if isinstance(dtype, StringDtype):
+            # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         return np.array(self, dtype=dtype, copy=copy)
 
-    def isna(self) -> Union[np.ndarray, ExtensionArraySupportsAnyAll]:
+    def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
         A 1-D array indicating if each value is missing.
 
@@ -615,7 +612,7 @@ class ExtensionArray:
 
         Returns
         -------
-        ndarray
+        np.ndarray[np.intp]
             Array of indices that sort ``self``. If NaN values are contained,
             NaN values are placed at the end.
 
@@ -686,7 +683,12 @@ class ExtensionArray:
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
-    def fillna(self, value=None, method=None, limit=None):
+    def fillna(
+        self,
+        value: object | ArrayLike | None = None,
+        method: FillnaOptions | None = None,
+        limit: int | None = None,
+    ):
         """
         Fill NA/NaN values using the specified method.
 
@@ -800,7 +802,7 @@ class ExtensionArray:
             b = empty
         return self._concat_same_type([a, b])
 
-    def unique(self):
+    def unique(self: ExtensionArrayT) -> ExtensionArrayT:
         """
         Compute the ExtensionArray of unique values.
 
@@ -909,7 +911,7 @@ class ExtensionArray:
         """
         return isin(np.asarray(self), values)
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
+    def _values_for_factorize(self) -> tuple[np.ndarray, Any]:
         """
         Return an array and missing value suitable for factorization.
 
@@ -933,7 +935,7 @@ class ExtensionArray:
         """
         return self.astype(object), np.nan
 
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
@@ -1029,7 +1031,7 @@ class ExtensionArray:
 
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
-    def repeat(self, repeats, axis=None):
+    def repeat(self, repeats: int | Sequence[int], axis: int | None = None):
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
@@ -1143,7 +1145,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
         """
         Return a view on the array.
 
@@ -1181,7 +1183,7 @@ class ExtensionArray:
         class_name = f"<{type(self).__name__}>\n"
         return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
 
-    def _formatter(self, boxed: bool = False) -> Callable[[Any], Optional[str]]:
+    def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         """
         Formatting function for scalar values.
 
@@ -1213,7 +1215,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self, *axes) -> ExtensionArray:
+    def transpose(self, *axes: int) -> ExtensionArray:
         """
         Return a transposed view on this array.
 
@@ -1226,7 +1228,7 @@ class ExtensionArray:
     def T(self) -> ExtensionArray:
         return self.transpose()
 
-    def ravel(self, order="C") -> ExtensionArray:
+    def ravel(self, order: Literal["C", "F", "A", "K"] | None = "C") -> ExtensionArray:
         """
         Return a flattened view on this array.
 
@@ -1247,7 +1249,7 @@ class ExtensionArray:
 
     @classmethod
     def _concat_same_type(
-        cls: Type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
+        cls: type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
     ) -> ExtensionArrayT:
         """
         Concatenate multiple array of this dtype.
@@ -1300,7 +1302,7 @@ class ExtensionArray:
         """
         raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
 
     # ------------------------------------------------------------------------
@@ -1309,6 +1311,21 @@ class ExtensionArray:
     def delete(self: ExtensionArrayT, loc) -> ExtensionArrayT:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
+
+    @classmethod
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype):
+        """
+        Create an ExtensionArray with the given shape and dtype.
+        """
+        obj = cls._from_sequence([], dtype=dtype)
+
+        taker = np.broadcast_to(np.intp(-1), shape)
+        result = obj.take(taker, allow_fill=True)
+        if not isinstance(result, cls) or dtype != result.dtype:
+            raise NotImplementedError(
+                f"Default 'empty' implementation is invalid for dtype='{dtype}'"
+            )
+        return result
 
 
 class ExtensionOpsMixin:

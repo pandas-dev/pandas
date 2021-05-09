@@ -6,11 +6,7 @@ This is not a public API.
 from __future__ import annotations
 
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    Set,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -39,6 +35,7 @@ from pandas.core.ops.array_ops import (  # noqa:F401
     comparison_op,
     get_array_op,
     logical_op,
+    maybe_prepare_scalar_for_op,
 )
 from pandas.core.ops.common import (  # noqa:F401
     get_op_result_name,
@@ -79,7 +76,7 @@ if TYPE_CHECKING:
 
 # -----------------------------------------------------------------------------
 # constants
-ARITHMETIC_BINOPS: Set[str] = {
+ARITHMETIC_BINOPS: set[str] = {
     "add",
     "sub",
     "mul",
@@ -99,7 +96,7 @@ ARITHMETIC_BINOPS: Set[str] = {
 }
 
 
-COMPARISON_BINOPS: Set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
+COMPARISON_BINOPS: set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
 
 
 # -----------------------------------------------------------------------------
@@ -207,7 +204,7 @@ def flex_method_SERIES(op):
 
 
 def align_method_FRAME(
-    left, right, axis, flex: Optional[bool] = False, level: Level = None
+    left, right, axis, flex: bool | None = False, level: Level = None
 ):
     """
     Convert rhs to meet lhs dims if input is list, tuple or np.ndarray.
@@ -216,8 +213,8 @@ def align_method_FRAME(
     ----------
     left : DataFrame
     right : Any
-    axis: int, str, or None
-    flex: bool or None, default False
+    axis : int, str, or None
+    flex : bool or None, default False
         Whether this is a flex op, in which case we reindex.
         None indicates not to check for alignment.
     level : int or level name, default None
@@ -432,6 +429,7 @@ def flex_arith_method_FRAME(op):
 
         axis = self._get_axis_number(axis) if axis is not None else 1
 
+        other = maybe_prepare_scalar_for_op(other, self.shape)
         self, other = align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):
