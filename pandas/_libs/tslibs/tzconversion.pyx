@@ -359,7 +359,6 @@ cdef inline Py_ssize_t bisect_right_i8(int64_t *data,
 
 cdef inline str _render_tstamp(int64_t val):
     """ Helper function to render exception messages"""
-    print("In inline str _render_tstamp, value %d", val);
     from pandas._libs.tslibs.timestamps import Timestamp
     return str(Timestamp(val))
 

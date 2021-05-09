@@ -150,8 +150,6 @@ def integer_op_not_supported(obj):
 
 cdef class _Timestamp(ABCTimestamp):
 
-    print("In class _Timestamp")
-
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
     dayofweek = _Timestamp.day_of_week
@@ -819,7 +817,6 @@ class Timestamp(_Timestamp):
         tz : str or timezone object, default None
             Timezone to localize to.
         """
-        print("In Timestamp.now")
         if isinstance(tz, str):
             tz = maybe_get_tz(tz)
         return cls(datetime.now(tz))
@@ -923,7 +920,6 @@ class Timestamp(_Timestamp):
         *,
         fold=None
     ):
-        print("In __new__")
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
         #
@@ -1032,10 +1028,6 @@ class Timestamp(_Timestamp):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, nanosecond[, tzinfo]]]]]])
-            print("Integer object input: ", ts_input)
-            print(type(ts_input))
-            print("Timezone: ", tz)
-            print(type(tz))
             ts_input = datetime(ts_input, freq, tz, unit or 0,
                                 year or 0, month or 0, day or 0, fold=fold or 0)
             nanosecond = hour
@@ -1047,11 +1039,8 @@ class Timestamp(_Timestamp):
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
                              "the tz parameter. Use tz_convert instead.")
 
-        print(tz)
-        print("Type in _new_: ", type(tz))
         tzobj = maybe_get_tz(tz)
         ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond or 0)
-        print("Timestamp: ", ts)
 
         # value = tz_localize_to_utc_single(ts, tzobj, "raise", "raise")
 
@@ -1065,11 +1054,6 @@ class Timestamp(_Timestamp):
             freq = to_offset(freq)
 
         naive_ts = convert_to_tsobject(ts_input, None, unit, 0, 0, nanosecond or 0)
-
-        print("ts.value: ", ts.value)
-        print("naive_ts.value: ", naive_ts.value)
-        print("Timezone: ", ts.tzinfo)
-
         tz_localize_to_utc_single(naive_ts.value, ts.tzinfo, "raise", "raise")
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
@@ -1240,7 +1224,6 @@ timedelta}, default 'raise'
         return getattr(self.freq, 'freqstr', self.freq)
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
-        print("In tz_localize")
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -1302,8 +1285,6 @@ default 'raise'
                 "The nonexistent argument must be one of 'raise', "
                 "'NaT', 'shift_forward', 'shift_backward' or a timedelta object"
             )
-        print("Value in localize: ", self.value)
-        print("Type in localize: ", type(self.value))
 
         if self.tzinfo is None:
             # tz naive, localize

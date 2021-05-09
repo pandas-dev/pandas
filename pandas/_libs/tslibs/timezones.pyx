@@ -110,44 +110,33 @@ cpdef inline tzinfo maybe_get_tz(object tz):
     (Maybe) Construct a timezone object from a string. If tz is a string, use
     it to construct a timezone object. Otherwise, just return tz.
     """
-    print("In maybe_get_tz")
-    print("Type in maybe_get_tz: ", type(tz))
     if isinstance(tz, str):
         if tz == 'tzlocal()':
             tz = _dateutil_tzlocal()
-            print("1")
         elif tz.startswith('dateutil/'):
             zone = tz[9:]
             tz = dateutil_gettz(zone)
             # On Python 3 on Windows, the filename is not always set correctly.
             if isinstance(tz, _dateutil_tzfile) and '.tar.gz' in tz._filename:
                 tz._filename = zone
-            print("2")
         elif tz[0] in {'-', '+'}:
             hours = int(tz[0:3])
             minutes = int(tz[0] + tz[4:6])
             tz = timezone(timedelta(hours=hours, minutes=minutes))
-            print("3")
         elif tz[0:4] in {'UTC-', 'UTC+'}:
             hours = int(tz[3:6])
             minutes = int(tz[3] + tz[7:9])
             tz = timezone(timedelta(hours=hours, minutes=minutes))
-            print("4")
         else:
             tz = pytz.timezone(tz)
-            print("5")
     elif is_integer_object(tz):
         tz = pytz.FixedOffset(tz / 60)
-        print("6")
     elif isinstance(tz, tzinfo):
         pass
-        print("7")
     elif tz is None:
         pass
-        print("8")
     else:
         raise TypeError(type(tz))
-        print("9")
     return tz
 
 
@@ -229,7 +218,6 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
     time.  This code converts them to UTC. It's the reverse of the code
     in dateutil.tz.tzfile.__init__.
     """
-    print("In _get_utc_trans_times_from_dateutil_tz")
     new_trans = list(tz._trans_list)
     last_std_offset = 0
     for i, (trans, tti) in enumerate(zip(tz._trans_list, tz._trans_idx)):
@@ -268,7 +256,6 @@ cdef object get_dst_info(tzinfo tz):
     str
         Desscribing the type of tzinfo object.
     """
-    print("in get_dst_info")
     cache_key = tz_cache_key(tz)
     if cache_key is None:
         # e.g. pytz.FixedOffset, matplotlib.dates._UTC,
