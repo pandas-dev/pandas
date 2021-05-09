@@ -202,6 +202,20 @@ class TestReductions:
         result = getattr(np, func)(expected, expected)
         tm.assert_series_equal(result, expected)
 
+    def test_numeric_only_default_behaviour(self):
+        # GH 41351
+        def _check_reduction_across_axis_1(df):
+            for func in ["sum", "mean"]:
+                tm.assert_series_equal(
+                    df.numeric, getattr(df, func)(axis=1), check_names=False
+                )
+
+        df = DataFrame({"numeric": np.zeros(2 ** 13 + 1)})
+        df["non_numeric"] = Timedelta(1)
+        _check_reduction_across_axis_1(df)
+        df["non_numeric_2"] = df["non_numeric"]
+        _check_reduction_across_axis_1(df)
+
 
 class TestIndexReductions:
     # Note: the name TestIndexReductions indicates these tests
