@@ -4945,8 +4945,7 @@ Keep all original rows and also all original values
             Left boundary.
         right : scalar or list-like
             Right boundary.
-        inclusive : str, default "True"
-
+        inclusive : bool, default True
             Include boundaries.
 
         Returns
@@ -4998,21 +4997,12 @@ Keep all original rows and also all original values
         3    False
         dtype: bool
         """
-
-        if inclusive == True or inclusive == "both":
+        if inclusive:
             lmask = self >= left
             rmask = self <= right
-        elif inclusive == "left":
-            lmask = self >= left
-            rmask = self < right
-        elif inclusive == "right":
-            lmask = self > left
-            rmask = self <= right
-        elif inclusive == False or inclusive == "neither":
-            lmask = self > left
-            rmask = self < right
         else:
-            raise ValueError("Input should be boolean or string of 'both', 'left', 'right', or 'neither'")
+            lmask = self > left
+            rmask = self < right
 
         return lmask & rmask
 
