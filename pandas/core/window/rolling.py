@@ -248,7 +248,10 @@ class BaseWindow(SelectionMixin):
 
         # we need to make a shallow copy of ourselves
         # with the same groupby
-        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+        with warnings.catch_warnings():
+            # TODO: Remove once win_type deprecation is enforced
+            warnings.filterwarnings("ignore", "win_type", FutureWarning)
+            kwargs = {attr: getattr(self, attr) for attr in self._attributes}
 
         selection = None
         if subset.ndim == 2 and (
@@ -256,10 +259,7 @@ class BaseWindow(SelectionMixin):
         ):
             selection = key
 
-        # TODO: Remove once win_type deprecation is enforced
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", "win_type", FutureWarning)
-            new_win = type(self)(subset, selection=selection, **kwargs)
+        new_win = type(self)(subset, selection=selection, **kwargs)
         return new_win
 
     def __getattr__(self, attr: str):
