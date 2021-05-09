@@ -2079,10 +2079,17 @@ def test_groupby_crash_on_nunique(axis):
 
     tm.assert_frame_equal(result, expected)
 
-    # same thing, but empty columns
-    gb2 = df[[]].groupby(axis=axis_number, level=0)
+    if axis_number == 0:
+        # same thing, but empty columns
+        gb2 = df[[]].groupby(axis=axis_number, level=0)
+        exp = expected[[]]
+    else:
+        # same thing, but empty rows
+        gb2 = df.loc[[]].groupby(axis=axis_number, level=0)
+        # default for empty when we can't infer a dtype is float64
+        exp = expected.loc[[]].astype(np.float64)
+
     res = gb2.nunique()
-    exp = expected[[]]
     tm.assert_frame_equal(res, exp)
 
 

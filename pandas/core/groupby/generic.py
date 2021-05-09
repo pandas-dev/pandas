@@ -22,7 +22,6 @@ from typing import (
     Mapping,
     TypeVar,
     Union,
-    cast,
 )
 import warnings
 
@@ -1576,6 +1575,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if self.axis == 1:
             result = result.T
+            if result.index.equals(self.obj.index):
+                # Retain e.g. DatetimeIndex/TimedeltaIndex freq
+                result.index = self.obj.index.copy()
+                # TODO: Do this more systematically
 
         return self._reindex_output(result)
 
@@ -1728,43 +1731,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         4   ham       5      x
         5   ham       5      y
         """
-        from pandas.core.reshape.concat import concat
+
+        if self.axis != 0:
+            # see test_groupby_crash_on_nunique
+            return self._python_agg_general(lambda sgb: sgb.nunique(dropna))
 
         obj = self._obj_with_exclusions
-
-        if self.axis == 0:
-            results = self._apply_to_column_groupbys(
-                lambda sgb: sgb.nunique(dropna), obj=obj
-            )
-            results.columns.names = obj.columns.names  # TODO: do at higher level?
-        else:
-            # see test_groupby_crash_on_nunique
-            # TODO: this is duplicative of how GroupBy naturally works
-            # Try to consolidate with normal wrapping functions
-
-            iter_func = obj.iterrows
-
-            res_list = [
-                SeriesGroupBy(content, selection=label, grouper=self.grouper).nunique(
-                    dropna
-                )
-                for label, content in iter_func()
-            ]
-            if res_list:
-                results = concat(res_list, axis=1)
-                results = cast(DataFrame, results)
-            else:
-                # concat would raise
-                results = DataFrame(
-                    [], index=self.grouper.result_index, columns=obj.columns[:0]
-                )
-
-            results = results.T
-
-            results.index.names = obj.index.names
-            if results.index.equals(obj.index):
-                # retain freq attribute on DatetimeIndex/TimedeltaIndex
-                results.index = obj.index.copy()
+        results = self._apply_to_column_groupbys(
+            lambda sgb: sgb.nunique(dropna), obj=obj
+        )
+        results.columns.names = obj.columns.names  # TODO: do at higher level?
 
         if not self.as_index:
             results.index = ibase.default_index(len(results))
