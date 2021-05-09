@@ -587,8 +587,8 @@ for name, data in ext_data.items():
     include = data.get("include", [])
     include.append(numpy.get_include())
 
-    if name == "io.rdata._rdata" and not is_platform_windows():
-        extra_link_args.append("-liconv")
+    if name == "io.rdata._rdata":
+        extra_compile_args = ["-D_GNU_SOURCE"] + extra_compile_args
 
     obj = Extension(
         f"pandas.{name}",

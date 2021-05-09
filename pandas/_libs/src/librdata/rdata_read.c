@@ -17,7 +17,7 @@ Copyright (c) 2020 Evan Miller
 #ifdef _WIN32
 #include "win_iconv.h"
 #else
-#include "/usr/include/iconv.h"
+#include <iconv.h>
 #endif
 
 #include <errno.h>
@@ -449,11 +449,23 @@ static int lseek_st(rdata_ctx_t *ctx, size_t len) {
             ) {
         int retval = 0;
         char *buf = rdata_malloc(len);
-        if (buf == NULL) {
-            retval = -1;
-        } else if (read_st(ctx, buf, len) != len) {
-            retval = -1;
+
+        int result_st = read_st(ctx, buf, len);
+
+        if (result_st > 0) {
+            if (buf == NULL) {
+                retval = -1;
+            } else if ((size_t)result_st != len) {
+                retval = -1;
+            }
+        } else {
+            if (buf == NULL) {
+                retval = -1;
+            } else {
+                retval = -1;
+            }
         }
+
         if (buf)
             free(buf);
 
@@ -801,9 +813,18 @@ rdata_error_t rdata_parse(
         v2_header.reader_version = byteswap4(v2_header.reader_version);
     }
 
-    if (is_rdata && v2_header.format_version != header_line[3] - '0') {
-        retval = RDATA_ERROR_PARSE;
-        goto cleanup;
+    int32_t hdr_result = header_line[3] - '0';
+
+    if (hdr_result > 0) {
+        if (is_rdata && v2_header.format_version != (uint32_t)hdr_result) {
+            retval = RDATA_ERROR_PARSE;
+            goto cleanup;
+        }
+    } else {
+        if (is_rdata) {
+            retval = RDATA_ERROR_PARSE;
+            goto cleanup;
+        }
     }
 
     if (v2_header.format_version == 3) {
@@ -1015,8 +1036,10 @@ static rdata_error_t read_sexptype_header(
                 retval = RDATA_ERROR_READ;
                 goto cleanup;
             }
-            if (ctx->machine_needs_byteswap)
-                header_info->attributes = byteswap4(header_info->attributes);
+            if (ctx->machine_needs_byteswap) {
+                int32_t hdr_info_attrs = header_info->attributes;
+                header_info->attributes = byteswap4(hdr_info_attrs);
+            }
         }
         if (header.tag) {
             if (read_st(ctx, &tag, sizeof(tag)) != sizeof(tag)) {
@@ -1099,7 +1122,7 @@ static int handle_vector_attribute(
             if ((retval = read_length(&length, ctx)) != RDATA_OK)
                 goto cleanup;
 
-            if (length <= sizeof(ctx->dims)/sizeof(ctx->dims[0])) {
+            if ((uint32_t)length <= sizeof(ctx->dims)/sizeof(ctx->dims[0])) {
                 int buf_len = length * sizeof(int32_t);
                 if (read_st(ctx, ctx->dims, buf_len) != buf_len) {
                     retval = RDATA_ERROR_READ;
@@ -1147,7 +1170,7 @@ static rdata_error_t read_character_string(char **key, rdata_ctx_t *ctx) {
     if (ctx->machine_needs_byteswap)
         length = byteswap4(length);
 
-    if (length == -1 || length == 0) {
+    if ((int32_t)length == -1 || length == 0) {
         *key = strdup("");
         return RDATA_OK;
     }
@@ -1521,13 +1544,13 @@ cleanup:
 static rdata_error_t read_generic_list(int attributes, rdata_ctx_t *ctx) {
     rdata_error_t retval = RDATA_OK;
     int32_t length;
-    int i;
+    unsigned int i;
     rdata_sexptype_info_t sexptype_info;
 
     if ((retval = read_length(&length, ctx)) != RDATA_OK)
         goto cleanup;
 
-    for (i=0; i < length; i++) {
+    for (i=0; i < (uint32_t)length; i++) {
         if ((retval = read_sexptype_header(
             &sexptype_info, ctx)) != RDATA_OK
         )
@@ -1650,11 +1673,14 @@ static rdata_error_t read_string_vector_n(
         if ((retval = read_length(&string_length, ctx)) != RDATA_OK)
             goto cleanup;
 
-        if (string_length + 1 > buffer_size) {
-            buffer_size = string_length + 1;
-            if ((buffer = rdata_realloc(buffer, buffer_size)) == NULL) {
-                retval = RDATA_ERROR_MALLOC;
-                goto cleanup;
+        int32_t str_len_calc = string_length + 1;
+        if (str_len_calc > 0) {
+            if ((uint32_t)str_len_calc > buffer_size) {
+                buffer_size = str_len_calc;
+                if ((buffer = rdata_realloc(buffer, buffer_size)) == NULL) {
+                    retval = RDATA_ERROR_MALLOC;
+                    goto cleanup;
+                }
             }
         }
 
@@ -1673,15 +1699,19 @@ static rdata_error_t read_string_vector_n(
             } else if (!ctx->converter) {
                 cb_retval = text_value_handler(buffer, i, callback_ctx);
             } else {
-                if (4*string_length + 1 > utf8_buffer_size) {
-                    utf8_buffer_size = 4*string_length + 1;
-                    if ((utf8_buffer = rdata_realloc(
-                        utf8_buffer, utf8_buffer_size)) == NULL
-                    ) {
-                        retval = RDATA_ERROR_MALLOC;
-                        goto cleanup;
+                int32_t str_len_calc = 4*string_length + 1;
+                if (str_len_calc >= 0) {
+                    if ((uint32_t)str_len_calc > utf8_buffer_size) {
+                        utf8_buffer_size = str_len_calc;
+                        if ((utf8_buffer = rdata_realloc(
+                            utf8_buffer, utf8_buffer_size)) == NULL
+                        ) {
+                            retval = RDATA_ERROR_MALLOC;
+                            goto cleanup;
+                        }
                     }
                 }
+
                 retval = rdata_convert(
                     utf8_buffer,
                     utf8_buffer_size,
@@ -1749,7 +1779,7 @@ static rdata_error_t read_value_vector_cb(
     void *vals = NULL;
     size_t buf_len = 0;
     enum rdata_type_e output_data_type;
-    int i;
+    unsigned int i;
 
     switch (header.type) {
         case RDATA_SEXPTYPE_REAL_VECTOR:
@@ -1783,7 +1813,14 @@ static rdata_error_t read_value_vector_cb(
             goto cleanup;
         }
 
-        if (read_st(ctx, vals, buf_len) != buf_len) {
+        ssize_t result_st = read_st(ctx, vals, buf_len);
+
+        if (result_st > 0) {
+            if ((size_t)result_st != buf_len) {
+                retval = RDATA_ERROR_READ;
+                goto cleanup;
+            }
+        } else {
             retval = RDATA_ERROR_READ;
             goto cleanup;
         }
@@ -1946,7 +1983,7 @@ static rdata_error_t recursive_discard(
     rdata_sexptype_info_t prot, tag;
 
     rdata_error_t error = 0;
-    int i;
+    unsigned int i;
 
     switch (sexptype_header.type) {
         case RDATA_SEXPTYPE_SYMBOL:

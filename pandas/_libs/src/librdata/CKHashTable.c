@@ -330,7 +330,7 @@ int ck_hash_table_grow(ck_hash_table_t *table) {
     }
     table->capacity = new_capacity;
     table->count = 0;
-    for (int i = 0; i < old_capacity; i++) {
+    for (unsigned int i = 0; i < old_capacity; i++) {
         if (old_entries[i].key_length != 0) {
             char *this_key = &table->keys[old_entries[i].key_offset];
             uint64_t hash_key = ck_hash_str(
