@@ -1231,7 +1231,7 @@ class StringMethods(NoNewAttributesMixin):
             Regex module flags, e.g. re.IGNORECASE. Cannot be set if `pat` is a compiled
             regex.
         regex : bool, default True
-            Determines if assumes the passed-in pattern is a regular expression:
+            Determines if the passed-in pattern is a regular expression:
 
             - If True, assumes the passed-in pattern is a regular expression.
             - If False, treats the pattern as a literal string
