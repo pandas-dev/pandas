@@ -212,7 +212,6 @@ from present information back to past information. This allows the rolling windo
 
    df
 
-
 .. _window.custom_rolling_window:
 
 Custom window rolling
@@ -294,12 +293,11 @@ conditions. In these cases it can be useful to perform forward-looking rolling w
 This :func:`BaseIndexer <pandas.api.indexers.BaseIndexer>` subclass implements a closed fixed-width
 forward-looking rolling window, and we can use it as follows:
 
-.. ipython:: ipython
+.. ipython:: python
 
    from pandas.api.indexers import FixedForwardWindowIndexer
    indexer = FixedForwardWindowIndexer(window_size=2)
    df.rolling(indexer, min_periods=1).sum()
-
 
 .. _window.rolling_apply:
 
@@ -318,7 +316,6 @@ the windows are cast as :class:`Series` objects (``raw=False``) or ndarray objec
 
    s = pd.Series(range(10))
    s.rolling(window=4).apply(mad, raw=True)
-
 
 .. _window.numba_engine:
 
