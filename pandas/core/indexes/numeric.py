@@ -112,8 +112,9 @@ class NumericIndex(Index):
     # Indexing Methods
 
     @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str, kind):
-        assert kind in ["loc", "getitem", None]
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+        assert kind in ["loc", "getitem", None, lib.no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
@@ -346,7 +347,7 @@ class Float64Index(NumericIndex):
 
         # We always treat __getitem__ slicing as label-based
         # translate to locations
-        return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
+        return self.slice_indexer(key.start, key.stop, key.step)
 
     # ----------------------------------------------------------------
 
