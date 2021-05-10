@@ -282,9 +282,7 @@ bar2,12,13,14,15
             ("to_excel", {"engine": "xlwt"}, "xlwt"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
-            pytest.param(
-                "to_json", {}, "os", marks=td.skip_array_manager_not_yet_implemented
-            ),
+            ("to_json", {}, "os"),
             ("to_latex", {}, "os"),
             ("to_pickle", {}, "os"),
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
@@ -435,10 +433,7 @@ def test_is_fsspec_url():
 
 
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
-@pytest.mark.parametrize(
-    "format",
-    ["csv", pytest.param("json", marks=td.skip_array_manager_not_yet_implemented)],
-)
+@pytest.mark.parametrize("format", ["csv", "json"])
 def test_codecs_encoding(encoding, format):
     # GH39247
     expected = tm.makeDataFrame()
