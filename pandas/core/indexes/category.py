@@ -288,7 +288,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         dtype = pandas_dtype(dtype)
 
         cat = self.categories
-        if type(cat) is NumIndex:
+        if cat._is_num_index():
             assert isinstance(cat, NumIndex)  # mypy complaint fix
             try:
                 cat._validate_dtype(dtype)
@@ -298,7 +298,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                 new_values = self._data.astype(dtype, copy=copy)
                 # pass copy=False because any copying has been done in the
                 #  _data.astype call above
-                return NumIndex(new_values, name=self.name, copy=False)
+                return type(cat)(new_values, name=self.name, copy=False)
 
         return super().astype(dtype, copy=copy)
 

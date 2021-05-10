@@ -205,6 +205,8 @@ class NumericIndex(Index):
             return cls._default_dtype
 
         dtype = pandas_dtype(dtype)
+        assert isinstance(dtype, np.dtype)
+
         if cls._default_dtype is not None:
             return cls._default_dtype
         else:
