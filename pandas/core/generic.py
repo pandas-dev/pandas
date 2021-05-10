@@ -11806,21 +11806,7 @@ cold     fish      0
 Name: legs, dtype: int64
 
 >>> s.{stat_func}()
-{default_output}
-
-{verb} using level names, as well as indices.
-
->>> s.{stat_func}(level='blooded')
-blooded
-warm    {level_output_0}
-cold    {level_output_1}
-Name: legs, dtype: int64
-
->>> s.{stat_func}(level=0)
-blooded
-warm    {level_output_0}
-cold    {level_output_1}
-Name: legs, dtype: int64"""
+{default_output}"""
 
 _sum_examples = _shared_docs["stat_func_example"].format(
     stat_func="sum", verb="Sum", default_output=14, level_output_0=6, level_output_1=8
