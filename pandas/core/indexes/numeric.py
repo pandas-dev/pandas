@@ -23,7 +23,6 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -163,10 +162,13 @@ class NumericIndex(Index):
         if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
 
-        dtype = cls._ensure_dtype(dtype)
+        dtype = cls._ensure_dtype(dtype, validate=False)
 
         if copy or not is_dtype_equal(data.dtype, dtype):
             subarr = np.array(data, dtype=dtype, copy=copy)
+            if not is_numeric_dtype(subarr.dtype):
+                # hack to raise correctly
+                subarr = np.array(data, dtype="float64", copy=copy)
             cls._assert_safe_casting(data, subarr)
         else:
             subarr = data
@@ -193,42 +195,20 @@ class NumericIndex(Index):
     def _ensure_dtype(
         cls,
         dtype: Dtype | None,
+        validate: bool = True,
     ) -> np.dtype | None:
-        """Ensure int64 dtype for Int64Index, etc. Assumed dtype is validated."""
-        return cls._default_dtype
+        """Ensure int64 dtype for Int64Index, etc. but allow int32 etc. for NumIndex."""
+        if validate:
+            cls._validate_dtype(dtype)
 
-    def __contains__(self, key) -> bool:
-        """
-        Check if key is a float and has a decimal. If it has, return False.
-        """
-        if not is_integer_dtype(self.dtype):
-            return super().__contains__(key)
+        if dtype is None:
+            return cls._default_dtype
 
-        hash(key)
-        try:
-            if is_float(key) and int(key) != key:
-                # otherwise the `key in self._engine` check casts e.g. 1.1 -> 1
-                return False
-            return key in self._engine
-        except (OverflowError, TypeError, ValueError):
-            return False
-
-    @doc(Index.astype)
-    def astype(self, dtype, copy=True):
-        if is_float_dtype(self.dtype):
-            dtype = pandas_dtype(dtype)
-            if needs_i8_conversion(dtype):
-                raise TypeError(
-                    f"Cannot convert Float64Index to dtype {dtype}; integer "
-                    "values are required for conversion"
-                )
-            elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
-                # TODO(jreback); this can change once we have an EA Index type
-                # GH 13149
-                arr = astype_nansafe(self._values, dtype=dtype)
-                return Int64Index(arr, name=self.name)
-
-        return super().astype(dtype, copy=copy)
+        dtype = pandas_dtype(dtype)
+        if cls._default_dtype is not None:
+            return cls._default_dtype
+        else:
+            return dtype
 
     # ----------------------------------------------------------------
     # Indexing Methods
@@ -288,16 +268,13 @@ class NumericIndex(Index):
         return is_numeric_dtype(dtype)
 
     @classmethod
-    def _assert_safe_casting(cls, data: np.ndarray, subarr: np.ndarray) -> None:
+    def _assert_safe_casting(cls, data, subarr):
         """
-        Ensure incoming data can be represented with matching signed-ness.
-
-        Needed if the process of casting data from some accepted dtype to the internal
-        dtype(s) bears the risk of truncation (e.g. float to int).
+        Subclasses need to override this only if the process of casting data
+        from some accepted dtype to the internal dtype(s) bears the risk of
+        truncation (e.g. float to int).
         """
-        if is_integer_dtype(subarr.dtype):
-            if not np.array_equal(data, subarr):
-                raise TypeError("Unsafe NumPy casting, you must explicitly cast")
+        pass
 
     @property
     def _is_all_dates(self) -> bool:
@@ -305,30 +282,6 @@ class NumericIndex(Index):
         Checks that all the labels are datetime objects.
         """
         return False
-
-    def _format_native_types(
-        self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
-    ):
-        from pandas.io.formats.format import FloatArrayFormatter
-
-        if is_float_dtype(self.dtype):
-            formatter = FloatArrayFormatter(
-                self._values,
-                na_rep=na_rep,
-                float_format=float_format,
-                decimal=decimal,
-                quoting=quoting,
-                fixed_width=False,
-            )
-            return formatter.get_result_as_array()
-
-        return super()._format_native_types(
-            na_rep=na_rep,
-            float_format=float_format,
-            decimal=decimal,
-            quoting=quoting,
-            **kwargs,
-        )
 
 
 class IntegerIndex(NumericIndex):

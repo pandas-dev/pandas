@@ -9,7 +9,11 @@ import pytest
 from pandas._libs import iNaT
 from pandas._libs.tslibs import Timestamp
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -624,8 +628,10 @@ class Base:
         idx = simple_index
 
         # we don't infer UInt64
-        if isinstance(idx, UInt64Index):
+        if is_integer_dtype(idx.dtype):
             expected = idx.astype("int64")
+        elif is_float_dtype(idx.dtype):
+            expected = idx.astype("float64")
         else:
             expected = idx
 

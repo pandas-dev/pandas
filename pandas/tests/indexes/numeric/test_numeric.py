@@ -8,6 +8,7 @@ from pandas import (
     Float64Index,
     Index,
     Int64Index,
+    NumIndex,
     Series,
     UInt64Index,
 )
@@ -22,9 +23,7 @@ class TestFloat64Index(NumericBase):
     def dtype(self, request):
         return request.param
 
-    @pytest.fixture(
-        params=["int64", "uint64", "category", "datetime64", "object"],
-    )
+    @pytest.fixture(params=["int64", "uint64", "category", "datetime64", "object"])
     def invalid_dtype(self, request):
         return request.param
 
@@ -92,11 +91,11 @@ class TestFloat64Index(NumericBase):
         assert isinstance(index, index_cls)
         assert index.dtype == dtype
 
-        index = index_cls(np.array([1.0, 2, 3, 4, 5]), dtype=np.float32)
+        index = index_cls([1.0, 2, 3, 4, 5], dtype=dtype)
         assert isinstance(index, index_cls)
         assert index.dtype == dtype
 
-        index = index_cls(np.array([1, 2, 3, 4, 5]), dtype=np.float32)
+        index = index_cls(np.array([1.0, 2, 3, 4, 5]), dtype=dtype)
         assert isinstance(index, index_cls)
         assert index.dtype == dtype
 
@@ -387,9 +386,7 @@ class TestInt64Index(NumericInt):
     def dtype(self, request):
         return request.param
 
-    @pytest.fixture(
-        params=["uint64", "float64", "category", "datetime64", "object"],
-    )
+    @pytest.fixture(params=["uint64", "float64", "category", "datetime64", "object"])
     def invalid_dtype(self, request):
         return request.param
 
@@ -447,18 +444,14 @@ class TestInt64Index(NumericInt):
         index_cls = self._index_cls
 
         arr = np.array([1, 2, 3, 4], dtype=object)
-        index = index_cls(arr)
-        assert index.values.dtype == dtype
+        index = index_cls(arr, dtype=dtype)
+        assert index.values.dtype == index.dtype
         tm.assert_index_equal(index, Index(arr))
 
         # preventing casting
         arr = np.array([1, "2", 3, "4"], dtype=object)
         with pytest.raises(TypeError, match="casting"):
-            index_cls(arr)
-
-        arr_with_floats = [0, 2, 3, 4, 5, 1.25, 3, -1]
-        with pytest.raises(TypeError, match="casting"):
-            index_cls(arr_with_floats)
+            index_cls(arr, dtype=dtype)
 
     def test_constructor_coercion_signed_to_unsigned(self, uint_dtype):
 
@@ -486,9 +479,7 @@ class TestUInt64Index(NumericInt):
     def dtype(self):
         return np.uint64
 
-    @pytest.fixture(
-        params=["int64", "float64", "category", "datetime64", "object"],
-    )
+    @pytest.fixture(params=["int64", "float64", "category", "datetime64", "object"])
     def invalid_dtype(self, request):
         return request.param
 
@@ -505,7 +496,7 @@ class TestUInt64Index(NumericInt):
         ids=["index_inc", "index_dec"],
     )
     def index(self, request):
-        return self._index_cls(request.param)
+        return self._index_cls(request.param, dtype=np.uint64)
 
     def test_constructor(self, dtype):
         index_cls = self._index_cls
