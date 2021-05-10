@@ -68,6 +68,7 @@ from pandas.core.dtypes.missing import (
     isna,
 )
 
+from pandas import NA
 import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
@@ -2163,16 +2164,29 @@ class MultiIndex(Index):
             (isinstance(o, MultiIndex) and o.nlevels >= self.nlevels) for o in other
         ):
             arrays = []
-            for i in range(self.nlevels):
-                label = self._get_level_values(i)
-                if label.names[0] and concat_indexes is True:
-                    appended = [
-                        o._get_level_values(o.names.index(label.name)) for o in other
-                    ]
-                else:
-                    appended = [o._get_level_values(i) for o in other]
-                arrays.append(label.append(appended))
-            return MultiIndex.from_arrays(arrays, names=self.names)
+            index_label_list = self.get_unique_indexes(other)
+
+            for index_label in index_label_list:
+
+                index = self.get_index_data(
+                    data_index=self, column_name=index_label, other=other
+                )
+                appended = []
+
+                for o in other:
+
+                    data = self.get_index_data(
+                        data_index=o,
+                        column_name=index_label,
+                        other=other,
+                        search_self=True,
+                    )
+                    appended.append(data)
+
+                    index = index.append(data)
+
+                arrays.append(index)
+            return MultiIndex.from_arrays(arrays, names=index_label_list)
 
         to_concat = (self._values,) + tuple(k._values for k in other)
         new_tuples = np.concatenate(to_concat)
@@ -2182,6 +2196,47 @@ class MultiIndex(Index):
             return MultiIndex.from_tuples(new_tuples, names=self.names)
         except (TypeError, IndexError):
             return Index(new_tuples)
+
+    def get_index_data(self, data_index, column_name, other, search_self=False):
+
+        # Returns original data if the data_index input has data for this column name
+        if column_name in data_index.names:
+            Index_position = data_index.names.index(column_name)
+            data = data_index._get_level_values(Index_position)
+            return data
+
+        else:
+
+            # If the data_index input is from other and if it don't
+            # have the column name, it returns an Index filled with pd.NA
+            # with data type that the other dataframe has the column.
+            if search_self is True:
+                if column_name in self.names:
+                    Index_position = self.names.index(column_name)
+                    NA_type = self.levels[Index_position].dtype
+                    data = Index([NA] * data_index.size, dtype=NA_type)
+                    return data
+
+            for o in other:
+                if o is not data_index and column_name in o.names:
+                    Index_position = o.names.index(column_name)
+                    NA_type = o.levels[Index_position].dtype
+                    data = Index([NA] * data_index.size, dtype=NA_type)
+                    return data
+
+    def get_unique_indexes(self, other):
+
+        Union_list = list(self.names)
+
+        for o in other:
+            if not set(o.names).issubset(Union_list):
+
+                for element in o.names:
+                    if element not in Union_list:
+
+                        Union_list.append(element)
+
+        return Union_list
 
     def argsort(self, *args, **kwargs) -> np.ndarray:
         return self._values.argsort(*args, **kwargs)

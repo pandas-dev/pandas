@@ -1339,23 +1339,34 @@ def test_concat_with_different_index_arrangement():
     df_first = pd.DataFrame(
         [["i1_top", "i2_top", 1]], columns=["index1", "index2", "value1"]
     )
-
     df_second = pd.DataFrame(
-        [["i1_middle", "i2_middle", 1]], columns=["index1", "index2", "value1"]
+        [["i1_middle", "i2_middle", 1]], columns=["index1", "index3", "value1"]
+    )
+    df_third = pd.DataFrame(
+        [["i1_bottom", "i2_bottom", 1]], columns=["index1", "index4", "value1"]
     )
 
-    df_concatenated_result = pd.concat([df_first, df_second], ignore_index=True)
+    df_concatenated_result = pd.concat(
+        [df_first, df_second, df_third], ignore_index=True
+    )
     df_concatenated_expected = pd.DataFrame(
-        [["i1_top", "i2_top", 1], ["i1_middle", "i2_middle", 1]],
-        columns=["index1", "index2", "value1"],
+        [
+            ["i1_top", "i2_top", 1, pd.NA, pd.NA],
+            ["i1_middle", pd.NA, 1, "i2_middle", pd.NA],
+            ["i1_bottom", pd.NA, 1, pd.NA, "i2_bottom"],
+        ],
+        columns=["index1", "index2", "value1", "index3", "index4"],
     )
 
     tm.assert_frame_equal(df_concatenated_result, df_concatenated_expected)
 
     df_first.set_index(["index1", "index2"], inplace=True)
-    df_second.set_index(["index2", "index1"], inplace=True)
+    df_second.set_index(["index3", "index1"], inplace=True)
+    df_third.set_index(["index4", "index1"], inplace=True)
 
-    df_concatenated_result = pd.concat([df_first, df_second])
-    df_concatenated_expected.set_index(["index1", "index2"], inplace=True)
+    df_concatenated_result = pd.concat([df_first, df_second, df_third])
+    df_concatenated_expected.set_index(
+        ["index1", "index2", "index3", "index4"], inplace=True
+    )
 
     tm.assert_frame_equal(df_concatenated_result, df_concatenated_expected)
