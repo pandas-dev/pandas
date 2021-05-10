@@ -1014,15 +1014,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return content
 
 
-SIGNATURES = {
-    "biff2": b"\x09\x00\x04\x00\x07\x00\x10\x00",
-    "biff3": b"\x09\x02\x06\x00\x00\x00\x10\x00",
-    "biff4": b"\x09\x04\x06\x00\x00\x00\x10\x00",
-    "biff5": b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1",
-    "biff8": b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1",
-    "zip": b"PK\x03\x04",
-}
-PEEK_SIZE = max(map(len, SIGNATURES.values()))
+XLS_SIGNATURES = (
+    b"\x09\x00\x04\x00\x07\x00\x10\x00",  # BIFF2
+    b"\x09\x02\x06\x00\x00\x00\x10\x00",  # BIFF3
+    b"\x09\x04\x06\x00\x00\x00\x10\x00",  # BIFF4
+    b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1",  # Compound File Binary
+)
+ZIP_SIGNATURE = b"PK\x03\x04"
+PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE, )))
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -1069,13 +1068,9 @@ def inspect_excel_format(
             peek = buf
         stream.seek(0)
 
-        if any(
-            peek.startswith(signature)
-            for (file_format, signature) in SIGNATURES.items()
-            if file_format.startswith("biff")
-        ):
+        if any(peek.startswith(sig) for sig in XLS_SIGNATURES):
             return "xls"
-        elif not peek.startswith(SIGNATURES["zip"]):
+        elif not peek.startswith(ZIP_SIGNATURE):
             return None
 
         # ZipFile typing is overly-strict
