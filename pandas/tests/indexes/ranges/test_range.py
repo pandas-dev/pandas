@@ -11,7 +11,7 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.tests.indexes.test_numeric import Numeric
+from pandas.tests.indexes.common import NumericBase
 
 # aliases to make some tests easier to read
 RI = RangeIndex
@@ -20,8 +20,14 @@ F64 = Float64Index
 OI = Index
 
 
-class TestRangeIndex(Numeric):
+class TestRangeIndex(NumericBase):
     _index_cls = RangeIndex
+
+    @pytest.fixture(
+        params=["uint64", "float64", "category", "datetime64"],
+    )
+    def invalid_dtype(self, request):
+        return request.param
 
     @pytest.fixture
     def simple_index(self) -> Index:

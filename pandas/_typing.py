@@ -37,6 +37,7 @@ import numpy as np
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
     from typing import (
+        Literal,
         TypedDict,
         final,
     )
@@ -188,6 +189,12 @@ FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceArgType = Union[
     str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
 ]
+
+# Arguments for fillna()
+if TYPE_CHECKING:
+    FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
+else:
+    FillnaOptions = str
 
 # internals
 Manager = Union[
