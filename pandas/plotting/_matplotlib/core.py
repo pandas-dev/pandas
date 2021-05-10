@@ -226,7 +226,7 @@ class MPLPlot:
 
     def _validate_subplots_kwarg(
         self, subplots: bool | Sequence[Sequence[str]]
-    ) -> bool | [tuple[int, ...]]:
+    ) -> bool | list[tuple[int, ...]]:
         """
         Validate the subplots parameter
 
