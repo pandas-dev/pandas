@@ -1738,6 +1738,7 @@ def test_pivot_table_values_key_error():
 )
 def test_empty_groupby(columns, keys, values, method, op, request):
     # GH8093 & GH26411
+    override_dtype = None
 
     if (
         isinstance(values, Categorical)
@@ -1792,12 +1793,9 @@ def test_empty_groupby(columns, keys, values, method, op, request):
         and op in ["sum", "prod"]
         and method != "apply"
     ):
-        mark = pytest.mark.xfail(
-            raises=AssertionError, match="(DataFrame|Series) are different"
-        )
-        request.node.add_marker(mark)
+        # We expect to get Int64 back for these
+        override_dtype = "Int64"
 
-    override_dtype = None
     if isinstance(values[0], bool) and op in ("prod", "sum") and method != "apply":
         # sum/product of bools is an integer
         override_dtype = "int64"

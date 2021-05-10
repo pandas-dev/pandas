@@ -25,7 +25,7 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
-from pandas._libs.hashtable import duplicated_int64
+from pandas._libs.hashtable import duplicated
 from pandas._typing import (
     AnyArrayLike,
     DtypeObj,
@@ -1614,7 +1614,7 @@ class MultiIndex(Index):
         shape = tuple(len(lev) for lev in self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
-        return duplicated_int64(ids, keep)
+        return duplicated(ids, keep)
 
     # error: Cannot override final attribute "_duplicated"
     # (previously declared in base class "IndexOpsMixin")
