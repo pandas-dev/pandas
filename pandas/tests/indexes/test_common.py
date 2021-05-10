@@ -26,7 +26,7 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.core.api import NumIndex
+from pandas.core.api import NumericIndex
 
 
 class TestCommon:
@@ -262,7 +262,7 @@ class TestCommon:
         # make unique index
         holder = type(index)
         unique_values = list(set(index))
-        dtype = index.dtype if isinstance(index, NumIndex) else None
+        dtype = index.dtype if isinstance(index, NumericIndex) else None
         unique_idx = holder(unique_values, dtype=dtype)
 
         # make duplicated index
@@ -291,7 +291,7 @@ class TestCommon:
         else:
             holder = type(index)
             unique_values = list(set(index))
-            dtype = index.dtype if isinstance(index, NumIndex) else None
+            dtype = index.dtype if isinstance(index, NumericIndex) else None
             unique_idx = holder(unique_values, dtype=dtype)
 
         # check on unique index

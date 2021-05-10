@@ -20,10 +20,10 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.interval import IntervalIndex
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.numeric import (
+    BaseNumericIndex,
     Float64Index,
     Int64Index,
     NumericIndex,
-    NumIndex,
     UInt64Index,
 )
 from pandas.core.indexes.period import PeriodIndex
@@ -45,8 +45,8 @@ To retain the current behavior and silence the warning, pass 'sort=True'.
 __all__ = [
     "Index",
     "MultiIndex",
-    "NumIndex",
     "NumericIndex",
+    "BaseNumericIndex",
     "Float64Index",
     "Int64Index",
     "CategoricalIndex",

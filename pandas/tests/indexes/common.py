@@ -34,7 +34,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas.core.indexes.numeric import NumIndex
+from pandas.core.indexes.numeric import NumericIndex
 
 
 class Base:
@@ -666,7 +666,7 @@ class Base:
 
         # empty mappable
         if idx._is_num_index():
-            new_index_cls = NumIndex
+            new_index_cls = NumericIndex
         else:
             new_index_cls = Float64Index
 

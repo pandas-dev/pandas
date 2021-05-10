@@ -386,7 +386,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         from pandas.core.arrays import PandasArray
-        from pandas.core.indexes.numeric import NumIndex
+        from pandas.core.indexes.numeric import NumericIndex
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
@@ -438,8 +438,8 @@ class Index(IndexOpsMixin, PandasObject):
             return Index._simple_new(data, name=name)
 
         # index-like
-        elif isinstance(data, NumIndex) and data._is_num_index() and dtype is None:
-            return NumIndex(data, name=name, copy=copy)
+        elif isinstance(data, NumericIndex) and data._is_num_index() and dtype is None:
+            return NumericIndex(data, name=name, copy=copy)
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
             if isinstance(data, ABCMultiIndex):
@@ -2438,11 +2438,11 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.indexes.numeric import (
             Float64Index,
             Int64Index,
-            NumIndex,
+            NumericIndex,
             UInt64Index,
         )
 
-        if not isinstance(self, NumIndex):
+        if not isinstance(self, NumericIndex):
             return False
         elif isinstance(self, (Int64Index, UInt64Index, Float64Index)):
             return False
@@ -5723,7 +5723,7 @@ class Index(IndexOpsMixin, PandasObject):
             a MultiIndex will be returned.
         """
         from pandas.core.indexes.multi import MultiIndex
-        from pandas.core.indexes.numeric import NumIndex
+        from pandas.core.indexes.numeric import NumericIndex
 
         new_values = self._map_values(mapper, na_action=na_action)
 
@@ -5745,7 +5745,7 @@ class Index(IndexOpsMixin, PandasObject):
             attributes["dtype"] = self.dtype
 
         if self._is_num_index() and is_numeric_dtype(new_values.dtype):
-            return NumIndex(new_values, **attributes)
+            return NumericIndex(new_values, **attributes)
 
         return Index(new_values, **attributes)
 

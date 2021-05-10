@@ -10,7 +10,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas.core.indexes.numeric import NumericIndex
+from pandas.core.indexes.numeric import BaseNumericIndex
 
 
 @pytest.mark.parametrize(
@@ -49,7 +49,7 @@ def test_numpy_ufuncs_basic(index, func):
         with tm.external_error_raised((TypeError, AttributeError)):
             with np.errstate(all="ignore"):
                 func(index)
-    elif isinstance(index, NumericIndex):
+    elif isinstance(index, BaseNumericIndex):
         # coerces to float (e.g. np.sin)
         with np.errstate(all="ignore"):
             result = func(index)
@@ -94,7 +94,7 @@ def test_numpy_ufuncs_other(index, func, request):
         with tm.external_error_raised(TypeError):
             func(index)
 
-    elif isinstance(index, NumericIndex):
+    elif isinstance(index, BaseNumericIndex):
         # Results in bool array
         result = func(index)
         assert isinstance(result, np.ndarray)

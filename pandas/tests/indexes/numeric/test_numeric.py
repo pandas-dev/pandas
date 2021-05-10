@@ -12,7 +12,7 @@ from pandas import (
     UInt64Index,
 )
 import pandas._testing as tm
-from pandas.core.api import NumIndex
+from pandas.core.api import NumericIndex
 from pandas.tests.indexes.common import NumericBase
 
 

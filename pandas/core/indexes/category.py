@@ -283,7 +283,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     @doc(Index.astype)
     def astype(self, dtype, copy: bool = True) -> Index:
-        from pandas.core.api import NumIndex
+        from pandas.core.api import NumericIndex
 
         dtype = pandas_dtype(dtype)
 
@@ -292,7 +292,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         # but if e.g. the categories are a NumIndex with dtype float32, we want to
         # return an index with the same dtype as self.categories.
         if cat._is_num_index():
-            assert isinstance(cat, NumIndex)  # mypy complaint fix
+            assert isinstance(cat, NumericIndex)  # mypy complaint fix
             try:
                 cat._validate_dtype(dtype)
             except ValueError:
