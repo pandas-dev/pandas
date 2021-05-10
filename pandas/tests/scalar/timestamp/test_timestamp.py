@@ -404,9 +404,13 @@ class TestTimestamp:
         assert t2.tz_convert(tz="UTC").freq == t2.freq
 
     def test_new_nonexistent_error(self):
-        with pytest.raises(test_tz_localize_to_utc_single) as e:
-            t1 = Timestamp(year=2001, month=10, day=14, hour=0, minute=30, tz='America/Santiago')
-            
+        msg = "2001-10-14 00:30:00"
+        with pytest.raises(pytz.NonExistentTimeError, match=msg):
+            Timestamp(
+                year=2001, month=10, day=14, hour=0, minute=30, tz="America/Santiago"
+            )
+
+
 class TestTimestampNsOperations:
     def test_nanosecond_string_parsing(self):
         ts = Timestamp("2013-05-01 07:15:45.123456789")
