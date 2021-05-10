@@ -121,12 +121,8 @@ def test_aaa_group_order():
     tm.assert_frame_equal(grouped.get_group(datetime(2013, 1, 5)), df[4::5])
 
 
-def test_aggregate_normal(request, resample_method):
+def test_aggregate_normal(resample_method):
     """Check TimeGrouper's aggregation is identical as normal groupby."""
-    if resample_method == "ohlc":
-        request.node.add_marker(
-            pytest.mark.xfail(reason="DataError: No numeric types to aggregate")
-        )
 
     data = np.random.randn(20, 4)
     normal_df = DataFrame(data, columns=["A", "B", "C", "D"])
