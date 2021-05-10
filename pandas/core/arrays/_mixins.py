@@ -11,23 +11,22 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     F,
     PositionalIndexer2D,
     Shape,
+    type_t,
 )
-from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
+from pandas.util._decorators import doc
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
 )
 
 from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
@@ -67,23 +66,12 @@ def ravel_compat(meth: F) -> F:
     return cast(F, method)
 
 
-class NDArrayBackedExtensionArray(ExtensionArray):
+class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     """
     ExtensionArray that is backed by a single NumPy ndarray.
     """
 
     _ndarray: np.ndarray
-
-    def _from_backing_data(
-        self: NDArrayBackedExtensionArrayT, arr: np.ndarray
-    ) -> NDArrayBackedExtensionArrayT:
-        """
-        Construct a new ExtensionArray `new_array` with `arr` as its _ndarray.
-
-        This should round-trip:
-            self == self._from_backing_data(self._ndarray)
-        """
-        raise AbstractMethodError(self)
 
     def _box_func(self, x):
         """
@@ -140,46 +128,6 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     # ------------------------------------------------------------------------
 
-    # TODO: make this a cache_readonly; for that to work we need to remove
-    #  the _index_data kludge in libreduction
-    @property
-    def shape(self) -> Shape:
-        return self._ndarray.shape
-
-    def __len__(self) -> int:
-        return self.shape[0]
-
-    @cache_readonly
-    def ndim(self) -> int:
-        return len(self.shape)
-
-    @cache_readonly
-    def size(self) -> int:
-        return self._ndarray.size
-
-    @cache_readonly
-    def nbytes(self) -> int:
-        return self._ndarray.nbytes
-
-    def reshape(
-        self: NDArrayBackedExtensionArrayT, *args, **kwargs
-    ) -> NDArrayBackedExtensionArrayT:
-        new_data = self._ndarray.reshape(*args, **kwargs)
-        return self._from_backing_data(new_data)
-
-    def ravel(
-        self: NDArrayBackedExtensionArrayT, *args, **kwargs
-    ) -> NDArrayBackedExtensionArrayT:
-        new_data = self._ndarray.ravel(*args, **kwargs)
-        return self._from_backing_data(new_data)
-
-    @property
-    def T(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
-        new_data = self._ndarray.T
-        return self._from_backing_data(new_data)
-
-    # ------------------------------------------------------------------------
-
     def equals(self, other) -> bool:
         if type(self) is not type(other):
             return False
@@ -205,24 +153,6 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         if not skipna and self.isna().any():
             raise NotImplementedError
         return nargminmax(self, "argmax", axis=axis)
-
-    def copy(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
-        new_data = self._ndarray.copy()
-        return self._from_backing_data(new_data)
-
-    def repeat(
-        self: NDArrayBackedExtensionArrayT, repeats, axis=None
-    ) -> NDArrayBackedExtensionArrayT:
-        """
-        Repeat elements of an array.
-
-        See Also
-        --------
-        numpy.ndarray.repeat
-        """
-        nv.validate_repeat((), {"axis": axis})
-        new_data = self._ndarray.repeat(repeats, axis=axis)
-        return self._from_backing_data(new_data)
 
     def unique(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
         new_data = unique(self._ndarray)
@@ -416,18 +346,6 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         res_values = np.where(mask, self._ndarray, value)
         return self._from_backing_data(res_values)
 
-    def delete(
-        self: NDArrayBackedExtensionArrayT, loc, axis: int = 0
-    ) -> NDArrayBackedExtensionArrayT:
-        res_values = np.delete(self._ndarray, loc, axis=axis)
-        return self._from_backing_data(res_values)
-
-    def swapaxes(
-        self: NDArrayBackedExtensionArrayT, axis1, axis2
-    ) -> NDArrayBackedExtensionArrayT:
-        res_values = self._ndarray.swapaxes(axis1, axis2)
-        return self._from_backing_data(res_values)
-
     # ------------------------------------------------------------------------
     # Additional array methods
     #  These are not part of the EA API, but we implement them because
@@ -465,3 +383,24 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         index_arr = self._from_backing_data(np.asarray(result.index._data))
         index = Index(index_arr, name=result.index.name)
         return Series(result._values, index=index, name=result.name)
+
+    # ------------------------------------------------------------------------
+    # numpy-like methods
+
+    @classmethod
+    def _empty(
+        cls: type_t[NDArrayBackedExtensionArrayT], shape: Shape, dtype: ExtensionDtype
+    ) -> NDArrayBackedExtensionArrayT:
+        """
+        Analogous to np.empty(shape, dtype=dtype)
+
+        Parameters
+        ----------
+        shape : tuple[int]
+        dtype : ExtensionDtype
+        """
+        # The base implementation uses a naive approach to find the dtype
+        #  for the backing ndarray
+        arr = cls._from_sequence([], dtype=dtype)
+        backing = np.empty(shape, dtype=arr._ndarray.dtype)
+        return arr._from_backing_data(backing)

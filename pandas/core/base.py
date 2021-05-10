@@ -2,15 +2,13 @@
 Base and utility classes for pandas objects.
 """
 
+from __future__ import annotations
+
 import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    FrozenSet,
-    Optional,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -18,6 +16,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
+    ArrayLike,
     Dtype,
     DtypeObj,
     IndexLabel,
@@ -64,7 +63,7 @@ import pandas.core.nanops as nanops
 if TYPE_CHECKING:
     from pandas import Categorical
 
-_shared_docs: Dict[str, str] = {}
+_shared_docs: dict[str, str] = {}
 _indexops_doc_kwargs = {
     "klass": "IndexOpsMixin",
     "inplace": "",
@@ -81,7 +80,7 @@ class PandasObject(DirNamesMixin):
     """
 
     # results from calls to methods decorated with cache_readonly get added to _cache
-    _cache: Dict[str, Any]
+    _cache: dict[str, Any]
 
     @property
     def _constructor(self):
@@ -97,7 +96,7 @@ class PandasObject(DirNamesMixin):
         # Should be overwritten by base classes
         return object.__repr__(self)
 
-    def _reset_cache(self, key: Optional[str] = None) -> None:
+    def _reset_cache(self, key: str | None = None) -> None:
         """
         Reset cached properties. If ``key`` is passed, only clears that key.
         """
@@ -170,7 +169,7 @@ class SelectionMixin:
     object sub-classes need to define: obj, exclusions
     """
 
-    _selection: Optional[IndexLabel] = None
+    _selection: IndexLabel | None = None
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 
@@ -286,7 +285,7 @@ class IndexOpsMixin(OpsMixin):
 
     # ndarray compatibility
     __array_priority__ = 1000
-    _hidden_attrs: FrozenSet[str] = frozenset(
+    _hidden_attrs: frozenset[str] = frozenset(
         ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
     )
 
@@ -296,7 +295,7 @@ class IndexOpsMixin(OpsMixin):
         raise AbstractMethodError(self)
 
     @property
-    def _values(self) -> Union[ExtensionArray, np.ndarray]:
+    def _values(self) -> ExtensionArray | np.ndarray:
         # must be defined here as a property for mypy
         raise AbstractMethodError(self)
 
@@ -437,7 +436,7 @@ class IndexOpsMixin(OpsMixin):
 
     def to_numpy(
         self,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
         **kwargs,
@@ -998,7 +997,7 @@ class IndexOpsMixin(OpsMixin):
         values = self._values
 
         if not isinstance(values, np.ndarray):
-            result = values.unique()
+            result: ArrayLike = values.unique()
             if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
                 # GH#31182 Series._values returns EA, unpack for backward-compat
                 if getattr(self.dtype, "tz", None) is None:
@@ -1042,8 +1041,10 @@ class IndexOpsMixin(OpsMixin):
         >>> s.nunique()
         4
         """
-        obj = remove_na_arraylike(self) if dropna else self
-        return len(obj.unique())
+        uniqs = self.unique()
+        if dropna:
+            uniqs = remove_na_arraylike(uniqs)
+        return len(uniqs)
 
     @property
     def is_unique(self) -> bool:
@@ -1139,7 +1140,7 @@ class IndexOpsMixin(OpsMixin):
             """
         ),
     )
-    def factorize(self, sort: bool = False, na_sentinel: Optional[int] = -1):
+    def factorize(self, sort: bool = False, na_sentinel: int | None = -1):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
     _shared_docs[
@@ -1257,5 +1258,5 @@ class IndexOpsMixin(OpsMixin):
         return self[~duplicated]  # type: ignore[index]
 
     @final
-    def _duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
+    def _duplicated(self, keep: str | bool = "first") -> np.ndarray:
         return duplicated(self._values, keep=keep)

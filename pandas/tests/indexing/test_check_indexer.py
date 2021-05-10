@@ -78,10 +78,18 @@ def test_int_raise_missing_values(indexer):
         np.array([1.0, 2.0], dtype="float64"),
         np.array([True, False], dtype=object),
         pd.Index([True, False], dtype=object),
-        pd.array(["a", "b"], dtype="string"),
     ],
 )
 def test_raise_invalid_array_dtypes(indexer):
+    arr = np.array([1, 2, 3])
+
+    msg = "arrays used as indices must be of integer or boolean type"
+    with pytest.raises(IndexError, match=msg):
+        check_array_indexer(arr, indexer)
+
+
+def test_raise_nullable_string_dtype(nullable_string_dtype):
+    indexer = pd.array(["a", "b"], dtype=nullable_string_dtype)
     arr = np.array([1, 2, 3])
 
     msg = "arrays used as indices must be of integer or boolean type"

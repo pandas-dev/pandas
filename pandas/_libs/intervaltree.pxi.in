@@ -73,7 +73,7 @@ cdef class IntervalTree(IntervalMixin):
         self.root = node_cls(self.left, self.right, indices, leaf_size)
 
     @property
-    def left_sorter(self):
+    def left_sorter(self) -> np.ndarray:
         """How to sort the left labels; this is used for binary search
         """
         if self._left_sorter is None:
@@ -81,7 +81,7 @@ cdef class IntervalTree(IntervalMixin):
         return self._left_sorter
 
     @property
-    def right_sorter(self):
+    def right_sorter(self) -> np.ndarray:
         """How to sort the right labels
         """
         if self._right_sorter is None:
@@ -89,7 +89,7 @@ cdef class IntervalTree(IntervalMixin):
         return self._right_sorter
 
     @property
-    def is_overlapping(self):
+    def is_overlapping(self) -> bool:
         """
         Determine if the IntervalTree contains overlapping intervals.
         Cached as self._is_overlapping.
@@ -109,7 +109,7 @@ cdef class IntervalTree(IntervalMixin):
         return self._is_overlapping
 
     @property
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         """
         Return True if the IntervalTree is monotonic increasing (only equal or
         increasing values), else False
@@ -119,7 +119,7 @@ cdef class IntervalTree(IntervalMixin):
         sort_order = np.lexsort(values)
         return is_monotonic(sort_order, False)[0]
 
-    def get_indexer(self, scalar_t[:] target):
+    def get_indexer(self, scalar_t[:] target) -> np.ndarray:
         """Return the positions corresponding to unique intervals that overlap
         with the given array of scalar targets.
         """
@@ -180,7 +180,7 @@ cdef class IntervalTree(IntervalMixin):
                     n_elements=self.root.n_elements))
 
     # compat with IndexEngine interface
-    def clear_mapping(self):
+    def clear_mapping(self) -> None:
         pass
 
 
