@@ -5,7 +5,6 @@ import pytest
 
 from pandas import (
     DataFrame,
-    MultiIndex,
     get_option,
     read_clipboard,
 )
@@ -257,16 +256,34 @@ class TestClipboard:
         # excel data is parsed correctly
         tm.assert_frame_equal(df, df_expected)
 
-    def test_infer_excel_with_multiindex(self, request, mock_clipboard):
+    @pytest.mark.parametrize(
+        "multiindex",
+        [
+            (
+                """\t\t\tcol1\tcol2
+                A\t0\tTrue\t1\tred
+                A\t1\tTrue\t\tblue
+                B\t0\tFalse\t2\tgreen""",
+                [["A", "A", "B"], [0, 1, 0], [True, True, False]],
+            ),
+            (
+                """\t\tcol1\tcol2
+                A\t0\t1\tred
+                A\t1\t\tblue
+                B\t0\t2\tgreen""",
+                [["A", "A", "B"], [0, 1, 0]],
+            ),
+        ],
+    )
+    def test_infer_excel_with_multiindex(self, request, mock_clipboard, multiindex):
         # GH41108
-        text = "\t\tcol1\tcol2\nA\t0\t1\tred\nA\t1\t\tblue\nB\t0\t2\tgreen"
 
-        mock_clipboard[request.node.name] = text
+        # the `.replace()` is because `.dedent()` does not like the leading `\t`
+        mock_clipboard[request.node.name] = multiindex[0].replace(" ", "")
         df = read_clipboard()
-        multiindex = MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 0)])
         df_expected = DataFrame(
             data={"col1": [1, None, 2], "col2": ["red", "blue", "green"]},
-            index=multiindex,
+            index=multiindex[1],
         )
 
         # excel data is parsed correctly
