@@ -14,6 +14,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
+    is_datetime64_any_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -24,7 +25,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_number,
     is_numeric_dtype,
-    is_datetime64_any_dtype
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
