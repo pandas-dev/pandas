@@ -26,6 +26,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import duplicated_int64
+from pandas._libs.missing import NA
 from pandas._typing import (
     AnyArrayLike,
     DtypeObj,
@@ -68,7 +69,6 @@ from pandas.core.dtypes.missing import (
     isna,
 )
 
-from pandas import NA
 import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
