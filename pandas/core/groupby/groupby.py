@@ -1350,32 +1350,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     ):
         raise AbstractMethodError(self)
 
-    @final
     def _cython_transform(
         self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
     ):
-        output: dict[base.OutputKey, ArrayLike] = {}
-
-        for idx, obj in enumerate(self._iterate_slices()):
-            name = obj.name
-            is_numeric = is_numeric_dtype(obj.dtype)
-            if numeric_only and not is_numeric:
-                continue
-
-            try:
-                result = self.grouper._cython_operation(
-                    "transform", obj._values, how, axis, **kwargs
-                )
-            except (NotImplementedError, TypeError):
-                continue
-
-            key = base.OutputKey(label=name, position=idx)
-            output[key] = result
-
-        if not output:
-            raise DataError("No numeric types to aggregate")
-
-        return self._wrap_transformed_output(output)
+        raise AbstractMethodError(self)
 
     @final
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
