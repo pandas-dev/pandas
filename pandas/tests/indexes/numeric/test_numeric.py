@@ -8,11 +8,11 @@ from pandas import (
     Float64Index,
     Index,
     Int64Index,
-    NumIndex,
     Series,
     UInt64Index,
 )
 import pandas._testing as tm
+from pandas.core.api import NumIndex
 from pandas.tests.indexes.common import NumericBase
 
 

@@ -50,7 +50,6 @@ from pandas import (
     Int64Index,
     IntervalIndex,
     MultiIndex,
-    NumIndex,
     RangeIndex,
     Series,
     UInt64Index,
@@ -106,6 +105,7 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
+from pandas.core.api import NumIndex
 from pandas.core.arrays import (
     DatetimeArray,
     PandasArray,
