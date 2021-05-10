@@ -1,3 +1,4 @@
+import io
 import pytest
 
 from pandas.compat._optional import import_optional_dependency
@@ -7,6 +8,7 @@ import pandas._testing as tm
 from pandas.tests.io.excel import xlrd_version
 
 from pandas.io.excel import ExcelFile
+from pandas.io.excel._base import inspect_excel_format
 
 xlrd = pytest.importorskip("xlrd")
 xlwt = pytest.importorskip("xlwt")
@@ -79,20 +81,16 @@ def test_read_excel_warning_with_xlsx_file(datapath):
             pd.read_excel(path, "Sheet1", engine=None)
 
 
-def test_read_old_xls_files():
+@pytest.mark.parametrize(
+    "file_header",
+    [
+        b"\x09\x00\x04\x00\x07\x00\x10\x00",
+        b"\x09\x02\x06\x00\x00\x00\x10\x00",
+        b"\x09\x04\x06\x00\x00\x00\x10\x00",
+        b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",
+    ]
+)
+def test_read_old_xls_files(file_header):
     # GH 41226
-    import io
-    import struct
-
-    headers = {
-        "biff2": b"\x09\x00\x04\x00\x07\x00\x10\x00",
-        "biff3": b"\x09\x02\x06\x00\x00\x00\x10\x00",
-        "biff4": b"\x09\x04\x06\x00\x00\x00\x10\x00",
-        "biff5": b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",
-    }
-    body = b"\x00" * 16 + b"\x3e\x00\x03\x00\xfe\xff"  # Required for biff5
-    for file_format, header in headers.items():
-        f = io.BytesIO(header + body)
-        with pytest.raises(struct.error, match="unpack requires a buffer "):
-            # If struct.error is raised, file has passed xlrd's filetype checks
-            pd.read_excel(f)
+    f = io.BytesIO(file_header)
+    assert inspect_excel_format(f) == "xls"
