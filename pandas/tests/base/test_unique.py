@@ -24,9 +24,9 @@ def test_unique(index_or_series_obj):
         expected = pd.MultiIndex.from_tuples(unique_values)
         expected.names = obj.names
         tm.assert_index_equal(result, expected, exact=True)
-    elif isinstance(obj, pd.NumIndex):
+    elif type(obj) is pd.NumIndex:
         expected = pd.NumIndex(unique_values, dtype=obj.dtype)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
     elif isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
         if is_datetime64tz_dtype(obj.dtype):
@@ -67,7 +67,7 @@ def test_unique_null(null_obj, index_or_series_obj):
 
     if type(obj) is pd.NumIndex:
         expected = pd.NumIndex(unique_values, dtype=obj.dtype)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
     elif isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
         if is_datetime64tz_dtype(obj.dtype):

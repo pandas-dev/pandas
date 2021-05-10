@@ -288,6 +288,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         dtype = pandas_dtype(dtype)
 
         cat = self.categories
+        # the super method always returns Int64Index, UInt64Index and Float64Index
+        # but if e.g. the categories are a NumIndex with dtype float32, we want to
+        # return an index with the same dtype as self.categories.
         if cat._is_num_index():
             assert isinstance(cat, NumIndex)  # mypy complaint fix
             try:

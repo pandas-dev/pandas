@@ -46,6 +46,7 @@ COMPATIBLE_INCONSISTENT_PAIRS = [
     (np.float32, np.uint32),
     (np.float32, np.uint16),
     (np.float32, np.uint8),
+    (np.float32, np.float64),
 ]
 
 
