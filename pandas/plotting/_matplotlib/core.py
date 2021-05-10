@@ -7,11 +7,7 @@ from collections import (
 from typing import (
     TYPE_CHECKING,
     Hashable,
-    List,
-    Optional,
     Sequence,
-    Tuple,
-    Union,
 )
 import warnings
 
@@ -109,7 +105,7 @@ class MPLPlot:
         data,
         kind=None,
         by=None,
-        subplots: Union[bool, Sequence[Sequence[str]]] = False,
+        subplots: bool | Sequence[Sequence[str]] = False,
         sharex=None,
         sharey=False,
         use_index=True,
@@ -229,9 +225,8 @@ class MPLPlot:
         self._validate_color_args()
 
     def _validate_subplots_kwarg(
-        self, subplots: Union[bool, Sequence[Sequence[str]]]
-    ) -> Union[bool, 
-[Tuple[int, ...]]]:
+        self, subplots: bool | Sequence[Sequence[str]]
+    ) -> bool | [tuple[int, ...]]:
         """
         Validate the subplots parameter
 

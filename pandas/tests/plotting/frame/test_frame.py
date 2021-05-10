@@ -919,8 +919,7 @@ class TestDataFramePlots(TestPlotBase):
         result = df.plot.box(return_type="both")
         self._check_box_return_type(result, "both")
 
-    @td.
-
+    @td.skip_if_no_scipy
     def test_kde_df(self):
         df = DataFrame(np.random.randn(100, 4))
         ax = _check_plot_works(df.plot, kind="kde")
