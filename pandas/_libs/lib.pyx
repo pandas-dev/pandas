@@ -679,11 +679,14 @@ cpdef ndarray[object] ensure_string_array(
         arr,
         object na_value=np.nan,
         bint convert_na_value=True,
+        bint coerce=True,
         bint copy=True,
         bint skipna=True,
 ):
     """
-    Returns a new numpy array with object dtype and only strings and na values.
+    Checks that all elements in numpy are string or null and returns a new numpy array
+    with object dtype and only strings and na values if so. Otherwise,
+    raise a ValueError.
 
     Parameters
     ----------
@@ -693,6 +696,9 @@ cpdef ndarray[object] ensure_string_array(
         The value to use for na. For example, np.nan or pd.NA.
     convert_na_value : bool, default True
         If False, existing na values will be used unchanged in the new array.
+    coerce : bool, default True
+        Whether to coerce non-null non-string elements to strings.
+        Will raise ValueError otherwise.
     copy : bool, default True
         Whether to ensure that a new array is returned.
     skipna : bool, default True
@@ -724,7 +730,10 @@ cpdef ndarray[object] ensure_string_array(
             continue
 
         if not checknull(val):
-            result[i] = str(val)
+            if coerce:
+                result[i] = str(val)
+            else:
+                raise ValueError("Non-string element encountered in array.")
         else:
             if convert_na_value:
                 val = na_value
@@ -1835,10 +1844,6 @@ cdef class StringValidator(Validator):
     cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.str_)
 
-    cdef bint is_valid_null(self, object value) except -1:
-        # We deliberately exclude None / NaN here since StringArray uses NA
-        return value is C_NA
-
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
     cdef:
@@ -2059,7 +2064,7 @@ def maybe_convert_numeric(
         upcasting for ints with nulls to float64.
     Returns
     -------
-    np.ndarray
+    np.ndarray or tuple of converted values and its mask
         Array of converted object values to numerical ones.
 
     Optional[np.ndarray]
@@ -2218,6 +2223,11 @@ def maybe_convert_numeric(
 
     if seen.check_uint64_conflict():
         return (values, None)
+
+    # This occurs since we disabled float nulls showing as null in anticipation
+    # of seeing ints that were never seen. So then, we return float
+    if allow_null_in_int and seen.null_ and not seen.int_:
+        seen.float_ = True
 
     # This occurs since we disabled float nulls showing as null in anticipation
     # of seeing ints that were never seen. So then, we return float

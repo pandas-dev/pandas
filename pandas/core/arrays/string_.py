@@ -144,10 +144,17 @@ class StringArray(PandasArray):
         .. warning::
 
            Currently, this expects an object-dtype ndarray
-           where the elements are Python strings or :attr:`pandas.NA`.
+           where the elements are Python strings
+           or nan-likes(``None``, ``nan``, ``NaT``, ``NA``, Decimal("NaN")).
            This may change without warning in the future. Use
            :meth:`pandas.array` with ``dtype="string"`` for a stable way of
            creating a `StringArray` from any sequence.
+
+        .. versionchanged:: 1.3
+
+           StringArray now accepts nan-likes in the constructor in addition
+           to strings, whereas it only accepted strings and :attr:`pandas.NA`
+           before.
 
     copy : bool, default False
         Whether to copy the array of data.
@@ -208,21 +215,30 @@ class StringArray(PandasArray):
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
+        if not isinstance(values, type(self)):
+            self._validate()
         # error: Incompatible types in assignment (expression has type "StringDtype",
         # variable has type "PandasDtype")
         NDArrayBacked.__init__(self, self._ndarray, StringDtype())
-        if not isinstance(values, type(self)):
-            self._validate()
 
     def _validate(self):
         """Validate that we only store NA or strings."""
-        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
         if self._ndarray.dtype != "object":
             raise ValueError(
                 "StringArray requires a sequence of strings or pandas.NA. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
+        try:
+            lib.ensure_string_array(
+                self._ndarray, na_value=StringDtype.na_value, coerce=False, copy=False
+            ),
+            NDArrayBacked.__init__(
+                self,
+                self._ndarray,
+                StringDtype(),
+            )
+        except ValueError:
+            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
