@@ -43,6 +43,7 @@ from pandas._libs import (
     lib,
     properties,
 )
+from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
@@ -6142,7 +6143,6 @@ class DataFrame(NDFrame, OpsMixin):
         4     True
         dtype: bool
         """
-        from pandas._libs.hashtable import duplicated_int64
 
         if self.empty:
             return self._constructor_sliced(dtype=bool)
@@ -6182,7 +6182,7 @@ class DataFrame(NDFrame, OpsMixin):
             sort=False,
             xnull=False,
         )
-        result = self._constructor_sliced(duplicated_int64(ids, keep), index=self.index)
+        result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
         return result.__finalize__(self, method="duplicated")
 
     # ----------------------------------------------------------------------
