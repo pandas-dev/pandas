@@ -14,8 +14,10 @@ Copyright (c) 2020 Evan Miller
 #include <math.h>
 #include <limits.h>
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #include "win_iconv.h"
+#elif __APPLE__
+#include "mac_iconv.h"
 #else
 #include "unix_iconv.h"
 #endif

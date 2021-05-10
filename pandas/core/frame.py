@@ -2346,13 +2346,12 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         For more information of R serialization data types, see docs on
-        `rda`_ and `rds`_ formats.
+        rda_ and rds_ formats.
 
-        .. _rda: https://www.rdocumentation.org/packages/base/versions/3.6.2/
-        topics/save
-
-        .. _rds: https://www.rdocumentation.org/packages/base/versions/3.6.2/
-        topics/readRDS
+        .. _rda: https://www.rdocumentation.org/packages/base/versions/3.6.2/\
+topics/save
+        .. _rds: https://www.rdocumentation.org/packages/base/versions/3.6.2/\
+topics/readRDS
 
         Examples
         --------
