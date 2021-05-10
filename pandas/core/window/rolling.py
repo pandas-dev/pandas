@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Hashable,
 )
 import warnings
 
@@ -109,7 +110,7 @@ class BaseWindow(SelectionMixin):
     """Provides utilities for performing windowing operations."""
 
     _attributes: list[str] = []
-    exclusions: set[str] = set()
+    exclusions: frozenset[Hashable] = frozenset()
 
     def __init__(
         self,
