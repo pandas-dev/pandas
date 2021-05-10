@@ -230,16 +230,21 @@ class Contains:
 
 class Split:
 
-    params = [True, False]
-    param_names = ["expand"]
+    params = (["str", "string", "arrow_string"], [True, False])
+    param_names = ["dtype", "expand"]
 
-    def setup(self, expand):
-        self.s = Series(tm.makeStringIndex(10 ** 5)).str.join("--")
+    def setup(self, dtype, expand):
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
 
-    def time_split(self, expand):
+        try:
+            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype).str.join("--")
+        except ImportError:
+            raise NotImplementedError
+
+    def time_split(self, dtype, expand):
         self.s.str.split("--", expand=expand)
 
-    def time_rsplit(self, expand):
+    def time_rsplit(self, dtype, expand):
         self.s.str.rsplit("--", expand=expand)
 
 
