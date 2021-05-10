@@ -101,7 +101,7 @@ class BoxPlot(LinePlot):
         self._boxes_c = colors[0]
         self._whiskers_c = colors[0]
         self._medians_c = colors[2]
-        self._caps_c = "k"  # mpl default
+        self._caps_c = colors[0]
 
     def _get_colors(self, num_colors=None, color_kwds="color"):
         pass
