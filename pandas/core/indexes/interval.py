@@ -11,10 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
-    List,
-    Optional,
-    Tuple,
-    Union,
     cast,
 )
 
@@ -283,11 +279,11 @@ class IntervalIndex(ExtensionIndex):
         cls,
         data,
         closed=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
         verify_integrity: bool = True,
-    ):
+    ) -> IntervalIndex:
 
         name = maybe_extract_name(name, data, cls)
 
@@ -322,10 +318,10 @@ class IntervalIndex(ExtensionIndex):
         cls,
         breaks,
         closed: str = "right",
-        name=None,
+        name: Hashable = None,
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
-    ):
+        dtype: Dtype | None = None,
+    ) -> IntervalIndex:
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_breaks(
                 breaks, closed=closed, copy=copy, dtype=dtype
@@ -353,10 +349,10 @@ class IntervalIndex(ExtensionIndex):
         left,
         right,
         closed: str = "right",
-        name=None,
+        name: Hashable = None,
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
-    ):
+        dtype: Dtype | None = None,
+    ) -> IntervalIndex:
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_arrays(
                 left, right, closed, copy=copy, dtype=dtype
@@ -383,10 +379,10 @@ class IntervalIndex(ExtensionIndex):
         cls,
         data,
         closed: str = "right",
-        name=None,
+        name: Hashable = None,
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
-    ):
+        dtype: Dtype | None = None,
+    ) -> IntervalIndex:
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)
         return cls._simple_new(arr, name=name)
@@ -394,7 +390,7 @@ class IntervalIndex(ExtensionIndex):
     # --------------------------------------------------------------------
 
     @cache_readonly
-    def _engine(self):
+    def _engine(self) -> IntervalTree:
         left = self._maybe_convert_i8(self.left)
         right = self._maybe_convert_i8(self.right)
         return IntervalTree(left, right, closed=self.closed)
@@ -652,8 +648,8 @@ class IntervalIndex(ExtensionIndex):
     # Indexing Methods
 
     def get_loc(
-        self, key, method: Optional[str] = None, tolerance=None
-    ) -> Union[int, slice, np.ndarray]:
+        self, key, method: str | None = None, tolerance=None
+    ) -> int | slice | np.ndarray:
         """
         Get integer location, slice or boolean mask for requested label.
 
@@ -721,10 +717,11 @@ class IntervalIndex(ExtensionIndex):
     def _get_indexer(
         self,
         target: Index,
-        method: Optional[str] = None,
-        limit: Optional[int] = None,
-        tolerance: Optional[Any] = None,
+        method: str | None = None,
+        limit: int | None = None,
+        tolerance: Any | None = None,
     ) -> np.ndarray:
+        # returned ndarray is np.intp
 
         if isinstance(target, IntervalIndex):
             # equal indexes -> 1:1 positional match
@@ -756,7 +753,8 @@ class IntervalIndex(ExtensionIndex):
         return ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target: Index) -> Tuple[np.ndarray, np.ndarray]:
+    def get_indexer_non_unique(self, target: Index) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
         target = ensure_index(target)
 
         if isinstance(target, IntervalIndex) and not self._should_compare(target):
@@ -775,7 +773,8 @@ class IntervalIndex(ExtensionIndex):
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
-    def _get_indexer_pointwise(self, target: Index) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_indexer_pointwise(self, target: Index) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
         """
         pointwise implementation for get_indexer and get_indexer_non_unique.
         """
@@ -882,7 +881,7 @@ class IntervalIndex(ExtensionIndex):
         arr.putmask(mask, value)
         return type(self)._simple_new(arr, name=self.name)
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         """
         Return a new IntervalIndex inserting new item at location. Follows
         Python list.append semantics for negative values.  Only Interval
@@ -911,7 +910,7 @@ class IntervalIndex(ExtensionIndex):
     # Rendering Methods
     # __repr__ associated methods are based on MultiIndex
 
-    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
+    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
         return header + list(self._format_native_types(na_rep=na_rep))
 
     def _format_native_types(self, na_rep="NaN", quoting=None, **kwargs):
@@ -1081,8 +1080,8 @@ def _is_type_compatible(a, b) -> bool:
 
 
 def interval_range(
-    start=None, end=None, periods=None, freq=None, name=None, closed="right"
-):
+    start=None, end=None, periods=None, freq=None, name: Hashable = None, closed="right"
+) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
 

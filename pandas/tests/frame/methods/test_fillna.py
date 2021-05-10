@@ -531,6 +531,13 @@ class TestFillNA:
         # TODO(wesm): unused?
         result = empty_float.fillna(value=0)  # noqa
 
+    def test_fillna_downcast_dict(self):
+        # GH#40809
+        df = DataFrame({"col1": [1, np.nan]})
+        result = df.fillna({"col1": 2}, downcast={"col1": "int64"})
+        expected = DataFrame({"col1": [1, 2]})
+        tm.assert_frame_equal(result, expected)
+
 
 def test_fillna_nonconsolidated_frame():
     # https://github.com/pandas-dev/pandas/issues/36495

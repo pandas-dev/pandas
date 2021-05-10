@@ -9,9 +9,7 @@ from typing import (
     Callable,
     Hashable,
     List,
-    Optional,
-    Tuple,
-    Type,
+    cast,
 )
 import warnings
 
@@ -98,6 +96,7 @@ class RangeIndex(NumericIndex):
 
     _typ = "rangeindex"
     _engine_type = libindex.Int64Engine
+    _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _can_hold_na = False
     _range: range
 
@@ -109,17 +108,11 @@ class RangeIndex(NumericIndex):
         start=None,
         stop=None,
         step=None,
-        dtype: Optional[Dtype] = None,
-        copy=False,
-        name=None,
-    ):
-
-        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected
-        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object]]"
-        cls._validate_dtype(dtype)  # type: ignore[arg-type]
+        dtype: Dtype | None = None,
+        copy: bool = False,
+        name: Hashable = None,
+    ) -> RangeIndex:
+        cls._validate_dtype(dtype)
         name = maybe_extract_name(name, start, cls)
 
         # RangeIndex
@@ -148,7 +141,7 @@ class RangeIndex(NumericIndex):
 
     @classmethod
     def from_range(
-        cls, data: range, name=None, dtype: Optional[Dtype] = None
+        cls, data: range, name=None, dtype: Dtype | None = None
     ) -> RangeIndex:
         """
         Create RangeIndex from a range object.
@@ -162,13 +155,7 @@ class RangeIndex(NumericIndex):
                 f"{cls.__name__}(...) must be called with object coercible to a "
                 f"range, {repr(data)} was passed"
             )
-
-        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected
-        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object]]"
-        cls._validate_dtype(dtype)  # type: ignore[arg-type]
+        cls._validate_dtype(dtype)
         return cls._simple_new(data, name=name)
 
     @classmethod
@@ -186,7 +173,7 @@ class RangeIndex(NumericIndex):
     # --------------------------------------------------------------------
 
     @cache_readonly
-    def _constructor(self) -> Type[Int64Index]:
+    def _constructor(self) -> type[Int64Index]:
         """ return the class to use for construction """
         return Int64Index
 
@@ -236,7 +223,7 @@ class RangeIndex(NumericIndex):
         # we are formatting thru the attributes
         return None
 
-    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
+    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
         if not len(self._range):
             return header
         first_val_str = str(self._range[0])
@@ -253,7 +240,7 @@ class RangeIndex(NumericIndex):
     )
 
     @property
-    def start(self):
+    def start(self) -> int:
         """
         The value of the `start` parameter (``0`` if this was not supplied).
         """
@@ -261,7 +248,7 @@ class RangeIndex(NumericIndex):
         return self._range.start
 
     @property
-    def _start(self):
+    def _start(self) -> int:
         """
         The value of the `start` parameter (``0`` if this was not supplied).
 
@@ -276,14 +263,14 @@ class RangeIndex(NumericIndex):
         return self.start
 
     @property
-    def stop(self):
+    def stop(self) -> int:
         """
         The value of the `stop` parameter.
         """
         return self._range.stop
 
     @property
-    def _stop(self):
+    def _stop(self) -> int:
         """
         The value of the `stop` parameter.
 
@@ -299,7 +286,7 @@ class RangeIndex(NumericIndex):
         return self.stop
 
     @property
-    def step(self):
+    def step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
         """
@@ -307,7 +294,7 @@ class RangeIndex(NumericIndex):
         return self._range.step
 
     @property
-    def _step(self):
+    def _step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
 
@@ -405,10 +392,11 @@ class RangeIndex(NumericIndex):
     def _get_indexer(
         self,
         target: Index,
-        method: Optional[str] = None,
-        limit: Optional[int] = None,
+        method: str | None = None,
+        limit: int | None = None,
         tolerance=None,
     ) -> np.ndarray:
+        # -> np.ndarray[np.intp]
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -441,9 +429,8 @@ class RangeIndex(NumericIndex):
     def repeat(self, repeats, axis=None) -> Int64Index:
         return self._int64index.repeat(repeats, axis=axis)
 
-    def delete(self, loc) -> Int64Index:
-        # error: Incompatible return value type (got "Index", expected "Int64Index")
-        return self._int64index.delete(loc)  # type: ignore[return-value]
+    def delete(self, loc) -> Int64Index:  # type: ignore[override]
+        return self._int64index.delete(loc)
 
     def take(
         self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
@@ -482,7 +469,7 @@ class RangeIndex(NumericIndex):
         self,
         name: Hashable = None,
         deep: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         names=None,
     ):
         name = self._validate_names(name=name, names=names, deep=deep)[0]
@@ -526,22 +513,27 @@ class RangeIndex(NumericIndex):
 
         Returns
         -------
-        argsorted : numpy array
+        np.ndarray[np.intp]
 
         See Also
         --------
         numpy.ndarray.argsort
         """
+        ascending = kwargs.pop("ascending", True)  # EA compat
         nv.validate_argsort(args, kwargs)
 
         if self._range.step > 0:
-            return np.arange(len(self))
+            result = np.arange(len(self), dtype=np.intp)
         else:
-            return np.arange(len(self) - 1, -1, -1)
+            result = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
+
+        if not ascending:
+            result = result[::-1]
+        return result
 
     def factorize(
-        self, sort: bool = False, na_sentinel: Optional[int] = -1
-    ) -> Tuple[np.ndarray, RangeIndex]:
+        self, sort: bool = False, na_sentinel: int | None = -1
+    ) -> tuple[np.ndarray, RangeIndex]:
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:
@@ -583,7 +575,7 @@ class RangeIndex(NumericIndex):
         # solve intersection problem
         # performance hint: for identical step sizes, could use
         # cheaper alternative
-        gcd, s, t = self._extended_gcd(first.step, second.step)
+        gcd, s, _ = self._extended_gcd(first.step, second.step)
 
         # check whether element sets intersect
         if (first.start - second.start) % gcd:
@@ -618,7 +610,7 @@ class RangeIndex(NumericIndex):
         no_steps = (upper_limit - self.start) // abs(self.step)
         return self.start + abs(self.step) * no_steps
 
-    def _extended_gcd(self, a, b):
+    def _extended_gcd(self, a: int, b: int) -> tuple[int, int, int]:
         """
         Extended Euclidean algorithms to solve Bezout's identity:
            a*x + b*y = gcd(x, y)
@@ -744,7 +736,7 @@ class RangeIndex(NumericIndex):
             new_index = new_index[::-1]
         return new_index
 
-    def symmetric_difference(self, other, result_name=None, sort=None):
+    def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
         if not isinstance(other, RangeIndex) or sort is not None:
             return super().symmetric_difference(other, result_name, sort)
 
@@ -758,7 +750,7 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
-    def _concat(self, indexes, name):
+    def _concat(self, indexes: list[Index], name: Hashable) -> Index:
         """
         Overriding parent method for the case of all RangeIndex instances.
 
@@ -773,13 +765,15 @@ class RangeIndex(NumericIndex):
         elif len(indexes) == 1:
             return indexes[0]
 
+        rng_indexes = cast(List[RangeIndex], indexes)
+
         start = step = next_ = None
 
         # Filter the empty indexes
-        non_empty_indexes = [obj for obj in indexes if len(obj)]
+        non_empty_indexes = [obj for obj in rng_indexes if len(obj)]
 
         for obj in non_empty_indexes:
-            rng: range = obj._range
+            rng = obj._range
 
             if start is None:
                 # This is set by the first non-empty index
@@ -789,7 +783,8 @@ class RangeIndex(NumericIndex):
             elif step is None:
                 # First non-empty index had only one element
                 if rng.start == start:
-                    result = Int64Index(np.concatenate([x._values for x in indexes]))
+                    values = np.concatenate([x._values for x in rng_indexes])
+                    result = Int64Index(values)
                     return result.rename(name)
 
                 step = rng.start - start
@@ -798,7 +793,7 @@ class RangeIndex(NumericIndex):
                 next_ is not None and rng.start != next_
             )
             if non_consecutive:
-                result = Int64Index(np.concatenate([x._values for x in indexes]))
+                result = Int64Index(np.concatenate([x._values for x in rng_indexes]))
                 return result.rename(name)
 
             if step is not None:
@@ -920,11 +915,12 @@ class RangeIndex(NumericIndex):
         ]:
             return op(self._int64index, other)
 
-        step: Optional[Callable] = None
+        step: Callable | None = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
-        other = extract_array(other, extract_numpy=True)
+        # TODO: if other is a RangeIndex we may have more efficient options
+        other = extract_array(other, extract_numpy=True, extract_range=True)
         attrs = self._get_attributes_dict()
 
         left, right = self, other

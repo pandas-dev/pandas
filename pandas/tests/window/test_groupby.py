@@ -588,23 +588,31 @@ class TestRolling:
         with pytest.raises(ValueError, match=f"{key} must be monotonic"):
             df.groupby("c").rolling("60min", **rollings)
 
-    def test_groupby_rolling_group_keys(self):
+    @pytest.mark.parametrize("group_keys", [True, False])
+    def test_groupby_rolling_group_keys(self, group_keys):
         # GH 37641
+        # GH 38523: GH 37641 actually was not a bug.
+        # group_keys only applies to groupby.apply directly
         arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
         index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
 
         s = Series([1, 2, 3], index=index)
-        result = s.groupby(["idx1", "idx2"], group_keys=False).rolling(1).mean()
+        result = s.groupby(["idx1", "idx2"], group_keys=group_keys).rolling(1).mean()
         expected = Series(
             [1.0, 2.0, 3.0],
             index=MultiIndex.from_tuples(
-                [("val1", "val1"), ("val1", "val1"), ("val2", "val2")],
-                names=["idx1", "idx2"],
+                [
+                    ("val1", "val1", "val1", "val1"),
+                    ("val1", "val1", "val1", "val1"),
+                    ("val2", "val2", "val2", "val2"),
+                ],
+                names=["idx1", "idx2", "idx1", "idx2"],
             ),
         )
         tm.assert_series_equal(result, expected)
 
     def test_groupby_rolling_index_level_and_column_label(self):
+        # The groupby keys should not appear as a resulting column
         arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
         index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
 
@@ -613,7 +621,12 @@ class TestRolling:
         expected = DataFrame(
             {"B": [0.0, 1.0, 2.0]},
             index=MultiIndex.from_tuples(
-                [("val1", 1), ("val1", 1), ("val2", 2)], names=["idx1", "A"]
+                [
+                    ("val1", 1, "val1", "val1"),
+                    ("val1", 1, "val1", "val1"),
+                    ("val2", 2, "val2", "val2"),
+                ],
+                names=["idx1", "A", "idx1", "idx2"],
             ),
         )
         tm.assert_frame_equal(result, expected)
@@ -694,6 +707,73 @@ class TestRolling:
         result = r.sum()
         assert "A" not in result.columns
         tm.assert_frame_equal(g.obj, original_obj)
+
+    def test_groupby_level(self):
+        # GH 38523, 38787
+        arrays = [
+            ["Falcon", "Falcon", "Parrot", "Parrot"],
+            ["Captive", "Wild", "Captive", "Wild"],
+        ]
+        index = MultiIndex.from_arrays(arrays, names=("Animal", "Type"))
+        df = DataFrame({"Max Speed": [390.0, 350.0, 30.0, 20.0]}, index=index)
+        result = df.groupby(level=0)["Max Speed"].rolling(2).sum()
+        expected = Series(
+            [np.nan, 740.0, np.nan, 50.0],
+            index=MultiIndex.from_tuples(
+                [
+                    ("Falcon", "Falcon", "Captive"),
+                    ("Falcon", "Falcon", "Wild"),
+                    ("Parrot", "Parrot", "Captive"),
+                    ("Parrot", "Parrot", "Wild"),
+                ],
+                names=["Animal", "Animal", "Type"],
+            ),
+            name="Max Speed",
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "by, expected_data",
+        [
+            [["id"], {"num": [100.0, 150.0, 150.0, 200.0]}],
+            [
+                ["id", "index"],
+                {
+                    "date": [
+                        Timestamp("2018-01-01"),
+                        Timestamp("2018-01-02"),
+                        Timestamp("2018-01-01"),
+                        Timestamp("2018-01-02"),
+                    ],
+                    "num": [100.0, 200.0, 150.0, 250.0],
+                },
+            ],
+        ],
+    )
+    def test_as_index_false(self, by, expected_data):
+        # GH 39433
+        data = [
+            ["A", "2018-01-01", 100.0],
+            ["A", "2018-01-02", 200.0],
+            ["B", "2018-01-01", 150.0],
+            ["B", "2018-01-02", 250.0],
+        ]
+        df = DataFrame(data, columns=["id", "date", "num"])
+        df["date"] = to_datetime(df["date"])
+        df = df.set_index(["date"])
+
+        gp_by = [getattr(df, attr) for attr in by]
+        result = (
+            df.groupby(gp_by, as_index=False).rolling(window=2, min_periods=1).mean()
+        )
+
+        expected = {"id": ["A", "A", "B", "B"]}
+        expected.update(expected_data)
+        expected = DataFrame(
+            expected,
+            index=df.index,
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 class TestExpanding:
@@ -845,4 +925,64 @@ class TestEWM:
         tm.assert_frame_equal(result, expected)
 
         expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
+        tm.assert_frame_equal(result, expected)
+
+    def test_times(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        expected = DataFrame(
+            {
+                "B": [
+                    0.0,
+                    0.507534,
+                    1.020088,
+                    1.537661,
+                    0.0,
+                    0.567395,
+                    1.221209,
+                    0.0,
+                    0.653141,
+                    1.195003,
+                ]
+            },
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", 0),
+                    ("a", 3),
+                    ("a", 6),
+                    ("a", 9),
+                    ("b", 1),
+                    ("b", 4),
+                    ("b", 7),
+                    ("c", 2),
+                    ("c", 5),
+                    ("c", 8),
+                ],
+                names=["A", None],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_times_vs_apply(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        expected = (
+            times_frame.groupby("A")
+            .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
+            .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
+            .reset_index(drop=True)
+        )
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    def test_times_array(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        expected = (
+            times_frame.groupby("A")
+            .ewm(halflife=halflife, times=times_frame["C"].values)
+            .mean()
+        )
         tm.assert_frame_equal(result, expected)

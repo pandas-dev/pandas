@@ -25,10 +25,11 @@ import sys
 from typing import (
     Any,
     Mapping,
-    Type,
 )
 
 import numpy as np
+
+from pandas._typing import type_t
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
@@ -39,7 +40,6 @@ from pandas.api.extensions import (
     ExtensionDtype,
 )
 from pandas.api.types import is_bool_dtype
-from pandas.core.arrays.string_arrow import ArrowStringDtype
 
 
 class JSONDtype(ExtensionDtype):
@@ -48,7 +48,7 @@ class JSONDtype(ExtensionDtype):
     na_value: Mapping[str, Any] = UserDict()
 
     @classmethod
-    def construct_array_type(cls) -> Type[JSONArray]:
+    def construct_array_type(cls) -> type_t[JSONArray]:
         """
         Return the array type associated with this dtype.
 
@@ -195,7 +195,7 @@ class JSONArray(ExtensionArray):
             if copy:
                 return self.copy()
             return self
-        elif isinstance(dtype, (StringDtype, ArrowStringDtype)):
+        elif isinstance(dtype, StringDtype):
             value = self.astype(str)  # numpy doesn'y like nested dicts
             return dtype.construct_array_type()._from_sequence(value, copy=False)
 
