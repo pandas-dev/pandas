@@ -201,6 +201,14 @@ class TestSetitemSlices:
         series[::2] = 0
         assert (series[::2] == 0).all()
 
+    def test_setitem_multiindex_slice(self, indexer_sli):
+        # GH 8856
+        mi = MultiIndex.from_product(([0, 1], list("abcde")))
+        result = Series(np.arange(10, dtype=np.int64), mi)
+        indexer_sli(result)[::4] = 100
+        expected = Series([100, 1, 2, 3, 100, 5, 6, 7, 100, 9], mi)
+        tm.assert_series_equal(result, expected)
+
 
 class TestSetitemBooleanMask:
     def test_setitem_boolean(self, string_series):
