@@ -588,6 +588,9 @@ for name, data in ext_data.items():
     include = data.get("include", [])
     include.append(numpy.get_include())
 
+    if name == "io.rdata._rdata" and is_platform_mac():
+        extra_link_args.append(["-liconv"])
+
     obj = Extension(
         f"pandas.{name}",
         sources=sources,
@@ -600,6 +603,10 @@ for name, data in ext_data.items():
     )
 
     extensions.append(obj)
+
+    if name == "io.rdata._rdata" and is_platform_mac():
+        extra_link_args.remove("-liconv")
+
 
 # ----------------------------------------------------------------------
 # ujson
