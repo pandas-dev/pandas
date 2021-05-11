@@ -19,7 +19,7 @@ Copyright (c) 2020 Evan Miller
 #elif __linux__
 #include "unix_iconv.h"
 #else
-#include "<iconv.h>"
+#include <iconv.h>
 #endif
 
 #include <errno.h>
