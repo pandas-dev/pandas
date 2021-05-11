@@ -956,9 +956,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         # shortcut for select a single-dim from a 2-dim BM
         bp = BlockPlacement(slice(0, len(values)))
-        nv = maybe_coerce_values(values)
-        assert nv is values  # just checking
-        values = nv
+        values = maybe_coerce_values(values)
         nb = type(block)(values, placement=bp, ndim=1)
         return SingleBlockManager(nb, self.axes[1])
 
