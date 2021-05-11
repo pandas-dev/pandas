@@ -16,10 +16,10 @@ Copyright (c) 2020 Evan Miller
 
 #if defined(_WIN32)
 #include "win_iconv.h"
-#elif __APPLE__
-#include "mac_iconv.h"
-#else
+#elif __linux__
 #include "unix_iconv.h"
+#else
+#include "<iconv.h>"
 #endif
 
 #include <errno.h>

@@ -250,18 +250,31 @@ cdef extern from 'rdata.h':
         rdata_writer_t *writer
     )
 
-    cdef extern from "<sys/stat.h>":
-        int open(const char *path, int oflag, int mode)
-
     IF UNAME_SYSNAME == "Windows":
+        cdef extern from "<sys/stat.h>":
+            int _sopen(const char *path, int oflag, int shflag, int pmode)
+
         cdef extern from "<io.h>":
-            int close(int fd)
-            ssize_t write(int fd, const void *buf, size_t nbyte)
+            int _close(int fd)
+            ssize_t _write(int fd, const void *buf, size_t nbyte)
+
+        cdef extern from "<fcntl.h>" nogil:
+            enum: _O_CREAT
+            enum: _O_WRONLY
+            enum: _O_BINARY
+            enum: _O_U8TEXT
+            enum: _SH_DENYNO
+            enum: _S_IREAD
+            enum: _S_IWRITE
+
     ELSE:
+        cdef extern from "<sys/stat.h>":
+            int open(const char *path, int oflag, int mode)
+
         cdef extern from "<unistd.h>":
             int close(int fd)
             ssize_t write(int fd, const void *buf, size_t nbyte)
 
-    cdef extern from "<fcntl.h>" nogil:
-        enum: O_CREAT
-        enum: O_WRONLY
+        cdef extern from "<fcntl.h>" nogil:
+            enum: O_CREAT
+            enum: O_WRONLY

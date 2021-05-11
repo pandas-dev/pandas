@@ -303,7 +303,13 @@ class LibrdataWriterError(Exception):
 
 cdef ssize_t write_data(const void *bytes, size_t len, void *ctx):
     cdef int fd = (<int*>ctx)[0]
-    return write(fd, bytes, len)
+
+    IF UNAME_SYSNAME == "Windows":
+        result = _write(fd, bytes, len)
+    ELSE:
+        result = write(fd, bytes, len)
+
+    return result
 
 cdef class LibrdataWriter():
     """
@@ -319,7 +325,8 @@ cdef class LibrdataWriter():
         dict rdict
         dict rformats
         dict rtypes
-        str tbl_name
+        bytes file_name
+        bytes tbl_name
         rdata_writer_t *writer
         rdata_column_t *py_col
 
@@ -355,7 +362,8 @@ cdef class LibrdataWriter():
     cpdef write_rdata(self, rfile, rdict, rformat, tbl_name=None):
 
         self.rdict = rdict
-        self.tbl_name = tbl_name
+        self.file_name = rfile.encode("utf-8")
+        self.tbl_name = tbl_name.encode("utf-8")
         self.row_count = len(next(iter(rdict["data"].items()))[1])
 
         self.rformats = {
@@ -382,7 +390,16 @@ cdef class LibrdataWriter():
             "object": RDATA_TYPE_STRING
         }
 
-        self.fd = open(rfile, O_CREAT | O_WRONLY, 0644);
+        IF UNAME_SYSNAME == "Windows":
+            self.fd = _sopen(
+                self.file_name,
+                _O_CREAT | _O_WRONLY | _O_BINARY | _O_U8TEXT,
+                _SH_DENYNO,
+                _S_IREAD | _S_IWRITE
+            )
+        ELSE:
+            self.fd = open(self.file_name, O_CREAT | O_WRONLY, 0644)
+
         self.writer = rdata_writer_init(write_data, self.rformats[rformat])
 
         for k, v in self.rdict["dtypes"].items():
@@ -400,7 +417,8 @@ cdef class LibrdataWriter():
             ):
                 self.write_col_data(n, kd, vd, kt, vt)
 
-        except (TypeError, ValueError, UnicodeDecodeError) as e:
+        except (TypeError, ValueError, UnicodeDecodeError):
+            self.close_rdata()
             raise LibrdataWriterError(
                 "DataFrame contains one more invalid types or data values. "
                 "that does not conform to R data types."
@@ -409,5 +427,11 @@ cdef class LibrdataWriter():
         rdata_end_table(self.writer, self.row_count, "pandas_dataframe")
         rdata_end_file(self.writer)
 
-        close(self.fd)
+        self.close_rdata()
         rdata_writer_free(self.writer)
+
+    cdef close_rdata(self):
+        IF UNAME_SYSNAME == "Windows":
+            _close(self.fd)
+        ELSE:
+            close(self.fd)
