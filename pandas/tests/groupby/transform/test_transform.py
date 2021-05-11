@@ -400,7 +400,7 @@ def test_transform_exclude_nuisance(df, duplicates):
     # case that goes through _transform_item_by_item
 
     if duplicates:
-        # make sure we work with duplicate columns
+        # make sure we work with duplicate columns GH#41427
         df.columns = ["A", "C", "C", "D"]
 
     # this also tests orderings in transform between
@@ -411,7 +411,7 @@ def test_transform_exclude_nuisance(df, duplicates):
     gbc = grouped["C"]
     expected["C"] = gbc.transform(np.mean)
     if duplicates:
-        # squeeze 1-column DatFrame down to Series
+        # squeeze 1-column DataFrame down to Series
         expected["C"] = expected["C"]["C"]
 
         assert isinstance(gbc.obj, DataFrame)
