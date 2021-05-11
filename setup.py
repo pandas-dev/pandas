@@ -589,7 +589,7 @@ for name, data in ext_data.items():
     include.append(numpy.get_include())
 
     if name == "io.rdata._rdata" and is_platform_mac():
-        extra_link_args.append(["-liconv"])
+        extra_link_args.append("-liconv")
 
     obj = Extension(
         f"pandas.{name}",
