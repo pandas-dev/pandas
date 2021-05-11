@@ -39,6 +39,7 @@ import numpy as np
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
     from typing import (
+        Literal,
         TypedDict,
         final,
     )
@@ -57,6 +58,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.generic import (
         DataFrameGroupBy,
+        GroupBy,
         SeriesGroupBy,
     )
     from pandas.core.indexes.base import Index
@@ -159,6 +161,7 @@ AggFuncType = Union[
 AggObjType = Union[
     "Series",
     "DataFrame",
+    "GroupBy",
     "SeriesGroupBy",
     "DataFrameGroupBy",
     "BaseWindow",
@@ -190,6 +193,12 @@ FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceArgType = Union[
     str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
 ]
+
+# Arguments for fillna()
+if TYPE_CHECKING:
+    FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
+else:
+    FillnaOptions = str
 
 # internals
 Manager = Union[

@@ -38,6 +38,7 @@ from pandas._typing import (
     Axis,
     Dtype,
     DtypeObj,
+    FillnaOptions,
     FrameOrSeriesUnion,
     IndexKeyFunc,
     NpDtype,
@@ -4595,7 +4596,7 @@ Keep all original rows and also all original values
     def fillna(
         self,
         value=...,
-        method: str | None = ...,
+        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
         limit=...,
@@ -4607,7 +4608,7 @@ Keep all original rows and also all original values
     def fillna(
         self,
         value,
-        method: str | None,
+        method: FillnaOptions | None,
         axis: Axis | None,
         inplace: Literal[True],
         limit=...,
@@ -4640,7 +4641,7 @@ Keep all original rows and also all original values
     def fillna(
         self,
         *,
-        method: str | None,
+        method: FillnaOptions | None,
         inplace: Literal[True],
         limit=...,
         downcast=...,
@@ -4662,19 +4663,7 @@ Keep all original rows and also all original values
     def fillna(
         self,
         *,
-        method: str | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        *,
+        method: FillnaOptions | None,
         axis: Axis | None,
         inplace: Literal[True],
         limit=...,
@@ -4686,7 +4675,19 @@ Keep all original rows and also all original values
     def fillna(
         self,
         value,
-        method: str | None,
+        *,
+        axis: Axis | None,
+        inplace: Literal[True],
+        limit=...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def fillna(
+        self,
+        value,
+        method: FillnaOptions | None,
         *,
         inplace: Literal[True],
         limit=...,
@@ -4698,7 +4699,7 @@ Keep all original rows and also all original values
     def fillna(
         self,
         value=...,
-        method: str | None = ...,
+        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: bool = ...,
         limit=...,
@@ -4710,8 +4711,8 @@ Keep all original rows and also all original values
     @doc(NDFrame.fillna, **_shared_doc_kwargs)  # type: ignore[has-type]
     def fillna(
         self,
-        value=None,
-        method=None,
+        value: object | ArrayLike | None = None,
+        method: FillnaOptions | None = None,
         axis=None,
         inplace=False,
         limit=None,
