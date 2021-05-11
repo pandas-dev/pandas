@@ -68,9 +68,8 @@ def test_extract_expand_index_raises():
         idx.str.extract("([AB])([123])", expand=False)
 
 
-@pytest.mark.parametrize("klass", [Series, Index])
-def test_extract_expand_no_capture_groups_raises(klass, any_string_dtype):
-    s_or_idx = klass(["A1", "B2", "C3"], dtype=any_string_dtype)
+def test_extract_expand_no_capture_groups_raises(index_or_series, any_string_dtype):
+    s_or_idx = index_or_series(["A1", "B2", "C3"], dtype=any_string_dtype)
     msg = "pattern contains no capture groups"
 
     # no groups
@@ -82,14 +81,13 @@ def test_extract_expand_no_capture_groups_raises(klass, any_string_dtype):
         s_or_idx.str.extract("(?:[AB]).*", expand=False)
 
 
-@pytest.mark.parametrize("klass", [Series, Index])
-def test_extract_expand_single_capture_group(klass, any_string_dtype):
+def test_extract_expand_single_capture_group(index_or_series, any_string_dtype):
     # single group renames series/index properly
-    s_or_idx = klass(["A1", "A2"], dtype=any_string_dtype)
+    s_or_idx = index_or_series(["A1", "A2"], dtype=any_string_dtype)
     result = s_or_idx.str.extract(r"(?P<uno>A)\d", expand=False)
 
-    expected = klass(["A", "A"], name="uno", dtype=any_string_dtype)
-    if klass == Series:
+    expected = index_or_series(["A", "A"], name="uno", dtype=any_string_dtype)
+    if index_or_series == Series:
         tm.assert_series_equal(result, expected)
     else:
         tm.assert_index_equal(result, expected)
@@ -249,11 +247,12 @@ def test_extract_expand_True_mixed_object():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("klass", [Series, Index])
-def test_extract_expand_True_single_capture_group_raises(klass, any_string_dtype):
+def test_extract_expand_True_single_capture_group_raises(
+    index_or_series, any_string_dtype
+):
     # these should work for both Series and Index
     # no groups
-    s_or_idx = klass(["A1", "B2", "C3"], dtype=any_string_dtype)
+    s_or_idx = index_or_series(["A1", "B2", "C3"], dtype=any_string_dtype)
     msg = "pattern contains no capture groups"
     with pytest.raises(ValueError, match=msg):
         s_or_idx.str.extract("[ABC][123]", expand=True)
@@ -263,12 +262,11 @@ def test_extract_expand_True_single_capture_group_raises(klass, any_string_dtype
         s_or_idx.str.extract("(?:[AB]).*", expand=True)
 
 
-@pytest.mark.parametrize("klass", [Series, Index])
-def test_extract_expand_True_single_capture_group(klass, any_string_dtype):
+def test_extract_expand_True_single_capture_group(index_or_series, any_string_dtype):
     # single group renames series/index properly
-    s_or_idx = klass(["A1", "A2"], dtype=any_string_dtype)
+    s_or_idx = index_or_series(["A1", "A2"], dtype=any_string_dtype)
     result = s_or_idx.str.extract(r"(?P<uno>A)\d", expand=True)
-    expected_dtype = "object" if klass is Index else any_string_dtype
+    expected_dtype = "object" if index_or_series is Index else any_string_dtype
     expected = DataFrame({"uno": ["A", "A"]}, dtype=expected_dtype)
     tm.assert_frame_equal(result, expected)
 
