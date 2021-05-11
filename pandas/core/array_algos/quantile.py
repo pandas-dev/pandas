@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from pandas._typing import ArrayLike
+from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_sparse
 from pandas.core.dtypes.missing import (
@@ -37,7 +38,12 @@ def quantile_compat(values: ArrayLike, qs: np.ndarray, interpolation: str) -> Ar
         mask = isna(values)
         return _quantile_with_mask(values, mask, fill_value, qs, interpolation)
     else:
-        return _quantile_ea_compat(values, qs, interpolation)
+        try:
+            out = _quantile_ea_compat(values, qs, interpolation)
+        except AbstractMethodError:
+            # e.g. IntegerArray, does not implement _from_factorized
+            out = _quantile_ea_fallback(values, qs, interpolation)
+        return out
 
 
 def _quantile_with_mask(
@@ -144,3 +150,31 @@ def _quantile_ea_compat(
 
     # error: Incompatible return value type (got "ndarray", expected "ExtensionArray")
     return result  # type: ignore[return-value]
+
+
+def _quantile_ea_fallback(
+    values: ExtensionArray, qs: np.ndarray, interpolation: str
+) -> ExtensionArray:
+    """
+    quantile compatibility for ExtensionArray subclasses that do not
+    implement `_from_factorized`, e.g. IntegerArray.
+
+    Notes
+    -----
+    We assume that all impacted cases are 1D-only.
+    """
+    mask = np.atleast_2d(np.asarray(values.isna()))
+    npvalues = np.atleast_2d(np.asarray(values))
+
+    res = _quantile_with_mask(
+        npvalues,
+        mask=mask,
+        fill_value=values.dtype.na_value,
+        qs=qs,
+        interpolation=interpolation,
+    )
+    assert res.ndim == 2
+    assert res.shape[0] == 1
+    res = res[0]
+    out = type(values)._from_sequence(res, dtype=values.dtype)
+    return out
