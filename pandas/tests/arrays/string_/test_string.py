@@ -296,9 +296,6 @@ def test_constructor_raises(cls):
     with pytest.raises(ValueError, match=msg):
         cls(np.array([]))
 
-    with pytest.raises(ValueError, match=msg):
-        cls(np.array(["a", np.nan]))
-
 
 @pytest.mark.parametrize("na", [np.nan, pd.NaT, None, pd.NA])
 def test_constructor_nan_like(na):
