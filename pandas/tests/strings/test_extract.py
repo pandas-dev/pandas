@@ -176,22 +176,15 @@ def test_extract_expand_capture_groups(any_string_dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "index",
-    [
-        tm.makeStringIndex,
-        tm.makeUnicodeIndex,
-        tm.makeIntIndex,
-        tm.makeDateIndex,
-        tm.makePeriodIndex,
-        tm.makeRangeIndex,
-    ],
-)
 def test_extract_expand_capture_groups_index(index, any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/6348
     # not passing index to the extractor
     data = ["A1", "B2", "C"]
-    index = index()[: len(data)]
+
+    if len(index) < len(data):
+        pytest.skip("Index too short")
+
+    index = index[: len(data)]
     s = Series(data, index=index, dtype=any_string_dtype)
 
     result = s.str.extract(r"(\d)", expand=False)
@@ -360,23 +353,16 @@ def test_extract_optional_groups(any_string_dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "index",
-    [
-        tm.makeStringIndex,
-        tm.makeUnicodeIndex,
-        tm.makeIntIndex,
-        tm.makeDateIndex,
-        tm.makePeriodIndex,
-        tm.makeRangeIndex,
-    ],
-)
 def test_extract_dataframe_capture_groups_index(index, any_string_dtype):
     # GH6348
     # not passing index to the extractor
 
     data = ["A1", "B2", "C"]
-    index = index()[: len(data)]
+
+    if len(index) < len(data):
+        pytest.skip("Index too short")
+
+    index = index[: len(data)]
     s = Series(data, index=index, dtype=any_string_dtype)
 
     result = s.str.extract(r"(\d)", expand=True)
