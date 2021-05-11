@@ -13,22 +13,29 @@ from pandas import (
 )
 
 
-def test_split():
-    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
+def test_split(any_string_dtype):
+    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype=any_string_dtype)
 
     result = values.str.split("_")
     exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
     tm.assert_series_equal(result, exp)
 
     # more than one char
-    values = Series(["a__b__c", "c__d__e", np.nan, "f__g__h"])
+    values = Series(["a__b__c", "c__d__e", np.nan, "f__g__h"], dtype=any_string_dtype)
     result = values.str.split("__")
     tm.assert_series_equal(result, exp)
 
     result = values.str.split("__", expand=False)
     tm.assert_series_equal(result, exp)
 
-    # mixed
+    # regex split
+    values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
+    result = values.str.split("[,_]")
+    exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
+    tm.assert_series_equal(result, exp)
+
+
+def test_split_object_mixed():
     mixed = Series(["a_b_c", np.nan, "d_e_f", True, datetime.today(), None, 1, 2.0])
     result = mixed.str.split("_")
     exp = Series(
@@ -50,17 +57,10 @@ def test_split():
     assert isinstance(result, Series)
     tm.assert_almost_equal(result, exp)
 
-    # regex split
-    values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"])
-    result = values.str.split("[,_]")
-    exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
-    tm.assert_series_equal(result, exp)
 
-
-@pytest.mark.parametrize("dtype", [object, "string"])
 @pytest.mark.parametrize("method", ["split", "rsplit"])
-def test_split_n(dtype, method):
-    s = Series(["a b", pd.NA, "b c"], dtype=dtype)
+def test_split_n(any_string_dtype, method):
+    s = Series(["a b", pd.NA, "b c"], dtype=any_string_dtype)
     expected = Series([["a", "b"], pd.NA, ["b", "c"]])
 
     result = getattr(s.str, method)(" ", n=None)
@@ -70,20 +70,34 @@ def test_split_n(dtype, method):
     tm.assert_series_equal(result, expected)
 
 
-def test_rsplit():
-    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
+def test_rsplit(any_string_dtype):
+    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype=any_string_dtype)
     result = values.str.rsplit("_")
     exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
     tm.assert_series_equal(result, exp)
 
     # more than one char
-    values = Series(["a__b__c", "c__d__e", np.nan, "f__g__h"])
+    values = Series(["a__b__c", "c__d__e", np.nan, "f__g__h"], dtype=any_string_dtype)
     result = values.str.rsplit("__")
     tm.assert_series_equal(result, exp)
 
     result = values.str.rsplit("__", expand=False)
     tm.assert_series_equal(result, exp)
 
+    # regex split is not supported by rsplit
+    values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
+    result = values.str.rsplit("[,_]")
+    exp = Series([["a,b_c"], ["c_d,e"], np.nan, ["f,g,h"]])
+    tm.assert_series_equal(result, exp)
+
+    # setting max number of splits, make sure it's from reverse
+    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype=any_string_dtype)
+    result = values.str.rsplit("_", n=1)
+    exp = Series([["a_b", "c"], ["c_d", "e"], np.nan, ["f_g", "h"]])
+    tm.assert_series_equal(result, exp)
+
+
+def test_rsplit_object_mixed():
     # mixed
     mixed = Series(["a_b_c", np.nan, "d_e_f", True, datetime.today(), None, 1, 2.0])
     result = mixed.str.rsplit("_")
@@ -106,27 +120,15 @@ def test_rsplit():
     assert isinstance(result, Series)
     tm.assert_almost_equal(result, exp)
 
-    # regex split is not supported by rsplit
-    values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"])
-    result = values.str.rsplit("[,_]")
-    exp = Series([["a,b_c"], ["c_d,e"], np.nan, ["f,g,h"]])
-    tm.assert_series_equal(result, exp)
 
-    # setting max number of splits, make sure it's from reverse
-    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
-    result = values.str.rsplit("_", n=1)
-    exp = Series([["a_b", "c"], ["c_d", "e"], np.nan, ["f_g", "h"]])
-    tm.assert_series_equal(result, exp)
-
-
-def test_split_blank_string():
+def test_split_blank_string(any_string_dtype):
     # expand blank split GH 20067
-    values = Series([""], name="test")
+    values = Series([""], name="test", dtype=any_string_dtype)
     result = values.str.split(expand=True)
-    exp = DataFrame([[]])  # NOTE: this is NOT an empty DataFrame
+    exp = DataFrame([[]], dtype=any_string_dtype)  # NOTE: this is NOT an empty df
     tm.assert_frame_equal(result, exp)
 
-    values = Series(["a b c", "a b", "", " "], name="test")
+    values = Series(["a b c", "a b", "", " "], name="test", dtype=any_string_dtype)
     result = values.str.split(expand=True)
     exp = DataFrame(
         [
@@ -134,14 +136,15 @@ def test_split_blank_string():
             ["a", "b", np.nan],
             [np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan],
-        ]
+        ],
+        dtype=any_string_dtype,
     )
     tm.assert_frame_equal(result, exp)
 
 
-def test_split_noargs():
+def test_split_noargs(any_string_dtype):
     # #1859
-    s = Series(["Wes McKinney", "Travis  Oliphant"])
+    s = Series(["Wes McKinney", "Travis  Oliphant"], dtype=any_string_dtype)
     result = s.str.split()
     expected = ["Travis", "Oliphant"]
     assert result[1] == expected
@@ -149,44 +152,64 @@ def test_split_noargs():
     assert result[1] == expected
 
 
-def test_split_maxsplit():
+@pytest.mark.parametrize(
+    "data, pat",
+    [
+        (["bd asdf jfg", "kjasdflqw asdfnfk"], None),
+        (["bd asdf jfg", "kjasdflqw asdfnfk"], "asdf"),
+        (["bd_asdf_jfg", "kjasdflqw_asdfnfk"], "_"),
+    ],
+)
+def test_split_maxsplit(data, pat, any_string_dtype):
     # re.split 0, str.split -1
-    s = Series(["bd asdf jfg", "kjasdflqw asdfnfk"])
+    s = Series(data, dtype=any_string_dtype)
 
-    result = s.str.split(n=-1)
-    xp = s.str.split()
+    result = s.str.split(pat=pat, n=-1)
+    xp = s.str.split(pat=pat)
     tm.assert_series_equal(result, xp)
 
-    result = s.str.split(n=0)
-    tm.assert_series_equal(result, xp)
-
-    xp = s.str.split("asdf")
-    result = s.str.split("asdf", n=0)
-    tm.assert_series_equal(result, xp)
-
-    result = s.str.split("asdf", n=-1)
+    result = s.str.split(pat=pat, n=0)
     tm.assert_series_equal(result, xp)
 
 
-def test_split_no_pat_with_nonzero_n():
-    s = Series(["split once", "split once too!"])
-    result = s.str.split(n=1)
-    expected = Series({0: ["split", "once"], 1: ["split", "once too!"]})
+@pytest.mark.parametrize(
+    "data, pat, expected",
+    [
+        (
+            ["split once", "split once too!"],
+            None,
+            Series({0: ["split", "once"], 1: ["split", "once too!"]}),
+        ),
+        (
+            ["split_once", "split_once_too!"],
+            "_",
+            Series({0: ["split", "once"], 1: ["split", "once_too!"]}),
+        ),
+    ],
+)
+def test_split_no_pat_with_nonzero_n(data, pat, expected, any_string_dtype):
+    s = Series(data, dtype=any_string_dtype)
+    result = s.str.split(pat=pat, n=1)
     tm.assert_series_equal(expected, result, check_index_type=False)
 
 
-def test_split_to_dataframe():
-    s = Series(["nosplit", "alsonosplit"])
+def test_split_to_dataframe(any_string_dtype):
+    s = Series(["nosplit", "alsonosplit"], dtype=any_string_dtype)
     result = s.str.split("_", expand=True)
-    exp = DataFrame({0: Series(["nosplit", "alsonosplit"])})
+    exp = DataFrame({0: Series(["nosplit", "alsonosplit"], dtype=any_string_dtype)})
     tm.assert_frame_equal(result, exp)
 
-    s = Series(["some_equal_splits", "with_no_nans"])
+    s = Series(["some_equal_splits", "with_no_nans"], dtype=any_string_dtype)
     result = s.str.split("_", expand=True)
-    exp = DataFrame({0: ["some", "with"], 1: ["equal", "no"], 2: ["splits", "nans"]})
+    exp = DataFrame(
+        {0: ["some", "with"], 1: ["equal", "no"], 2: ["splits", "nans"]},
+        dtype=any_string_dtype,
+    )
     tm.assert_frame_equal(result, exp)
 
-    s = Series(["some_unequal_splits", "one_of_these_things_is_not"])
+    s = Series(
+        ["some_unequal_splits", "one_of_these_things_is_not"], dtype=any_string_dtype
+    )
     result = s.str.split("_", expand=True)
     exp = DataFrame(
         {
@@ -196,14 +219,19 @@ def test_split_to_dataframe():
             3: [np.nan, "things"],
             4: [np.nan, "is"],
             5: [np.nan, "not"],
-        }
+        },
+        dtype=any_string_dtype,
     )
     tm.assert_frame_equal(result, exp)
 
-    s = Series(["some_splits", "with_index"], index=["preserve", "me"])
+    s = Series(
+        ["some_splits", "with_index"], index=["preserve", "me"], dtype=any_string_dtype
+    )
     result = s.str.split("_", expand=True)
     exp = DataFrame(
-        {0: ["some", "with"], 1: ["splits", "index"]}, index=["preserve", "me"]
+        {0: ["some", "with"], 1: ["splits", "index"]},
+        index=["preserve", "me"],
+        dtype=any_string_dtype,
     )
     tm.assert_frame_equal(result, exp)
 
@@ -250,29 +278,41 @@ def test_split_to_multiindex_expand():
         idx.str.split("_", expand="not_a_boolean")
 
 
-def test_rsplit_to_dataframe_expand():
-    s = Series(["nosplit", "alsonosplit"])
+def test_rsplit_to_dataframe_expand(any_string_dtype):
+    s = Series(["nosplit", "alsonosplit"], dtype=any_string_dtype)
     result = s.str.rsplit("_", expand=True)
-    exp = DataFrame({0: Series(["nosplit", "alsonosplit"])})
+    exp = DataFrame({0: Series(["nosplit", "alsonosplit"])}, dtype=any_string_dtype)
     tm.assert_frame_equal(result, exp)
 
-    s = Series(["some_equal_splits", "with_no_nans"])
+    s = Series(["some_equal_splits", "with_no_nans"], dtype=any_string_dtype)
     result = s.str.rsplit("_", expand=True)
-    exp = DataFrame({0: ["some", "with"], 1: ["equal", "no"], 2: ["splits", "nans"]})
+    exp = DataFrame(
+        {0: ["some", "with"], 1: ["equal", "no"], 2: ["splits", "nans"]},
+        dtype=any_string_dtype,
+    )
     tm.assert_frame_equal(result, exp)
 
     result = s.str.rsplit("_", expand=True, n=2)
-    exp = DataFrame({0: ["some", "with"], 1: ["equal", "no"], 2: ["splits", "nans"]})
+    exp = DataFrame(
+        {0: ["some", "with"], 1: ["equal", "no"], 2: ["splits", "nans"]},
+        dtype=any_string_dtype,
+    )
     tm.assert_frame_equal(result, exp)
 
     result = s.str.rsplit("_", expand=True, n=1)
-    exp = DataFrame({0: ["some_equal", "with_no"], 1: ["splits", "nans"]})
+    exp = DataFrame(
+        {0: ["some_equal", "with_no"], 1: ["splits", "nans"]}, dtype=any_string_dtype
+    )
     tm.assert_frame_equal(result, exp)
 
-    s = Series(["some_splits", "with_index"], index=["preserve", "me"])
+    s = Series(
+        ["some_splits", "with_index"], index=["preserve", "me"], dtype=any_string_dtype
+    )
     result = s.str.rsplit("_", expand=True)
     exp = DataFrame(
-        {0: ["some", "with"], 1: ["splits", "index"]}, index=["preserve", "me"]
+        {0: ["some", "with"], 1: ["splits", "index"]},
+        index=["preserve", "me"],
+        dtype=any_string_dtype,
     )
     tm.assert_frame_equal(result, exp)
 
@@ -297,30 +337,35 @@ def test_rsplit_to_multiindex_expand():
     assert result.nlevels == 2
 
 
-def test_split_nan_expand():
+def test_split_nan_expand(any_string_dtype):
     # gh-18450
-    s = Series(["foo,bar,baz", np.nan])
+    s = Series(["foo,bar,baz", np.nan], dtype=any_string_dtype)
     result = s.str.split(",", expand=True)
-    exp = DataFrame([["foo", "bar", "baz"], [np.nan, np.nan, np.nan]])
+    exp = DataFrame(
+        [["foo", "bar", "baz"], [np.nan, np.nan, np.nan]], dtype=any_string_dtype
+    )
     tm.assert_frame_equal(result, exp)
 
-    # check that these are actually np.nan and not None
+    # check that these are actually np.nan/pd.NA and not None
     # TODO see GH 18463
     # tm.assert_frame_equal does not differentiate
-    assert all(np.isnan(x) for x in result.iloc[1])
+    if any_string_dtype == "object":
+        assert all(np.isnan(x) for x in result.iloc[1])
+    else:
+        assert all(x is pd.NA for x in result.iloc[1])
 
 
-def test_split_with_name():
+def test_split_with_name(any_string_dtype):
     # GH 12617
 
     # should preserve name
-    s = Series(["a,b", "c,d"], name="xxx")
+    s = Series(["a,b", "c,d"], name="xxx", dtype=any_string_dtype)
     res = s.str.split(",")
     exp = Series([["a", "b"], ["c", "d"]], name="xxx")
     tm.assert_series_equal(res, exp)
 
     res = s.str.split(",", expand=True)
-    exp = DataFrame([["a", "b"], ["c", "d"]])
+    exp = DataFrame([["a", "b"], ["c", "d"]], dtype=any_string_dtype)
     tm.assert_frame_equal(res, exp)
 
     idx = Index(["a,b", "c,d"], name="xxx")
