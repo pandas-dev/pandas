@@ -437,19 +437,6 @@ tseries_depends = [
     "pandas/_libs/tslibs/src/datetime/np_datetime_strings.h",
 ]
 
-rdata_srcs = [
-    "pandas/_libs/src/librdata/rdata_parser.c",
-    "pandas/_libs/src/librdata/rdata_read.c",
-    "pandas/_libs/src/librdata/rdata_write.c",
-    "pandas/_libs/src/librdata/rdata_io_unistd.c",
-    "pandas/_libs/src/librdata/rdata_error.c",
-    "pandas/_libs/src/librdata/rdata_bits.c",
-    "pandas/_libs/src/librdata/CKHashTable.c",
-]
-
-if is_platform_windows():
-    rdata_srcs.append("pandas/_libs/src/librdata/win_iconv.c")
-
 ext_data = {
     "_libs.algos": {
         "pyxfile": "_libs/algos",
@@ -570,10 +557,6 @@ ext_data = {
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
-    "io.rdata._rdata": {
-        "pyxfile": "io/rdata/_rdata",
-        "sources": rdata_srcs,
-    },
 }
 
 extensions = []
@@ -651,6 +634,53 @@ ujson_ext = Extension(
 
 
 extensions.append(ujson_ext)
+
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
+# rdata
+
+rdata_srcs = [
+    "pandas/io/rdata/_rdata.pyx",
+    "pandas/_libs/src/librdata/rdata_parser.c",
+    "pandas/_libs/src/librdata/rdata_read.c",
+    "pandas/_libs/src/librdata/rdata_write.c",
+    "pandas/_libs/src/librdata/rdata_io_unistd.c",
+    "pandas/_libs/src/librdata/rdata_error.c",
+    "pandas/_libs/src/librdata/rdata_bits.c",
+    "pandas/_libs/src/librdata/CKHashTable.c",
+]
+
+if is_platform_windows():
+    rdata_srcs.append("pandas/_libs/src/librdata/win_iconv.c")
+
+include = []
+libs_dir = []
+libs = []
+if is_platform_mac():
+    # non-conda builds must adjust paths to libiconv .h and lib dirs
+    include = [
+        os.path.join(os.environ["CONDA_PREFIX"], "include"),
+    ]
+    libs_dir = [
+        os.path.join(os.environ["CONDA_PREFIX"], "lib"),
+    ]
+    libs = ["liconv"]
+
+rdata_ext = Extension(
+    name="io.rdata._rdata",
+    sources=rdata_srcs,
+    include_dirs=include,
+    library_dirs=libs_dir,
+    libraries=libs,
+    language="c",
+    define_macros=macros,
+    extra_compile_args=extra_compile_args,
+    extra_link_args=extra_link_args,
+)
+
+
+extensions.append(rdata_ext)
 
 # ----------------------------------------------------------------------
 
