@@ -663,7 +663,7 @@ class StataValueLabel:
         self.labname = catarray.name
         self._encoding = encoding
         categories = catarray.cat.categories
-        self.value_labels: list[tuple[int | float, str], ...] = list(
+        self.value_labels: list[tuple[int | float, str]] = list(
             zip(np.arange(len(categories)), categories)
         )
         self.value_labels.sort(key=lambda x: x[0])
@@ -681,9 +681,9 @@ class StataValueLabel:
         """ Encode value labels. """
         # Compute lengths and setup lists of offsets and labels
         offsets: list[int] = []
-        values: list[int] = []
+        values: list[int | float] = []
         for vl in self.value_labels:
-            category = vl[1]
+            category: str | bytes = vl[1]
             if not isinstance(category, str):
                 category = str(category)
                 warnings.warn(
@@ -789,7 +789,7 @@ class StataNonCatValueLabel(StataValueLabel):
 
         self.labname = labname
         self._encoding = encoding
-        self.value_labels: list[tuple[int | float, str], ...] = sorted(
+        self.value_labels: list[tuple[int | float, str]] = sorted(
             value_labels.items(), key=lambda x: x[0]
         )
 
@@ -2337,7 +2337,7 @@ class StataWriter(StataParser):
             if labname in self._converted_names:
                 colname = self._converted_names[labname]
             elif labname in data.columns:
-                colname = labname
+                colname = str(labname)
             else:
                 raise KeyError(
                     f"Can't create value labels for {labname}, it wasn't "
