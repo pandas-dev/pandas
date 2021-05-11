@@ -61,6 +61,8 @@ from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas import Categorical
 
 _shared_docs: dict[str, str] = {}
@@ -1258,5 +1260,7 @@ class IndexOpsMixin(OpsMixin):
         return self[~duplicated]  # type: ignore[index]
 
     @final
-    def _duplicated(self, keep: str | bool = "first") -> np.ndarray:
+    def _duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> np.ndarray:
         return duplicated(self._values, keep=keep)
