@@ -358,8 +358,8 @@ def test_extract_single_group_returns_frame():
     tm.assert_frame_equal(r, e)
 
 
-def test_extractall():
-    subject_list = [
+def test_extractall(any_string_dtype):
+    data = [
         "dave@google.com",
         "tdhock5@gmail.com",
         "maudelaperriere@gmail.com",
@@ -378,7 +378,7 @@ def test_extractall():
         ("c", "d", "com"),
         ("e", "f", "com"),
     ]
-    named_pattern = r"""
+    pat = r"""
     (?P<user>[a-z0-9]+)
     @
     (?P<domain>[a-z]+)
@@ -386,20 +386,22 @@ def test_extractall():
     (?P<tld>[a-z]{2,4})
     """
     expected_columns = ["user", "domain", "tld"]
-    S = Series(subject_list)
-    # extractall should return a DataFrame with one row for each
-    # match, indexed by the subject from which the match came.
+    s = Series(data, dtype=any_string_dtype)
+    # extractall should return a DataFrame with one row for each match, indexed by the
+    # subject from which the match came.
     expected_index = MultiIndex.from_tuples(
         [(0, 0), (1, 0), (2, 0), (3, 0), (3, 1), (4, 0), (4, 1), (4, 2)],
         names=(None, "match"),
     )
-    expected_df = DataFrame(expected_tuples, expected_index, expected_columns)
-    computed_df = S.str.extractall(named_pattern, re.VERBOSE)
-    tm.assert_frame_equal(computed_df, expected_df)
+    expected = DataFrame(
+        expected_tuples, expected_index, expected_columns, dtype=any_string_dtype
+    )
+    result = s.str.extractall(pat, flags=re.VERBOSE)
+    tm.assert_frame_equal(result, expected)
 
-    # The index of the input Series should be used to construct
-    # the index of the output DataFrame:
-    series_index = MultiIndex.from_tuples(
+    # The index of the input Series should be used to construct the index of the output
+    # DataFrame:
+    mi = MultiIndex.from_tuples(
         [
             ("single", "Dave"),
             ("single", "Toby"),
@@ -410,7 +412,7 @@ def test_extractall():
             ("none", "empty"),
         ]
     )
-    Si = Series(subject_list, series_index)
+    s = Series(data, index=mi, dtype=any_string_dtype)
     expected_index = MultiIndex.from_tuples(
         [
             ("single", "Dave", 0),
@@ -424,67 +426,80 @@ def test_extractall():
         ],
         names=(None, None, "match"),
     )
-    expected_df = DataFrame(expected_tuples, expected_index, expected_columns)
-    computed_df = Si.str.extractall(named_pattern, re.VERBOSE)
-    tm.assert_frame_equal(computed_df, expected_df)
+    expected = DataFrame(
+        expected_tuples, expected_index, expected_columns, dtype=any_string_dtype
+    )
+    result = s.str.extractall(pat, flags=re.VERBOSE)
+    tm.assert_frame_equal(result, expected)
 
     # MultiIndexed subject with names.
-    Sn = Series(subject_list, series_index)
-    Sn.index.names = ("matches", "description")
+    s = Series(data, index=mi, dtype=any_string_dtype)
+    s.index.names = ("matches", "description")
     expected_index.names = ("matches", "description", "match")
-    expected_df = DataFrame(expected_tuples, expected_index, expected_columns)
-    computed_df = Sn.str.extractall(named_pattern, re.VERBOSE)
-    tm.assert_frame_equal(computed_df, expected_df)
+    expected = DataFrame(
+        expected_tuples, expected_index, expected_columns, dtype=any_string_dtype
+    )
+    result = s.str.extractall(pat, flags=re.VERBOSE)
+    tm.assert_frame_equal(result, expected)
 
-    # optional groups.
-    subject_list = ["", "A1", "32"]
-    named_pattern = "(?P<letter>[AB])?(?P<number>[123])"
-    computed_df = Series(subject_list).str.extractall(named_pattern)
+
+@pytest.mark.parametrize(
+    "pat,expected_names",
+    [
+        # optional groups.
+        ("(?P<letter>[AB])?(?P<number>[123])", ["letter", "number"]),
+        # only one of two groups has a name.
+        ("([AB])?(?P<number>[123])", [0, "number"]),
+    ],
+)
+def test_extractall_column_names(pat, expected_names, any_string_dtype):
+    s = Series(["", "A1", "32"], dtype=any_string_dtype)
+
+    result = s.str.extractall(pat)
+    expected = DataFrame(
+        [("A", "1"), (np.nan, "3"), (np.nan, "2")],
+        index=MultiIndex.from_tuples([(1, 0), (2, 0), (2, 1)], names=(None, "match")),
+        columns=expected_names,
+        dtype=any_string_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_extractall_single_group(any_string_dtype):
+    s = Series(["a3", "b3", "d4c2"], name="series_name", dtype=any_string_dtype)
     expected_index = MultiIndex.from_tuples(
-        [(1, 0), (2, 0), (2, 1)], names=(None, "match")
+        [(0, 0), (1, 0), (2, 0), (2, 1)], names=(None, "match")
     )
-    expected_df = DataFrame(
-        [("A", "1"), (np.nan, "3"), (np.nan, "2")],
-        expected_index,
-        columns=["letter", "number"],
-    )
-    tm.assert_frame_equal(computed_df, expected_df)
 
-    # only one of two groups has a name.
-    pattern = "([AB])?(?P<number>[123])"
-    computed_df = Series(subject_list).str.extractall(pattern)
-    expected_df = DataFrame(
-        [("A", "1"), (np.nan, "3"), (np.nan, "2")],
-        expected_index,
-        columns=[0, "number"],
+    # extractall(one named group) returns DataFrame with one named column.
+    result = s.str.extractall(r"(?P<letter>[a-z])")
+    expected = DataFrame(
+        {"letter": ["a", "b", "d", "c"]}, index=expected_index, dtype=any_string_dtype
     )
-    tm.assert_frame_equal(computed_df, expected_df)
+    tm.assert_frame_equal(result, expected)
+
+    # extractall(one un-named group) returns DataFrame with one un-named column.
+    result = s.str.extractall(r"([a-z])")
+    expected = DataFrame(
+        ["a", "b", "d", "c"], index=expected_index, dtype=any_string_dtype
+    )
+    tm.assert_frame_equal(result, expected)
 
 
-def test_extractall_single_group():
-    # extractall(one named group) returns DataFrame with one named
+def test_extractall_single_group_with_quantifier(any_string_dtype):
+    # GH#13382
+    # extractall(one un-named group with quantifier) returns DataFrame with one un-named
     # column.
-    s = Series(["a3", "b3", "d4c2"], name="series_name")
-    r = s.str.extractall(r"(?P<letter>[a-z])")
-    i = MultiIndex.from_tuples([(0, 0), (1, 0), (2, 0), (2, 1)], names=(None, "match"))
-    e = DataFrame({"letter": ["a", "b", "d", "c"]}, i)
-    tm.assert_frame_equal(r, e)
-
-    # extractall(one un-named group) returns DataFrame with one
-    # un-named column.
-    r = s.str.extractall(r"([a-z])")
-    e = DataFrame(["a", "b", "d", "c"], i)
-    tm.assert_frame_equal(r, e)
-
-
-def test_extractall_single_group_with_quantifier():
-    # extractall(one un-named group with quantifier) returns
-    # DataFrame with one un-named column (GH13382).
-    s = Series(["ab3", "abc3", "d4cd2"], name="series_name")
-    r = s.str.extractall(r"([a-z]+)")
-    i = MultiIndex.from_tuples([(0, 0), (1, 0), (2, 0), (2, 1)], names=(None, "match"))
-    e = DataFrame(["ab", "abc", "d", "cd"], i)
-    tm.assert_frame_equal(r, e)
+    s = Series(["ab3", "abc3", "d4cd2"], name="series_name", dtype=any_string_dtype)
+    result = s.str.extractall(r"([a-z]+)")
+    expected = DataFrame(
+        ["ab", "abc", "d", "cd"],
+        index=MultiIndex.from_tuples(
+            [(0, 0), (1, 0), (2, 0), (2, 1)], names=(None, "match")
+        ),
+        dtype=any_string_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -500,78 +515,91 @@ def test_extractall_single_group_with_quantifier():
         (["a3", "b3", "d4c2"], ("i1", "i2")),
     ],
 )
-def test_extractall_no_matches(data, names):
+def test_extractall_no_matches(data, names, any_string_dtype):
     # GH19075 extractall with no matches should return a valid MultiIndex
     n = len(data)
     if len(names) == 1:
-        i = Index(range(n), name=names[0])
+        index = Index(range(n), name=names[0])
     else:
-        a = (tuple([i] * (n - 1)) for i in range(n))
-        i = MultiIndex.from_tuples(a, names=names)
-    s = Series(data, name="series_name", index=i, dtype="object")
-    ei = MultiIndex.from_tuples([], names=(names + ("match",)))
+        tuples = (tuple([i] * (n - 1)) for i in range(n))
+        index = MultiIndex.from_tuples(tuples, names=names)
+    s = Series(data, name="series_name", index=index, dtype=any_string_dtype)
+    expected_index = MultiIndex.from_tuples([], names=(names + ("match",)))
 
     # one un-named group.
-    r = s.str.extractall("(z)")
-    e = DataFrame(columns=[0], index=ei)
-    tm.assert_frame_equal(r, e)
+    result = s.str.extractall("(z)")
+    expected = DataFrame(columns=[0], index=expected_index, dtype=any_string_dtype)
+    tm.assert_frame_equal(result, expected)
 
     # two un-named groups.
-    r = s.str.extractall("(z)(z)")
-    e = DataFrame(columns=[0, 1], index=ei)
-    tm.assert_frame_equal(r, e)
+    result = s.str.extractall("(z)(z)")
+    expected = DataFrame(columns=[0, 1], index=expected_index, dtype=any_string_dtype)
+    tm.assert_frame_equal(result, expected)
 
     # one named group.
-    r = s.str.extractall("(?P<first>z)")
-    e = DataFrame(columns=["first"], index=ei)
-    tm.assert_frame_equal(r, e)
+    result = s.str.extractall("(?P<first>z)")
+    expected = DataFrame(
+        columns=["first"], index=expected_index, dtype=any_string_dtype
+    )
+    tm.assert_frame_equal(result, expected)
 
     # two named groups.
-    r = s.str.extractall("(?P<first>z)(?P<second>z)")
-    e = DataFrame(columns=["first", "second"], index=ei)
-    tm.assert_frame_equal(r, e)
+    result = s.str.extractall("(?P<first>z)(?P<second>z)")
+    expected = DataFrame(
+        columns=["first", "second"], index=expected_index, dtype=any_string_dtype
+    )
+    tm.assert_frame_equal(result, expected)
 
     # one named, one un-named.
-    r = s.str.extractall("(z)(?P<second>z)")
-    e = DataFrame(columns=[0, "second"], index=ei)
-    tm.assert_frame_equal(r, e)
+    result = s.str.extractall("(z)(?P<second>z)")
+    expected = DataFrame(
+        columns=[0, "second"], index=expected_index, dtype=any_string_dtype
+    )
+    tm.assert_frame_equal(result, expected)
 
 
-def test_extractall_stringindex():
-    s = Series(["a1a2", "b1", "c1"], name="xxx")
-    res = s.str.extractall(r"[ab](?P<digit>\d)")
-    exp_idx = MultiIndex.from_tuples([(0, 0), (0, 1), (1, 0)], names=[None, "match"])
-    exp = DataFrame({"digit": ["1", "2", "1"]}, index=exp_idx)
-    tm.assert_frame_equal(res, exp)
+def test_extractall_stringindex(any_string_dtype):
+    s = Series(["a1a2", "b1", "c1"], name="xxx", dtype=any_string_dtype)
+    result = s.str.extractall(r"[ab](?P<digit>\d)")
+    expected = DataFrame(
+        {"digit": ["1", "2", "1"]},
+        index=MultiIndex.from_tuples([(0, 0), (0, 1), (1, 0)], names=[None, "match"]),
+        dtype=any_string_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
 
-    # index should return the same result as the default index without name
-    # thus index.name doesn't affect to the result
-    for idx in [
-        Index(["a1a2", "b1", "c1"]),
-        Index(["a1a2", "b1", "c1"], name="xxx"),
-    ]:
+    # index should return the same result as the default index without name thus
+    # index.name doesn't affect to the result
+    if any_string_dtype == "object":
+        for idx in [
+            Index(["a1a2", "b1", "c1"]),
+            Index(["a1a2", "b1", "c1"], name="xxx"),
+        ]:
 
-        res = idx.str.extractall(r"[ab](?P<digit>\d)")
-        tm.assert_frame_equal(res, exp)
+            result = idx.str.extractall(r"[ab](?P<digit>\d)")
+            tm.assert_frame_equal(result, expected)
 
     s = Series(
         ["a1a2", "b1", "c1"],
         name="s_name",
         index=Index(["XX", "yy", "zz"], name="idx_name"),
+        dtype=any_string_dtype,
     )
-    res = s.str.extractall(r"[ab](?P<digit>\d)")
-    exp_idx = MultiIndex.from_tuples(
-        [("XX", 0), ("XX", 1), ("yy", 0)], names=["idx_name", "match"]
+    result = s.str.extractall(r"[ab](?P<digit>\d)")
+    expected = DataFrame(
+        {"digit": ["1", "2", "1"]},
+        index=MultiIndex.from_tuples(
+            [("XX", 0), ("XX", 1), ("yy", 0)], names=["idx_name", "match"]
+        ),
+        dtype=any_string_dtype,
     )
-    exp = DataFrame({"digit": ["1", "2", "1"]}, index=exp_idx)
-    tm.assert_frame_equal(res, exp)
+    tm.assert_frame_equal(result, expected)
 
 
-def test_extractall_errors():
-    # Does not make sense to use extractall with a regex that has
-    # no capture groups. (it returns DataFrame with one column for
-    # each capture group)
-    s = Series(["a3", "b3", "d4c2"], name="series_name")
+def test_extractall_no_capture_groups_raises(any_string_dtype):
+    # Does not make sense to use extractall with a regex that has no capture groups.
+    # (it returns DataFrame with one column for each capture group)
+    s = Series(["a3", "b3", "d4c2"], name="series_name", dtype=any_string_dtype)
     with pytest.raises(ValueError, match="no capture groups"):
         s.str.extractall(r"[a-z]")
 
@@ -591,8 +619,8 @@ def test_extract_index_one_two_groups():
     tm.assert_frame_equal(r, e)
 
 
-def test_extractall_same_as_extract():
-    s = Series(["a3", "b3", "c2"], name="series_name")
+def test_extractall_same_as_extract(any_string_dtype):
+    s = Series(["a3", "b3", "c2"], name="series_name", dtype=any_string_dtype)
 
     pattern_two_noname = r"([a-z])([0-9])"
     extract_two_noname = s.str.extract(pattern_two_noname, expand=True)
@@ -619,13 +647,13 @@ def test_extractall_same_as_extract():
     tm.assert_frame_equal(extract_one_noname, no_multi_index)
 
 
-def test_extractall_same_as_extract_subject_index():
+def test_extractall_same_as_extract_subject_index(any_string_dtype):
     # same as above tests, but s has an MultiIndex.
-    i = MultiIndex.from_tuples(
+    mi = MultiIndex.from_tuples(
         [("A", "first"), ("B", "second"), ("C", "third")],
         names=("capital", "ordinal"),
     )
-    s = Series(["a3", "b3", "c2"], i, name="series_name")
+    s = Series(["a3", "b3", "c2"], index=mi, name="series_name", dtype=any_string_dtype)
 
     pattern_two_noname = r"([a-z])([0-9])"
     extract_two_noname = s.str.extract(pattern_two_noname, expand=True)
