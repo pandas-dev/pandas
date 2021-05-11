@@ -748,7 +748,7 @@ Strings
 ^^^^^^^
 
 - Bug in the conversion from ``pyarrow.ChunkedArray`` to :class:`~arrays.StringArray` when the original had zero chunks (:issue:`41040`)
--
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` ignoring replacements with ``regex=True`` for ``StringDType`` data (:issue:`41333`, :issue:`35977`)
 
 Interval
 ^^^^^^^^
