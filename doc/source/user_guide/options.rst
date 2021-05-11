@@ -31,7 +31,7 @@ namespace:
 * :func:`~pandas.option_context` - execute a codeblock with a set of options
   that revert to prior settings after execution.
 
-**Note:** Developers can check out `pandas/core/config.py <https://github.com/pandas-dev/pandas/blob/master/pandas/core/config.py>`_ for more information.
+**Note:** Developers can check out `pandas/core/config_init.py <https://github.com/pandas-dev/pandas/blob/master/pandas/core/config_init.py>`_ for more information.
 
 All of the functions above accept a regexp pattern (``re.search`` style) as an argument,
 and so passing in a substring will work - as long as it is unambiguous:
@@ -456,6 +456,10 @@ io.hdf.dropna_table                     True         drop ALL nan rows when appe
 io.parquet.engine                       None         The engine to use as a default for
                                                      parquet reading and writing. If None
                                                      then try 'pyarrow' and 'fastparquet'
+io.sql.engine                           None         The engine to use as a default for
+                                                     sql reading and writing, with SQLAlchemy
+                                                     as a higher level interface. If None
+                                                     then try 'sqlalchemy'
 mode.chained_assignment                 warn         Controls ``SettingWithCopyWarning``:
                                                      'raise', 'warn', or None. Raise an
                                                      exception, warn, or no action if

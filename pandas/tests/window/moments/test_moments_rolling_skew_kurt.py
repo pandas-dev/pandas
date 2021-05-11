@@ -5,7 +5,13 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, concat, isna, notna
+from pandas import (
+    DataFrame,
+    Series,
+    concat,
+    isna,
+    notna,
+)
 import pandas._testing as tm
 
 import pandas.tseries.offsets as offsets
@@ -146,6 +152,7 @@ def test_center_reindex_series(series, roll_func):
     tm.assert_series_equal(series_xp, series_rs)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_center_reindex_frame(frame, roll_func):
     # shifter index

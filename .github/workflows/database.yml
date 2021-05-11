@@ -1,0 +1,102 @@
+name: Database
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches:
+      - master
+      - 1.2.x
+
+env:
+  PYTEST_WORKERS: "auto"
+  PANDAS_CI: 1
+  PATTERN: ((not slow and not network and not clipboard) or (single and db))
+  COVERAGE: true
+
+jobs:
+  Linux_py37_IO:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    strategy:
+      matrix:
+        ENV_FILE: [ci/deps/actions-37-db-min.yaml, ci/deps/actions-37-db.yaml]
+      fail-fast: false
+
+    services:
+      mysql:
+        image: mysql
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: pandas
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3306:3306
+
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pandas
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Cache conda
+      uses: actions/cache@v1
+      env:
+        CACHE_NUMBER: 0
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+          hashFiles('${{ matrix.ENV_FILE }}') }}
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: pandas-dev
+        channel-priority: strict
+        environment-file: ${{ matrix.ENV_FILE }}
+        use-only-tar-bz2: true
+
+    - name: Build Pandas
+      uses: ./.github/actions/build_pandas
+
+    - name: Test
+      run: pytest -m "${{ env.PATTERN }}" -n 2 --dist=loadfile --cov=pandas --cov-report=xml pandas/tests/io
+      if: always()
+
+    - name: Build Version
+      run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+
+    - name: Publish test results
+      uses: actions/upload-artifact@master
+      with:
+        name: Test results
+        path: test-data.xml
+      if: failure()
+
+    - name: Print skipped tests
+      run: python ci/print_skipped.py
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        flags: unittests
+        name: codecov-pandas
+        fail_ci_if_error: true

@@ -1,11 +1,20 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_datetime64_dtype, is_timedelta64_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
+    is_timedelta64_dtype,
+)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import CategoricalIndex, Series, Timedelta, Timestamp, date_range
+from pandas import (
+    CategoricalIndex,
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
@@ -168,7 +177,7 @@ class TestToIterable:
 
 
 @pytest.mark.parametrize(
-    "array, expected_type, dtype",
+    "arr, expected_type, dtype",
     [
         (np.array([0, 1], dtype=np.int64), np.ndarray, "int64"),
         (np.array(["a", "b"]), np.ndarray, "object"),
@@ -197,19 +206,19 @@ class TestToIterable:
             pd.DatetimeIndex(["2017", "2018"]),
             np.ndarray,
             "datetime64[ns]",
-            marks=[pytest.mark.xfail(reason="datetime _values", strict=True)],
+            marks=[pytest.mark.xfail(reason="datetime _values")],
         ),
         pytest.param(
             pd.TimedeltaIndex([10 ** 10]),
             np.ndarray,
             "m8[ns]",
-            marks=[pytest.mark.xfail(reason="timedelta _values", strict=True)],
+            marks=[pytest.mark.xfail(reason="timedelta _values")],
         ),
     ],
 )
-def test_values_consistent(array, expected_type, dtype):
-    l_values = Series(array)._values
-    r_values = pd.Index(array)._values
+def test_values_consistent(arr, expected_type, dtype):
+    l_values = Series(arr)._values
+    r_values = pd.Index(arr)._values
     assert type(l_values) is expected_type
     assert type(l_values) is type(r_values)
 
@@ -236,11 +245,11 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
 
 
 @pytest.mark.parametrize(
-    "array, attr",
+    "arr, attr",
     [
         (pd.Categorical(["a", "b"]), "_codes"),
         (pd.core.arrays.period_array(["2000", "2001"], freq="D"), "_data"),
-        (pd.core.arrays.integer_array([0, np.nan]), "_data"),
+        (pd.array([0, np.nan], dtype="Int64"), "_data"),
         (IntervalArray.from_breaks([0, 1]), "_left"),
         (SparseArray([0, 1]), "_sparse_values"),
         (DatetimeArray(np.array([1, 2], dtype="datetime64[ns]")), "_data"),
@@ -256,17 +265,17 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         ),
     ],
 )
-def test_array(array, attr, index_or_series):
+def test_array(arr, attr, index_or_series):
     box = index_or_series
-    if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
-        pytest.skip(f"No index type for {array.dtype}")
-    result = box(array, copy=False).array
+    if arr.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
+        pytest.skip(f"No index type for {arr.dtype}")
+    result = box(arr, copy=False).array
 
     if attr:
-        array = getattr(array, attr)
+        arr = getattr(arr, attr)
         result = getattr(result, attr)
 
-    assert result is array
+    assert result is arr
 
 
 def test_array_multiindex_raises():
@@ -277,7 +286,7 @@ def test_array_multiindex_raises():
 
 
 @pytest.mark.parametrize(
-    "array, expected",
+    "arr, expected",
     [
         (np.array([1, 2], dtype=np.int64), np.array([1, 2], dtype=np.int64)),
         (pd.Categorical(["a", "b"]), np.array(["a", "b"], dtype=object)),
@@ -285,7 +294,7 @@ def test_array_multiindex_raises():
             pd.core.arrays.period_array(["2000", "2001"], freq="D"),
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
         ),
-        (pd.core.arrays.integer_array([0, np.nan]), np.array([0, pd.NA], dtype=object)),
+        (pd.array([0, np.nan], dtype="Int64"), np.array([0, pd.NA], dtype=object)),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
@@ -318,7 +327,7 @@ def test_array_multiindex_raises():
         ),
         # GH#26406 tz is preserved in Categorical[dt64tz]
         (
-            pd.Categorical(pd.date_range("2016-01-01", periods=2, tz="US/Pacific")),
+            pd.Categorical(date_range("2016-01-01", periods=2, tz="US/Pacific")),
             np.array(
                 [
                     Timestamp("2016-01-01", tz="US/Pacific"),
@@ -328,14 +337,14 @@ def test_array_multiindex_raises():
         ),
     ],
 )
-def test_to_numpy(array, expected, index_or_series_or_array, request):
+def test_to_numpy(arr, expected, index_or_series_or_array, request):
     box = index_or_series_or_array
-    thing = box(array)
+    thing = box(arr)
 
-    if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
-        pytest.skip(f"No index type for {array.dtype}")
+    if arr.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
+        pytest.skip(f"No index type for {arr.dtype}")
 
-    if array.dtype.name == "int64" and box is pd.array:
+    if arr.dtype.name == "int64" and box is pd.array:
         mark = pytest.mark.xfail(reason="thing is Int64 and to_numpy() returns object")
         request.node.add_marker(mark)
 

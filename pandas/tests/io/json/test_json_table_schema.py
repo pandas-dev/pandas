@@ -6,7 +6,11 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    PeriodDtype,
+)
 
 import pandas as pd
 from pandas import DataFrame
@@ -439,7 +443,11 @@ class TestTableOrient:
         "ignore:an integer is required (got type float)*:DeprecationWarning"
     )
     def test_date_format_raises(self):
-        with pytest.raises(ValueError):
+        msg = (
+            "Trying to write with `orient='table'` and `date_format='epoch'`. Table "
+            "Schema requires dates to be formatted with `date_format='iso'`"
+        )
+        with pytest.raises(ValueError, match=msg):
             self.df.to_json(orient="table", date_format="epoch")
 
         # others work
@@ -705,18 +713,14 @@ class TestTableOrientReader:
         "idx",
         [
             pd.Index(range(4)),
-            pd.Index(
-                pd.date_range(
-                    "2020-08-30",
-                    freq="d",
-                    periods=4,
-                ),
-                freq=None,
-            ),
-            pd.Index(
-                pd.date_range("2020-08-30", freq="d", periods=4, tz="US/Central"),
-                freq=None,
-            ),
+            pd.date_range(
+                "2020-08-30",
+                freq="d",
+                periods=4,
+            )._with_freq(None),
+            pd.date_range(
+                "2020-08-30", freq="d", periods=4, tz="US/Central"
+            )._with_freq(None),
             pd.MultiIndex.from_product(
                 [
                     pd.date_range("2020-08-30", freq="d", periods=2, tz="US/Central"),
@@ -745,6 +749,9 @@ class TestTableOrientReader:
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
+    @pytest.mark.filterwarnings(
+        "ignore:an integer is required (got type float)*:DeprecationWarning"
+    )
     def test_comprehensive(self):
         df = DataFrame(
             {
@@ -755,8 +762,7 @@ class TestTableOrientReader:
                 "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
                 "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
                 "G": [1.1, 2.2, 3.3, 4.4],
-                # 'H': pd.date_range('2016-01-01', freq='d', periods=4,
-                #                   tz='US/Central'),
+                "H": pd.date_range("2016-01-01", freq="d", periods=4, tz="US/Central"),
                 "I": [True, False, False, True],
             },
             index=pd.Index(range(4), name="idx"),

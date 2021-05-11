@@ -8,7 +8,15 @@ import pytest
 from pandas.core.dtypes.common import is_float_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, NaT, Series, Timedelta, Timestamp, bdate_range
+from pandas import (
+    DataFrame,
+    Index,
+    NaT,
+    Series,
+    Timedelta,
+    Timestamp,
+    bdate_range,
+)
 import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 
@@ -188,6 +196,9 @@ def test_cython_agg_empty_buckets(op, targop, observed):
 
     g = df.groupby(pd.cut(df[0], grps), observed=observed)
     expected = g.agg(lambda x: targop(x))
+    if observed and op not in ("min", "max"):
+        # TODO: GH 41137
+        expected = expected.astype("int64")
     tm.assert_frame_equal(result, expected)
 
 
@@ -273,7 +284,7 @@ def test_read_only_buffer_source_agg(agg):
             "species": ["setosa", "setosa", "setosa", "setosa", "setosa"],
         }
     )
-    df._mgr.blocks[0].values.flags.writeable = False
+    df._mgr.arrays[0].flags.writeable = False
 
     result = df.groupby(["species"]).agg({"sepal_length": agg})
     expected = df.copy().groupby(["species"]).agg({"sepal_length": agg})

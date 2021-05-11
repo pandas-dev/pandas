@@ -32,7 +32,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #endif  // PyInt_AsLong
 
 const npy_datetimestruct _NS_MIN_DTS = {
-    1677, 9, 21, 0, 12, 43, 145225, 0, 0};
+    1677, 9, 21, 0, 12, 43, 145224, 193000, 0};
 const npy_datetimestruct _NS_MAX_DTS = {
     2262, 4, 11, 23, 47, 16, 854775, 807000, 0};
 

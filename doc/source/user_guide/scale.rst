@@ -345,6 +345,7 @@ we need to supply the divisions manually.
 Now we can do things like fast random access with ``.loc``.
 
 .. ipython:: python
+   :okwarning:
 
    ddf.loc["2002-01-01 12:01":"2002-01-01 12:05"].compute()
 

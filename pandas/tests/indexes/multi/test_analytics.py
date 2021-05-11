@@ -1,10 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_under1p17
-
 import pandas as pd
-from pandas import Index, MultiIndex, date_range, period_range
+from pandas import (
+    Index,
+    MultiIndex,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -241,15 +244,11 @@ def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
-    if np_version_under1p17:
-        expected_exception = AttributeError
-        msg = f"'tuple' object has no attribute '{func.__name__}'"
-    else:
-        expected_exception = TypeError
-        msg = (
-            "loop of ufunc does not support argument 0 of type tuple which "
-            f"has no callable {func.__name__} method"
-        )
+    expected_exception = TypeError
+    msg = (
+        "loop of ufunc does not support argument 0 of type tuple which "
+        f"has no callable {func.__name__} method"
+    )
     with pytest.raises(expected_exception, match=msg):
         func(idx)
 

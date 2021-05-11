@@ -1,7 +1,11 @@
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -253,7 +257,7 @@ def test_assert_series_equal_interval_dtype_mismatch():
     msg = """Attributes of Series are different
 
 Attribute "dtype" are different
-\\[left\\]:  interval\\[int64\\]
+\\[left\\]:  interval\\[int64, right\\]
 \\[right\\]: object"""
 
     tm.assert_series_equal(left, right, check_dtype=False)
@@ -292,9 +296,22 @@ def test_series_equal_exact_for_nonnumeric():
     tm.assert_series_equal(s1, s2, check_exact=True)
     tm.assert_series_equal(s2, s1, check_exact=True)
 
-    with pytest.raises(AssertionError):
+    msg = """Series are different
+
+Series values are different \\(100\\.0 %\\)
+\\[index\\]: \\[0, 1\\]
+\\[left\\]:  \\[a, b\\]
+\\[right\\]: \\[b, a\\]"""
+    with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(s1, s3, check_exact=True)
-    with pytest.raises(AssertionError):
+
+    msg = """Series are different
+
+Series values are different \\(100\\.0 %\\)
+\\[index\\]: \\[0, 1\\]
+\\[left\\]:  \\[b, a\\]
+\\[right\\]: \\[a, b\\]"""
+    with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(s3, s1, check_exact=True)
 
 
@@ -319,3 +336,13 @@ def test_allows_duplicate_labels():
 
     with pytest.raises(AssertionError, match="<Flags"):
         tm.assert_series_equal(left, right)
+
+
+def test_assert_series_equal_identical_na(nulls_fixture):
+    ser = Series([nulls_fixture])
+
+    tm.assert_series_equal(ser, ser.copy())
+
+    # while we're here do Index too
+    idx = pd.Index(ser)
+    tm.assert_index_equal(idx, idx.copy(deep=True))

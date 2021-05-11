@@ -2,21 +2,29 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
-from datetime import timedelta
+import datetime
 from functools import partial
 import operator
 from typing import Any
-import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, lib, ops as libops
-from pandas._typing import ArrayLike, Shape
+from pandas._libs import (
+    NaT,
+    Timedelta,
+    Timestamp,
+    lib,
+    ops as libops,
+)
+from pandas._libs.tslibs import BaseOffset
+from pandas._typing import (
+    ArrayLike,
+    Shape,
+)
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     find_common_type,
-    maybe_upcast_putmask,
 )
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -27,25 +35,35 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
+import pandas.core.computation.expressions as expressions
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.ops import missing
+from pandas.core.ops import (
+    missing,
+    roperator,
+)
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
-from pandas.core.ops.roperator import rpow
 
 
 def comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
         y = construct_1d_object_array_from_listlike(y)
 
-    if isinstance(y, (np.ndarray, ABCSeries, ABCIndexClass)):
+    if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
 
-        if isinstance(y, (ABCSeries, ABCIndexClass)):
+        if isinstance(y, (ABCSeries, ABCIndex)):
             y = y._values
 
         if x.shape != y.shape:
@@ -73,7 +91,11 @@ def _masked_arith_op(x: np.ndarray, y, op):
     assert isinstance(x, np.ndarray), type(x)
     if isinstance(y, np.ndarray):
         dtype = find_common_type([x.dtype, y.dtype])
-        result = np.empty(x.size, dtype=dtype)
+        # error: Argument "dtype" to "empty" has incompatible type
+        # "Union[dtype, ExtensionDtype]"; expected "Union[dtype, None, type,
+        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"
+        result = np.empty(x.size, dtype=dtype)  # type: ignore[arg-type]
 
         if len(x) != len(y):
             raise ValueError(x.shape, y.shape)
@@ -87,8 +109,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
 
         # See GH#5284, GH#5035, GH#19448 for historical reference
         if mask.any():
-            with np.errstate(all="ignore"):
-                result[mask] = op(xrav[mask], yrav[mask])
+            result[mask] = op(xrav[mask], yrav[mask])
 
     else:
         if not is_scalar(y):
@@ -103,14 +124,13 @@ def _masked_arith_op(x: np.ndarray, y, op):
         # 1 ** np.nan is 1. So we have to unmask those.
         if op is pow:
             mask = np.where(x == 1, False, mask)
-        elif op is rpow:
+        elif op is roperator.rpow:
             mask = np.where(y == 1, False, mask)
 
         if mask.any():
-            with np.errstate(all="ignore"):
-                result[mask] = op(xrav[mask], y)
+            result[mask] = op(xrav[mask], y)
 
-    result, _ = maybe_upcast_putmask(result, ~mask, np.nan)
+    np.putmask(result, ~mask, np.nan)
     result = result.reshape(x.shape)  # 2D compat
     return result
 
@@ -136,17 +156,23 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     ------
     TypeError : invalid operation
     """
-    import pandas.core.computation.expressions as expressions
+    if isinstance(right, str):
+        # can never use numexpr
+        func = op
+    else:
+        func = partial(expressions.evaluate, op)
 
     try:
-        result = expressions.evaluate(op, left, right)
+        result = func(left, right)
     except TypeError:
-        if is_cmp:
-            # numexpr failed on comparison op, e.g. ndarray[float] > datetime
-            #  In this case we do not fall back to the masked op, as that
-            #  will handle complex numbers incorrectly, see GH#32047
+        if is_object_dtype(left) or is_object_dtype(right) and not is_cmp:
+            # For object dtype, fallback to a masked operation (only operating
+            #  on the non-missing values)
+            # Don't do this for comparisons, as that will handle complex numbers
+            #  incorrectly, see GH#32047
+            result = _masked_arith_op(left, right, op)
+        else:
             raise
-        result = _masked_arith_op(left, right, op)
 
     if is_cmp and (is_scalar(result) or result is NotImplemented):
         # numpy returned a scalar instead of operating element-wise
@@ -159,6 +185,9 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
 def arithmetic_op(left: ArrayLike, right: Any, op):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
+
+    Note: the caller is responsible for ensuring that numpy warnings are
+    suppressed (with np.errstate(all="ignore")) if needed.
 
     Parameters
     ----------
@@ -173,20 +202,26 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     ndarray or ExtensionArray
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
+    # NB: We assume that extract_array and ensure_wrapped_if_datetimelike
+    #  have already been called on `left` and `right`,
+    #  and `maybe_prepare_scalar_for_op` has already been called on `right`
+    # We need to special-case datetime64/timedelta64 dtypes (e.g. because numpy
+    # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
 
-    # NB: We assume that extract_array has already been called
-    #  on `left` and `right`.
-    lvalues = ensure_wrapped_if_datetimelike(left)
-    rvalues = ensure_wrapped_if_datetimelike(right)
-    rvalues = _maybe_upcast_for_op(rvalues, lvalues.shape)
-
-    if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
-        # Timedelta is included because numexpr will fail on it, see GH#31457
-        res_values = op(lvalues, rvalues)
-
+    if (
+        should_extension_dispatch(left, right)
+        or isinstance(right, (Timedelta, BaseOffset, Timestamp))
+        or right is NaT
+    ):
+        # Timedelta/Timestamp and other custom scalars are included in the check
+        # because numexpr will fail on it, see GH#31457
+        res_values = op(left, right)
     else:
-        with np.errstate(all="ignore"):
-            res_values = _na_arithmetic_op(lvalues, rvalues, op)
+        # TODO we should handle EAs consistently and move this check before the if/else
+        # (https://github.com/pandas-dev/pandas/issues/41165)
+        _bool_arith_check(op, left, right)
+
+        res_values = _na_arithmetic_op(left, right, op)
 
     return res_values
 
@@ -194,6 +229,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
 def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
+
+    Note: the caller is responsible for ensuring that numpy warnings are
+    suppressed (with np.errstate(all="ignore")) if needed.
 
     Parameters
     ----------
@@ -208,7 +246,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     # NB: We assume extract_array has already been called on left and right
     lvalues = ensure_wrapped_if_datetimelike(left)
-    rvalues = right
+    rvalues = ensure_wrapped_if_datetimelike(right)
 
     rvalues = lib.item_from_zerodim(rvalues)
     if isinstance(rvalues, list):
@@ -224,7 +262,10 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
                 "Lengths must match to compare", lvalues.shape, rvalues.shape
             )
 
-    if should_extension_dispatch(lvalues, rvalues):
+    if should_extension_dispatch(lvalues, rvalues) or (
+        (isinstance(rvalues, (Timedelta, BaseOffset, Timestamp)) or right is NaT)
+        and not is_object_dtype(lvalues.dtype)
+    ):
         # Call the method on lvalues
         res_values = op(lvalues, rvalues)
 
@@ -239,15 +280,11 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # GH#36377 going through the numexpr path would incorrectly raise
         return invalid_comparison(lvalues, rvalues, op)
 
-    elif is_object_dtype(lvalues.dtype):
+    elif is_object_dtype(lvalues.dtype) or isinstance(rvalues, str):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        with warnings.catch_warnings():
-            # suppress warnings from numpy about element-wise comparison
-            warnings.simplefilter("ignore", DeprecationWarning)
-            with np.errstate(all="ignore"):
-                res_values = _na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
+        res_values = _na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
 
     return res_values
 
@@ -401,7 +438,7 @@ def get_array_op(op):
         raise NotImplementedError(op_name)
 
 
-def _maybe_upcast_for_op(obj, shape: Shape):
+def maybe_prepare_scalar_for_op(obj, shape: Shape):
     """
     Cast non-pandas objects to pandas types to unify behavior of arithmetic
     and comparison operations.
@@ -420,17 +457,20 @@ def _maybe_upcast_for_op(obj, shape: Shape):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
-    from pandas.core.arrays import DatetimeArray, TimedeltaArray
-
-    if type(obj) is timedelta:
+    if type(obj) is datetime.timedelta:
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
         return Timedelta(obj)
+    elif type(obj) is datetime.datetime:
+        # cast up to Timestamp to rely on Timestamp implementation, see Timedelta above
+        return Timestamp(obj)
     elif isinstance(obj, np.datetime64):
         # GH#28080 numpy casts integer-dtype to datetime64 when doing
         #  array[int] + datetime64, which we do not allow
         if isna(obj):
+            from pandas.core.arrays import DatetimeArray
+
             # Avoid possible ambiguities with pd.NaT
             obj = obj.astype("datetime64[ns]")
             right = np.broadcast_to(obj, shape)
@@ -440,6 +480,8 @@ def _maybe_upcast_for_op(obj, shape: Shape):
 
     elif isinstance(obj, np.timedelta64):
         if isna(obj):
+            from pandas.core.arrays import TimedeltaArray
+
             # wrapping timedelta64("NaT") in Timedelta returns NaT,
             #  which would incorrectly be treated as a datetime-NaT, so
             #  we broadcast and wrap in a TimedeltaArray
@@ -452,9 +494,29 @@ def _maybe_upcast_for_op(obj, shape: Shape):
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         return Timedelta(obj)
 
-    elif isinstance(obj, np.ndarray) and obj.dtype.kind == "m":
-        # GH#22390 Unfortunately we need to special-case right-hand
-        # timedelta64 dtypes because numpy casts integer dtypes to
-        # timedelta64 when operating with timedelta64
-        return TimedeltaArray._from_sequence(obj)
     return obj
+
+
+_BOOL_OP_NOT_ALLOWED = {
+    operator.truediv,
+    roperator.rtruediv,
+    operator.floordiv,
+    roperator.rfloordiv,
+    operator.pow,
+    roperator.rpow,
+}
+
+
+def _bool_arith_check(op, a, b):
+    """
+    In contrast to numpy, pandas raises an error for certain operations
+    with booleans.
+    """
+    if op in _BOOL_OP_NOT_ALLOWED:
+        if is_bool_dtype(a.dtype) and (
+            is_bool_dtype(b) or isinstance(b, (bool, np.bool_))
+        ):
+            op_name = op.__name__.strip("_").lstrip("r")
+            raise NotImplementedError(
+                f"operator '{op_name}' not implemented for bool dtypes"
+            )

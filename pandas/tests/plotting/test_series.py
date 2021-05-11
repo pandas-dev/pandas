@@ -10,9 +10,16 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+    _check_plot_works,
+)
 
 import pandas.plotting as plotting
 
@@ -341,15 +348,15 @@ class TestSeriesPlots(TestPlotBase):
         ax = _check_plot_works(
             series.plot.pie, colors=color_args, autopct="%.2f", fontsize=7
         )
-        pcts = [f"{s*100:.2f}" for s in series.values / float(series.sum())]
+        pcts = [f"{s*100:.2f}" for s in series.values / series.sum()]
         expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
         self._check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
             assert t.get_fontsize() == 7
 
         # includes negative value
-        with pytest.raises(ValueError):
-            series = Series([1, 2, 0, 4, -1], index=["a", "b", "c", "d", "e"])
+        series = Series([1, 2, 0, 4, -1], index=["a", "b", "c", "d", "e"])
+        with pytest.raises(ValueError, match="pie plot doesn't allow negative values"):
             series.plot.pie()
 
         # includes nan
@@ -365,147 +372,6 @@ class TestSeriesPlots(TestPlotBase):
         result = [x.get_text() for x in ax.texts]
         assert result == expected
 
-    def test_hist_df_kwargs(self):
-        df = DataFrame(np.random.randn(10, 2))
-        _, ax = self.plt.subplots()
-        ax = df.plot.hist(bins=5, ax=ax)
-        assert len(ax.patches) == 10
-
-    def test_hist_df_with_nonnumerics(self):
-        # GH 9853
-        with tm.RNGContext(1):
-            df = DataFrame(np.random.randn(10, 4), columns=["A", "B", "C", "D"])
-        df["E"] = ["x", "y"] * 5
-        _, ax = self.plt.subplots()
-        ax = df.plot.hist(bins=5, ax=ax)
-        assert len(ax.patches) == 20
-
-        _, ax = self.plt.subplots()
-        ax = df.plot.hist(ax=ax)  # bins=10
-        assert len(ax.patches) == 40
-
-    def test_hist_legacy(self):
-        _check_plot_works(self.ts.hist)
-        _check_plot_works(self.ts.hist, grid=False)
-        _check_plot_works(self.ts.hist, figsize=(8, 10))
-        # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(self.ts.hist, by=self.ts.index.month)
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(self.ts.hist, by=self.ts.index.month, bins=5)
-
-        fig, ax = self.plt.subplots(1, 1)
-        _check_plot_works(self.ts.hist, ax=ax)
-        _check_plot_works(self.ts.hist, ax=ax, figure=fig)
-        _check_plot_works(self.ts.hist, figure=fig)
-        tm.close()
-
-        fig, (ax1, ax2) = self.plt.subplots(1, 2)
-        _check_plot_works(self.ts.hist, figure=fig, ax=ax1)
-        _check_plot_works(self.ts.hist, figure=fig, ax=ax2)
-
-        with pytest.raises(ValueError):
-            self.ts.hist(by=self.ts.index, figure=fig)
-
-    def test_hist_bins_legacy(self):
-        df = DataFrame(np.random.randn(10, 2))
-        ax = df.hist(bins=2)[0][0]
-        assert len(ax.patches) == 2
-
-    def test_hist_layout(self):
-        df = self.hist_df
-        with pytest.raises(ValueError):
-            df.height.hist(layout=(1, 1))
-
-        with pytest.raises(ValueError):
-            df.height.hist(layout=[1, 1])
-
-    def test_hist_layout_with_by(self):
-        df = self.hist_df
-
-        # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.height.hist, by=df.gender, layout=(2, 1))
-        self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
-
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.height.hist, by=df.gender, layout=(3, -1))
-        self._check_axes_shape(axes, axes_num=2, layout=(3, 1))
-
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 1))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
-
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.height.hist, by=df.category, layout=(2, -1))
-        self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
-
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.height.hist, by=df.category, layout=(3, -1))
-        self._check_axes_shape(axes, axes_num=4, layout=(3, 2))
-
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.height.hist, by=df.category, layout=(-1, 4))
-        self._check_axes_shape(axes, axes_num=4, layout=(1, 4))
-
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.height.hist, by=df.classroom, layout=(2, 2))
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
-
-        axes = df.height.hist(by=df.category, layout=(4, 2), figsize=(12, 7))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
-
-    def test_hist_no_overlap(self):
-        from matplotlib.pyplot import gcf, subplot
-
-        x = Series(np.random.randn(2))
-        y = Series(np.random.randn(2))
-        subplot(121)
-        x.hist()
-        subplot(122)
-        y.hist()
-        fig = gcf()
-        axes = fig.axes
-        assert len(axes) == 2
-
-    def test_hist_secondary_legend(self):
-        # GH 9610
-        df = DataFrame(np.random.randn(30, 4), columns=list("abcd"))
-
-        # primary -> secondary
-        _, ax = self.plt.subplots()
-        ax = df["a"].plot.hist(legend=True, ax=ax)
-        df["b"].plot.hist(ax=ax, legend=True, secondary_y=True)
-        # both legends are dran on left ax
-        # left and right axis must be visible
-        self._check_legend_labels(ax, labels=["a", "b (right)"])
-        assert ax.get_yaxis().get_visible()
-        assert ax.right_ax.get_yaxis().get_visible()
-        tm.close()
-
-        # secondary -> secondary
-        _, ax = self.plt.subplots()
-        ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=ax)
-        df["b"].plot.hist(ax=ax, legend=True, secondary_y=True)
-        # both legends are draw on left ax
-        # left axis must be invisible, right axis must be visible
-        self._check_legend_labels(ax.left_ax, labels=["a (right)", "b (right)"])
-        assert not ax.left_ax.get_yaxis().get_visible()
-        assert ax.get_yaxis().get_visible()
-        tm.close()
-
-        # secondary -> primary
-        _, ax = self.plt.subplots()
-        ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=ax)
-        # right axes is returned
-        df["b"].plot.hist(ax=ax, legend=True)
-        # both legends are draw on left ax
-        # left and right axis must be visible
-        self._check_legend_labels(ax.left_ax, labels=["a (right)", "b"])
-        assert ax.left_ax.get_yaxis().get_visible()
-        assert ax.get_yaxis().get_visible()
-        tm.close()
-
     def test_df_series_secondary_legend(self):
         # GH 9779
         df = DataFrame(np.random.randn(30, 3), columns=list("abc"))
@@ -515,7 +381,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(ax=ax)
         s.plot(legend=True, secondary_y=True, ax=ax)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left and right axis must be visible
         self._check_legend_labels(ax, labels=["a", "b", "c", "x (right)"])
         assert ax.get_yaxis().get_visible()
@@ -526,7 +392,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(ax=ax)
         s.plot(ax=ax, legend=True, secondary_y=True)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left and right axis must be visible
         self._check_legend_labels(ax, labels=["a", "b", "c", "x (right)"])
         assert ax.get_yaxis().get_visible()
@@ -537,7 +403,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
         s.plot(legend=True, secondary_y=True, ax=ax)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left axis must be invisible and right axis must be visible
         expected = ["a (right)", "b (right)", "c (right)", "x (right)"]
         self._check_legend_labels(ax.left_ax, labels=expected)
@@ -549,7 +415,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
         s.plot(ax=ax, legend=True, secondary_y=True)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left axis must be invisible and right axis must be visible
         expected = ["a (right)", "b (right)", "c (right)", "x (right)"]
         self._check_legend_labels(ax.left_ax, expected)
@@ -561,7 +427,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, mark_right=False, ax=ax)
         s.plot(ax=ax, legend=True, secondary_y=True)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left axis must be invisible and right axis must be visible
         expected = ["a", "b", "c", "x (right)"]
         self._check_legend_labels(ax.left_ax, expected)
@@ -586,31 +452,14 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_plot_fails_with_dupe_color_and_style(self):
         x = Series(np.random.randn(2))
-        with pytest.raises(ValueError):
-            _, ax = self.plt.subplots()
+        _, ax = self.plt.subplots()
+        msg = (
+            "Cannot pass 'style' string with a color symbol and 'color' keyword "
+            "argument. Please use one or the other or pass 'style' without a color "
+            "symbol"
+        )
+        with pytest.raises(ValueError, match=msg):
             x.plot(style="k--", color="k", ax=ax)
-
-    @td.skip_if_no_scipy
-    def test_hist_kde(self):
-
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(logy=True, ax=ax)
-        self._check_ax_scales(ax, yaxis="log")
-        xlabels = ax.get_xticklabels()
-        # ticks are values, thus ticklabels are blank
-        self._check_text_labels(xlabels, [""] * len(xlabels))
-        ylabels = ax.get_yticklabels()
-        self._check_text_labels(ylabels, [""] * len(ylabels))
-
-        _check_plot_works(self.ts.plot.kde)
-        _check_plot_works(self.ts.plot.density)
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.kde(logy=True, ax=ax)
-        self._check_ax_scales(ax, yaxis="log")
-        xlabels = ax.get_xticklabels()
-        self._check_text_labels(xlabels, [""] * len(xlabels))
-        ylabels = ax.get_yticklabels()
-        self._check_text_labels(ylabels, [""] * len(ylabels))
 
     @td.skip_if_no_scipy
     def test_kde_kwargs(self):
@@ -633,37 +482,6 @@ class TestSeriesPlots(TestPlotBase):
 
         # gh-14821: check if the values have any missing values
         assert any(~np.isnan(axes.lines[0].get_xdata()))
-
-    def test_hist_kwargs(self):
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(bins=5, ax=ax)
-        assert len(ax.patches) == 5
-        self._check_text_labels(ax.yaxis.get_label(), "Frequency")
-        tm.close()
-
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(orientation="horizontal", ax=ax)
-        self._check_text_labels(ax.xaxis.get_label(), "Frequency")
-        tm.close()
-
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(align="left", stacked=True, ax=ax)
-        tm.close()
-
-    @td.skip_if_no_scipy
-    def test_hist_kde_color(self):
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(logy=True, bins=10, color="b", ax=ax)
-        self._check_ax_scales(ax, yaxis="log")
-        assert len(ax.patches) == 10
-        self._check_colors(ax.patches, facecolors=["b"] * 10)
-
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.kde(logy=True, color="r", ax=ax)
-        self._check_ax_scales(ax, yaxis="log")
-        lines = ax.get_lines()
-        assert len(lines) == 1
-        self._check_colors(lines, ["r"])
 
     def test_boxplot_series(self):
         _, ax = self.plt.subplots()
@@ -712,8 +530,8 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_invalid_kind(self):
         s = Series([1, 2])
-        with pytest.raises(ValueError):
-            s.plot(kind="aasdf")
+        with pytest.raises(ValueError, match="invalid_kind is not a valid plot kind"):
+            s.plot(kind="invalid_kind")
 
     def test_dup_datetime_index_plot(self):
         dr1 = date_range("1/1/2009", periods=4)
@@ -777,11 +595,11 @@ class TestSeriesPlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=0, yerr=1)
 
         # check incorrect lengths and types
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             s.plot(yerr=np.arange(11))
 
         s_err = ["zzz"] * 10
-        with pytest.raises(TypeError):
+        with tm.external_error_raised(TypeError):
             s.plot(yerr=s_err)
 
     def test_table(self):
@@ -938,8 +756,27 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_plot_no_numeric_data(self):
         df = Series(["a", "b", "c"])
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="no numeric data to plot"):
             df.plot()
+
+    @pytest.mark.parametrize(
+        "data, index",
+        [
+            ([1, 2, 3, 4], [3, 2, 1, 0]),
+            ([10, 50, 20, 30], [1910, 1920, 1980, 1950]),
+        ],
+    )
+    def test_plot_order(self, data, index):
+        # GH38865 Verify plot order of a Series
+        ser = Series(data=data, index=index)
+        ax = ser.plot(kind="bar")
+
+        expected = ser.tolist()
+        result = [
+            patch.get_bbox().ymax
+            for patch in sorted(ax.patches, key=lambda patch: patch.get_bbox().xmax)
+        ]
+        assert expected == result
 
     def test_style_single_ok(self):
         s = Series([1, 2])
@@ -961,7 +798,7 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.get_ylabel() == ""
         assert ax.get_xlabel() == old_label
 
-        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        # old xlabel will be overridden and assigned ylabel will be used as ylabel
         ax = ser.plot(kind=kind, ylabel=new_label, xlabel=new_label)
         assert ax.get_ylabel() == new_label
         assert ax.get_xlabel() == new_label

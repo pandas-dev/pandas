@@ -2,7 +2,8 @@ import io
 import textwrap
 
 import pytest
-import validate_docstrings
+
+from .. import validate_docstrings
 
 
 class BadDocstrings:
@@ -162,7 +163,9 @@ class TestValidator:
             (
                 "BadDocstrings",
                 "indentation_is_not_a_multiple_of_four",
-                ("flake8 error: E111 indentation is not a multiple of four",),
+                # with flake8 3.9.0, the message ends with four spaces,
+                #  whereas in earlier versions, it ended with "four"
+                ("flake8 error: E111 indentation is not a multiple of     ",),
             ),
             (
                 "BadDocstrings",

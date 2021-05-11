@@ -7,7 +7,11 @@ import pytest
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, Series
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase
 

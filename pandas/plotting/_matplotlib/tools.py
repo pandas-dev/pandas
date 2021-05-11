@@ -1,6 +1,12 @@
 # being a bit too dynamic
+from __future__ import annotations
+
 from math import ceil
-from typing import TYPE_CHECKING, Iterable, List, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    Sequence,
+)
 import warnings
 
 import matplotlib.table
@@ -10,29 +16,47 @@ import numpy as np
 from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
 
 from pandas.plotting._matplotlib import compat
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
+    from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
     from matplotlib.table import Table
 
 
-def format_date_labels(ax: "Axes", rot):
+def do_adjust_figure(fig: Figure):
+    """Whether fig has constrained_layout enabled."""
+    if not hasattr(fig, "get_constrained_layout"):
+        return False
+    return not fig.get_constrained_layout()
+
+
+def maybe_adjust_figure(fig: Figure, *args, **kwargs):
+    """Call fig.subplots_adjust unless fig has constrained_layout enabled."""
+    if do_adjust_figure(fig):
+        fig.subplots_adjust(*args, **kwargs)
+
+
+def format_date_labels(ax: Axes, rot):
     # mini version of autofmt_xdate
     for label in ax.get_xticklabels():
         label.set_ha("right")
         label.set_rotation(rot)
     fig = ax.get_figure()
-    fig.subplots_adjust(bottom=0.2)
+    maybe_adjust_figure(fig, bottom=0.2)
 
 
 def table(
     ax, data: FrameOrSeriesUnion, rowLabels=None, colLabels=None, **kwargs
-) -> "Table":
+) -> Table:
     if isinstance(data, ABCSeries):
         data = data.to_frame()
     elif isinstance(data, ABCDataFrame):
@@ -54,19 +78,17 @@ def table(
     return table
 
 
-def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> Tuple[int, int]:
+def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> tuple[int, int]:
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError("Layout must be a tuple of (rows, columns)")
 
         nrows, ncols = layout
 
-        # Python 2 compat
-        ceil_ = lambda x: int(ceil(x))
         if nrows == -1 and ncols > 0:
-            layout = nrows, ncols = (ceil_(float(nplots) / ncols), ncols)
+            layout = nrows, ncols = (ceil(nplots / ncols), ncols)
         elif ncols == -1 and nrows > 0:
-            layout = nrows, ncols = (nrows, ceil_(float(nplots) / nrows))
+            layout = nrows, ncols = (nrows, ceil(nplots / nrows))
         elif ncols <= 0 and nrows <= 0:
             msg = "At least one dimension of layout must be positive"
             raise ValueError(msg)
@@ -196,7 +218,8 @@ def create_subplots(
         fig = plt.figure(**fig_kw)
     else:
         if is_list_like(ax):
-            ax = flatten_axes(ax)
+            if squeeze:
+                ax = flatten_axes(ax)
             if layout is not None:
                 warnings.warn(
                     "When passing multiple axes, layout keyword is ignored", UserWarning
@@ -208,8 +231,8 @@ def create_subplots(
                     UserWarning,
                     stacklevel=4,
                 )
-            if len(ax) == naxes:
-                fig = ax[0].get_figure()
+            if ax.size == naxes:
+                fig = ax.flat[0].get_figure()
                 return fig, ax
             else:
                 raise ValueError(
@@ -283,7 +306,7 @@ def create_subplots(
     return fig, axes
 
 
-def _remove_labels_from_axis(axis: "Axis"):
+def _remove_labels_from_axis(axis: Axis):
     for t in axis.get_majorticklabels():
         t.set_visible(False)
 
@@ -299,7 +322,7 @@ def _remove_labels_from_axis(axis: "Axis"):
     axis.get_label().set_visible(False)
 
 
-def _has_externally_shared_axis(ax1: "matplotlib.axes", compare_axis: "str") -> bool:
+def _has_externally_shared_axis(ax1: matplotlib.axes, compare_axis: str) -> bool:
     """
     Return whether an axis is externally shared.
 
@@ -350,7 +373,7 @@ def _has_externally_shared_axis(ax1: "matplotlib.axes", compare_axis: "str") -> 
 
 
 def handle_shared_axes(
-    axarr: Iterable["Axes"],
+    axarr: Iterable[Axes],
     nplots: int,
     naxes: int,
     nrows: int,
@@ -365,6 +388,11 @@ def handle_shared_axes(
         else:
             row_num = lambda x: x.rowNum
             col_num = lambda x: x.colNum
+
+        if compat.mpl_ge_3_4_0():
+            is_first_col = lambda x: x.get_subplotspec().is_first_col()
+        else:
+            is_first_col = lambda x: x.is_first_col()
 
         if nrows > 1:
             try:
@@ -397,22 +425,22 @@ def handle_shared_axes(
                 # only the first column should get y labels -> set all other to
                 # off as we only have labels in the first column and we always
                 # have a subplot there, we can skip the layout test
-                if ax.is_first_col():
+                if is_first_col(ax):
                     continue
                 if sharey or _has_externally_shared_axis(ax, "y"):
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Union["Axes", Sequence["Axes"]]) -> np.ndarray:
+def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
     if not is_list_like(axes):
         return np.array([axes])
-    elif isinstance(axes, (np.ndarray, ABCIndexClass)):
+    elif isinstance(axes, (np.ndarray, ABCIndex)):
         return np.asarray(axes).ravel()
     return np.array(axes)
 
 
 def set_ticks_props(
-    axes: Union["Axes", Sequence["Axes"]],
+    axes: Axes | Sequence[Axes],
     xlabelsize=None,
     xrot=None,
     ylabelsize=None,
@@ -432,7 +460,7 @@ def set_ticks_props(
     return axes
 
 
-def get_all_lines(ax: "Axes") -> List["Line2D"]:
+def get_all_lines(ax: Axes) -> list[Line2D]:
     lines = ax.get_lines()
 
     if hasattr(ax, "right_ax"):
@@ -444,7 +472,7 @@ def get_all_lines(ax: "Axes") -> List["Line2D"]:
     return lines
 
 
-def get_xlim(lines: Iterable["Line2D"]) -> Tuple[float, float]:
+def get_xlim(lines: Iterable[Line2D]) -> tuple[float, float]:
     left, right = np.inf, -np.inf
     for line in lines:
         x = line.get_xdata(orig=False)

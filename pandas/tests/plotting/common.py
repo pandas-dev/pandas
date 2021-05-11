@@ -5,8 +5,13 @@ Currently all plotting tests are marked as slow via
 ``pytestmark = pytest.mark.slow`` at the module level.
 """
 
+from __future__ import annotations
+
 import os
-from typing import TYPE_CHECKING, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Sequence,
+)
 import warnings
 
 import numpy as np
@@ -17,7 +22,11 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import DataFrame, Series, to_datetime
+from pandas import (
+    DataFrame,
+    Series,
+    to_datetime,
+)
 import pandas._testing as tm
 
 if TYPE_CHECKING:
@@ -184,7 +193,7 @@ class TestPlotBase:
             assert patch.get_visible() == visible
 
     def _check_patches_all_filled(
-        self, axes: Union["Axes", Sequence["Axes"]], filled: bool = True
+        self, axes: Axes | Sequence[Axes], filled: bool = True
     ) -> None:
         """
         Check for each artist whether it is filled or not
@@ -226,7 +235,11 @@ class TestPlotBase:
             Series used for color grouping key
             used for andrew_curves, parallel_coordinates, radviz test
         """
-        from matplotlib.collections import Collection, LineCollection, PolyCollection
+        from matplotlib.collections import (
+            Collection,
+            LineCollection,
+            PolyCollection,
+        )
         from matplotlib.lines import Line2D
 
         conv = self.colorconverter
@@ -626,7 +639,8 @@ def _gen_two_subplots(f, fig, **kwargs):
     """
     Create plot on two subplots forcefully created.
     """
-    kwargs.get("ax", fig.add_subplot(211))
+    if "ax" not in kwargs:
+        fig.add_subplot(211)
     yield f(**kwargs)
 
     if f is pd.plotting.bootstrap_plot:

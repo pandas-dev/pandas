@@ -1,6 +1,11 @@
 """Common utilities for Numba operations with groupby ops"""
+from __future__ import annotations
+
 import inspect
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import (
+    Any,
+    Callable,
+)
 
 import numpy as np
 
@@ -51,10 +56,10 @@ def validate_udf(func: Callable) -> None:
 
 
 def generate_numba_agg_func(
-    args: Tuple,
-    kwargs: Dict[str, Any],
+    args: tuple,
+    kwargs: dict[str, Any],
     func: Callable[..., Scalar],
-    engine_kwargs: Optional[Dict[str, bool]],
+    engine_kwargs: dict[str, bool] | None,
 ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int], np.ndarray]:
     """
     Generate a numba jitted agg function specified by values from engine_kwargs.
@@ -89,10 +94,6 @@ def generate_numba_agg_func(
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
-    if parallel:
-        loop_range = numba.prange
-    else:
-        loop_range = range
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def group_agg(
@@ -104,9 +105,9 @@ def generate_numba_agg_func(
         num_columns: int,
     ) -> np.ndarray:
         result = np.empty((num_groups, num_columns))
-        for i in loop_range(num_groups):
+        for i in numba.prange(num_groups):
             group_index = index[begin[i] : end[i]]
-            for j in loop_range(num_columns):
+            for j in numba.prange(num_columns):
                 group = values[begin[i] : end[i], j]
                 result[i, j] = numba_func(group, group_index, *args)
         return result
@@ -115,10 +116,10 @@ def generate_numba_agg_func(
 
 
 def generate_numba_transform_func(
-    args: Tuple,
-    kwargs: Dict[str, Any],
+    args: tuple,
+    kwargs: dict[str, Any],
     func: Callable[..., np.ndarray],
-    engine_kwargs: Optional[Dict[str, bool]],
+    engine_kwargs: dict[str, bool] | None,
 ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int], np.ndarray]:
     """
     Generate a numba jitted transform function specified by values from engine_kwargs.
@@ -153,10 +154,6 @@ def generate_numba_transform_func(
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
-    if parallel:
-        loop_range = numba.prange
-    else:
-        loop_range = range
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def group_transform(
@@ -168,9 +165,9 @@ def generate_numba_transform_func(
         num_columns: int,
     ) -> np.ndarray:
         result = np.empty((len(values), num_columns))
-        for i in loop_range(num_groups):
+        for i in numba.prange(num_groups):
             group_index = index[begin[i] : end[i]]
-            for j in loop_range(num_columns):
+            for j in numba.prange(num_columns):
                 group = values[begin[i] : end[i], j]
                 result[begin[i] : end[i], j] = numba_func(group, group_index, *args)
         return result

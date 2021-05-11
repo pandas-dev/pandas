@@ -4,7 +4,13 @@ Tests for DataFrame.mask; tests DataFrame.where as a side-effect.
 
 import numpy as np
 
-from pandas import DataFrame, isna
+from pandas import (
+    NA,
+    DataFrame,
+    Series,
+    StringDtype,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -74,12 +80,46 @@ class TestDataFrameMask:
         tm.assert_frame_equal(result, exp)
         tm.assert_frame_equal(result, (df + 2).mask((df + 2) > 8, (df + 2) + 10))
 
-    def test_mask_dtype_conversion(self):
+    def test_mask_dtype_bool_conversion(self):
         # GH#3733
         df = DataFrame(data=np.random.randn(100, 50))
         df = df.where(df > 0)  # create nans
         bools = df > 0
         mask = isna(df)
-        expected = bools.astype(float).mask(mask)
+        expected = bools.astype(object).mask(mask)
         result = bools.mask(mask)
         tm.assert_frame_equal(result, expected)
+
+
+def test_mask_try_cast_deprecated(frame_or_series):
+
+    obj = DataFrame(np.random.randn(4, 3))
+    if frame_or_series is not DataFrame:
+        obj = obj[0]
+
+    mask = obj > 0
+
+    with tm.assert_produces_warning(FutureWarning):
+        # try_cast keyword deprecated
+        obj.mask(mask, -1, try_cast=True)
+
+
+def test_mask_stringdtype():
+    # GH 40824
+    df = DataFrame(
+        {"A": ["foo", "bar", "baz", NA]},
+        index=["id1", "id2", "id3", "id4"],
+        dtype=StringDtype(),
+    )
+    filtered_df = DataFrame(
+        {"A": ["this", "that"]}, index=["id2", "id3"], dtype=StringDtype()
+    )
+    filter_ser = Series([False, True, True, False])
+    result = df.mask(filter_ser, filtered_df)
+
+    expected = DataFrame(
+        {"A": [NA, "this", "that", NA]},
+        index=["id1", "id2", "id3", "id4"],
+        dtype=StringDtype(),
+    )
+    tm.assert_frame_equal(result, expected)

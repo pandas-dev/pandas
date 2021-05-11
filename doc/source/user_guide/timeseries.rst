@@ -1422,7 +1422,6 @@ An example of how holidays and holiday calendars are defined:
         MO,
     )
 
-
     class ExampleCalendar(AbstractHolidayCalendar):
         rules = [
             USMemorialDay,
@@ -1434,7 +1433,6 @@ An example of how holidays and holiday calendars are defined:
                 offset=pd.DateOffset(weekday=MO(2)),
             ),
         ]
-
 
     cal = ExampleCalendar()
     cal.holidays(datetime.datetime(2012, 1, 1), datetime.datetime(2012, 12, 31))
@@ -1707,12 +1705,10 @@ We can instead only resample those groups where we have points as follows:
     from functools import partial
     from pandas.tseries.frequencies import to_offset
 
-
     def round(t, freq):
         # round a Timestamp to a specified freq
         freq = to_offset(freq)
         return pd.Timestamp((t.value // freq.delta.value) * freq.delta.value)
-
 
     ts.groupby(partial(round, freq="3T")).sum()
 
@@ -1887,6 +1883,34 @@ Those two examples are equivalent for this time series:
 
 
 Note the use of ``'start'`` for ``origin`` on the last example. In that case, ``origin`` will be set to the first value of the timeseries.
+
+Backward resample
+~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.3.0
+
+Instead of adjusting the beginning of bins, sometimes we need to fix the end of the bins to make a backward resample with a given ``freq``. The backward resample sets ``closed`` to ``'right'`` by default since the last value should be considered as the edge point for the last bin.
+
+We can set ``origin`` to ``'end'``. The value for a specific ``Timestamp`` index stands for the resample result from the current ``Timestamp`` minus ``freq`` to the current ``Timestamp`` with a right close.
+
+.. ipython:: python
+
+   ts.resample('17min', origin='end').sum()
+
+Besides, in contrast with the ``'start_day'`` option, ``end_day`` is supported. This will set the origin as the ceiling midnight of the largest ``Timestamp``.
+
+.. ipython:: python
+
+   ts.resample('17min', origin='end_day').sum()
+
+The above result uses ``2000-10-02 00:29:00`` as the last bin's right edge since the following computation.
+
+.. ipython:: python
+
+   ceil_mid = rng.max().ceil('D')
+   freq = pd.offsets.Minute(17)
+   bin_res = ceil_mid - freq * ((ceil_mid - rng.max()) // freq)
+   bin_res
 
 .. _timeseries.periods:
 
@@ -2227,10 +2251,8 @@ To convert from an ``int64`` based YYYYMMDD representation.
    s = pd.Series([20121231, 20141130, 99991231])
    s
 
-
    def conv(x):
        return pd.Period(year=x // 10000, month=x // 100 % 100, day=x % 100, freq="D")
-
 
    s.apply(conv)
    s.apply(conv)[2]
@@ -2577,16 +2599,9 @@ For example, to localize and convert a naive stamp to time zone aware.
    s_naive.dt.tz_localize("UTC").dt.tz_convert("US/Eastern")
 
 Time zone information can also be manipulated using the ``astype`` method.
-This method can localize and convert time zone naive timestamps or
-convert time zone aware timestamps.
+This method can convert between different timezone-aware dtypes.
 
 .. ipython:: python
-
-   # localize and convert a naive time zone
-   s_naive.astype("datetime64[ns, US/Eastern]")
-
-   # make an aware tz naive
-   s_aware.astype("datetime64[ns]")
 
    # convert to a new time zone
    s_aware.astype("datetime64[ns, CET]")

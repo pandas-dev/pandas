@@ -2,12 +2,17 @@
 Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
-from typing import Dict, Hashable, List, Optional, Set, Tuple
+from __future__ import annotations
+
+from typing import Hashable
 import warnings
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries, Label, final
+from pandas._typing import (
+    FrameOrSeries,
+    final,
+)
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
@@ -20,12 +25,22 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas.core.algorithms as algorithms
-from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays import (
+    Categorical,
+    ExtensionArray,
+)
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
-from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
-from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
+from pandas.core.groupby.categorical import (
+    recode_for_groupby,
+    recode_from_groupby,
+)
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Index,
+    MultiIndex,
+)
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
@@ -82,7 +97,8 @@ class Grouper:
             However, loffset is also deprecated for ``.resample(...)``
             See: :class:`DataFrame.resample`
 
-    origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
+    origin : {{'epoch', 'start', 'start_day', 'end', 'end_day'}}, Timestamp
+        or str, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin must
         match the timezone of the index.
         If a timestamp is not used, these values are also supported:
@@ -92,6 +108,11 @@ class Grouper:
         - 'start_day': `origin` is the first day at midnight of the timeseries
 
         .. versionadded:: 1.1.0
+
+        - 'end': `origin` is the last value of the timeseries
+        - 'end_day': `origin` is the ceiling midnight of the last day
+
+        .. versionadded:: 1.3.0
 
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
@@ -228,53 +249,28 @@ class Grouper:
     Freq: 17T, dtype: int64
     """
 
-    _attributes: Tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
+    axis: int
+    sort: bool
+    dropna: bool
+
+    _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
             from pandas.core.resample import TimeGrouper
 
-            # Deprecation warning of `base` and `loffset` since v1.1.0:
-            # we are raising the warning here to be able to set the `stacklevel`
-            # properly since we need to raise the `base` and `loffset` deprecation
-            # warning from three different cases:
-            #   core/generic.py::NDFrame.resample
-            #   core/groupby/groupby.py::GroupBy.resample
-            #   core/groupby/grouper.py::Grouper
-            # raising these warnings from TimeGrouper directly would fail the test:
-            #   tests/resample/test_deprecated.py::test_deprecating_on_loffset_and_base
-            # hacky way to set the stacklevel: if cls is TimeGrouper it means
-            # that the call comes from a pandas internal call of resample,
-            # otherwise it comes from pd.Grouper
-            stacklevel = 4 if cls is TimeGrouper else 2
-            if kwargs.get("base", None) is not None:
-                warnings.warn(
-                    "'base' in .resample() and in Grouper() is deprecated.\n"
-                    "The new arguments that you should use are 'offset' or 'origin'.\n"
-                    '\n>>> df.resample(freq="3s", base=2)\n'
-                    "\nbecomes:\n"
-                    '\n>>> df.resample(freq="3s", offset="2s")\n',
-                    FutureWarning,
-                    stacklevel=stacklevel,
-                )
-
-            if kwargs.get("loffset", None) is not None:
-                warnings.warn(
-                    "'loffset' in .resample() and in Grouper() is deprecated.\n"
-                    '\n>>> df.resample(freq="3s", loffset="8H")\n'
-                    "\nbecomes:\n"
-                    "\n>>> from pandas.tseries.frequencies import to_offset"
-                    '\n>>> df = df.resample(freq="3s").mean()'
-                    '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
-                    FutureWarning,
-                    stacklevel=stacklevel,
-                )
-
+            _check_deprecated_resample_kwargs(kwargs, origin=cls)
             cls = TimeGrouper
         return super().__new__(cls)
 
     def __init__(
-        self, key=None, level=None, freq=None, axis=0, sort=False, dropna=True
+        self,
+        key=None,
+        level=None,
+        freq=None,
+        axis: int = 0,
+        sort: bool = False,
+        dropna: bool = True,
     ):
         self.key = key
         self.level = level
@@ -287,6 +283,7 @@ class Grouper:
         self.indexer = None
         self.binner = None
         self._grouper = None
+        self._indexer = None
         self.dropna = dropna
 
     @final
@@ -294,12 +291,12 @@ class Grouper:
     def ax(self):
         return self.grouper
 
-    def _get_grouper(self, obj, validate: bool = True):
+    def _get_grouper(self, obj: FrameOrSeries, validate: bool = True):
         """
         Parameters
         ----------
-        obj : the subject object
-        validate : boolean, default True
+        obj : Series or DataFrame
+        validate : bool, default True
             if True, validate the grouper
 
         Returns
@@ -307,10 +304,11 @@ class Grouper:
         a tuple of binner, grouper, obj (possibly sorted)
         """
         self._set_grouper(obj)
-        # pandas\core\groupby\grouper.py:310: error: Value of type variable
-        # "FrameOrSeries" of "get_grouper" cannot be "Optional[Any]"
-        # [type-var]
-        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var]
+        # error: Value of type variable "FrameOrSeries" of "get_grouper" cannot be
+        # "Optional[Any]"
+        # error: Incompatible types in assignment (expression has type "BaseGrouper",
+        # variable has type "None")
+        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var,assignment]
             self.obj,
             [self.key],
             axis=self.axis,
@@ -341,15 +339,24 @@ class Grouper:
         # Keep self.grouper value before overriding
         if self._grouper is None:
             self._grouper = self.grouper
+            self._indexer = self.indexer
 
         # the key must be a valid info item
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
             if getattr(self.grouper, "name", None) == key and isinstance(obj, Series):
-                # pandas\core\groupby\grouper.py:348: error: Item "None" of
-                # "Optional[Any]" has no attribute "take"  [union-attr]
-                ax = self._grouper.take(obj.index)  # type: ignore[union-attr]
+                # Sometimes self._grouper will have been resorted while
+                # obj has not. In this case there is a mismatch when we
+                # call self._grouper.take(obj.index) so we need to undo the sorting
+                # before we call _grouper.take.
+                assert self._grouper is not None
+                if self._indexer is not None:
+                    reverse_indexer = self._indexer.argsort()
+                    unsorted_ax = self._grouper.take(reverse_indexer)
+                    ax = unsorted_ax.take(obj.index)
+                else:
+                    ax = self._grouper.take(obj.index)
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")
@@ -373,20 +380,26 @@ class Grouper:
         # possibly sort
         if (self.sort or sort) and not ax.is_monotonic:
             # use stable sort to support first, last, nth
-            indexer = self.indexer = ax.argsort(kind="mergesort")
+            # TODO: why does putting na_position="first" fix datetimelike cases?
+            indexer = self.indexer = ax.array.argsort(
+                kind="mergesort", na_position="first"
+            )
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=self.axis)
 
-        self.obj = obj
-        self.grouper = ax
+        # error: Incompatible types in assignment (expression has type
+        # "FrameOrSeries", variable has type "None")
+        self.obj = obj  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "Index",
+        # variable has type "None")
+        self.grouper = ax  # type: ignore[assignment]
         return self.grouper
 
     @final
     @property
     def groups(self):
-        # pandas\core\groupby\grouper.py:382: error: Item "None" of
-        # "Optional[Any]" has no attribute "groups"  [union-attr]
-        return self.grouper.groups  # type: ignore[union-attr]
+        # error: "None" has no attribute "groups"
+        return self.grouper.groups  # type: ignore[attr-defined]
 
     @final
     def __repr__(self) -> str:
@@ -430,8 +443,8 @@ class Grouping:
         self,
         index: Index,
         grouper=None,
-        obj: Optional[FrameOrSeries] = None,
-        name=None,
+        obj: FrameOrSeries | None = None,
+        name: Hashable = None,
         level=None,
         sort: bool = True,
         observed: bool = False,
@@ -481,7 +494,12 @@ class Grouping:
             # what key/level refer to exactly, don't need to
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
-            _, grouper, _ = self.grouper._get_grouper(self.obj, validate=False)
+            _, grouper, _ = self.grouper._get_grouper(
+                # error: Value of type variable "FrameOrSeries" of "_get_grouper"
+                # of "Grouper" cannot be "Optional[FrameOrSeries]"
+                self.obj,  # type: ignore[type-var]
+                validate=False,
+            )
             if self.name is None:
                 self.name = grouper.result_index.name
             self.obj = self.grouper.obj
@@ -559,8 +577,8 @@ class Grouping:
     def __iter__(self):
         return iter(self.indices)
 
-    _codes: Optional[np.ndarray] = None
-    _group_index: Optional[Index] = None
+    _codes: np.ndarray | None = None
+    _group_index: Index | None = None
 
     @property
     def ngroups(self) -> int:
@@ -572,19 +590,16 @@ class Grouping:
         if isinstance(self.grouper, ops.BaseGrouper):
             return self.grouper.indices
 
-        # Return a dictionary of {group label: [indices belonging to the group label]}
-        # respecting whether sort was specified
-        codes, uniques = algorithms.factorize(self.grouper, sort=self.sort)
-        return {
-            category: np.flatnonzero(codes == i)
-            for i, category in enumerate(Index(uniques))
-        }
+        values = Categorical(self.grouper)
+        return values._reverse_indexer()
 
     @property
     def codes(self) -> np.ndarray:
         if self._codes is None:
             self._make_codes()
-        return self._codes
+        # error: Incompatible return value type (got "Optional[ndarray]",
+        # expected "ndarray")
+        return self._codes  # type: ignore[return-value]
 
     @cache_readonly
     def result_index(self) -> Index:
@@ -623,7 +638,7 @@ class Grouping:
         self._group_index = uniques
 
     @cache_readonly
-    def groups(self) -> Dict[Hashable, np.ndarray]:
+    def groups(self) -> dict[Hashable, np.ndarray]:
         return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
@@ -637,7 +652,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> Tuple["ops.BaseGrouper", Set[Label], FrameOrSeries]:
+) -> tuple[ops.BaseGrouper, frozenset[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -713,13 +728,13 @@ def get_grouper(
     if isinstance(key, Grouper):
         binner, grouper, obj = key._get_grouper(obj, validate=False)
         if key.key is None:
-            return grouper, set(), obj
+            return grouper, frozenset(), obj
         else:
-            return grouper, {key.key}, obj
+            return grouper, frozenset({key.key}), obj
 
     # already have a BaseGrouper, just return it
     elif isinstance(key, ops.BaseGrouper):
-        return key, set(), obj
+        return key, frozenset(), obj
 
     if not isinstance(key, list):
         keys = [key]
@@ -761,8 +776,8 @@ def get_grouper(
     else:
         levels = [level] * len(keys)
 
-    groupings: List[Grouping] = []
-    exclusions: Set[Label] = set()
+    groupings: list[Grouping] = []
+    exclusions: set[Hashable] = set()
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
@@ -788,7 +803,7 @@ def get_grouper(
             #  lambda here
             return False
 
-    for i, (gpr, level) in enumerate(zip(keys, levels)):
+    for gpr, level in zip(keys, levels):
 
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis, name = True, gpr.name
@@ -846,7 +861,7 @@ def get_grouper(
     grouper = ops.BaseGrouper(
         group_axis, groupings, sort=sort, mutated=mutated, dropna=dropna
     )
-    return grouper, exclusions, obj
+    return grouper, frozenset(exclusions), obj
 
 
 def _is_label_like(val) -> bool:
@@ -867,3 +882,58 @@ def _convert_grouper(axis: Index, grouper):
         return grouper
     else:
         return grouper
+
+
+def _check_deprecated_resample_kwargs(kwargs, origin):
+    """
+    Check for use of deprecated parameters in ``resample`` and related functions.
+
+    Raises the appropriate warnings if these parameters are detected.
+    Only sets an approximate ``stacklevel`` for the warnings (see #37603, #36629).
+
+    Parameters
+    ----------
+    kwargs : dict
+        Dictionary of keyword arguments to check for deprecated parameters.
+    origin : object
+        From where this function is being called; either Grouper or TimeGrouper. Used
+        to determine an approximate stacklevel.
+    """
+    from pandas.core.resample import TimeGrouper
+
+    # Deprecation warning of `base` and `loffset` since v1.1.0:
+    # we are raising the warning here to be able to set the `stacklevel`
+    # properly since we need to raise the `base` and `loffset` deprecation
+    # warning from three different cases:
+    #   core/generic.py::NDFrame.resample
+    #   core/groupby/groupby.py::GroupBy.resample
+    #   core/groupby/grouper.py::Grouper
+    # raising these warnings from TimeGrouper directly would fail the test:
+    #   tests/resample/test_deprecated.py::test_deprecating_on_loffset_and_base
+    # hacky way to set the stacklevel: if cls is TimeGrouper it means
+    # that the call comes from a pandas internal call of resample,
+    # otherwise it comes from pd.Grouper
+    stacklevel = (5 if origin is TimeGrouper else 2) + 1
+    # the + 1 is for this helper function, check_deprecated_resample_kwargs
+
+    if kwargs.get("base", None) is not None:
+        warnings.warn(
+            "'base' in .resample() and in Grouper() is deprecated.\n"
+            "The new arguments that you should use are 'offset' or 'origin'.\n"
+            '\n>>> df.resample(freq="3s", base=2)\n'
+            "\nbecomes:\n"
+            '\n>>> df.resample(freq="3s", offset="2s")\n',
+            FutureWarning,
+            stacklevel=stacklevel,
+        )
+    if kwargs.get("loffset", None) is not None:
+        warnings.warn(
+            "'loffset' in .resample() and in Grouper() is deprecated.\n"
+            '\n>>> df.resample(freq="3s", loffset="8H")\n'
+            "\nbecomes:\n"
+            "\n>>> from pandas.tseries.frequencies import to_offset"
+            '\n>>> df = df.resample(freq="3s").mean()'
+            '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
+            FutureWarning,
+            stacklevel=stacklevel,
+        )

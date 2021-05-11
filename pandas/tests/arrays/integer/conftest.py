@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.core.arrays import integer_array
+import pandas as pd
 from pandas.core.arrays.integer import (
     Int8Dtype,
     Int16Dtype,
@@ -32,7 +32,7 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    return integer_array(
+    return pd.array(
         list(range(8)) + [np.nan] + list(range(10, 98)) + [np.nan] + [99, 100],
         dtype=dtype,
     )
@@ -40,7 +40,7 @@ def data(dtype):
 
 @pytest.fixture
 def data_missing(dtype):
-    return integer_array([np.nan, 1], dtype=dtype)
+    return pd.array([np.nan, 1], dtype=dtype)
 
 
 @pytest.fixture(params=["data", "data_missing"])

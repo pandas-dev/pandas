@@ -1,7 +1,11 @@
 import codecs
 from functools import wraps
 import re
-from typing import Dict, List, Optional
+from typing import (
+    Dict,
+    List,
+    Optional,
+)
 import warnings
 
 import numpy as np
@@ -15,10 +19,11 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer,
     is_list_like,
+    is_re,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCSeries,
 )
@@ -109,7 +114,7 @@ def forbid_nonstring_types(forbidden, name=None):
 def _map_and_wrap(name, docstring):
     @forbid_nonstring_types(["bytes"], name=name)
     def wrapper(self):
-        result = getattr(self._array, f"_str_{name}")()
+        result = getattr(self._data.array, f"_str_{name}")()
         return self._wrap_result(result)
 
     wrapper.__doc__ = docstring
@@ -154,8 +159,7 @@ class StringMethods(NoNewAttributesMixin):
         self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data.dtype)
         self._is_string = isinstance(data.dtype, StringDtype)
-        array = data.array
-        self._array = array
+        self._data = data
 
         self._index = self._name = None
         if isinstance(data, ABCSeries):
@@ -191,8 +195,6 @@ class StringMethods(NoNewAttributesMixin):
         -------
         dtype : inferred dtype of data
         """
-        from pandas import StringDtype
-
         if isinstance(data, ABCMultiIndex):
             raise AttributeError(
                 "Can only use .str accessor with Index, not MultiIndex"
@@ -204,22 +206,14 @@ class StringMethods(NoNewAttributesMixin):
         values = getattr(data, "values", data)  # Series / Index
         values = getattr(values, "categories", values)  # categorical / normal
 
-        # explicitly allow StringDtype
-        if isinstance(values.dtype, StringDtype):
-            return "string"
-
-        try:
-            inferred_dtype = lib.infer_dtype(values, skipna=True)
-        except ValueError:
-            # GH#27571 mostly occurs with ExtensionArray
-            inferred_dtype = None
+        inferred_dtype = lib.infer_dtype(values, skipna=True)
 
         if inferred_dtype not in allowed_types:
             raise AttributeError("Can only use .str accessor with string values!")
         return inferred_dtype
 
     def __getitem__(self, key):
-        result = self._array._str_getitem(key)
+        result = self._data.array._str_getitem(key)
         return self._wrap_result(result)
 
     def __iter__(self):
@@ -243,7 +237,10 @@ class StringMethods(NoNewAttributesMixin):
         fill_value=np.nan,
         returns_string=True,
     ):
-        from pandas import Index, MultiIndex
+        from pandas import (
+            Index,
+            MultiIndex,
+        )
 
         if not hasattr(result, "ndim") or not hasattr(result, "dtype"):
             if isinstance(result, ABCDataFrame):
@@ -260,7 +257,7 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif expand is True and not isinstance(self._orig, ABCIndexClass):
+        elif expand is True and not isinstance(self._orig, ABCIndex):
             # required when expand=True is explicitly specified
             # not needed when inferred
 
@@ -293,7 +290,7 @@ class StringMethods(NoNewAttributesMixin):
 
         # Wait until we are sure result is a Series or Index before
         # checking attributes (GH 12180)
-        if isinstance(self._orig, ABCIndexClass):
+        if isinstance(self._orig, ABCIndex):
             # if result is a boolean np.array, return the np.array
             # instead of wrapping it into a boolean Index (GH 8875)
             if is_bool_dtype(result):
@@ -314,7 +311,7 @@ class StringMethods(NoNewAttributesMixin):
             # This is a mess.
             dtype: Optional[str]
             if self._is_string and returns_string:
-                dtype = "string"
+                dtype = self._orig.dtype
             else:
                 dtype = None
 
@@ -348,17 +345,20 @@ class StringMethods(NoNewAttributesMixin):
         list of Series
             Others transformed into list of Series.
         """
-        from pandas import DataFrame, Series
+        from pandas import (
+            DataFrame,
+            Series,
+        )
 
         # self._orig is either Series or Index
-        idx = self._orig if isinstance(self._orig, ABCIndexClass) else self._orig.index
+        idx = self._orig if isinstance(self._orig, ABCIndex) else self._orig.index
 
         # Generally speaking, all objects without an index inherit the index
         # `idx` of the calling Series/Index - i.e. must have matching length.
         # Objects with an index (i.e. Series/Index/DataFrame) keep their own.
         if isinstance(others, ABCSeries):
             return [others]
-        elif isinstance(others, ABCIndexClass):
+        elif isinstance(others, ABCIndex):
             return [Series(others._values, index=idx)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
@@ -371,7 +371,7 @@ class StringMethods(NoNewAttributesMixin):
             # in case of list-like `others`, all elements must be
             # either Series/Index/np.ndarray (1-dim)...
             if all(
-                isinstance(x, (ABCSeries, ABCIndexClass))
+                isinstance(x, (ABCSeries, ABCIndex))
                 or (isinstance(x, np.ndarray) and x.ndim == 1)
                 for x in others
             ):
@@ -525,21 +525,27 @@ class StringMethods(NoNewAttributesMixin):
         For more examples, see :ref:`here <text.concatenate>`.
         """
         # TODO: dispatch
-        from pandas import Index, Series, concat
+        from pandas import (
+            Index,
+            Series,
+            concat,
+        )
 
         if isinstance(others, str):
             raise ValueError("Did you mean to supply a `sep` keyword?")
         if sep is None:
             sep = ""
 
-        if isinstance(self._orig, ABCIndexClass):
+        if isinstance(self._orig, ABCIndex):
             data = Series(self._orig, index=self._orig)
         else:  # Series
             data = self._orig
 
         # concatenate Series/Index with itself if no "others"
         if others is None:
-            data = ensure_object(data)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Series")
+            data = ensure_object(data)  # type: ignore[assignment]
             na_mask = isna(data)
             if na_rep is None and na_mask.any():
                 data = data[~na_mask]
@@ -593,17 +599,29 @@ class StringMethods(NoNewAttributesMixin):
             # no NaNs - can just concatenate
             result = cat_safe(all_cols, sep)
 
-        if isinstance(self._orig, ABCIndexClass):
+        if isinstance(self._orig, ABCIndex):
             # add dtype for case that result is all-NA
-            result = Index(result, dtype=object, name=self._orig.name)
+
+            # error: Incompatible types in assignment (expression has type
+            # "Index", variable has type "ndarray")
+            result = Index(  # type: ignore[assignment]
+                result, dtype=object, name=self._orig.name
+            )
         else:  # Series
             if is_categorical_dtype(self._orig.dtype):
                 # We need to infer the new categories.
                 dtype = None
             else:
                 dtype = self._orig.dtype
-            result = Series(result, dtype=dtype, index=data.index, name=self._orig.name)
-            result = result.__finalize__(self._orig, method="str_cat")
+            # error: Incompatible types in assignment (expression has type
+            # "Series", variable has type "ndarray")
+            result = Series(  # type: ignore[assignment]
+                result, dtype=dtype, index=data.index, name=self._orig.name
+            )
+            # error: "ndarray" has no attribute "__finalize__"
+            result = result.__finalize__(  # type: ignore[attr-defined]
+                self._orig, method="str_cat"
+            )
         return result
 
     _shared_docs[
@@ -744,13 +762,13 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs["str_split"] % {"side": "beginning", "method": "split"})
     @forbid_nonstring_types(["bytes"])
     def split(self, pat=None, n=-1, expand=False):
-        result = self._array._str_split(pat, n, expand)
+        result = self._data.array._str_split(pat, n, expand)
         return self._wrap_result(result, returns_string=expand, expand=expand)
 
     @Appender(_shared_docs["str_split"] % {"side": "end", "method": "rsplit"})
     @forbid_nonstring_types(["bytes"])
     def rsplit(self, pat=None, n=-1, expand=False):
-        result = self._array._str_rsplit(pat, n=n)
+        result = self._data.array._str_rsplit(pat, n=n)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
     _shared_docs[
@@ -846,7 +864,7 @@ class StringMethods(NoNewAttributesMixin):
     )
     @forbid_nonstring_types(["bytes"])
     def partition(self, sep=" ", expand=True):
-        result = self._array._str_partition(sep, expand)
+        result = self._data.array._str_partition(sep, expand)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
     @Appender(
@@ -860,7 +878,7 @@ class StringMethods(NoNewAttributesMixin):
     )
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep=" ", expand=True):
-        result = self._array._str_rpartition(sep, expand)
+        result = self._data.array._str_rpartition(sep, expand)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
     def get(self, i):
@@ -914,7 +932,7 @@ class StringMethods(NoNewAttributesMixin):
         5    None
         dtype: object
         """
-        result = self._array._str_get(i)
+        result = self._data.array._str_get(i)
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
@@ -980,7 +998,7 @@ class StringMethods(NoNewAttributesMixin):
         4                    NaN
         dtype: object
         """
-        result = self._array._str_join(sep)
+        result = self._data.array._str_join(sep)
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
@@ -1108,7 +1126,15 @@ class StringMethods(NoNewAttributesMixin):
         4    False
         dtype: bool
         """
-        result = self._array._str_contains(pat, case, flags, na, regex)
+        if regex and re.compile(pat).groups:
+            warnings.warn(
+                "This pattern has match groups. To actually get the "
+                "groups, use str.extract.",
+                UserWarning,
+                stacklevel=3,
+            )
+
+        result = self._data.array._str_contains(pat, case, flags, na, regex)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -1140,7 +1166,7 @@ class StringMethods(NoNewAttributesMixin):
             re.match.
         extract : Extract matched groups.
         """
-        result = self._array._str_match(pat, case=case, flags=flags, na=na)
+        result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -1173,7 +1199,7 @@ class StringMethods(NoNewAttributesMixin):
             matches the regular expression.
         extract : Extract matched groups.
         """
-        result = self._array._str_fullmatch(pat, case=case, flags=flags, na=na)
+        result = self._data.array._str_fullmatch(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -1205,7 +1231,7 @@ class StringMethods(NoNewAttributesMixin):
             Regex module flags, e.g. re.IGNORECASE. Cannot be set if `pat` is a compiled
             regex.
         regex : bool, default True
-            Determines if assumes the passed-in pattern is a regular expression:
+            Determines if the passed-in pattern is a regular expression:
 
             - If True, assumes the passed-in pattern is a regular expression.
             - If False, treats the pattern as a literal string
@@ -1261,7 +1287,7 @@ class StringMethods(NoNewAttributesMixin):
 
         To get the idea:
 
-        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', repr)
+        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', repr, regex=True)
         0    <re.Match object; span=(0, 1), match='f'>oo
         1    <re.Match object; span=(0, 1), match='f'>uz
         2                                            NaN
@@ -1270,7 +1296,8 @@ class StringMethods(NoNewAttributesMixin):
         Reverse every lowercase alphabetic word:
 
         >>> repl = lambda m: m.group(0)[::-1]
-        >>> pd.Series(['foo 123', 'bar baz', np.nan]).str.replace(r'[a-z]+', repl)
+        >>> ser = pd.Series(['foo 123', 'bar baz', np.nan])
+        >>> ser.str.replace(r'[a-z]+', repl, regex=True)
         0    oof 123
         1    rab zab
         2        NaN
@@ -1280,7 +1307,8 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
         >>> repl = lambda m: m.group('two').swapcase()
-        >>> pd.Series(['One Two Three', 'Foo Bar Baz']).str.replace(pat, repl)
+        >>> ser = pd.Series(['One Two Three', 'Foo Bar Baz'])
+        >>> ser.str.replace(pat, repl, regex=True)
         0    tWO
         1    bAR
         dtype: object
@@ -1289,7 +1317,7 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> import re
         >>> regex_pat = re.compile(r'FUZ', flags=re.IGNORECASE)
-        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace(regex_pat, 'bar')
+        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace(regex_pat, 'bar', regex=True)
         0    foo
         1    bar
         2    NaN
@@ -1309,7 +1337,30 @@ class StringMethods(NoNewAttributesMixin):
                     )
                 warnings.warn(msg, FutureWarning, stacklevel=3)
             regex = True
-        result = self._array._str_replace(
+
+        # Check whether repl is valid (GH 13438, GH 15055)
+        if not (isinstance(repl, str) or callable(repl)):
+            raise TypeError("repl must be a string or callable")
+
+        is_compiled_re = is_re(pat)
+        if regex:
+            if is_compiled_re:
+                if (case is not None) or (flags != 0):
+                    raise ValueError(
+                        "case and flags cannot be set when pat is a compiled regex"
+                    )
+            elif case is None:
+                # not a compiled regex, set default case
+                case = True
+
+        elif is_compiled_re:
+            raise ValueError(
+                "Cannot use a compiled regex as replacement pattern with regex=False"
+            )
+        elif callable(repl):
+            raise ValueError("Cannot use a callable replacement when regex=False")
+
+        result = self._data.array._str_replace(
             pat, repl, n=n, case=case, flags=flags, regex=regex
         )
         return self._wrap_result(result)
@@ -1355,7 +1406,7 @@ class StringMethods(NoNewAttributesMixin):
         2    ccc
         dtype: object
         """
-        result = self._array._str_repeat(repeats)
+        result = self._data.array._str_repeat(repeats)
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
@@ -1423,7 +1474,7 @@ class StringMethods(NoNewAttributesMixin):
             msg = f"width must be of integer type, not {type(width).__name__}"
             raise TypeError(msg)
 
-        result = self._array._str_pad(width, side=side, fillchar=fillchar)
+        result = self._data.array._str_pad(width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
 
     _shared_docs[
@@ -1552,40 +1603,40 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(["koala", "fox", "chameleon"])
+        >>> s = pd.Series(["koala", "dog", "chameleon"])
         >>> s
         0        koala
-        1          fox
+        1          dog
         2    chameleon
         dtype: object
 
         >>> s.str.slice(start=1)
         0        oala
-        1          ox
+        1          og
         2    hameleon
         dtype: object
 
         >>> s.str.slice(start=-1)
         0           a
-        1           x
+        1           g
         2           n
         dtype: object
 
         >>> s.str.slice(stop=2)
         0    ko
-        1    fo
+        1    do
         2    ch
         dtype: object
 
         >>> s.str.slice(step=2)
         0      kaa
-        1       fx
+        1       dg
         2    caeen
         dtype: object
 
         >>> s.str.slice(start=0, stop=5, step=3)
         0    kl
-        1     f
+        1     d
         2    cm
         dtype: object
 
@@ -1593,11 +1644,11 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> s.str[0:5:3]
         0    kl
-        1     f
+        1     d
         2    cm
         dtype: object
         """
-        result = self._array._str_slice(start, stop, step)
+        result = self._data.array._str_slice(start, stop, step)
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
@@ -1673,7 +1724,7 @@ class StringMethods(NoNewAttributesMixin):
         4    aXde
         dtype: object
         """
-        result = self._array._str_slice_replace(start, stop, repl)
+        result = self._data.array._str_slice_replace(start, stop, repl)
         return self._wrap_result(result)
 
     def decode(self, encoding, errors="strict"):
@@ -1699,7 +1750,7 @@ class StringMethods(NoNewAttributesMixin):
         else:
             decoder = codecs.getdecoder(encoding)
             f = lambda x: decoder(x, errors)[0]
-        arr = self._array
+        arr = self._data.array
         # assert isinstance(arr, (StringArray,))
         result = arr._str_map(f)
         return self._wrap_result(result)
@@ -1720,7 +1771,7 @@ class StringMethods(NoNewAttributesMixin):
         -------
         encoded : Series/Index of objects
         """
-        result = self._array._str_encode(encoding, errors)
+        result = self._data.array._str_encode(encoding, errors)
         return self._wrap_result(result, returns_string=False)
 
     _shared_docs[
@@ -1798,7 +1849,7 @@ class StringMethods(NoNewAttributesMixin):
     )
     @forbid_nonstring_types(["bytes"])
     def strip(self, to_strip=None):
-        result = self._array._str_strip(to_strip)
+        result = self._data.array._str_strip(to_strip)
         return self._wrap_result(result)
 
     @Appender(
@@ -1807,7 +1858,7 @@ class StringMethods(NoNewAttributesMixin):
     )
     @forbid_nonstring_types(["bytes"])
     def lstrip(self, to_strip=None):
-        result = self._array._str_lstrip(to_strip)
+        result = self._data.array._str_lstrip(to_strip)
         return self._wrap_result(result)
 
     @Appender(
@@ -1816,7 +1867,7 @@ class StringMethods(NoNewAttributesMixin):
     )
     @forbid_nonstring_types(["bytes"])
     def rstrip(self, to_strip=None):
-        result = self._array._str_rstrip(to_strip)
+        result = self._data.array._str_rstrip(to_strip)
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
@@ -1875,7 +1926,7 @@ class StringMethods(NoNewAttributesMixin):
         1    another line\nto be\nwrapped
         dtype: object
         """
-        result = self._array._str_wrap(width, **kwargs)
+        result = self._data.array._str_wrap(width, **kwargs)
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
@@ -1904,20 +1955,20 @@ class StringMethods(NoNewAttributesMixin):
         Examples
         --------
         >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()
-        a  b  c
+           a  b  c
         0  1  1  0
         1  1  0  0
         2  1  0  1
 
         >>> pd.Series(['a|b', np.nan, 'a|c']).str.get_dummies()
-        a  b  c
+           a  b  c
         0  1  1  0
         1  0  0  0
         2  1  0  1
         """
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
-        result, name = self._array._str_get_dummies(sep)
+        result, name = self._data.array._str_get_dummies(sep)
         return self._wrap_result(
             result,
             name=name,
@@ -1944,7 +1995,7 @@ class StringMethods(NoNewAttributesMixin):
         -------
         Series or Index
         """
-        result = self._array._str_translate(table)
+        result = self._data.array._str_translate(table)
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
@@ -2012,7 +2063,7 @@ class StringMethods(NoNewAttributesMixin):
         >>> pd.Index(['A', 'A', 'Aaba', 'cat']).str.count('a')
         Int64Index([0, 0, 2, 1], dtype='int64')
         """
-        result = self._array._str_count(pat, flags)
+        result = self._data.array._str_count(pat, flags)
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -2069,7 +2120,7 @@ class StringMethods(NoNewAttributesMixin):
         3    False
         dtype: bool
         """
-        result = self._array._str_startswith(pat, na=na)
+        result = self._data.array._str_startswith(pat, na=na)
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -2126,7 +2177,7 @@ class StringMethods(NoNewAttributesMixin):
         3    False
         dtype: bool
         """
-        result = self._array._str_endswith(pat, na=na)
+        result = self._data.array._str_endswith(pat, na=na)
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -2219,7 +2270,7 @@ class StringMethods(NoNewAttributesMixin):
         2    [b, b]
         dtype: object
         """
-        result = self._array._str_findall(pat, flags)
+        result = self._data.array._str_findall(pat, flags)
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -2351,7 +2402,7 @@ class StringMethods(NoNewAttributesMixin):
                 0
         match
         A 0      1
-        1      2
+          1      2
         B 0      1
 
         Capture group names are used for column names of the result.
@@ -2360,7 +2411,7 @@ class StringMethods(NoNewAttributesMixin):
                 digit
         match
         A 0         1
-        1         2
+          1         2
         B 0         1
 
         A pattern with two groups will return a DataFrame with two columns.
@@ -2369,7 +2420,7 @@ class StringMethods(NoNewAttributesMixin):
                 letter digit
         match
         A 0          a     1
-        1          a     2
+          1          a     2
         B 0          b     1
 
         Optional groups that do not match are NaN in the result.
@@ -2378,7 +2429,7 @@ class StringMethods(NoNewAttributesMixin):
                 letter digit
         match
         A 0          a     1
-        1          a     2
+          1          a     2
         B 0          b     1
         C 0        NaN     1
         """
@@ -2426,7 +2477,7 @@ class StringMethods(NoNewAttributesMixin):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
 
-        result = self._array._str_find(sub, start, end)
+        result = self._data.array._str_find(sub, start, end)
         return self._wrap_result(result, returns_string=False)
 
     @Appender(
@@ -2443,7 +2494,7 @@ class StringMethods(NoNewAttributesMixin):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
 
-        result = self._array._str_rfind(sub, start=start, end=end)
+        result = self._data.array._str_rfind(sub, start=start, end=end)
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -2463,7 +2514,7 @@ class StringMethods(NoNewAttributesMixin):
         -------
         normalized : Series/Index of objects
         """
-        result = self._array._str_normalize(form)
+        result = self._data.array._str_normalize(form)
         return self._wrap_result(result)
 
     _shared_docs[
@@ -2510,7 +2561,7 @@ class StringMethods(NoNewAttributesMixin):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
 
-        result = self._array._str_index(sub, start=start, end=end)
+        result = self._data.array._str_index(sub, start=start, end=end)
         return self._wrap_result(result, returns_string=False)
 
     @Appender(
@@ -2528,7 +2579,7 @@ class StringMethods(NoNewAttributesMixin):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
 
-        result = self._array._str_rindex(sub, start=start, end=end)
+        result = self._data.array._str_rindex(sub, start=start, end=end)
         return self._wrap_result(result, returns_string=False)
 
     def len(self):
@@ -2577,7 +2628,7 @@ class StringMethods(NoNewAttributesMixin):
         5    3.0
         dtype: float64
         """
-        result = self._array._str_len()
+        result = self._data.array._str_len()
         return self._wrap_result(result, returns_string=False)
 
     _shared_docs[
@@ -2677,37 +2728,37 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs["casemethods"] % _doc_args["lower"])
     @forbid_nonstring_types(["bytes"])
     def lower(self):
-        result = self._array._str_lower()
+        result = self._data.array._str_lower()
         return self._wrap_result(result)
 
     @Appender(_shared_docs["casemethods"] % _doc_args["upper"])
     @forbid_nonstring_types(["bytes"])
     def upper(self):
-        result = self._array._str_upper()
+        result = self._data.array._str_upper()
         return self._wrap_result(result)
 
     @Appender(_shared_docs["casemethods"] % _doc_args["title"])
     @forbid_nonstring_types(["bytes"])
     def title(self):
-        result = self._array._str_title()
+        result = self._data.array._str_title()
         return self._wrap_result(result)
 
     @Appender(_shared_docs["casemethods"] % _doc_args["capitalize"])
     @forbid_nonstring_types(["bytes"])
     def capitalize(self):
-        result = self._array._str_capitalize()
+        result = self._data.array._str_capitalize()
         return self._wrap_result(result)
 
     @Appender(_shared_docs["casemethods"] % _doc_args["swapcase"])
     @forbid_nonstring_types(["bytes"])
     def swapcase(self):
-        result = self._array._str_swapcase()
+        result = self._data.array._str_swapcase()
         return self._wrap_result(result)
 
     @Appender(_shared_docs["casemethods"] % _doc_args["casefold"])
     @forbid_nonstring_types(["bytes"])
     def casefold(self):
-        result = self._array._str_casefold()
+        result = self._data.array._str_casefold()
         return self._wrap_result(result)
 
     _shared_docs[
@@ -3000,7 +3051,10 @@ def _str_extract_noexpand(arr, pat, flags=0):
     Index.
 
     """
-    from pandas import DataFrame, array
+    from pandas import (
+        DataFrame,
+        array as pd_array,
+    )
 
     regex = re.compile(pat, flags=flags)
     groups_or_na = _groups_or_na_fun(regex)
@@ -3010,18 +3064,24 @@ def _str_extract_noexpand(arr, pat, flags=0):
         result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
         name = _get_single_group_name(regex)
         # not dispatching, so we have to reconstruct here.
-        result = array(result, dtype=result_dtype)
+        result = pd_array(result, dtype=result_dtype)
     else:
-        if isinstance(arr, ABCIndexClass):
+        if isinstance(arr, ABCIndex):
             raise ValueError("only one regex group is supported with Index")
         name = None
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
         columns = [names.get(1 + i, i) for i in range(regex.groups)]
         if arr.size == 0:
-            result = DataFrame(columns=columns, dtype=object)
+            # error: Incompatible types in assignment (expression has type
+            # "DataFrame", variable has type "ndarray")
+            result = DataFrame(  # type: ignore[assignment]
+                columns=columns, dtype=object
+            )
         else:
             dtype = _result_dtype(arr)
-            result = DataFrame(
+            # error: Incompatible types in assignment (expression has type
+            # "DataFrame", variable has type "ndarray")
+            result = DataFrame(  # type:ignore[assignment]
                 [groups_or_na(val) for val in arr],
                 columns=columns,
                 index=arr.index,
@@ -3076,7 +3136,7 @@ def str_extractall(arr, pat, flags=0):
     if regex.groups == 0:
         raise ValueError("pattern contains no capture groups")
 
-    if isinstance(arr, ABCIndexClass):
+    if isinstance(arr, ABCIndex):
         arr = arr.to_series().reset_index(drop=True)
 
     names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))

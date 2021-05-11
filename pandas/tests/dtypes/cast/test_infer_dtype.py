@@ -1,9 +1,17 @@
-from datetime import date, datetime, timedelta
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import infer_dtype_from_array, infer_dtype_from_scalar
+from pandas.core.dtypes.cast import (
+    infer_dtype_from,
+    infer_dtype_from_array,
+    infer_dtype_from_scalar,
+)
 from pandas.core.dtypes.common import is_dtype_equal
 
 from pandas import (
@@ -101,13 +109,11 @@ def test_infer_from_scalar_tz(tz, pandas_dtype):
 
     if pandas_dtype:
         exp_dtype = f"datetime64[ns, {tz}]"
-        exp_val = dt.value
     else:
         exp_dtype = np.object_
-        exp_val = dt
 
     assert dtype == exp_dtype
-    assert val == exp_val
+    assert val == dt
 
 
 @pytest.mark.parametrize(
@@ -124,7 +130,7 @@ def test_infer_from_interval(left, right, subtype, closed, pandas_dtype):
     # GH 30337
     interval = Interval(left, right, closed)
     result_dtype, result_value = infer_dtype_from_scalar(interval, pandas_dtype)
-    expected_dtype = f"interval[{subtype}]" if pandas_dtype else np.object_
+    expected_dtype = f"interval[{subtype}, {closed}]" if pandas_dtype else np.object_
     assert result_dtype == expected_dtype
     assert result_value == interval
 
@@ -137,12 +143,29 @@ def test_infer_dtype_from_scalar_errors():
 
 
 @pytest.mark.parametrize(
-    "arr, expected, pandas_dtype",
+    "value, expected, pandas_dtype",
     [
         ("foo", np.object_, False),
         (b"foo", np.object_, False),
-        (1, np.int_, False),
+        (1, np.int64, False),
         (1.5, np.float_, False),
+        (np.datetime64("2016-01-01"), np.dtype("M8[ns]"), False),
+        (Timestamp("20160101"), np.dtype("M8[ns]"), False),
+        (Timestamp("20160101", tz="UTC"), np.object_, False),
+        (Timestamp("20160101", tz="UTC"), "datetime64[ns, UTC]", True),
+    ],
+)
+def test_infer_dtype_from_scalar(value, expected, pandas_dtype):
+    dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=pandas_dtype)
+    assert is_dtype_equal(dtype, expected)
+
+    with pytest.raises(TypeError, match="must be list-like"):
+        infer_dtype_from_array(value, pandas_dtype=pandas_dtype)
+
+
+@pytest.mark.parametrize(
+    "arr, expected, pandas_dtype",
+    [
         ([1], np.int_, False),
         (np.array([1], dtype=np.int64), np.int64, False),
         ([np.nan, 1, ""], np.object_, False),
@@ -151,8 +174,6 @@ def test_infer_dtype_from_scalar_errors():
         (Categorical([1, 2, 3]), np.int64, False),
         (Categorical(list("aabc")), "category", True),
         (Categorical([1, 2, 3]), "category", True),
-        (Timestamp("20160101"), np.object_, False),
-        (np.datetime64("2016-01-01"), np.dtype("=M8[D]"), False),
         (date_range("20160101", periods=3), np.dtype("=M8[ns]"), False),
         (
             date_range("20160101", periods=3, tz="US/Eastern"),
@@ -171,3 +192,17 @@ def test_infer_dtype_from_scalar_errors():
 def test_infer_dtype_from_array(arr, expected, pandas_dtype):
     dtype, _ = infer_dtype_from_array(arr, pandas_dtype=pandas_dtype)
     assert is_dtype_equal(dtype, expected)
+
+
+@pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
+def test_infer_dtype_from_scalar_zerodim_datetimelike(cls):
+    # ndarray.item() can incorrectly return int instead of td64/dt64
+    val = cls(1234, "ns")
+    arr = np.array(val)
+
+    dtype, res = infer_dtype_from_scalar(arr)
+    assert dtype.type is cls
+    assert isinstance(res, cls)
+
+    dtype, res = infer_dtype_from(arr)
+    assert dtype.type is cls

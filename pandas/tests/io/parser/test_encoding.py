@@ -10,7 +10,10 @@ import tempfile
 import numpy as np
 import pytest
 
-from pandas import DataFrame, read_csv
+from pandas import (
+    DataFrame,
+    read_csv,
+)
 import pandas._testing as tm
 
 
@@ -47,7 +50,7 @@ A,B,C
         ",", sep
     )
     path = f"__{tm.rands(10)}__.csv"
-    kwargs = dict(sep=sep, skiprows=2)
+    kwargs = {"sep": sep, "skiprows": 2}
     utf8 = "utf-8"
 
     with tm.ensure_clean(path) as path:
@@ -91,17 +94,17 @@ def test_unicode_encoding(all_parsers, csv_dir_path):
     "data,kwargs,expected",
     [
         # Basic test
-        ("a\n1", dict(), DataFrame({"a": [1]})),
+        ("a\n1", {}, DataFrame({"a": [1]})),
         # "Regular" quoting
-        ('"a"\n1', dict(quotechar='"'), DataFrame({"a": [1]})),
+        ('"a"\n1', {"quotechar": '"'}, DataFrame({"a": [1]})),
         # Test in a data row instead of header
-        ("b\n1", dict(names=["a"]), DataFrame({"a": ["b", "1"]})),
+        ("b\n1", {"names": ["a"]}, DataFrame({"a": ["b", "1"]})),
         # Test in empty data row with skipping
-        ("\n1", dict(names=["a"], skip_blank_lines=True), DataFrame({"a": [1]})),
+        ("\n1", {"names": ["a"], "skip_blank_lines": True}, DataFrame({"a": [1]})),
         # Test in empty data row without skipping
         (
             "\n1",
-            dict(names=["a"], skip_blank_lines=False),
+            {"names": ["a"], "skip_blank_lines": False},
             DataFrame({"a": [np.nan, 1]}),
         ),
     ],
@@ -150,7 +153,7 @@ def test_binary_mode_file_buffers(
     fpath = datapath(*file_path)
     expected = parser.read_csv(fpath, encoding=encoding)
 
-    with open(fpath, mode="r", encoding=encoding) as fa:
+    with open(fpath, encoding=encoding) as fa:
         result = parser.read_csv(fa)
         assert not fa.closed
     tm.assert_frame_equal(expected, result)
@@ -217,3 +220,20 @@ def test_parse_encoded_special_characters(encoding):
 
     expected = DataFrame(data=[["：foo", 0], ["bar", 1], ["baz", 2]], columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", None, "utf-16", "cp1255", "latin-1"])
+def test_encoding_memory_map(all_parsers, encoding):
+    # GH40986
+    parser = all_parsers
+    expected = DataFrame(
+        {
+            "name": ["Raphael", "Donatello", "Miguel Angel", "Leonardo"],
+            "mask": ["red", "purple", "orange", "blue"],
+            "weapon": ["sai", "bo staff", "nunchunk", "katana"],
+        }
+    )
+    with tm.ensure_clean() as file:
+        expected.to_csv(file, index=False, encoding=encoding)
+        df = parser.read_csv(file, encoding=encoding, memory_map=True)
+    tm.assert_frame_equal(df, expected)

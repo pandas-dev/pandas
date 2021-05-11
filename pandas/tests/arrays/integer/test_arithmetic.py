@@ -3,11 +3,11 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p20
+from pandas.compat import np_version_under1p20
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import FloatingArray, integer_array
+from pandas.core.arrays import FloatingArray
 import pandas.core.ops as ops
 
 # Basic test for the arithmetic array ops
@@ -131,10 +131,10 @@ def test_pow_scalar():
 
 
 def test_pow_array():
-    a = integer_array([0, 0, 0, 1, 1, 1, None, None, None])
-    b = integer_array([0, 1, None, 0, 1, None, 0, 1, None])
+    a = pd.array([0, 0, 0, 1, 1, 1, None, None, None])
+    b = pd.array([0, 1, None, 0, 1, None, 0, 1, None])
     result = a ** b
-    expected = integer_array([1, 0, None, 1, 1, 1, 1, None, None])
+    expected = pd.array([1, 0, None, 1, 1, 1, 1, None, None])
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -149,7 +149,7 @@ def test_rpow_one_to_na():
 
 @pytest.mark.parametrize("other", [0, 0.5])
 def test_numpy_zero_dim_ndarray(other):
-    arr = integer_array([1, None, 2])
+    arr = pd.array([1, None, 2])
     result = arr + np.array(other)
     expected = arr + other
     tm.assert_equal(result, expected)
@@ -208,7 +208,7 @@ def test_arith_coerce_scalar(data, all_arithmetic_operators):
     expected = op(s.astype(float), other)
     expected = expected.astype("Float64")
     # rfloordiv results in nan instead of inf
-    if all_arithmetic_operators == "__rfloordiv__" and _np_version_under1p20:
+    if all_arithmetic_operators == "__rfloordiv__" and np_version_under1p20:
         # for numpy 1.20 https://github.com/numpy/numpy/pull/16161
         #  updated floordiv, now matches our behavior defined in core.ops
         mask = (
@@ -265,7 +265,7 @@ def test_reduce_to_float(op):
         {
             "A": ["a", "b", "b"],
             "B": [1, None, 3],
-            "C": integer_array([1, None, 3], dtype="Int64"),
+            "C": pd.array([1, None, 3], dtype="Int64"),
         }
     )
 
@@ -277,46 +277,29 @@ def test_reduce_to_float(op):
     result = getattr(df.groupby("A"), op)()
 
     expected = pd.DataFrame(
-        {
-            "B": np.array([1.0, 3.0]),
-            "C": pd.array([1, 3], dtype="Float64"),
-        },
+        {"B": np.array([1.0, 3.0]), "C": pd.array([1, 3], dtype="Float64")},
         index=pd.Index(["a", "b"], name="A"),
     )
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "source, target",
+    "source, neg_target, abs_target",
     [
-        ([1, 2, 3], [-1, -2, -3]),
-        ([1, 2, None], [-1, -2, None]),
-        ([-1, 0, 1], [1, 0, -1]),
+        ([1, 2, 3], [-1, -2, -3], [1, 2, 3]),
+        ([1, 2, None], [-1, -2, None], [1, 2, None]),
+        ([-1, 0, 1], [1, 0, -1], [1, 0, 1]),
     ],
 )
-def test_unary_minus_nullable_int(any_signed_nullable_int_dtype, source, target):
+def test_unary_int_operators(
+    any_signed_nullable_int_dtype, source, neg_target, abs_target
+):
     dtype = any_signed_nullable_int_dtype
     arr = pd.array(source, dtype=dtype)
-    result = -arr
-    expected = pd.array(target, dtype=dtype)
-    tm.assert_extension_array_equal(result, expected)
+    neg_result, pos_result, abs_result = -arr, +arr, abs(arr)
+    neg_target = pd.array(neg_target, dtype=dtype)
+    abs_target = pd.array(abs_target, dtype=dtype)
 
-
-@pytest.mark.parametrize("source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]])
-def test_unary_plus_nullable_int(any_signed_nullable_int_dtype, source):
-    dtype = any_signed_nullable_int_dtype
-    expected = pd.array(source, dtype=dtype)
-    result = +expected
-    tm.assert_extension_array_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "source, target",
-    [([1, 2, 3], [1, 2, 3]), ([1, -2, None], [1, 2, None]), ([-1, 0, 1], [1, 0, 1])],
-)
-def test_abs_nullable_int(any_signed_nullable_int_dtype, source, target):
-    dtype = any_signed_nullable_int_dtype
-    s = pd.array(source, dtype=dtype)
-    result = abs(s)
-    expected = pd.array(target, dtype=dtype)
-    tm.assert_extension_array_equal(result, expected)
+    tm.assert_extension_array_equal(neg_result, neg_target)
+    tm.assert_extension_array_equal(pos_result, arr)
+    tm.assert_extension_array_equal(abs_result, abs_target)

@@ -9,7 +9,7 @@ labels: "Docs, Needs Triage"
 
 #### Location of the documentation
 
-[this should provide the location of the documentation, e.g. "pandas.read_csv" or the URL of the documentation, e.g. "https://dev.pandas.io/docs/reference/api/pandas.read_csv.html"]
+[this should provide the location of the documentation, e.g. "pandas.read_csv" or the URL of the documentation, e.g. "https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html"]
 
 **Note**: You can check the latest versions of the docs on `master` [here](https://pandas.pydata.org/docs/dev/).
 

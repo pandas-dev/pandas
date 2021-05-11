@@ -1,16 +1,31 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_integer, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass
-from pandas.core.dtypes.missing import isna, remove_na_arraylike
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    remove_na_arraylike,
+)
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
+from pandas.plotting._matplotlib.core import (
+    LinePlot,
+    MPLPlot,
+)
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,
+    maybe_adjust_figure,
     set_ticks_props,
 )
 
@@ -74,6 +89,7 @@ class HistPlot(LinePlot):
             kwds = self.kwds.copy()
 
             label = pprint_thing(label)
+            label = self._mark_right_label(label, index=i)
             kwds["label"] = label
 
             style, kwds = self._apply_style_colors(colors, kwds, i, label)
@@ -90,7 +106,7 @@ class HistPlot(LinePlot):
                 kwds["weights"] = weights[:, i]
 
             artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
-            self._add_legend_handle(artists[0], label, index=i)
+            self._append_legend_handles_labels(artists[0], label)
 
     def _make_plot_keywords(self, kwds, y):
         """merge BoxPlot/KdePlot properties to passed kwds"""
@@ -99,7 +115,7 @@ class HistPlot(LinePlot):
         kwds["bins"] = self.bins
         return kwds
 
-    def _post_plot_logic(self, ax: "Axes", data):
+    def _post_plot_logic(self, ax: Axes, data):
         if self.orientation == "horizontal":
             ax.set_xlabel("Frequency")
         else:
@@ -294,8 +310,8 @@ def _grouped_hist(
         axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
     )
 
-    fig.subplots_adjust(
-        bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.5, wspace=0.3
+    maybe_adjust_figure(
+        fig, bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.5, wspace=0.3
     )
     return axes
 
@@ -414,7 +430,7 @@ def hist_frame(
         return axes
 
     if column is not None:
-        if not isinstance(column, (list, np.ndarray, ABCIndexClass)):
+        if not isinstance(column, (list, np.ndarray, ABCIndex)):
             column = [column]
         data = data[column]
     # GH32590
@@ -454,6 +470,6 @@ def hist_frame(
     set_ticks_props(
         axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
     )
-    fig.subplots_adjust(wspace=0.3, hspace=0.3)
+    maybe_adjust_figure(fig, wspace=0.3, hspace=0.3)
 
     return axes

@@ -5,7 +5,10 @@ import pytest
 
 from pandas._libs import hashtable
 
-from pandas import DatetimeIndex, MultiIndex
+from pandas import (
+    DatetimeIndex,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -68,14 +71,14 @@ def test_unique_level(idx, level):
     mi = MultiIndex.from_arrays([[], []], names=["first", "second"])
     result = mi.unique(level=level)
     expected = mi.get_level_values(level)
+    tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
-def test_get_unique_index(idx, dropna):
+def test_get_unique_index(idx):
     mi = idx[[0, 1, 0, 1, 1, 0, 0]]
     expected = mi._shallow_copy(mi[[0, 1]])
 
-    result = mi._get_unique_index(dropna=dropna)
+    result = mi._get_unique_index()
     assert result.unique
     tm.assert_index_equal(result, expected)
 
@@ -250,7 +253,7 @@ def test_duplicated_large(keep):
     mi = MultiIndex(levels=levels, codes=codes)
 
     result = mi.duplicated(keep=keep)
-    expected = hashtable.duplicated_object(mi.values, keep=keep)
+    expected = hashtable.duplicated(mi.values, keep=keep)
     tm.assert_numpy_array_equal(result, expected)
 
 
