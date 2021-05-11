@@ -328,6 +328,7 @@ Other enhancements
 - :meth:`.GroupBy.any` and :meth:`.GroupBy.all` return a ``BooleanDtype`` for columns with nullable data types (:issue:`33449`)
 - Constructing a :class:`DataFrame` or :class:`Series` with the ``data`` argument being a Python iterable that is *not* a NumPy ``ndarray`` consisting of NumPy scalars will now result in a dtype with a precision the maximum of the NumPy scalars; this was already the case when ``data`` is a NumPy ``ndarray`` (:issue:`40908`)
 - Add keyword ``sort`` to :func:`pivot_table` to allow non-sorting of the result (:issue:`39143`)
+- Add keyword ``dropna`` to :meth:`DataFrame.value_counts` to allow counting rows that include ``NA`` values (:issue:`41325`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -892,6 +893,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc.__setitem__` when setting-with-expansion incorrectly raising when the index in the expanding axis contains duplicates (:issue:`40096`)
 - Bug in :meth:`DataFrame.loc` incorrectly matching non-boolean index elements (:issue:`20432`)
 - Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
+- Bug in :meth:`DataFrame.__setitem__` raising ``TypeError`` when using a str subclass as the column name with a :class:`DatetimeIndex` (:issue:`37366`)
 
 Missing
 ^^^^^^^
@@ -953,6 +955,7 @@ Plotting
 - Prevent warnings when matplotlib's ``constrained_layout`` is enabled (:issue:`25261`)
 - Bug in :func:`DataFrame.plot` was showing the wrong colors in the legend if the function was called repeatedly and some calls used ``yerr`` while others didn't (partial fix of :issue:`39522`)
 - Bug in :func:`DataFrame.plot` was showing the wrong colors in the legend if the function was called repeatedly and some calls used ``secondary_y`` and others use ``legend=False`` (:issue:`40044`)
+- Bug in :meth:`DataFrame.plot.box` in box plot when ``dark_background`` theme was selected, caps or min/max markers for the plot was not visible (:issue:`40769`)
 
 
 Groupby/resample/rolling
