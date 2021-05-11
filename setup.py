@@ -589,7 +589,11 @@ for name, data in ext_data.items():
     include.append(numpy.get_include())
 
     if name == "io.rdata._rdata" and is_platform_mac():
-        extra_link_args.append("-liconv")
+        # non-conda builds must adjust paths to libiconv .h and lib dirs
+        include = [
+            os.path.join(os.environ["CONDA_PREFIX"], "include"),
+            os.path.join(os.environ["CONDA_PREFIX"], "lib"),
+        ] + include
 
     obj = Extension(
         f"pandas.{name}",
@@ -603,10 +607,6 @@ for name, data in ext_data.items():
     )
 
     extensions.append(obj)
-
-    if name == "io.rdata._rdata" and is_platform_mac():
-        extra_link_args.remove("-liconv")
-
 
 # ----------------------------------------------------------------------
 # ujson
