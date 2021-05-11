@@ -168,10 +168,6 @@ class SeriesGroupBy(GroupBy[Series]):
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
 
-    @property
-    def _selection_name(self) -> Hashable:
-        return self.obj.name
-
     _agg_examples_doc = dedent(
         """
     Examples
@@ -1050,16 +1046,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return result._convert(datetime=True)
 
     agg = aggregate
-
-    @property
-    def _selection_name(self):
-        """
-        Return a name for myself;
-
-        This would ideally be called the 'name' property,
-        but we cannot conflict with the Series.name property which can be set.
-        """
-        return self._selection
 
     def _iterate_slices(self) -> Iterable[Series]:
         obj = self._selected_obj
