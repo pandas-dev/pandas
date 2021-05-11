@@ -4,6 +4,7 @@ import datetime
 import itertools
 from typing import (
     Any,
+    Callable,
     DefaultDict,
     Dict,
     Iterable,
@@ -27,6 +28,7 @@ from pandas._libs.tslibs import parsing
 from pandas._typing import (
     DtypeArg,
     FilePathOrBuffer,
+    final,
 )
 from pandas.errors import (
     ParserError,
@@ -114,6 +116,9 @@ parser_defaults = {
 
 
 class ParserBase:
+    _implicit_index: bool = False
+    _first_chunk: bool
+
     def __init__(self, kwds):
 
         self.names = kwds.get("names")
@@ -268,15 +273,17 @@ class ParserBase:
         if self.handles is not None:
             self.handles.close()
 
+    @final
     @property
-    def _has_complex_date_col(self):
+    def _has_complex_date_col(self) -> bool:
         return isinstance(self.parse_dates, dict) or (
             isinstance(self.parse_dates, list)
             and len(self.parse_dates) > 0
             and isinstance(self.parse_dates[0], list)
         )
 
-    def _should_parse_dates(self, i):
+    @final
+    def _should_parse_dates(self, i: int) -> bool:
         if isinstance(self.parse_dates, bool):
             return self.parse_dates
         else:
@@ -295,8 +302,9 @@ class ParserBase:
                     name is not None and name in self.parse_dates
                 )
 
+    @final
     def _extract_multi_indexer_columns(
-        self, header, index_names, col_names, passed_names=False
+        self, header, index_names, col_names, passed_names: bool = False
     ):
         """
         extract and return the names, index_names, col_names
@@ -354,6 +362,7 @@ class ParserBase:
 
         return names, index_names, col_names, passed_names
 
+    @final
     def _maybe_dedup_names(self, names):
         # see gh-7160 and gh-9424: this helps to provide
         # immediate alleviation of the duplicate names
@@ -382,12 +391,14 @@ class ParserBase:
 
         return names
 
+    @final
     def _maybe_make_multi_index_columns(self, columns, col_names=None):
         # possibly create a column mi here
         if _is_potential_multi_index(columns):
             columns = MultiIndex.from_tuples(columns, names=col_names)
         return columns
 
+    @final
     def _make_index(self, data, alldata, columns, indexnamerow=False):
         if not is_index_col(self.index_col) or not self.index_col:
             index = None
@@ -415,8 +426,7 @@ class ParserBase:
 
         return index, columns
 
-    _implicit_index = False
-
+    @final
     def _get_simple_index(self, data, columns):
         def ix(col):
             if not isinstance(col, str):
@@ -439,6 +449,7 @@ class ParserBase:
 
         return index
 
+    @final
     def _get_complex_date_index(self, data, col_names):
         def _get_name(icol):
             if isinstance(icol, str):
@@ -466,7 +477,8 @@ class ParserBase:
 
         return index
 
-    def _agg_index(self, index, try_parse_dates=True) -> Index:
+    @final
+    def _agg_index(self, index, try_parse_dates: bool = True) -> Index:
         arrays = []
 
         for i, arr in enumerate(index):
@@ -497,8 +509,15 @@ class ParserBase:
 
         return index
 
+    @final
     def _convert_to_ndarrays(
-        self, dct, na_values, na_fvalues, verbose=False, converters=None, dtypes=None
+        self,
+        dct: dict,
+        na_values,
+        na_fvalues,
+        verbose: bool = False,
+        converters=None,
+        dtypes=None,
     ):
         result = {}
         for c, values in dct.items():
@@ -575,6 +594,7 @@ class ParserBase:
                 print(f"Filled {na_count} NA values in column {c!s}")
         return result
 
+    @final
     def _set_noconvert_dtype_columns(
         self, col_indices: List[int], names: List[Union[int, str, Tuple]]
     ) -> Set[int]:
@@ -676,7 +696,7 @@ class ParserBase:
         if try_num_bool and is_object_dtype(values.dtype):
             # exclude e.g DatetimeIndex here
             try:
-                result = lib.maybe_convert_numeric(values, na_values, False)
+                result, _ = lib.maybe_convert_numeric(values, na_values, False)
             except (ValueError, TypeError):
                 # e.g. encountering datetime string gets ValueError
                 #  TypeError can be raised in floatify
@@ -690,7 +710,7 @@ class ParserBase:
                 na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
-            result = libops.maybe_convert_bool(
+            result, _ = libops.maybe_convert_bool(
                 np.asarray(values),
                 true_values=self.true_values,
                 false_values=self.false_values,
@@ -1010,12 +1030,12 @@ def _make_date_converter(
 
 def _process_date_conversion(
     data_dict,
-    converter,
+    converter: Callable,
     parse_spec,
     index_col,
     index_names,
     columns,
-    keep_date_col=False,
+    keep_date_col: bool = False,
 ):
     def _isindex(colspec):
         return (isinstance(index_col, list) and colspec in index_col) or (
@@ -1077,7 +1097,7 @@ def _process_date_conversion(
     return data_dict, new_cols
 
 
-def _try_convert_dates(parser, colspec, data_dict, columns):
+def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
     colset = set(columns)
     colnames = []
 
@@ -1131,21 +1151,9 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
         return na_values, na_fvalues
 
 
-# Seems to be unused
-def _get_col_names(colspec, columns):
-    colset = set(columns)
-    colnames = []
-    for c in colspec:
-        if c in colset:
-            colnames.append(c)
-        elif isinstance(c, int):
-            colnames.append(columns[c])
-    return colnames
-
-
 def _is_potential_multi_index(
     columns, index_col: Optional[Union[bool, Sequence[int]]] = None
-):
+) -> bool:
     """
     Check whether or not the `columns` parameter
     could be converted into a MultiIndex.
@@ -1159,12 +1167,12 @@ def _is_potential_multi_index(
 
     Returns
     -------
-    boolean : Whether or not columns could become a MultiIndex
+    bool : Whether or not columns could become a MultiIndex
     """
     if index_col is None or isinstance(index_col, bool):
         index_col = []
 
-    return (
+    return bool(
         len(columns)
         and not isinstance(columns, MultiIndex)
         and all(isinstance(c, tuple) for c in columns if c not in list(index_col))
@@ -1193,5 +1201,5 @@ def _validate_parse_dates_arg(parse_dates):
     return parse_dates
 
 
-def is_index_col(col):
+def is_index_col(col) -> bool:
     return col is not None and col is not False

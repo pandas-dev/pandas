@@ -4648,10 +4648,8 @@ chunks.
 
    store.append("dfeq", dfeq, data_columns=["number"])
 
-
    def chunks(l, n):
        return [l[i: i + n] for i in range(0, len(l), n)]
-
 
    evens = [2, 4, 6, 8, 10]
    coordinates = store.select_as_coordinates("dfeq", "number=evens")

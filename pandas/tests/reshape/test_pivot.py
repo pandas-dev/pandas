@@ -986,7 +986,6 @@ class TestPivotTable:
 
         tm.assert_frame_equal(expected, result)
 
-    @pytest.mark.xfail(reason="GH#17035 (len of floats is casted back to floats)")
     def test_margins_dtype_len(self):
         mi_val = list(product(["bar", "foo"], ["one", "two"])) + [("All", "")]
         mi = MultiIndex.from_tuples(mi_val, names=("A", "B"))

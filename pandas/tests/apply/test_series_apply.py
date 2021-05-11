@@ -441,8 +441,8 @@ def test_non_callable_aggregates(how):
                 ("sum", "abc"),
                 ("max", "c"),
                 ("min", "a"),
-                ("all", "c"),  # see GH12863
-                ("any", "a"),
+                ("all", True),
+                ("any", True),
             ],
         ),
     ),
