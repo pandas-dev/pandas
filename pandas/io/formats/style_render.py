@@ -538,17 +538,18 @@ def _get_level_lengths(index, sparsify, hidden_elements=None):
 
     Parameters
     ----------
-        index : Index
-            Index or columns to determine lengths of each element
-        sparsify : bool
-            Whether to hide or show each distinct element in a MultiIndex
-        hidden_element : list
-            Index positions of elements hidden from display in the index affecting
-            length
+    index : Index
+        Index or columns to determine lengths of each element
+    sparsify : bool
+        Whether to hide or show each distinct element in a MultiIndex
+    hidden_elements : list
+        Index positions of elements hidden from display in the index affecting
+        length
+
     Returns
     -------
-        Dict :
-            Result is a dictionary of (level, initial_position): span
+    Dict :
+        Result is a dictionary of (level, initial_position): span
     """
     if isinstance(index, MultiIndex):
         levels = index.format(sparsify=lib.no_default, adjoin=False)
