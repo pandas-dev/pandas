@@ -2153,7 +2153,7 @@ def _factorize_keys(
         rk = ensure_int64(np.asarray(rk, dtype=np.int64))
 
     else:
-        klass = libhashtable.Factorizer
+        klass = libhashtable.ObjectFactorizer
         lk = ensure_object(lk)
         rk = ensure_object(rk)
 
