@@ -1281,7 +1281,7 @@ class Timestamp(_Timestamp):
             freq = to_offset(freq)
 
         naive_ts = convert_to_tsobject(ts_input, None, unit, 0, 0, nanosecond or 0)
-        tz_localize_to_utc_single(naive_ts.value, ts.tzinfo, "raise", "raise")
+        tz_localize_to_utc_single(naive_ts.value, ts.tzinfo, False, "raise")
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
 
