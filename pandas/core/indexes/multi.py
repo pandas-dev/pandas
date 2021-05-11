@@ -2164,28 +2164,40 @@ class MultiIndex(Index):
             (isinstance(o, MultiIndex) and o.nlevels >= self.nlevels) for o in other
         ):
             arrays = []
-            index_label_list = self.get_unique_indexes(other)
+            if self.names.count(None) > 1 or any(
+                o.names.count(None) > 1 for o in other
+            ):
 
-            for index_label in index_label_list:
+                for i in range(self.nlevels):
 
-                index = self.get_index_data(
-                    data_index=self, column_name=index_label, other=other
-                )
-                appended = []
+                    label = self._get_level_values(i)
+                    appended = [o._get_level_values(i) for o in other]
+                    arrays.append(label.append(appended))
+                    index_label_list = self.names
 
-                for o in other:
+            else:
+                index_label_list = self.get_unique_indexes(other)
 
-                    data = self.get_index_data(
-                        data_index=o,
-                        column_name=index_label,
-                        other=other,
-                        search_self=True,
+                for index_label in index_label_list:
+
+                    index = self.get_index_data(
+                        data_index=self, column_name=index_label, other=other
                     )
-                    appended.append(data)
+                    appended = []
 
-                    index = index.append(data)
+                    for o in other:
 
-                arrays.append(index)
+                        data = self.get_index_data(
+                            data_index=o,
+                            column_name=index_label,
+                            other=other,
+                            search_self=True,
+                        )
+                        appended.append(data)
+
+                        index = index.append(data)
+
+                    arrays.append(index)
             return MultiIndex.from_arrays(arrays, names=index_label_list)
 
         to_concat = (self._values,) + tuple(k._values for k in other)
