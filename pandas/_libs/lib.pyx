@@ -2064,7 +2064,7 @@ def maybe_convert_numeric(
         upcasting for ints with nulls to float64.
     Returns
     -------
-    np.ndarray or tuple of converted values and its mask
+    np.ndarray
         Array of converted object values to numerical ones.
 
     Optional[np.ndarray]
@@ -2223,11 +2223,6 @@ def maybe_convert_numeric(
 
     if seen.check_uint64_conflict():
         return (values, None)
-
-    # This occurs since we disabled float nulls showing as null in anticipation
-    # of seeing ints that were never seen. So then, we return float
-    if allow_null_in_int and seen.null_ and not seen.int_:
-        seen.float_ = True
 
     # This occurs since we disabled float nulls showing as null in anticipation
     # of seeing ints that were never seen. So then, we return float
