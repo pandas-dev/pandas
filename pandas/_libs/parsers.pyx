@@ -685,10 +685,17 @@ cdef class TextReader:
                     count = counts.get(name, 0)
 
                     if not self.has_mi_columns and self.mangle_dupe_cols:
-                        while count > 0:
-                            counts[name] = count + 1
-                            name = f'{name}.{count}'
-                            count = counts.get(name, 0)
+                        if count > 0:
+                            while count > 0:
+                                counts[name] = count + 1
+                                name = f'{name}.{count}'
+                                count = counts.get(name, 0)
+                            if (
+                                self.dtype is not None
+                                and self.dtype.get(old_name) is not None
+                                and self.dtype.get(name) is None
+                            ):
+                                self.dtype.update({name: self.dtype.get(old_name)})
 
                     if old_name == '':
                         unnamed_cols.add(name)

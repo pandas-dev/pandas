@@ -647,6 +647,7 @@ Deprecations
 - Deprecated the ``level`` keyword for :class:`DataFrame` and :class:`Series` aggregations; use groupby instead (:issue:`39983`)
 - The ``inplace`` parameter of :meth:`Categorical.remove_categories`, :meth:`Categorical.add_categories`, :meth:`Categorical.reorder_categories`, :meth:`Categorical.rename_categories`, :meth:`Categorical.set_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 - Deprecated :func:`merge` producing duplicated columns through the ``suffixes`` keyword  and already existing columns (:issue:`22818`)
+- Deprecated setting :attr:`Categorical._codes`, create a new :class:`Categorical` with the desired codes instead (:issue:`40606`)
 
 .. ---------------------------------------------------------------------------
 
@@ -751,7 +752,7 @@ Strings
 ^^^^^^^
 
 - Bug in the conversion from ``pyarrow.ChunkedArray`` to :class:`~arrays.StringArray` when the original had zero chunks (:issue:`41040`)
--
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` ignoring replacements with ``regex=True`` for ``StringDType`` data (:issue:`41333`, :issue:`35977`)
 
 Interval
 ^^^^^^^^
@@ -791,6 +792,7 @@ Indexing
 - Bug in setting ``numpy.timedelta64`` values into an object-dtype :class:`Series` using a boolean indexer (:issue:`39488`)
 - Bug in setting numeric values into a into a boolean-dtypes :class:`Series` using ``at`` or ``iat`` failing to cast to object-dtype (:issue:`39582`)
 - Bug in :meth:`DataFrame.__setitem__` and :meth:`DataFrame.iloc.__setitem__` raising ``ValueError`` when trying to index with a row-slice and setting a list as values (:issue:`40440`)
+- Bug in :meth:`DataFrame.loc` not raising ``KeyError`` when key was not found in :class:`MultiIndex` when levels contain more values than used (:issue:`41170`)
 - Bug in :meth:`DataFrame.loc.__setitem__` when setting-with-expansion incorrectly raising when the index in the expanding axis contains duplicates (:issue:`40096`)
 - Bug in :meth:`DataFrame.loc` incorrectly matching non-boolean index elements (:issue:`20432`)
 - Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
@@ -811,6 +813,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.intersection` duplicating ``NaN`` in result (:issue:`38623`)
 - Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when :class:`MultiIndex` containing ``NaN`` even when they are differently ordered (:issue:`38439`)
 - Bug in :meth:`MultiIndex.intersection` always returning empty when intersecting with :class:`CategoricalIndex` (:issue:`38653`)
+- Bug in :meth:`MultiIndex.reindex` raising ``ValueError`` with empty MultiIndex and indexing only a specific level (:issue:`41170`)
 
 I/O
 ^^^
@@ -840,6 +843,7 @@ I/O
 - Bug in :func:`read_excel` raising ``AttributeError`` with ``MultiIndex`` header followed by two empty rows and no index, and bug affecting :func:`read_excel`, :func:`read_csv`, :func:`read_table`, :func:`read_fwf`, and :func:`read_clipboard` where one blank row after a ``MultiIndex`` header with no index would be dropped (:issue:`40442`)
 - Bug in :meth:`DataFrame.to_string` misplacing the truncation column when ``index=False`` (:issue:`40907`)
 - Bug in :func:`read_orc` always raising ``AttributeError`` (:issue:`40918`)
+- Bug in :func:`read_csv` and :func:`read_excel` not respecting dtype for duplicated column name when ``mangle_dupe_cols`` is set to ``True`` (:issue:`35211`)
 - Bug in :func:`read_csv` and :func:`read_table` misinterpreting arguments when ``sys.setprofile`` had been previously called (:issue:`41069`)
 - Bug in the conversion from pyarrow to pandas (e.g. for reading Parquet) with nullable dtypes and a pyarrow array whose data buffer size is not a multiple of dtype size (:issue:`40896`)
 
@@ -898,6 +902,8 @@ Groupby/resample/rolling
 - Bug in :meth:`SeriesGroupBy.agg` failing to retain ordered :class:`CategoricalDtype` on order-preserving aggregations (:issue:`41147`)
 - Bug in :meth:`DataFrameGroupBy.min` and :meth:`DataFrameGroupBy.max` with multiple object-dtype columns and ``numeric_only=False`` incorrectly raising ``ValueError`` (:issue:41111`)
 - Bug in :meth:`DataFrameGroupBy.rank` with the GroupBy object's ``axis=0`` and the ``rank`` method's keyword ``axis=1`` (:issue:`41320`)
+- Bug in :meth:`DataFrameGroupBy.__getitem__` with non-unique columns incorrectly returning a malformed :class:`SeriesGroupBy` instead of :class:`DataFrameGroupBy` (:issue:`41427`)
+- Bug in :meth:`DataFrameGroupBy.transform` with non-unique columns incorrectly raising ``AttributeError`` (:issue:`41427`)
 
 Reshaping
 ^^^^^^^^^
