@@ -9,8 +9,6 @@ on:
     branches:
       - master
       - 1.2.x
-    paths-ignore:
-      - "doc/**"
 
 env:
   ENV_FILE: environment.yml
