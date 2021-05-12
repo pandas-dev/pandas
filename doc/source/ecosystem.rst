@@ -408,13 +408,13 @@ PySpark.
 `Cylon <https://cylondata.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Cylon is a fast, scalable, distributed memory parallel runtime with a pandas 
-like Python DataFrame API. ”Core Cylon” is implemented with C++ using Apache 
-Arrow format to represent the data in-memory. Cylon DataFrame API implements 
-most of the core operators of pandas such as merge, filter, join, concat, 
-group-by, drop_duplicates, etc. These operators are designed to work across 
-thousands of cores to scale applications. It can interoperate with pandas 
-DataFrame by reading data from pandas or converting data to pandas so users 
+Cylon is a fast, scalable, distributed memory parallel runtime with a pandas
+like Python DataFrame API. ”Core Cylon” is implemented with C++ using Apache
+Arrow format to represent the data in-memory. Cylon DataFrame API implements
+most of the core operators of pandas such as merge, filter, join, concat,
+group-by, drop_duplicates, etc. These operators are designed to work across
+thousands of cores to scale applications. It can interoperate with pandas
+DataFrame by reading data from pandas or converting data to pandas so users
 can selectively scale parts of their pandas DataFrame applications.
 
 .. code:: python
