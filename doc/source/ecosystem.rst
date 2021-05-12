@@ -434,7 +434,6 @@ can selectively scale parts of their pandas DataFrame applications.
         
     print(df3)
 
-
 `Dask <https://dask.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
