@@ -325,6 +325,5 @@ def test_usecols_indices_out_of_bounds(python_parser_only, names, header):
     a,b
     1,2
     """
-    msg = r"Usecols indices \[2\] are out of bounds!"
-    with pytest.raises(ParserError, match=msg):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         parser.read_csv(StringIO(data), usecols=[0, 2], names=names, header=header)

@@ -15,6 +15,7 @@ from typing import (
     Tuple,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -557,8 +558,11 @@ class PythonParser(ParserBase):
                     col for col in self.usecols if col >= num_original_columns
                 ]
                 if missing_usecols:
-                    raise ParserError(
-                        f"Usecols indices {missing_usecols} are out of bounds!"
+                    warnings.warn(
+                        "Defining usecols with out of bounds indices is deprecated "
+                        "and will raise a ParserError in a future version.",
+                        FutureWarning,
+                        stacklevel=8,
                     )
                 col_indices = self.usecols
 
