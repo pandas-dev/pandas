@@ -797,3 +797,5 @@ def test_loc_get_scalar_casting_to_float():
     )
     result = df.loc[(3, 4), "b"]
     assert result == 2
+    result = df.loc[[(3, 4)], "b"].iloc[0]
+    assert result == 2
