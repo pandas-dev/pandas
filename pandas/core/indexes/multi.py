@@ -72,6 +72,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
+from pandas.core.indexers import is_empty_indexer
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -2634,6 +2635,10 @@ class MultiIndex(Index):
             mask = check == -1
             if mask.any():
                 raise KeyError(f"{keyarr[mask]} not in index")
+            elif is_empty_indexer(indexer, keyarr):
+                # We get here when levels still contain values which are not
+                # actually in Index anymore
+                raise KeyError(f"{keyarr} not in index")
 
         return indexer, keyarr
 

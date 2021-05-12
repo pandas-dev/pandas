@@ -1624,6 +1624,13 @@ class TestLocWithMultiIndex:
         result = df.loc[["a"]].index.levels[0]
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("lt_value", [30, 10])
+    def test_loc_multiindex_levels_contain_values_not_in_index_anymore(self, lt_value):
+        # GH#41170
+        df = DataFrame({"a": [12, 23, 34, 45]}, index=[list("aabb"), [0, 1, 2, 3]])
+        with pytest.raises(KeyError, match=r"\['b'\] not in index"):
+            df.loc[df["a"] < lt_value, :].loc[["b"], :]
+
 
 class TestLocSetitemWithExpansion:
     @pytest.mark.slow

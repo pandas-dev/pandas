@@ -104,3 +104,14 @@ def test_reindex_non_unique():
     msg = "cannot handle a non-unique multi-index!"
     with pytest.raises(ValueError, match=msg):
         a.reindex(new_idx)
+
+
+@pytest.mark.parametrize("values", [[["a"], ["x"]], [[], []]])
+def test_reindex_empty_with_level(values):
+    # GH41170
+    idx = MultiIndex.from_arrays(values)
+    result, result_indexer = idx.reindex(np.array(["b"]), level=0)
+    expected = MultiIndex(levels=[["b"], values[1]], codes=[[], []])
+    expected_indexer = np.array([], dtype=result_indexer.dtype)
+    tm.assert_index_equal(result, expected)
+    tm.assert_numpy_array_equal(result_indexer, expected_indexer)
