@@ -1042,7 +1042,7 @@ class TestTypeInference:
             np.array([np.datetime64("2011-01-01"), Timestamp("2011-01-02")]),
             np.array([Timestamp("2011-01-02"), np.datetime64("2011-01-01")]),
             np.array([np.nan, Timestamp("2011-01-02"), 1.1]),
-            np.array([np.nan, "2011-01-01", Timestamp("2011-01-02")]),
+            np.array([np.nan, "2011-01-01", Timestamp("2011-01-02")], dtype=object),
             np.array([np.datetime64("nat"), np.timedelta64(1, "D")], dtype=object),
             np.array([np.timedelta64(1, "D"), np.datetime64("nat")], dtype=object),
         ],
