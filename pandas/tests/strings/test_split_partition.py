@@ -121,12 +121,7 @@ def test_rsplit_object_mixed():
     tm.assert_almost_equal(result, exp)
 
 
-def test_split_blank_string(any_string_dtype, request):
-    if any_string_dtype == "arrow_string":
-        reason = "AssertionError: DataFrame are different"
-        mark = pytest.mark.xfail(reason=reason, raises=AssertionError)
-        request.node.add_marker(mark)
-
+def test_split_blank_string(any_string_dtype):
     # expand blank split GH 20067
     values = Series([""], name="test", dtype=any_string_dtype)
     result = values.str.split(expand=True)
