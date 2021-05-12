@@ -181,6 +181,8 @@ class PeriodArray(dtl.DatelikeOps):
     _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
     _datetimelike_methods: list[str] = ["strftime", "to_timestamp", "asfreq"]
 
+    _dtype: PeriodDtype
+
     # --------------------------------------------------------------------
     # Constructors
 
@@ -210,8 +212,9 @@ class PeriodArray(dtl.DatelikeOps):
             raise ValueError("freq is not specified and cannot be inferred")
         NDArrayBacked.__init__(self, values, PeriodDtype(freq))
 
+    # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
-    def _simple_new(
+    def _simple_new(  # type: ignore[override]
         cls,
         values: np.ndarray,
         freq: BaseOffset | None = None,
@@ -295,9 +298,17 @@ class PeriodArray(dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    def _unbox_scalar(self, value: Period | NaTType, setitem: bool = False) -> np.int64:
+    # error: Argument 1 of "_unbox_scalar" is incompatible with supertype
+    # "DatetimeLikeArrayMixin"; supertype defines the argument type as
+    # "Union[Union[Period, Any, Timedelta], NaTType]"
+    def _unbox_scalar(  # type: ignore[override]
+        self,
+        value: Period | NaTType,
+        setitem: bool = False,
+    ) -> np.int64:
         if value is NaT:
-            return np.int64(value.value)
+            # error: Item "Period" of "Union[Period, NaTType]" has no attribute "value"
+            return np.int64(value.value)  # type: ignore[union-attr]
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value, setitem=setitem)
             return np.int64(value.ordinal)
@@ -482,9 +493,9 @@ class PeriodArray(dtl.DatelikeOps):
             freq = Period._maybe_convert_freq(freq)
             base = freq._period_dtype_code
 
-        new_data = self.asfreq(freq, how=how)
+        new_parr = self.asfreq(freq, how=how)
 
-        new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
+        new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
         return DatetimeArray(new_data)._with_freq("infer")
 
     # --------------------------------------------------------------------
@@ -910,7 +921,7 @@ def raise_on_incompatible(left, right):
 
 
 def period_array(
-    data: Sequence[Period | None] | AnyArrayLike,
+    data: Sequence[Period | str | None] | AnyArrayLike,
     freq: str | Tick | None = None,
     copy: bool = False,
 ) -> PeriodArray:
