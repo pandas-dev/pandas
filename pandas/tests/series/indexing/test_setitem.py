@@ -286,6 +286,13 @@ class TestSetitemBooleanMask:
         expected = Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
         tm.assert_series_equal(result, expected)
 
+    def test_setitem_nan_with_bool(self):
+        # GH 13034
+        result = Series([True, False, True])
+        result[0] = np.nan
+        expected = Series([np.nan, False, True], dtype=object)
+        tm.assert_series_equal(result, expected)
+
 
 class TestSetitemViewCopySemantics:
     def test_setitem_invalidates_datetime_index_freq(self):

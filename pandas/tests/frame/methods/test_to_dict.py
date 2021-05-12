@@ -304,3 +304,10 @@ class TestDataFrameToDict:
         d = df.to_dict(orient="records")
         result = type(d[0]["a"])
         assert result is expected_dtype
+
+    def test_to_dict_mixed_numeric_frame(self):
+        # GH 12859
+        df = DataFrame({"a": [1.0], "b": [9.0]})
+        result = df.reset_index().to_dict("records")
+        expected = [{"index": 0, "a": 1.0, "b": 9.0}]
+        assert result == expected
