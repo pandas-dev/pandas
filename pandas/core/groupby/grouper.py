@@ -16,12 +16,11 @@ from pandas._typing import (
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.cast import sanitize_to_nanoseconds
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_dtype,
     is_list_like,
     is_scalar,
-    is_timedelta64_dtype,
 )
 
 import pandas.core.algorithms as algorithms
@@ -464,9 +463,6 @@ class Grouping:
         self.in_axis = in_axis
         self.dropna = dropna
 
-        if isinstance(grouper, MultiIndex):
-            self.grouper = grouper._values
-
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
 
@@ -504,14 +500,9 @@ class Grouping:
                 self.grouper = Index(ng, name=newgrouper.result_index.name)
 
         else:
-            if self.grouper is None and self.name is not None and self.obj is not None:
-                self.grouper = self.obj[self.name]
-
-            elif isinstance(self.grouper, (list, tuple)):
-                self.grouper = com.asarray_tuplesafe(self.grouper)
 
             # a passed Categorical
-            elif is_categorical_dtype(self.grouper):
+            if is_categorical_dtype(self.grouper):
 
                 self.grouper, self.all_grouper = recode_for_groupby(
                     self.grouper, self.sort, observed
@@ -556,14 +547,10 @@ class Grouping:
                     self.grouper = None  # Try for sanity
                     raise AssertionError(errmsg)
 
-        # if we have a date/time-like grouper, make sure that we have
-        # Timestamps like
-        if getattr(self.grouper, "dtype", None) is not None:
-            if is_datetime64_dtype(self.grouper):
-                self.grouper = self.grouper.astype("datetime64[ns]")
-            elif is_timedelta64_dtype(self.grouper):
-
-                self.grouper = self.grouper.astype("timedelta64[ns]")
+        if isinstance(self.grouper, np.ndarray):
+            # if we have a date/time-like grouper, make sure that we have
+            # Timestamps like
+            self.grouper = sanitize_to_nanoseconds(self.grouper)
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
@@ -675,7 +662,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> tuple[ops.BaseGrouper, set[Hashable], FrameOrSeries]:
+) -> tuple[ops.BaseGrouper, frozenset[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -751,13 +738,13 @@ def get_grouper(
     if isinstance(key, Grouper):
         binner, grouper, obj = key._get_grouper(obj, validate=False)
         if key.key is None:
-            return grouper, set(), obj
+            return grouper, frozenset(), obj
         else:
-            return grouper, {key.key}, obj
+            return grouper, frozenset({key.key}), obj
 
     # already have a BaseGrouper, just return it
     elif isinstance(key, ops.BaseGrouper):
-        return key, set(), obj
+        return key, frozenset(), obj
 
     if not isinstance(key, list):
         keys = [key]
@@ -887,7 +874,7 @@ def get_grouper(
     grouper = ops.BaseGrouper(
         group_axis, groupings, sort=sort, mutated=mutated, dropna=dropna
     )
-    return grouper, exclusions, obj
+    return grouper, frozenset(exclusions), obj
 
 
 def _is_label_like(val) -> bool:
@@ -902,9 +889,14 @@ def _convert_grouper(axis: Index, grouper):
             return grouper._values
         else:
             return grouper.reindex(axis)._values
-    elif isinstance(grouper, (list, Series, Index, np.ndarray)):
+    elif isinstance(grouper, MultiIndex):
+        return grouper._values
+    elif isinstance(grouper, (list, tuple, Series, Index, np.ndarray)):
         if len(grouper) != len(axis):
             raise ValueError("Grouper and axis must be same length")
+
+        if isinstance(grouper, (list, tuple)):
+            grouper = com.asarray_tuplesafe(grouper)
         return grouper
     else:
         return grouper
