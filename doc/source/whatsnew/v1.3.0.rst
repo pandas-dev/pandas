@@ -184,9 +184,9 @@ pandas options or specify the dtype using ``dtype='string[pyarrow]'``
 
 The ``'string[pyarrow]'`` extension type solves several issues with NumPy backed arrays:
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 
 .. ipython:: python
