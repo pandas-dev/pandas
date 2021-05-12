@@ -322,6 +322,7 @@ class Apply(metaclass=abc.ABCMeta):
             # i.e. obj is Series or DataFrame
             selected_obj = obj
         elif obj._selected_obj.ndim == 1:
+            # For SeriesGroupBy this matches _obj_with_exclusions
             selected_obj = obj._selected_obj
         else:
             selected_obj = obj._obj_with_exclusions
