@@ -8097,8 +8097,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Pass a custom function via ``apply``
 
-        >>> def custom_resampler(array_like):
-        ...     return np.sum(array_like) + 5
+        >>> def custom_resampler(arraylike):
+        ...     return np.sum(arraylike) + 5
         ...
         >>> series.resample('3T').apply(custom_resampler)
         2000-01-01 00:00:00     8

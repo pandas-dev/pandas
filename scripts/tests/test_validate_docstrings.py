@@ -82,6 +82,12 @@ class BadDocstrings:
         """
         pass
 
+    def write_array_like_with_hyphen_not_underscore(self):
+        """
+        In docstrings, use array-like over array_like
+        """
+        pass
+
 
 class TestValidator:
     def _import_path(self, klass=None, func=None):
@@ -171,6 +177,11 @@ class TestValidator:
                 "BadDocstrings",
                 "missing_whitespace_after_comma",
                 ("flake8 error: E231 missing whitespace after ',' (3 times)",),
+            ),
+            (
+                "BadDocstrings",
+                "write_array_like_with_hyphen_not_underscore",
+                ("Use 'array-like' rather than 'array_like' in docstrings",),
             ),
         ],
     )
