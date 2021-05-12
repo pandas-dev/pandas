@@ -180,16 +180,6 @@ class SelectionMixin(Generic[FrameOrSeries]):
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 
-    @property
-    def _selection_name(self):
-        """
-        Return a name for myself;
-
-        This would ideally be called the 'name' property,
-        but we cannot conflict with the Series.name property which can be set.
-        """
-        return self._selection
-
     @final
     @property
     def _selection_list(self):
