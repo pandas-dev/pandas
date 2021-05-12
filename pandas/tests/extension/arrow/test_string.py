@@ -2,7 +2,7 @@ import pytest
 
 import pandas as pd
 
-pytest.importorskip("pyarrow", minversion="0.13.0")
+pytest.importorskip("pyarrow", minversion="1.0.0")
 
 
 def test_constructor_from_list():
