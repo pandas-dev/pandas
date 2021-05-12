@@ -2,17 +2,20 @@ import codecs
 from functools import wraps
 import re
 from typing import (
+    TYPE_CHECKING,
     Dict,
     Hashable,
     List,
     Optional,
     Pattern,
+    Union,
 )
 import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
+from pandas._typing import FrameOrSeriesUnion
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -32,6 +35,9 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.base import NoNewAttributesMixin
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 _shared_docs: Dict[str, str] = {}
 _cpython_optimized_encoders = (
@@ -2257,7 +2263,9 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def extract(self, pat: str, flags: int = 0, expand: bool = True):
+    def extract(
+        self, pat: str, flags: int = 0, expand: bool = True
+    ) -> Union[FrameOrSeriesUnion, "Index"]:
         r"""
         Extract capture groups in the regex `pat` as columns in a DataFrame.
 
