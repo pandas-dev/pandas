@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 import datetime
-from distutils.version import LooseVersion
 import inspect
 from io import BytesIO
 import os
@@ -44,6 +43,7 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.frame import DataFrame
 from pandas.core.shared_docs import _shared_docs
+from pandas.util.version import Version
 
 from pandas.io.common import (
     IOHandles,
@@ -707,30 +707,45 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     --------
     Default usage:
 
-    >>> with ExcelWriter('path_to_file.xlsx') as writer:
+    >>> df = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
+    >>> with ExcelWriter("path_to_file.xlsx") as writer:
     ...     df.to_excel(writer)
 
     To write to separate sheets in a single file:
 
-    >>> with ExcelWriter('path_to_file.xlsx') as writer:
-    ...     df1.to_excel(writer, sheet_name='Sheet1')
-    ...     df2.to_excel(writer, sheet_name='Sheet2')
+    >>> df1 = pd.DataFrame([["AAA", "BBB"]], columns=["Spam", "Egg"])
+    >>> df2 = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
+    >>> with ExcelWriter("path_to_file.xlsx") as writer:
+    ...     df1.to_excel(writer, sheet_name="Sheet1")
+    ...     df2.to_excel(writer, sheet_name="Sheet2")
 
     You can set the date format or datetime format:
 
-    >>> with ExcelWriter('path_to_file.xlsx',
-    ...                   date_format='YYYY-MM-DD',
-    ...                   datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
+    >>> from datetime import date, datetime
+    >>> df = pd.DataFrame(
+    ...     [
+    ...         [date(2014, 1, 31), date(1999, 9, 24)],
+    ...         [datetime(1998, 5, 26, 23, 33, 4), datetime(2014, 2, 28, 13, 5, 13)],
+    ...     ],
+    ...     index=["Date", "Datetime"],
+    ...     columns=["X", "Y"],
+    ... )
+    >>> with ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     date_format="YYYY-MM-DD",
+    ...     datetime_format="YYYY-MM-DD HH:MM:SS"
+    ... ) as writer:
     ...     df.to_excel(writer)
 
     You can also append to an existing Excel file:
 
-    >>> with ExcelWriter('path_to_file.xlsx', mode='a') as writer:
-    ...     df.to_excel(writer, sheet_name='Sheet3')
+    >>> with ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
+    ...     df.to_excel(writer, sheet_name="Sheet3")
 
     You can store Excel file in RAM:
 
     >>> import io
+    >>> df = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
     >>> buffer = io.BytesIO()
     >>> with pd.ExcelWriter(buffer) as writer:
     ...     df.to_excel(writer)
@@ -738,8 +753,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     You can pack Excel file into zip archive:
 
     >>> import zipfile
-    >>> with zipfile.ZipFile('path_to_file.zip', 'w') as zf:
-    ...     with zf.open('filename.xlsx', 'w') as buffer:
+    >>> df = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
+    >>> with zipfile.ZipFile("path_to_file.zip", "w") as zf:
+    ...     with zf.open("filename.xlsx", "w") as buffer:
     ...         with pd.ExcelWriter(buffer) as writer:
     ...             df.to_excel(writer)
     """
@@ -1147,7 +1163,7 @@ class ExcelFile:
         else:
             import xlrd
 
-            xlrd_version = LooseVersion(get_version(xlrd))
+            xlrd_version = Version(get_version(xlrd))
 
         ext = None
         if engine is None:
@@ -1174,7 +1190,7 @@ class ExcelFile:
                         path_or_buffer, storage_options=storage_options
                     )
 
-            if ext != "xls" and xlrd_version >= "2":
+            if ext != "xls" and xlrd_version >= Version("2"):
                 raise ValueError(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install openpyxl instead."

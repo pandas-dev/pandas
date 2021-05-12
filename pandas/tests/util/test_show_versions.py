@@ -32,7 +32,6 @@ import pandas as pd
     # https://github.com/pandas-dev/pandas/issues/35252
     "ignore:Distutils:UserWarning"
 )
-@pytest.mark.filterwarnings("ignore:Setuptools is replacing distutils:UserWarning")
 def test_show_versions(tmpdir):
     # GH39701
     as_json = os.path.join(tmpdir, "test_output.json")

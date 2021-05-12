@@ -7,7 +7,6 @@ from typing import (
     Union,
 )
 import unicodedata
-import warnings
 
 import numpy as np
 
@@ -115,22 +114,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             raise ValueError("Invalid side")
         return self._str_map(f)
 
-    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
+    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex: bool = True):
         if regex:
             if not case:
                 flags |= re.IGNORECASE
 
-            regex = re.compile(pat, flags=flags)
+            pat = re.compile(pat, flags=flags)
 
-            if regex.groups > 0:
-                warnings.warn(
-                    "This pattern has match groups. To actually get the "
-                    "groups, use str.extract.",
-                    UserWarning,
-                    stacklevel=3,
-                )
-
-            f = lambda x: regex.search(x) is not None
+            f = lambda x: pat.search(x) is not None
         else:
             if case:
                 f = lambda x: pat in x
@@ -147,41 +138,20 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         f = lambda x: x.endswith(pat)
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
-    def _str_replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
-        # Check whether repl is valid (GH 13438, GH 15055)
-        if not (isinstance(repl, str) or callable(repl)):
-            raise TypeError("repl must be a string or callable")
-
+    def _str_replace(self, pat, repl, n=-1, case: bool = True, flags=0, regex=True):
         is_compiled_re = is_re(pat)
-        if regex:
-            if is_compiled_re:
-                if (case is not None) or (flags != 0):
-                    raise ValueError(
-                        "case and flags cannot be set when pat is a compiled regex"
-                    )
-            else:
-                # not a compiled regex
-                # set default case
-                if case is None:
-                    case = True
 
-                # add case flag, if provided
-                if case is False:
-                    flags |= re.IGNORECASE
-            if is_compiled_re or len(pat) > 1 or flags or callable(repl):
-                n = n if n >= 0 else 0
-                compiled = re.compile(pat, flags=flags)
-                f = lambda x: compiled.sub(repl=repl, string=x, count=n)
-            else:
-                f = lambda x: x.replace(pat, repl, n)
+        if case is False:
+            # add case flag, if provided
+            flags |= re.IGNORECASE
+
+        if regex and (is_compiled_re or len(pat) > 1 or flags or callable(repl)):
+            if not is_compiled_re:
+                pat = re.compile(pat, flags=flags)
+
+            n = n if n >= 0 else 0
+            f = lambda x: pat.sub(repl=repl, string=x, count=n)
         else:
-            if is_compiled_re:
-                raise ValueError(
-                    "Cannot use a compiled regex as replacement pattern with "
-                    "regex=False"
-                )
-            if callable(repl):
-                raise ValueError("Cannot use a callable replacement when regex=False")
             f = lambda x: x.replace(pat, repl, n)
 
         return self._str_map(f, dtype=str)
@@ -216,11 +186,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             return result
 
     def _str_match(
-        self,
-        pat: Union[str, Pattern],
-        case: bool = True,
-        flags: int = 0,
-        na: Scalar = None,
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
     ):
         if not case:
             flags |= re.IGNORECASE

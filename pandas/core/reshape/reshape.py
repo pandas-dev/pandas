@@ -131,19 +131,23 @@ class _Unstacker:
         self._make_selectors()
 
     @cache_readonly
-    def _indexer_and_to_sort(self):
+    def _indexer_and_to_sort(
+        self,
+    ) -> tuple[
+        np.ndarray,  # np.ndarray[np.intp]
+        list[np.ndarray],  # each has _some_ signed integer dtype
+    ]:
         v = self.level
 
         codes = list(self.index.codes)
         levs = list(self.index.levels)
         to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
-        sizes = [len(x) for x in levs[:v] + levs[v + 1 :] + [levs[v]]]
+        sizes = tuple(len(x) for x in levs[:v] + levs[v + 1 :] + [levs[v]])
 
         comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
         ngroups = len(obs_ids)
 
         indexer = get_group_index_sorter(comp_index, ngroups)
-        indexer = ensure_platform_int(indexer)
         return indexer, to_sort
 
     @cache_readonly
@@ -162,7 +166,7 @@ class _Unstacker:
 
         # make the mask
         remaining_labels = self.sorted_labels[:-1]
-        level_sizes = [len(x) for x in new_levels]
+        level_sizes = tuple(len(x) for x in new_levels)
 
         comp_index, obs_ids = get_compressed_ids(remaining_labels, level_sizes)
         ngroups = len(obs_ids)
@@ -349,7 +353,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
     rcodes = [index.codes[i] for i in rlocs]
     rnames = [index.names[i] for i in rlocs]
 
-    shape = [len(x) for x in clevels]
+    shape = tuple(len(x) for x in clevels)
     group_index = get_group_index(ccodes, shape, sort=False, xnull=False)
 
     comp_ids, obs_ids = compress_group_index(group_index, sort=False)
