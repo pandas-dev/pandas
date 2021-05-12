@@ -78,7 +78,7 @@ class BaseMaskedDtype(ExtensionDtype):
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
-        """ Return an instance of our numpy dtype """
+        """Return an instance of our numpy dtype"""
         return np.dtype(self.type)
 
     @cache_readonly
@@ -87,7 +87,7 @@ class BaseMaskedDtype(ExtensionDtype):
 
     @cache_readonly
     def itemsize(self) -> int:
-        """ Return the number of bytes in this dtype """
+        """Return the number of bytes in this dtype"""
         return self.numpy_dtype.itemsize
 
     @classmethod

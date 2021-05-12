@@ -157,7 +157,7 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
 
 
 def classes(*klasses) -> Callable:
-    """ evaluate if the tipo is a subclass of the klasses """
+    """evaluate if the tipo is a subclass of the klasses"""
     return lambda tipo: issubclass(tipo, klasses)
 
 

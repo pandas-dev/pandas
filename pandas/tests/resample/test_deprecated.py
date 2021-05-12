@@ -42,7 +42,7 @@ def _index_factory():
 @pytest.fixture
 def create_index(_index_factory):
     def _create_index(*args, **kwargs):
-        """ return the _index_factory created using the args, kwargs """
+        """return the _index_factory created using the args, kwargs"""
         return _index_factory(*args, **kwargs)
 
     return _create_index

@@ -567,7 +567,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     visit_Tuple = visit_List
 
     def visit_Index(self, node, **kwargs):
-        """ df.index[4] """
+        """df.index[4]"""
         return self.visit(node.value)
 
     def visit_Subscript(self, node, **kwargs):
@@ -591,7 +591,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.term_type(name, env=self.env)
 
     def visit_Slice(self, node, **kwargs):
-        """ df.index[slice(4,6)] """
+        """df.index[slice(4,6)]"""
         lower = node.lower
         if lower is not None:
             lower = self.visit(lower).value

@@ -1753,7 +1753,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @td.skip_if_no_scipy
     def test_memory_leak(self):
-        """ Check that every plot type gets properly collected. """
+        """Check that every plot type gets properly collected."""
         import gc
         import weakref
 

@@ -116,7 +116,7 @@ _int64_max = np.iinfo(np.int64).max
 def maybe_convert_platform(
     values: list | tuple | range | np.ndarray | ExtensionArray,
 ) -> ArrayLike:
-    """ try to do platform conversion, allow ndarray or list here """
+    """try to do platform conversion, allow ndarray or list here"""
     arr: ArrayLike
 
     if isinstance(values, (list, tuple, range)):
@@ -937,7 +937,7 @@ def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
 
 
 def coerce_indexer_dtype(indexer, categories):
-    """ coerce the indexer input array to the smallest dtype possible """
+    """coerce the indexer input array to the smallest dtype possible"""
     length = len(categories)
     if length < _int8_max:
         return ensure_int8(indexer)

@@ -1354,7 +1354,7 @@ class SQLAlchemyEngine(BaseEngine):
 
 
 def get_engine(engine: str) -> BaseEngine:
-    """ return our implementation """
+    """return our implementation"""
     if engine == "auto":
         engine = get_option("io.sql.engine")
 

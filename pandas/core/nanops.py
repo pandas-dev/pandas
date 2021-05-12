@@ -191,7 +191,7 @@ def _has_infs(result) -> bool:
 def _get_fill_value(
     dtype: DtypeObj, fill_value: Scalar | None = None, fill_value_typ=None
 ):
-    """ return the correct fill value for the dtype of the values """
+    """return the correct fill value for the dtype of the values"""
     if fill_value is not None:
         return fill_value
     if _na_ok_dtype(dtype):
@@ -350,7 +350,7 @@ def _na_ok_dtype(dtype: DtypeObj) -> bool:
 
 
 def _wrap_results(result, dtype: np.dtype, fill_value=None):
-    """ wrap our results if needed """
+    """wrap our results if needed"""
     if result is NaT:
         pass
 

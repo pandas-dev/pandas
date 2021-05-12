@@ -573,7 +573,7 @@ def datetime_series():
 
 
 def _create_series(index):
-    """ Helper for the _series dict """
+    """Helper for the _series dict"""
     size = len(index)
     data = np.random.randn(size)
     return Series(data, index=index, name="a")

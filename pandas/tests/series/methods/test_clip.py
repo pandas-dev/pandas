@@ -61,7 +61,7 @@ class TestSeriesClip:
         tm.assert_series_equal(s_clipped_lower, expected_lower)
 
     def test_clip_with_na_args(self):
-        """Should process np.nan argument as None """
+        """Should process np.nan argument as None"""
         # GH#17276
         s = Series([1, 2, 3])
 

@@ -927,7 +927,7 @@ class _MergeOperation:
                     result.insert(i, name or f"key_{i}", key_col)
 
     def _get_join_indexers(self) -> tuple[np.ndarray, np.ndarray]:
-        """ return the join indexers """
+        """return the join indexers"""
         # Both returned ndarrays are np.intp
         return get_join_indexers(
             self.left_join_keys, self.right_join_keys, sort=self.sort, how=self.how
@@ -1688,7 +1688,7 @@ _type_casters = {
 
 
 def _get_cython_type_upcast(dtype: DtypeObj) -> str:
-    """ Upcast a dtype to 'int64_t', 'double', or 'object' """
+    """Upcast a dtype to 'int64_t', 'double', or 'object'"""
     if is_integer_dtype(dtype):
         return "int64_t"
     elif is_float_dtype(dtype):
@@ -1879,10 +1879,10 @@ class _AsOfMerge(_OrderedMerge):
 
     def _get_join_indexers(self) -> tuple[np.ndarray, np.ndarray]:
         # Both returned ndarrays are np.intp
-        """ return the join indexers """
+        """return the join indexers"""
 
         def flip(xs) -> np.ndarray:
-            """ unlike np.transpose, this returns an array of tuples """
+            """unlike np.transpose, this returns an array of tuples"""
             # error: Item "ndarray" of "Union[Any, Union[ExtensionArray, ndarray]]" has
             # no attribute "_values_for_argsort"
             xs = [
