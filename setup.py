@@ -668,7 +668,7 @@ if is_platform_mac():
     libs = ["liconv"]
 
 rdata_ext = Extension(
-    name="io.rdata._rdata",
+    name="pandas.io.rdata._rdata",
     sources=rdata_srcs,
     include_dirs=include,
     library_dirs=libs_dir,
