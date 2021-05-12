@@ -44,6 +44,7 @@ from pandas.io.formats.style_render import (
     CSSProperties,
     CSSStyles,
     StylerRenderer,
+    Subset,
     Tooltips,
     maybe_convert_css_to_tuples,
     non_reducing_slice,
@@ -1051,7 +1052,7 @@ class Styler(StylerRenderer):
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
 
-    def hide_index(self, subset=None) -> Styler:
+    def hide_index(self, subset: Subset | None = None) -> Styler:
         """
         Hide the entire index, or specific keys in the index from rendering.
 
@@ -1061,6 +1062,8 @@ class Styler(StylerRenderer):
             displaying all data-rows.
           - if a ``subset`` is given then those specific rows will be hidden whilst the
             index itself remains visible.
+
+        .. versionchanged:: 1.3.0
 
         Parameters
         ----------
@@ -1112,8 +1115,8 @@ class Styler(StylerRenderer):
         if subset is None:
             self.hidden_index = True
         else:
-            subset = IndexSlice[subset, :]
-            subset = non_reducing_slice(subset)
+            subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
+            subset = non_reducing_slice(subset_)
             hide = self.data.loc[subset]
             hrows = self.index.get_indexer_for(hide.index)
             # error: Incompatible types in assignment (expression has type
@@ -1121,7 +1124,7 @@ class Styler(StylerRenderer):
             self.hidden_rows = hrows  # type: ignore[assignment]
         return self
 
-    def hide_columns(self, subset=None) -> Styler:
+    def hide_columns(self, subset: Subset | None = None) -> Styler:
         """
         Hide the column headers or specific keys in the columns from rendering.
 
@@ -1131,6 +1134,8 @@ class Styler(StylerRenderer):
             whilst the data-values remain visible.
           - if a ``subset`` is given then those specific columns, including the
             data-values will be hidden, whilst the column headers row remains visible.
+
+        .. versionchanged:: 1.3.0
 
         Parameters
         ----------
@@ -1186,8 +1191,8 @@ class Styler(StylerRenderer):
         if subset is None:
             self.hidden_colheads = True
         else:
-            subset = IndexSlice[:, subset]
-            subset = non_reducing_slice(subset)
+            subset_ = IndexSlice[:, subset]  # new var so mypy reads not Optional
+            subset = non_reducing_slice(subset_)
             hide = self.data.loc[subset]
             hcols = self.columns.get_indexer_for(hide.columns)
             # error: Incompatible types in assignment (expression has type
@@ -1779,7 +1784,7 @@ class Styler(StylerRenderer):
 
     def highlight_quantile(
         self,
-        subset: IndexLabel | None = None,
+        subset: Subset | None = None,
         color: str = "yellow",
         axis: Axis | None = 0,
         q_left: float = 0.0,
