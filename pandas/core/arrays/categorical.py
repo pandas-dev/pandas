@@ -2183,11 +2183,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if dropna:
             good = self._codes != -1
             codes = self._codes[good]
-        # error: Incompatible types in assignment (expression has type "List[Any]",
-        # variable has type "ndarray")
-        codes = sorted(  # type: ignore[assignment]
-            htable.mode_int64(ensure_int64(codes), dropna)
-        )
+
+        codes = htable.mode(codes, dropna)
+        codes.sort()
         codes = coerce_indexer_dtype(codes, self.dtype.categories)
         return self._from_backing_data(codes)
 

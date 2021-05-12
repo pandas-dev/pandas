@@ -3,8 +3,10 @@ from functools import wraps
 import re
 from typing import (
     Dict,
+    Hashable,
     List,
     Optional,
+    Pattern,
 )
 import warnings
 
@@ -1213,7 +1215,7 @@ class StringMethods(NoNewAttributesMixin):
             Regex module flags, e.g. re.IGNORECASE. Cannot be set if `pat` is a compiled
             regex.
         regex : bool, default True
-            Determines if assumes the passed-in pattern is a regular expression:
+            Determines if the passed-in pattern is a regular expression:
 
             - If True, assumes the passed-in pattern is a regular expression.
             - If False, treats the pattern as a literal string
@@ -1269,7 +1271,7 @@ class StringMethods(NoNewAttributesMixin):
 
         To get the idea:
 
-        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', repr)
+        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', repr, regex=True)
         0    <re.Match object; span=(0, 1), match='f'>oo
         1    <re.Match object; span=(0, 1), match='f'>uz
         2                                            NaN
@@ -1278,7 +1280,8 @@ class StringMethods(NoNewAttributesMixin):
         Reverse every lowercase alphabetic word:
 
         >>> repl = lambda m: m.group(0)[::-1]
-        >>> pd.Series(['foo 123', 'bar baz', np.nan]).str.replace(r'[a-z]+', repl)
+        >>> ser = pd.Series(['foo 123', 'bar baz', np.nan])
+        >>> ser.str.replace(r'[a-z]+', repl, regex=True)
         0    oof 123
         1    rab zab
         2        NaN
@@ -1288,7 +1291,8 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
         >>> repl = lambda m: m.group('two').swapcase()
-        >>> pd.Series(['One Two Three', 'Foo Bar Baz']).str.replace(pat, repl)
+        >>> ser = pd.Series(['One Two Three', 'Foo Bar Baz'])
+        >>> ser.str.replace(pat, repl, regex=True)
         0    tWO
         1    bAR
         dtype: object
@@ -1297,7 +1301,7 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> import re
         >>> regex_pat = re.compile(r'FUZ', flags=re.IGNORECASE)
-        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace(regex_pat, 'bar')
+        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace(regex_pat, 'bar', regex=True)
         0    foo
         1    bar
         2    NaN
@@ -3024,6 +3028,31 @@ def _result_dtype(arr):
         return object
 
 
+def _get_single_group_name(regex: Pattern) -> Hashable:
+    if regex.groupindex:
+        return next(iter(regex.groupindex))
+    else:
+        return None
+
+
+def _get_group_names(regex: Pattern) -> List[Hashable]:
+    """
+    Get named groups from compiled regex.
+
+    Unnamed groups are numbered.
+
+    Parameters
+    ----------
+    regex : compiled regex
+
+    Returns
+    -------
+    list of column labels
+    """
+    names = {v: k for k, v in regex.groupindex.items()}
+    return [names.get(1 + i, i) for i in range(regex.groups)]
+
+
 def str_extractall(arr, pat, flags=0):
     regex = re.compile(pat, flags=flags)
     # the regex must contain capture groups.
@@ -3033,8 +3062,7 @@ def str_extractall(arr, pat, flags=0):
     if isinstance(arr, ABCIndex):
         arr = arr.to_series().reset_index(drop=True)
 
-    names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
-    columns = [names.get(1 + i, i) for i in range(regex.groups)]
+    columns = _get_group_names(regex)
     match_list = []
     index_list = []
     is_mi = arr.index.nlevels > 1
