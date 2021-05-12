@@ -1417,12 +1417,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return path, res
 
     def _transform_item_by_item(self, obj: DataFrame, wrapper) -> DataFrame:
-        # iterate through columns
+        # iterate through columns, see test_transform_exclude_nuisance
         output = {}
         inds = []
         for i, col in enumerate(obj):
+            subset = obj.iloc[:, i]
+            sgb = SeriesGroupBy(
+                subset,
+                selection=col,
+                grouper=self.grouper,
+                exclusions=self.exclusions,
+            )
             try:
-                output[col] = self[col].transform(wrapper)
+                output[i] = sgb.transform(wrapper)
             except TypeError:
                 # e.g. trying to call nanmean with string values
                 pass
@@ -1434,7 +1441,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         columns = obj.columns.take(inds)
 
-        return self.obj._constructor(output, index=obj.index, columns=columns)
+        result = self.obj._constructor(output, index=obj.index)
+        result.columns = columns
+        return result
 
     def filter(self, func, dropna=True, *args, **kwargs):
         """
@@ -1504,7 +1513,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return self._apply_filter(indices, dropna)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> DataFrameGroupBy | SeriesGroupBy:
         if self.axis == 1:
             # GH 37725
             raise ValueError("Cannot subset columns when using axis=1")
