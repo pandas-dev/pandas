@@ -13,7 +13,6 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import IndexLabel
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -2352,18 +2351,15 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_extract(pat, flags, expand)
 
         returns_df = regex.groups > 1 or expand
-        name: IndexLabel
-        if returns_df:
-            names = {v: k for k, v in regex.groupindex.items()}
-            name = [names.get(1 + i, i) for i in range(regex.groups)]
-        else:
-            name = next(iter(regex.groupindex)) if regex.groupindex else None
+        name = _get_group_names(regex) if returns_df else _get_single_group_name(regex)
 
         # extract is inconsistent for Indexes when expand is True. To avoid special
         # casing _wrap_result we handle that case here
         if expand and isinstance(self._data, ABCIndex):
             from pandas import DataFrame
 
+            # if expand is True, name is a list of column names
+            assert isinstance(name, list)  # for mypy
             return DataFrame(list(result), columns=name, dtype=object)
 
         return self._wrap_result(result, name=name, expand=returns_df)
