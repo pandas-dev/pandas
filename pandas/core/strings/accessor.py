@@ -4,9 +4,11 @@ import re
 from typing import (
     TYPE_CHECKING,
     Dict,
+    Hashable,
     List,
     Optional,
     Union,
+    Pattern,
 )
 import warnings
 
@@ -3052,11 +3054,29 @@ def _result_dtype(arr):
         return object
 
 
-def _get_single_group_name(rx):
-    try:
-        return list(rx.groupindex.keys()).pop()
-    except IndexError:
+def _get_single_group_name(regex: Pattern) -> Hashable:
+    if regex.groupindex:
+        return next(iter(regex.groupindex))
+    else:
         return None
+
+
+def _get_group_names(regex: Pattern) -> List[Hashable]:
+    """
+    Get named groups from compiled regex.
+
+    Unnamed groups are numbered.
+
+    Parameters
+    ----------
+    regex : compiled regex
+
+    Returns
+    -------
+    list of column labels
+    """
+    names = {v: k for k, v in regex.groupindex.items()}
+    return [names.get(1 + i, i) for i in range(regex.groups)]
 
 
 def _str_extract_noexpand(arr, pat, flags=0):
@@ -3083,8 +3103,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
         result = pd_array(result, dtype=result_dtype)
     else:
         name = None
-        names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
-        columns = [names.get(1 + i, i) for i in range(regex.groups)]
+        columns = _get_group_names(regex)
         if arr.size == 0:
             # error: Incompatible types in assignment (expression has type
             # "DataFrame", variable has type "ndarray")
@@ -3115,8 +3134,7 @@ def _str_extract_frame(arr, pat, flags=0):
 
     regex = re.compile(pat, flags=flags)
     groups_or_na = _groups_or_na_fun(regex)
-    names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
-    columns = [names.get(1 + i, i) for i in range(regex.groups)]
+    columns = _get_group_names(regex)
 
     if len(arr) == 0:
         return DataFrame(columns=columns, dtype=object)
@@ -3151,8 +3169,7 @@ def str_extractall(arr, pat, flags=0):
     if isinstance(arr, ABCIndex):
         arr = arr.to_series().reset_index(drop=True)
 
-    names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
-    columns = [names.get(1 + i, i) for i in range(regex.groups)]
+    columns = _get_group_names(regex)
     match_list = []
     index_list = []
     is_mi = arr.index.nlevels > 1
