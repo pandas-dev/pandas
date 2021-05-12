@@ -226,12 +226,10 @@ class Contains:
 
 class Split:
 
-    params = (["str", "string", "arrow_string"], [True, False])
+    params = (["str", "string[python]", "string[pyarrow]"], [True, False])
     param_names = ["dtype", "expand"]
 
     def setup(self, dtype, expand):
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
         try:
             self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype).str.join("--")
         except ImportError:
