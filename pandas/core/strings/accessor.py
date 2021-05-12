@@ -7,8 +7,8 @@ from typing import (
     Hashable,
     List,
     Optional,
-    Union,
     Pattern,
+    Union,
 )
 import warnings
 
