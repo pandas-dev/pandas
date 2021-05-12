@@ -498,6 +498,8 @@ class _Concatenator:
                 index, columns = self.new_axes
                 df = cons(data, index=index)
                 df.columns = columns
+                if self.names:
+                    df.columns.names = self.names
                 return df.__finalize__(self, method="concat")
 
         # combine block managers

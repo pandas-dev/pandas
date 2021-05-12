@@ -501,3 +501,10 @@ class TestNDFrame:
 
         with tm.assert_produces_warning(FutureWarning):
             obj.slice_shift()
+
+    def test_convert_dtypes_name(self):
+        # GH 41435
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        df.columns.name = "cols"
+        result = df.convert_dtypes()
+        assert result.columns.names == df.columns.names

@@ -6179,7 +6179,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for col_name, col in self.items()
             ]
             if len(results) > 0:
-                return concat(results, axis=1, copy=False)
+                return concat(results, axis=1, copy=False, names=self.columns.names)
             else:
                 return self.copy()
 
