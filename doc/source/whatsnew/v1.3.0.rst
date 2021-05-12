@@ -644,6 +644,7 @@ Deprecations
 - Deprecated the ``level`` keyword for :class:`DataFrame` and :class:`Series` aggregations; use groupby instead (:issue:`39983`)
 - The ``inplace`` parameter of :meth:`Categorical.remove_categories`, :meth:`Categorical.add_categories`, :meth:`Categorical.reorder_categories`, :meth:`Categorical.rename_categories`, :meth:`Categorical.set_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 - Deprecated :func:`merge` producing duplicated columns through the ``suffixes`` keyword  and already existing columns (:issue:`22818`)
+- Deprecated setting :attr:`Categorical._codes`, create a new :class:`Categorical` with the desired codes instead (:issue:`40606`)
 
 .. ---------------------------------------------------------------------------
 
