@@ -204,7 +204,7 @@ have code that converts ``DateRange`` or ``Index`` objects that used to contain
 ``datetime.datetime`` values to plain NumPy arrays, you may have bugs lurking
 with code using scalar values because you are handing control over to NumPy:
 
-.. ipython:: python
+.. code-block:: python
 
    import datetime
 
@@ -225,7 +225,7 @@ If you have code that requires an array of ``datetime.datetime`` objects, you
 have a couple of options. First, the ``astype(object)`` method of ``DatetimeIndex``
 produces an array of ``Timestamp`` objects:
 
-.. ipython:: python
+.. code-block:: python
 
    stamp_array = rng.astype(object)
    stamp_array
@@ -234,7 +234,7 @@ produces an array of ``Timestamp`` objects:
 To get an array of proper ``datetime.datetime`` objects, use the
 ``to_pydatetime`` method:
 
-.. ipython:: python
+.. code-block:: python
 
    dt_array = rng.to_pydatetime()
    dt_array
@@ -252,7 +252,7 @@ type. See `matplotlib documentation
     in NumPy 1.6. In particular, the string version of the array shows garbage
     values, and conversion to ``dtype=object`` is similarly broken.
 
-    .. ipython:: python
+    .. code-block:: python
 
        rng = pd.date_range("1/1/2000", periods=10)
        rng

@@ -57,7 +57,7 @@ API changes
   values. A single indexer that is out-of-bounds and drops the dimensions of the object will still raise
   ``IndexError`` (:issue:`6296`, :issue:`6299`). This could result in an empty axis (e.g. an empty DataFrame being returned)
 
-  .. ipython:: python
+  .. code-block:: python
 
      dfl = pd.DataFrame(np.random.randn(5, 2), columns=list('AB'))
      dfl
@@ -113,7 +113,7 @@ API changes
   as :meth:`Index.delete` and :meth:`Index.drop` methods will no longer change the type of the
   resulting index (:issue:`6440`, :issue:`7040`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      i = pd.Index([1, 2, 3, 'a', 'b', 'c'])
      i[[0, 1, 2]]
@@ -122,15 +122,14 @@ API changes
   Previously, the above operation would return ``Int64Index``.  If you'd like
   to do this manually, use :meth:`Index.astype`
 
-  .. ipython:: python
+  .. code-block:: python
 
      i[[0, 1, 2]].astype(np.int_)
 
 - ``set_index`` no longer converts MultiIndexes to an Index of tuples. For example,
   the old behavior returned an Index in this case (:issue:`6459`):
 
-  .. ipython:: python
-     :suppress:
+  .. code-block:: python
 
      np.random.seed(1234)
      from itertools import product
@@ -140,7 +139,7 @@ API changes
      tuple_ind = pd.Index(tuples, tupleize_cols=False)
      df_multi.index
 
-  .. ipython:: python
+  .. code-block:: python
 
      # Old behavior, casted MultiIndex to an Index
      tuple_ind
@@ -152,7 +151,7 @@ API changes
 
   This also applies when passing multiple indices to ``set_index``:
 
-  .. ipython:: python
+  .. code-block:: python
 
     @suppress
     df_multi.index = tuple_ind
@@ -272,7 +271,7 @@ Display changes
   The default for ``display.show_dimensions`` will now be ``truncate``. This is consistent with
   how Series display length.
 
-  .. ipython:: python
+  .. code-block:: python
 
      dfd = pd.DataFrame(np.arange(25).reshape(-1, 5),
                         index=[0, 1, 2, 3, 4],
@@ -328,7 +327,7 @@ More consistent behavior for some groupby methods:
 
 - groupby ``head`` and ``tail`` now act more like ``filter`` rather than an aggregation:
 
-  .. ipython:: python
+  .. code-block:: python
 
      df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
      g = df.groupby('A')
@@ -338,7 +337,7 @@ More consistent behavior for some groupby methods:
 
 - groupby head and tail respect column selection:
 
-  .. ipython:: python
+  .. code-block:: python
 
      g[['B']].head(1)
 
@@ -347,7 +346,7 @@ More consistent behavior for some groupby methods:
 
   Reducing
 
-  .. ipython:: python
+  .. code-block:: python
 
      df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
      g = df.groupby('A')
@@ -361,7 +360,7 @@ More consistent behavior for some groupby methods:
 
   Filtering
 
-  .. ipython:: python
+  .. code-block:: python
 
      gf = df.groupby('A', as_index=False)
      gf.nth(0)
@@ -370,7 +369,7 @@ More consistent behavior for some groupby methods:
 - groupby will now not return the grouped column for non-cython functions (:issue:`5610`, :issue:`5614`, :issue:`6732`),
   as its already the index
 
-  .. ipython:: python
+  .. code-block:: python
 
      df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6], [5, 8]], columns=['A', 'B'])
      g = df.groupby('A')
@@ -379,7 +378,7 @@ More consistent behavior for some groupby methods:
 
 - passing ``as_index`` will leave the grouped column in-place (this is not change in 0.14.0)
 
-  .. ipython:: python
+  .. code-block:: python
 
      df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6], [5, 8]], columns=['A', 'B'])
      g = df.groupby('A', as_index=False)
@@ -426,7 +425,7 @@ To connect with SQLAlchemy you use the :func:`create_engine` function to create 
 object from database URI. You only need to create the engine once per database you are
 connecting to. For an in-memory sqlite database:
 
-.. ipython:: python
+.. code-block:: python
 
    from sqlalchemy import create_engine
    # Create your connection.
@@ -434,20 +433,20 @@ connecting to. For an in-memory sqlite database:
 
 This ``engine`` can then be used to write or read data to/from this database:
 
-.. ipython:: python
+.. code-block:: python
 
     df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'c']})
     df.to_sql('db_table', engine, index=False)
 
 You can read data from a database by specifying the table name:
 
-.. ipython:: python
+.. code-block:: python
 
    pd.read_sql_table('db_table', engine)
 
 or by specifying a sql query:
 
-.. ipython:: python
+.. code-block:: python
 
    pd.read_sql_query('SELECT * FROM db_table', engine)
 
@@ -512,7 +511,7 @@ See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :is
 
    You will need to make sure that the selection axes are fully lexsorted!
 
-.. ipython:: python
+.. code-block:: python
 
    def mklbl(prefix, n):
        return ["%s%s" % (prefix, i) for i in range(n)]
@@ -532,13 +531,13 @@ See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :is
 
 Basic MultiIndex slicing using slices, lists, and labels.
 
-.. ipython:: python
+.. code-block:: python
 
    df.loc[(slice('A1', 'A3'), slice(None), ['C1', 'C3']), :]
 
 You can use a ``pd.IndexSlice`` to shortcut the creation of these slices
 
-.. ipython:: python
+.. code-block:: python
 
    idx = pd.IndexSlice
    df.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
@@ -546,14 +545,14 @@ You can use a ``pd.IndexSlice`` to shortcut the creation of these slices
 It is possible to perform quite complicated selections using this method on multiple
 axes at the same time.
 
-.. ipython:: python
+.. code-block:: python
 
    df.loc['A1', (slice(None), 'foo')]
    df.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
 
 Using a boolean indexer you can provide selection related to the *values*.
 
-.. ipython:: python
+.. code-block:: python
 
    mask = df[('a', 'foo')] > 200
    df.loc[idx[mask, :, ['C1', 'C3']], idx[:, 'foo']]
@@ -561,13 +560,13 @@ Using a boolean indexer you can provide selection related to the *values*.
 You can also specify the ``axis`` argument to ``.loc`` to interpret the passed
 slicers on a single axis.
 
-.. ipython:: python
+.. code-block:: python
 
    df.loc(axis=0)[:, :, ['C1', 'C3']]
 
 Furthermore you can *set* the values using these methods
 
-.. ipython:: python
+.. code-block:: python
 
    df2 = df.copy()
    df2.loc(axis=0)[:, :, ['C1', 'C3']] = -10
@@ -575,7 +574,7 @@ Furthermore you can *set* the values using these methods
 
 You can use a right-hand-side of an alignable object as well.
 
-.. ipython:: python
+.. code-block:: python
 
    df2 = df.copy()
    df2.loc[idx[:, :, ['C1', 'C3']], :] = df2 * 1000
@@ -744,7 +743,7 @@ Enhancements
 
 - DataFrame and Series will create a MultiIndex object if passed a tuples dict, See :ref:`the docs<basics.dataframe.from_dict_of_tuples>` (:issue:`3323`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      pd.Series({('a', 'b'): 1, ('a', 'a'): 0,
                 ('a', 'c'): 2, ('b', 'a'): 3, ('b', 'b'): 4})
@@ -763,7 +762,7 @@ Enhancements
 
   See :ref:`the docs<merging.join_on_mi>`. Joining MultiIndex DataFrames on both the left and right is not yet supported ATM.
 
-  .. ipython:: python
+  .. code-block:: python
 
      household = pd.DataFrame({'household_id': [1, 2, 3],
                                'male': [0, 1, 0],
@@ -822,7 +821,7 @@ Enhancements
 - :meth:`~DataFrame.describe` now accepts an array of percentiles to include in the summary statistics (:issue:`4196`)
 - ``pivot_table`` can now accept ``Grouper`` by ``index`` and ``columns`` keywords (:issue:`6913`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      import datetime
      df = pd.DataFrame({
@@ -853,7 +852,7 @@ Enhancements
 
 - ``PeriodIndex`` fully supports partial string indexing like ``DatetimeIndex`` (:issue:`7043`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      prng = pd.period_range('2013-01-01 09:00', periods=100, freq='H')
      ps = pd.Series(np.random.randn(len(prng)), index=prng)

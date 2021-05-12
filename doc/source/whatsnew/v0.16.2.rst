@@ -61,7 +61,7 @@ In the example above, the functions ``f``, ``g``, and ``h`` each expected the Da
 When the function you wish to apply takes its data anywhere other than the first argument, pass a tuple
 of ``(function, keyword)`` indicating where the DataFrame should flow. For example:
 
-.. ipython:: python
+.. code-block:: python
 
    import statsmodels.formula.api as sm
 

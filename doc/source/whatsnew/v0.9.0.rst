@@ -37,7 +37,7 @@ API changes
     functions like ``read_csv`` has changed to be more Pythonic and amenable to
     attribute access:
 
-.. ipython:: python
+.. code-block:: python
 
    import io
 
@@ -56,7 +56,7 @@ API changes
   "by accident" (this was never intended) will lead to all NA Series in some
   cases. To be perfectly clear:
 
-.. ipython:: python
+.. code-block:: python
 
    s1 = pd.Series([1, 2, 3])
    s1

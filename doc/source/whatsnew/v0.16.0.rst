@@ -51,7 +51,7 @@ to be inserted (for example, a ``Series`` or NumPy array), or a function
 of one argument to be called on the ``DataFrame``. The new values are inserted,
 and the entire DataFrame (with all original and new columns) is returned.
 
-.. ipython:: python
+.. code-block:: python
 
    iris = pd.read_csv('data/iris.data')
    iris.head()
@@ -61,7 +61,7 @@ and the entire DataFrame (with all original and new columns) is returned.
 Above was an example of inserting a precomputed value. We can also pass in
 a function to be evaluated.
 
-.. ipython:: python
+.. code-block:: python
 
     iris.assign(sepal_ratio=lambda x: (x['SepalWidth']
                                        / x['SepalLength'])).head()
@@ -70,7 +70,7 @@ The power of ``assign`` comes when used in chains of operations. For example,
 we can limit the DataFrame to just those with a Sepal Length greater than 5,
 calculate the ratio, and plot
 
-.. ipython:: python
+.. code-block:: python
 
    iris = pd.read_csv('data/iris.data')
    (iris.query('SepalLength > 5')
@@ -146,7 +146,7 @@ String methods enhancements
   ``find()``     ``rfind()``    ``ljust()``    ``rjust()``        ``zfill()``
   =============  =============  =============  ===============    ===============
 
-  .. ipython:: python
+  .. code-block:: python
 
      s = pd.Series(['abcd', '3456', 'EFGH'])
      s.str.isalpha()
@@ -154,14 +154,14 @@ String methods enhancements
 
 - :meth:`Series.str.pad` and :meth:`Series.str.center` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      s = pd.Series(['12', '300', '25'])
      s.str.pad(5, fillchar='_')
 
 - Added :meth:`Series.str.slice_replace`, which previously raised ``NotImplementedError`` (:issue:`8888`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      s = pd.Series(['ABCD', 'EFGH', 'IJK'])
      s.str.slice_replace(1, 3, 'X')
@@ -175,7 +175,7 @@ Other enhancements
 
 - Reindex now supports ``method='nearest'`` for frames or series with a monotonic increasing or decreasing index (:issue:`9258`):
 
-  .. ipython:: python
+  .. code-block:: python
 
      df = pd.DataFrame({'x': range(5)})
      df.reindex([0.2, 1.8, 3.5], method='nearest')
@@ -243,7 +243,7 @@ Previous behavior
 
 New behavior
 
-.. ipython:: python
+.. code-block:: python
 
    t = pd.Timedelta('1 day, 10:11:12.100123')
    t.days
@@ -252,7 +252,7 @@ New behavior
 
 Using ``.components`` allows the full component access
 
-.. ipython:: python
+.. code-block:: python
 
    t.components
    t.components.seconds
@@ -266,7 +266,7 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
 - Slicing with ``.loc`` where the start and/or stop bound is not found in the index is now allowed; this previously would raise a ``KeyError``. This makes the behavior the same as ``.ix`` in this case. This change is only for slicing, not when indexing with a single label.
 
-  .. ipython:: python
+  .. code-block:: python
 
      df = pd.DataFrame(np.random.randn(5, 4),
                        columns=list('ABCD'),
@@ -287,7 +287,7 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
   New behavior
 
-  .. ipython:: python
+  .. code-block:: python
 
      df.loc['2013-01-02':'2013-01-10']
      s.loc[-10:3]
@@ -367,7 +367,7 @@ Previous behavior
 
 New behavior
 
-.. ipython:: python
+.. code-block:: python
 
    s = pd.Series([0, 1, 2], dtype='category')
    s
@@ -491,7 +491,7 @@ Other API changes
 
   New behavior
 
-  .. ipython:: python
+  .. code-block:: python
 
      p = pd.Series([0, 1])
      p / 0
@@ -511,7 +511,7 @@ Other API changes
 
   Fixed behavior:
 
-  .. ipython:: python
+  .. code-block:: python
 
     pd.to_datetime(['2000-01-31', '2000-02-28']).asof('2000-02')
 
@@ -674,7 +674,7 @@ Bug fixes
 
   The following would previously report a ``SettingWithCopy`` Warning.
 
-  .. ipython:: python
+  .. code-block:: python
 
      df1 = pd.DataFrame({'x': pd.Series(['a', 'b', 'c']),
                          'y': pd.Series(['d', 'e', 'f'])})

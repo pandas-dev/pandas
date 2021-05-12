@@ -153,7 +153,7 @@ API changes
 
   Added the ``.bool()`` method to ``NDFrame`` objects to facilitate evaluating of single-element boolean Series:
 
-  .. ipython:: python
+  .. code-block:: python
 
      pd.Series([True]).bool()
      pd.Series([False]).bool()
@@ -170,15 +170,14 @@ API changes
 - Chained assignment will now by default warn if the user is assigning to a copy. This can be changed
   with the option ``mode.chained_assignment``, allowed options are ``raise/warn/None``. See :ref:`the docs<indexing.view_versus_copy>`.
 
-  .. ipython:: python
+  .. code-block:: python
 
      dfc = pd.DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
      pd.set_option('chained_assignment', 'warn')
 
   The following warning / exception will show if this is attempted.
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: python
 
      dfc.loc[0]['A'] = 1111
 
@@ -192,7 +191,7 @@ API changes
 
   Here is the correct method of assignment.
 
-  .. ipython:: python
+  .. code-block:: python
 
      dfc.loc[0, 'A'] = 11
      dfc
@@ -242,14 +241,14 @@ was not contained in the index of a particular axis. (:issue:`2578`). See :ref:`
 
 In the ``Series`` case this is effectively an appending operation
 
-.. ipython:: python
+.. code-block:: python
 
    s = pd.Series([1, 2, 3])
    s
    s[5] = 5.
    s
 
-.. ipython:: python
+.. code-block:: python
 
    dfi = pd.DataFrame(np.arange(6).reshape(3, 2),
                       columns=['A', 'B'])
@@ -257,14 +256,14 @@ In the ``Series`` case this is effectively an appending operation
 
 This would previously ``KeyError``
 
-.. ipython:: python
+.. code-block:: python
 
    dfi.loc[:, 'C'] = dfi.loc[:, 'A']
    dfi
 
 This is like an ``append`` operation.
 
-.. ipython:: python
+.. code-block:: python
 
    dfi.loc[3] = 5
    dfi
@@ -314,7 +313,7 @@ Float64Index API change
 
   Construction is by default for floating type values.
 
-  .. ipython:: python
+  .. code-block:: python
 
      index = pd.Index([1.5, 2, 3, 4.5, 5])
      index
@@ -323,14 +322,14 @@ Float64Index API change
 
   Scalar selection for ``[],.ix,.loc`` will always be label based. An integer will match an equal float index (e.g. ``3`` is equivalent to ``3.0``)
 
-  .. ipython:: python
+  .. code-block:: python
 
      s[3]
      s.loc[3]
 
   The only positional indexing is via ``iloc``
 
-  .. ipython:: python
+  .. code-block:: python
 
      s.iloc[3]
 
@@ -338,7 +337,7 @@ Float64Index API change
 
   Slicing is ALWAYS on the values of the index, for ``[],ix,loc`` and ALWAYS positional with ``iloc``
 
-  .. ipython:: python
+  .. code-block:: python
 
      s[2:4]
      s.loc[2:4]
@@ -346,7 +345,7 @@ Float64Index API change
 
   In float indexes, slicing using floats are allowed
 
-  .. ipython:: python
+  .. code-block:: python
 
      s[2.1:4.6]
      s.loc[2.1:4.6]
@@ -374,7 +373,7 @@ HDFStore API changes
 
 - Query Format Changes. A much more string-like query format is now supported. See :ref:`the docs<io.hdf5-query>`.
 
-  .. ipython:: python
+  .. code-block:: python
 
      path = 'test.h5'
      dfq = pd.DataFrame(np.random.randn(10, 4),
@@ -384,20 +383,19 @@ HDFStore API changes
 
   Use boolean expressions, with in-line function evaluation.
 
-  .. ipython:: python
+  .. code-block:: python
 
      pd.read_hdf(path, 'dfq',
                  where="index>Timestamp('20130104') & columns=['A', 'B']")
 
   Use an inline column reference
 
-  .. ipython:: python
+  .. code-block:: python
 
      pd.read_hdf(path, 'dfq',
                  where="A>0 or C>0")
 
-  .. ipython:: python
-     :suppress:
+  .. code-block:: python
 
      import os
      os.remove(path)
@@ -406,7 +404,7 @@ HDFStore API changes
   the same defaults as prior < 0.13.0 remain, e.g. ``put`` implies ``fixed`` format and ``append`` implies
   ``table`` format. This default format can be set as an option by setting ``io.hdf.default_format``.
 
-  .. ipython:: python
+  .. code-block:: python
 
      path = 'test.h5'
      df = pd.DataFrame(np.random.randn(10, 2))
@@ -416,8 +414,7 @@ HDFStore API changes
      with pd.HDFStore(path) as store:
          print(store)
 
-  .. ipython:: python
-     :suppress:
+  .. code-block:: python
 
      import os
      os.remove(path)
@@ -435,7 +432,7 @@ HDFStore API changes
   until they themselves are closed. Performing an action on a closed file will raise
   ``ClosedFileError``
 
-  .. ipython:: python
+  .. code-block:: python
 
      path = 'test.h5'
      df = pd.DataFrame(np.random.randn(10, 2))
@@ -451,8 +448,7 @@ HDFStore API changes
      store2.close()
      store2
 
-  .. ipython:: python
-     :suppress:
+  .. code-block:: python
 
      import os
      os.remove(path)
@@ -500,7 +496,7 @@ Enhancements
 
 - ``NaN`` handing in get_dummies (:issue:`4446`) with ``dummy_na``
 
-  .. ipython:: python
+  .. code-block:: python
 
      # previously, nan was erroneously counted as 2 here
      # now it is not counted at all
@@ -519,7 +515,7 @@ Enhancements
   Using the new top-level ``to_timedelta``, you can convert a scalar or array from the standard
   timedelta format (produced by ``to_csv``) into a timedelta type (``np.timedelta64`` in ``nanoseconds``).
 
-  .. ipython:: python
+  .. code-block:: python
 
      pd.to_timedelta('1 days 06:05:01.00003')
      pd.to_timedelta('15.5us')
@@ -531,7 +527,7 @@ Enhancements
   ``timedelta64[ns]`` object, or astyped to yield a ``float64`` dtyped Series. This
   is frequency conversion. See :ref:`the docs<timedeltas.timedeltas_convert>` for the docs.
 
-  .. ipython:: python
+  .. code-block:: python
 
      import datetime
      td = pd.Series(pd.date_range('20130101', periods=4)) - pd.Series(
@@ -550,28 +546,28 @@ Enhancements
 
   Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
 
-  .. ipython:: python
+  .. code-block:: python
 
      td * -1
      td * pd.Series([1, 2, 3, 4])
 
   Absolute ``DateOffset`` objects can act equivalently to ``timedeltas``
 
-  .. ipython:: python
+  .. code-block:: python
 
      from pandas import offsets
      td + offsets.Minute(5) + offsets.Milli(5)
 
   Fillna is now supported for timedeltas
 
-  .. ipython:: python
+  .. code-block:: python
 
      td.fillna(pd.Timedelta(0))
      td.fillna(datetime.timedelta(days=1, seconds=5))
 
   You can do numeric reduction operations on timedeltas.
 
-  .. ipython:: python
+  .. code-block:: python
 
      td.mean()
      td.quantile(.1)
@@ -586,8 +582,7 @@ Enhancements
 - The new vectorized string method ``extract`` return regular expression
   matches more conveniently.
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: python
 
      pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\\d)')
 
@@ -595,8 +590,7 @@ Enhancements
   with more than one group returns a DataFrame with one column per group.
 
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: python
 
      pd.Series(['a1', 'b2', 'c3']).str.extract('([ab])(\\d)')
 
@@ -607,16 +601,14 @@ Enhancements
 
   Named groups like
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: python
 
      pd.Series(['a1', 'b2', 'c3']).str.extract(
          '(?P<letter>[ab])(?P<digit>\\d)')
 
   and optional groups can also be used.
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: python
 
       pd.Series(['a1', 'b2', '3']).str.extract(
           '(?P<letter>[ab])?(?P<digit>\\d)')
@@ -636,19 +628,19 @@ Enhancements
   Period conversions in the range of seconds and below were reworked and extended
   up to nanoseconds. Periods in the nanosecond range are now available.
 
-  .. ipython:: python
+  .. code-block:: python
 
      pd.date_range('2013-01-01', periods=5, freq='5N')
 
   or with frequency as offset
 
-  .. ipython:: python
+  .. code-block:: python
 
      pd.date_range('2013-01-01', periods=5, freq=pd.offsets.Nano(5))
 
   Timestamps can be modified in the nanosecond range
 
-  .. ipython:: python
+  .. code-block:: python
 
      t = pd.Timestamp('20130101 09:01:02')
      t + pd.tseries.offsets.Nano(123)
@@ -657,7 +649,7 @@ Enhancements
 
   To get the rows where any of the conditions are met:
 
-  .. ipython:: python
+  .. code-block:: python
 
      dfi = pd.DataFrame({'A': [1, 2, 3, 4], 'B': ['a', 'b', 'f', 'n']})
      dfi
@@ -696,7 +688,7 @@ Enhancements
 
 - DataFrame has a new ``interpolate`` method, similar to Series (:issue:`4434`, :issue:`1892`)
 
-  .. ipython:: python
+  .. code-block:: python
 
       df = pd.DataFrame({'A': [1, 2.1, np.nan, 4.7, 5.6, 6.8],
                         'B': [.25, np.nan, np.nan, 4, 12.2, 14.4]})
@@ -711,14 +703,14 @@ Enhancements
   Interpolate now also accepts a ``limit`` keyword argument.
   This works similar to ``fillna``'s limit:
 
-  .. ipython:: python
+  .. code-block:: python
 
     ser = pd.Series([1, 3, np.nan, np.nan, np.nan, 11])
     ser.interpolate(limit=2)
 
 - Added ``wide_to_long`` panel data convenience function. See :ref:`the docs<reshaping.melt>`.
 
-  .. ipython:: python
+  .. code-block:: python
 
     np.random.seed(123)
     df = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
@@ -750,18 +742,18 @@ Experimental
   ``numexpr`` behind the scenes. This results in large speedups for
   complicated expressions involving large DataFrames/Series. For example,
 
-  .. ipython:: python
+  .. code-block:: python
 
      nrows, ncols = 20000, 100
      df1, df2, df3, df4 = [pd.DataFrame(np.random.randn(nrows, ncols))
                            for _ in range(4)]
 
-  .. ipython:: python
+  .. code-block:: python
 
      # eval with NumExpr backend
      %timeit pd.eval('df1 + df2 + df3 + df4')
 
-  .. ipython:: python
+  .. code-block:: python
 
      # pure Python evaluation
      %timeit df1 + df2 + df3 + df4
@@ -772,8 +764,7 @@ Experimental
   ``DataFrame.eval`` method that evaluates an expression in the context of
   the ``DataFrame``. For example,
 
-  .. ipython:: python
-     :suppress:
+  .. code-block:: python
 
      try:
          del a  # noqa: F821
@@ -785,7 +776,7 @@ Experimental
      except NameError:
          pass
 
-  .. ipython:: python
+  .. code-block:: python
 
      df = pd.DataFrame(np.random.randn(10, 2), columns=['a', 'b'])
      df.eval('a + b')
@@ -794,8 +785,7 @@ Experimental
   you to select elements of a ``DataFrame`` using a natural query syntax
   nearly identical to Python syntax. For example,
 
-  .. ipython:: python
-     :suppress:
+  .. code-block:: python
 
      try:
          del a  # noqa: F821
@@ -812,7 +802,7 @@ Experimental
      except NameError:
          pass
 
-  .. ipython:: python
+  .. code-block:: python
 
      n = 20
      df = pd.DataFrame(np.random.randint(n, size=(n, 3)), columns=['a', 'b', 'c'])
@@ -845,9 +835,7 @@ Experimental
      for o in pd.read_msgpack('foo.msg', iterator=True):
          print(o)
 
-  .. ipython:: python
-     :suppress:
-     :okexcept:
+  .. code-block:: python
 
      os.remove('foo.msg')
 
@@ -931,13 +919,13 @@ to unify methods and behaviors. Series formerly subclassed directly from
      as an argument. This seems only to affect ``np.ones_like``, ``np.empty_like``,
      ``np.diff`` and ``np.where``. These now return ``ndarrays``.
 
-     .. ipython:: python
+     .. code-block:: python
 
         s = pd.Series([1, 2, 3, 4])
 
      Numpy Usage
 
-     .. ipython:: python
+     .. code-block:: python
 
         np.ones_like(s)
         np.diff(s)
@@ -945,7 +933,7 @@ to unify methods and behaviors. Series formerly subclassed directly from
 
      Pandonic Usage
 
-     .. ipython:: python
+     .. code-block:: python
 
         pd.Series(1, index=s.index)
         s.diff()
@@ -1021,7 +1009,7 @@ to unify methods and behaviors. Series formerly subclassed directly from
 - Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionality
 - ``Series`` (for index) / ``Panel`` (for items) now allow attribute access to its elements  (:issue:`1903`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      s = pd.Series([1, 2, 3], index=list('abc'))
      s.b

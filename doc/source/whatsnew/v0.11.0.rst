@@ -72,7 +72,7 @@ Dtypes
 
 Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``, or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore, different numeric dtypes will **NOT** be combined. The following example will give you a taste.
 
-.. ipython:: python
+.. code-block:: python
 
    df1 = pd.DataFrame(np.random.randn(8, 1), columns=['A'], dtype='float32')
    df1
@@ -93,13 +93,13 @@ Dtype conversion
 
 This is lower-common-denominator upcasting, meaning you get the dtype which can accommodate all of the types
 
-.. ipython:: python
+.. code-block:: python
 
    df3.values.dtype
 
 Conversion
 
-.. ipython:: python
+.. code-block:: python
 
    df3.astype('float32').dtypes
 
@@ -288,7 +288,7 @@ in addition to the traditional ``NaT``, or not-a-time. This allows convenient na
 Furthermore ``datetime64[ns]`` columns are created by default, when passed datetimelike objects (*this change was introduced in 0.10.1*)
 (:issue:`2809`, :issue:`2810`)
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame(np.random.randn(6, 2), pd.date_range('20010102', periods=6),
                      columns=['A', ' B'])
@@ -304,7 +304,7 @@ Furthermore ``datetime64[ns]`` columns are created by default, when passed datet
 
 Astype conversion on ``datetime64[ns]`` to ``object``, implicitly converts ``NaT`` to ``np.nan``
 
-.. ipython:: python
+.. code-block:: python
 
    import datetime
    s = pd.Series([datetime.datetime(2001, 1, 2, 0, 0) for i in range(3)])
@@ -344,13 +344,13 @@ Enhancements
 
     - support ``read_hdf/to_hdf`` API similar to ``read_csv/to_csv``
 
-      .. ipython:: python
+      .. code-block:: python
 
           df = pd.DataFrame({'A': range(5), 'B': range(5)})
           df.to_hdf('store.h5', 'table', append=True)
           pd.read_hdf('store.h5', 'table', where=['index > 2'])
 
-      .. ipython:: python
+      .. code-block:: python
           :suppress:
           :okexcept:
 
@@ -367,8 +367,7 @@ Enhancements
 
   - You can now select with a string from a DataFrame with a datelike index, in a similar way to a Series (:issue:`3070`)
 
-    .. ipython:: python
-       :okwarning:
+    .. code-block:: python
 
         idx = pd.date_range("2001-10-1", periods=5, freq='M')
         ts = pd.Series(np.random.rand(len(idx)), index=idx)

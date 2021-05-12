@@ -21,7 +21,7 @@ API changes
 
 - ``s.dt.hour`` and other ``.dt`` accessors will now return ``np.nan`` for missing values (rather than previously -1), (:issue:`8689`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      s = pd.Series(pd.date_range("20130101", periods=5, freq="D"))
      s.iloc[2] = np.nan
@@ -42,14 +42,14 @@ API changes
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: python
 
      s.dt.hour
 
 - ``groupby`` with ``as_index=False`` will not add erroneous extra columns to
   result (:issue:`8582`):
 
-  .. ipython:: python
+  .. code-block:: python
 
      np.random.seed(2718281)
      df = pd.DataFrame(np.random.randint(0, 100, (10, 2)), columns=["jim", "joe"])
@@ -70,14 +70,14 @@ API changes
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: python
 
     df.groupby(ts, as_index=False).max()
 
 - ``groupby`` will not erroneously exclude columns if the column name conflicts
   with the grouper name (:issue:`8112`):
 
-  .. ipython:: python
+  .. code-block:: python
 
      df = pd.DataFrame({"jim": range(5), "joe": range(5, 10)})
      df
@@ -96,14 +96,14 @@ API changes
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: python
 
      gr.apply(sum)
 
 - Support for slicing with monotonic decreasing indexes, even if ``start`` or ``stop`` is
   not found in the index (:issue:`7860`):
 
-  .. ipython:: python
+  .. code-block:: python
 
     s = pd.Series(["a", "b", "c", "d"], [4, 3, 2, 1])
     s
@@ -117,7 +117,7 @@ API changes
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: python
 
      s.loc[3.5:1.5]
 
@@ -204,7 +204,7 @@ Enhancements
 - ``concat`` permits a wider variety of iterables of pandas objects to be
   passed as the first parameter (:issue:`8645`):
 
-  .. ipython:: python
+  .. code-block:: python
 
      from collections import deque
 
@@ -220,13 +220,13 @@ Enhancements
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: python
 
      pd.concat(deque((df1, df2)))
 
 - Represent ``MultiIndex`` labels with a dtype that utilizes memory based on the level size. In prior versions, the memory usage was a constant 8 bytes per element in each level. In addition, in prior versions, the *reported* memory usage was incorrect as it didn't show the usage for the memory occupied by the underling data array. (:issue:`8456`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      dfi = pd.DataFrame(
          1, index=pd.MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
@@ -246,7 +246,7 @@ Enhancements
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: python
 
      dfi.memory_usage(index=True)
 

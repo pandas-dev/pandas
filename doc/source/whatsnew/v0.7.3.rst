@@ -51,7 +51,7 @@ NA boolean comparison API change
 Reverted some changes to how NA values (represented typically as ``NaN`` or
 ``None``) are handled in non-numeric Series:
 
-.. ipython:: python
+.. code-block:: python
 
    series = pd.Series(["Steve", np.nan, "Joe"])
    series == "Steve"
@@ -62,7 +62,7 @@ In comparisons, NA / NaN will always come through as ``False`` except with
 negation, in the presence of NA data. You may wish to add an explicit NA
 filter into boolean array operations if you are worried about this:
 
-.. ipython:: python
+.. code-block:: python
 
    mask = series == "Steve"
    series[mask & series.notnull()]
@@ -80,8 +80,7 @@ Other API changes
 When calling ``apply`` on a grouped Series, the return value will also be a
 Series, to be more consistent with the ``groupby`` behavior with DataFrame:
 
-.. ipython:: python
-    :okwarning:
+.. code-block:: python
 
     df = pd.DataFrame(
         {

@@ -29,7 +29,7 @@ Highlights include:
 
    This would previously segfault:
 
-   .. ipython:: python
+   .. code-block:: python
 
       df = pd.DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
       df["A"].iloc[0] = np.nan
@@ -37,7 +37,7 @@ Highlights include:
 
    The recommended way to do this type of assignment is:
 
-   .. ipython:: python
+   .. code-block:: python
 
       df = pd.DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
       df.loc[0, "A"] = np.nan
@@ -50,7 +50,7 @@ Output formatting enhancements
 
 - df.info() now honors the option ``max_info_rows``, to disable null counts for large frames (:issue:`5974`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      max_info_rows = pd.get_option("max_info_rows")
 
@@ -63,13 +63,13 @@ Output formatting enhancements
      )
      df.iloc[3:6, [0, 2]] = np.nan
 
-  .. ipython:: python
+  .. code-block:: python
 
      # set to not display the null counts
      pd.set_option("max_info_rows", 0)
      df.info()
 
-  .. ipython:: python
+  .. code-block:: python
 
      # this is the default (same as in 0.13.0)
      pd.set_option("max_info_rows", max_info_rows)
@@ -77,7 +77,7 @@ Output formatting enhancements
 
 - Add ``show_dimensions`` display option for the new DataFrame repr to control whether the dimensions print.
 
-  .. ipython:: python
+  .. code-block:: python
 
       df = pd.DataFrame([[1, 2], [3, 4]])
       pd.set_option("show_dimensions", False)
@@ -99,7 +99,7 @@ Output formatting enhancements
 
   Now the output looks like:
 
-  .. ipython:: python
+  .. code-block:: python
 
      df = pd.DataFrame(
          [pd.Timestamp("20010101"), pd.Timestamp("20040601")], columns=["age"]
@@ -117,7 +117,7 @@ API changes
 - Added ``Series.str.get_dummies`` vectorized string method (:issue:`6021`), to extract
   dummy/indicator variables for separated string columns:
 
-  .. ipython:: python
+  .. code-block:: python
 
       s = pd.Series(["a", "a|b", np.nan, "a|c"])
       s.str.get_dummies(sep="|")
@@ -218,7 +218,7 @@ Enhancements
 - ``MultiIndex.from_product`` convenience function for creating a MultiIndex from
   the cartesian product of a set of iterables (:issue:`6055`):
 
-  .. ipython:: python
+  .. code-block:: python
 
       shades = ["light", "dark"]
       colors = ["red", "green", "blue"]

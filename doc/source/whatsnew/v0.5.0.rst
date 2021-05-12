@@ -6,8 +6,7 @@ Version 0.5.0 (October 24, 2011)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
+.. code-block:: python
 
    from pandas import *  # noqa F401, F403
 

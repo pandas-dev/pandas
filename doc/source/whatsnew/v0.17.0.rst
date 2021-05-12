@@ -78,7 +78,7 @@ number rows. See the :ref:`docs <timeseries.timezone_series>` for more details. 
 
 The new implementation allows for having a single-timezone across all rows, with operations in a performant manner.
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame(
        {
@@ -90,14 +90,14 @@ The new implementation allows for having a single-timezone across all rows, with
    df
    df.dtypes
 
-.. ipython:: python
+.. code-block:: python
 
    df.B
    df.B.dt.tz_localize(None)
 
 This uses a new-dtype representation as well, that is very similar in look-and-feel to its numpy cousin ``datetime64[ns]``
 
-.. ipython:: python
+.. code-block:: python
 
    df["B"].dtype
    type(df["B"].dtype)
@@ -121,7 +121,7 @@ This uses a new-dtype representation as well, that is very similar in look-and-f
 
    New behavior:
 
-   .. ipython:: python
+   .. code-block:: python
 
       pd.date_range("20130101", periods=3, tz="US/Eastern")
       pd.date_range("20130101", periods=3, tz="US/Eastern").dtype
@@ -161,8 +161,7 @@ The Series and DataFrame ``.plot()`` method allows for customizing :ref:`plot ty
 
 To alleviate this issue, we have added a new, optional plotting interface, which exposes each kind of plot as a method of the ``.plot`` attribute. Instead of writing ``series.plot(kind=<kind>, ...)``, you can now also use ``series.plot.<kind>(...)``:
 
-.. ipython::
-    :verbatim:
+.. code-block:: ipython
 
     In [13]: df = pd.DataFrame(np.random.rand(10, 2), columns=['a', 'b'])
 
@@ -172,8 +171,7 @@ To alleviate this issue, we have added a new, optional plotting interface, which
 
 As a result of this change, these methods are now all discoverable via tab-completion:
 
-.. ipython::
-    :verbatim:
+.. code-block:: ipython
 
     In [15]: df.plot.<TAB>  # noqa: E225, E999
     df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
@@ -191,14 +189,14 @@ Series.dt.strftime
 
 We are now supporting a ``Series.dt.strftime`` method for datetime-likes to generate a formatted string (:issue:`10110`). Examples:
 
-.. ipython:: python
+.. code-block:: python
 
    # DatetimeIndex
    s = pd.Series(pd.date_range("20130101", periods=4))
    s
    s.dt.strftime("%Y/%m/%d")
 
-.. ipython:: python
+.. code-block:: python
 
    # PeriodIndex
    s = pd.Series(pd.period_range("20130101", periods=4))
@@ -212,7 +210,7 @@ Series.dt.total_seconds
 
 ``pd.Series`` of type ``timedelta64`` has new method ``.dt.total_seconds()`` returning the duration of the timedelta in seconds (:issue:`10817`)
 
-.. ipython:: python
+.. code-block:: python
 
    # TimedeltaIndex
    s = pd.Series(pd.timedelta_range("1 minutes", periods=4))
@@ -228,7 +226,7 @@ Period frequency enhancement
 
 A multiplied freq represents a span of corresponding length. The example below creates a period of 3 days. Addition and subtraction will shift the period by its span.
 
-.. ipython:: python
+.. code-block:: python
 
    p = pd.Period("2015-08-01", freq="3D")
    p
@@ -239,7 +237,7 @@ A multiplied freq represents a span of corresponding length. The example below c
 
 You can use the multiplied freq in ``PeriodIndex`` and ``period_range``.
 
-.. ipython:: python
+.. code-block:: python
 
    idx = pd.period_range("2015-08-01", periods=4, freq="2D")
    idx
@@ -295,7 +293,7 @@ in the ``header`` and ``index_col`` parameters (:issue:`4679`)
 
 See the :ref:`documentation <io.excel>` for more details.
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame(
        [[1, 2, 3, 4], [5, 6, 7, 8]],
@@ -311,8 +309,7 @@ See the :ref:`documentation <io.excel>` for more details.
    df = pd.read_excel("test.xlsx", header=[0, 1], index_col=[0, 1])
    df
 
-.. ipython:: python
-   :suppress:
+.. code-block:: python
 
    import os
 
@@ -360,14 +357,14 @@ Some East Asian countries use Unicode characters its width is corresponding to 2
 - ``display.unicode.east_asian_width``: Whether to use the Unicode East Asian Width to calculate the display text width. (:issue:`2612`)
 - ``display.unicode.ambiguous_as_wide``: Whether to handle Unicode characters belong to Ambiguous as Wide. (:issue:`11102`)
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame({u"国籍": ["UK", u"日本"], u"名前": ["Alice", u"しのぶ"]})
    df;
 
 .. image:: ../_static/option_unicode01.png
 
-.. ipython:: python
+.. code-block:: python
 
    pd.set_option("display.unicode.east_asian_width", True)
    df;
@@ -376,8 +373,7 @@ Some East Asian countries use Unicode characters its width is corresponding to 2
 
 For further details, see :ref:`here <options.east_asian_width>`
 
-.. ipython:: python
-   :suppress:
+.. code-block:: python
 
    pd.set_option("display.unicode.east_asian_width", False)
 
@@ -397,7 +393,7 @@ Other enhancements
   Merge key in both frames              ``both``
   ===================================   ================
 
-  .. ipython:: python
+  .. code-block:: python
 
     df1 = pd.DataFrame({"col1": [0, 1], "col_left": ["a", "b"]})
     df2 = pd.DataFrame({"col1": [1, 2, 2], "col_right": [2, 2, 2]})
@@ -413,7 +409,7 @@ Other enhancements
 
 - ``pd.concat`` will now use existing Series names if provided (:issue:`10698`).
 
-  .. ipython:: python
+  .. code-block:: python
 
      foo = pd.Series([1, 2], name="foo")
      bar = pd.Series([1, 2])
@@ -431,7 +427,7 @@ Other enhancements
 
   New behavior:
 
-  .. ipython:: python
+  .. code-block:: python
 
     pd.concat([foo, bar, baz], 1)
 
@@ -439,14 +435,14 @@ Other enhancements
 
 - Add a ``limit_direction`` keyword argument that works with ``limit`` to enable ``interpolate`` to fill ``NaN`` values forward, backward, or both (:issue:`9218`, :issue:`10420`, :issue:`11115`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
      ser.interpolate(limit=1, limit_direction="both")
 
 - Added a ``DataFrame.round`` method to round the values to a variable number of decimal places (:issue:`10568`).
 
-  .. ipython:: python
+  .. code-block:: python
 
      df = pd.DataFrame(
          np.random.random([3, 3]),
@@ -459,7 +455,7 @@ Other enhancements
 
 - ``drop_duplicates`` and ``duplicated`` now accept a ``keep`` keyword to target first, last, and all duplicates. The ``take_last`` keyword is deprecated, see :ref:`here <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      s = pd.Series(["A", "B", "C", "A", "B", "D"])
      s.drop_duplicates()
@@ -468,14 +464,14 @@ Other enhancements
 
 - Reindex now has a ``tolerance`` argument that allows for finer control of :ref:`basics.limits_on_reindex_fill` (:issue:`10411`):
 
-  .. ipython:: python
+  .. code-block:: python
 
      df = pd.DataFrame({"x": range(5), "t": pd.date_range("2000-01-01", periods=5)})
      df.reindex([0.1, 1.9, 3.5], method="nearest", tolerance=0.2)
 
   When used on a ``DatetimeIndex``, ``TimedeltaIndex`` or ``PeriodIndex``, ``tolerance`` will coerced into a ``Timedelta`` if possible. This allows you to specify tolerance with a string:
 
-  .. ipython:: python
+  .. code-block:: python
 
      df = df.set_index("t")
      df.reindex(pd.to_datetime(["1999-12-31"]), method="nearest", tolerance="1 day")
@@ -630,13 +626,13 @@ New behavior:
 
 Of course you can coerce this as well.
 
-.. ipython:: python
+.. code-block:: python
 
    pd.to_datetime(["2009-07-31", "asd"], errors="coerce")
 
 To keep the previous behavior, you can use ``errors='ignore'``:
 
-.. ipython:: python
+.. code-block:: python
 
    pd.to_datetime(["2009-07-31", "asd"], errors="ignore")
 
@@ -670,7 +666,7 @@ v0.17.0 can parse them as below. It works on ``DatetimeIndex`` also.
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: python
 
    pd.Timestamp("2012Q2")
    pd.Timestamp("2014")
@@ -680,7 +676,7 @@ New behavior:
 
    If you want to perform calculations based on today's date, use ``Timestamp.now()`` and ``pandas.tseries.offsets``.
 
-   .. ipython:: python
+   .. code-block:: python
 
       import pandas.tseries.offsets as offsets
 
@@ -724,14 +720,13 @@ New behavior:
 Note that this is different from the ``numpy`` behavior where a comparison can
 be broadcast:
 
-.. ipython:: python
+.. code-block:: python
 
    np.array([1, 2, 3]) == np.array([1])
 
 or it can return False if broadcasting can not be done:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    np.array([1, 2, 3]) == np.array([1, 2])
 
@@ -740,7 +735,7 @@ Changes to boolean comparisons vs. None
 
 Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to comparing with ``np.nan``, rather than raise ``TypeError``. (:issue:`1079`).
 
-.. ipython:: python
+.. code-block:: python
 
    s = pd.Series(range(3))
    s.iloc[1] = None
@@ -755,13 +750,13 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: python
 
    s == None
 
 Usually you simply want to know which values are null.
 
-.. ipython:: python
+.. code-block:: python
 
    s.isnull()
 
@@ -770,7 +765,7 @@ Usually you simply want to know which values are null.
    You generally will want to use ``isnull/notnull`` for these types of comparisons, as ``isnull/notnull`` tells you which elements are null. One has to be
    mindful that ``nan's`` don't compare equal, but ``None's`` do. Note that pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
 
-   .. ipython:: python
+   .. code-block:: python
 
       None == None
       np.nan == np.nan
@@ -784,7 +779,7 @@ The default behavior for HDFStore write functions with ``format='table'`` is now
 
 Previous behavior:
 
-.. ipython:: python
+.. code-block:: python
 
    df_with_missing = pd.DataFrame(
        {"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]}
@@ -811,14 +806,13 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: python
 
    df_with_missing.to_hdf("file.h5", "df_with_missing", format="table", mode="w")
 
    pd.read_hdf("file.h5", "df_with_missing")
 
-.. ipython:: python
-   :suppress:
+.. code-block:: python
 
    import os
 
@@ -851,7 +845,7 @@ did not work for values with standard formatting. It was also out of step with h
 Going forward the value of ``display.precision`` will directly control the number of places after the decimal, for
 regular formatting as well as scientific notation, similar to how numpy's ``precision`` print option works.
 
-.. ipython:: python
+.. code-block:: python
 
   pd.set_option("display.precision", 2)
   pd.DataFrame({"x": [123.456789]})
@@ -859,8 +853,7 @@ regular formatting as well as scientific notation, similar to how numpy's ``prec
 To preserve output behavior with prior versions the default value of ``display.precision`` has been reduced to ``6``
 from ``7``.
 
-.. ipython:: python
-  :suppress:
+.. code-block:: python
 
   pd.set_option("display.precision", 6)
 
@@ -874,7 +867,7 @@ Changes to ``Categorical.unique``
 - unordered category: values and categories are sorted by appearance order.
 - ordered category: values are sorted by appearance order, categories keep existing order.
 
-.. ipython:: python
+.. code-block:: python
 
    cat = pd.Categorical(["C", "A", "B", "C"], categories=["A", "B", "C"], ordered=True)
    cat
@@ -979,7 +972,7 @@ Removal of prior version deprecations/changes
 - Removal of ``colSpace`` parameter from ``DataFrame.to_string()``, in favor of ``col_space``, circa 0.8.0 version.
 - Removal of automatic time-series broadcasting (:issue:`2304`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      np.random.seed(1234)
      df = pd.DataFrame(
@@ -1007,7 +1000,7 @@ Removal of prior version deprecations/changes
 
   Current
 
-  .. ipython:: python
+  .. code-block:: python
 
      df.add(df.A, axis="index")
 

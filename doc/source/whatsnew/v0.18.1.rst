@@ -38,7 +38,7 @@ The ``CustomBusinessHour`` is a mixture of ``BusinessHour`` and ``CustomBusiness
 allows you to specify arbitrary holidays. For details,
 see :ref:`Custom Business Hour <timeseries.custombusinesshour>` (:issue:`11514`)
 
-.. ipython:: python
+.. code-block:: python
 
     from pandas.tseries.offsets import CustomBusinessHour
     from pandas.tseries.holiday import USFederalHolidayCalendar
@@ -47,7 +47,7 @@ see :ref:`Custom Business Hour <timeseries.custombusinesshour>` (:issue:`11514`)
 
 Friday before MLK Day
 
-.. ipython:: python
+.. code-block:: python
 
     import datetime
 
@@ -57,7 +57,7 @@ Friday before MLK Day
 
 Tuesday after MLK Day (Monday is skipped because it's a holiday)
 
-.. ipython:: python
+.. code-block:: python
 
     dt + bhour_us * 2
 
@@ -72,24 +72,24 @@ You can now use ``.rolling(..)`` and ``.expanding(..)`` as methods on groupbys. 
 
 Previously you would have to do this to get a rolling window mean per-group:
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
    df
 
-.. ipython:: python
+.. code-block:: python
 
    df.groupby("A").apply(lambda x: x.rolling(4).B.mean())
 
 Now you can do:
 
-.. ipython:: python
+.. code-block:: python
 
    df.groupby("A").rolling(4).B.mean()
 
 For ``.resample(..)`` type of operations, previously you would have to:
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame(
        {
@@ -101,13 +101,13 @@ For ``.resample(..)`` type of operations, previously you would have to:
 
    df
 
-.. ipython:: python
+.. code-block:: python
 
    df.groupby("group").apply(lambda x: x.resample("1D").ffill())
 
 Now you can do:
 
-.. ipython:: python
+.. code-block:: python
 
    df.groupby("group").resample("1D").ffill()
 
@@ -130,7 +130,7 @@ Methods ``.where()`` and ``.mask()``
 These can accept a callable for the condition and ``other``
 arguments.
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
    df.where(lambda x: x > 4, lambda x: x + 10)
@@ -141,7 +141,7 @@ Methods ``.loc[]``, ``.iloc[]``, ``.ix[]``
 These can accept a callable, and a tuple of callable as a slicer. The callable
 can return a valid boolean indexer or anything which is valid for these indexer's input.
 
-.. ipython:: python
+.. code-block:: python
 
    # callable returns bool indexer
    df.loc[lambda x: x.A >= 2, lambda x: x.sum() > 10]
@@ -156,14 +156,14 @@ Finally, you can use a callable in ``[]`` indexing of Series, DataFrame and Pane
 The callable must return a valid input for ``[]`` indexing depending on its
 class and index type.
 
-.. ipython:: python
+.. code-block:: python
 
    df[lambda x: "A"]
 
 Using these methods / indexers, you can chain data selection operations
 without using temporary variable.
 
-.. ipython:: python
+.. code-block:: python
 
    bb = pd.read_csv("data/baseball.csv", index_col="id")
    (bb.groupby(["year", "team"]).sum().loc[lambda df: df.r > 100])
@@ -175,7 +175,7 @@ Partial string indexing on ``DatetimeIndex`` when part of a ``MultiIndex``
 
 Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiIndex`` (:issue:`10331`)
 
-.. ipython:: python
+.. code-block:: python
 
    dft2 = pd.DataFrame(
        np.random.randn(20, 1),
@@ -189,7 +189,7 @@ Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiI
 
 On other levels
 
-.. ipython:: python
+.. code-block:: python
 
    idx = pd.IndexSlice
    dft2 = dft2.swaplevel(0, 1).sort_index()
@@ -203,7 +203,7 @@ Assembling datetimes
 
 ``pd.to_datetime()`` has gained the ability to assemble datetimes from a passed in ``DataFrame`` or a dict. (:issue:`8158`).
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame(
        {"year": [2015, 2016], "month": [2, 3], "day": [4, 5], "hour": [2, 3]}
@@ -212,13 +212,13 @@ Assembling datetimes
 
 Assembling using the passed frame.
 
-.. ipython:: python
+.. code-block:: python
 
    pd.to_datetime(df)
 
 You can pass only the columns that you need to assemble.
 
-.. ipython:: python
+.. code-block:: python
 
    pd.to_datetime(df[["year", "month", "day"]])
 
@@ -239,7 +239,7 @@ Other enhancements
 
 - ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      idx = pd.Index([1.0, 2.0, 3.0, 4.0], dtype="float")
 
@@ -249,7 +249,7 @@ Other enhancements
 
 - ``Index`` now supports ``.str.get_dummies()`` which returns ``MultiIndex``, see :ref:`Creating Indicator Variables <text.indicator>` (:issue:`10008`, :issue:`10103`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      idx = pd.Index(["a|b", "a|c", "b|c"])
      idx.str.get_dummies("|")
@@ -309,7 +309,7 @@ Method ``.groupby(..).nth()`` changes
 
 The index in ``.groupby(..).nth()`` output is now more consistent when the ``as_index`` argument is passed (:issue:`11039`):
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame({"A": ["a", "b", "a"], "B": [1, 2, 3]})
    df
@@ -332,14 +332,14 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: python
 
     df.groupby("A", as_index=True)["B"].nth(0)
     df.groupby("A", as_index=False)["B"].nth(0)
 
 Furthermore, previously, a ``.groupby`` would always sort, regardless if ``sort=False`` was passed with ``.nth()``.
 
-.. ipython:: python
+.. code-block:: python
 
    np.random.seed(1234)
    df = pd.DataFrame(np.random.randn(100, 2), columns=["a", "b"])
@@ -369,7 +369,7 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: python
 
    df.groupby("c", sort=True).nth(1)
    df.groupby("c", sort=False).nth(1)
@@ -416,7 +416,7 @@ Using ``.apply`` on GroupBy resampling
 
 Using ``apply`` on resampling groupby operations (using a ``pd.TimeGrouper``) now has the same output types as similar ``apply`` calls on other groupby operations. (:issue:`11742`).
 
-.. ipython:: python
+.. code-block:: python
 
     df = pd.DataFrame(
         {"date": pd.to_datetime(["10/10/2000", "11/10/2000"]), "value": [10, 13]}

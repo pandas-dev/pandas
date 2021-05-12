@@ -181,7 +181,7 @@ total number or rows or columns. It also has options for sampling with or withou
 for passing in a column for weights for non-uniform sampling, and for setting seed values to
 facilitate replication. (:issue:`2419`)
 
-.. ipython:: python
+.. code-block:: python
 
    example_series = pd.Series([0, 1, 2, 3, 4, 5])
 
@@ -207,7 +207,7 @@ facilitate replication. (:issue:`2419`)
 When applied to a DataFrame, one may pass the name of a column to specify sampling weights
 when sampling from rows.
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame({"col1": [9, 8, 7, 6], "weight_column": [0.5, 0.4, 0.1, 0]})
    df.sample(n=3, weights="weight_column")
@@ -226,7 +226,7 @@ enhancements make string operations easier and more consistent with standard pyt
 
   The ``.str`` accessor is now available for both ``Series`` and ``Index``.
 
-  .. ipython:: python
+  .. code-block:: python
 
      idx = pd.Index([" jack", "jill ", " jesse ", "frank"])
      idx.str.strip()
@@ -235,7 +235,7 @@ enhancements make string operations easier and more consistent with standard pyt
   will return a ``np.array`` instead of a boolean ``Index`` (:issue:`8875`). This enables the following expression
   to work naturally:
 
-  .. ipython:: python
+  .. code-block:: python
 
      idx = pd.Index(["a1", "a2", "b1", "b2"])
      s = pd.Series(range(4), index=idx)
@@ -254,7 +254,7 @@ enhancements make string operations easier and more consistent with standard pyt
 
 - ``split`` now takes ``expand`` keyword to specify whether to expand dimensionality. ``return_type`` is deprecated. (:issue:`9847`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      s = pd.Series(["a,b", "a,c", "b,c"])
 
@@ -283,7 +283,7 @@ Other enhancements
 
 - ``BusinessHour`` offset is now supported, which represents business hours starting from 09:00 - 17:00 on ``BusinessDay`` by default. See :ref:`Here <timeseries.businesshour>` for details. (:issue:`7905`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      pd.Timestamp("2014-08-01 09:00") + pd.tseries.offsets.BusinessHour()
      pd.Timestamp("2014-08-01 07:00") + pd.tseries.offsets.BusinessHour()
@@ -297,7 +297,7 @@ Other enhancements
 
 - ``drop`` function can now accept ``errors`` keyword to suppress ``ValueError`` raised when any of label does not exist in the target data. (:issue:`6736`)
 
-  .. ipython:: python
+  .. code-block:: python
 
     df = pd.DataFrame(np.random.randn(3, 3), columns=["A", "B", "C"])
     df.drop(["A", "X"], axis=1, errors="ignore")
@@ -379,7 +379,7 @@ Previous behavior
 
 New behavior
 
-.. ipython:: python
+.. code-block:: python
 
    pd.set_option("display.width", 80)
    pd.Index(range(4), name="foo")

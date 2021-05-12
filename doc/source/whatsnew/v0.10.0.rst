@@ -45,8 +45,7 @@ want to broadcast, we are phasing out this special case (Zen of Python:
 *Special cases aren't special enough to break the rules*). Here's what I'm
 talking about:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    import pandas as pd
 
@@ -180,7 +179,7 @@ labeled the aggregated group with the end of the interval: the next day).
   DataFrame constructor with no columns specified. The v0.9.0 behavior (names
   ``X0``, ``X1``, ...) can be reproduced by specifying ``prefix='X'``:
 
-.. ipython:: python
+.. code-block:: python
 
     import io
 
@@ -197,7 +196,7 @@ labeled the aggregated group with the end of the interval: the next day).
   though this can be controlled by new ``true_values`` and ``false_values``
   arguments:
 
-.. ipython:: python
+.. code-block:: python
 
     print(data)
     pd.read_csv(io.StringIO(data))
@@ -210,7 +209,7 @@ labeled the aggregated group with the end of the interval: the next day).
 - Calling ``fillna`` on Series or DataFrame with no arguments is no longer
   valid code. You must either specify a fill value or an interpolation method:
 
-.. ipython:: python
+.. code-block:: python
 
    s = pd.Series([np.nan, 1.0, 2.0, np.nan, 4])
    s
@@ -219,7 +218,7 @@ labeled the aggregated group with the end of the interval: the next day).
 
 Convenience methods ``ffill`` and  ``bfill`` have been added:
 
-.. ipython:: python
+.. code-block:: python
 
    s.ffill()
 
@@ -228,7 +227,7 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
   function, that is itself a series, and possibly upcast the result to a
   DataFrame
 
-  .. ipython:: python
+  .. code-block:: python
 
       def f(x):
           return pd.Series([x, x ** 2], index=["x", "x^2"])
@@ -249,7 +248,7 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
   Note: ``set_printoptions``/ ``reset_printoptions`` are now deprecated (but
   functioning), the print options now live under "display.XYZ". For example:
 
-  .. ipython:: python
+  .. code-block:: python
 
      pd.get_option("display.max_rows")
 
@@ -264,7 +263,7 @@ Wide DataFrame printing
 Instead of printing the summary information, pandas now splits the string
 representation across multiple rows by default:
 
-.. ipython:: python
+.. code-block:: python
 
    wide_frame = pd.DataFrame(np.random.randn(5, 16))
 
@@ -273,14 +272,13 @@ representation across multiple rows by default:
 The old behavior of printing out summary information can be achieved via the
 'expand_frame_repr' print option:
 
-.. ipython:: python
+.. code-block:: python
 
    pd.set_option("expand_frame_repr", False)
 
    wide_frame
 
-.. ipython:: python
-   :suppress:
+.. code-block:: python
 
    pd.reset_option("expand_frame_repr")
 

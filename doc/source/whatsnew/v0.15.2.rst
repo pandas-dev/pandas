@@ -24,8 +24,7 @@ API changes
 - Indexing in ``MultiIndex`` beyond lex-sort depth is now supported, though
   a lexically sorted index will have a better performance. (:issue:`2646`)
 
-  .. ipython:: python
-    :okwarning:
+  .. code-block:: python
 
     df = pd.DataFrame({'jim':[0, 0, 1, 1],
                        'joe':['x', 'x', 'z', 'y'],
@@ -61,7 +60,7 @@ API changes
 
   Now, only the categories that do effectively occur in the array are returned:
 
-  .. ipython:: python
+  .. code-block:: python
 
     cat = pd.Categorical(['a', 'b', 'a'], categories=['a', 'b', 'c'])
     cat.unique()
@@ -72,7 +71,7 @@ API changes
 
 - Bug in ``NDFrame``: conflicting attribute/column names now behave consistently between getting and setting. Previously, when both a column and attribute named ``y`` existed, ``data.y`` would return the attribute, while ``data.y = z`` would update the column (:issue:`8994`)
 
-  .. ipython:: python
+  .. code-block:: python
 
      data = pd.DataFrame({'x': [1, 2, 3]})
      data.y = 2
@@ -94,7 +93,7 @@ API changes
 
   New behavior:
 
-  .. ipython:: python
+  .. code-block:: python
 
      data.y
      data['y'].values
@@ -121,7 +120,7 @@ API changes
 
   New behavior:
 
-  .. ipython:: python
+  .. code-block:: python
 
      s = pd.Series(np.arange(3), ['a', 'b', 'c'])
      s.loc['c':'a':-1]
@@ -153,8 +152,7 @@ Other enhancements:
 
 - ``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters (:issue:`8302`):
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: python
 
      s = pd.Series([False, True, False], index=[0, 0, 1])
      s.any(level=0)

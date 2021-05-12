@@ -31,7 +31,7 @@ New features
 
 - Handle differently-indexed output values in ``DataFrame.apply`` (:issue:`498`)
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame(np.random.randn(10, 4))
    df.apply(lambda x: x.describe())
@@ -116,7 +116,7 @@ One of the potentially riskiest API changes in 0.7.0, but also one of the most
 important, was a complete review of how **integer indexes** are handled with
 regard to label-based indexing. Here is an example:
 
-.. ipython:: python
+.. code-block:: python
 
     s = pd.Series(np.random.randn(10), index=range(0, 20, 2))
     s
@@ -235,7 +235,7 @@ slice to a Series when getting and setting values via ``[]`` (i.e. the
 ``__getitem__`` and ``__setitem__`` methods). The behavior will be the same as
 passing similar input to ``ix`` **except in the case of integer indexing**:
 
-.. ipython:: python
+.. code-block:: python
 
    s = pd.Series(np.random.randn(6), index=list('acegkm'))
    s
@@ -246,7 +246,7 @@ passing similar input to ``ix`` **except in the case of integer indexing**:
 In the case of integer indexes, the behavior will be exactly as before
 (shadowing ``ndarray``):
 
-.. ipython:: python
+.. code-block:: python
 
    s = pd.Series(np.random.randn(6), index=range(0, 12, 2))
    s[[4, 0, 2]]

@@ -45,7 +45,7 @@ API changes
     ``np.nan`` or ``np.inf`` as appropriate (:issue:`3590`). This correct a numpy bug that treats ``integer``
     and ``float`` dtypes differently.
 
-    .. ipython:: python
+    .. code-block:: python
 
         p = pd.DataFrame({"first": [4, 5, 8], "second": [0, 0, 3]})
         p % 0
@@ -93,7 +93,7 @@ API changes
     This case is rarely used, and there are plenty of alternatives. This preserves the
     ``iloc`` API to be *purely* positional based.
 
-    .. ipython:: python
+    .. code-block:: python
 
        df = pd.DataFrame(range(5), index=list("ABCDE"), columns=["a"])
        mask = df.a % 2 == 0
@@ -200,8 +200,7 @@ IO enhancements
 
     You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
 
-    .. ipython:: python
-       :okwarning:
+    .. code-block:: python
 
         df = pd.DataFrame({"a": range(3), "b": list("abc")})
         print(df)
@@ -248,7 +247,7 @@ IO enhancements
       with ``df.to_csv(..., index=False``), then any ``names`` on the columns index will
       be *lost*.
 
-      .. ipython:: python
+      .. code-block:: python
 
          from pandas._testing import makeCustomDataframe as mkdf
 
@@ -257,8 +256,7 @@ IO enhancements
          print(open("mi.csv").read())
          pd.read_csv("mi.csv", header=[0, 1, 2, 3], index_col=[0, 1])
 
-      .. ipython:: python
-         :suppress:
+      .. code-block:: python
 
          import os
 
@@ -307,7 +305,7 @@ Other enhancements
 
     For example you can do
 
-    .. ipython:: python
+    .. code-block:: python
 
         df = pd.DataFrame({"a": list("ab.."), "b": [1, 2, 3, 4]})
         df.replace(regex=r"\s*\.\s*", value=np.nan)
@@ -317,7 +315,7 @@ Other enhancements
 
     Regular string replacement still works as expected. For example, you can do
 
-    .. ipython:: python
+    .. code-block:: python
 
         df.replace(".", np.nan)
 
@@ -351,7 +349,7 @@ Other enhancements
     object. Suppose we want to take only elements that belong to groups with a
     group sum greater than 2.
 
-    .. ipython:: python
+    .. code-block:: python
 
        sf = pd.Series([1, 1, 2, 3, 3, 3])
        sf.groupby(sf).filter(lambda x: x.sum() > 2)
@@ -362,7 +360,7 @@ Other enhancements
     Another useful operation is filtering out elements that belong to groups
     with only a couple members.
 
-    .. ipython:: python
+    .. code-block:: python
 
        dff = pd.DataFrame({"A": np.arange(8), "B": list("aabbbbcc")})
        dff.groupby("B").filter(lambda x: len(x) > 2)
@@ -371,7 +369,7 @@ Other enhancements
     like-indexed objects where the groups that do not pass the filter are
     filled with NaNs.
 
-    .. ipython:: python
+    .. code-block:: python
 
        dff.groupby("B").filter(lambda x: len(x) > 2, dropna=False)
 
@@ -398,7 +396,7 @@ Experimental features
        This uses the ``numpy.busdaycalendar`` API introduced in Numpy 1.7 and
        therefore requires Numpy 1.7.0 or newer.
 
-    .. ipython:: python
+    .. code-block:: python
 
       from pandas.tseries.offsets import CustomBusinessDay
       from datetime import datetime
@@ -433,8 +431,7 @@ Bug fixes
     a ``Series`` with either a single character at each index of the original
     ``Series`` or ``NaN``. For example,
 
-    .. ipython:: python
-        :okwarning:
+    .. code-block:: python
 
         strs = "go", "bow", "joe", "slow"
         ds = pd.Series(strs)

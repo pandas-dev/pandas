@@ -39,9 +39,7 @@ You may need to upgrade your existing data files. Please visit the
 **compatibility** section in the main docs.
 
 
-.. ipython:: python
-   :suppress:
-   :okexcept:
+.. code-block:: python
 
    import os
 
@@ -50,7 +48,7 @@ You may need to upgrade your existing data files. Please visit the
 You can designate (and index) certain columns that you want to be able to
 perform queries on a table, by passing a list to ``data_columns``
 
-.. ipython:: python
+.. code-block:: python
 
    store = pd.HDFStore("store.h5")
    df = pd.DataFrame(
@@ -82,7 +80,7 @@ Retrieving unique values in an indexable or data column.
 
 You can now store ``datetime64`` in data columns
 
-.. ipython:: python
+.. code-block:: python
 
     df_mixed = df.copy()
     df_mixed["datetime64"] = pd.Timestamp("20010102")
@@ -97,7 +95,7 @@ You can pass ``columns`` keyword to select to filter a list of the return
 columns, this is equivalent to passing a
 ``Term('columns',list_of_columns_to_filter)``
 
-.. ipython:: python
+.. code-block:: python
 
    store.select("df", columns=["A", "B"])
 
@@ -160,7 +158,7 @@ Multi-table creation via ``append_to_multiple`` and selection via
 ``select_as_multiple`` can create/select from multiple tables and return a
 combined result, by using ``where`` on a selector table.
 
-.. ipython:: python
+.. code-block:: python
 
    df_mt = pd.DataFrame(
        np.random.randn(8, 6),
@@ -184,8 +182,7 @@ combined result, by using ``where`` on a selector table.
        ["df1_mt", "df2_mt"], where=["A>0", "B>0"], selector="df1_mt"
    )
 
-.. ipython:: python
-   :suppress:
+.. code-block:: python
 
    store.close()
    os.remove("store.h5")
