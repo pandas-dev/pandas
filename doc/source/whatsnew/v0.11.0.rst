@@ -351,8 +351,6 @@ Enhancements
           pd.read_hdf('store.h5', 'table', where=['index > 2'])
 
       .. code-block:: python
-          :suppress:
-          :okexcept:
 
           import os
 

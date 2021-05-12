@@ -93,6 +93,7 @@ These show a descriptive repr
 .. code-block:: python
 
    r
+   
 with tab-completion of available methods and properties.
 
 .. code-block:: ipython

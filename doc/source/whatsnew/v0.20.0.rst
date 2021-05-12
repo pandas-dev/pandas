@@ -750,6 +750,7 @@ Partial string indexing changes
    df = pd.DataFrame({'a': [1, 2, 3]}, pd.DatetimeIndex(['2011-12-31 23:59:59',
                                                          '2012-01-01 00:00:00',
                                                          '2012-01-01 00:00:01']))
+
 Previous behavior:
 
 .. code-block:: ipython
