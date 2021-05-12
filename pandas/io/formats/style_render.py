@@ -532,7 +532,9 @@ def _element(
     }
 
 
-def _get_level_lengths(index, sparsify, hidden_elements=None):
+def _get_level_lengths(
+    index: Index, sparsify: bool, hidden_elements: Sequence[int] | None = None
+):
     """
     Given an index, find the level length for each element.
 
@@ -542,7 +544,7 @@ def _get_level_lengths(index, sparsify, hidden_elements=None):
         Index or columns to determine lengths of each element
     sparsify : bool
         Whether to hide or show each distinct element in a MultiIndex
-    hidden_elements : list
+    hidden_elements : sequence of int
         Index positions of elements hidden from display in the index affecting
         length
 
