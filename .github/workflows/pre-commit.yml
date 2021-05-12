@@ -6,8 +6,6 @@ on:
       - "doc/**"
   push:
     branches: [master]
-    paths-ignore:
-      - "doc/**"
 
 jobs:
   pre-commit:
