@@ -4224,7 +4224,8 @@ class Index(IndexOpsMixin, PandasObject):
 
             else:  # tie out the order with other
                 if level == 0:  # outer most level, take the fast route
-                    ngroups = 1 + new_lev_codes.max()
+                    max_new_lev = 0 if len(new_lev_codes) == 0 else new_lev_codes.max()
+                    ngroups = 1 + max_new_lev
                     left_indexer, counts = libalgos.groupsort_indexer(
                         new_lev_codes, ngroups
                     )
