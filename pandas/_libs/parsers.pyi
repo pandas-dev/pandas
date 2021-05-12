@@ -31,8 +31,8 @@ class TextReader:
         source,
         delimiter: bytes | str = ...,  # single-character only
         header=...,
-        header_start=...,
-        header_end=...,
+        header_start: int = ...,  # int64_t
+        header_end: int = ...,  # uint64_t
         index_col=...,
         names=...,
         tokenize_chunksize: int = ...,  # int64_t
@@ -58,7 +58,6 @@ class TextReader:
         true_values=...,
         false_values=...,
         allow_leading_cols: bool = ...,
-        low_memory: bool = ...,
         skiprows=...,
         skipfooter: int = ...,  # int64_t
         verbose: bool = ...,
@@ -75,3 +74,4 @@ class TextReader:
     def close(self) -> None: ...
 
     def read(self, rows: int | None = ...) -> dict[int, ArrayLike]: ...
+    def read_low_memory(self, rows: int | None) -> list[dict[int, ArrayLike]]: ...

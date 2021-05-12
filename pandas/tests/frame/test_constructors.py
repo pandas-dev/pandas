@@ -46,6 +46,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.arrays import (
+    DatetimeArray,
     IntervalArray,
     PeriodArray,
     SparseArray,
@@ -1011,6 +1012,7 @@ class TestDataFrameConstructors:
         alt = DataFrame({name: data[name] for name in data.dtype.names}, dtype=int)
         tm.assert_frame_equal(result, alt)
 
+    @pytest.mark.slow
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
         # from GH3479
@@ -2396,6 +2398,12 @@ class TestDataFrameConstructors:
             # assert b[0] == 0
             assert df.iloc[0, 2] == 0
 
+    def test_from_series_with_name_with_columns(self):
+        # GH 7893
+        result = DataFrame(Series(1, name="foo"), columns=["bar"])
+        expected = DataFrame(columns=["bar"])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameConstructorWithDatetimeTZ:
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
@@ -2568,6 +2576,13 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
         with pytest.raises(TypeError, match=msg):
             Series(values)
+
+    def test_construction_from_ndarray_datetimelike(self):
+        # ensure the underlying arrays are properly wrapped as EA when
+        # constructed from 2D ndarray
+        arr = np.arange(0, 12, dtype="datetime64[ns]").reshape(4, 3)
+        df = DataFrame(arr)
+        assert all(isinstance(arr, DatetimeArray) for arr in df._mgr.arrays)
 
 
 def get1(obj):

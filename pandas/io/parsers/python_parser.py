@@ -250,8 +250,7 @@ class PythonParser(ParserBase):
         try:
             content = self._get_lines(rows)
         except StopIteration:
-            # error: Cannot determine type of '_first_chunk'
-            if self._first_chunk:  # type: ignore[has-type]
+            if self._first_chunk:
                 content = []
             else:
                 self.close()
@@ -299,10 +298,10 @@ class PythonParser(ParserBase):
             # error: Cannot determine type of 'index_col'
             offset = len(self.index_col)  # type: ignore[has-type]
 
-        if self._col_indices is not None and len(names) != len(self._col_indices):
-            names = [names[i] for i in sorted(self._col_indices)]
-
-        return {name: alldata[i + offset] for i, name in enumerate(names)}, names
+        len_alldata = len(alldata)
+        return {
+            name: alldata[i + offset] for i, name in enumerate(names) if i < len_alldata
+        }, names
 
     # legacy
     def get_chunk(self, size=None):
@@ -422,12 +421,20 @@ class PythonParser(ParserBase):
                     counts: DefaultDict = defaultdict(int)
 
                     for i, col in enumerate(this_columns):
+                        old_col = col
                         cur_count = counts[col]
 
-                        while cur_count > 0:
-                            counts[col] = cur_count + 1
-                            col = f"{col}.{cur_count}"
-                            cur_count = counts[col]
+                        if cur_count > 0:
+                            while cur_count > 0:
+                                counts[col] = cur_count + 1
+                                col = f"{col}.{cur_count}"
+                                cur_count = counts[col]
+                            if (
+                                self.dtype is not None
+                                and self.dtype.get(old_col) is not None
+                                and self.dtype.get(col) is None
+                            ):
+                                self.dtype.update({col: self.dtype.get(old_col)})
 
                         this_columns[i] = col
                         counts[col] = cur_count + 1
@@ -473,7 +480,12 @@ class PythonParser(ParserBase):
                     self._handle_usecols(columns, names)
                 else:
                     num_original_columns = len(names)
-                columns = [names]
+                if self._col_indices is not None and len(names) != len(
+                    self._col_indices
+                ):
+                    columns = [[names[i] for i in sorted(self._col_indices)]]
+                else:
+                    columns = [names]
             else:
                 columns = self._handle_usecols(columns, columns[0])
         else:
@@ -1195,7 +1207,7 @@ def count_empty_vals(vals) -> int:
     return sum(1 for v in vals if v == "" or v is None)
 
 
-def _validate_skipfooter_arg(skipfooter):
+def _validate_skipfooter_arg(skipfooter: int) -> int:
     """
     Validate the 'skipfooter' parameter.
 

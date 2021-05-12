@@ -1311,3 +1311,33 @@ def test_dropna(fill_value):
     df = pd.DataFrame({"a": [0, 1], "b": arr})
     expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Int64Index([1]))
     tm.assert_equal(df.dropna(), expected_df)
+
+
+def test_drop_duplicates_fill_value():
+    # GH 11726
+    df = pd.DataFrame(np.zeros((5, 5))).apply(lambda x: SparseArray(x, fill_value=0))
+    result = df.drop_duplicates()
+    expected = pd.DataFrame({i: SparseArray([0.0], fill_value=0) for i in range(5)})
+    tm.assert_frame_equal(result, expected)
+
+
+class TestMinMax:
+    plain_data = np.arange(5).astype(float)
+    data_neg = plain_data * (-1)
+    data_NaN = SparseArray(np.array([0, 1, 2, np.nan, 4]))
+    data_all_NaN = SparseArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan]))
+
+    @pytest.mark.parametrize(
+        "raw_data,max_expected,min_expected",
+        [
+            (plain_data, [4], [0]),
+            (data_neg, [0], [-4]),
+            (data_NaN, [4], [0]),
+            (data_all_NaN, [np.nan], [np.nan]),
+        ],
+    )
+    def test_maxmin(self, raw_data, max_expected, min_expected):
+        max_result = SparseArray(raw_data).max()
+        min_result = SparseArray(raw_data).min()
+        assert max_result in max_expected
+        assert min_result in min_expected

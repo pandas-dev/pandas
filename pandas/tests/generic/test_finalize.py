@@ -226,7 +226,10 @@ _all_methods = [
     ),
     pytest.param(
         (pd.DataFrame, frame_mi_data, operator.methodcaller("count", level="A")),
-        marks=not_implemented_mark,
+        marks=[
+            not_implemented_mark,
+            pytest.mark.filterwarnings("ignore:Using the level keyword:FutureWarning"),
+        ],
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("nunique")),

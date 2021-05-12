@@ -200,7 +200,46 @@ class Styler(StylerRenderer):
         """
         Hooks into Jupyter notebook rich display system.
         """
-        return self.render()
+        return self._render_html()
+
+    def render(self, **kwargs) -> str:
+        """
+        Render the ``Styler`` including all applied styles to HTML.
+
+        Parameters
+        ----------
+        **kwargs
+            Any additional keyword arguments are passed
+            through to ``self.template.render``.
+            This is useful when you need to provide
+            additional variables for a custom template.
+
+        Returns
+        -------
+        rendered : str
+            The rendered HTML.
+
+        Notes
+        -----
+        Styler objects have defined the ``_repr_html_`` method
+        which automatically calls ``self.render()`` when it's the
+        last item in a Notebook cell. When calling ``Styler.render()``
+        directly, wrap the result in ``IPython.display.HTML`` to view
+        the rendered HTML in the notebook.
+
+        Pandas uses the following keys in render. Arguments passed
+        in ``**kwargs`` take precedence, so think carefully if you want
+        to override them:
+
+        * head
+        * cellstyle
+        * body
+        * uuid
+        * table_styles
+        * caption
+        * table_attributes
+        """
+        return self._render_html(**kwargs)
 
     def set_tooltips(
         self,
@@ -282,6 +321,10 @@ class Styler(StylerRenderer):
             # redesign and more extensive code for a feature that might be rarely used.
             raise NotImplementedError(
                 "Tooltips can only render with 'cell_ids' is True."
+            )
+        if not ttips.index.is_unique or not ttips.columns.is_unique:
+            raise KeyError(
+                "Tooltips render only if `ttips` has unique index and columns."
             )
         if self.tooltips is None:  # create a default instance if necessary
             self.tooltips = Tooltips()
@@ -403,6 +446,10 @@ class Styler(StylerRenderer):
         '  </tbody>'
         '</table>'
         """
+        if not classes.index.is_unique or not classes.columns.is_unique:
+            raise KeyError(
+                "Classes render only if `classes` has unique index and columns."
+            )
         classes = classes.reindex_like(self.data)
 
         for r, row_tup in enumerate(classes.itertuples()):
@@ -425,6 +472,12 @@ class Styler(StylerRenderer):
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
+        if not self.index.is_unique or not self.columns.is_unique:
+            raise KeyError(
+                "`Styler.apply` and `.applymap` are not compatible "
+                "with non-unique index or columns."
+            )
+
         for cn in attrs.columns:
             for rn, c in attrs[[cn]].itertuples():
                 if not c:
@@ -572,7 +625,6 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.where: Apply CSS-styles based on a conditional function elementwise.
         Styler.applymap: Apply a CSS-styling function elementwise.
 
         Notes
@@ -630,7 +682,6 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.where: Apply CSS-styles based on a conditional function elementwise.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
         Notes
@@ -662,6 +713,8 @@ class Styler(StylerRenderer):
         """
         Apply CSS-styles based on a conditional function elementwise.
 
+        .. deprecated:: 1.3.0
+
         Updates the HTML representation with a style which is
         selected in accordance with the return value of a function.
 
@@ -689,13 +742,31 @@ class Styler(StylerRenderer):
         Styler.applymap: Apply a CSS-styling function elementwise.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
-        Examples
-        --------
-        >>> def cond(v):
-        ...     return v > 1 and v != 4
+        Notes
+        -----
+        This method is deprecated.
+
+        This method is a convenience wrapper for :meth:`Styler.applymap`, which we
+        recommend using instead.
+
+        The example:
         >>> df = pd.DataFrame([[1, 2], [3, 4]])
-        >>> df.style.where(cond, value='color:red;', other='font-size:2em;')
+        >>> def cond(v, limit=4):
+        ...     return v > 1 and v != limit
+        >>> df.style.where(cond, value='color:green;', other='color:red;')
+
+        should be refactored to:
+        >>> def style_func(v, value, other, limit=4):
+        ...     cond = v > 1 and v != limit
+        ...     return value if cond else other
+        >>> df.style.applymap(style_func, value='color:green;', other='color:red;')
         """
+        warnings.warn(
+            "this method is deprecated in favour of `Styler.applymap()`",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         if other is None:
             other = ""
 
@@ -929,10 +1000,11 @@ class Styler(StylerRenderer):
 
             table_styles = [
                 {
-                    "selector": str(s["selector"]) + idf + str(obj.get_loc(key)),
+                    "selector": str(s["selector"]) + idf + str(idx),
                     "props": maybe_convert_css_to_tuples(s["props"]),
                 }
                 for key, styles in table_styles.items()
+                for idx in obj.get_indexer_for([key])
                 for s in styles
             ]
         else:

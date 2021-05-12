@@ -242,7 +242,7 @@ class TestExpressions:
     def test_bool_ops_raise_on_arithmetic(self, op_str, opname):
         df = DataFrame({"a": np.random.rand(10) > 0.5, "b": np.random.rand(10) > 0.5})
 
-        msg = f"operator {repr(op_str)} not implemented for bool dtypes"
+        msg = f"operator '{opname}' not implemented for bool dtypes"
         f = getattr(operator, opname)
         err_msg = re.escape(msg)
 

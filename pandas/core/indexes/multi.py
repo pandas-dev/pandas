@@ -25,7 +25,7 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
-from pandas._libs.hashtable import duplicated_int64
+from pandas._libs.hashtable import duplicated
 from pandas._typing import (
     AnyArrayLike,
     DtypeObj,
@@ -72,6 +72,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
+from pandas.core.indexers import is_empty_indexer
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -1611,10 +1612,10 @@ class MultiIndex(Index):
 
     @doc(Index.duplicated)
     def duplicated(self, keep="first") -> np.ndarray:
-        shape = map(len, self.levels)
+        shape = tuple(len(lev) for lev in self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
-        return duplicated_int64(ids, keep)
+        return duplicated(ids, keep)
 
     # error: Cannot override final attribute "_duplicated"
     # (previously declared in base class "IndexOpsMixin")
@@ -2634,6 +2635,10 @@ class MultiIndex(Index):
             mask = check == -1
             if mask.any():
                 raise KeyError(f"{keyarr[mask]} not in index")
+            elif is_empty_indexer(indexer, keyarr):
+                # We get here when levels still contain values which are not
+                # actually in Index anymore
+                raise KeyError(f"{keyarr} not in index")
 
         return indexer, keyarr
 
@@ -2716,7 +2721,7 @@ class MultiIndex(Index):
         return ensure_platform_int(indexer)
 
     def get_slice_bound(
-        self, label: Hashable | Sequence[Hashable], side: str, kind: str
+        self, label: Hashable | Sequence[Hashable], side: str, kind: str | None = None
     ) -> int:
         """
         For an ordered MultiIndex, compute slice bound
@@ -2729,7 +2734,7 @@ class MultiIndex(Index):
         ----------
         label : object or tuple of objects
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'}
+        kind : {'loc', 'getitem', None}
 
         Returns
         -------
@@ -2747,13 +2752,13 @@ class MultiIndex(Index):
         Get the locations from the leftmost 'b' in the first level
         until the end of the multiindex:
 
-        >>> mi.get_slice_bound('b', side="left", kind="loc")
+        >>> mi.get_slice_bound('b', side="left")
         1
 
         Like above, but if you get the locations from the rightmost
         'b' in the first level and 'f' in the second level:
 
-        >>> mi.get_slice_bound(('b','f'), side="right", kind="loc")
+        >>> mi.get_slice_bound(('b','f'), side="right")
         3
 
         See Also
@@ -2820,7 +2825,7 @@ class MultiIndex(Index):
         """
         # This function adds nothing to its parent implementation (the magic
         # happens in get_slice_bound method), but it adds meaningful doc.
-        return super().slice_locs(start, end, step, kind=kind)
+        return super().slice_locs(start, end, step)
 
     def _partial_tup_index(self, tup, side="left"):
         if len(tup) > self._lexsort_depth:
@@ -3206,9 +3211,7 @@ class MultiIndex(Index):
 
                 # we have a partial slice (like looking up a partial date
                 # string)
-                start = stop = level_index.slice_indexer(
-                    key.start, key.stop, key.step, kind="loc"
-                )
+                start = stop = level_index.slice_indexer(key.start, key.stop, key.step)
                 step = start.step
 
             if isinstance(start, slice) or isinstance(stop, slice):
@@ -3597,7 +3600,7 @@ class MultiIndex(Index):
     def _maybe_match_names(self, other):
         """
         Try to find common names to attach to the result of an operation between
-        a and b.  Return a consensus list of names if they match at least partly
+        a and b. Return a consensus list of names if they match at least partly
         or list of None if they have completely different names.
         """
         if len(self.names) != len(other.names):
