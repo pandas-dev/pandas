@@ -283,12 +283,7 @@ def test_split_to_multiindex_expand():
         idx.str.split("_", expand="not_a_boolean")
 
 
-def test_rsplit_to_dataframe_expand(any_string_dtype, request):
-    if any_string_dtype != "object":
-        reason = 'Attribute "dtype" are different'
-        mark = pytest.mark.xfail(reason=reason, raises=AssertionError)
-        request.node.add_marker(mark)
-
+def test_rsplit_to_dataframe_expand(any_string_dtype):
     s = Series(["nosplit", "alsonosplit"], dtype=any_string_dtype)
     result = s.str.rsplit("_", expand=True)
     exp = DataFrame({0: Series(["nosplit", "alsonosplit"])}, dtype=any_string_dtype)

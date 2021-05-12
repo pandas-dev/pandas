@@ -919,18 +919,18 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             is_valid = np.array(result.is_valid())
             result = np.array(result)
             result[~is_valid] = self.dtype.na_value
-            # if not expand:
-            #     valid = result[is_valid]
-            #     # we need to loop through to avoid numpy indexing assignment errors when
-            #     # the result is not a ragged array and interpreted as a 2 dimensional
-            #     # array
-            #     for i, val in enumerate(valid):
-            #         valid[i] = val.tolist()
+            if not expand:
+                valid = result[is_valid]
+                # we need to loop through to avoid numpy indexing assignment errors when
+                # the result is not a ragged array and interpreted as a 2 dimensional
+                # array
+                for i, val in enumerate(valid):
+                    valid[i] = val.tolist()
         else:
             result = np.array(result)
-            # if not expand:
-            #     for i, val in enumerate(result):
-            #         result[i] = val.tolist()
+            if not expand:
+                for i, val in enumerate(result):
+                    result[i] = val.tolist()
         return result
 
     def _str_strip(self, to_strip=None):
