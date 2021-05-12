@@ -422,7 +422,7 @@ can selectively scale parts of their pandas DataFrame applications.
     from pycylon import read_csv, DataFrame, CylonEnv
     from pycylon.net import MPIConfig
 
-    # Initialize Cylon distributed environment 
+    # Initialize Cylon distributed environment
     config: MPIConfig = MPIConfig()
     env: CylonEnv = CylonEnv(config=config, distributed=True)
 
