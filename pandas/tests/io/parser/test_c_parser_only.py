@@ -682,3 +682,16 @@ def test_float_precision_options(c_parser_only):
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(s), float_precision="junk")
+
+
+def test_usecols_indices_out_of_bounds(c_parser_only):
+    # GH#25623
+    parser = c_parser_only
+    data = """
+a,b
+1,2
+    """
+    with tm.assert_produces_warning(FutureWarning):
+        result = parser.read_csv(StringIO(data), usecols=[0, 2])
+    expected = DataFrame({"a": [1], "b": None})
+    tm.assert_frame_equal(result, expected)
