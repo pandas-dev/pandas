@@ -240,7 +240,7 @@ no,yyy
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": int}, 1)])
+@pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
 def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     # GH#35211
     parser = all_parsers
