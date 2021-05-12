@@ -276,11 +276,11 @@ class WrappedCythonOp:
 
     @overload
     def _get_result_dtype(self, dtype: np.dtype) -> np.dtype:
-        ...
+        ...  # pragma: no cover
 
     @overload
     def _get_result_dtype(self, dtype: ExtensionDtype) -> ExtensionDtype:
-        ...
+        ...  # pragma: no cover
 
     def _get_result_dtype(self, dtype: DtypeObj) -> DtypeObj:
         """
@@ -327,6 +327,14 @@ class WrappedCythonOp:
         re-wrap if appropriate.
         """
         # TODO: general case implementation overridable by EAs.
+        if isinstance(values, BaseMaskedArray) and self.uses_mask():
+            return self._masked_ea_wrap_cython_operation(
+                values,
+                min_count=min_count,
+                ngroups=ngroups,
+                comp_ids=comp_ids,
+                **kwargs,
+            )
         orig_values = values
 
         if isinstance(orig_values, (DatetimeArray, PeriodArray)):
@@ -614,22 +622,13 @@ class WrappedCythonOp:
 
         if not isinstance(values, np.ndarray):
             # i.e. ExtensionArray
-            if isinstance(values, BaseMaskedArray) and self.uses_mask():
-                return self._masked_ea_wrap_cython_operation(
-                    values,
-                    min_count=min_count,
-                    ngroups=ngroups,
-                    comp_ids=comp_ids,
-                    **kwargs,
-                )
-            else:
-                return self._ea_wrap_cython_operation(
-                    values,
-                    min_count=min_count,
-                    ngroups=ngroups,
-                    comp_ids=comp_ids,
-                    **kwargs,
-                )
+            return self._ea_wrap_cython_operation(
+                values,
+                min_count=min_count,
+                ngroups=ngroups,
+                comp_ids=comp_ids,
+                **kwargs,
+            )
 
         return self._cython_op_ndim_compat(
             values,
@@ -890,9 +889,8 @@ class BaseGrouper:
 
     @final
     def _get_compressed_codes(self) -> tuple[np.ndarray, np.ndarray]:
-        all_codes = self.codes
-        if len(all_codes) > 1:
-            group_index = get_group_index(all_codes, self.shape, sort=True, xnull=True)
+        if len(self.groupings) > 1:
+            group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self.sort)
 
         ping = self.groupings[0]
@@ -969,8 +967,8 @@ class BaseGrouper:
 
     @final
     def agg_series(self, obj: Series, func: F) -> ArrayLike:
-        # Caller is responsible for checking ngroups != 0
-        assert self.ngroups != 0
+        # test_groupby_empty_with_category gets here with self.ngroups == 0
+        #  and len(obj) > 0
 
         cast_back = True
         if len(obj) == 0:
@@ -1007,7 +1005,6 @@ class BaseGrouper:
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
         #  - len(obj) > 0
-        #  - ngroups != 0
         func = com.is_builtin_func(func)
 
         ids, _, ngroups = self.group_info
@@ -1113,6 +1110,7 @@ class BinGrouper(BaseGrouper):
 
     @property
     def nkeys(self) -> int:
+        # still matches len(self.groupings), but we can hard-code
         return 1
 
     def _get_grouper(self):

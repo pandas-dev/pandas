@@ -39,7 +39,7 @@ class Base:
     _index_cls: Type[Index]
 
     @pytest.fixture
-    def simple_index(self) -> Index:
+    def simple_index(self):
         raise NotImplementedError("Method not implemented")
 
     def create_index(self) -> Index:
@@ -772,6 +772,12 @@ class NumericBase(Base):
     Base class for numeric index (incl. RangeIndex) sub-class tests.
     """
 
+    def test_constructor_unwraps_index(self, dtype):
+        idx = Index([1, 2], dtype=dtype)
+        result = self._index_cls(idx)
+        expected = np.array([1, 2], dtype=dtype)
+        tm.assert_numpy_array_equal(result._data, expected)
+
     def test_where(self):
         # Tested in numeric.test_indexing
         pass
@@ -831,3 +837,10 @@ class NumericBase(Base):
         a = np.zeros(5, dtype="float64")
         result = a - fidx
         tm.assert_index_equal(result, expected)
+
+    def test_invalid_dtype(self, invalid_dtype):
+        # GH 29539
+        dtype = invalid_dtype
+        msg = fr"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}"
+        with pytest.raises(ValueError, match=msg):
+            self._index_cls([1, 2, 3], dtype=dtype)

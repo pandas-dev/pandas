@@ -323,6 +323,10 @@ class Styler(StylerRenderer):
             raise NotImplementedError(
                 "Tooltips can only render with 'cell_ids' is True."
             )
+        if not ttips.index.is_unique or not ttips.columns.is_unique:
+            raise KeyError(
+                "Tooltips render only if `ttips` has unique index and columns."
+            )
         if self.tooltips is None:  # create a default instance if necessary
             self.tooltips = Tooltips()
         self.tooltips.tt_data = ttips
@@ -443,6 +447,10 @@ class Styler(StylerRenderer):
         '  </tbody>'
         '</table>'
         """
+        if not classes.index.is_unique or not classes.columns.is_unique:
+            raise KeyError(
+                "Classes render only if `classes` has unique index and columns."
+            )
         classes = classes.reindex_like(self.data)
 
         for r, row_tup in enumerate(classes.itertuples()):
@@ -465,6 +473,12 @@ class Styler(StylerRenderer):
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
+        if not self.index.is_unique or not self.columns.is_unique:
+            raise KeyError(
+                "`Styler.apply` and `.applymap` are not compatible "
+                "with non-unique index or columns."
+            )
+
         for cn in attrs.columns:
             for rn, c in attrs[[cn]].itertuples():
                 if not c:
@@ -987,10 +1001,11 @@ class Styler(StylerRenderer):
 
             table_styles = [
                 {
-                    "selector": str(s["selector"]) + idf + str(obj.get_loc(key)),
+                    "selector": str(s["selector"]) + idf + str(idx),
                     "props": maybe_convert_css_to_tuples(s["props"]),
                 }
                 for key, styles in table_styles.items()
+                for idx in obj.get_indexer_for([key])
                 for s in styles
             ]
         else:

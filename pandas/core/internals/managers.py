@@ -211,20 +211,9 @@ class BaseBlockManager(DataManager):
             axis = 1 if axis == 0 else 0
         return axis
 
-    def set_axis(
-        self, axis: int, new_labels: Index, verify_integrity: bool = True
-    ) -> None:
+    def set_axis(self, axis: int, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
-        if verify_integrity:
-            old_len = len(self.axes[axis])
-            new_len = len(new_labels)
-
-            if new_len != old_len:
-                raise ValueError(
-                    f"Length mismatch: Expected axis has {old_len} elements, new "
-                    f"values have {new_len} elements"
-                )
-
+        self._validate_set_axis(axis, new_labels)
         self.axes[axis] = new_labels
 
     @property
@@ -344,9 +333,6 @@ class BaseBlockManager(DataManager):
 
         if ignore_failures:
             return self._combine(result_blocks)
-
-        if len(result_blocks) == 0:
-            return self.make_empty(self.axes)
 
         return type(self).from_blocks(result_blocks, self.axes)
 
@@ -532,6 +518,13 @@ class BaseBlockManager(DataManager):
     ) -> T:
         """ return a new manager with the blocks """
         if len(blocks) == 0:
+            if self.ndim == 2:
+                # retain our own Index dtype
+                if index is not None:
+                    axes = [self.items[:0], index]
+                else:
+                    axes = [self.items[:0]] + self.axes[1:]
+                return self.make_empty(axes)
             return self.make_empty()
 
         # FIXME: optimization potential
@@ -1233,7 +1226,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             index = Index(range(result_blocks[0].values.shape[-1]))
 
         if ignore_failures:
-            return self._combine(result_blocks, index=index)
+            return self._combine(result_blocks, copy=False, index=index)
 
         return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
@@ -1270,7 +1263,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 new_mgr = self._combine(res_blocks, copy=False, index=index)
             else:
                 indexer = []
-                new_mgr = type(self).from_blocks([], [Index([]), index])
+                new_mgr = type(self).from_blocks([], [self.items[:0], index])
         else:
             indexer = np.arange(self.shape[0])
             new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
