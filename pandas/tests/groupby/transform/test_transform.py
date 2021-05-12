@@ -20,6 +20,10 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.groupby.generic import (
+    DataFrameGroupBy,
+    SeriesGroupBy,
+)
 from pandas.core.groupby.groupby import DataError
 
 
@@ -242,7 +246,7 @@ def test_transform_bug():
     # transforming on a datetime column
     df = DataFrame({"A": Timestamp("20130101"), "B": np.arange(5)})
     result = df.groupby("A")["B"].transform(lambda x: x.rank(ascending=False))
-    expected = Series(np.arange(5, 0, step=-1), name="B")
+    expected = Series(np.arange(5, 0, step=-1), name="B", dtype="float64")
     tm.assert_series_equal(result, expected)
 
 
@@ -391,13 +395,31 @@ def test_transform_select_columns(df):
     tm.assert_frame_equal(result, expected)
 
 
-def test_transform_exclude_nuisance(df):
+@pytest.mark.parametrize("duplicates", [True, False])
+def test_transform_exclude_nuisance(df, duplicates):
+    # case that goes through _transform_item_by_item
+
+    if duplicates:
+        # make sure we work with duplicate columns GH#41427
+        df.columns = ["A", "C", "C", "D"]
 
     # this also tests orderings in transform between
     # series/frame to make sure it's consistent
     expected = {}
     grouped = df.groupby("A")
-    expected["C"] = grouped["C"].transform(np.mean)
+
+    gbc = grouped["C"]
+    expected["C"] = gbc.transform(np.mean)
+    if duplicates:
+        # squeeze 1-column DataFrame down to Series
+        expected["C"] = expected["C"]["C"]
+
+        assert isinstance(gbc.obj, DataFrame)
+        assert isinstance(gbc, DataFrameGroupBy)
+    else:
+        assert isinstance(gbc, SeriesGroupBy)
+        assert isinstance(gbc.obj, Series)
+
     expected["D"] = grouped["D"].transform(np.mean)
     expected = DataFrame(expected)
     result = df.groupby("A").transform(np.mean)
@@ -493,7 +515,7 @@ def test_groupby_transform_with_int():
     )
     with np.errstate(all="ignore"):
         result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
-    expected = DataFrame({"B": np.nan, "C": [-1, 0, 1, -1, 0, 1]})
+    expected = DataFrame({"B": np.nan, "C": [-1.0, 0.0, 1.0, -1.0, 0.0, 1.0]})
     tm.assert_frame_equal(result, expected)
 
     # int that needs float conversion
@@ -509,9 +531,9 @@ def test_groupby_transform_with_int():
     expected = DataFrame({"B": np.nan, "C": concat([s1, s2])})
     tm.assert_frame_equal(result, expected)
 
-    # int downcasting
+    # int doesn't get downcasted
     result = df.groupby("A").transform(lambda x: x * 2 / 2)
-    expected = DataFrame({"B": 1, "C": [2, 3, 4, 10, 5, -1]})
+    expected = DataFrame({"B": 1.0, "C": [2.0, 3.0, 4.0, 10.0, 5.0, -1.0]})
     tm.assert_frame_equal(result, expected)
 
 

@@ -6,38 +6,14 @@ from datetime import (
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Index,
     MultiIndex,
     Series,
     isna,
-    notna,
 )
 import pandas._testing as tm
-
-
-@pytest.fixture(
-    params=[
-        "object",
-        "string",
-        pytest.param(
-            "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
-    ]
-)
-def any_string_dtype(request):
-    """
-    Parametrized fixture for string dtypes.
-    * 'object'
-    * 'string'
-    * 'arrow_string'
-    """
-    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-    return request.param
 
 
 def assert_series_or_index_equal(left, right):
@@ -402,14 +378,19 @@ def test_join():
     tm.assert_almost_equal(rs, xp)
 
 
-def test_len():
-    values = Series(["foo", "fooo", "fooooo", np.nan, "fooooooo"])
+def test_len(any_string_dtype):
+    values = Series(
+        ["foo", "fooo", "fooooo", np.nan, "fooooooo", "foo\n", "あ"],
+        dtype=any_string_dtype,
+    )
 
     result = values.str.len()
-    exp = values.map(lambda x: len(x) if notna(x) else np.nan)
-    tm.assert_series_equal(result, exp)
+    expected_dtype = "float64" if any_string_dtype == "object" else "Int64"
+    expected = Series([3, 4, 6, np.nan, 8, 4, 1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
-    # mixed
+
+def test_len_mixed():
     mixed = Series(
         [
             "a_b",
@@ -570,19 +551,19 @@ def test_slice_replace():
     tm.assert_series_equal(result, exp)
 
 
-def test_strip_lstrip_rstrip():
-    values = Series(["  aa   ", " bb \n", np.nan, "cc  "])
+def test_strip_lstrip_rstrip(any_string_dtype):
+    values = Series(["  aa   ", " bb \n", np.nan, "cc  "], dtype=any_string_dtype)
 
     result = values.str.strip()
-    exp = Series(["aa", "bb", np.nan, "cc"])
+    exp = Series(["aa", "bb", np.nan, "cc"], dtype=any_string_dtype)
     tm.assert_series_equal(result, exp)
 
     result = values.str.lstrip()
-    exp = Series(["aa   ", "bb \n", np.nan, "cc  "])
+    exp = Series(["aa   ", "bb \n", np.nan, "cc  "], dtype=any_string_dtype)
     tm.assert_series_equal(result, exp)
 
     result = values.str.rstrip()
-    exp = Series(["  aa", " bb", np.nan, "cc"])
+    exp = Series(["  aa", " bb", np.nan, "cc"], dtype=any_string_dtype)
     tm.assert_series_equal(result, exp)
 
 
@@ -609,19 +590,19 @@ def test_strip_lstrip_rstrip_mixed():
     tm.assert_almost_equal(rs, xp)
 
 
-def test_strip_lstrip_rstrip_args():
-    values = Series(["xxABCxx", "xx BNSD", "LDFJH xx"])
+def test_strip_lstrip_rstrip_args(any_string_dtype):
+    values = Series(["xxABCxx", "xx BNSD", "LDFJH xx"], dtype=any_string_dtype)
 
     rs = values.str.strip("x")
-    xp = Series(["ABC", " BNSD", "LDFJH "])
+    xp = Series(["ABC", " BNSD", "LDFJH "], dtype=any_string_dtype)
     tm.assert_series_equal(rs, xp)
 
     rs = values.str.lstrip("x")
-    xp = Series(["ABCxx", " BNSD", "LDFJH xx"])
+    xp = Series(["ABCxx", " BNSD", "LDFJH xx"], dtype=any_string_dtype)
     tm.assert_series_equal(rs, xp)
 
     rs = values.str.rstrip("x")
-    xp = Series(["xxABC", "xx BNSD", "LDFJH "])
+    xp = Series(["xxABC", "xx BNSD", "LDFJH "], dtype=any_string_dtype)
     tm.assert_series_equal(rs, xp)
 
 
