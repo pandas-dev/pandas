@@ -80,7 +80,7 @@ class StringDtype(ExtensionDtype):
     Examples
     --------
     >>> pd.StringDtype()
-    StringDtype
+    string[python]
     """
 
     #: StringDtype.na_value uses pandas.NA
@@ -263,7 +263,7 @@ class StringArray(PandasArray):
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
     <StringArray>
     ['This is', 'some text', <NA>, 'data.']
-    Length: 4, dtype: string
+    Length: 4, dtype: string[python]
 
     Unlike arrays instantiated with ``dtype="object"``, ``StringArray``
     will convert the values to strings.
@@ -275,7 +275,7 @@ class StringArray(PandasArray):
     >>> pd.array(['1', 1], dtype="string")
     <StringArray>
     ['1', '1']
-    Length: 2, dtype: string
+    Length: 2, dtype: string[python]
 
     However, instantiating StringArrays directly with non-strings will raise an error.
 
