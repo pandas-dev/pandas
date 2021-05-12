@@ -84,6 +84,8 @@ from pandas.core.construction import (
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas import (
         Categorical,
         DataFrame,
@@ -188,7 +190,7 @@ def _reconstruct_data(
     Parameters
     ----------
     values : np.ndarray or ExtensionArray
-    dtype : np.ndtype or ExtensionDtype
+    dtype : np.dtype or ExtensionDtype
     original : AnyArrayLike
 
     Returns
@@ -516,10 +518,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         )
         values = values.astype(common, copy=False)
         comps = comps.astype(common, copy=False)
-        name = common.name
-        if name == "bool":
-            name = "uint8"
-        f = getattr(htable, f"ismember_{name}")
+        f = htable.ismember
 
     return f(comps, values)
 
@@ -888,30 +887,24 @@ def value_counts_arraylike(values, dropna: bool):
     values = _ensure_arraylike(values)
     original = values
     values, _ = _ensure_data(values)
-    ndtype = values.dtype.name
+
+    # TODO: handle uint8
+    keys, counts = htable.value_count(values, dropna)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
-
-        keys, counts = htable.value_count_int64(values, dropna)
 
         if dropna:
             msk = keys != iNaT
             keys, counts = keys[msk], counts[msk]
 
-    else:
-        # ndarray like
-
-        # TODO: handle uint8
-        f = getattr(htable, f"value_count_{ndtype}")
-        keys, counts = f(values, dropna)
-
     res_keys = _reconstruct_data(keys, original.dtype, original)
-
     return res_keys, counts
 
 
-def duplicated(values: ArrayLike, keep: str | bool = "first") -> np.ndarray:
+def duplicated(
+    values: ArrayLike, keep: Literal["first", "last", False] = "first"
+) -> np.ndarray:
     """
     Return boolean ndarray denoting duplicate values.
 
@@ -931,9 +924,7 @@ def duplicated(values: ArrayLike, keep: str | bool = "first") -> np.ndarray:
     duplicated : ndarray[bool]
     """
     values, _ = _ensure_data(values)
-    ndtype = values.dtype.name
-    f = getattr(htable, f"duplicated_{ndtype}")
-    return f(values, keep=keep)
+    return htable.duplicated(values, keep=keep)
 
 
 def mode(values, dropna: bool = True) -> Series:
@@ -971,16 +962,14 @@ def mode(values, dropna: bool = True) -> Series:
         values = values[~mask]
 
     values, _ = _ensure_data(values)
-    ndtype = values.dtype.name
 
-    f = getattr(htable, f"mode_{ndtype}")
-    result = f(values, dropna=dropna)
+    npresult = htable.mode(values, dropna=dropna)
     try:
-        result = np.sort(result)
+        npresult = np.sort(npresult)
     except TypeError as err:
         warn(f"Unable to sort modes: {err}")
 
-    result = _reconstruct_data(result, original.dtype, original)
+    result = _reconstruct_data(npresult, original.dtype, original)
     # Ensure index is type stable (should always use int index)
     return Series(result, index=ibase.default_index(len(result)))
 
