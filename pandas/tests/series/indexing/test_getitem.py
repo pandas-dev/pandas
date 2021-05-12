@@ -662,3 +662,11 @@ def test_getitem_categorical_str():
 def test_slice_can_reorder_not_uniquely_indexed():
     ser = Series(1, index=["a", "a", "b", "b", "c"])
     ser[::-1]  # it works!
+
+
+@pytest.mark.parametrize("index_vals", ["aabcd", "aadcb"])
+def test_duplicated_index_getitem_positional_indexer(index_vals):
+    # GH 11747
+    s = Series(range(5), index=list(index_vals))
+    result = s[3]
+    assert result == 3
