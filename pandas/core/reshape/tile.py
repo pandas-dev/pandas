@@ -24,8 +24,8 @@ from pandas.core.dtypes.common import (
     is_datetime_or_timedelta_dtype,
     is_extension_array_dtype,
     is_integer,
-    is_integer_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
     is_timedelta64_dtype,
 )
@@ -488,7 +488,7 @@ def _coerce_to_type(x):
     # Will properly support in the future.
     # https://github.com/pandas-dev/pandas/pull/31290
     # https://github.com/pandas-dev/pandas/issues/31389
-    elif is_extension_array_dtype(x.dtype) and is_integer_dtype(x.dtype):
+    elif is_extension_array_dtype(x.dtype) and is_numeric_dtype(x.dtype):
         x = x.to_numpy(dtype=np.float64, na_value=np.nan)
 
     if dtype is not None:

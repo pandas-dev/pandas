@@ -90,7 +90,7 @@ def test_hash_array(series):
 
 
 @pytest.mark.parametrize(
-    "arr2", [np.array([3, 4, "All"]), np.array([3, 4, "All"], dtype=object)]
+    "arr2", [np.array([3, 4, "All"], dtype="U"), np.array([3, 4, "All"], dtype=object)]
 )
 def test_hash_array_mixed(arr2):
     result1 = hash_array(np.array(["3", "4", "All"]))

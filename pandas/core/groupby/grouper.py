@@ -16,12 +16,11 @@ from pandas._typing import (
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.cast import sanitize_to_nanoseconds
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_dtype,
     is_list_like,
     is_scalar,
-    is_timedelta64_dtype,
 )
 
 import pandas.core.algorithms as algorithms
@@ -249,6 +248,10 @@ class Grouper:
     Freq: 17T, dtype: int64
     """
 
+    axis: int
+    sort: bool
+    dropna: bool
+
     _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
 
     def __new__(cls, *args, **kwargs):
@@ -260,7 +263,13 @@ class Grouper:
         return super().__new__(cls)
 
     def __init__(
-        self, key=None, level=None, freq=None, axis=0, sort=False, dropna=True
+        self,
+        key=None,
+        level=None,
+        freq=None,
+        axis: int = 0,
+        sort: bool = False,
+        dropna: bool = True,
     ):
         self.key = key
         self.level = level
@@ -281,11 +290,11 @@ class Grouper:
     def ax(self):
         return self.grouper
 
-    def _get_grouper(self, obj, validate: bool = True):
+    def _get_grouper(self, obj: FrameOrSeries, validate: bool = True):
         """
         Parameters
         ----------
-        obj : the subject object
+        obj : Series or DataFrame
         validate : bool, default True
             if True, validate the grouper
 
@@ -296,7 +305,9 @@ class Grouper:
         self._set_grouper(obj)
         # error: Value of type variable "FrameOrSeries" of "get_grouper" cannot be
         # "Optional[Any]"
-        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var]
+        # error: Incompatible types in assignment (expression has type "BaseGrouper",
+        # variable has type "None")
+        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var,assignment]
             self.obj,
             [self.key],
             axis=self.axis,
@@ -375,15 +386,19 @@ class Grouper:
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=self.axis)
 
-        self.obj = obj
-        self.grouper = ax
+        # error: Incompatible types in assignment (expression has type
+        # "FrameOrSeries", variable has type "None")
+        self.obj = obj  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "Index",
+        # variable has type "None")
+        self.grouper = ax  # type: ignore[assignment]
         return self.grouper
 
     @final
     @property
     def groups(self):
-        # error: Item "None" of "Optional[Any]" has no attribute "groups"
-        return self.grouper.groups  # type: ignore[union-attr]
+        # error: "None" has no attribute "groups"
+        return self.grouper.groups  # type: ignore[attr-defined]
 
     @final
     def __repr__(self) -> str:
@@ -428,7 +443,7 @@ class Grouping:
         index: Index,
         grouper=None,
         obj: FrameOrSeries | None = None,
-        name=None,
+        name: Hashable = None,
         level=None,
         sort: bool = True,
         observed: bool = False,
@@ -449,9 +464,6 @@ class Grouping:
         # right place for this?
         if isinstance(grouper, (Series, Index)) and name is None:
             self.name = grouper.name
-
-        if isinstance(grouper, MultiIndex):
-            self.grouper = grouper._values
 
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
@@ -478,21 +490,21 @@ class Grouping:
             # what key/level refer to exactly, don't need to
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
-            _, grouper, _ = self.grouper._get_grouper(self.obj, validate=False)
+            _, grouper, _ = self.grouper._get_grouper(
+                # error: Value of type variable "FrameOrSeries" of "_get_grouper"
+                # of "Grouper" cannot be "Optional[FrameOrSeries]"
+                self.obj,  # type: ignore[type-var]
+                validate=False,
+            )
             if self.name is None:
                 self.name = grouper.result_index.name
             self.obj = self.grouper.obj
             self.grouper = grouper._get_grouper()
 
         else:
-            if self.grouper is None and self.name is not None and self.obj is not None:
-                self.grouper = self.obj[self.name]
-
-            elif isinstance(self.grouper, (list, tuple)):
-                self.grouper = com.asarray_tuplesafe(self.grouper)
 
             # a passed Categorical
-            elif is_categorical_dtype(self.grouper):
+            if is_categorical_dtype(self.grouper):
 
                 self.grouper, self.all_grouper = recode_for_groupby(
                     self.grouper, self.sort, observed
@@ -518,7 +530,7 @@ class Grouping:
                 )
 
             # we are done
-            if isinstance(self.grouper, Grouping):
+            elif isinstance(self.grouper, Grouping):
                 self.grouper = self.grouper.grouper
 
             # no level passed
@@ -541,14 +553,10 @@ class Grouping:
                     self.grouper = None  # Try for sanity
                     raise AssertionError(errmsg)
 
-        # if we have a date/time-like grouper, make sure that we have
-        # Timestamps like
-        if getattr(self.grouper, "dtype", None) is not None:
-            if is_datetime64_dtype(self.grouper):
-                self.grouper = self.grouper.astype("datetime64[ns]")
-            elif is_timedelta64_dtype(self.grouper):
-
-                self.grouper = self.grouper.astype("timedelta64[ns]")
+        if isinstance(self.grouper, np.ndarray):
+            # if we have a date/time-like grouper, make sure that we have
+            # Timestamps like
+            self.grouper = sanitize_to_nanoseconds(self.grouper)
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
@@ -631,7 +639,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> tuple[ops.BaseGrouper, set[Hashable], FrameOrSeries]:
+) -> tuple[ops.BaseGrouper, frozenset[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -707,13 +715,13 @@ def get_grouper(
     if isinstance(key, Grouper):
         binner, grouper, obj = key._get_grouper(obj, validate=False)
         if key.key is None:
-            return grouper, set(), obj
+            return grouper, frozenset(), obj
         else:
-            return grouper, {key.key}, obj
+            return grouper, frozenset({key.key}), obj
 
     # already have a BaseGrouper, just return it
     elif isinstance(key, ops.BaseGrouper):
-        return key, set(), obj
+        return key, frozenset(), obj
 
     if not isinstance(key, list):
         keys = [key]
@@ -840,7 +848,7 @@ def get_grouper(
     grouper = ops.BaseGrouper(
         group_axis, groupings, sort=sort, mutated=mutated, dropna=dropna
     )
-    return grouper, exclusions, obj
+    return grouper, frozenset(exclusions), obj
 
 
 def _is_label_like(val) -> bool:
@@ -855,9 +863,14 @@ def _convert_grouper(axis: Index, grouper):
             return grouper._values
         else:
             return grouper.reindex(axis)._values
-    elif isinstance(grouper, (list, Series, Index, np.ndarray)):
+    elif isinstance(grouper, MultiIndex):
+        return grouper._values
+    elif isinstance(grouper, (list, tuple, Series, Index, np.ndarray)):
         if len(grouper) != len(axis):
             raise ValueError("Grouper and axis must be same length")
+
+        if isinstance(grouper, (list, tuple)):
+            grouper = com.asarray_tuplesafe(grouper)
         return grouper
     else:
         return grouper
