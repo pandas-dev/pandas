@@ -265,30 +265,24 @@ def test_center_ljust_rjust_fillchar(any_string_dtype):
         ["XXaXX", "XXbbX", "Xcccc", "ddddd", "eeeeee"], dtype=any_string_dtype
     )
     tm.assert_series_equal(result, expected)
-
-    if any_string_dtype == "object":
-        expected = np.array([v.center(5, "X") for v in s.values], dtype=np.object_)
-        tm.assert_numpy_array_equal(result.values, expected)
+    expected = np.array([v.center(5, "X") for v in np.array(s)], dtype=np.object_)
+    tm.assert_numpy_array_equal(np.array(result, dtype=np.object_), expected)
 
     result = s.str.ljust(5, fillchar="X")
     expected = Series(
         ["aXXXX", "bbXXX", "ccccX", "ddddd", "eeeeee"], dtype=any_string_dtype
     )
     tm.assert_series_equal(result, expected)
-
-    if any_string_dtype == "object":
-        expected = np.array([v.ljust(5, "X") for v in s.values], dtype=np.object_)
-        tm.assert_numpy_array_equal(result.values, expected)
+    expected = np.array([v.ljust(5, "X") for v in np.array(s)], dtype=np.object_)
+    tm.assert_numpy_array_equal(np.array(result, dtype=np.object_), expected)
 
     result = s.str.rjust(5, fillchar="X")
     expected = Series(
         ["XXXXa", "XXXbb", "Xcccc", "ddddd", "eeeeee"], dtype=any_string_dtype
     )
     tm.assert_series_equal(result, expected)
-
-    if any_string_dtype == "object":
-        expected = np.array([v.rjust(5, "X") for v in s.values], dtype=np.object_)
-        tm.assert_numpy_array_equal(result.values, expected)
+    expected = np.array([v.rjust(5, "X") for v in np.array(s)], dtype=np.object_)
+    tm.assert_numpy_array_equal(np.array(result, dtype=np.object_), expected)
 
 
 def test_center_ljust_rjust_fillchar_bad_arg_raises(any_string_dtype):
@@ -326,18 +320,14 @@ def test_zfill(any_string_dtype):
         ["00001", "00022", "00aaa", "00333", "45678"], dtype=any_string_dtype
     )
     tm.assert_series_equal(result, expected)
-
-    if any_string_dtype == "object":
-        expected = np.array([v.zfill(5) for v in s.values], dtype=np.object_)
-        tm.assert_numpy_array_equal(result.values, expected)
+    expected = np.array([v.zfill(5) for v in np.array(s)], dtype=np.object_)
+    tm.assert_numpy_array_equal(np.array(result, dtype=np.object_), expected)
 
     result = s.str.zfill(3)
     expected = Series(["001", "022", "aaa", "333", "45678"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
-
-    if any_string_dtype == "object":
-        expected = np.array([v.zfill(3) for v in s.values], dtype=np.object_)
-        tm.assert_numpy_array_equal(result.values, expected)
+    expected = np.array([v.zfill(3) for v in np.array(s)], dtype=np.object_)
+    tm.assert_numpy_array_equal(np.array(result, dtype=np.object_), expected)
 
     s = Series(["1", np.nan, "aaa", np.nan, "45678"], dtype=any_string_dtype)
     result = s.str.zfill(5)
