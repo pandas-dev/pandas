@@ -1617,11 +1617,9 @@ column index name will be used as the name of the inserted column:
        }
    )
 
-
    def compute_metrics(x):
        result = {"b_sum": x["b"].sum(), "c_mean": x["c"].mean()}
        return pd.Series(result, name="metrics")
-
 
    result = df.groupby("a").apply(compute_metrics)
 

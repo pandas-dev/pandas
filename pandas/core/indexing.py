@@ -1182,9 +1182,7 @@ class _LocIndexer(_LocationIndexer):
             return obj.copy(deep=False)
 
         labels = obj._get_axis(axis)
-        indexer = labels.slice_indexer(
-            slice_obj.start, slice_obj.stop, slice_obj.step, kind="loc"
-        )
+        indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop, slice_obj.step)
 
         if isinstance(indexer, slice):
             return self.obj._slice(indexer, axis=axis)
@@ -2346,7 +2344,7 @@ def convert_to_index_sliceable(obj: DataFrame, key):
         # slice here via partial string indexing
         if idx._supports_partial_string_indexing:
             try:
-                res = idx._get_string_slice(key)
+                res = idx._get_string_slice(str(key))
                 warnings.warn(
                     "Indexing a DataFrame with a datetimelike index using a single "
                     "string to slice the rows, like `frame[string]`, is deprecated "
