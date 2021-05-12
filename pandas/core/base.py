@@ -214,7 +214,7 @@ class SelectionMixin(Generic[FrameOrSeries]):
     @cache_readonly
     def _obj_with_exclusions(self):
         if self._selection is not None and isinstance(self.obj, ABCDataFrame):
-            return self.obj.reindex(columns=self._selection_list)
+            return self.obj[self._selection_list]
 
         if len(self.exclusions) > 0:
             return self.obj.drop(self.exclusions, axis=1)
@@ -239,7 +239,9 @@ class SelectionMixin(Generic[FrameOrSeries]):
         else:
             if key not in self.obj:
                 raise KeyError(f"Column not found: {key}")
-            return self._gotitem(key, ndim=1)
+            subset = self.obj[key]
+            ndim = subset.ndim
+            return self._gotitem(key, ndim=ndim, subset=subset)
 
     def _gotitem(self, key, ndim: int, subset=None):
         """
