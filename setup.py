@@ -658,14 +658,10 @@ include = []
 libs_dir = []
 libs = []
 if is_platform_mac():
-    # non-conda builds must adjust paths to libiconv .h and lib dirs
-    include = [
-        os.path.join(os.environ["CONDA_PREFIX"], "include"),
-    ]
-    libs_dir = [
-        os.path.join(os.environ["CONDA_PREFIX"], "lib"),
-    ]
-    libs = ["liconv"]
+    os.environ["DYLD_LIBRARY_PATH"] = ""
+    include = ["/usr/include"]
+    libs_dir = ["/usr/lib"]
+    libs = ["iconv"]
 
 rdata_ext = Extension(
     name="pandas.io.rdata._rdata",
