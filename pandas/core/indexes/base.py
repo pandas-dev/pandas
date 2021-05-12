@@ -2429,12 +2429,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return isinstance(self, ABCMultiIndex)
 
+    @final
     @classmethod
     def _is_num_index(cls) -> bool:
         """
-        Whether self is a NumIndex, but not *not* Int64Index, UInt64Index, FloatIndex.
+        Check if this is a NumericIndex, but *not* Int64Index, UInt64Index, FloatIndex.
 
-        Typically used to check if an operation should return NumIndex or plain Index.
+        Used to check if an operation should return NumericIndex or plain Index.
         """
         from pandas.core.indexes.numeric import (
             Float64Index,

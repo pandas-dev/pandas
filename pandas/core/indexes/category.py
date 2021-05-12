@@ -287,21 +287,21 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
         dtype = pandas_dtype(dtype)
 
-        cat = self.categories
+        categories = self.categories
         # the super method always returns Int64Index, UInt64Index and Float64Index
         # but if e.g. the categories are a NumIndex with dtype float32, we want to
         # return an index with the same dtype as self.categories.
-        if cat._is_num_index():
-            assert isinstance(cat, NumericIndex)  # mypy complaint fix
+        if categories._is_num_index():
+            assert isinstance(categories, NumericIndex)  # mypy complaint fix
             try:
-                cat._validate_dtype(dtype)
+                categories._validate_dtype(dtype)
             except ValueError:
                 pass
             else:
                 new_values = self._data.astype(dtype, copy=copy)
                 # pass copy=False because any copying has been done in the
                 #  _data.astype call above
-                return type(cat)(new_values, name=self.name, copy=False)
+                return type(categories)(new_values, name=self.name, copy=False)
 
         return super().astype(dtype, copy=copy)
 
