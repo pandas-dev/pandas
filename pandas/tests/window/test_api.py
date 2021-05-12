@@ -16,7 +16,8 @@ import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
 
-def test_getitem(frame):
+def test_getitem():
+    frame = DataFrame(np.random.randn(5, 5))
     r = frame.rolling(window=5)
     tm.assert_index_equal(r._selected_obj.columns, frame.columns)
 
