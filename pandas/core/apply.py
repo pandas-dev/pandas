@@ -24,6 +24,7 @@ from pandas._typing import (
     AggFuncTypeDict,
     AggObjType,
     Axis,
+    FrameOrSeries,
     FrameOrSeriesUnion,
 )
 from pandas.util._decorators import cache_readonly
@@ -51,6 +52,7 @@ import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     create_series_with_explicit_dtype,
+    ensure_wrapped_if_datetimelike,
 )
 
 if TYPE_CHECKING:
@@ -59,10 +61,7 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-    from pandas.core.groupby import (
-        DataFrameGroupBy,
-        SeriesGroupBy,
-    )
+    from pandas.core.groupby import GroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
@@ -323,6 +322,7 @@ class Apply(metaclass=abc.ABCMeta):
             # i.e. obj is Series or DataFrame
             selected_obj = obj
         elif obj._selected_obj.ndim == 1:
+            # For SeriesGroupBy this matches _obj_with_exclusions
             selected_obj = obj._selected_obj
         else:
             selected_obj = obj._obj_with_exclusions
@@ -908,6 +908,7 @@ class FrameColumnApply(FrameApply):
     @property
     def series_generator(self):
         values = self.values
+        values = ensure_wrapped_if_datetimelike(values)
         assert len(values) > 0
 
         # We create one Series object, and will swap out the data inside
@@ -1087,11 +1088,9 @@ class SeriesApply(NDFrameApply):
 
 
 class GroupByApply(Apply):
-    obj: SeriesGroupBy | DataFrameGroupBy
-
     def __init__(
         self,
-        obj: SeriesGroupBy | DataFrameGroupBy,
+        obj: GroupBy[FrameOrSeries],
         func: AggFuncType,
         args,
         kwargs,
