@@ -428,10 +428,10 @@ can selectively scale parts of their pandas DataFrame applications.
 
     df1: DataFrame = read_csv('/tmp/csv1.csv')
     df2: DataFrame = read_csv('/tmp/csv2.csv')
-    
+
     # Using 1000s of cores across the cluster to compute the join
     df3: Table = df1.join(other=df2, on=[0], algorithm="hash", env=env)
-        
+
     print(df3)
 
 `Dask <https://dask.readthedocs.io/en/latest/>`__
