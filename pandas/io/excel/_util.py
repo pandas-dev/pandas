@@ -1,3 +1,5 @@
+import inspect
+import os
 from typing import (
     List,
     MutableMapping,
@@ -247,3 +249,20 @@ def pop_header_name(row, index_col):
     header_name = None if header_name == "" else header_name
 
     return header_name, row[:i] + [""] + row[i + 1 :]
+
+
+def find_stack_level() -> int:
+    """
+    Find the appropriate stacklevel for warnings from read_excel and ExcelFile
+    """
+    stack = inspect.stack()
+    path = os.path.join("pandas", "io", "excel", "_base.py")
+    n = -1
+    for i, frame in enumerate(stack):
+        if frame.filename.endswith(path):
+            n = i
+    if i == -1:
+        raise RuntimeError(
+            "find_stack_level should only be called from within pandas.io.excel"
+        )
+    return n + 2  # due to pandas.utils._decorators.wrapper

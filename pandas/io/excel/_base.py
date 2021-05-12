@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import datetime
 from distutils.version import LooseVersion
-import inspect
 from io import BytesIO
 import os
 from textwrap import fill
@@ -53,6 +52,7 @@ from pandas.io.common import (
 )
 from pandas.io.excel._util import (
     fill_mi_header,
+    find_stack_level,
     get_default_engine,
     get_writer,
     maybe_convert_usecols,
@@ -501,16 +501,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         if convert_float is None:
             convert_float = True
         else:
-            caller = inspect.stack()[2]
-            if (
-                caller.filename.endswith(
-                    os.path.join("pandas", "io", "excel", "_base.py")
-                )
-                and caller.function == "read_excel"
-            ):
-                stacklevel = 5
-            else:
-                stacklevel = 3
+            stacklevel = find_stack_level()
             warnings.warn(
                 "convert_float is deprecated and will be removed in a future version",
                 FutureWarning,
@@ -1203,16 +1194,7 @@ class ExcelFile:
                     f"only the xls format is supported. Install openpyxl instead."
                 )
             elif ext != "xls":
-                caller = inspect.stack()[1]
-                if (
-                    caller.filename.endswith(
-                        os.path.join("pandas", "io", "excel", "_base.py")
-                    )
-                    and caller.function == "read_excel"
-                ):
-                    stacklevel = 4
-                else:
-                    stacklevel = 2
+                stacklevel = find_stack_level()
                 warnings.warn(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install "
