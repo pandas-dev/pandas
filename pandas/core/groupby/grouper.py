@@ -16,12 +16,11 @@ from pandas._typing import (
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.cast import sanitize_to_nanoseconds
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_dtype,
     is_list_like,
     is_scalar,
-    is_timedelta64_dtype,
 )
 
 import pandas.core.algorithms as algorithms
@@ -471,9 +470,6 @@ class Grouping:
         if isinstance(grouper, (Series, Index)) and name is None:
             self.name = grouper.name
 
-        if isinstance(grouper, MultiIndex):
-            self.grouper = grouper._values
-
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
 
@@ -507,19 +503,8 @@ class Grouping:
             self.grouper = grouper._get_grouper()
 
         else:
-            if self.grouper is None and self.name is not None and self.obj is not None:
-                self.grouper = self.obj[self.name]
-
-                if self.grouper.ndim > 1:
-                    # i.e. DataFrame case reachable if columns non-unique
-                    t = self.name or str(type(self.grouper))
-                    raise ValueError(f"Grouper for '{t}' not 1-dimensional")
-
-            elif isinstance(self.grouper, (list, tuple)):
-                self.grouper = com.asarray_tuplesafe(self.grouper)
-
             # a passed Categorical
-            elif is_categorical_dtype(self.grouper):
+            if is_categorical_dtype(self.grouper):
                 self._passed_categorical = True
 
                 self.grouper, self.all_grouper = recode_for_groupby(
@@ -550,14 +535,10 @@ class Grouping:
                     self.grouper = None  # Try for sanity
                     raise AssertionError(errmsg)
 
-        # if we have a date/time-like grouper, make sure that we have
-        # Timestamps like
-        if getattr(self.grouper, "dtype", None) is not None:
-            if is_datetime64_dtype(self.grouper):
-                self.grouper = self.grouper.astype("datetime64[ns]")
-            elif is_timedelta64_dtype(self.grouper):
-
-                self.grouper = self.grouper.astype("timedelta64[ns]")
+        if isinstance(self.grouper, np.ndarray):
+            # if we have a date/time-like grouper, make sure that we have
+            # Timestamps like
+            self.grouper = sanitize_to_nanoseconds(self.grouper)
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
@@ -903,9 +884,14 @@ def _convert_grouper(axis: Index, grouper):
             return grouper._values
         else:
             return grouper.reindex(axis)._values
-    elif isinstance(grouper, (list, Series, Index, np.ndarray)):
+    elif isinstance(grouper, MultiIndex):
+        return grouper._values
+    elif isinstance(grouper, (list, tuple, Series, Index, np.ndarray)):
         if len(grouper) != len(axis):
             raise ValueError("Grouper and axis must be same length")
+
+        if isinstance(grouper, (list, tuple)):
+            grouper = com.asarray_tuplesafe(grouper)
         return grouper
     else:
         return grouper
