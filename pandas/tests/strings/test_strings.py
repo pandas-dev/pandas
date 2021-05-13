@@ -187,7 +187,7 @@ def test_empty_str_methods(any_string_dtype):
         DataFrame(columns=[0, 1], dtype=any_string_dtype),
         empty.str.extract("()()", expand=False),
     )
-    tm.assert_frame_equal(DataFrame(dtype=any_string_dtype), empty.str.get_dummies())
+    tm.assert_frame_equal(DataFrame(), empty.str.get_dummies())
     tm.assert_series_equal(empty_str, empty_str.str.join(""))
     tm.assert_series_equal(empty_int, empty.str.len())
     tm.assert_series_equal(empty_object, empty_str.str.findall("a"))
