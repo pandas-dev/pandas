@@ -726,6 +726,7 @@ class TestReaders:
             )
         elif engine == "xlrd":
             from xlrd import XLRDError
+
             error = XLRDError
             msg = (
                 "Unsupported format, or corrupt file: Expected BOF "

@@ -1,4 +1,5 @@
 import io
+
 import pytest
 
 from pandas.compat._optional import import_optional_dependency
@@ -88,7 +89,7 @@ def test_read_excel_warning_with_xlsx_file(datapath):
         b"\x09\x02\x06\x00\x00\x00\x10\x00",
         b"\x09\x04\x06\x00\x00\x00\x10\x00",
         b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",
-    ]
+    ],
 )
 def test_read_old_xls_files(file_header):
     # GH 41226
