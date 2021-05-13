@@ -1189,8 +1189,8 @@ def _refine_defaults_read(
     delim_whitespace: bool,
     engine: str,
     sep: Union[str, object],
-    names: Optional[ArrayLike],
-    prefix: Optional[str],
+    names: Union[Optional[ArrayLike], object],
+    prefix: Union[Optional[str], object],
     defaults: Dict[str, Any],
 ):
     """Validate/refine default values of input parameters of read_csv, read_table.
