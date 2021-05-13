@@ -10,6 +10,21 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
+    def test_datetimeindex_transpose_empty_df(self):
+        """
+        Regression test for:
+        https://github.com/pandas-dev/pandas/issues/41382
+        """
+        df = DataFrame(index=pd.DatetimeIndex([]))
+
+        expected = pd.DatetimeIndex([], dtype="datetime64[ns]", freq=None)
+
+        result1 = df.T.sum().index
+        result2 = df.sum(axis=1).index
+
+        tm.assert_index_equal(result1, expected)
+        tm.assert_index_equal(result2, expected)
+
     def test_indexing_with_datetime_tz(self):
 
         # GH#8260
