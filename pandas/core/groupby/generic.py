@@ -1106,6 +1106,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         result: dict[Hashable, NDFrame | np.ndarray] = {}
         if axis != obj._info_axis_number:
+            # test_pass_args_kwargs_duplicate_columns gets here with non-unique columns
             for name, data in self:
                 fres = func(data, *args, **kwargs)
                 result[name] = fres
@@ -1119,18 +1120,23 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _aggregate_item_by_item(self, func, *args, **kwargs) -> DataFrame:
         # only for axis==0
+        # tests that get here with non-unique cols:
+        #  test_resample_with_timedelta_yields_no_empty_groups,
+        #  test_resample_apply_product
 
         obj = self._obj_with_exclusions
         result: dict[int | str, NDFrame] = {}
-        for item in obj:
-            data = obj[item]
-            colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
+        for i, item in enumerate(obj):
+            ser = obj.iloc[:, i]
+            colg = SeriesGroupBy(
+                ser, selection=item, grouper=self.grouper, exclusions=self.exclusions
+            )
 
-            result[item] = colg.aggregate(func, *args, **kwargs)
+            result[i] = colg.aggregate(func, *args, **kwargs)
 
-        result_columns = obj.columns
-
-        return self.obj._constructor(result, columns=result_columns)
+        res_df = self.obj._constructor(result)
+        res_df.columns = obj.columns
+        return res_df
 
     def _wrap_applied_output(self, data, keys, values, not_indexed_same=False):
         if len(keys) == 0:
@@ -1401,6 +1407,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _transform_item_by_item(self, obj: DataFrame, wrapper) -> DataFrame:
         # iterate through columns, see test_transform_exclude_nuisance
+        #  gets here with non-unique columns
         output = {}
         inds = []
         for i, col in enumerate(obj):

@@ -1748,19 +1748,23 @@ def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last):
     assert result == expected
 
 
-def test_resample_apply_product():
+@pytest.mark.parametrize("duplicates", [True, False])
+def test_resample_apply_product(duplicates):
     # GH 5586
     index = date_range(start="2012-01-31", freq="M", periods=12)
 
     ts = Series(range(12), index=index)
     df = DataFrame({"A": ts, "B": ts + 2})
+    if duplicates:
+        df.columns = ["A", "A"]
+
     result = df.resample("Q").apply(np.product)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
         index=DatetimeIndex(
             ["2012-03-31", "2012-06-30", "2012-09-30", "2012-12-31"], freq="Q-DEC"
         ),
-        columns=["A", "B"],
+        columns=df.columns,
     )
     tm.assert_frame_equal(result, expected)
 
