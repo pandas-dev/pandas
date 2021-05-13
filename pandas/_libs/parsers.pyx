@@ -947,6 +947,17 @@ cdef class TextReader:
                               f"{self.table_width - self.leading_cols} "
                               f"and found {num_cols}")
 
+        if (self.usecols is not None and not callable(self.usecols) and
+                all(isinstance(u, int) for u in self.usecols)):
+            missing_usecols = [col for col in self.usecols if col >= num_cols]
+            if missing_usecols:
+                warnings.warn(
+                    "Defining usecols with out of bounds indices is deprecated "
+                    "and will raise a ParserError in a future version.",
+                    FutureWarning,
+                    stacklevel=6,
+                )
+
         results = {}
         nused = 0
         for i in range(self.table_width):

@@ -15,6 +15,7 @@ from typing import (
     Tuple,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -477,7 +478,7 @@ class PythonParser(ParserBase):
                 if self.usecols is not None:
                     # Set _use_cols. We don't store columns because they are
                     # overwritten.
-                    self._handle_usecols(columns, names)
+                    self._handle_usecols(columns, names, num_original_columns)
                 else:
                     num_original_columns = len(names)
                 if self._col_indices is not None and len(names) != len(
@@ -487,7 +488,9 @@ class PythonParser(ParserBase):
                 else:
                     columns = [names]
             else:
-                columns = self._handle_usecols(columns, columns[0])
+                columns = self._handle_usecols(
+                    columns, columns[0], num_original_columns
+                )
         else:
             try:
                 line = self._buffered_line()
@@ -506,10 +509,12 @@ class PythonParser(ParserBase):
                     columns = [[f"{self.prefix}{i}" for i in range(ncols)]]
                 else:
                     columns = [list(range(ncols))]
-                columns = self._handle_usecols(columns, columns[0])
+                columns = self._handle_usecols(
+                    columns, columns[0], num_original_columns
+                )
             else:
                 if self.usecols is None or len(names) >= num_original_columns:
-                    columns = self._handle_usecols([names], names)
+                    columns = self._handle_usecols([names], names, num_original_columns)
                     num_original_columns = len(names)
                 else:
                     if not callable(self.usecols) and len(names) != len(self.usecols):
@@ -518,13 +523,18 @@ class PythonParser(ParserBase):
                             "header fields in the file"
                         )
                     # Ignore output but set used columns.
-                    self._handle_usecols([names], names)
+                    self._handle_usecols([names], names, ncols)
                     columns = [names]
                     num_original_columns = ncols
 
         return columns, num_original_columns, unnamed_cols
 
-    def _handle_usecols(self, columns, usecols_key):
+    def _handle_usecols(
+        self,
+        columns: List[List[Union[Optional[str], Optional[int]]]],
+        usecols_key: List[Union[Optional[str], Optional[int]]],
+        num_original_columns: int,
+    ):
         """
         Sets self._col_indices
 
@@ -549,6 +559,16 @@ class PythonParser(ParserBase):
                     else:
                         col_indices.append(col)
             else:
+                missing_usecols = [
+                    col for col in self.usecols if col >= num_original_columns
+                ]
+                if missing_usecols:
+                    warnings.warn(
+                        "Defining usecols with out of bounds indices is deprecated "
+                        "and will raise a ParserError in a future version.",
+                        FutureWarning,
+                        stacklevel=8,
+                    )
                 col_indices = self.usecols
 
             columns = [
