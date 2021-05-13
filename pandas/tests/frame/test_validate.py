@@ -1,5 +1,6 @@
 import pytest
 
+import pandas._testing as tm
 from pandas.core.frame import DataFrame
 
 
@@ -17,7 +18,6 @@ class TestDataFrameValidate:
             "query",
             "eval",
             "set_index",
-            "reset_index",
             "dropna",
             "drop_duplicates",
             "sort_values",
@@ -38,4 +38,27 @@ class TestDataFrameValidate:
             kwargs["by"] = ["a"]
 
         with pytest.raises(ValueError, match=msg):
+            getattr(dataframe, func)(**kwargs)
+
+    @pytest.mark.parametrize(
+        "func",
+        [
+            "reset_index",
+        ],
+    )
+    @pytest.mark.parametrize("inplace", [1, "True", [1, 2, 3], 5.0])
+    def test_validate_bool_args_with_deprecation_warning(
+        self, dataframe, func, inplace
+    ):
+        # GH16529
+        msg = 'For argument "inplace" expected type bool'
+        kwargs = {"inplace": inplace}
+
+        warning_msg = (
+            r"'inplace' will be removed in a future version "
+            r"and the current default behaviour \('inplace=False'\) will "
+            r"be used\. Remove the 'inplace' argument to silence this warning\."
+        )
+        warning_ctx = tm.assert_produces_warning(DeprecationWarning, match=warning_msg)
+        with pytest.raises(ValueError, match=msg), warning_ctx:
             getattr(dataframe, func)(**kwargs)
