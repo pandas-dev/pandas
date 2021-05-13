@@ -48,7 +48,6 @@ sys.path.insert(1, os.path.join(BASE_PATH, "doc", "sphinxext"))
 from numpydoc.validate import validate, Validator  # isort:skip
 from numpydoc.docscrape import get_doc_object
 
-
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
     "GL04": "Private classes ({mentioned_private_classes}) should not be "
@@ -211,7 +210,6 @@ def pandas_validate(func_name: str):
         Information about the docstring and the errors found.
     """
     func_obj = get_doc_object(Validator._load_obj(func_name))
-    print(func_name, func_obj._obj)
     doc = PandasDocstring(func_obj)
     result = validate(func_name)
 
