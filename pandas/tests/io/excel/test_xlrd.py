@@ -6,6 +6,7 @@ from pandas.compat._optional import import_optional_dependency
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.io.excel import xlrd_version
+from pandas.util.version import Version
 
 from pandas.io.excel import ExcelFile
 from pandas.io.excel._base import inspect_excel_format
@@ -20,7 +21,7 @@ def skip_ods_and_xlsb_files(read_ext):
         pytest.skip("Not valid for xlrd")
     if read_ext == ".xlsb":
         pytest.skip("Not valid for xlrd")
-    if read_ext in (".xlsx", ".xlsm") and xlrd_version >= "2":
+    if read_ext in (".xlsx", ".xlsm") and xlrd_version >= Version("2"):
         pytest.skip("Not valid for xlrd >= 2.0")
 
 
@@ -63,7 +64,7 @@ def test_read_excel_warning_with_xlsx_file(datapath):
     path = datapath("io", "data", "excel", "test1.xlsx")
     has_openpyxl = import_optional_dependency("openpyxl", errors="ignore") is not None
     if not has_openpyxl:
-        if xlrd_version >= "2":
+        if xlrd_version >= Version("2"):
             with pytest.raises(
                 ValueError,
                 match="Your version of xlrd is ",

@@ -114,12 +114,24 @@ def maybe_convert_objects(
     convert_to_nullable_integer: bool = ...,
 ) -> ArrayLike: ...
 
+@overload
 def maybe_convert_numeric(
     values: np.ndarray,  # np.ndarray[object]
     na_values: set,
     convert_empty: bool = True,
     coerce_numeric: bool = False,
-) -> np.ndarray: ...
+    convert_to_masked_nullable: Literal[False] = ...,
+) -> tuple[np.ndarray, None]: ...
+
+@overload
+def maybe_convert_numeric(
+    values: np.ndarray,  # np.ndarray[object]
+    na_values: set,
+    convert_empty: bool = True,
+    coerce_numeric: bool = False,
+    *,
+    convert_to_masked_nullable: Literal[True],
+) -> tuple[np.ndarray, np.ndarray]: ...
 
 # TODO: restrict `arr`?
 def ensure_string_array(

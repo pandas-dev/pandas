@@ -253,7 +253,7 @@ def test_duplicated_large(keep):
     mi = MultiIndex(levels=levels, codes=codes)
 
     result = mi.duplicated(keep=keep)
-    expected = hashtable.duplicated_object(mi.values, keep=keep)
+    expected = hashtable.duplicated(mi.values, keep=keep)
     tm.assert_numpy_array_equal(result, expected)
 
 

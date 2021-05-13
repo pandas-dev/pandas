@@ -64,6 +64,7 @@ class PandasArray(
     _typ = "npy_extension"
     __array_priority__ = 1000
     _ndarray: np.ndarray
+    _dtype: PandasDtype
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -83,8 +84,8 @@ class PandasArray(
         if copy:
             values = values.copy()
 
-        self._ndarray = values
-        self._dtype = PandasDtype(values.dtype)
+        dtype = PandasDtype(values.dtype)
+        super().__init__(values, dtype)
 
     @classmethod
     def _from_sequence(

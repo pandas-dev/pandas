@@ -1,6 +1,4 @@
 """ test feather-format compat """
-from distutils.version import LooseVersion
-
 import numpy as np
 import pytest
 
@@ -8,13 +6,14 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.util.version import Version
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
 pyarrow = pytest.importorskip("pyarrow")
 
 
-pyarrow_version = LooseVersion(pyarrow.__version__)
+pyarrow_version = Version(pyarrow.__version__)
 filter_sparse = pytest.mark.filterwarnings("ignore:The Sparse")
 
 
@@ -90,7 +89,7 @@ class TestFeather:
                 ),
             }
         )
-        if pyarrow_version >= LooseVersion("0.16.1.dev"):
+        if pyarrow_version >= Version("0.17.0"):
             df["periods"] = pd.period_range("2013", freq="M", periods=3)
             df["timedeltas"] = pd.timedelta_range("1 day", periods=3)
             # TODO temporary disable due to regression in pyarrow 0.17.1
@@ -186,7 +185,7 @@ class TestFeather:
         result = tm.round_trip_localpath(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
-    @td.skip_if_no("pyarrow", min_version="0.16.1.dev")
+    @td.skip_if_no("pyarrow", min_version="0.17.0")
     def test_passthrough_keywords(self):
         df = tm.makeDataFrame().reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})

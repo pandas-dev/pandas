@@ -8,6 +8,8 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
+    Generic,
+    Hashable,
     TypeVar,
     cast,
 )
@@ -19,6 +21,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     DtypeObj,
+    FrameOrSeries,
     IndexLabel,
     Shape,
     final,
@@ -61,6 +64,8 @@ from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas import Categorical
 
 _shared_docs: dict[str, str] = {}
@@ -163,25 +168,17 @@ class SpecificationError(Exception):
     pass
 
 
-class SelectionMixin:
+class SelectionMixin(Generic[FrameOrSeries]):
     """
     mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
     """
 
+    obj: FrameOrSeries
     _selection: IndexLabel | None = None
+    exclusions: frozenset[Hashable]
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
-
-    @property
-    def _selection_name(self):
-        """
-        Return a name for myself;
-
-        This would ideally be called the 'name' property,
-        but we cannot conflict with the Series.name property which can be set.
-        """
-        return self._selection
 
     @final
     @property
@@ -194,15 +191,10 @@ class SelectionMixin:
 
     @cache_readonly
     def _selected_obj(self):
-        # error: "SelectionMixin" has no attribute "obj"
-        if self._selection is None or isinstance(
-            self.obj, ABCSeries  # type: ignore[attr-defined]
-        ):
-            # error: "SelectionMixin" has no attribute "obj"
-            return self.obj  # type: ignore[attr-defined]
+        if self._selection is None or isinstance(self.obj, ABCSeries):
+            return self.obj
         else:
-            # error: "SelectionMixin" has no attribute "obj"
-            return self.obj[self._selection]  # type: ignore[attr-defined]
+            return self.obj[self._selection]
 
     @cache_readonly
     def ndim(self) -> int:
@@ -211,51 +203,35 @@ class SelectionMixin:
     @final
     @cache_readonly
     def _obj_with_exclusions(self):
-        # error: "SelectionMixin" has no attribute "obj"
-        if self._selection is not None and isinstance(
-            self.obj, ABCDataFrame  # type: ignore[attr-defined]
-        ):
-            # error: "SelectionMixin" has no attribute "obj"
-            return self.obj.reindex(  # type: ignore[attr-defined]
-                columns=self._selection_list
-            )
+        if self._selection is not None and isinstance(self.obj, ABCDataFrame):
+            return self.obj[self._selection_list]
 
-        # error: "SelectionMixin" has no attribute "exclusions"
-        if len(self.exclusions) > 0:  # type: ignore[attr-defined]
-            # error: "SelectionMixin" has no attribute "obj"
-            # error: "SelectionMixin" has no attribute "exclusions"
-            return self.obj.drop(self.exclusions, axis=1)  # type: ignore[attr-defined]
+        if len(self.exclusions) > 0:
+            return self.obj.drop(self.exclusions, axis=1)
         else:
-            # error: "SelectionMixin" has no attribute "obj"
-            return self.obj  # type: ignore[attr-defined]
+            return self.obj
 
     def __getitem__(self, key):
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndex, np.ndarray)):
-            # error: "SelectionMixin" has no attribute "obj"
-            if len(
-                self.obj.columns.intersection(key)  # type: ignore[attr-defined]
-            ) != len(key):
-                # error: "SelectionMixin" has no attribute "obj"
-                bad_keys = list(
-                    set(key).difference(self.obj.columns)  # type: ignore[attr-defined]
-                )
+            if len(self.obj.columns.intersection(key)) != len(key):
+                bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
 
         elif not getattr(self, "as_index", False):
-            # error: "SelectionMixin" has no attribute "obj"
-            if key not in self.obj.columns:  # type: ignore[attr-defined]
+            if key not in self.obj.columns:
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=2)
 
         else:
-            # error: "SelectionMixin" has no attribute "obj"
-            if key not in self.obj:  # type: ignore[attr-defined]
+            if key not in self.obj:
                 raise KeyError(f"Column not found: {key}")
-            return self._gotitem(key, ndim=1)
+            subset = self.obj[key]
+            ndim = subset.ndim
+            return self._gotitem(key, ndim=ndim, subset=subset)
 
     def _gotitem(self, key, ndim: int, subset=None):
         """
@@ -1258,5 +1234,7 @@ class IndexOpsMixin(OpsMixin):
         return self[~duplicated]  # type: ignore[index]
 
     @final
-    def _duplicated(self, keep: str | bool = "first") -> np.ndarray:
+    def _duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> np.ndarray:
         return duplicated(self._values, keep=keep)
