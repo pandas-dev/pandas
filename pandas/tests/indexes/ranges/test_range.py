@@ -24,6 +24,16 @@ class TestRangeIndex(NumericBase):
     _index_cls = RangeIndex
 
     @pytest.fixture
+    def dtype(self):
+        return np.int64
+
+    @pytest.fixture(
+        params=["uint64", "float64", "category", "datetime64"],
+    )
+    def invalid_dtype(self, request):
+        return request.param
+
+    @pytest.fixture
     def simple_index(self) -> Index:
         return self._index_cls(start=0, stop=20, step=2)
 
@@ -36,6 +46,11 @@ class TestRangeIndex(NumericBase):
     )
     def index(self, request):
         return request.param
+
+    def test_constructor_unwraps_index(self, dtype):
+        result = self._index_cls(1, 3)
+        expected = np.array([1, 2], dtype=dtype)
+        tm.assert_numpy_array_equal(result._data, expected)
 
     def test_can_hold_identifiers(self, simple_index):
         idx = simple_index

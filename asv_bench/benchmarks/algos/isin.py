@@ -9,6 +9,8 @@ from pandas import (
     date_range,
 )
 
+from ..pandas_vb_common import tm
+
 
 class IsIn:
 
@@ -22,6 +24,9 @@ class IsIn:
         "datetime64[ns]",
         "category[object]",
         "category[int]",
+        "str",
+        "string",
+        "arrow_string",
     ]
     param_names = ["dtype"]
 
@@ -56,6 +61,15 @@ class IsIn:
 
             self.values = np.random.choice(arr, sample_size)
             self.series = Series(arr).astype("category")
+
+        elif dtype in ["str", "string", "arrow_string"]:
+            from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+            try:
+                self.series = Series(tm.makeStringIndex(N), dtype=dtype)
+            except ImportError:
+                raise NotImplementedError
+            self.values = list(self.series[:2])
 
         else:
             self.series = Series(np.random.randint(1, 10, N)).astype(dtype)

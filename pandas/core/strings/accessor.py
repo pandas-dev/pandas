@@ -2,15 +2,20 @@ import codecs
 from functools import wraps
 import re
 from typing import (
+    TYPE_CHECKING,
     Dict,
+    Hashable,
     List,
     Optional,
+    Pattern,
+    Union,
 )
 import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
+from pandas._typing import FrameOrSeriesUnion
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -30,6 +35,9 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.base import NoNewAttributesMixin
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 _shared_docs: Dict[str, str] = {}
 _cpython_optimized_encoders = (
@@ -155,11 +163,10 @@ class StringMethods(NoNewAttributesMixin):
 
     def __init__(self, data):
         from pandas.core.arrays.string_ import StringDtype
-        from pandas.core.arrays.string_arrow import ArrowStringDtype
 
         self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data.dtype)
-        self._is_string = isinstance(data.dtype, (StringDtype, ArrowStringDtype))
+        self._is_string = isinstance(data.dtype, StringDtype)
         self._data = data
 
         self._index = self._name = None
@@ -1232,7 +1239,7 @@ class StringMethods(NoNewAttributesMixin):
             Regex module flags, e.g. re.IGNORECASE. Cannot be set if `pat` is a compiled
             regex.
         regex : bool, default True
-            Determines if assumes the passed-in pattern is a regular expression:
+            Determines if the passed-in pattern is a regular expression:
 
             - If True, assumes the passed-in pattern is a regular expression.
             - If False, treats the pattern as a literal string
@@ -1288,7 +1295,7 @@ class StringMethods(NoNewAttributesMixin):
 
         To get the idea:
 
-        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', repr)
+        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', repr, regex=True)
         0    <re.Match object; span=(0, 1), match='f'>oo
         1    <re.Match object; span=(0, 1), match='f'>uz
         2                                            NaN
@@ -1297,7 +1304,8 @@ class StringMethods(NoNewAttributesMixin):
         Reverse every lowercase alphabetic word:
 
         >>> repl = lambda m: m.group(0)[::-1]
-        >>> pd.Series(['foo 123', 'bar baz', np.nan]).str.replace(r'[a-z]+', repl)
+        >>> ser = pd.Series(['foo 123', 'bar baz', np.nan])
+        >>> ser.str.replace(r'[a-z]+', repl, regex=True)
         0    oof 123
         1    rab zab
         2        NaN
@@ -1307,7 +1315,8 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
         >>> repl = lambda m: m.group('two').swapcase()
-        >>> pd.Series(['One Two Three', 'Foo Bar Baz']).str.replace(pat, repl)
+        >>> ser = pd.Series(['One Two Three', 'Foo Bar Baz'])
+        >>> ser.str.replace(pat, repl, regex=True)
         0    tWO
         1    bAR
         dtype: object
@@ -1316,7 +1325,7 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> import re
         >>> regex_pat = re.compile(r'FUZ', flags=re.IGNORECASE)
-        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace(regex_pat, 'bar')
+        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace(regex_pat, 'bar', regex=True)
         0    foo
         1    bar
         2    NaN
@@ -2273,7 +2282,9 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def extract(self, pat, flags=0, expand=True):
+    def extract(
+        self, pat: str, flags: int = 0, expand: bool = True
+    ) -> Union[FrameOrSeriesUnion, "Index"]:
         r"""
         Extract capture groups in the regex `pat` as columns in a DataFrame.
 
@@ -2354,6 +2365,16 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
+        if not isinstance(expand, bool):
+            raise ValueError("expand must be True or False")
+
+        regex = re.compile(pat, flags=flags)
+        if regex.groups == 0:
+            raise ValueError("pattern contains no capture groups")
+
+        if not expand and regex.groups > 1 and isinstance(self._data, ABCIndex):
+            raise ValueError("only one regex group is supported with Index")
+
         # TODO: dispatch
         return str_extract(self, pat, flags, expand=expand)
 
@@ -3007,8 +3028,6 @@ def cat_core(list_of_columns: List, sep: str):
 
 def _groups_or_na_fun(regex):
     """Used in both extract_noexpand and extract_frame"""
-    if regex.groups == 0:
-        raise ValueError("pattern contains no capture groups")
     empty_row = [np.nan] * regex.groups
 
     def f(x):
@@ -3028,19 +3047,36 @@ def _result_dtype(arr):
     # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
     # when the list of values is empty.
     from pandas.core.arrays.string_ import StringDtype
-    from pandas.core.arrays.string_arrow import ArrowStringDtype
 
-    if isinstance(arr.dtype, (StringDtype, ArrowStringDtype)):
+    if isinstance(arr.dtype, StringDtype):
         return arr.dtype.name
     else:
         return object
 
 
-def _get_single_group_name(rx):
-    try:
-        return list(rx.groupindex.keys()).pop()
-    except IndexError:
+def _get_single_group_name(regex: Pattern) -> Hashable:
+    if regex.groupindex:
+        return next(iter(regex.groupindex))
+    else:
         return None
+
+
+def _get_group_names(regex: Pattern) -> List[Hashable]:
+    """
+    Get named groups from compiled regex.
+
+    Unnamed groups are numbered.
+
+    Parameters
+    ----------
+    regex : compiled regex
+
+    Returns
+    -------
+    list of column labels
+    """
+    names = {v: k for k, v in regex.groupindex.items()}
+    return [names.get(1 + i, i) for i in range(regex.groups)]
 
 
 def _str_extract_noexpand(arr, pat, flags=0):
@@ -3066,11 +3102,8 @@ def _str_extract_noexpand(arr, pat, flags=0):
         # not dispatching, so we have to reconstruct here.
         result = pd_array(result, dtype=result_dtype)
     else:
-        if isinstance(arr, ABCIndex):
-            raise ValueError("only one regex group is supported with Index")
         name = None
-        names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
-        columns = [names.get(1 + i, i) for i in range(regex.groups)]
+        columns = _get_group_names(regex)
         if arr.size == 0:
             # error: Incompatible types in assignment (expression has type
             # "DataFrame", variable has type "ndarray")
@@ -3101,8 +3134,7 @@ def _str_extract_frame(arr, pat, flags=0):
 
     regex = re.compile(pat, flags=flags)
     groups_or_na = _groups_or_na_fun(regex)
-    names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
-    columns = [names.get(1 + i, i) for i in range(regex.groups)]
+    columns = _get_group_names(regex)
 
     if len(arr) == 0:
         return DataFrame(columns=columns, dtype=object)
@@ -3120,8 +3152,6 @@ def _str_extract_frame(arr, pat, flags=0):
 
 
 def str_extract(arr, pat, flags=0, expand=True):
-    if not isinstance(expand, bool):
-        raise ValueError("expand must be True or False")
     if expand:
         result = _str_extract_frame(arr._orig, pat, flags=flags)
         return result.__finalize__(arr._orig, method="str_extract")
@@ -3139,8 +3169,7 @@ def str_extractall(arr, pat, flags=0):
     if isinstance(arr, ABCIndex):
         arr = arr.to_series().reset_index(drop=True)
 
-    names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
-    columns = [names.get(1 + i, i) for i in range(regex.groups)]
+    columns = _get_group_names(regex)
     match_list = []
     index_list = []
     is_mi = arr.index.nlevels > 1

@@ -671,15 +671,6 @@ class TestStyler:
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "-"
 
-    def test_nonunique_raises(self):
-        df = DataFrame([[1, 2]], columns=["A", "A"])
-        msg = "style is not supported for non-unique indices."
-        with pytest.raises(ValueError, match=msg):
-            df.style
-
-        with pytest.raises(ValueError, match=msg):
-            Styler(df)
-
     def test_caption(self):
         styler = Styler(self.df, caption="foo")
         result = styler.render()
@@ -853,7 +844,24 @@ class TestStyler:
             (1, 4): 1,
             (1, 5): 1,
         }
-        result = _get_level_lengths(index)
+        result = _get_level_lengths(index, sparsify=True)
+        tm.assert_dict_equal(result, expected)
+
+        expected = {
+            (0, 0): 1,
+            (0, 1): 1,
+            (0, 2): 1,
+            (0, 3): 1,
+            (0, 4): 1,
+            (0, 5): 1,
+            (1, 0): 1,
+            (1, 1): 1,
+            (1, 2): 1,
+            (1, 3): 1,
+            (1, 4): 1,
+            (1, 5): 1,
+        }
+        result = _get_level_lengths(index, sparsify=False)
         tm.assert_dict_equal(result, expected)
 
     def test_get_level_lengths_un_sorted(self):
@@ -867,7 +875,20 @@ class TestStyler:
             (1, 2): 1,
             (1, 3): 1,
         }
-        result = _get_level_lengths(index)
+        result = _get_level_lengths(index, sparsify=True)
+        tm.assert_dict_equal(result, expected)
+
+        expected = {
+            (0, 0): 1,
+            (0, 1): 1,
+            (0, 2): 1,
+            (0, 3): 1,
+            (1, 0): 1,
+            (1, 1): 1,
+            (1, 2): 1,
+            (1, 3): 1,
+        }
+        result = _get_level_lengths(index, sparsify=False)
         tm.assert_dict_equal(result, expected)
 
     def test_mi_sparse(self):

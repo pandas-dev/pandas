@@ -325,7 +325,6 @@ In the example below, we transform the ``Series`` to a sparse representation of 
        row_levels=["A", "B"], column_levels=["C", "D"], sort_labels=True
    )
 
-
    A
    A.todense()
    rows
