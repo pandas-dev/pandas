@@ -38,10 +38,6 @@ def is_platform_mac():
     return sys.platform == "darwin"
 
 
-def is_platform_zos():
-    return sys.platform == "zos"
-
-
 min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
 
 try:
@@ -573,20 +569,12 @@ for name, data in ext_data.items():
     include = data.get("include", [])
     include.append(numpy.get_include())
 
-    extra_comp_args = extra_compile_args.copy()
-    comp_macros = data.get("macros", macros)
     undef_macros = []
 
-    if is_platform_zos():
-        language = data.get("language", None)
-        if language == "c++":
-            compiler = os.environ.get("CXX", "/bin/xlc++")
-            compiler_name = os.path.basename(compiler)
-
-            if (compiler_name == "xlc") or (compiler_name == "xlc++"):
-                comp_macros.append(("__s390__", "1"))
-                extra_comp_args.append("-qlanglvl=extended0x:nolibext")
-                undef_macros.append("_POSIX_THREADS")
+    if sys.platform == "zos" and data.get("language") == "c++" and os.path.basename(os.environ.get("CXX", "/bin/xlc++")) in ('xlc', 'xlc++'):
+        data.get("macros", macros).append(("__s390__", "1"))
+        extra_compile_args.append("-qlanglvl=extended0x:nolibext")
+        undef_macros.append("_POSIX_THREADS")
 
     obj = Extension(
         f"pandas.{name}",
@@ -594,8 +582,8 @@ for name, data in ext_data.items():
         depends=data.get("depends", []),
         include_dirs=include,
         language=data.get("language", "c"),
-        define_macros=comp_macros,
-        extra_compile_args=extra_comp_args,
+        define_macros=data.get("macros", macros),
+        extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
         undef_macros=undef_macros,
     )
