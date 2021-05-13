@@ -249,10 +249,18 @@ class Split:
 
 
 class Dummies:
-    def setup(self):
-        self.s = Series(tm.makeStringIndex(10 ** 5)).str.join("|")
+    params = ["str", "string", "arrow_string"]
+    param_names = ["dtype"]
 
-    def time_get_dummies(self):
+    def setup(self, dtype):
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+        try:
+            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype).str.join("|")
+        except ImportError:
+            raise NotImplementedError
+
+    def time_get_dummies(self, dtype):
         self.s.str.get_dummies("|")
 
 
