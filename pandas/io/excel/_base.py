@@ -1021,7 +1021,7 @@ XLS_SIGNATURES = (
     b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1",  # Compound File Binary
 )
 ZIP_SIGNATURE = b"PK\x03\x04"
-PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE, )))
+PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
 
 
 @doc(storage_options=_shared_docs["storage_options"])
