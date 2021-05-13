@@ -12,6 +12,7 @@ from typing import (
     Any,
     Hashable,
     cast,
+    Sequence
 )
 
 import numpy as np
@@ -385,6 +386,33 @@ class IntervalIndex(ExtensionIndex):
     ) -> IntervalIndex:
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)
+        return cls._simple_new(arr, name=name)
+
+    
+    @classmethod
+    @Appender(
+        _interval_shared_docs["from_strings"]
+        % {
+            "klass": "IntervalIndex",
+            "examples": textwrap.dedent(
+                """\
+        Examples
+        --------
+        >>> pd.IntervalIndex.from_strings(["(0, 1]", "(1, 2]"])
+        IntervalIndex([(0, 1], (1, 2]],
+                       dtype='interval[int64, right]')
+        """
+            ),
+        }
+    )
+    def from_strings(
+            cls,
+            data: Sequence[str],
+            name: Hashable = None,
+        ) -> IntervalIndex:
+        with rewrite_exception("IntervalArray", cls.__name__):
+            arr = IntervalArray.from_strings(data=data)
+
         return cls._simple_new(arr, name=name)
 
     # --------------------------------------------------------------------

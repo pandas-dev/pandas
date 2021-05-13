@@ -562,6 +562,96 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return cls.from_arrays(left, right, closed, copy=False, dtype=dtype)
 
+
+    _interval_shared_docs["from_strings"] = textwrap.dedent(
+        """
+        Construct from string representations of the left and right bounds.
+
+        Parameters
+        ----------
+        data : array-like (1-dimensional)
+            Strings representing the Interval's to parse.
+        copy : bool, default False
+            Copy the data.
+        dtype : dtype, optional
+            If None, dtype will be inferred.
+
+        Returns
+        -------
+        %(klass)s
+
+        Raises
+        ------
+        ValueError
+            When a string cannot be parsed as an Interval
+            When the dtype of the string cannot be parsed as either float, Timestamp or Timedelta
+
+        See Also
+        --------
+        interval_range : Function to create a fixed frequency IntervalIndex.
+        %(klass)s.from_breaks : Construct an %(klass)s from an array of
+            splits.
+        %(klass)s.from_tuples : Construct an %(klass)s from an
+            array-like of tuples.
+
+        %(examples)s\
+        """
+    )
+    @classmethod
+    @Appender(
+        _interval_shared_docs["from_strings"]
+        % {
+            "klass": "IntervalIndex",
+            "examples": textwrap.dedent(
+                """\
+        Examples
+        --------
+        >>> pd.IntervalIndex.from_strings(["(0, 1]", "(1, 2]"])
+        IntervalIndex([(0, 1], (1, 2]],
+                       dtype='interval[int64, right]')
+        """
+            ),
+        }
+    )
+    def from_strings(
+            cls: type[IntervalArrayT],
+            data: Sequence[str],
+        ) -> IntervalArrayT:
+        # These need to be imported here to avoid circular dependencies.
+        from pandas.core.tools.timedeltas import to_timedelta
+        from pandas.core.tools.datetimes import to_datetime
+
+        intervals: list[Interval] = []
+        for string in data:
+            try:
+                # Find the first parenthesis and assume it is the start of the interval
+                start = string.index("(")
+                # Find the first closing square bracket and assume it is the end
+                end = string.rindex("]")
+            except ValueError:
+                raise ValueError(f"Could not find opening '(' and closing ']' brackets in string: '{string}'")
+
+            # Extract that part and try to split based on a comma and a space.
+            breaks = string[start + 1:end].split(", ", 1)
+
+            if len(breaks) != 2:
+                raise ValueError(f"Delimiter ', ' (comma + space) not found in string: {string}")
+
+            # Try to parse the breaks first as floats, then datetime, then timedelta.
+            for conversion in [float, to_datetime, to_timedelta]:
+                try:
+                    interval = Interval(*map(conversion, breaks))
+                    break
+                except ValueError:
+                    continue
+            else:
+                raise ValueError(f"Could not parse string as Interval of float, Timedelta or Timestamp: {string}")
+            intervals.append(interval)
+
+
+        return cls(intervals)
+            
+
     def _validate(self):
         """
         Verify that the IntervalArray is valid.
