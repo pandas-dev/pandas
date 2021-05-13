@@ -1101,22 +1101,28 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if self.grouper.nkeys != 1:
             raise AssertionError("Number of keys must be 1")
 
-        axis = self.axis
         obj = self._obj_with_exclusions
 
         result: dict[Hashable, NDFrame | np.ndarray] = {}
-        if axis != obj._info_axis_number:
+        if self.axis == 0:
             # test_pass_args_kwargs_duplicate_columns gets here with non-unique columns
             for name, data in self:
                 fres = func(data, *args, **kwargs)
                 result[name] = fres
         else:
+            # we get here in a number of test_multilevel tests
             for name in self.indices:
                 data = self.get_group(name, obj=obj)
                 fres = func(data, *args, **kwargs)
                 result[name] = fres
 
-        return self._wrap_frame_output(result, obj)
+        result_index = self.grouper.result_index
+        other_ax = obj.axes[1 - self.axis]
+        out = self.obj._constructor(result, index=other_ax, columns=result_index)
+        if self.axis == 0:
+            out = out.T
+
+        return out
 
     def _aggregate_item_by_item(self, func, *args, **kwargs) -> DataFrame:
         # only for axis==0
@@ -1567,16 +1573,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             )
 
         raise AssertionError("invalid ndim for _gotitem")
-
-    def _wrap_frame_output(self, result: dict, obj: DataFrame) -> DataFrame:
-        result_index = self.grouper.levels[0]
-
-        if self.axis == 0:
-            return self.obj._constructor(
-                result, index=obj.columns, columns=result_index
-            ).T
-        else:
-            return self.obj._constructor(result, index=obj.index, columns=result_index)
 
     def _get_data_to_aggregate(self) -> Manager2D:
         obj = self._obj_with_exclusions
