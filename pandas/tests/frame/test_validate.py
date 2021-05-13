@@ -46,7 +46,7 @@ class TestDataFrameValidate:
             "reset_index",
         ],
     )
-    @pytest.mark.parametrize("inplace", [1, "True", [1, 2, 3], 5.0])
+    @pytest.mark.parametrize("inplace", [1, "True", "False", [1, 2, 3], 5.0])
     def test_validate_bool_args_with_deprecation_warning(
         self, dataframe, func, inplace
     ):

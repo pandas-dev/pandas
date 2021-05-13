@@ -685,7 +685,8 @@ def test_reset_index_multiindex_nat():
     tm.assert_frame_equal(result, expected)
 
 
-def test_inplace_deprecation_warning():
+@pytest.mark.parametrize("inplace", [True, False])
+def test_inplace_deprecation_warning(inplace):
     # GH16529
     df = DataFrame({"a": [1, 2, 3]})
     msg = (
@@ -694,4 +695,4 @@ def test_inplace_deprecation_warning():
         r"be used\. Remove the 'inplace' argument to silence this warning\."
     )
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        df.reset_index(inplace=True)
+        df.reset_index(inplace=inplace)
