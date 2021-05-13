@@ -259,6 +259,7 @@ class TestDataFrameMisc:
         d = data.copy()["c"]
 
         # reset_index
+        f = lambda x: x.reset_index(inplace=True, drop=True)
         _check_f(data.set_index("a")["c"], f)
 
         # fillna

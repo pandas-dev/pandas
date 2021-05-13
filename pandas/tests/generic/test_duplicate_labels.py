@@ -466,11 +466,10 @@ def test_inplace_raises_with_deprecation_warning(method, frame_only):
         r"be used\. Set 'inplace=False' to silence this warning\."
     )
     warning_ctx = tm.assert_produces_warning(DeprecationWarning, match=warning_msg)
-    error_ctx = pytest.raises(ValueError, match=error_msg)  # noqa: PDF010
-    with error_ctx, warning_ctx:
+    with pytest.raises(ValueError, match=error_msg), warning_ctx:
         method(df)
     if not frame_only:
-        with error_ctx, warning_ctx:
+        with pytest.raises(ValueError, match=error_msg), warning_ctx:
             method(s)
 
 
