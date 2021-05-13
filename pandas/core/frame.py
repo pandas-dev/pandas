@@ -5719,17 +5719,17 @@ class DataFrame(NDFrame, OpsMixin):
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
         """
-        inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace is not no_default:
             warnings.warn(
                 "'inplace' will be removed in a future version "
                 "and the current default behaviour ('inplace=False') will "
-                "be used. Set 'inplace=False' to silence this warning.",
+                "be used. Remove the 'inplace' argument to silence this warning.",
                 DeprecationWarning,
                 stacklevel=2,
             )
         else:
             inplace = False
+        inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if inplace:
             new_obj = self
