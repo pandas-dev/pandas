@@ -160,7 +160,13 @@ class TestResetIndex:
         # test resetting in place
         df = float_frame.copy()
         reset = float_frame.reset_index()
-        return_value = df.reset_index(inplace=True)
+        msg = (
+            r"'inplace' will be removed in a future version "
+            r"and the current default behaviour \('inplace=False'\) will "
+            r"be used. Set 'inplace=False' to silence this warning."
+        )
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            return_value = df.reset_index(inplace=True)
         assert return_value is None
         tm.assert_frame_equal(df, reset, check_names=False)
 
@@ -179,7 +185,13 @@ class TestResetIndex:
         )
         assert df.reset_index().index.name is None
         assert df.reset_index(drop=True).index.name is None
-        return_value = df.reset_index(inplace=True)
+        msg = (
+            r"'inplace' will be removed in a future version "
+            r"and the current default behaviour \('inplace=False'\) will "
+            r"be used. Set 'inplace=False' to silence this warning."
+        )
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            return_value = df.reset_index(inplace=True)
         assert return_value is None
         assert df.index.name is None
 
