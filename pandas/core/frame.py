@@ -5717,6 +5717,14 @@ class DataFrame(NDFrame, OpsMixin):
         monkey         mammal    NaN    jump
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            warnings.warn(
+                "'inplace' will be removed in a future version "
+                "and the current default behaviour ('inplace=False') will "
+                "be used. Set 'inplace=False' to silence this warning.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if inplace:
             new_obj = self

@@ -671,3 +671,15 @@ def test_reset_index_multiindex_nat():
         index=pd.DatetimeIndex(["2015-07-01", "2015-07-02", "NaT"], name="tstamp"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_inplace_deprecation_warning():
+    # GH16529
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"'inplace' will be removed in a future version "
+        r"and the current default behaviour \('inplace=False'\) will "
+        r"be used. Set 'inplace=False' to silence this warning."
+    )
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        df.reset_index(inplace=True)
