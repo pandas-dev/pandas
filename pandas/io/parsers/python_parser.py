@@ -529,7 +529,12 @@ class PythonParser(ParserBase):
 
         return columns, num_original_columns, unnamed_cols
 
-    def _handle_usecols(self, columns, usecols_key, num_original_columns):
+    def _handle_usecols(
+        self,
+        columns: List[List[Union[Optional[str], Optional[int]]]],
+        usecols_key: List[Union[Optional[str], Optional[int]]],
+        num_original_columns: int,
+    ):
         """
         Sets self._col_indices
 
