@@ -293,11 +293,11 @@ class TestLoc2:
         s = Series(range(3), index=["a", "b", "c"])
 
         # consistency
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             s[["a", "d"]]
 
         s = Series(range(3))
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             s[[0, 3]]
 
     @pytest.mark.parametrize("index", [[True, False], [True, False, True, False]])
@@ -349,7 +349,7 @@ class TestLoc2:
             s.loc[["4"]]
 
         s.loc[-1] = 3
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             s.loc[[-1, -2]]
 
         s["a"] = 2
@@ -396,7 +396,7 @@ class TestLoc2:
             s.loc[[3]]
 
         # a non-match and a match
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             s.loc[[2, 3]]
 
     def test_loc_index(self):
@@ -597,17 +597,13 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         ser = Series([2, 3, 1], index=[3, 5, 4], dtype=float)
         if using_array_manager:
             # TODO(ArrayManager) with "split" path, we still overwrite the column
-            # and therefore don't take the order of the indexer into account
-            ser = Series([1, 2, 3], index=[3, 5, 4], dtype="int64")
+            # and therefore don't take the dtype of the underlying object into account
+            ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
         expected = DataFrame({"A": ser})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.xfail(reason="split path wrong update - GH40480")
     def test_loc_setitem_frame_with_reindex_mixed(self):
-        # same test as above, but with mixed dataframe
-        # TODO with "split" path we still actually overwrite the column
-        # and therefore don't take the order of the indexer into account
-        # -> this is a bug: https://github.com/pandas-dev/pandas/issues/40480
+        # GH#40480
         df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
@@ -616,8 +612,16 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected["B"] = "string"
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_frame_with_inverted_slice(self):
+        # GH#40480
+        df = DataFrame(index=[1, 2, 3], columns=["A", "B"], dtype=float)
+        df["B"] = "string"
+        df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
+        expected = DataFrame({"A": [3, 2, 1], "B": "string"}, index=[1, 2, 3])
+        tm.assert_frame_equal(df, expected)
+
     # TODO(ArrayManager) "split" path overwrites column and therefore don't take
-    # the order of the indexer into account
+    # the dtype of the underlying object into account
     @td.skip_array_manager_not_yet_implemented
     def test_loc_setitem_empty_frame(self):
         # GH#6252 setting with an empty frame
@@ -1063,6 +1067,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             [
                 "cannot copy sequence with size 2 to array axis with dimension 0",
                 r"could not broadcast input array from shape \(2,\) into shape \(0,\)",
+                "Must have equal len keys and value when setting with an iterable",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -1162,6 +1167,37 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame({"A": pd.array([0, 0], dtype=SparseDtype("int64"))})
         result = df.loc[[0, 1]]
         tm.assert_frame_equal(result, df)
+
+    @td.skip_if_no_scipy
+    def test_loc_getitem_sparse_frame(self):
+        # GH34687
+        from scipy.sparse import eye
+
+        df = DataFrame.sparse.from_spmatrix(eye(5))
+        result = df.loc[range(2)]
+        expected = DataFrame(
+            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
+            dtype=SparseDtype("float64", 0.0),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[range(2)].loc[range(1)]
+        expected = DataFrame(
+            [[1.0, 0.0, 0.0, 0.0, 0.0]], dtype=SparseDtype("float64", 0.0)
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_getitem_sparse_series(self):
+        # GH34687
+        s = Series([1.0, 0.0, 0.0, 0.0, 0.0], dtype=SparseDtype("float64", 0.0))
+
+        result = s.loc[range(2)]
+        expected = Series([1.0, 0.0], dtype=SparseDtype("float64", 0.0))
+        tm.assert_series_equal(result, expected)
+
+        result = s.loc[range(3)].loc[range(2)]
+        expected = Series([1.0, 0.0], dtype=SparseDtype("float64", 0.0))
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("key_type", [iter, np.array, Series, Index])
     def test_loc_getitem_iterable(self, float_frame, key_type):
@@ -1587,6 +1623,13 @@ class TestLocWithMultiIndex:
 
         result = df.loc[["a"]].index.levels[0]
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("lt_value", [30, 10])
+    def test_loc_multiindex_levels_contain_values_not_in_index_anymore(self, lt_value):
+        # GH#41170
+        df = DataFrame({"a": [12, 23, 34, 45]}, index=[list("aabb"), [0, 1, 2, 3]])
+        with pytest.raises(KeyError, match=r"\['b'\] not in index"):
+            df.loc[df["a"] < lt_value, :].loc[["b"], :]
 
 
 class TestLocSetitemWithExpansion:
@@ -2084,6 +2127,35 @@ class TestLabelSlicing:
         tm.assert_frame_equal(df.loc[:, 1:], expected)
 
 
+class TestLocBooleanLabelsAndSlices(Base):
+    @pytest.mark.parametrize("bool_value", [True, False])
+    def test_loc_bool_incompatible_index_raises(
+        self, index, frame_or_series, bool_value
+    ):
+        # GH20432
+        message = f"{bool_value}: boolean label can not be used without a boolean index"
+        if index.inferred_type != "boolean":
+            obj = frame_or_series(index=index, dtype="object")
+            with pytest.raises(KeyError, match=message):
+                obj.loc[bool_value]
+
+    @pytest.mark.parametrize("bool_value", [True, False])
+    def test_loc_bool_should_not_raise(self, frame_or_series, bool_value):
+        obj = frame_or_series(
+            index=Index([True, False], dtype="boolean"), dtype="object"
+        )
+        obj.loc[bool_value]
+
+    def test_loc_bool_slice_raises(self, index, frame_or_series):
+        # GH20432
+        message = (
+            r"slice\(True, False, None\): boolean values can not be used in a slice"
+        )
+        obj = frame_or_series(index=index, dtype="object")
+        with pytest.raises(TypeError, match=message):
+            obj.loc[True:False]
+
+
 class TestLocBooleanMask:
     def test_loc_setitem_bool_mask_timedeltaindex(self):
         # GH#14946
@@ -2184,12 +2256,7 @@ class TestLocListlike:
         ser2 = ser[:-1]
         ci2 = ci[1:]
         # but if there are no NAs present, this should raise KeyError
-        msg = (
-            r"Passing list-likes to .loc or \[\] with any missing labels is no "
-            "longer supported. The following labels were missing: "
-            r"(Categorical)?Index\(\[nan\], .*\). "
-            "See https"
-        )
+        msg = "not in index"
         with pytest.raises(KeyError, match=msg):
             ser2.loc[box(ci2)]
 
@@ -2199,41 +2266,13 @@ class TestLocListlike:
         with pytest.raises(KeyError, match=msg):
             ser2.to_frame().loc[box(ci2)]
 
-    def test_loc_getitem_many_missing_labels_inside_error_message_limited(self):
-        # GH#34272
-        n = 10000
-        missing_labels = [f"missing_{label}" for label in range(n)]
-        ser = Series({"a": 1, "b": 2, "c": 3})
-        # regex checks labels between 4 and 9995 are replaced with ellipses
-        error_message_regex = "missing_4.*\\.\\.\\..*missing_9995"
-        with pytest.raises(KeyError, match=error_message_regex):
-            ser.loc[["a", "c"] + missing_labels]
-
-    def test_loc_getitem_missing_labels_inside_matched_in_error_message(self):
-        # GH#34272
-        ser = Series({"a": 1, "b": 2, "c": 3})
-        error_message_regex = "missing_0.*missing_1.*missing_2"
-        with pytest.raises(KeyError, match=error_message_regex):
-            ser.loc[["a", "b", "missing_0", "c", "missing_1", "missing_2"]]
-
-    def test_loc_getitem_long_text_missing_labels_inside_error_message_limited(self):
-        # GH#34272
-        ser = Series({"a": 1, "b": 2, "c": 3})
-        missing_labels = [f"long_missing_label_text_{i}" * 5 for i in range(3)]
-        # regex checks for very long labels there are new lines between each
-        error_message_regex = (
-            "long_missing_label_text_0.*\\\\n.*long_missing_label_text_1"
-        )
-        with pytest.raises(KeyError, match=error_message_regex):
-            ser.loc[["a", "c"] + missing_labels]
-
     def test_loc_getitem_series_label_list_missing_values(self):
         # gh-11428
         key = np.array(
             ["2001-01-04", "2001-01-02", "2001-01-04", "2001-01-14"], dtype="datetime64"
         )
         ser = Series([2, 5, 8, 11], date_range("2001-01-01", freq="D", periods=4))
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             ser.loc[key]
 
     def test_loc_getitem_series_label_list_missing_integer_values(self):
@@ -2242,7 +2281,7 @@ class TestLocListlike:
             index=np.array([9730701000001104, 10049011000001109]),
             data=np.array([999000011000001104, 999000011000001104]),
         )
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             ser.loc[np.array([9730701000001104, 10047311000001102])]
 
     @pytest.mark.parametrize("to_period", [True, False])
@@ -2284,7 +2323,7 @@ class TestLocListlike:
         if to_period:
             keys = [x.to_period("D") for x in keys]
 
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             ser.loc[keys]
 
 
@@ -2635,3 +2674,13 @@ class TestLocSeries:
         string_series.loc[d2] = 6
         assert string_series[d1] == 4
         assert string_series[d2] == 6
+
+    @pytest.mark.parametrize("dtype", ["object", "string"])
+    def test_loc_assign_dict_to_row(self, dtype):
+        # GH41044
+        df = DataFrame({"A": ["abc", "def"], "B": ["ghi", "jkl"]}, dtype=dtype)
+        df.loc[0, :] = {"A": "newA", "B": "newB"}
+
+        expected = DataFrame({"A": ["newA", "def"], "B": ["newB", "jkl"]}, dtype=dtype)
+
+        tm.assert_frame_equal(df, expected)

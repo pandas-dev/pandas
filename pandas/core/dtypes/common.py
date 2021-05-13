@@ -23,7 +23,7 @@ from pandas._typing import (
     Optional,
 )
 
-from pandas.core.dtypes.base import registry
+from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -126,51 +126,6 @@ def ensure_str(value: Union[bytes, Any]) -> str:
     elif not isinstance(value, str):
         value = str(value)
     return value
-
-
-def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.ndarray:
-    """
-    Ensure that an dtype array of some integer dtype
-    has an int64 dtype if possible.
-    If it's not possible, potentially because of overflow,
-    convert the array to float64 instead.
-
-    Parameters
-    ----------
-    arr : array-like
-          The array whose data type we want to enforce.
-    copy: bool
-          Whether to copy the original array or reuse
-          it in place, if possible.
-
-    Returns
-    -------
-    out_arr : The input array cast as int64 if
-              possible without overflow.
-              Otherwise the input array cast to float64.
-
-    Notes
-    -----
-    If the array is explicitly of type uint64 the type
-    will remain unchanged.
-    """
-    # TODO: GH27506 potential bug with ExtensionArrays
-    try:
-        # error: Unexpected keyword argument "casting" for "astype"
-        return arr.astype("int64", copy=copy, casting="safe")  # type: ignore[call-arg]
-    except TypeError:
-        pass
-    try:
-        # error: Unexpected keyword argument "casting" for "astype"
-        return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore[call-arg]
-    except TypeError:
-        if is_extension_array_dtype(arr.dtype):
-            # pandas/core/dtypes/common.py:168: error: Item "ndarray" of
-            # "Union[ExtensionArray, ndarray]" has no attribute "to_numpy"  [union-attr]
-            return arr.to_numpy(  # type: ignore[union-attr]
-                dtype="float64", na_value=np.nan
-            )
-        return arr.astype("float64", copy=copy)
 
 
 def ensure_python_int(value: Union[int, np.integer]) -> int:
@@ -1386,7 +1341,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         # we don't have a boolean Index class
         # so its object, we need to infer to
         # guess this
-        return arr_or_dtype.is_object and arr_or_dtype.inferred_type == "boolean"
+        return arr_or_dtype.is_object() and arr_or_dtype.inferred_type == "boolean"
     elif is_extension_array_dtype(arr_or_dtype):
         return getattr(dtype, "_is_boolean", False)
 
@@ -1456,6 +1411,33 @@ def is_extension_type(arr) -> bool:
     elif is_datetime64tz_dtype(arr):
         return True
     return False
+
+
+def is_1d_only_ea_obj(obj: Any) -> bool:
+    """
+    ExtensionArray that does not support 2D, or more specifically that does
+    not use HybridBlock.
+    """
+    from pandas.core.arrays import (
+        DatetimeArray,
+        ExtensionArray,
+        TimedeltaArray,
+    )
+
+    return isinstance(obj, ExtensionArray) and not isinstance(
+        obj, (DatetimeArray, TimedeltaArray)
+    )
+
+
+def is_1d_only_ea_dtype(dtype: Optional[DtypeObj]) -> bool:
+    """
+    Analogue to is_extension_array_dtype but excluding DatetimeTZDtype.
+    """
+    # Note: if other EA dtypes are ever held in HybridBlock, exclude those
+    #  here too.
+    # NB: need to check DatetimeTZDtype and not is_datetime64tz_dtype
+    #  to exclude ArrowTimestampUSDtype
+    return isinstance(dtype, ExtensionDtype) and not isinstance(dtype, DatetimeTZDtype)
 
 
 def is_extension_array_dtype(arr_or_dtype) -> bool:
@@ -1576,7 +1558,7 @@ def _is_dtype(arr_or_dtype, condition) -> bool:
         return False
     try:
         dtype = get_dtype(arr_or_dtype)
-    except (TypeError, ValueError, UnicodeEncodeError):
+    except (TypeError, ValueError):
         return False
     return condition(dtype)
 
@@ -1651,7 +1633,7 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
 
     try:
         tipo = pandas_dtype(arr_or_dtype).type
-    except (TypeError, ValueError, UnicodeEncodeError):
+    except (TypeError, ValueError):
         if is_scalar(arr_or_dtype):
             return condition(type(None))
 

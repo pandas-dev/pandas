@@ -25,11 +25,13 @@ import sys
 from typing import (
     Any,
     Mapping,
-    Type,
 )
 
 import numpy as np
 
+from pandas._typing import type_t
+
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
@@ -46,7 +48,7 @@ class JSONDtype(ExtensionDtype):
     na_value: Mapping[str, Any] = UserDict()
 
     @classmethod
-    def construct_array_type(cls) -> Type[JSONArray]:
+    def construct_array_type(cls) -> type_t[JSONArray]:
         """
         Return the array type associated with this dtype.
 
@@ -217,11 +219,9 @@ class JSONArray(ExtensionArray):
         return frozen, ()
 
     def _values_for_argsort(self):
-        # Disable NumPy's shape inference by including an empty tuple...
-        # If all the elements of self are the same size P, NumPy will
-        # cast them to an (N, P) array, instead of an (N,) array of tuples.
-        frozen = [()] + [tuple(x.items()) for x in self]
-        return np.array(frozen, dtype=object)[1:]
+        # Bypass NumPy's shape inference to get a (N,) array of tuples.
+        frozen = [tuple(x.items()) for x in self]
+        return construct_1d_object_array_from_listlike(frozen)
 
 
 def make_data():

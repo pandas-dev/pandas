@@ -4648,10 +4648,8 @@ chunks.
 
    store.append("dfeq", dfeq, data_columns=["number"])
 
-
    def chunks(l, n):
        return [l[i: i + n] for i in range(0, len(l), n)]
-
 
    evens = [2, 4, 6, 8, 10]
    coordinates = store.select_as_coordinates("dfeq", "number=evens")
@@ -5240,6 +5238,7 @@ Write to a feather file.
 Read from a feather file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_feather("example.feather")
    result
@@ -5323,6 +5322,7 @@ Write to a parquet file.
 Read from a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_parquet("example_fp.parquet", engine="fastparquet")
    result = pd.read_parquet("example_pa.parquet", engine="pyarrow")
@@ -5440,6 +5440,11 @@ ORC
 Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
 for data frames. It is designed to make reading data frames efficient. pandas provides *only* a reader for the
 ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
+
+.. warning::
+
+   * It is *highly recommended* to install pyarrow using conda due to some issues occurred by pyarrow.
+   * :func:`~pandas.read_orc` is not supported on Windows yet, you can find valid environments on :ref:`install optional dependencies <install.warn_orc>`.
 
 .. _io.sql:
 

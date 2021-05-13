@@ -1,5 +1,6 @@
 from collections import abc
 from decimal import Decimal
+from enum import Enum
 import warnings
 
 import cython
@@ -66,6 +67,9 @@ cdef extern from "numpy/arrayobject.h":
             char byteorder
             object fields
             tuple names
+
+cdef extern from "numpy/ndarrayobject.h":
+    bint PyArray_CheckScalar(obj) nogil
 
 
 cdef extern from "src/parse_helper.h":
@@ -206,6 +210,24 @@ def is_scalar(val: object) -> bool:
             or is_period_object(val)
             or is_interval(val)
             or is_offset_object(val))
+
+
+cdef inline int64_t get_itemsize(object val):
+    """
+    Get the itemsize of a NumPy scalar, -1 if not a NumPy scalar.
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_ndarray : bool
+    """
+    if PyArray_CheckScalar(val):
+        return cnp.PyArray_DescrFromScalar(val).itemsize
+    else:
+        return -1
 
 
 def is_iterator(obj: object) -> bool:
@@ -632,7 +654,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_intsafe(ndarray[object] arr, new_dtype) -> ndarray:
+def astype_intsafe(ndarray[object] arr, cnp.dtype new_dtype) -> ndarray:
     cdef:
         Py_ssize_t i, n = len(arr)
         object val
@@ -660,7 +682,8 @@ cpdef ndarray[object] ensure_string_array(
         bint copy=True,
         bint skipna=True,
 ):
-    """Returns a new numpy array with object dtype and only strings and na values.
+    """
+    Returns a new numpy array with object dtype and only strings and na values.
 
     Parameters
     ----------
@@ -678,7 +701,7 @@ cpdef ndarray[object] ensure_string_array(
 
     Returns
     -------
-    ndarray
+    np.ndarray[object]
         An array with the input array's elements casted to str or nan-like.
     """
     cdef:
@@ -852,7 +875,7 @@ def get_level_sorter(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
-                   const int64_t[:] labels,
+                   const intp_t[:] labels,
                    Py_ssize_t max_bin,
                    int axis):
     cdef:
@@ -881,10 +904,10 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     return counts
 
 
-def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
+def generate_slices(const intp_t[:] labels, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, group_size, n, start
-        int64_t lab
+        intp_t lab
         object slobj
         ndarray[int64_t] starts, ends
 
@@ -910,12 +933,12 @@ def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def indices_fast(ndarray index, const int64_t[:] labels, list keys,
+def indices_fast(ndarray[intp_t] index, const int64_t[:] labels, list keys,
                  list sorted_labels) -> dict:
     """
     Parameters
     ----------
-    index : ndarray
+    index : ndarray[intp]
     labels : ndarray[int64]
     keys : list
     sorted_labels : list[ndarray[int64]]
@@ -1110,6 +1133,7 @@ _TYPE_MAP = {
     "complex128": "complex",
     "c": "complex",
     "string": "string",
+    str: "string",
     "S": "bytes",
     "U": "string",
     "bool": "boolean",
@@ -2005,7 +2029,8 @@ def maybe_convert_numeric(
     set na_values,
     bint convert_empty=True,
     bint coerce_numeric=False,
-) -> ndarray:
+    bint convert_to_masked_nullable=False,
+) -> tuple[np.ndarray, np.ndarray | None]:
     """
     Convert object array to a numeric array if possible.
 
@@ -2029,14 +2054,20 @@ def maybe_convert_numeric(
         numeric array has no suitable numerical dtype to return (i.e. uint64,
         int32, uint8). If set to False, the original object array will be
         returned. Otherwise, a ValueError will be raised.
-
+    convert_to_masked_nullable : bool, default False
+        Whether to return a mask for the converted values. This also disables
+        upcasting for ints with nulls to float64.
     Returns
     -------
     np.ndarray
         Array of converted object values to numerical ones.
+
+    Optional[np.ndarray]
+        If convert_to_masked_nullable is True,
+        returns a boolean mask for the converted values, otherwise returns None.
     """
     if len(values) == 0:
-        return np.array([], dtype='i8')
+        return (np.array([], dtype='i8'), None)
 
     # fastpath for ints - try to convert all based on first value
     cdef:
@@ -2046,7 +2077,7 @@ def maybe_convert_numeric(
         try:
             maybe_ints = values.astype('i8')
             if (maybe_ints == values).all():
-                return maybe_ints
+                return (maybe_ints, None)
         except (ValueError, OverflowError, TypeError):
             pass
 
@@ -2060,21 +2091,40 @@ def maybe_convert_numeric(
         ndarray[int64_t] ints = np.empty(n, dtype='i8')
         ndarray[uint64_t] uints = np.empty(n, dtype='u8')
         ndarray[uint8_t] bools = np.empty(n, dtype='u1')
+        ndarray[uint8_t] mask = np.zeros(n, dtype="u1")
         float64_t fval
+        bint allow_null_in_int = convert_to_masked_nullable
 
     for i in range(n):
         val = values[i]
+        # We only want to disable NaNs showing as float if
+        # a) convert_to_masked_nullable = True
+        # b) no floats have been seen ( assuming an int shows up later )
+        # However, if no ints present (all null array), we need to return floats
+        allow_null_in_int = convert_to_masked_nullable and not seen.float_
 
         if val.__hash__ is not None and val in na_values:
-            seen.saw_null()
+            if allow_null_in_int:
+                seen.null_ = True
+                mask[i] = 1
+            else:
+                if convert_to_masked_nullable:
+                    mask[i] = 1
+                seen.saw_null()
             floats[i] = complexes[i] = NaN
         elif util.is_float_object(val):
             fval = val
             if fval != fval:
                 seen.null_ = True
-
+                if allow_null_in_int:
+                    mask[i] = 1
+                else:
+                    if convert_to_masked_nullable:
+                        mask[i] = 1
+                    seen.float_ = True
+            else:
+                seen.float_ = True
             floats[i] = complexes[i] = fval
-            seen.float_ = True
         elif util.is_integer_object(val):
             floats[i] = complexes[i] = val
 
@@ -2097,7 +2147,13 @@ def maybe_convert_numeric(
             floats[i] = uints[i] = ints[i] = bools[i] = val
             seen.bool_ = True
         elif val is None or val is C_NA:
-            seen.saw_null()
+            if allow_null_in_int:
+                seen.null_ = True
+                mask[i] = 1
+            else:
+                if convert_to_masked_nullable:
+                    mask[i] = 1
+                seen.saw_null()
             floats[i] = complexes[i] = NaN
         elif hasattr(val, '__len__') and len(val) == 0:
             if convert_empty or seen.coerce_numeric:
@@ -2118,9 +2174,11 @@ def maybe_convert_numeric(
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = complexes[i] = NaN
+                    mask[i] = 1
                 else:
                     if fval != fval:
                         seen.null_ = True
+                        mask[i] = 1
 
                     floats[i] = fval
 
@@ -2128,7 +2186,10 @@ def maybe_convert_numeric(
                     as_int = int(val)
 
                     if as_int in na_values:
-                        seen.saw_null()
+                        mask[i] = 1
+                        seen.null_ = True
+                        if not allow_null_in_int:
+                            seen.float_ = True
                     else:
                         seen.saw_int(as_int)
 
@@ -2156,22 +2217,34 @@ def maybe_convert_numeric(
                 floats[i] = NaN
 
     if seen.check_uint64_conflict():
-        return values
+        return (values, None)
+
+    # This occurs since we disabled float nulls showing as null in anticipation
+    # of seeing ints that were never seen. So then, we return float
+    if allow_null_in_int and seen.null_ and not seen.int_:
+        seen.float_ = True
 
     if seen.complex_:
-        return complexes
+        return (complexes, None)
     elif seen.float_:
-        return floats
+        if seen.null_ and convert_to_masked_nullable:
+            return (floats, mask.view(np.bool_))
+        return (floats, None)
     elif seen.int_:
+        if seen.null_ and convert_to_masked_nullable:
+            if seen.uint_:
+                return (uints, mask.view(np.bool_))
+            else:
+                return (ints, mask.view(np.bool_))
         if seen.uint_:
-            return uints
+            return (uints, None)
         else:
-            return ints
+            return (ints, None)
     elif seen.bool_:
-        return bools.view(np.bool_)
+        return (bools.view(np.bool_), None)
     elif seen.uint_:
-        return uints
-    return ints
+        return (uints, None)
+    return (ints, None)
 
 
 @cython.boundscheck(False)
@@ -2185,7 +2258,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
 
     Parameters
     ----------
-    values : ndarray[object]
+    objects : ndarray[object]
         Array of object elements to convert.
     try_float : bool, default False
         If an array-like object contains only float or NaN values is
@@ -2209,7 +2282,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
         Array of converted object values to more specific dtypes if applicable.
     """
     cdef:
-        Py_ssize_t i, n
+        Py_ssize_t i, n, itemsize_max = 0
         ndarray[float64_t] floats
         ndarray[complex128_t] complexes
         ndarray[int64_t] ints
@@ -2242,6 +2315,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
 
     for i in range(n):
         val = objects[i]
+        if itemsize_max != -1:
+            itemsize = get_itemsize(val)
+            if itemsize > itemsize_max or itemsize == -1:
+                itemsize_max = itemsize
 
         if val is None:
             seen.null_ = True
@@ -2343,50 +2420,51 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
         seen.object_ = True
 
     if not seen.object_:
+        result = None
         if not safe:
             if seen.null_ or seen.nan_:
                 if seen.is_float_or_complex:
                     if seen.complex_:
-                        return complexes
+                        result = complexes
                     elif seen.float_:
-                        return floats
+                        result = floats
                     elif seen.int_:
                         if convert_to_nullable_integer:
                             from pandas.core.arrays import IntegerArray
-                            return IntegerArray(ints, mask)
+                            result = IntegerArray(ints, mask)
                         else:
-                            return floats
+                            result = floats
                     elif seen.nan_:
-                        return floats
+                        result = floats
             else:
                 if not seen.bool_:
                     if seen.datetime_:
                         if not seen.numeric_ and not seen.timedelta_:
-                            return datetimes
+                            result = datetimes
                     elif seen.timedelta_:
                         if not seen.numeric_:
-                            return timedeltas
+                            result = timedeltas
                     elif seen.nat_:
                         if not seen.numeric_:
                             if convert_datetime and convert_timedelta:
                                 # TODO: array full of NaT ambiguity resolve here needed
                                 pass
                             elif convert_datetime:
-                                return datetimes
+                                result = datetimes
                             elif convert_timedelta:
-                                return timedeltas
+                                result = timedeltas
                     else:
                         if seen.complex_:
-                            return complexes
+                            result = complexes
                         elif seen.float_:
-                            return floats
+                            result = floats
                         elif seen.int_:
                             if seen.uint_:
-                                return uints
+                                result = uints
                             else:
-                                return ints
+                                result = ints
                 elif seen.is_bool:
-                    return bools.view(np.bool_)
+                    result = bools.view(np.bool_)
 
         else:
             # don't cast int to float, etc.
@@ -2394,53 +2472,72 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                 if seen.is_float_or_complex:
                     if seen.complex_:
                         if not seen.int_:
-                            return complexes
+                            result = complexes
                     elif seen.float_ or seen.nan_:
                         if not seen.int_:
-                            return floats
+                            result = floats
             else:
                 if not seen.bool_:
                     if seen.datetime_:
                         if not seen.numeric_ and not seen.timedelta_:
-                            return datetimes
+                            result = datetimes
                     elif seen.timedelta_:
                         if not seen.numeric_:
-                            return timedeltas
+                            result = timedeltas
                     elif seen.nat_:
                         if not seen.numeric_:
                             if convert_datetime and convert_timedelta:
                                 # TODO: array full of NaT ambiguity resolve here needed
                                 pass
                             elif convert_datetime:
-                                return datetimes
+                                result = datetimes
                             elif convert_timedelta:
-                                return timedeltas
+                                result = timedeltas
                     else:
                         if seen.complex_:
                             if not seen.int_:
-                                return complexes
+                                result = complexes
                         elif seen.float_ or seen.nan_:
                             if not seen.int_:
-                                return floats
+                                result = floats
                         elif seen.int_:
                             if seen.uint_:
-                                return uints
+                                result = uints
                             else:
-                                return ints
+                                result = ints
                 elif seen.is_bool and not seen.nan_:
-                    return bools.view(np.bool_)
+                    result = bools.view(np.bool_)
+
+        if result is uints or result is ints or result is floats or result is complexes:
+            # cast to the largest itemsize when all values are NumPy scalars
+            if itemsize_max > 0 and itemsize_max != result.dtype.itemsize:
+                result = result.astype(result.dtype.kind + str(itemsize_max))
+            return result
+        elif result is not None:
+            return result
 
     return objects
 
 
+class NoDefault(Enum):
+    # We make this an Enum
+    # 1) because it round-trips through pickle correctly (see GH#40397)
+    # 2) because mypy does not understand singletons
+    no_default = "NO_DEFAULT"
+
+    def __repr__(self) -> str:
+        return "<no_default>"
+
+
 # Note: no_default is exported to the public API in pandas.api.extensions
-no_default = object()  # Sentinel indicating the default value.
+no_default = NoDefault.no_default  # Sentinel indicating the default value.
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=True,
-                   object na_value=no_default, object dtype=object) -> "ArrayLike":
+                   object na_value=no_default, cnp.dtype dtype=np.dtype(object)
+                   ) -> np.ndarray:
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2460,7 +2557,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 
     Returns
     -------
-    ndarray
+    np.ndarray
     """
     cdef:
         Py_ssize_t i, n
@@ -2497,7 +2594,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 @cython.wraparound(False)
 def map_infer(
     ndarray arr, object f, bint convert=True, bint ignore_na=False
-) -> "ArrayLike":
+) -> np.ndarray:
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2511,7 +2608,7 @@ def map_infer(
 
     Returns
     -------
-    np.ndarray or ExtensionArray
+    np.ndarray
     """
     cdef:
         Py_ssize_t i, n
@@ -2649,7 +2746,7 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_multiget(dict mapping, ndarray keys, default=np.nan) -> "ArrayLike":
+def fast_multiget(dict mapping, ndarray keys, default=np.nan) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = len(keys)
         object val

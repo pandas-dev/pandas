@@ -46,6 +46,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.arrays import (
+    DatetimeArray,
     IntervalArray,
     PeriodArray,
     SparseArray,
@@ -89,7 +90,12 @@ class TestDataFrameConstructors:
         if frame_or_series is DataFrame:
             arr = arr.reshape(1, 1)
 
-        msg = "Could not convert object to NumPy timedelta"
+        msg = "|".join(
+            [
+                "Could not convert object to NumPy timedelta",
+                "Invalid type for timedelta scalar: <class 'numpy.datetime64'>",
+            ]
+        )
         with pytest.raises(ValueError, match=msg):
             frame_or_series(arr, dtype="m8[ns]")
 
@@ -1006,6 +1012,7 @@ class TestDataFrameConstructors:
         alt = DataFrame({name: data[name] for name in data.dtype.names}, dtype=int)
         tm.assert_frame_equal(result, alt)
 
+    @pytest.mark.slow
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
         # from GH3479
@@ -1231,14 +1238,14 @@ class TestDataFrameConstructors:
     def test_constructor_stdlib_array(self):
         # GH 4297
         # support Array
-        from array import array as stdlib_array
+        import array
 
-        result = DataFrame({"A": stdlib_array("i", range(10))})
+        result = DataFrame({"A": array.array("i", range(10))})
         expected = DataFrame({"A": list(range(10))})
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
         expected = DataFrame([list(range(10)), list(range(10))])
-        result = DataFrame([stdlib_array("i", range(10)), stdlib_array("i", range(10))])
+        result = DataFrame([array.array("i", range(10)), array.array("i", range(10))])
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_range(self):
@@ -1649,10 +1656,10 @@ class TestDataFrameConstructors:
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype="U5")
         tm.assert_frame_equal(df, expected)
 
-    def test_constructor_empty_with_string_extension(self):
+    def test_constructor_empty_with_string_extension(self, nullable_string_dtype):
         # GH 34915
-        expected = DataFrame(index=[], columns=["c1"], dtype="string")
-        df = DataFrame(columns=["c1"], dtype="string")
+        expected = DataFrame(index=[], columns=["c1"], dtype=nullable_string_dtype)
+        df = DataFrame(columns=["c1"], dtype=nullable_string_dtype)
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_single_value(self):
@@ -1919,12 +1926,12 @@ class TestDataFrameConstructors:
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
         result = df.dtypes
-        expected = Series([np.dtype("int64")] * 5)
+        expected = Series([np.dtype("int")] * 5)
         tm.assert_series_equal(result, expected)
 
         df = DataFrame([np.array(np.arange(5), dtype="int32") for x in range(5)])
         result = df.dtypes
-        expected = Series([np.dtype("int64")] * 5)
+        expected = Series([np.dtype("int32")] * 5)
         tm.assert_series_equal(result, expected)
 
         # overflow issue? (we always expected int64 upcasting here)
@@ -1997,7 +2004,7 @@ class TestDataFrameConstructors:
     def test_constructor_series_copy(self, float_frame):
         series = float_frame._series
 
-        df = DataFrame({"A": series["A"]})
+        df = DataFrame({"A": series["A"]}, copy=True)
         df["A"][:] = 5
 
         assert not (series["A"] == 5).all()
@@ -2311,6 +2318,92 @@ class TestDataFrameConstructors:
         expected = DataFrame({"A": ["1.0", "2.0", None]}, dtype=object)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("copy", [False, True])
+    @td.skip_array_manager_not_yet_implemented
+    def test_dict_nocopy(self, copy, any_nullable_numeric_dtype, any_numpy_dtype):
+        a = np.array([1, 2], dtype=any_numpy_dtype)
+        b = np.array([3, 4], dtype=any_numpy_dtype)
+        if b.dtype.kind in ["S", "U"]:
+            # These get cast, making the checks below more cumbersome
+            return
+
+        c = pd.array([1, 2], dtype=any_nullable_numeric_dtype)
+        df = DataFrame({"a": a, "b": b, "c": c}, copy=copy)
+
+        def get_base(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.base
+            elif isinstance(obj.dtype, np.dtype):
+                # i.e. DatetimeArray, TimedeltaArray
+                return obj._ndarray.base
+            else:
+                raise TypeError
+
+        def check_views():
+            # written to work for either BlockManager or ArrayManager
+            assert sum(x is c for x in df._mgr.arrays) == 1
+            assert (
+                sum(
+                    get_base(x) is a
+                    for x in df._mgr.arrays
+                    if isinstance(x.dtype, np.dtype)
+                )
+                == 1
+            )
+            assert (
+                sum(
+                    get_base(x) is b
+                    for x in df._mgr.arrays
+                    if isinstance(x.dtype, np.dtype)
+                )
+                == 1
+            )
+
+        if not copy:
+            # constructor preserves views
+            check_views()
+
+        df.iloc[0, 0] = 0
+        df.iloc[0, 1] = 0
+        if not copy:
+            # Check that the underlying data behind df["c"] is still `c`
+            #  after setting with iloc.  Since we don't know which entry in
+            #  df._mgr.arrays corresponds to df["c"], we just check that exactly
+            #  one of these arrays is `c`.  GH#38939
+            assert sum(x is c for x in df._mgr.arrays) == 1
+            # TODO: we can call check_views if we stop consolidating
+            #  in setitem_with_indexer
+
+        # FIXME: until GH#35417, iloc.setitem into EA values does not preserve
+        #  view, so we have to check in the other direction
+        # df.iloc[0, 2] = 0
+        # if not copy:
+        #     check_views()
+        c[0] = 0
+
+        if copy:
+            if a.dtype.kind == "M":
+                assert a[0] == a.dtype.type(1, "ns")
+                assert b[0] == b.dtype.type(3, "ns")
+            else:
+                assert a[0] == a.dtype.type(1)
+                assert b[0] == b.dtype.type(3)
+            # FIXME: enable after GH#35417
+            # assert c[0] == 1
+            assert df.iloc[0, 2] == 1
+        else:
+            # TODO: we can call check_views if we stop consolidating
+            #  in setitem_with_indexer
+            # FIXME: enable after GH#35417
+            # assert b[0] == 0
+            assert df.iloc[0, 2] == 0
+
+    def test_from_series_with_name_with_columns(self):
+        # GH 7893
+        result = DataFrame(Series(1, name="foo"), columns=["bar"])
+        expected = DataFrame(columns=["bar"])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameConstructorWithDatetimeTZ:
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
@@ -2483,6 +2576,13 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
         with pytest.raises(TypeError, match=msg):
             Series(values)
+
+    def test_construction_from_ndarray_datetimelike(self):
+        # ensure the underlying arrays are properly wrapped as EA when
+        # constructed from 2D ndarray
+        arr = np.arange(0, 12, dtype="datetime64[ns]").reshape(4, 3)
+        df = DataFrame(arr)
+        assert all(isinstance(arr, DatetimeArray) for arr in df._mgr.arrays)
 
 
 def get1(obj):

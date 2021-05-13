@@ -526,9 +526,13 @@ def read_json(
     Encoding/decoding a Dataframe using ``'split'`` formatted JSON:
 
     >>> df.to_json(orient='split')
-    '{{"columns":["col 1","col 2"],
-      "index":["row 1","row 2"],
-      "data":[["a","b"],["c","d"]]}}'
+        '\
+{{\
+"columns":["col 1","col 2"],\
+"index":["row 1","row 2"],\
+"data":[["a","b"],["c","d"]]\
+}}\
+'
     >>> pd.read_json(_, orient='split')
           col 1 col 2
     row 1     a     b
@@ -538,6 +542,7 @@ def read_json(
 
     >>> df.to_json(orient='index')
     '{{"row 1":{{"col 1":"a","col 2":"b"}},"row 2":{{"col 1":"c","col 2":"d"}}}}'
+
     >>> pd.read_json(_, orient='index')
           col 1 col 2
     row 1     a     b
@@ -556,13 +561,18 @@ def read_json(
     Encoding with Table Schema
 
     >>> df.to_json(orient='table')
-    '{{"schema": {{"fields": [{{"name": "index", "type": "string"}},
-                            {{"name": "col 1", "type": "string"}},
-                            {{"name": "col 2", "type": "string"}}],
-                    "primaryKey": "index",
-                    "pandas_version": "0.20.0"}},
-        "data": [{{"index": "row 1", "col 1": "a", "col 2": "b"}},
-                {{"index": "row 2", "col 1": "c", "col 2": "d"}}]}}'
+        '\
+{{"schema":{{"fields":[\
+{{"name":"index","type":"string"}},\
+{{"name":"col 1","type":"string"}},\
+{{"name":"col 2","type":"string"}}],\
+"primaryKey":["index"],\
+"pandas_version":"0.20.0"}},\
+"data":[\
+{{"index":"row 1","col 1":"a","col 2":"b"}},\
+{{"index":"row 2","col 1":"c","col 2":"d"}}]\
+}}\
+'
     """
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
@@ -572,7 +582,7 @@ def read_json(
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
         # has type "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object], Dict[Optional[Hashable],
+        # Type[int], Type[complex], Type[bool], Type[object], Dict[Hashable,
         # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
         # Type[int], Type[complex], Type[bool], Type[object]]], None]")
         dtype = True  # type: ignore[assignment]
@@ -921,7 +931,7 @@ class Parser:
 
             # error: Non-overlapping identity check (left operand type:
             # "Union[ExtensionDtype, str, dtype[Any], Type[object],
-            # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+            # Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]],
             # Type[str], Type[float], Type[int], Type[complex], Type[bool],
             # Type[object]]]]", right operand type: "Literal[True]")
             elif self.dtype is True:  # type: ignore[comparison-overlap]

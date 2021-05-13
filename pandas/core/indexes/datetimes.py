@@ -10,8 +10,7 @@ from datetime import (
 import operator
 from typing import (
     TYPE_CHECKING,
-    Optional,
-    Tuple,
+    Hashable,
 )
 import warnings
 
@@ -263,8 +262,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _is_numeric_dtype = False
 
     _data: DatetimeArray
-    inferred_freq: Optional[str]
-    tz: Optional[tzinfo]
+    inferred_freq: str | None
+    tz: tzinfo | None
 
     # --------------------------------------------------------------------
     # methods that dispatch to DatetimeArray and wrap result
@@ -318,15 +317,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         data=None,
         freq=lib.no_default,
         tz=None,
-        normalize=False,
+        normalize: bool = False,
         closed=None,
         ambiguous="raise",
-        dayfirst=False,
-        yearfirst=False,
-        dtype: Optional[Dtype] = None,
-        copy=False,
-        name=None,
-    ):
+        dayfirst: bool = False,
+        yearfirst: bool = False,
+        dtype: Dtype | None = None,
+        copy: bool = False,
+        name: Hashable = None,
+    ) -> DatetimeIndex:
 
         if is_scalar(data):
             raise TypeError(
@@ -392,7 +391,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _mpl_repr(self):
+    def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
         return ints_to_pydatetime(self.asi8, self.tz)
 
@@ -435,7 +434,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return this.rename(res_name)
         return this
 
-    def _maybe_utc_convert(self, other: Index) -> Tuple[DatetimeIndex, Index]:
+    def _maybe_utc_convert(self, other: Index) -> tuple[DatetimeIndex, Index]:
         this = self
 
         if isinstance(other, DatetimeIndex):
@@ -449,7 +448,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
 
-    def _get_time_micros(self):
+    def _get_time_micros(self) -> np.ndarray:
         """
         Return the number of microseconds since midnight.
 
@@ -542,7 +541,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         return Series(values, index=index, name=name)
 
-    def snap(self, freq="S"):
+    def snap(self, freq="S") -> DatetimeIndex:
         """
         Snap time stamps to nearest occurring frequency.
 
@@ -636,12 +635,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # See also GH14826
             raise KeyError
 
-        if reso == "microsecond":
+        if reso.attrname == "microsecond":
             # _partial_date_slice doesn't allow microsecond resolution, but
             # _parsed_string_to_bounds allows it.
             raise KeyError
 
-    def _deprecate_mismatched_indexing(self, key):
+    def _deprecate_mismatched_indexing(self, key) -> None:
         # GH#36148
         # we get here with isinstance(key, self._data._recognized_scalars)
         try:
@@ -725,7 +724,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             key = key.tz_convert(self.tz)
         return key
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         """
         If label is a string, cast it to datetime according to resolution.
 
@@ -743,16 +742,17 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -----
         Value of `side` parameter should be validated in caller.
         """
-        assert kind in ["loc", "getitem", None]
+        assert kind in ["loc", "getitem", None, lib.no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, str):
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
             try:
-                parsed, reso = parsing.parse_time_string(label, freq)
+                parsed, reso_str = parsing.parse_time_string(label, freq)
             except parsing.DateParseError as err:
                 raise self._invalid_indexer("slice", label) from err
 
-            reso = Resolution.from_attrname(reso)
+            reso = Resolution.from_attrname(reso_str)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
             #   [parsed, parsed + 1 freq)
@@ -772,8 +772,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def _get_string_slice(self, key: str):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
-        parsed, reso = parsing.parse_time_string(key, freq)
-        reso = Resolution.from_attrname(reso)
+        parsed, reso_str = parsing.parse_time_string(key, freq)
+        reso = Resolution.from_attrname(reso_str)
         return self._partial_date_slice(reso, parsed)
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
@@ -824,12 +824,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         mask = np.array(True)
         deprecation_mask = np.array(True)
         if start is not None:
-            start_casted = self._maybe_cast_slice_bound(start, "left", kind)
+            start_casted = self._maybe_cast_slice_bound(start, "left")
             mask = start_casted <= self
             deprecation_mask = start_casted == self
 
         if end is not None:
-            end_casted = self._maybe_cast_slice_bound(end, "right", kind)
+            end_casted = self._maybe_cast_slice_bound(end, "right")
             mask = (self <= end_casted) & mask
             deprecation_mask = (end_casted == self) | deprecation_mask
 
@@ -855,7 +855,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # sure we can't have ambiguous indexing
         return "datetime64"
 
-    def indexer_at_time(self, time, asof=False):
+    def indexer_at_time(self, time, asof: bool = False) -> np.ndarray:
         """
         Return index locations of values at particular time of day
         (e.g. 9:30AM).
@@ -869,7 +869,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Returns
         -------
-        values_at_time : array of integers
+        np.ndarray[np.intp]
 
         See Also
         --------
@@ -892,11 +892,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         else:
             time_micros = self._get_time_micros()
         micros = _time_to_micros(time)
-        return (micros == time_micros).nonzero()[0]
+        return (time_micros == micros).nonzero()[0]
 
     def indexer_between_time(
-        self, start_time, end_time, include_start=True, include_end=True
-    ):
+        self, start_time, end_time, include_start: bool = True, include_end: bool = True
+    ) -> np.ndarray:
         """
         Return index locations of values between particular times of day
         (e.g., 9:00-9:30AM).
@@ -912,7 +912,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Returns
         -------
-        values_between_time : array of integers
+        np.ndarray[np.intp]
 
         See Also
         --------
@@ -952,8 +952,8 @@ def date_range(
     periods=None,
     freq=None,
     tz=None,
-    normalize=False,
-    name=None,
+    normalize: bool = False,
+    name: Hashable = None,
     closed=None,
     **kwargs,
 ) -> DatetimeIndex:
@@ -1121,11 +1121,11 @@ def date_range(
 def bdate_range(
     start=None,
     end=None,
-    periods: Optional[int] = None,
+    periods: int | None = None,
     freq="B",
     tz=None,
-    normalize=True,
-    name=None,
+    normalize: bool = True,
+    name: Hashable = None,
     weekmask=None,
     holidays=None,
     closed=None,

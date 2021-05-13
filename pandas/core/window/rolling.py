@@ -13,13 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    Union,
+    Hashable,
 )
 import warnings
 
@@ -50,10 +44,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
-    ABCPeriodIndex,
     ABCSeries,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import notna
 
@@ -63,10 +54,13 @@ from pandas.core.base import (
     DataError,
     SelectionMixin,
 )
-import pandas.core.common as common
+import pandas.core.common as com
 from pandas.core.indexes.api import (
+    DatetimeIndex,
     Index,
     MultiIndex,
+    PeriodIndex,
+    TimedeltaIndex,
 )
 from pandas.core.internals import ArrayManager
 from pandas.core.reshape.concat import concat
@@ -108,25 +102,26 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.groupby.ops import BaseGrouper
     from pandas.core.internals import Block  # noqa:F401
 
 
 class BaseWindow(SelectionMixin):
     """Provides utilities for performing windowing operations."""
 
-    _attributes: List[str] = []
-    exclusions: Set[str] = set()
+    _attributes: list[str] = []
+    exclusions: frozenset[Hashable] = frozenset()
 
     def __init__(
         self,
         obj: FrameOrSeries,
         window=None,
-        min_periods: Optional[int] = None,
+        min_periods: int | None = None,
         center: bool = False,
-        win_type: Optional[str] = None,
+        win_type: str | None = None,
         axis: Axis = 0,
-        on: Optional[Union[str, Index]] = None,
-        closed: Optional[str] = None,
+        on: str | Index | None = None,
+        closed: str | None = None,
         method: str = "single",
     ):
         self.obj = obj
@@ -239,7 +234,7 @@ class BaseWindow(SelectionMixin):
         Parameters
         ----------
         key : str / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             requested ndim of result
         subset : object, default None
             subset to act on
@@ -316,11 +311,7 @@ class BaseWindow(SelectionMixin):
                 raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
-
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "Optional[ndarray]"; expected "Union[bool, int, float, complex,
-        # _SupportsArray, Sequence[Any]]"
-        inf = np.isinf(values)  # type: ignore[arg-type]
+        inf = np.isinf(values)
         if inf.any():
             values = np.where(inf, np.nan, values)
 
@@ -378,22 +369,25 @@ class BaseWindow(SelectionMixin):
             return self.window
         if self._win_freq_i8 is not None:
             return VariableWindowIndexer(
-                index_array=self._index_array, window_size=self._win_freq_i8
+                index_array=self._index_array,
+                window_size=self._win_freq_i8,
+                center=self.center,
             )
         return FixedWindowIndexer(window_size=self.window)
 
     def _apply_series(
-        self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
+        self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
     ) -> Series:
         """
         Series version of _apply_blockwise
         """
         obj = self._create_data(self._selected_obj)
 
-        try:
+        if name == "count":
             # GH 12541: Special case for count where we support date-like types
-            input = obj.values if name != "count" else notna(obj.values).astype(int)
-            values = self._prep_values(input)
+            obj = notna(obj).astype(int)
+        try:
+            values = self._prep_values(obj._values)
         except (TypeError, NotImplementedError) as err:
             raise DataError("No numeric types to aggregate") from err
 
@@ -401,7 +395,7 @@ class BaseWindow(SelectionMixin):
         return obj._constructor(result, index=obj.index, name=obj.name)
 
     def _apply_blockwise(
-        self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
+        self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
     ) -> FrameOrSeriesUnion:
         """
         Apply the given function to the DataFrame broken down into homogeneous
@@ -436,7 +430,7 @@ class BaseWindow(SelectionMixin):
         return self._resolve_output(out, obj)
 
     def _apply_tablewise(
-        self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
+        self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
     ) -> FrameOrSeriesUnion:
         """
         Apply the given function to the DataFrame across the entire object
@@ -455,8 +449,8 @@ class BaseWindow(SelectionMixin):
     def _apply_pairwise(
         self,
         target: FrameOrSeriesUnion,
-        other: Optional[FrameOrSeriesUnion],
-        pairwise: Optional[bool],
+        other: FrameOrSeriesUnion | None,
+        pairwise: bool | None,
         func: Callable[[FrameOrSeriesUnion, FrameOrSeriesUnion], FrameOrSeriesUnion],
     ) -> FrameOrSeriesUnion:
         """
@@ -472,8 +466,8 @@ class BaseWindow(SelectionMixin):
     def _apply(
         self,
         func: Callable[..., Any],
-        name: Optional[str] = None,
-        numba_cache_key: Optional[Tuple[Callable, str]] = None,
+        name: str | None = None,
+        numba_cache_key: tuple[Callable, str] | None = None,
         **kwargs,
     ):
         """
@@ -546,25 +540,35 @@ class BaseWindowGroupby(BaseWindow):
     Provide the groupby windowing facilities.
     """
 
+    _grouper: BaseGrouper
+    _as_index: bool
     _attributes = ["_grouper"]
 
     def __init__(
         self,
         obj: FrameOrSeries,
         *args,
-        _grouper=None,
+        _grouper: BaseGrouper,
+        _as_index: bool = True,
         **kwargs,
     ):
-        if _grouper is None:
-            raise ValueError("Must pass a Grouper object.")
+        from pandas.core.groupby.ops import BaseGrouper
+
+        if not isinstance(_grouper, BaseGrouper):
+            raise ValueError("Must pass a BaseGrouper object.")
         self._grouper = _grouper
+        self._as_index = _as_index
+        # GH 32262: It's convention to keep the grouping column in
+        # groupby.<agg_func>, but unexpected to users in
+        # groupby.rolling.<agg_func>
+        obj = obj.drop(columns=self._grouper.names, errors="ignore")
         super().__init__(obj, *args, **kwargs)
 
     def _apply(
         self,
         func: Callable[..., Any],
-        name: Optional[str] = None,
-        numba_cache_key: Optional[Tuple[Callable, str]] = None,
+        name: str | None = None,
+        numba_cache_key: tuple[Callable, str] | None = None,
         **kwargs,
     ) -> FrameOrSeries:
         result = super()._apply(
@@ -573,26 +577,23 @@ class BaseWindowGroupby(BaseWindow):
             numba_cache_key,
             **kwargs,
         )
-        # Reconstruct the resulting MultiIndex from tuples
+        # Reconstruct the resulting MultiIndex
         # 1st set of levels = group by labels
-        # 2nd set of levels = original index
-        # Ignore 2nd set of levels if a group by label include an index level
-        result_index_names = copy.copy(self._grouper.names)
-        grouped_object_index = None
+        # 2nd set of levels = original DataFrame/Series index
+        grouped_object_index = self.obj.index
+        grouped_index_name = [*grouped_object_index.names]
+        groupby_keys = copy.copy(self._grouper.names)
+        result_index_names = groupby_keys + grouped_index_name
 
-        column_keys = [
+        drop_columns = [
             key
-            for key in result_index_names
+            for key in self._grouper.names
             if key not in self.obj.index.names or key is None
         ]
 
-        if len(column_keys) == len(result_index_names):
-            grouped_object_index = self.obj.index
-            grouped_index_name = [*grouped_object_index.names]
-            result_index_names += grouped_index_name
-        else:
+        if len(drop_columns) != len(groupby_keys):
             # Our result will have still kept the column in the result
-            result = result.drop(columns=column_keys, errors="ignore")
+            result = result.drop(columns=drop_columns, errors="ignore")
 
         codes = self._grouper.codes
         levels = copy.copy(self._grouper.levels)
@@ -618,13 +619,15 @@ class BaseWindowGroupby(BaseWindow):
         )
 
         result.index = result_index
+        if not self._as_index:
+            result = result.reset_index(level=list(range(len(groupby_keys))))
         return result
 
     def _apply_pairwise(
         self,
         target: FrameOrSeriesUnion,
-        other: Optional[FrameOrSeriesUnion],
-        pairwise: Optional[bool],
+        other: FrameOrSeriesUnion | None,
+        pairwise: bool | None,
         func: Callable[[FrameOrSeriesUnion, FrameOrSeriesUnion], FrameOrSeriesUnion],
     ) -> FrameOrSeriesUnion:
         """
@@ -647,7 +650,7 @@ class BaseWindowGroupby(BaseWindow):
             )
 
             gb_pairs = (
-                common.maybe_make_list(pair) for pair in self._grouper.indices.keys()
+                com.maybe_make_list(pair) for pair in self._grouper.indices.keys()
             )
             groupby_codes = []
             groupby_levels = []
@@ -662,7 +665,9 @@ class BaseWindowGroupby(BaseWindow):
             # When we evaluate the pairwise=True result, repeat the groupby
             # labels by the number of columns in the original object
             groupby_codes = self._grouper.codes
-            groupby_levels = self._grouper.levels
+            # error: Incompatible types in assignment (expression has type
+            # "List[Index]", variable has type "List[Union[ndarray, Index]]")
+            groupby_levels = self._grouper.levels  # type: ignore[assignment]
 
             group_indices = self._grouper.indices.values()
             if group_indices:
@@ -948,8 +953,8 @@ class Window(BaseWindow):
     def _apply(
         self,
         func: Callable[[np.ndarray, int, int], np.ndarray],
-        name: Optional[str] = None,
-        numba_cache_key: Optional[Tuple[Callable, str]] = None,
+        name: str | None = None,
+        numba_cache_key: tuple[Callable, str] | None = None,
         **kwargs,
     ):
         """
@@ -1055,7 +1060,10 @@ class Window(BaseWindow):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = window_aggregations.roll_weighted_sum
-        return self._apply(window_func, name="sum", **kwargs)
+        # error: Argument 1 to "_apply" of "Window" has incompatible type
+        # "Callable[[ndarray, ndarray, int], ndarray]"; expected
+        # "Callable[[ndarray, int, int], ndarray]"
+        return self._apply(window_func, name="sum", **kwargs)  # type: ignore[arg-type]
 
     @doc(
         template_header,
@@ -1072,7 +1080,10 @@ class Window(BaseWindow):
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func = window_aggregations.roll_weighted_mean
-        return self._apply(window_func, name="mean", **kwargs)
+        # error: Argument 1 to "_apply" of "Window" has incompatible type
+        # "Callable[[ndarray, ndarray, int], ndarray]"; expected
+        # "Callable[[ndarray, int, int], ndarray]"
+        return self._apply(window_func, name="mean", **kwargs)  # type: ignore[arg-type]
 
     @doc(
         template_header,
@@ -1120,10 +1131,10 @@ class RollingAndExpandingMixin(BaseWindow):
         self,
         func: Callable[..., Any],
         raw: bool = False,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
-        args: Optional[Tuple[Any, ...]] = None,
-        kwargs: Optional[Dict[str, Any]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        args: tuple[Any, ...] | None = None,
+        kwargs: dict[str, Any] | None = None,
     ):
         if args is None:
             args = ()
@@ -1162,8 +1173,8 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def _generate_cython_apply_func(
         self,
-        args: Tuple[Any, ...],
-        kwargs: Dict[str, Any],
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
         raw: bool,
         function: Callable[..., Any],
     ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, int], np.ndarray]:
@@ -1187,8 +1198,8 @@ class RollingAndExpandingMixin(BaseWindow):
     def sum(
         self,
         *args,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         nv.validate_window_func("sum", args, kwargs)
@@ -1210,8 +1221,8 @@ class RollingAndExpandingMixin(BaseWindow):
     def max(
         self,
         *args,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         nv.validate_window_func("max", args, kwargs)
@@ -1233,8 +1244,8 @@ class RollingAndExpandingMixin(BaseWindow):
     def min(
         self,
         *args,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         nv.validate_window_func("min", args, kwargs)
@@ -1256,8 +1267,8 @@ class RollingAndExpandingMixin(BaseWindow):
     def mean(
         self,
         *args,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         nv.validate_window_func("mean", args, kwargs)
@@ -1278,8 +1289,8 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def median(
         self,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         if maybe_use_numba(engine):
@@ -1354,8 +1365,8 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def cov(
         self,
-        other: Optional[FrameOrSeriesUnion] = None,
-        pairwise: Optional[bool] = None,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
     ):
@@ -1392,8 +1403,8 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def corr(
         self,
-        other: Optional[FrameOrSeriesUnion] = None,
-        pairwise: Optional[bool] = None,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
     ):
@@ -1459,19 +1470,10 @@ class Rolling(RollingAndExpandingMixin):
         # we allow rolling on a datetimelike index
         if (
             self.obj.empty
-            or isinstance(
-                self._on, (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
-            )
+            or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
             self._validate_monotonic()
-
-            # we don't allow center
-            if self.center:
-                raise NotImplementedError(
-                    "center is not implemented for "
-                    "datetimelike and offset based windows"
-                )
 
             # this will raise ValueError on non-fixed freqs
             try:
@@ -1481,7 +1483,7 @@ class Rolling(RollingAndExpandingMixin):
                     f"passed window {self.window} is not "
                     "compatible with a datetimelike index"
                 ) from err
-            if isinstance(self._on, ABCPeriodIndex):
+            if isinstance(self._on, PeriodIndex):
                 self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
             else:
                 self._win_freq_i8 = freq.nanos
@@ -1618,10 +1620,10 @@ class Rolling(RollingAndExpandingMixin):
         self,
         func: Callable[..., Any],
         raw: bool = False,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
-        args: Optional[Tuple[Any, ...]] = None,
-        kwargs: Optional[Dict[str, Any]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        args: tuple[Any, ...] | None = None,
+        kwargs: dict[str, Any] | None = None,
     ):
         return super().apply(
             func,
@@ -1699,8 +1701,8 @@ class Rolling(RollingAndExpandingMixin):
     def sum(
         self,
         *args,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         nv.validate_rolling_func("sum", args, kwargs)
@@ -1725,8 +1727,8 @@ class Rolling(RollingAndExpandingMixin):
     def max(
         self,
         *args,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         nv.validate_rolling_func("max", args, kwargs)
@@ -1766,8 +1768,8 @@ class Rolling(RollingAndExpandingMixin):
     def min(
         self,
         *args,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         nv.validate_rolling_func("min", args, kwargs)
@@ -1814,8 +1816,8 @@ class Rolling(RollingAndExpandingMixin):
     def mean(
         self,
         *args,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         nv.validate_rolling_func("mean", args, kwargs)
@@ -1853,8 +1855,8 @@ class Rolling(RollingAndExpandingMixin):
     )
     def median(
         self,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         return super().median(engine=engine, engine_kwargs=engine_kwargs, **kwargs)
@@ -1882,7 +1884,10 @@ class Rolling(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.std` is different
         than the default ``ddof`` of 0 in :func:`numpy.std`.
 
-        A minimum of one period is required for the rolling calculation.\n
+        A minimum of one period is required for the rolling calculation.
+
+        The implementation is susceptible to floating point imprecision as
+        shown in the example below.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -1890,13 +1895,13 @@ class Rolling(RollingAndExpandingMixin):
             """
         >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
         >>> s.rolling(3).std()
-        0         NaN
-        1         NaN
-        2    0.577350
-        3    1.000000
-        4    1.000000
-        5    1.154701
-        6    0.000000
+        0             NaN
+        1             NaN
+        2    5.773503e-01
+        3    1.000000e+00
+        4    1.000000e+00
+        5    1.154701e+00
+        6    2.580957e-08
         dtype: float64
         """
         ).replace("\n", "", 1),
@@ -1931,7 +1936,10 @@ class Rolling(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.var` is different
         than the default ``ddof`` of 0 in :func:`numpy.var`.
 
-        A minimum of one period is required for the rolling calculation.\n
+        A minimum of one period is required for the rolling calculation.
+
+        The implementation is susceptible to floating point imprecision as
+        shown in the example below.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -1939,13 +1947,13 @@ class Rolling(RollingAndExpandingMixin):
             """
         >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
         >>> s.rolling(3).var()
-        0         NaN
-        1         NaN
-        2    0.333333
-        3    1.000000
-        4    1.000000
-        5    1.333333
-        6    0.000000
+        0             NaN
+        1             NaN
+        2    3.333333e-01
+        3    1.000000e+00
+        4    1.000000e+00
+        5    1.333333e+00
+        6    6.661338e-16
         dtype: float64
         """
         ).replace("\n", "", 1),
@@ -2137,8 +2145,8 @@ class Rolling(RollingAndExpandingMixin):
     )
     def cov(
         self,
-        other: Optional[FrameOrSeriesUnion] = None,
-        pairwise: Optional[bool] = None,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
     ):
@@ -2262,8 +2270,8 @@ class Rolling(RollingAndExpandingMixin):
     )
     def corr(
         self,
-        other: Optional[FrameOrSeriesUnion] = None,
-        pairwise: Optional[bool] = None,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
     ):
@@ -2288,8 +2296,8 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         -------
         GroupbyIndexer
         """
-        rolling_indexer: Type[BaseIndexer]
-        indexer_kwargs: Optional[Dict[str, Any]] = None
+        rolling_indexer: type[BaseIndexer]
+        indexer_kwargs: dict[str, Any] | None = None
         index_array = self._index_array
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)

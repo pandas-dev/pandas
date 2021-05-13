@@ -58,14 +58,16 @@ def test_custom_grouper(index):
     g = s.groupby(b)
 
     # check all cython functions work
-    funcs = ["add", "mean", "prod", "ohlc", "min", "max", "var"]
+    g.ohlc()  # doesn't use _cython_agg_general
+    funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
         g._cython_agg_general(f)
 
     b = Grouper(freq=Minute(5), closed="right", label="right")
     g = s.groupby(b)
     # check all cython functions work
-    funcs = ["add", "mean", "prod", "ohlc", "min", "max", "var"]
+    g.ohlc()  # doesn't use _cython_agg_general
+    funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
         g._cython_agg_general(f)
 
@@ -79,7 +81,7 @@ def test_custom_grouper(index):
     idx = DatetimeIndex(idx, freq="5T")
     expect = Series(arr, index=idx)
 
-    # GH2763 - return in put dtype if we can
+    # GH2763 - return input dtype if we can
     result = g.agg(np.sum)
     tm.assert_series_equal(result, expect)
 
@@ -1204,6 +1206,9 @@ def test_resample_median_bug_1688():
 
         result = df.resample("T").apply(lambda x: x.mean())
         exp = df.asfreq("T")
+        if dtype == "float32":
+            # TODO: Empty groups cause x.mean() to return float64
+            exp = exp.astype("float64")
         tm.assert_frame_equal(result, exp)
 
         result = df.resample("T").median()
@@ -1342,7 +1347,7 @@ def test_resample_nunique():
     assert expected.name == "ID"
 
     for t in [r, g]:
-        result = r.ID.nunique()
+        result = t.ID.nunique()
         tm.assert_series_equal(result, expected)
 
     result = df.ID.resample("D").nunique()
@@ -1684,6 +1689,8 @@ def test_resample_apply_with_additional_args(series):
     df = DataFrame({"A": 1, "B": 2}, index=date_range("2017", periods=10))
     result = df.groupby("A").resample("D").agg(f, multiplier)
     expected = df.groupby("A").resample("D").mean().multiply(multiplier)
+    # TODO: GH 41137
+    expected = expected.astype("float64")
     tm.assert_frame_equal(result, expected)
 
 
@@ -1741,19 +1748,23 @@ def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last):
     assert result == expected
 
 
-def test_resample_apply_product():
+@pytest.mark.parametrize("duplicates", [True, False])
+def test_resample_apply_product(duplicates):
     # GH 5586
     index = date_range(start="2012-01-31", freq="M", periods=12)
 
     ts = Series(range(12), index=index)
     df = DataFrame({"A": ts, "B": ts + 2})
+    if duplicates:
+        df.columns = ["A", "A"]
+
     result = df.resample("Q").apply(np.product)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
         index=DatetimeIndex(
             ["2012-03-31", "2012-06-30", "2012-09-30", "2012-12-31"], freq="Q-DEC"
         ),
-        columns=["A", "B"],
+        columns=df.columns,
     )
     tm.assert_frame_equal(result, expected)
 

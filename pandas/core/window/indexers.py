@@ -113,8 +113,17 @@ class VariableWindowIndexer(BaseIndexer):
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
+        # error: Argument 4 to "calculate_variable_window_bounds" has incompatible
+        # type "Optional[bool]"; expected "bool"
+        # error: Argument 6 to "calculate_variable_window_bounds" has incompatible
+        # type "Optional[ndarray]"; expected "ndarray"
         return calculate_variable_window_bounds(
-            num_values, self.window_size, min_periods, center, closed, self.index_array
+            num_values,
+            self.window_size,
+            min_periods,
+            center,  # type: ignore[arg-type]
+            closed,
+            self.index_array,  # type: ignore[arg-type]
         )
 
 
@@ -320,6 +329,8 @@ class GroupbyIndexer(BaseIndexer):
         end_arrays = []
         window_indicies_start = 0
         for key, indices in self.groupby_indicies.items():
+            index_array: np.ndarray | None
+
             if self.index_array is not None:
                 index_array = self.index_array.take(ensure_platform_int(indices))
             else:
