@@ -44,7 +44,7 @@ pytest-instafail
 seaborn
 statsmodels
 ipywidgets
-nbformat==5.0.8
+nbformat
 notebook>=5.7.5
 pip
 blosc
