@@ -11,8 +11,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
+    Sequence,
     cast,
-    Sequence
 )
 
 import numpy as np
@@ -388,7 +388,6 @@ class IntervalIndex(ExtensionIndex):
             arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)
         return cls._simple_new(arr, name=name)
 
-    
     @classmethod
     @Appender(
         _interval_shared_docs["from_strings"]
@@ -406,10 +405,10 @@ class IntervalIndex(ExtensionIndex):
         }
     )
     def from_strings(
-            cls,
-            data: Sequence[str],
-            name: Hashable = None,
-        ) -> IntervalIndex:
+        cls,
+        data: Sequence[str],
+        name: Hashable = None,
+    ) -> IntervalIndex:
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_strings(data=data)
 

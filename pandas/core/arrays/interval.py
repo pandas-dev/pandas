@@ -562,7 +562,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return cls.from_arrays(left, right, closed, copy=False, dtype=dtype)
 
-
     _interval_shared_docs["from_strings"] = textwrap.dedent(
         """
         Construct from string representations of the left and right bounds.
@@ -584,7 +583,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         ------
         ValueError
             When a string cannot be parsed as an Interval
-            When the dtype of the string cannot be parsed as either float, Timestamp or Timedelta
+            When the dtype of the string cannot be parsed as either float,
+            Timestamp or Timedelta
 
         See Also
         --------
@@ -597,6 +597,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         %(examples)s\
         """
     )
+
     @classmethod
     @Appender(
         _interval_shared_docs["from_strings"]
@@ -614,12 +615,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_strings(
-            cls: type[IntervalArrayT],
-            data: Sequence[str],
-        ) -> IntervalArrayT:
+        cls: type[IntervalArrayT],
+        data: Sequence[str],
+    ) -> IntervalArrayT:
         # These need to be imported here to avoid circular dependencies.
-        from pandas.core.tools.timedeltas import to_timedelta
         from pandas.core.tools.datetimes import to_datetime
+        from pandas.core.tools.timedeltas import to_timedelta
 
         intervals: list[Interval] = []
         for string in data:
@@ -629,13 +630,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 # Find the first closing square bracket and assume it is the end
                 end = string.rindex("]")
             except ValueError:
-                raise ValueError(f"Could not find opening '(' and closing ']' brackets in string: '{string}'")
+                raise ValueError(
+                    "Could not find opening '(' and closing ']' "
+                    f"brackets in string: '{string}'"
+                )
 
             # Extract that part and try to split based on a comma and a space.
-            breaks = string[start + 1:end].split(", ", 1)
+            breaks = string[start + 1 : end].split(", ", 1)
 
             if len(breaks) != 2:
-                raise ValueError(f"Delimiter ', ' (comma + space) not found in string: {string}")
+                raise ValueError(
+                    f"Delimiter ', ' (comma + space) not found in string: {string}"
+                )
 
             # Try to parse the breaks first as floats, then datetime, then timedelta.
             for conversion in [float, to_datetime, to_timedelta]:
@@ -645,12 +651,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 except ValueError:
                     continue
             else:
-                raise ValueError(f"Could not parse string as Interval of float, Timedelta or Timestamp: {string}")
+                raise ValueError(
+                    "Could not parse string as Interval of float, Timedelta "
+                    f"or Timestamp: {string}"
+                )
             intervals.append(interval)
 
-
         return cls(intervals)
-            
 
     def _validate(self):
         """

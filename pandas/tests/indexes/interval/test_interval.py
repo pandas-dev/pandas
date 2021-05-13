@@ -909,17 +909,10 @@ class TestIntervalIndex:
 def test_from_strings():
     """Test the IntervalIndex.from_strings class method."""
     # Create some float IntervalIndex string representations.
-    indices = [
-          "(0.0, 0.5]",
-          "(0.5, 1.0]"
-    ]
+    indices = ["(0.0, 0.5]", "(0.5, 1.0]"]
 
     # Create some datetime-like string representations
-    datetime_indices = [
-          "(2015-07-01, 2016-08-01]",
-          "(2016-08-01, 2018-09-01]"
-    ]
-
+    datetime_indices = ["(2015-07-01, 2016-08-01]", "(2016-08-01, 2018-09-01]"]
 
     index = IntervalIndex.from_strings(indices)
     dt_index = IntervalIndex.from_strings(datetime_indices)
@@ -932,9 +925,9 @@ def test_from_strings():
 
     # Create invalid interval indices (to make sure it fails correctly)
     wrong_indices = [
-          "('hello', 'there']",
-          "(0.1,0.1)",
-          "(0.0,0.5]",
+        "('hello', 'there']",
+        "(0.1,0.1)",
+        "(0.0,0.5]",
     ]
 
     # Make sure that the wrong indices raise the appropriate error
