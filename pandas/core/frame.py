@@ -44,7 +44,10 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    NoDefault,
+    no_default,
+)
 from pandas._typing import (
     AggFuncType,
     AnyArrayLike,
@@ -5571,7 +5574,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         level: Hashable | Sequence[Hashable] | None = None,
         drop: bool = False,
-        inplace: bool = False,
+        inplace: bool | NoDefault = no_default,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
     ) -> DataFrame | None:
@@ -5717,7 +5720,7 @@ class DataFrame(NDFrame, OpsMixin):
         monkey         mammal    NaN    jump
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        if inplace:
+        if inplace is not no_default:
             warnings.warn(
                 "'inplace' will be removed in a future version "
                 "and the current default behaviour ('inplace=False') will "
@@ -5725,6 +5728,8 @@ class DataFrame(NDFrame, OpsMixin):
                 DeprecationWarning,
                 stacklevel=2,
             )
+        else:
+            inplace = False
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if inplace:
             new_obj = self
