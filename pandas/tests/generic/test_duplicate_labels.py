@@ -427,7 +427,6 @@ def test_dataframe_insert_raises():
     [
         (operator.methodcaller("set_index", "A", inplace=True), True),
         (operator.methodcaller("set_axis", ["A", "B"], inplace=True), False),
-        (operator.methodcaller("reset_index", inplace=True), True),
         (operator.methodcaller("rename", lambda x: x, inplace=True), False),
     ],
 )
@@ -443,6 +442,35 @@ def test_inplace_raises(method, frame_only):
         method(df)
     if not frame_only:
         with pytest.raises(ValueError, match=msg):
+            method(s)
+
+
+@pytest.mark.parametrize(
+    "method, frame_only",
+    [
+        (operator.methodcaller("reset_index", inplace=True), True),
+    ],
+)
+def test_inplace_raises_with_deprecation_warning(method, frame_only):
+    # GH16529
+    df = pd.DataFrame({"A": [0, 0], "B": [1, 2]}).set_flags(
+        allows_duplicate_labels=False
+    )
+    s = df["A"]
+    s.flags.allows_duplicate_labels = False
+    error_msg = "Cannot specify"
+
+    warning_msg = (
+        r"'inplace' will be removed in a future version "
+        r"and the current default behaviour \('inplace=False'\) will "
+        r"be used\. Set 'inplace=False' to silence this warning\."
+    )
+    warning_ctx = tm.assert_produces_warning(DeprecationWarning, match=warning_msg)
+    error_ctx = pytest.raises(ValueError, match=error_msg)  # noqa: PDF010
+    with error_ctx, warning_ctx:
+        method(df)
+    if not frame_only:
+        with error_ctx, warning_ctx:
             method(s)
 
 

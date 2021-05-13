@@ -223,7 +223,13 @@ class TestDataFrameMisc:
 
         # reset_index
         f = lambda x: x.reset_index(inplace=True)
-        _check_f(data.set_index("a"), f)
+        msg = (
+            r"'inplace' will be removed in a future version "
+            r"and the current default behaviour \('inplace=False'\) will "
+            r"be used\. Set 'inplace=False' to silence this warning\."
+        )
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            _check_f(data.set_index("a"), f)
 
         # drop_duplicates
         f = lambda x: x.drop_duplicates(inplace=True)
@@ -253,7 +259,6 @@ class TestDataFrameMisc:
         d = data.copy()["c"]
 
         # reset_index
-        f = lambda x: x.reset_index(inplace=True, drop=True)
         _check_f(data.set_index("a")["c"], f)
 
         # fillna

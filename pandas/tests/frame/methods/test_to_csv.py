@@ -535,7 +535,13 @@ class TestDataFrameToCSV:
             from_df.to_csv(path, index=False, header=["X", "Y"])
             recons = self.read_csv(path)
 
-            return_value = recons.reset_index(inplace=True)
+            msg = (
+                r"'inplace' will be removed in a future version "
+                r"and the current default behaviour \('inplace=False'\) will "
+                r"be used\. Set 'inplace=False' to silence this warning\."
+            )
+            with tm.assert_produces_warning(DeprecationWarning, match=msg):
+                return_value = recons.reset_index(inplace=True)
             assert return_value is None
             tm.assert_frame_equal(to_df, recons)
 

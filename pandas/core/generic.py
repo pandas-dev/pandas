@@ -1847,11 +1847,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis == 0:
             # Handle dropping index levels
             if levels_to_drop:
-                dropped.reset_index(levels_to_drop, drop=True, inplace=True)
+                dropped = dropped.reset_index(levels_to_drop, drop=True)
 
             # Handle dropping columns labels
             if labels_to_drop:
-                dropped.drop(labels_to_drop, axis=1, inplace=True)
+                dropped = dropped.drop(labels_to_drop, axis=1)
         else:
             # Handle dropping column levels
             if levels_to_drop:
