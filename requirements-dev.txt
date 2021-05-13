@@ -79,5 +79,5 @@ pyreadstat
 tabulate>=0.8.3
 natsort
 git+https://github.com/pydata/pydata-sphinx-theme.git@master
-numpydoc < 1.2
+git+https://github.com/numpy/numpydoc.git
 pandas-dev-flaker==0.2.0

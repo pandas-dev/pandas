@@ -116,5 +116,5 @@ dependencies:
   - natsort  # DataFrame.sort_values
   - pip:
     - git+https://github.com/pydata/pydata-sphinx-theme.git@master
-    - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
+    - git+https://github.com/numpy/numpydoc.git
     - pandas-dev-flaker==0.2.0

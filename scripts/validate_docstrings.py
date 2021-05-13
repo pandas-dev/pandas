@@ -17,6 +17,7 @@ import argparse
 import doctest
 import glob
 import importlib
+from io import StringIO
 import json
 import os
 import subprocess
@@ -26,11 +27,6 @@ from typing import (
     List,
     Optional,
 )
-
-try:
-    from io import StringIO
-except ImportError:
-    from cStringIO import StringIO
 
 # Template backend makes matplotlib to not plot anything. This is useful
 # to avoid that plot windows are open from the doctests while running the
@@ -49,7 +45,8 @@ sys.path.insert(0, os.path.join(BASE_PATH))
 import pandas  # isort:skip
 
 sys.path.insert(1, os.path.join(BASE_PATH, "doc", "sphinxext"))
-from numpydoc.validate import validate, Docstring  # isort:skip
+from numpydoc.validate import validate, Validator  # isort:skip
+from numpydoc.docscrape import get_doc_object
 
 
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
@@ -145,7 +142,7 @@ def get_api_items(api_doc_fd):
         previous_line = line
 
 
-class PandasDocstring(Docstring):
+class PandasDocstring(Validator):
     @property
     def mentioned_private_classes(self):
         return [klass for klass in PRIVATE_CLASSES if klass in self.raw_doc]
@@ -213,7 +210,9 @@ def pandas_validate(func_name: str):
     dict
         Information about the docstring and the errors found.
     """
-    doc = PandasDocstring(func_name)
+    func_obj = get_doc_object(Validator._load_obj(func_name))
+    print(func_name, func_obj._obj)
+    doc = PandasDocstring(func_obj)
     result = validate(func_name)
 
     mentioned_errs = doc.mentioned_private_classes
