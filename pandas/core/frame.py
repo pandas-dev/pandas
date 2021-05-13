@@ -8816,13 +8816,13 @@ NaN 12.3   33.0
            A  B
         0  1  2
         2  3  4
-        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'), index=[0, 2])
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'), index=[3, 5])
         >>> df.append(df2)
            A  B
         0  1  2
         2  3  4
-        0  5  6
-        2  7  8
+        3  5  6
+        5  7  8
 
         With `ignore_index` set to True:
 
