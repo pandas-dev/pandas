@@ -795,9 +795,10 @@ class _MMapWrapper(abc.Iterator):
         # CSV c-engine uses read instead of iterating
         content: bytes = self.mmap.read(size)
         if self.decode:
+            errors = self.errors if self.errors is not None else "strict"
             # memory mapping is applied before compression. Encoding should
             # be applied to the de-compressed data.
-            return content.decode(self.encoding, errors=self.errors)
+            return content.decode(self.encoding, errors=errors)
         return content
 
     def __next__(self) -> str:
