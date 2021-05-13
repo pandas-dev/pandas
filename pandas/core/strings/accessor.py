@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer,
     is_list_like,
+    is_object_dtype,
     is_re,
 )
 from pandas.core.dtypes.generic import (
@@ -265,7 +266,11 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif expand is True and not isinstance(self._orig, ABCIndex):
+        elif (
+            expand is True
+            and is_object_dtype(result)
+            and not isinstance(self._orig, ABCIndex)
+        ):
             # required when expand=True is explicitly specified
             # not needed when inferred
 
