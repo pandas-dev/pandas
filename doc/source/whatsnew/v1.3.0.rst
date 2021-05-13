@@ -901,6 +901,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.rank` with the GroupBy object's ``axis=0`` and the ``rank`` method's keyword ``axis=1`` (:issue:`41320`)
 - Bug in :meth:`DataFrameGroupBy.__getitem__` with non-unique columns incorrectly returning a malformed :class:`SeriesGroupBy` instead of :class:`DataFrameGroupBy` (:issue:`41427`)
 - Bug in :meth:`DataFrameGroupBy.transform` with non-unique columns incorrectly raising ``AttributeError`` (:issue:`41427`)
+- Bug in :meth:`Resampler.apply` with non-unique columns incorrectly dropping duplicated columns (:issue:`41445`)
 
 Reshaping
 ^^^^^^^^^
