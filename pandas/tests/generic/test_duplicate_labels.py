@@ -463,7 +463,7 @@ def test_inplace_raises_with_deprecation_warning(method, frame_only):
     warning_msg = (
         r"'inplace' will be removed in a future version "
         r"and the current default behaviour \('inplace=False'\) will "
-        r"be used\. Set 'inplace=False' to silence this warning\."
+        r"be used\. Remove the 'inplace' argument to silence this warning\."
     )
     warning_ctx = tm.assert_produces_warning(DeprecationWarning, match=warning_msg)
     with pytest.raises(ValueError, match=error_msg), warning_ctx:

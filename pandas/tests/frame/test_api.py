@@ -226,7 +226,7 @@ class TestDataFrameMisc:
         msg = (
             r"'inplace' will be removed in a future version "
             r"and the current default behaviour \('inplace=False'\) will "
-            r"be used\. Set 'inplace=False' to silence this warning\."
+            r"be used\. Remove the 'inplace' argument to silence this warning\."
         )
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
             _check_f(data.set_index("a"), f)

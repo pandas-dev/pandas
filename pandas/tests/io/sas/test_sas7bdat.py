@@ -306,7 +306,7 @@ def test_max_sas_date_iterator(datapath):
         msg = (
             r"'inplace' will be removed in a future version "
             r"and the current default behaviour \('inplace=False'\) will "
-            r"be used\. Set 'inplace=False' to silence this warning\."
+            r"be used\. Remove the 'inplace' argument to silence this warning\."
         )
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.reset_index(inplace=True, drop=True)

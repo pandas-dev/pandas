@@ -163,7 +163,7 @@ class TestResetIndex:
         msg = (
             r"'inplace' will be removed in a future version "
             r"and the current default behaviour \('inplace=False'\) will "
-            r"be used\. Set 'inplace=False' to silence this warning\."
+            r"be used\. Remove the 'inplace' argument to silence this warning\."
         )
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
             return_value = df.reset_index(inplace=True)
@@ -188,7 +188,7 @@ class TestResetIndex:
         msg = (
             r"'inplace' will be removed in a future version "
             r"and the current default behaviour \('inplace=False'\) will "
-            r"be used\. Set 'inplace=False' to silence this warning\."
+            r"be used\. Remove the 'inplace' argument to silence this warning\."
         )
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
             return_value = df.reset_index(inplace=True)
@@ -691,7 +691,7 @@ def test_inplace_deprecation_warning():
     msg = (
         r"'inplace' will be removed in a future version "
         r"and the current default behaviour \('inplace=False'\) will "
-        r"be used\. Set 'inplace=False' to silence this warning\."
+        r"be used\. Remove the 'inplace' argument to silence this warning\."
     )
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         df.reset_index(inplace=True)
