@@ -8,9 +8,8 @@ If you want to support pandas development, you can find information in the [dona
 
 ## Maintainers
 
-<div class="row maintainers">
+<div class="card-group maintainers">
     {% for row in maintainers.people | batch(6, "") %}
-        <div class="card-group maintainers">
             {% for person in row %}
                 {% if person %}
                     <div class="card">
@@ -32,7 +31,6 @@ If you want to support pandas development, you can find information in the [dona
                     <div class="card border-0"></div>
                 {% endif %}
             {% endfor %}
-        </div>
     {% endfor %}
 </div>
 
