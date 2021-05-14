@@ -1,5 +1,3 @@
-import operator
-
 import numpy as np
 import pytest
 
@@ -98,20 +96,3 @@ def test_string_array_extract(nullable_string_dtype):
 
     result = result.astype(object)
     tm.assert_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "input, method",
-    [
-        (["a", "b", "c"], operator.methodcaller("capitalize")),
-        (["a b", "a bc. de"], operator.methodcaller("capitalize")),
-    ],
-)
-def test_capitalize(input, method, nullable_string_dtype):
-    a = Series(input, dtype=nullable_string_dtype)
-    b = Series(input, dtype="object")
-    result = method(a.str)
-    expected = method(b.str)
-
-    assert result.dtype.name == nullable_string_dtype
-    tm.assert_series_equal(result.astype(object), expected)
