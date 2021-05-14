@@ -46,7 +46,7 @@ div.card {
     margin: 0 0 .2em .2em !important;
 }
 @media (min-width: 576px) {
-    div.card {
+    .card-group.maintainers div.card {
         min-width: 10rem;
         max-width: 10rem;
     }
