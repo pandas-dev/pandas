@@ -165,7 +165,7 @@ class TestValidator:
                 "indentation_is_not_a_multiple_of_four",
                 # with flake8 3.9.0, the message ends with four spaces,
                 #  whereas in earlier versions, it ended with "four"
-                ("flake8 error: E111 indentation is not a multiple of     ",),
+                ("flake8 error: E111 indentation is not a multiple of 4",),
             ),
             (
                 "BadDocstrings",
