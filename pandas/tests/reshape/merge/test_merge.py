@@ -944,13 +944,11 @@ class TestMerge:
         assert result["value_x"].dtype == "Period[D]"
         assert result["value_y"].dtype == "Period[D]"
 
-    def test_indicator(self):
-        # PR #10054. xref #7412 and closes #8790.
+    @pytest.fixture
+    def dfs_for_indicator(self):
         df1 = DataFrame(
             {"col1": [0, 1], "col_conflict": [1, 2], "col_left": ["a", "b"]}
         )
-        df1_copy = df1.copy()
-
         df2 = DataFrame(
             {
                 "col1": [1, 2, 3, 4, 5],
@@ -958,6 +956,13 @@ class TestMerge:
                 "col_right": [2, 2, 2, 2, 2],
             }
         )
+        return df1, df2
+
+    def test_indicator(self, dfs_for_indicator):
+        # PR #10054. xref #7412 and closes #8790.
+        df1, df2 = dfs_for_indicator
+        df1_copy = df1.copy()
+
         df2_copy = df2.copy()
 
         df_result = DataFrame(
@@ -1016,14 +1021,19 @@ class TestMerge:
         )
         tm.assert_frame_equal(test_custom_name, df_result_custom_name)
 
+    def test_merge_indicator_arg_validation(self, dfs_for_indicator):
         # Check only accepts strings and booleans
+        df1, df2 = dfs_for_indicator
+
         msg = "indicator option can only accept boolean or string arguments"
         with pytest.raises(ValueError, match=msg):
             merge(df1, df2, on="col1", how="outer", indicator=5)
         with pytest.raises(ValueError, match=msg):
             df1.merge(df2, on="col1", how="outer", indicator=5)
 
+    def test_merge_indicator_result_integrity(self, dfs_for_indicator):
         # Check result integrity
+        df1, df2 = dfs_for_indicator
 
         test2 = merge(df1, df2, on="col1", how="left", indicator=True)
         assert (test2._merge != "right_only").all()
@@ -1040,7 +1050,10 @@ class TestMerge:
         test4 = df1.merge(df2, on="col1", how="inner", indicator=True)
         assert (test4._merge == "both").all()
 
+    def test_merge_indicator_invalid(self, dfs_for_indicator):
         # Check if working name in df
+        df1, _ = dfs_for_indicator
+
         for i in ["_right_indicator", "_left_indicator", "_merge"]:
             df_badcolumn = DataFrame({"col1": [1, 2], i: [2, 2]})
 
@@ -1071,6 +1084,7 @@ class TestMerge:
                 df_badcolumn, on="col1", how="outer", indicator="custom_column_name"
             )
 
+    def test_merge_indicator_multiple_columns(self):
         # Merge on multiple columns
         df3 = DataFrame({"col1": [0, 1], "col2": ["a", "b"]})
 
