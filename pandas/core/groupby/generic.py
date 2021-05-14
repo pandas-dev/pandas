@@ -1428,7 +1428,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 output[i] = sgb.transform(wrapper)
             except TypeError:
                 # e.g. trying to call nanmean with string values
-                pass
+                warnings.warn(
+                    f"Dropping invalid columns in {type(self).__name__}.transform "
+                    "is deprecated. In a future version, a TypeError will be raised. "
+                    "Before calling .transform, select only columns which should be "
+                    "valid for the transforming function.",
+                    FutureWarning,
+                    stacklevel=5,
+                )
             else:
                 inds.append(i)
 
