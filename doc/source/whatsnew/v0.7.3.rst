@@ -106,7 +106,7 @@ Series, to be more consistent with the ``groupby`` behavior with DataFrame:
          ...:         "D": np.random.randn(8),
          ...:     }
          ...: )
-         ...: 
+         ...:
 
       In [7]: df
       Out[7]:
@@ -127,7 +127,7 @@ Series, to be more consistent with the ``groupby`` behavior with DataFrame:
       In [9]: grouped.describe()
       Out[9]:
          count      mean       std       min       25%       50%       75%       max
-      A                                                                               
+      A
       bar    3.0 -0.530570  0.526860 -1.135632 -0.709248 -0.282863 -0.228039 -0.173215
       foo    5.0 -0.150572  1.113308 -1.509059 -1.044236  0.119209  0.469112  1.212112
 
@@ -135,7 +135,7 @@ Series, to be more consistent with the ``groupby`` behavior with DataFrame:
 
       In [10]: grouped.apply(lambda x: x.sort_values()[-2:])  # top 2 values
       Out[10]:
-      A     
+      A
       bar  1   -0.282863
            5   -0.173215
       foo  0    0.469112
