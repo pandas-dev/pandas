@@ -28,7 +28,7 @@ class TestRangeIndex(NumericBase):
         return np.int64
 
     @pytest.fixture(
-        params=["uint64", "float64", "category", "datetime64"],
+        params=["uint64", "float64", "category", "datetime64", "object"],
     )
     def invalid_dtype(self, request):
         return request.param
