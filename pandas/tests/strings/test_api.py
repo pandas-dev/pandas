@@ -10,11 +10,11 @@ from pandas import (
 from pandas.core import strings as strings
 
 
-def test_api():
+def test_api(any_string_dtype):
 
     # GH 6106, GH 9322
     assert Series.str is strings.StringMethods
-    assert isinstance(Series([""]).str, strings.StringMethods)
+    assert isinstance(Series([""], dtype=any_string_dtype).str, strings.StringMethods)
 
 
 def test_api_mi_raises():
@@ -74,18 +74,26 @@ def test_api_per_method(
     reason = None
     if box is Index and values.size == 0:
         if method_name in ["partition", "rpartition"] and kwargs.get("expand", True):
+            raises = TypeError
             reason = "Method cannot deal with empty Index"
         elif method_name == "split" and kwargs.get("expand", None):
+            raises = TypeError
             reason = "Split fails on empty Series when expand=True"
         elif method_name == "get_dummies":
+            raises = ValueError
             reason = "Need to fortify get_dummies corner cases"
 
-    elif box is Index and inferred_dtype == "empty" and dtype == object:
-        if method_name == "get_dummies":
-            reason = "Need to fortify get_dummies corner cases"
+    elif (
+        box is Index
+        and inferred_dtype == "empty"
+        and dtype == object
+        and method_name == "get_dummies"
+    ):
+        raises = ValueError
+        reason = "Need to fortify get_dummies corner cases"
 
     if reason is not None:
-        mark = pytest.mark.xfail(reason=reason)
+        mark = pytest.mark.xfail(raises=raises, reason=reason)
         request.node.add_marker(mark)
 
     t = box(values, dtype=dtype)  # explicit dtype to avoid casting
@@ -117,9 +125,15 @@ def test_api_per_method(
             method(*args, **kwargs)
 
 
-def test_api_for_categorical(any_string_method):
+def test_api_for_categorical(any_string_method, any_string_dtype, request):
     # https://github.com/pandas-dev/pandas/issues/10661
-    s = Series(list("aabb"))
+
+    if any_string_dtype == "arrow_string":
+        # unsupported operand type(s) for +: 'ArrowStringArray' and 'str'
+        mark = pytest.mark.xfail(raises=TypeError, reason="Not Implemented")
+        request.node.add_marker(mark)
+
+    s = Series(list("aabb"), dtype=any_string_dtype)
     s = s + " " + s
     c = s.astype("category")
     assert isinstance(c.str, strings.StringMethods)
@@ -127,7 +141,7 @@ def test_api_for_categorical(any_string_method):
     method_name, args, kwargs = any_string_method
 
     result = getattr(c.str, method_name)(*args, **kwargs)
-    expected = getattr(s.str, method_name)(*args, **kwargs)
+    expected = getattr(s.astype("object").str, method_name)(*args, **kwargs)
 
     if isinstance(result, DataFrame):
         tm.assert_frame_equal(result, expected)
