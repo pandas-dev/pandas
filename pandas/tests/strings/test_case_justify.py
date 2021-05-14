@@ -81,6 +81,15 @@ def test_swapcase_mixed_object():
     tm.assert_series_equal(result, expected)
 
 
+def test_casefold():
+    # GH25405
+    expected = Series(["ss", np.nan, "case", "ssd"])
+    s = Series(["ß", np.nan, "case", "ßd"])
+    result = s.str.casefold()
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_casemethods(any_string_dtype):
     values = ["aaa", "bbb", "CCC", "Dddd", "eEEE"]
     s = Series(values, dtype=any_string_dtype)
