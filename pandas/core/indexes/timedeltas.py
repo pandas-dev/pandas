@@ -1,16 +1,32 @@
 """ implement the TimedeltaIndex """
 
-from pandas._libs import index as libindex, lib
-from pandas._libs.tslibs import Timedelta, to_offset
-from pandas._typing import DtypeObj, Optional
+from pandas._libs import (
+    index as libindex,
+    lib,
+)
+from pandas._libs.tslibs import (
+    Timedelta,
+    to_offset,
+)
+from pandas._typing import (
+    DtypeObj,
+    Optional,
+)
 from pandas.errors import InvalidIndexError
 
-from pandas.core.dtypes.common import TD64NS_DTYPE, is_scalar, is_timedelta64_dtype
+from pandas.core.dtypes.common import (
+    TD64NS_DTYPE,
+    is_scalar,
+    is_timedelta64_dtype,
+)
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, maybe_extract_name
+from pandas.core.indexes.base import (
+    Index,
+    maybe_extract_name,
+)
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 
@@ -138,7 +154,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             if copy:
                 return data.copy()
             else:
-                return data._shallow_copy()
+                return data._view()
 
         # - Cases checked above all return/raise before reaching here - #
 
@@ -176,7 +192,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         return Index.get_loc(self, key, method, tolerance)
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         """
         If label is a string, cast it to timedelta according to resolution.
 
@@ -190,7 +206,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         -------
         label : object
         """
-        assert kind in ["loc", "getitem", None]
+        assert kind in ["loc", "getitem", None, lib.no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, str):
             parsed = Timedelta(label)

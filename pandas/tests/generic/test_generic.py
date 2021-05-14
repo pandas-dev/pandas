@@ -1,11 +1,17 @@
-from copy import copy, deepcopy
+from copy import (
+    copy,
+    deepcopy,
+)
 
 import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import is_scalar
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 # ----------------------------------------------------------------------
@@ -94,6 +100,9 @@ class Generic:
         # non-inclusion
         result = o._get_bool_data()
         expected = self._construct(n, value="empty", **kwargs)
+        if isinstance(o, DataFrame):
+            # preserve columns dtype
+            expected.columns = o.columns[:0]
         self._compare(result, expected)
 
         # get the bool data

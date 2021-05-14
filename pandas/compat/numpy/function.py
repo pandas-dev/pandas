@@ -15,18 +15,30 @@ This module provides a set of commonly used default arguments for functions and
 methods that are spread throughout the codebase. This module will make it
 easier to adjust to future upstream changes in the analogous numpy signatures.
 """
-from distutils.version import LooseVersion
-from typing import Any, Dict, Optional, Union
+from typing import (
+    Any,
+    Dict,
+    Optional,
+    Union,
+)
 
-from numpy import __version__, ndarray
+from numpy import (
+    __version__,
+    ndarray,
+)
 
-from pandas._libs.lib import is_bool, is_integer
+from pandas._libs.lib import (
+    is_bool,
+    is_integer,
+)
 from pandas.errors import UnsupportedFunctionCall
 from pandas.util._validators import (
     validate_args,
     validate_args_and_kwargs,
     validate_kwargs,
 )
+
+from pandas.util.version import Version
 
 
 class CompatValidator:
@@ -117,7 +129,7 @@ ARGSORT_DEFAULTS["axis"] = -1
 ARGSORT_DEFAULTS["kind"] = "quicksort"
 ARGSORT_DEFAULTS["order"] = None
 
-if LooseVersion(__version__) >= LooseVersion("1.17.0"):
+if Version(__version__) >= Version("1.17.0"):
     # GH-26361. NumPy added radix sort and changed default to None.
     ARGSORT_DEFAULTS["kind"] = None
 
@@ -201,6 +213,7 @@ ALLANY_DEFAULTS: Dict[str, Optional[bool]] = {}
 ALLANY_DEFAULTS["dtype"] = None
 ALLANY_DEFAULTS["out"] = None
 ALLANY_DEFAULTS["keepdims"] = False
+ALLANY_DEFAULTS["axis"] = None
 validate_all = CompatValidator(
     ALLANY_DEFAULTS, fname="all", method="both", max_fname_arg_count=1
 )

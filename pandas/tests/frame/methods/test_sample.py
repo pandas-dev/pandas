@@ -1,9 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p17
+from pandas.compat import np_version_under1p18
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -155,12 +158,12 @@ class TestSample:
             pytest.param(
                 "np.random.MT19937",
                 3,
-                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
+                marks=pytest.mark.skipif(np_version_under1p18, reason="NumPy<1.18"),
             ),
             pytest.param(
                 "np.random.PCG64",
                 11,
-                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
+                marks=pytest.mark.skipif(np_version_under1p18, reason="NumPy<1.18"),
             ),
         ],
     )

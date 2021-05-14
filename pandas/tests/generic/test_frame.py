@@ -5,10 +5,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, date_range
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-
-from .test_generic import Generic
+from pandas.tests.generic.test_generic import Generic
 
 
 class TestDataFrame(Generic):

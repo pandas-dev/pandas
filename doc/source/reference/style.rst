@@ -23,7 +23,7 @@ Styler properties
    :toctree: api/
 
    Styler.env
-   Styler.template
+   Styler.template_html
    Styler.loader
 
 Style application
@@ -35,16 +35,13 @@ Style application
    Styler.applymap
    Styler.where
    Styler.format
-   Styler.set_precision
    Styler.set_td_classes
    Styler.set_table_styles
    Styler.set_table_attributes
    Styler.set_tooltips
-   Styler.set_tooltips_class
    Styler.set_caption
    Styler.set_properties
    Styler.set_uuid
-   Styler.set_na_rep
    Styler.clear
    Styler.pipe
 
@@ -53,9 +50,10 @@ Builtin styles
 .. autosummary::
    :toctree: api/
 
+   Styler.highlight_null
    Styler.highlight_max
    Styler.highlight_min
-   Styler.highlight_null
+   Styler.highlight_between
    Styler.background_gradient
    Styler.bar
 

@@ -1,17 +1,37 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any, Optional
+from datetime import (
+    datetime,
+    timedelta,
+)
+from typing import (
+    Any,
+    Hashable,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex, lib
-from pandas._libs.tslibs import BaseOffset, Period, Resolution, Tick
-from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
-from pandas._typing import Dtype, DtypeObj
+from pandas._libs import (
+    index as libindex,
+    lib,
+)
+from pandas._libs.tslibs import (
+    BaseOffset,
+    Period,
+    Resolution,
+    Tick,
+)
+from pandas._libs.tslibs.parsing import (
+    DateParseError,
+    parse_time_string,
+)
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
+)
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -33,7 +53,10 @@ import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas.core.indexes.datetimes import DatetimeIndex, Index
+from pandas.core.indexes.datetimes import (
+    DatetimeIndex,
+    Index,
+)
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.indexes.numeric import Int64Index
 
@@ -166,21 +189,21 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return DatetimeIndex._simple_new(arr, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported  [misc]
+    # error: Decorated property not supported
     @property  # type:ignore[misc]
     @doc(PeriodArray.hour.fget)
     def hour(self) -> Int64Index:
         return Int64Index(self._data.hour, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported  [misc]
+    # error: Decorated property not supported
     @property  # type:ignore[misc]
     @doc(PeriodArray.minute.fget)
     def minute(self) -> Int64Index:
         return Int64Index(self._data.minute, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported  [misc]
+    # error: Decorated property not supported
     @property  # type:ignore[misc]
     @doc(PeriodArray.second.fget)
     def second(self) -> Int64Index:
@@ -194,11 +217,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         data=None,
         ordinal=None,
         freq=None,
-        dtype: Optional[Dtype] = None,
-        copy=False,
-        name=None,
+        dtype: Dtype | None = None,
+        copy: bool = False,
+        name: Hashable = None,
         **fields,
-    ):
+    ) -> PeriodIndex:
 
         valid_field_set = {
             "year",
@@ -302,7 +325,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # ------------------------------------------------------------------------
     # Rendering Methods
 
-    def _mpl_repr(self):
+    def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
         return self.astype(object)._values
 
@@ -323,10 +346,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 return True
             except KeyError:
                 return False
-
-    @cache_readonly
-    def _int64index(self) -> Int64Index:
-        return Int64Index._simple_new(self.asi8, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Methods
@@ -370,7 +389,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
         """
         where : array of timestamps
-        mask : array of booleans where data is not NA
+        mask : np.ndarray[bool]
+            Array of booleans where data is not NA.
         """
         if isinstance(where, DatetimeIndex):
             where = PeriodIndex(where._values, freq=self.freq)
@@ -424,24 +444,18 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # ------------------------------------------------------------------------
     # Indexing Methods
 
-    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
+    def _convert_tolerance(self, tolerance, target):
+        # Returned tolerance must be in dtype/units so that
+        #  `|self._get_engine_target() - target._engine_target()| <= tolerance`
+        #  is meaningful.  Since PeriodIndex returns int64 for engine_target,
+        #  we may need to convert timedelta64 tolerance to int64.
+        tolerance = super()._convert_tolerance(tolerance, target)
 
-        if not self._should_compare(target):
-            return self._get_indexer_non_comparable(target, method, unique=True)
+        if self.dtype == target.dtype:
+            # convert tolerance to i8
+            tolerance = self._maybe_convert_timedelta(tolerance)
 
-        if isinstance(target, PeriodIndex):
-            target = target._int64index  # i.e. target.asi8
-            self_index = self._int64index
-        else:
-            self_index = self
-
-        if tolerance is not None:
-            tolerance = self._convert_tolerance(tolerance, target)
-            if self_index is not self:
-                # convert tolerance to i8
-                tolerance = self._maybe_convert_timedelta(tolerance)
-
-        return Index._get_indexer(self_index, target, method, limit, tolerance)
+        return tolerance
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -477,12 +491,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 pass
 
             try:
-                asdt, reso = parse_time_string(key, self.freq)
+                asdt, reso_str = parse_time_string(key, self.freq)
             except (ValueError, DateParseError) as err:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
-            reso = Resolution.from_attrname(reso)
+            reso = Resolution.from_attrname(reso_str)
             grp = reso.freq_group.value
             freqn = self.dtype.freq_group_code
 
@@ -517,7 +531,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         except KeyError as err:
             raise KeyError(orig_key) from err
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind: str):
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         """
         If label is a string or a datetime, cast it to Period.ordinal according
         to resolution.
@@ -526,7 +540,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'}
+        kind : {'loc', 'getitem'}, or None
 
         Returns
         -------
@@ -537,14 +551,15 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Value of `side` parameter should be validated in caller.
 
         """
-        assert kind in ["loc", "getitem"]
+        assert kind in ["loc", "getitem", None, lib.no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, datetime):
             return Period(label, freq=self.freq)
         elif isinstance(label, str):
             try:
-                parsed, reso = parse_time_string(label, self.freq)
-                reso = Resolution.from_attrname(reso)
+                parsed, reso_str = parse_time_string(label, self.freq)
+                reso = Resolution.from_attrname(reso_str)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
             except ValueError as err:
@@ -572,24 +587,16 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             raise ValueError
 
     def _get_string_slice(self, key: str):
-        parsed, reso = parse_time_string(key, self.freq)
-        reso = Resolution.from_attrname(reso)
+        parsed, reso_str = parse_time_string(key, self.freq)
+        reso = Resolution.from_attrname(reso_str)
         try:
             return self._partial_date_slice(reso, parsed)
         except KeyError as err:
             raise KeyError(key) from err
 
-    # ------------------------------------------------------------------------
-
-    def memory_usage(self, deep: bool = False) -> int:
-        result = super().memory_usage(deep=deep)
-        if hasattr(self, "_cache") and "_int64index" in self._cache:
-            result += self._int64index.memory_usage(deep=deep)
-        return result
-
 
 def period_range(
-    start=None, end=None, periods: Optional[int] = None, freq=None, name=None
+    start=None, end=None, periods: int | None = None, freq=None, name=None
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.

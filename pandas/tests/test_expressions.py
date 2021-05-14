@@ -5,10 +5,14 @@ import numpy as np
 import pytest
 
 import pandas._testing as tm
-from pandas.core.api import DataFrame, Index, Series
+from pandas.core.api import (
+    DataFrame,
+    Index,
+    Series,
+)
 from pandas.core.computation import expressions as expr
 
-_frame = DataFrame(np.random.randn(10000, 4), columns=list("ABCD"), dtype="float64")
+_frame = DataFrame(np.random.randn(10001, 4), columns=list("ABCD"), dtype="float64")
 _frame2 = DataFrame(np.random.randn(100, 4), columns=list("ABCD"), dtype="float64")
 _mixed = DataFrame(
     {
@@ -32,6 +36,11 @@ _integer = DataFrame(
 _integer2 = DataFrame(
     np.random.randint(1, 100, size=(101, 4)), columns=list("ABCD"), dtype="int64"
 )
+_array = _frame["A"].values.copy()
+_array2 = _frame2["A"].values.copy()
+
+_array_mixed = _mixed["D"].values.copy()
+_array_mixed2 = _mixed2["D"].values.copy()
 
 
 @pytest.mark.skipif(not expr.USE_NUMEXPR, reason="not using numexpr")
@@ -127,36 +136,28 @@ class TestExpressions:
         self.run_frame(df, df, flex)
 
     def test_invalid(self):
+        array = np.random.randn(1_000_001)
+        array2 = np.random.randn(100)
 
         # no op
-        result = expr._can_use_numexpr(
-            operator.add, None, self.frame, self.frame, "evaluate"
-        )
-        assert not result
-
-        # mixed
-        result = expr._can_use_numexpr(
-            operator.add, "+", self.mixed, self.frame, "evaluate"
-        )
+        result = expr._can_use_numexpr(operator.add, None, array, array, "evaluate")
         assert not result
 
         # min elements
-        result = expr._can_use_numexpr(
-            operator.add, "+", self.frame2, self.frame2, "evaluate"
-        )
+        result = expr._can_use_numexpr(operator.add, "+", array2, array2, "evaluate")
         assert not result
 
         # ok, we only check on first part of expression
-        result = expr._can_use_numexpr(
-            operator.add, "+", self.frame, self.frame2, "evaluate"
-        )
+        result = expr._can_use_numexpr(operator.add, "+", array, array2, "evaluate")
         assert result
 
     @pytest.mark.parametrize(
         "opname,op_str",
         [("add", "+"), ("sub", "-"), ("mul", "*"), ("truediv", "/"), ("pow", "**")],
     )
-    @pytest.mark.parametrize("left,right", [(_frame, _frame2), (_mixed, _mixed2)])
+    @pytest.mark.parametrize(
+        "left,right", [(_array, _array2), (_array_mixed, _array_mixed2)]
+    )
     def test_binary_ops(self, opname, op_str, left, right):
         def testit():
 
@@ -166,16 +167,9 @@ class TestExpressions:
 
             op = getattr(operator, opname)
 
-            result = expr._can_use_numexpr(op, op_str, left, left, "evaluate")
-            assert result != left._is_mixed_type
-
             result = expr.evaluate(op, left, left, use_numexpr=True)
             expected = expr.evaluate(op, left, left, use_numexpr=False)
-
-            if isinstance(result, DataFrame):
-                tm.assert_frame_equal(result, expected)
-            else:
-                tm.assert_numpy_array_equal(result, expected.values)
+            tm.assert_numpy_array_equal(result, expected)
 
             result = expr._can_use_numexpr(op, op_str, right, right, "evaluate")
             assert not result
@@ -199,7 +193,9 @@ class TestExpressions:
             ("ne", "!="),
         ],
     )
-    @pytest.mark.parametrize("left,right", [(_frame, _frame2), (_mixed, _mixed2)])
+    @pytest.mark.parametrize(
+        "left,right", [(_array, _array2), (_array_mixed, _array_mixed2)]
+    )
     def test_comparison_ops(self, opname, op_str, left, right):
         def testit():
             f12 = left + 1
@@ -207,15 +203,9 @@ class TestExpressions:
 
             op = getattr(operator, opname)
 
-            result = expr._can_use_numexpr(op, op_str, left, f12, "evaluate")
-            assert result != left._is_mixed_type
-
             result = expr.evaluate(op, left, f12, use_numexpr=True)
             expected = expr.evaluate(op, left, f12, use_numexpr=False)
-            if isinstance(result, DataFrame):
-                tm.assert_frame_equal(result, expected)
-            else:
-                tm.assert_numpy_array_equal(result, expected.values)
+            tm.assert_numpy_array_equal(result, expected)
 
             result = expr._can_use_numexpr(op, op_str, right, f22, "evaluate")
             assert not result
@@ -252,7 +242,7 @@ class TestExpressions:
     def test_bool_ops_raise_on_arithmetic(self, op_str, opname):
         df = DataFrame({"a": np.random.rand(10) > 0.5, "b": np.random.rand(10) > 0.5})
 
-        msg = f"operator {repr(op_str)} not implemented for bool dtypes"
+        msg = f"operator '{opname}' not implemented for bool dtypes"
         f = getattr(operator, opname)
         err_msg = re.escape(msg)
 

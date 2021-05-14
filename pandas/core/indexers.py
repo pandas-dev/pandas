@@ -1,11 +1,18 @@
 """
 Low-dependency indexing utilities.
 """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
 
-from pandas._typing import Any, AnyArrayLike, ArrayLike
+from pandas._typing import (
+    Any,
+    AnyArrayLike,
+    ArrayLike,
+)
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -15,7 +22,14 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
+
+if TYPE_CHECKING:
+    from pandas.core.frame import DataFrame
+    from pandas.core.indexes.base import Index
 
 # -----------------------------------------------------------
 # Indexer Identification
@@ -150,7 +164,7 @@ def check_setitem_lengths(indexer, value, values) -> bool:
         #  a) not necessarily 1-D indexers, e.g. tuple
         #  b) boolean indexers e.g. BoolArray
         if is_list_like(value):
-            if len(indexer) != len(value):
+            if len(indexer) != len(value) and values.ndim == 1:
                 # boolean with truth values == len of the value is ok too
                 if isinstance(indexer, list):
                     indexer = np.array(indexer)
@@ -168,7 +182,8 @@ def check_setitem_lengths(indexer, value, values) -> bool:
 
     elif isinstance(indexer, slice):
         if is_list_like(value):
-            if len(value) != length_of_indexer(indexer, values):
+            if len(value) != length_of_indexer(indexer, values) and values.ndim == 1:
+                # In case of two dimensional value is used row-wise and broadcasted
                 raise ValueError(
                     "cannot set using a slice indexer with a "
                     "different length than the value"
@@ -197,16 +212,24 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
 
     Examples
     --------
-    >>> validate_indices([1, 2], 3)
-    # OK
-    >>> validate_indices([1, -2], 3)
-    ValueError
-    >>> validate_indices([1, 2, 3], 3)
-    IndexError
-    >>> validate_indices([-1, -1], 0)
-    # OK
-    >>> validate_indices([0, 1], 0)
-    IndexError
+    >>> validate_indices(np.array([1, 2]), 3) # OK
+
+    >>> validate_indices(np.array([1, -2]), 3)
+    Traceback (most recent call last):
+        ...
+    ValueError: negative dimensions are not allowed
+
+    >>> validate_indices(np.array([1, 2, 3]), 3)
+    Traceback (most recent call last):
+        ...
+    IndexError: indices are out-of-bounds
+
+    >>> validate_indices(np.array([-1, -1]), 0) # OK
+
+    >>> validate_indices(np.array([0, 1]), 0)
+    Traceback (most recent call last):
+        ...
+    IndexError: indices are out-of-bounds
     """
     if len(indices):
         min_idx = indices.min()
@@ -223,7 +246,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
 # Indexer Conversion
 
 
-def maybe_convert_indices(indices, n: int):
+def maybe_convert_indices(indices, n: int, verify: bool = True):
     """
     Attempt to convert indices into valid, positive indices.
 
@@ -236,6 +259,8 @@ def maybe_convert_indices(indices, n: int):
         Array of indices that we are to convert.
     n : int
         Number of elements in the array that we are indexing.
+    verify : bool, default True
+        Check that all entries are between 0 and n - 1, inclusive.
 
     Returns
     -------
@@ -261,9 +286,10 @@ def maybe_convert_indices(indices, n: int):
         indices = indices.copy()
         indices[mask] += n
 
-    mask = (indices >= n) | (indices < 0)
-    if mask.any():
-        raise IndexError("indices are out-of-bounds")
+    if verify:
+        mask = (indices >= n) | (indices < 0)
+        if mask.any():
+            raise IndexError("indices are out-of-bounds")
     return indices
 
 
@@ -327,12 +353,14 @@ def length_of_indexer(indexer, target=None) -> int:
             # GH#25774
             return indexer.sum()
         return len(indexer)
+    elif isinstance(indexer, range):
+        return (indexer.stop - indexer.start) // indexer.step
     elif not is_list_like_indexer(indexer):
         return 1
     raise AssertionError("cannot find the length of the indexer")
 
 
-def deprecate_ndim_indexing(result, stacklevel=3):
+def deprecate_ndim_indexing(result, stacklevel: int = 3):
     """
     Helper function to raise the deprecation warning for multi-dimensional
     indexing on 1D Series/Index.
@@ -376,6 +404,32 @@ def unpack_1tuple(tup):
 
         return tup[0]
     return tup
+
+
+def check_key_length(columns: Index, key, value: DataFrame):
+    """
+    Checks if a key used as indexer has the same length as the columns it is
+    associated with.
+
+    Parameters
+    ----------
+    columns : Index The columns of the DataFrame to index.
+    key : A list-like of keys to index with.
+    value : DataFrame The value to set for the keys.
+
+    Raises
+    ------
+    ValueError: If the length of key is not equal to the number of columns in value
+                or if the number of columns referenced by key is not equal to number
+                of columns.
+    """
+    if columns.is_unique:
+        if len(value.columns) != len(key):
+            raise ValueError("Columns must be same length as key")
+    else:
+        # Missing keys in columns are represented as -1
+        if len(columns.get_indexer_non_unique(key)[0]) != len(value.columns):
+            raise ValueError("Columns must be same length as key")
 
 
 # -----------------------------------------------------------

@@ -1,7 +1,13 @@
 import textwrap
-from typing import List, Set
+from typing import (
+    List,
+    Set,
+)
 
-from pandas._libs import NaT, lib
+from pandas._libs import (
+    NaT,
+    lib,
+)
 from pandas.errors import InvalidIndexError
 
 from pandas.core.indexes.base import (
@@ -158,7 +164,7 @@ def _get_combined_index(
     return index
 
 
-def union_indexes(indexes, sort=True) -> Index:
+def union_indexes(indexes, sort: bool = True) -> Index:
     """
     Return the union of indexes.
 
@@ -267,7 +273,7 @@ def _sanitize_and_check(indexes):
         return indexes, "array"
 
 
-def all_indexes_same(indexes):
+def all_indexes_same(indexes) -> bool:
     """
     Determine if all indexes contain the same elements.
 

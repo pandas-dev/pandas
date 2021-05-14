@@ -5,7 +5,10 @@ from textwrap import dedent
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 from pandas.io.formats.format import DataFrameFormatter
@@ -115,6 +118,24 @@ class TestToLatex:
             \midrule
             0 &  1 &  b1 \\
             1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
+    def test_to_latex_float_format_object_col(self):
+        # GH#40024
+        ser = Series([1000.0, "test"])
+        result = ser.to_latex(float_format="{:,.0f}".format)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{ll}
+            \toprule
+            {} &     0 \\
+            \midrule
+            0 & 1,000 \\
+            1 &  test \\
             \bottomrule
             \end{tabular}
             """

@@ -2,7 +2,10 @@
 Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import os
 
 import numpy as np
@@ -14,7 +17,11 @@ from pandas._libs.parsers import TextReader
 from pandas import DataFrame
 import pandas._testing as tm
 
-from pandas.io.parsers import TextFileReader, read_csv
+from pandas.io.parsers import (
+    TextFileReader,
+    read_csv,
+)
+from pandas.io.parsers.c_parser_wrapper import ensure_dtype_objs
 
 
 class TestTextReader:
@@ -200,6 +207,8 @@ aaaa,4
 aaaaa,5"""
 
         def _make_reader(**kwds):
+            if "dtype" in kwds:
+                kwds["dtype"] = ensure_dtype_objs(kwds["dtype"])
             return TextReader(StringIO(data), delimiter=",", header=None, **kwds)
 
         reader = _make_reader(dtype="S5,i4")
@@ -227,6 +236,8 @@ one,two
 4,d"""
 
         def _make_reader(**kwds):
+            if "dtype" in kwds:
+                kwds["dtype"] = ensure_dtype_objs(kwds["dtype"])
             return TextReader(StringIO(data), delimiter=",", **kwds)
 
         reader = _make_reader(dtype={"one": "u1", 1: "S1"})

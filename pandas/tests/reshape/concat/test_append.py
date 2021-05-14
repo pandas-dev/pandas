@@ -6,8 +6,17 @@ import dateutil
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, concat, isna
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    Timestamp,
+    concat,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -181,7 +190,10 @@ class TestAppend:
         pd.MultiIndex.from_arrays(["A B C".split(), "D E F".split()])
     ]
 
-    all_indexes = indexes_can_append + indexes_cannot_append_with_other
+    # error: Unsupported operand types for + ("List[Index]" and "List[MultiIndex]")
+    all_indexes = (
+        indexes_can_append + indexes_cannot_append_with_other  # type: ignore[operator]
+    )
 
     @pytest.mark.parametrize("index", all_indexes, ids=lambda x: type(x).__name__)
     def test_append_same_columns_type(self, index):
@@ -331,12 +343,16 @@ class TestAppend:
         assert appended["A"].dtype == "f8"
         assert appended["B"].dtype == "O"
 
+    # TODO(ArrayManager) DataFrame.append reindexes a Series itself (giving
+    # float dtype) -> delay reindexing until concat_array_managers which properly
+    # takes care of all-null dtype inference
+    @td.skip_array_manager_not_yet_implemented
     def test_append_empty_frame_to_series_with_dateutil_tz(self):
         # GH 23682
         date = Timestamp("2018-10-24 07:30:00", tz=dateutil.tz.tzutc())
-        s = Series({"date": date, "a": 1.0, "b": 2.0})
+        ser = Series({"date": date, "a": 1.0, "b": 2.0})
         df = DataFrame(columns=["c", "d"])
-        result_a = df.append(s, ignore_index=True)
+        result_a = df.append(ser, ignore_index=True)
         expected = DataFrame(
             [[np.nan, np.nan, 1.0, 2.0, date]], columns=["c", "d", "a", "b", "date"]
         )
@@ -350,13 +366,12 @@ class TestAppend:
         )
         expected["c"] = expected["c"].astype(object)
         expected["d"] = expected["d"].astype(object)
-
-        result_b = result_a.append(s, ignore_index=True)
+        result_b = result_a.append(ser, ignore_index=True)
         tm.assert_frame_equal(result_b, expected)
 
         # column order is different
         expected = expected[["c", "d", "date", "a", "b"]]
-        result = df.append([s, s], ignore_index=True)
+        result = df.append([ser, ser], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
     def test_append_empty_tz_frame_with_datetime64ns(self):
@@ -365,13 +380,40 @@ class TestAppend:
 
         # pd.NaT gets inferred as tz-naive, so append result is tz-naive
         result = df.append({"a": pd.NaT}, ignore_index=True)
-        expected = DataFrame({"a": [pd.NaT]}).astype("datetime64[ns]")
+        expected = DataFrame({"a": [pd.NaT]}).astype(object)
         tm.assert_frame_equal(result, expected)
 
         # also test with typed value to append
         df = DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
-        result = df.append(
-            Series({"a": pd.NaT}, dtype="datetime64[ns]"), ignore_index=True
-        )
-        expected = DataFrame({"a": [pd.NaT]}).astype("datetime64[ns]")
+        other = Series({"a": pd.NaT}, dtype="datetime64[ns]")
+        result = df.append(other, ignore_index=True)
+        expected = DataFrame({"a": [pd.NaT]}).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype_str", ["datetime64[ns, UTC]", "datetime64[ns]", "Int64", "int64"]
+    )
+    @pytest.mark.parametrize("val", [1, "NaT"])
+    def test_append_empty_frame_with_timedelta64ns_nat(self, dtype_str, val):
+        # https://github.com/pandas-dev/pandas/issues/35460
+        df = DataFrame(columns=["a"]).astype(dtype_str)
+
+        other = DataFrame({"a": [np.timedelta64(val, "ns")]})
+        result = df.append(other, ignore_index=True)
+
+        expected = other.astype(object)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype_str", ["datetime64[ns, UTC]", "datetime64[ns]", "Int64", "int64"]
+    )
+    @pytest.mark.parametrize("val", [1, "NaT"])
+    def test_append_frame_with_timedelta64ns_nat(self, dtype_str, val):
+        # https://github.com/pandas-dev/pandas/issues/35460
+        df = DataFrame({"a": pd.array([1], dtype=dtype_str)})
+
+        other = DataFrame({"a": [np.timedelta64(val, "ns")]})
+        result = df.append(other, ignore_index=True)
+
+        expected = DataFrame({"a": [df.iloc[0, 0], other.iloc[0, 0]]}, dtype=object)
         tm.assert_frame_equal(result, expected)
