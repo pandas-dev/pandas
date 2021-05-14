@@ -2930,6 +2930,21 @@ class Index(IndexOpsMixin, PandasObject):
                     "Can only union MultiIndex with MultiIndex or Index of tuples, "
                     "try mi.to_flat_index().union(other) instead."
                 )
+            if (
+                isinstance(self, ABCDatetimeIndex)
+                and isinstance(other, ABCDatetimeIndex)
+                and self.tz is not None
+                and other.tz is not None
+            ):
+                # GH#39328
+                warnings.warn(
+                    "In a future version, the union of DatetimeIndex objects "
+                    "with mismatched timezones will cast both to UTC instead of "
+                    "object dtype. To retain the old behavior, "
+                    "use `index.astype(object).union(other)`",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
             dtype = find_common_type([self.dtype, other.dtype])
             if self._is_numeric_dtype and other._is_numeric_dtype:
