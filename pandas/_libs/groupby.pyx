@@ -1136,19 +1136,24 @@ def group_rank(float64_t[:, ::1] out,
     This method modifies the `out` parameter rather than returning an object
     """
     cdef:
+        Py_ssize_t i, k, N
         ndarray[float64_t, ndim=1] result
 
-    result = rank_1d(
-        values=values[:, 0],
-        labels=labels,
-        is_datetimelike=is_datetimelike,
-        ties_method=ties_method,
-        ascending=ascending,
-        pct=pct,
-        na_option=na_option
-    )
-    for i in range(len(result)):
-        out[i, 0] = result[i]
+    N = values.shape[1]
+
+    for k in range(N):
+        result = rank_1d(
+            values=values[:, k],
+            labels=labels,
+            is_datetimelike=is_datetimelike,
+            ties_method=ties_method,
+            ascending=ascending,
+            pct=pct,
+            na_option=na_option
+        )
+        for i in range(len(result)):
+            # TODO: why cant we do out[:, k] = result?
+            out[i, k] = result[i]
 
 
 # ----------------------------------------------------------------------

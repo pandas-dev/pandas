@@ -82,8 +82,6 @@ class StylerRenderer:
             data = data.to_frame()
         if not isinstance(data, DataFrame):
             raise TypeError("``data`` must be a Series or DataFrame")
-        if not data.index.is_unique or not data.columns.is_unique:
-            raise ValueError("style is not supported for non-unique indices.")
         self.data: DataFrame = data
         self.index: Index = data.index
         self.columns: Index = data.columns
@@ -134,11 +132,33 @@ class StylerRenderer:
             r = func(self)(*args, **kwargs)
         return r
 
-    def _translate(self):
+    def _translate(
+        self, sparsify_index: bool | None = None, sparsify_cols: bool | None = None
+    ):
         """
-        Convert the DataFrame in `self.data` and the attrs from `_build_styles`
-        into a dictionary of {head, body, uuid, cellstyle}.
+        Process Styler data and settings into a dict for template rendering.
+
+        Convert data and settings from ``Styler`` attributes such as ``self.data``,
+        ``self.tooltips`` including applying any methods in ``self._todo``.
+
+        Parameters
+        ----------
+        sparsify_index : bool, optional
+            Whether to sparsify the index or print all hierarchical index elements
+        sparsify_cols : bool, optional
+            Whether to sparsify the columns or print all hierarchical column elements
+
+        Returns
+        -------
+        d : dict
+            The following structure: {uuid, table_styles, caption, head, body,
+            cellstyle, table_attributes}
         """
+        if sparsify_index is None:
+            sparsify_index = get_option("display.multi_sparse")
+        if sparsify_cols is None:
+            sparsify_cols = get_option("display.multi_sparse")
+
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
         INDEX_NAME_CLASS = "index_name"
@@ -155,14 +175,14 @@ class StylerRenderer:
         }
 
         head = self._translate_header(
-            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS
+            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS, sparsify_cols
         )
         d.update({"head": head})
 
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS)
+        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS, sparsify_index)
         d.update({"body": body})
 
         cellstyle: list[dict[str, CSSList | list[str]]] = [
@@ -187,10 +207,17 @@ class StylerRenderer:
         return d
 
     def _translate_header(
-        self, blank_class, blank_value, index_name_class, col_heading_class
+        self,
+        blank_class: str,
+        blank_value: str,
+        index_name_class: str,
+        col_heading_class: str,
+        sparsify_cols: bool,
     ):
         """
-        Build each <tr> within table <head>, using the structure:
+        Build each <tr> within table <head> as a list
+
+        Using the structure:
              +----------------------------+---------------+---------------------------+
              |  index_blanks ...          | column_name_0 |  column_headers (level_0) |
           1) |       ..                   |       ..      |             ..            |
@@ -198,9 +225,29 @@ class StylerRenderer:
              +----------------------------+---------------+---------------------------+
           2) |  index_names (level_0 to level_n) ...      | column_blanks ...         |
              +----------------------------+---------------+---------------------------+
+
+        Parameters
+        ----------
+        blank_class : str
+            CSS class added to elements within blank sections of the structure.
+        blank_value : str
+            HTML display value given to elements within blank sections of the structure.
+        index_name_class : str
+            CSS class added to elements within the index_names section of the structure.
+        col_heading_class : str
+            CSS class added to elements within the column_names section of structure.
+        sparsify_cols : bool
+            Whether column_headers section will add colspan attributes (>1) to elements.
+
+        Returns
+        -------
+        head : list
+            The associated HTML elements needed for template rendering.
         """
         # for sparsifying a MultiIndex
-        col_lengths = _get_level_lengths(self.columns, self.hidden_columns)
+        col_lengths = _get_level_lengths(
+            self.columns, sparsify_cols, self.hidden_columns
+        )
 
         clabels = self.data.columns.tolist()
         if self.data.columns.nlevels == 1:
@@ -270,18 +317,36 @@ class StylerRenderer:
 
         return head
 
-    def _translate_body(self, data_class, row_heading_class):
+    def _translate_body(
+        self, data_class: str, row_heading_class: str, sparsify_index: bool
+    ):
         """
-        Build each <tr> in table <body> in the following format:
+        Build each <tr> within table <body> as a list
+
+        Use the following structure:
           +--------------------------------------------+---------------------------+
           |  index_header_0    ...    index_header_n   |  data_by_column           |
           +--------------------------------------------+---------------------------+
 
         Also add elements to the cellstyle_map for more efficient grouped elements in
         <style></style> block
+
+        Parameters
+        ----------
+        data_class : str
+            CSS class added to elements within data_by_column sections of the structure.
+        row_heading_class : str
+            CSS class added to elements within the index_header section of structure.
+        sparsify_index : bool
+            Whether index_headers section will add rowspan attributes (>1) to elements.
+
+        Returns
+        -------
+        body : list
+            The associated HTML elements needed for template rendering.
         """
         # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(self.index)
+        idx_lengths = _get_level_lengths(self.index, sparsify_index)
 
         rlabels = self.data.index.tolist()
         if self.data.index.nlevels == 1:
@@ -481,23 +546,22 @@ class StylerRenderer:
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
 
-        columns = data.columns
         if not isinstance(formatter, dict):
-            formatter = {col: formatter for col in columns}
+            formatter = {col: formatter for col in data.columns}
 
-        for col in columns:
+        cis = self.columns.get_indexer_for(data.columns)
+        ris = self.index.get_indexer_for(data.index)
+        for ci in cis:
             format_func = _maybe_wrap_formatter(
-                formatter.get(col),
+                formatter.get(self.columns[ci]),
                 na_rep=na_rep,
                 precision=precision,
                 decimal=decimal,
                 thousands=thousands,
                 escape=escape,
             )
-
-            for row, value in data[[col]].itertuples():
-                i, j = self.index.get_loc(row), self.columns.get_loc(col)
-                self._display_funcs[(i, j)] = format_func
+            for ri in ris:
+                self._display_funcs[(ri, ci)] = format_func
 
         return self
 
@@ -523,14 +587,26 @@ def _element(
     }
 
 
-def _get_level_lengths(index, hidden_elements=None):
+def _get_level_lengths(
+    index: Index, sparsify: bool, hidden_elements: Sequence[int] | None = None
+):
     """
     Given an index, find the level length for each element.
 
-    Optional argument is a list of index positions which
-    should not be visible.
+    Parameters
+    ----------
+    index : Index
+        Index or columns to determine lengths of each element
+    sparsify : bool
+        Whether to hide or show each distinct element in a MultiIndex
+    hidden_elements : sequence of int
+        Index positions of elements hidden from display in the index affecting
+        length
 
-    Result is a dictionary of (level, initial_position): span
+    Returns
+    -------
+    Dict :
+        Result is a dictionary of (level, initial_position): span
     """
     if isinstance(index, MultiIndex):
         levels = index.format(sparsify=lib.no_default, adjoin=False)
@@ -549,7 +625,7 @@ def _get_level_lengths(index, hidden_elements=None):
 
     for i, lvl in enumerate(levels):
         for j, row in enumerate(lvl):
-            if not get_option("display.multi_sparse"):
+            if not sparsify:
                 lengths[(i, j)] = 1
             elif (row is not lib.no_default) and (j not in hidden_elements):
                 last_label = j
