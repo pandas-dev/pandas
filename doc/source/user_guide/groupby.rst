@@ -1009,6 +1009,7 @@ arguments. Using a bit of metaprogramming cleverness, GroupBy now has the
 ability to "dispatch" method calls to the groups:
 
 .. ipython:: python
+   :okwarning:
 
    grouped.std()
 
