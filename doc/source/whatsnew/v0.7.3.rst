@@ -56,14 +56,14 @@ Reverted some changes to how NA values (represented typically as ``NaN`` or
    In [1]: series = pd.Series(["Steve", np.nan, "Joe"])
 
    In [2]: series == "Steve"
-   Out[2]: 
+   Out[2]:
    0     True
    1    False
    2    False
    Length: 3, dtype: bool
 
    In [3]: series != "Steve"
-   Out[3]: 
+   Out[3]:
    0    False
    1     True
    2     True
@@ -79,7 +79,7 @@ filter into boolean array operations if you are worried about this:
    In [4]: mask = series == "Steve"
 
    In [5]: series[mask & series.notnull()]
-   Out[5]: 
+   Out[5]:
    0    Steve
    Length: 1, dtype: object
 
@@ -109,7 +109,7 @@ Series, to be more consistent with the ``groupby`` behavior with DataFrame:
          ...: 
 
       In [7]: df
-      Out[7]: 
+      Out[7]:
          A      B         C         D
       0  foo    one  0.469112 -0.861849
       1  bar    one -0.282863 -2.104569
@@ -125,7 +125,7 @@ Series, to be more consistent with the ``groupby`` behavior with DataFrame:
       In [8]: grouped = df.groupby("A")["C"]
 
       In [9]: grouped.describe()
-      Out[9]: 
+      Out[9]:
          count      mean       std       min       25%       50%       75%       max
       A                                                                               
       bar    3.0 -0.530570  0.526860 -1.135632 -0.709248 -0.282863 -0.228039 -0.173215
@@ -134,7 +134,7 @@ Series, to be more consistent with the ``groupby`` behavior with DataFrame:
       [2 rows x 8 columns]
 
       In [10]: grouped.apply(lambda x: x.sort_values()[-2:])  # top 2 values
-      Out[10]: 
+      Out[10]:
       A     
       bar  1   -0.282863
            5   -0.173215

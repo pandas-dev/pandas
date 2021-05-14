@@ -35,7 +35,7 @@ New features
 
    In [1]: df = pd.DataFrame(np.random.randn(10, 4))
    In [2]: df.apply(lambda x: x.describe())
-   Out[2]: 
+   Out[2]:
                   0          1          2          3
    count  10.000000  10.000000  10.000000  10.000000
    mean    0.190912  -0.395125  -0.731920  -0.403130
@@ -132,7 +132,7 @@ regard to label-based indexing. Here is an example:
 
     In [3]: s = pd.Series(np.random.randn(10), index=range(0, 20, 2))
     In [4]: s
-    Out[4]: 
+    Out[4]:
     0    -1.294524
     2     0.413738
     4     0.276662
@@ -270,7 +270,7 @@ passing similar input to ``ix`` **except in the case of integer indexing**:
   In [8]: s = pd.Series(np.random.randn(6), index=list('acegkm'))
 
   In [9]: s
-  Out[9]: 
+  Out[9]:
   a   -1.206412
   c    2.565646
   e    1.431256
@@ -280,7 +280,7 @@ passing similar input to ``ix`` **except in the case of integer indexing**:
   Length: 6, dtype: float64
 
   In [10]: s[['m', 'a', 'c', 'e']]
-  Out[10]: 
+  Out[10]:
   m   -0.226169
   a   -1.206412
   c    2.565646
@@ -288,7 +288,7 @@ passing similar input to ``ix`` **except in the case of integer indexing**:
   Length: 4, dtype: float64
 
   In [11]: s['b':'l']
-  Out[11]: 
+  Out[11]:
   c    2.565646
   e    1.431256
   g    1.340309
@@ -296,7 +296,7 @@ passing similar input to ``ix`` **except in the case of integer indexing**:
   Length: 4, dtype: float64
 
   In [12]: s['c':'k']
-  Out[12]: 
+  Out[12]:
   c    2.565646
   e    1.431256
   g    1.340309
@@ -311,14 +311,14 @@ In the case of integer indexes, the behavior will be exactly as before
   In [13]: s = pd.Series(np.random.randn(6), index=range(0, 12, 2))
 
   In [14]: s[[4, 0, 2]]
-  Out[14]: 
+  Out[14]:
   4    0.132003
   0    0.410835
   2    0.813850
   Length: 3, dtype: float64
 
   In [15]: s[1:5]
-  Out[15]: 
+  Out[15]:
   2    0.813850
   4    0.132003
   6   -0.827317
