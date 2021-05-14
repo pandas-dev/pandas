@@ -231,8 +231,7 @@ class NumericIndex(Index):
 
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
-        if self.inferred_type == "floating":
-            return False
+        return False
 
     @doc(Index._convert_slice_indexer)
     def _convert_slice_indexer(self, key: slice, kind: str):
