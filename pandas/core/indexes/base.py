@@ -438,7 +438,11 @@ class Index(IndexOpsMixin, PandasObject):
             return Index._simple_new(data, name=name)
 
         # index-like
-        elif isinstance(data, NumericIndex) and data._is_num_index() and dtype is None:
+        elif (
+            isinstance(data, NumericIndex)
+            and data._is_numeric_index()
+            and dtype is None
+        ):
             return NumericIndex(data, name=name, copy=copy)
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
@@ -2431,7 +2435,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     @classmethod
-    def _is_num_index(cls) -> bool:
+    def _is_numeric_index(cls) -> bool:
         """
         Check if this is a NumericIndex, but *not* Int64Index, UInt64Index, FloatIndex.
 
@@ -5746,7 +5750,7 @@ class Index(IndexOpsMixin, PandasObject):
             # empty
             attributes["dtype"] = self.dtype
 
-        if self._is_num_index() and is_numeric_dtype(new_values.dtype):
+        if self._is_numeric_index() and is_numeric_dtype(new_values.dtype):
             return NumericIndex(new_values, **attributes)
 
         return Index(new_values, **attributes)

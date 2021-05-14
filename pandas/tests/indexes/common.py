@@ -665,7 +665,7 @@ class Base:
         tm.assert_index_equal(result, expected)
 
         # empty mappable
-        if idx._is_num_index():
+        if idx._is_numeric_index():
             new_index_cls = NumericIndex
         else:
             new_index_cls = Float64Index

@@ -291,7 +291,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         # the super method always returns Int64Index, UInt64Index and Float64Index
         # but if e.g. the categories are a NumIndex with dtype float32, we want to
         # return an index with the same dtype as self.categories.
-        if categories._is_num_index():
+        if categories._is_numeric_index():
             assert isinstance(categories, NumericIndex)  # mypy complaint fix
             try:
                 categories._validate_dtype(dtype)
