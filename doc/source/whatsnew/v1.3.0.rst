@@ -646,7 +646,7 @@ Deprecations
 - Deprecated :func:`merge` producing duplicated columns through the ``suffixes`` keyword  and already existing columns (:issue:`22818`)
 - Deprecated setting :attr:`Categorical._codes`, create a new :class:`Categorical` with the desired codes instead (:issue:`40606`)
 - Deprecated using ``usecols`` with out of bounds indices for ``read_csv`` with ``engine="c"`` (:issue:`25623`)
-- Deprecated ignoring "nuisance columns" in :meth:`DataFrameGroupBy.agg`, :meth:`DataFrameGroupBy.apply`, and :meth:`DataFrameGroupBy.transform`; select valid columns before calling the method (:issue:`??`)
+- Deprecated ignoring "nuisance columns" in :meth:`DataFrameGroupBy.agg`, :meth:`DataFrameGroupBy.apply`, and :meth:`DataFrameGroupBy.transform`; select valid columns before calling the method (:issue:`41475`)
 
 .. ---------------------------------------------------------------------------
 
