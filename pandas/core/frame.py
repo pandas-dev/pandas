@@ -8793,6 +8793,7 @@ NaN 12.3   33.0
         Returns
         -------
         DataFrame
+            A new DataFrame consisting of the rows of caller and the rows of `other`.
 
         See Also
         --------
