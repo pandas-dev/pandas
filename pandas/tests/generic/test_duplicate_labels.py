@@ -465,7 +465,7 @@ def test_inplace_raises_with_deprecation_warning(method, frame_only):
         r"and the current default behaviour \('inplace=False'\) will "
         r"be used\. Remove the 'inplace' argument to silence this warning\."
     )
-    warning_ctx = tm.assert_produces_warning(DeprecationWarning, match=warning_msg)
+    warning_ctx = tm.assert_produces_warning(FutureWarning, match=warning_msg)
     with pytest.raises(ValueError, match=error_msg), warning_ctx:
         method(df)
     if not frame_only:

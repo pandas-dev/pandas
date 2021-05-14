@@ -5724,7 +5724,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "'inplace' will be removed in a future version "
                 "and the current default behaviour ('inplace=False') will "
                 "be used. Remove the 'inplace' argument to silence this warning.",
-                DeprecationWarning,
+                FutureWarning,
                 stacklevel=2,
             )
         else:

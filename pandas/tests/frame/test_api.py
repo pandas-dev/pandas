@@ -228,7 +228,7 @@ class TestDataFrameMisc:
             r"and the current default behaviour \('inplace=False'\) will "
             r"be used\. Remove the 'inplace' argument to silence this warning\."
         )
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             _check_f(data.set_index("a"), f)
 
         # drop_duplicates

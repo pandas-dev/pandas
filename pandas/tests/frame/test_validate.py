@@ -59,6 +59,6 @@ class TestDataFrameValidate:
             r"and the current default behaviour \('inplace=False'\) will "
             r"be used\. Remove the 'inplace' argument to silence this warning\."
         )
-        warning_ctx = tm.assert_produces_warning(DeprecationWarning, match=warning_msg)
+        warning_ctx = tm.assert_produces_warning(FutureWarning, match=warning_msg)
         with pytest.raises(ValueError, match=msg), warning_ctx:
             getattr(dataframe, func)(**kwargs)

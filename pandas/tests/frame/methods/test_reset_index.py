@@ -165,7 +165,7 @@ class TestResetIndex:
             r"and the current default behaviour \('inplace=False'\) will "
             r"be used\. Remove the 'inplace' argument to silence this warning\."
         )
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             return_value = df.reset_index(inplace=True)
         assert return_value is None
         tm.assert_frame_equal(df, reset, check_names=False)
@@ -190,7 +190,7 @@ class TestResetIndex:
             r"and the current default behaviour \('inplace=False'\) will "
             r"be used\. Remove the 'inplace' argument to silence this warning\."
         )
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             return_value = df.reset_index(inplace=True)
         assert return_value is None
         assert df.index.name is None
@@ -694,5 +694,5 @@ def test_inplace_deprecation_warning(inplace):
         r"and the current default behaviour \('inplace=False'\) will "
         r"be used\. Remove the 'inplace' argument to silence this warning\."
     )
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         df.reset_index(inplace=inplace)
