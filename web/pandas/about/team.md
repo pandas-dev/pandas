@@ -10,25 +10,21 @@ If you want to support pandas development, you can find information in the [dona
 
 <div class="card-group maintainers">
     {% for person in maintainers.people %}
-        {% if person %}
-            <div class="card">
-                <img class="card-img-top" alt="" src="{{ person.avatar_url }}"/>
-                <div class="card-body">
-                    <h6 class="card-title">
-                        {% if person.blog %}
-                            <a href="{{ person.blog }}">
-                                {{ person.name or person.login }}
-                            </a>
-                        {% else %}
+        <div class="card">
+            <img class="card-img-top" alt="" src="{{ person.avatar_url }}"/>
+            <div class="card-body">
+                <h6 class="card-title">
+                    {% if person.blog %}
+                        <a href="{{ person.blog }}">
                             {{ person.name or person.login }}
-                        {% endif %}
-                    </h6>
-                    <p class="card-text small"><a href="{{ person.html_url }}">{{ person.login }}</a></p>
-                </div>
+                        </a>
+                    {% else %}
+                        {{ person.name or person.login }}
+                    {% endif %}
+                </h6>
+                <p class="card-text small"><a href="{{ person.html_url }}">{{ person.login }}</a></p>
             </div>
-        {% else %}
-            <div class="card border-0"></div>
-        {% endif %}
+        </div>
     {% endfor %}
 </div>
 
