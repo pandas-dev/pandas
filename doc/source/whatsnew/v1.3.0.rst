@@ -645,6 +645,8 @@ Deprecations
 - The ``inplace`` parameter of :meth:`Categorical.remove_categories`, :meth:`Categorical.add_categories`, :meth:`Categorical.reorder_categories`, :meth:`Categorical.rename_categories`, :meth:`Categorical.set_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 - Deprecated :func:`merge` producing duplicated columns through the ``suffixes`` keyword  and already existing columns (:issue:`22818`)
 - Deprecated setting :attr:`Categorical._codes`, create a new :class:`Categorical` with the desired codes instead (:issue:`40606`)
+- Deprecated behavior of :meth:`DatetimeIndex.union` with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`)
+- Deprecated using ``usecols`` with out of bounds indices for ``read_csv`` with ``engine="c"`` (:issue:`25623`)
 
 .. ---------------------------------------------------------------------------
 
@@ -750,6 +752,7 @@ Strings
 
 - Bug in the conversion from ``pyarrow.ChunkedArray`` to :class:`~arrays.StringArray` when the original had zero chunks (:issue:`41040`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` ignoring replacements with ``regex=True`` for ``StringDType`` data (:issue:`41333`, :issue:`35977`)
+- Bug in :meth:`Series.str.extract` with :class:`~arrays.StringArray` returning object dtype for empty :class:`DataFrame` (:issue:`41441`)
 
 Interval
 ^^^^^^^^
@@ -840,6 +843,7 @@ I/O
 - Bug in :func:`read_excel` raising ``AttributeError`` with ``MultiIndex`` header followed by two empty rows and no index, and bug affecting :func:`read_excel`, :func:`read_csv`, :func:`read_table`, :func:`read_fwf`, and :func:`read_clipboard` where one blank row after a ``MultiIndex`` header with no index would be dropped (:issue:`40442`)
 - Bug in :meth:`DataFrame.to_string` misplacing the truncation column when ``index=False`` (:issue:`40907`)
 - Bug in :func:`read_orc` always raising ``AttributeError`` (:issue:`40918`)
+- Bug in :func:`read_csv` and :func:`read_table` silently ignoring ``prefix`` if ``names`` and ``prefix`` are defined, now raising ``ValueError`` (:issue:`39123`)
 - Bug in :func:`read_csv` and :func:`read_excel` not respecting dtype for duplicated column name when ``mangle_dupe_cols`` is set to ``True`` (:issue:`35211`)
 - Bug in :func:`read_csv` and :func:`read_table` misinterpreting arguments when ``sys.setprofile`` had been previously called (:issue:`41069`)
 - Bug in the conversion from pyarrow to pandas (e.g. for reading Parquet) with nullable dtypes and a pyarrow array whose data buffer size is not a multiple of dtype size (:issue:`40896`)
@@ -901,6 +905,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.rank` with the GroupBy object's ``axis=0`` and the ``rank`` method's keyword ``axis=1`` (:issue:`41320`)
 - Bug in :meth:`DataFrameGroupBy.__getitem__` with non-unique columns incorrectly returning a malformed :class:`SeriesGroupBy` instead of :class:`DataFrameGroupBy` (:issue:`41427`)
 - Bug in :meth:`DataFrameGroupBy.transform` with non-unique columns incorrectly raising ``AttributeError`` (:issue:`41427`)
+- Bug in :meth:`Resampler.apply` with non-unique columns incorrectly dropping duplicated columns (:issue:`41445`)
 
 Reshaping
 ^^^^^^^^^
