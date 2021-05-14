@@ -3,8 +3,6 @@ from pathlib import Path
 
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -13,8 +11,6 @@ from pandas import (
 import pandas._testing as tm
 
 from pandas.io.json._json import JsonReader
-
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture
@@ -196,7 +192,7 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
 
 def test_readjson_unicode(monkeypatch):
     with tm.ensure_clean("test.json") as path:
-        monkeypatch.setattr("_bootlocale.getpreferredencoding", lambda l: "cp949")
+        monkeypatch.setattr("locale.getpreferredencoding", lambda l: "cp949")
         with open(path, "w", encoding="utf-8") as f:
             f.write('{"£©µÀÆÖÞßéöÿ":["АБВГДабвгд가"]}')
 

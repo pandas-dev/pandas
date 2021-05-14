@@ -11,8 +11,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import option_context
-
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.errors import (
@@ -36,7 +34,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCMultiIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -48,11 +45,15 @@ import pandas.core.common as com
 from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
     check_array_indexer,
+    is_empty_indexer,
     is_exact_shape_match,
     is_list_like_indexer,
     length_of_indexer,
 )
-from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -641,7 +642,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         ax = self.obj._get_axis(0)
 
-        if isinstance(ax, ABCMultiIndex) and self.name != "iloc":
+        if isinstance(ax, MultiIndex) and self.name != "iloc":
             with suppress(TypeError, KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
                 return ax.get_loc(key)
@@ -689,7 +690,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         if (
             axis == column_axis
-            and not isinstance(self.obj.columns, ABCMultiIndex)
+            and not isinstance(self.obj.columns, MultiIndex)
             and is_list_like_indexer(key)
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
@@ -698,7 +699,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             keys = self.obj.columns.union(key, sort=False)
 
             self.obj._mgr = self.obj._mgr.reindex_axis(
-                keys, axis=0, copy=False, consolidate=False, only_slice=True
+                keys, axis=0, consolidate=False, only_slice=True
             )
 
     def __setitem__(self, key, value):
@@ -755,7 +756,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         -------
         bool
         """
-        if any(isinstance(ax, ABCMultiIndex) for ax in self.obj.axes):
+        if any(isinstance(ax, MultiIndex) for ax in self.obj.axes):
             return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
 
@@ -816,7 +817,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         ax0 = self.obj._get_axis(0)
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
-        if isinstance(ax0, ABCMultiIndex) and self.name != "iloc":
+        if isinstance(ax0, MultiIndex) and self.name != "iloc":
             with suppress(IndexingError):
                 return self._handle_lowerdim_multi_index_axis0(tup)
 
@@ -995,7 +996,7 @@ class _LocIndexer(_LocationIndexer):
                 return False
 
             ax = self.obj.axes[i]
-            if isinstance(ax, ABCMultiIndex):
+            if isinstance(ax, MultiIndex):
                 return False
 
             if isinstance(k, str) and ax._supports_partial_string_indexing:
@@ -1086,7 +1087,7 @@ class _LocIndexer(_LocationIndexer):
         self._validate_key(key, axis)
 
         # A collection of keys
-        keyarr, indexer = self._get_listlike_indexer(key, axis, raise_missing=False)
+        keyarr, indexer = self._get_listlike_indexer(key, axis)
         return self.obj._reindex_with_indexers(
             {axis: [keyarr, indexer]}, copy=True, allow_dups=True
         )
@@ -1141,7 +1142,7 @@ class _LocIndexer(_LocationIndexer):
         elif is_list_like_indexer(key):
 
             # an iterable multi-selection
-            if not (isinstance(key, tuple) and isinstance(labels, ABCMultiIndex)):
+            if not (isinstance(key, tuple) and isinstance(labels, MultiIndex)):
 
                 if hasattr(key, "ndim") and key.ndim > 1:
                     raise ValueError("Cannot index with multidimensional key")
@@ -1169,9 +1170,7 @@ class _LocIndexer(_LocationIndexer):
             return obj.copy(deep=False)
 
         labels = obj._get_axis(axis)
-        indexer = labels.slice_indexer(
-            slice_obj.start, slice_obj.stop, slice_obj.step, kind="loc"
-        )
+        indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop, slice_obj.step)
 
         if isinstance(indexer, slice):
             return self.obj._slice(indexer, axis=axis)
@@ -1204,20 +1203,20 @@ class _LocIndexer(_LocationIndexer):
         is_int_index = labels.is_integer()
         is_int_positional = is_integer(key) and not is_int_index
 
-        if is_scalar(key) or isinstance(labels, ABCMultiIndex):
+        if is_scalar(key) or isinstance(labels, MultiIndex):
             # Otherwise get_loc will raise InvalidIndexError
 
             # if we are a label return me
             try:
                 return labels.get_loc(key)
             except LookupError:
-                if isinstance(key, tuple) and isinstance(labels, ABCMultiIndex):
+                if isinstance(key, tuple) and isinstance(labels, MultiIndex):
                     if len(key) == labels.nlevels:
                         return {"key": key}
                     raise
             except InvalidIndexError:
                 # GH35015, using datetime as column indices raises exception
-                if not isinstance(labels, ABCMultiIndex):
+                if not isinstance(labels, MultiIndex):
                     raise
             except TypeError:
                 pass
@@ -1252,8 +1251,7 @@ class _LocIndexer(_LocationIndexer):
                 (inds,) = key.nonzero()
                 return inds
             else:
-                # When setting, missing keys are not allowed, even with .loc:
-                return self._get_listlike_indexer(key, axis, raise_missing=True)[1]
+                return self._get_listlike_indexer(key, axis)[1]
         else:
             try:
                 return labels.get_loc(key)
@@ -1263,7 +1261,7 @@ class _LocIndexer(_LocationIndexer):
                     return {"key": key}
                 raise
 
-    def _get_listlike_indexer(self, key, axis: int, raise_missing: bool = False):
+    def _get_listlike_indexer(self, key, axis: int):
         """
         Transform a list-like of keys into a new index and an indexer.
 
@@ -1273,16 +1271,11 @@ class _LocIndexer(_LocationIndexer):
             Targeted labels.
         axis:  int
             Dimension on which the indexing is being made.
-        raise_missing: bool, default False
-            Whether to raise a KeyError if some labels were not found.
-            Will be removed in the future, and then this method will always behave as
-            if ``raise_missing=True``.
 
         Raises
         ------
         KeyError
-            If at least one key was requested but none was found, and
-            raise_missing=True.
+            If at least one key was requested but none was found.
 
         Returns
         -------
@@ -1307,12 +1300,10 @@ class _LocIndexer(_LocationIndexer):
         else:
             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
 
-        self._validate_read_indexer(keyarr, indexer, axis, raise_missing=raise_missing)
+        self._validate_read_indexer(keyarr, indexer, axis)
         return keyarr, indexer
 
-    def _validate_read_indexer(
-        self, key, indexer, axis: int, raise_missing: bool = False
-    ):
+    def _validate_read_indexer(self, key, indexer, axis: int):
         """
         Check that indexer can be used to return a result.
 
@@ -1328,16 +1319,11 @@ class _LocIndexer(_LocationIndexer):
             (with -1 indicating not found).
         axis : int
             Dimension on which the indexing is being made.
-        raise_missing: bool
-            Whether to raise a KeyError if some labels are not found. Will be
-            removed in the future, and then this method will always behave as
-            if raise_missing=True.
 
         Raises
         ------
         KeyError
-            If at least one key was requested but none was found, and
-            raise_missing=True.
+            If at least one key was requested but none was found.
         """
         if len(key) == 0:
             return
@@ -1353,21 +1339,8 @@ class _LocIndexer(_LocationIndexer):
 
             ax = self.obj._get_axis(axis)
 
-            # We (temporarily) allow for some missing keys with .loc, except in
-            # some cases (e.g. setting) in which "raise_missing" will be False
-            if raise_missing:
-                not_found = list(set(key) - set(ax))
-                raise KeyError(f"{not_found} not in index")
-
-            not_found = key[missing_mask]
-
-            with option_context("display.max_seq_items", 10, "display.width", 80):
-                raise KeyError(
-                    "Passing list-likes to .loc or [] with any missing labels "
-                    "is no longer supported. "
-                    f"The following labels were missing: {not_found}. "
-                    "See https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
-                )
+            not_found = list(set(key) - set(ax))
+            raise KeyError(f"{not_found} not in index")
 
 
 @doc(IndexingMixin.iloc)
@@ -1619,7 +1592,7 @@ class _iLocIndexer(_LocationIndexer):
         # GH 10360, GH 27841
         if isinstance(indexer, tuple) and len(indexer) == len(self.obj.axes):
             for i, ax in zip(indexer, self.obj.axes):
-                if isinstance(ax, ABCMultiIndex) and not (
+                if isinstance(ax, MultiIndex) and not (
                     is_integer(i) or com.is_null_slice(i)
                 ):
                     take_split_path = True
@@ -1818,7 +1791,7 @@ class _iLocIndexer(_LocationIndexer):
         sub_indexer = list(indexer)
         pi = indexer[0]
 
-        multiindex_indexer = isinstance(self.obj.columns, ABCMultiIndex)
+        multiindex_indexer = isinstance(self.obj.columns, MultiIndex)
 
         unique_cols = value.columns.is_unique
 
@@ -1882,7 +1855,11 @@ class _iLocIndexer(_LocationIndexer):
         # GH#6149 (null slice), GH#10408 (full bounds)
         if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
             ser = value
-        elif is_array_like(value) and is_exact_shape_match(ser, value):
+        elif (
+            is_array_like(value)
+            and is_exact_shape_match(ser, value)
+            and not is_empty_indexer(pi, value)
+        ):
             if is_list_like(pi):
                 ser = value[np.argsort(pi)]
             else:
@@ -2158,8 +2135,8 @@ class _iLocIndexer(_LocationIndexer):
                 # we have a multi-index and are trying to align
                 # with a particular, level GH3738
                 if (
-                    isinstance(ax, ABCMultiIndex)
-                    and isinstance(df.index, ABCMultiIndex)
+                    isinstance(ax, MultiIndex)
+                    and isinstance(df.index, MultiIndex)
                     and ax.nlevels != df.index.nlevels
                 ):
                     raise TypeError(
@@ -2310,7 +2287,7 @@ def convert_to_index_sliceable(obj: DataFrame, key):
         # slice here via partial string indexing
         if idx._supports_partial_string_indexing:
             try:
-                res = idx._get_string_slice(key)
+                res = idx._get_string_slice(str(key))
                 warnings.warn(
                     "Indexing a DataFrame with a datetimelike index using a single "
                     "string to slice the rows, like `frame[string]`, is deprecated "
@@ -2423,7 +2400,7 @@ def is_nested_tuple(tup, labels) -> bool:
 
     for k in tup:
         if is_list_like(k) or isinstance(k, slice):
-            return isinstance(labels, ABCMultiIndex)
+            return isinstance(labels, MultiIndex)
 
     return False
 

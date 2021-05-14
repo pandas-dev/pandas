@@ -11,16 +11,14 @@ from typing import (
 from pandas._typing import (
     DtypeObj,
     Shape,
+    final,
 )
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas.core.base import PandasObject
-from pandas.core.indexes.api import (
-    Index,
-    ensure_index,
-)
+from pandas.core.indexes.api import Index
 
 T = TypeVar("T", bound="DataManager")
 
@@ -46,6 +44,23 @@ class DataManager(PandasObject):
     def shape(self) -> Shape:
         return tuple(len(ax) for ax in self.axes)
 
+    @final
+    def _validate_set_axis(self, axis: int, new_labels: Index) -> None:
+        # Caller is responsible for ensuring we have an Index object.
+        old_len = len(self.axes[axis])
+        new_len = len(new_labels)
+
+        if axis == 1 and len(self.items) == 0:
+            # If we are setting the index on a DataFrame with no columns,
+            #  it is OK to change the length.
+            pass
+
+        elif new_len != old_len:
+            raise ValueError(
+                f"Length mismatch: Expected axis has {old_len} elements, new "
+                f"values have {new_len} elements"
+            )
+
     def reindex_indexer(
         self: T,
         new_axis,
@@ -59,31 +74,26 @@ class DataManager(PandasObject):
     ) -> T:
         raise AbstractMethodError(self)
 
+    @final
     def reindex_axis(
-        self,
-        new_index,
+        self: T,
+        new_index: Index,
         axis: int,
-        method=None,
-        limit=None,
         fill_value=None,
-        copy: bool = True,
         consolidate: bool = True,
         only_slice: bool = False,
-    ):
+    ) -> T:
         """
         Conform data manager to new index.
         """
-        new_index = ensure_index(new_index)
-        new_index, indexer = self.axes[axis].reindex(
-            new_index, method=method, limit=limit
-        )
+        new_index, indexer = self.axes[axis].reindex(new_index)
 
         return self.reindex_indexer(
             new_index,
             indexer,
             axis=axis,
             fill_value=fill_value,
-            copy=copy,
+            copy=False,
             consolidate=consolidate,
             only_slice=only_slice,
         )

@@ -12,6 +12,7 @@ import pytest
 from pandas.compat import (
     IS64,
     PY38,
+    PY310,
     is_platform_windows,
 )
 import pandas.util._test_decorators as td
@@ -27,8 +28,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = td.skip_array_manager_not_yet_implemented
-
+pytestmark = pytest.mark.skipif(PY310, reason="timeout with coverage")
 
 _seriesd = tm.getSeriesData()
 
@@ -318,7 +318,13 @@ class TestPandasContainer:
                 '{"columns":["A","B"],'
                 '"index":["2","3"],'
                 '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}',
-                r"Shape of passed values is \(3, 2\), indices imply \(2, 2\)",
+                "|".join(
+                    [
+                        r"Shape of passed values is \(3, 2\), indices imply \(2, 2\)",
+                        "Passed arrays should have the same length as the rows Index: "
+                        "3 vs 2 rows",
+                    ]
+                ),
                 "split",
             ),
             # too many columns
