@@ -49,6 +49,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_list_like,
     is_sparse,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -788,7 +789,7 @@ class Block(PandasObject):
 
         src_len = len(pairs) - 1
 
-        if values.dtype == _dtype_obj:
+        if is_string_dtype(values):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             mask = ~isna(values)

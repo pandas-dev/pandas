@@ -2930,6 +2930,21 @@ class Index(IndexOpsMixin, PandasObject):
                     "Can only union MultiIndex with MultiIndex or Index of tuples, "
                     "try mi.to_flat_index().union(other) instead."
                 )
+            if (
+                isinstance(self, ABCDatetimeIndex)
+                and isinstance(other, ABCDatetimeIndex)
+                and self.tz is not None
+                and other.tz is not None
+            ):
+                # GH#39328
+                warnings.warn(
+                    "In a future version, the union of DatetimeIndex objects "
+                    "with mismatched timezones will cast both to UTC instead of "
+                    "object dtype. To retain the old behavior, "
+                    "use `index.astype(object).union(other)`",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
             dtype = find_common_type([self.dtype, other.dtype])
             if self._is_numeric_dtype and other._is_numeric_dtype:
@@ -4224,7 +4239,8 @@ class Index(IndexOpsMixin, PandasObject):
 
             else:  # tie out the order with other
                 if level == 0:  # outer most level, take the fast route
-                    ngroups = 1 + new_lev_codes.max()
+                    max_new_lev = 0 if len(new_lev_codes) == 0 else new_lev_codes.max()
+                    ngroups = 1 + max_new_lev
                     left_indexer, counts = libalgos.groupsort_indexer(
                         new_lev_codes, ngroups
                     )

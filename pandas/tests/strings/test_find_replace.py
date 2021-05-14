@@ -6,7 +6,6 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    Index,
     Series,
     _testing as tm,
 )
@@ -273,15 +272,14 @@ def test_replace_unicode(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("klass", [Series, Index])
 @pytest.mark.parametrize("repl", [None, 3, {"a": "b"}])
 @pytest.mark.parametrize("data", [["a", "b", None], ["a", "b", "c", "ad"]])
-def test_replace_raises(any_string_dtype, klass, repl, data):
+def test_replace_raises(any_string_dtype, index_or_series, repl, data):
     # https://github.com/pandas-dev/pandas/issues/13438
     msg = "repl must be a string or callable"
-    values = klass(data, dtype=any_string_dtype)
+    obj = index_or_series(data, dtype=any_string_dtype)
     with pytest.raises(TypeError, match=msg):
-        values.str.replace("a", repl)
+        obj.str.replace("a", repl)
 
 
 def test_replace_callable(any_string_dtype):
@@ -486,39 +484,32 @@ def test_match_case_kwarg(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_fullmatch():
+def test_fullmatch(any_string_dtype):
     # GH 32806
-    ser = Series(["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"])
-    result = ser.str.fullmatch(".*BAD[_]+.*BAD")
-    expected = Series([True, False, np.nan, False])
-    tm.assert_series_equal(result, expected)
-
-    ser = Series(["ab", "AB", "abc", "ABC"])
-    result = ser.str.fullmatch("ab", case=False)
-    expected = Series([True, True, False, False])
-    tm.assert_series_equal(result, expected)
-
-
-def test_fullmatch_nullable_string_dtype(nullable_string_dtype):
     ser = Series(
-        ["fooBAD__barBAD", "BAD_BADleroybrown", None, "foo"],
-        dtype=nullable_string_dtype,
+        ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
     )
     result = ser.str.fullmatch(".*BAD[_]+.*BAD")
-    # Result is nullable boolean
-    expected = Series([True, False, np.nan, False], dtype="boolean")
+    expected_dtype = "object" if any_string_dtype == "object" else "boolean"
+    expected = Series([True, False, np.nan, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
+    result = ser.str.fullmatch("ab", case=False)
+    expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
+    expected = Series([True, True, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
-def test_findall():
-    values = Series(["fooBAD__barBAD", np.nan, "foo", "BAD"])
+def test_findall(any_string_dtype):
+    ser = Series(["fooBAD__barBAD", np.nan, "foo", "BAD"], dtype=any_string_dtype)
+    result = ser.str.findall("BAD[_]*")
+    expected = Series([["BAD__", "BAD"], np.nan, [], ["BAD"]])
+    tm.assert_series_equal(result, expected)
 
-    result = values.str.findall("BAD[_]*")
-    exp = Series([["BAD__", "BAD"], np.nan, [], ["BAD"]])
-    tm.assert_almost_equal(result, exp)
 
-    # mixed
-    mixed = Series(
+def test_findall_mixed_object():
+    ser = Series(
         [
             "fooBAD__barBAD",
             np.nan,
@@ -532,8 +523,8 @@ def test_findall():
         ]
     )
 
-    rs = Series(mixed).str.findall("BAD[_]*")
-    xp = Series(
+    result = ser.str.findall("BAD[_]*")
+    expected = Series(
         [
             ["BAD__", "BAD"],
             np.nan,
@@ -547,86 +538,111 @@ def test_findall():
         ]
     )
 
-    assert isinstance(rs, Series)
-    tm.assert_almost_equal(rs, xp)
+    tm.assert_series_equal(result, expected)
 
 
-def test_find():
-    values = Series(["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF", "XXXX"])
-    result = values.str.find("EF")
-    tm.assert_series_equal(result, Series([4, 3, 1, 0, -1]))
-    expected = np.array([v.find("EF") for v in values.values], dtype=np.int64)
-    tm.assert_numpy_array_equal(result.values, expected)
+def test_find(any_string_dtype):
+    ser = Series(
+        ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF", "XXXX"], dtype=any_string_dtype
+    )
+    expected_dtype = np.int64 if any_string_dtype == "object" else "Int64"
 
-    result = values.str.rfind("EF")
-    tm.assert_series_equal(result, Series([4, 5, 7, 4, -1]))
-    expected = np.array([v.rfind("EF") for v in values.values], dtype=np.int64)
-    tm.assert_numpy_array_equal(result.values, expected)
+    result = ser.str.find("EF")
+    expected = Series([4, 3, 1, 0, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+    expected = np.array([v.find("EF") for v in np.array(ser)], dtype=np.int64)
+    tm.assert_numpy_array_equal(np.array(result, dtype=np.int64), expected)
 
-    result = values.str.find("EF", 3)
-    tm.assert_series_equal(result, Series([4, 3, 7, 4, -1]))
-    expected = np.array([v.find("EF", 3) for v in values.values], dtype=np.int64)
-    tm.assert_numpy_array_equal(result.values, expected)
+    result = ser.str.rfind("EF")
+    expected = Series([4, 5, 7, 4, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+    expected = np.array([v.rfind("EF") for v in np.array(ser)], dtype=np.int64)
+    tm.assert_numpy_array_equal(np.array(result, dtype=np.int64), expected)
 
-    result = values.str.rfind("EF", 3)
-    tm.assert_series_equal(result, Series([4, 5, 7, 4, -1]))
-    expected = np.array([v.rfind("EF", 3) for v in values.values], dtype=np.int64)
-    tm.assert_numpy_array_equal(result.values, expected)
+    result = ser.str.find("EF", 3)
+    expected = Series([4, 3, 7, 4, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+    expected = np.array([v.find("EF", 3) for v in np.array(ser)], dtype=np.int64)
+    tm.assert_numpy_array_equal(np.array(result, dtype=np.int64), expected)
 
-    result = values.str.find("EF", 3, 6)
-    tm.assert_series_equal(result, Series([4, 3, -1, 4, -1]))
-    expected = np.array([v.find("EF", 3, 6) for v in values.values], dtype=np.int64)
-    tm.assert_numpy_array_equal(result.values, expected)
+    result = ser.str.rfind("EF", 3)
+    expected = Series([4, 5, 7, 4, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+    expected = np.array([v.rfind("EF", 3) for v in np.array(ser)], dtype=np.int64)
+    tm.assert_numpy_array_equal(np.array(result, dtype=np.int64), expected)
 
-    result = values.str.rfind("EF", 3, 6)
-    tm.assert_series_equal(result, Series([4, 3, -1, 4, -1]))
-    expected = np.array([v.rfind("EF", 3, 6) for v in values.values], dtype=np.int64)
-    tm.assert_numpy_array_equal(result.values, expected)
+    result = ser.str.find("EF", 3, 6)
+    expected = Series([4, 3, -1, 4, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+    expected = np.array([v.find("EF", 3, 6) for v in np.array(ser)], dtype=np.int64)
+    tm.assert_numpy_array_equal(np.array(result, dtype=np.int64), expected)
+
+    result = ser.str.rfind("EF", 3, 6)
+    expected = Series([4, 3, -1, 4, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+    expected = np.array([v.rfind("EF", 3, 6) for v in np.array(ser)], dtype=np.int64)
+    tm.assert_numpy_array_equal(np.array(result, dtype=np.int64), expected)
+
+
+def test_find_bad_arg_raises(any_string_dtype):
+    ser = Series([], dtype=any_string_dtype)
+    with pytest.raises(TypeError, match="expected a string object, not int"):
+        ser.str.find(0)
 
     with pytest.raises(TypeError, match="expected a string object, not int"):
-        result = values.str.find(0)
-
-    with pytest.raises(TypeError, match="expected a string object, not int"):
-        result = values.str.rfind(0)
+        ser.str.rfind(0)
 
 
-def test_find_nan():
-    values = Series(["ABCDEFG", np.nan, "DEFGHIJEF", np.nan, "XXXX"])
-    result = values.str.find("EF")
-    tm.assert_series_equal(result, Series([4, np.nan, 1, np.nan, -1]))
+def test_find_nan(any_string_dtype):
+    ser = Series(
+        ["ABCDEFG", np.nan, "DEFGHIJEF", np.nan, "XXXX"], dtype=any_string_dtype
+    )
+    expected_dtype = np.float64 if any_string_dtype == "object" else "Int64"
 
-    result = values.str.rfind("EF")
-    tm.assert_series_equal(result, Series([4, np.nan, 7, np.nan, -1]))
+    result = ser.str.find("EF")
+    expected = Series([4, np.nan, 1, np.nan, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
-    result = values.str.find("EF", 3)
-    tm.assert_series_equal(result, Series([4, np.nan, 7, np.nan, -1]))
+    result = ser.str.rfind("EF")
+    expected = Series([4, np.nan, 7, np.nan, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
-    result = values.str.rfind("EF", 3)
-    tm.assert_series_equal(result, Series([4, np.nan, 7, np.nan, -1]))
+    result = ser.str.find("EF", 3)
+    expected = Series([4, np.nan, 7, np.nan, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
-    result = values.str.find("EF", 3, 6)
-    tm.assert_series_equal(result, Series([4, np.nan, -1, np.nan, -1]))
+    result = ser.str.rfind("EF", 3)
+    expected = Series([4, np.nan, 7, np.nan, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
-    result = values.str.rfind("EF", 3, 6)
-    tm.assert_series_equal(result, Series([4, np.nan, -1, np.nan, -1]))
+    result = ser.str.find("EF", 3, 6)
+    expected = Series([4, np.nan, -1, np.nan, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.rfind("EF", 3, 6)
+    expected = Series([4, np.nan, -1, np.nan, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
 
-def test_translate():
-    def _check(result, expected):
-        if isinstance(result, Series):
-            tm.assert_series_equal(result, expected)
-        else:
-            tm.assert_index_equal(result, expected)
+def test_translate(index_or_series, any_string_dtype):
+    obj = index_or_series(
+        ["abcdefg", "abcc", "cdddfg", "cdefggg"], dtype=any_string_dtype
+    )
+    table = str.maketrans("abc", "cde")
+    result = obj.str.translate(table)
+    expected = index_or_series(
+        ["cdedefg", "cdee", "edddfg", "edefggg"], dtype=any_string_dtype
+    )
+    if index_or_series is Series:
+        tm.assert_series_equal(result, expected)
+    else:
+        tm.assert_index_equal(result, expected)
 
-    for klass in [Series, Index]:
-        s = klass(["abcdefg", "abcc", "cdddfg", "cdefggg"])
-        table = str.maketrans("abc", "cde")
-        result = s.str.translate(table)
-        expected = klass(["cdedefg", "cdee", "edddfg", "edefggg"])
-        _check(result, expected)
 
+def test_translate_mixed_object():
     # Series with non-string values
     s = Series(["a", "b", "c", 1.2])
+    table = str.maketrans("abc", "cde")
     expected = Series(["c", "d", "e", np.nan])
     result = s.str.translate(table)
     tm.assert_series_equal(result, expected)

@@ -1366,7 +1366,7 @@ class TestIndex(Base):
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
-        code = "import pandas as pd; idx = Index([1, 2])"
+        code = "import pandas as pd; idx = pd.Index([1, 2])"
         await ip.run_code(code)
 
         # GH 31324 newer jedi version raises Deprecation warning;
@@ -1720,3 +1720,21 @@ def test_validate_1d_input():
     ser = Series(0, range(4))
     with pytest.raises(ValueError, match=msg):
         ser.index = np.array([[2, 3]] * 4)
+
+
+@pytest.mark.parametrize(
+    "klass, extra_kwargs",
+    [
+        [Index, {}],
+        [Int64Index, {}],
+        [Float64Index, {}],
+        [DatetimeIndex, {}],
+        [TimedeltaIndex, {}],
+        [PeriodIndex, {"freq": "Y"}],
+    ],
+)
+def test_construct_from_memoryview(klass, extra_kwargs):
+    # GH 13120
+    result = klass(memoryview(np.arange(2000, 2005)), **extra_kwargs)
+    expected = klass(range(2000, 2005), **extra_kwargs)
+    tm.assert_index_equal(result, expected)
