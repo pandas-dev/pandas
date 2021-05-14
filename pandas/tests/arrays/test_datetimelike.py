@@ -306,7 +306,9 @@ class SharedTests:
                 # If we have e.g. tzutc(), when we cast to string and parse
                 #  back we get pytz.UTC, and then consider them different timezones
                 #  so incorrectly raise.
-                mark = pytest.mark.xfail(reason="timezone comparisons inconsistent")
+                mark = pytest.mark.xfail(
+                    raises=TypeError, reason="timezone comparisons inconsistent"
+                )
                 request.node.add_marker(mark)
 
         arr = arr1d
@@ -471,7 +473,9 @@ class SharedTests:
                 # If we have e.g. tzutc(), when we cast to string and parse
                 #  back we get pytz.UTC, and then consider them different timezones
                 #  so incorrectly raise.
-                mark = pytest.mark.xfail(reason="timezone comparisons inconsistent")
+                mark = pytest.mark.xfail(
+                    raises=TypeError, reason="timezone comparisons inconsistent"
+                )
                 request.node.add_marker(mark)
 
         # Setting list-like of strs

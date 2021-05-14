@@ -173,7 +173,7 @@ def test_from_arrow_type_error(request, data):
         # TODO numeric dtypes cast any incoming array to the correct dtype
         # instead of erroring
         request.node.add_marker(
-            pytest.mark.xfail(reason="numeric dtypes don't error but cast")
+            pytest.mark.xfail(raises=None, reason="numeric dtypes don't error but cast")
         )
 
     arr = pa.array(data).cast("string")
