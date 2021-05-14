@@ -128,10 +128,12 @@ cdef struct Int64VectorData:
     int64_t *data
     Py_ssize_t n, m
 
-cdef class Int64Vector:
+cdef class Vector:
+    cdef bint external_view_exists
+
+cdef class Int64Vector(Vector):
     cdef Int64VectorData *data
     cdef ndarray ao
-    cdef bint external_view_exists
 
     cdef resize(self)
     cpdef ndarray to_array(self)
