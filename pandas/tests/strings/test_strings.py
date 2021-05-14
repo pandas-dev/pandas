@@ -175,17 +175,19 @@ def test_empty_str_methods(any_string_dtype):
     tm.assert_series_equal(empty_str, empty.str.repeat(3))
     tm.assert_series_equal(empty_bool, empty.str.match("^a"))
     tm.assert_frame_equal(
-        DataFrame(columns=[0], dtype=str), empty.str.extract("()", expand=True)
+        DataFrame(columns=[0], dtype=any_string_dtype),
+        empty.str.extract("()", expand=True),
     )
     tm.assert_frame_equal(
-        DataFrame(columns=[0, 1], dtype=str), empty.str.extract("()()", expand=True)
+        DataFrame(columns=[0, 1], dtype=any_string_dtype),
+        empty.str.extract("()()", expand=True),
     )
     tm.assert_series_equal(empty_str, empty.str.extract("()", expand=False))
     tm.assert_frame_equal(
-        DataFrame(columns=[0, 1], dtype=str),
+        DataFrame(columns=[0, 1], dtype=any_string_dtype),
         empty.str.extract("()()", expand=False),
     )
-    tm.assert_frame_equal(DataFrame(dtype=str), empty.str.get_dummies())
+    tm.assert_frame_equal(DataFrame(), empty.str.get_dummies())
     tm.assert_series_equal(empty_str, empty_str.str.join(""))
     tm.assert_series_equal(empty_int, empty.str.len())
     tm.assert_series_equal(empty_object, empty_str.str.findall("a"))
@@ -301,17 +303,19 @@ def test_isnumeric(any_string_dtype):
     tm.assert_series_equal(s.str.isdecimal(), Series(decimal_e, dtype=dtype))
 
 
-def test_get_dummies():
-    s = Series(["a|b", "a|c", np.nan])
+def test_get_dummies(any_string_dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
     result = s.str.get_dummies("|")
     expected = DataFrame([[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"))
     tm.assert_frame_equal(result, expected)
 
-    s = Series(["a;b", "a", 7])
+    s = Series(["a;b", "a", 7], dtype=any_string_dtype)
     result = s.str.get_dummies(";")
     expected = DataFrame([[0, 1, 1], [0, 1, 0], [1, 0, 0]], columns=list("7ab"))
     tm.assert_frame_equal(result, expected)
 
+
+def test_get_dummies_index():
     # GH9980, GH8028
     idx = Index(["a|b", "a|c", "b|c"])
     result = idx.str.get_dummies("|")
@@ -322,14 +326,18 @@ def test_get_dummies():
     tm.assert_index_equal(result, expected)
 
 
-def test_get_dummies_with_name_dummy():
+def test_get_dummies_with_name_dummy(any_string_dtype):
     # GH 12180
     # Dummies named 'name' should work as expected
-    s = Series(["a", "b,name", "b"])
+    s = Series(["a", "b,name", "b"], dtype=any_string_dtype)
     result = s.str.get_dummies(",")
     expected = DataFrame([[1, 0, 0], [0, 1, 1], [0, 1, 0]], columns=["a", "b", "name"])
     tm.assert_frame_equal(result, expected)
 
+
+def test_get_dummies_with_name_dummy_index():
+    # GH 12180
+    # Dummies named 'name' should work as expected
     idx = Index(["a|b", "name|c", "b|name"])
     result = idx.str.get_dummies("|")
 

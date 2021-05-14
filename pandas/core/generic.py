@@ -11359,7 +11359,7 @@ Examples
 True
 >>> pd.Series([True, False]).all()
 False
->>> pd.Series([]).all()
+>>> pd.Series([], dtype="float64").all()
 True
 >>> pd.Series([np.nan]).all()
 True
@@ -11727,7 +11727,7 @@ is True.
 False
 >>> pd.Series([True, False]).any()
 True
->>> pd.Series([]).any()
+>>> pd.Series([], dtype="float64").any()
 False
 >>> pd.Series([np.nan]).any()
 False
@@ -11815,13 +11815,13 @@ _sum_examples += """
 
 By default, the sum of an empty or all-NA Series is ``0``.
 
->>> pd.Series([]).sum()  # min_count=0 is the default
+>>> pd.Series([], dtype="float64").sum()  # min_count=0 is the default
 0.0
 
 This can be controlled with the ``min_count`` parameter. For example, if
 you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
 
->>> pd.Series([]).sum(min_count=1)
+>>> pd.Series([], dtype="float64").sum(min_count=1)
 nan
 
 Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
@@ -11862,12 +11862,12 @@ Examples
 --------
 By default, the product of an empty or all-NA Series is ``1``
 
->>> pd.Series([]).prod()
+>>> pd.Series([], dtype="float64").prod()
 1.0
 
 This can be controlled with the ``min_count`` parameter
 
->>> pd.Series([]).prod(min_count=1)
+>>> pd.Series([], dtype="float64").prod(min_count=1)
 nan
 
 Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
