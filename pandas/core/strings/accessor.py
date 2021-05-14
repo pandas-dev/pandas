@@ -3113,17 +3113,16 @@ def _str_extract_noexpand(arr, pat, flags=0):
             # error: Incompatible types in assignment (expression has type
             # "DataFrame", variable has type "ndarray")
             result = DataFrame(  # type: ignore[assignment]
-                columns=columns, dtype=object
+                columns=columns, dtype=result_dtype
             )
         else:
-            dtype = _result_dtype(arr)
             # error: Incompatible types in assignment (expression has type
             # "DataFrame", variable has type "ndarray")
             result = DataFrame(  # type:ignore[assignment]
                 [groups_or_na(val) for val in arr],
                 columns=columns,
                 index=arr.index,
-                dtype=dtype,
+                dtype=result_dtype,
             )
     return result, name
 
@@ -3140,19 +3139,19 @@ def _str_extract_frame(arr, pat, flags=0):
     regex = re.compile(pat, flags=flags)
     groups_or_na = _groups_or_na_fun(regex)
     columns = _get_group_names(regex)
+    result_dtype = _result_dtype(arr)
 
     if len(arr) == 0:
-        return DataFrame(columns=columns, dtype=object)
+        return DataFrame(columns=columns, dtype=result_dtype)
     try:
         result_index = arr.index
     except AttributeError:
         result_index = None
-    dtype = _result_dtype(arr)
     return DataFrame(
         [groups_or_na(val) for val in arr],
         columns=columns,
         index=result_index,
-        dtype=dtype,
+        dtype=result_dtype,
     )
 
 
