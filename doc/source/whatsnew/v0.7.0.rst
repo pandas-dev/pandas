@@ -306,7 +306,7 @@ passing similar input to ``ix`` **except in the case of integer indexing**:
 In the case of integer indexes, the behavior will be exactly as before
 (shadowing ``ndarray``):
 
-.. code-block:: python
+.. code-block:: ipython
 
   In [13]: s = pd.Series(np.random.randn(6), index=range(0, 12, 2))
 
