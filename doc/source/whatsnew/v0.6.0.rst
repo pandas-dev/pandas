@@ -5,12 +5,6 @@ Version 0.6.0 (November 25, 2011)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import *  # noqa F401, F403
-
-
 New features
 ~~~~~~~~~~~~
 - :ref:`Added <reshaping.melt>` ``melt`` function to ``pandas.core.reshape``
