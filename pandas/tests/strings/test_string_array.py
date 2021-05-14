@@ -5,7 +5,6 @@ import pytest
 
 from pandas._libs import lib
 
-import pandas as pd
 from pandas import (
     DataFrame,
     Series,
@@ -99,13 +98,6 @@ def test_string_array_extract(nullable_string_dtype):
 
     result = result.astype(object)
     tm.assert_equal(result, expected)
-
-
-def test_str_get_stringarray_multiple_nans(nullable_string_dtype):
-    s = Series(pd.array(["a", "ab", pd.NA, "abc"], dtype=nullable_string_dtype))
-    result = s.str.get(2)
-    expected = Series(pd.array([pd.NA, pd.NA, pd.NA, "c"], dtype=nullable_string_dtype))
-    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
