@@ -132,7 +132,7 @@ def hist_frame(
     **kwargs,
 ):
     """
-    Make a histogram of the DataFrame's.
+    Make a histogram of the DataFrame's columns.
 
     A `histogram`_ is a representation of the distribution of data.
     This function calls :meth:`matplotlib.pyplot.hist`, on each series in
@@ -144,7 +144,7 @@ def hist_frame(
     ----------
     data : DataFrame
         The pandas object holding the data.
-    column : str or sequence
+    column : str or sequence, optional
         If passed, will be used to limit data to a subset of columns.
     by : object, optional
         If passed, then used to form histograms for separate groups.
@@ -171,7 +171,7 @@ def hist_frame(
     sharey : bool, default False
         In case subplots=True, share y axis and set some y axis labels to
         invisible.
-    figsize : tuple
+    figsize : tuple, optional
         The size in inches of the figure to create. Uses the value in
         `matplotlib.rcParams` by default.
     layout : tuple, optional
