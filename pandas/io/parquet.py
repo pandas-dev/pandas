@@ -327,9 +327,14 @@ class FastParquetImpl(BaseImpl):
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
 
-            parquet_kwargs["open_with"] = lambda path, _: fsspec.open(
-                path, "rb", **(storage_options or {})
-            ).open()
+            if Version(self.api.__version__) > Version("0.6.1"):
+                parquet_kwargs["fs"] = fsspec.open(
+                    path, "rb", **(storage_options or {})
+                ).fs
+            else:
+                parquet_kwargs["open_with"] = lambda path, _: fsspec.open(
+                    path, "rb", **(storage_options or {})
+                ).open()
         elif isinstance(path, str) and not os.path.isdir(path):
             # use get_handle only when we are very certain that it is not a directory
             # fsspec resources can also point to directories

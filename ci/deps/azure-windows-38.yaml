@@ -15,7 +15,7 @@ dependencies:
   # pandas dependencies
   - blosc
   - bottleneck
-  - fastparquet>=0.4.0, <=0.5.0
+  - fastparquet>=0.4.0
   - flask
   - fsspec>=0.8.0
   - matplotlib=3.1.3
