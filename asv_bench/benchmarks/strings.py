@@ -248,6 +248,24 @@ class Split:
         self.s.str.rsplit("--", expand=expand)
 
 
+class Extract:
+
+    params = (["str", "string", "arrow_string"], [True, False])
+    param_names = ["dtype", "expand"]
+
+    def setup(self, dtype, expand):
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+        try:
+            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
+        except ImportError:
+            raise NotImplementedError
+
+    def time_extract_single_group(self, dtype, expand):
+        with warnings.catch_warnings(record=True):
+            self.s.str.extract("(\\w*)A", expand=expand)
+
+
 class Dummies:
     params = ["str", "string", "arrow_string"]
     param_names = ["dtype"]

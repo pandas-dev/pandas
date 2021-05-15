@@ -3033,16 +3033,26 @@ def cat_core(list_of_columns: List, sep: str):
 
 def _groups_or_na_fun(regex):
     """Used in both extract_noexpand and extract_frame"""
-    empty_row = [np.nan] * regex.groups
 
-    def f(x):
-        if not isinstance(x, str):
-            return empty_row
-        m = regex.search(x)
-        if m:
-            return [np.nan if item is None else item for item in m.groups()]
-        else:
-            return empty_row
+    if regex.groups == 1:
+
+        def f(x):
+            if not isinstance(x, str):
+                return np.nan
+            m = regex.search(x)
+            return m.groups()[0] if m else np.nan
+
+    else:
+        empty_row = [np.nan] * regex.groups
+
+        def f(x):
+            if not isinstance(x, str):
+                return empty_row
+            m = regex.search(x)
+            if m:
+                return [np.nan if item is None else item for item in m.groups()]
+            else:
+                return empty_row
 
     return f
 
@@ -3099,14 +3109,23 @@ def _str_extract_noexpand(arr, pat, flags=0):
 
     regex = re.compile(pat, flags=flags)
     groups_or_na = _groups_or_na_fun(regex)
-    result_dtype = _result_dtype(arr)
+    result_dtype = _result_dtype(arr._orig)
 
     if regex.groups == 1:
-        result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
+        arr = arr._data.array
+        mask = isna(arr)
+        result = lib.map_infer_mask(
+            np.asarray(arr), groups_or_na, mask.view(np.uint8), convert=False
+        )
+        # special case since extract on an object array converts None to np.nan
+        # will be handled by _str_map array method
+        if is_object_dtype(result_dtype):
+            result[mask] = np.nan
         name = _get_single_group_name(regex)
         # not dispatching, so we have to reconstruct here.
         result = pd_array(result, dtype=result_dtype)
     else:
+        arr = arr._orig
         name = None
         columns = _get_group_names(regex)
         if arr.size == 0:
@@ -3136,6 +3155,7 @@ def _str_extract_frame(arr, pat, flags=0):
     """
     from pandas import DataFrame
 
+    arr = arr._orig
     regex = re.compile(pat, flags=flags)
     groups_or_na = _groups_or_na_fun(regex)
     columns = _get_group_names(regex)
@@ -3157,10 +3177,10 @@ def _str_extract_frame(arr, pat, flags=0):
 
 def str_extract(arr, pat, flags=0, expand=True):
     if expand:
-        result = _str_extract_frame(arr._orig, pat, flags=flags)
+        result = _str_extract_frame(arr, pat, flags=flags)
         return result.__finalize__(arr._orig, method="str_extract")
     else:
-        result, name = _str_extract_noexpand(arr._orig, pat, flags=flags)
+        result, name = _str_extract_noexpand(arr, pat, flags=flags)
         return arr._wrap_result(result, name=name, expand=expand)
 
 
