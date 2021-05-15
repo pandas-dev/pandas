@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from distutils.version import LooseVersion
 import re
 from typing import (
     TYPE_CHECKING,
@@ -53,6 +52,7 @@ from pandas.core.indexers import (
     validate_indices,
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
+from pandas.util.version import Version
 
 try:
     import pyarrow as pa
@@ -62,7 +62,7 @@ else:
     # PyArrow backed StringArrays are available starting at 1.0.0, but this
     # file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
     # and its compute functions existed. GH38801
-    if LooseVersion(pa.__version__) >= "1.0.0":
+    if Version(pa.__version__) >= Version("1.0.0"):
         import pyarrow.compute as pc
 
         ARROW_CMP_FUNCS = {
@@ -232,7 +232,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     def _chk_pyarrow_available(cls) -> None:
         # TODO: maybe update import_optional_dependency to allow a minimum
         # version to be specified rather than use the global minimum
-        if pa is None or LooseVersion(pa.__version__) < "1.0.0":
+        if pa is None or Version(pa.__version__) < Version("1.0.0"):
             msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
             raise ImportError(msg)
 
@@ -792,7 +792,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             result = lib.map_infer_mask(
                 arr, f, mask.view("uint8"), convert=False, na_value=na_value
             )
-            return self._from_sequence(result)
+            result = pa.array(result, mask=mask, type=pa.string(), from_pandas=True)
+            return type(self)(result)
         else:
             # This is when the result type is object. We reach this when
             # -> We know the result type is truly object (e.g. .encode returns bytes
