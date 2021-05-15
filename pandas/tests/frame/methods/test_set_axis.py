@@ -109,3 +109,11 @@ def test_nonkeyword_arguments_deprecation_warning():
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
         df.set_axis([1, 2, 4], False)
+
+    ser = Series([1, 2, 3])
+    msg = (
+        r"Starting with Pandas version 2\.0 all arguments of set_axis except for the "
+        r"arguments 'self' and 'labels' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser.set_axis([1, 2, 4], False)
