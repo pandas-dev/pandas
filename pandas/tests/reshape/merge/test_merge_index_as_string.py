@@ -96,11 +96,11 @@ def compute_expected(df_left, df_right, on=None, left_on=None, right_on=None, ho
     # Drop index levels that aren't involved in the merge
     drop_left = [n for n in left_levels if n not in left_on]
     if drop_left:
-        df_left = df_left.reset_index(drop_left, drop=True)
+        df_left = df_left.reset_index(level=drop_left, drop=True)
 
     drop_right = [n for n in right_levels if n not in right_on]
     if drop_right:
-        df_right = df_right.reset_index(drop_right, drop=True)
+        df_right = df_right.reset_index(level=drop_right, drop=True)
 
     # Convert remaining index levels to columns
     reset_left = [n for n in left_levels if n in left_on]

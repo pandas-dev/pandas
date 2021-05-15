@@ -142,18 +142,18 @@ class TestResetIndex:
 
         # only remove certain columns
         df = float_frame.reset_index().set_index(["index", "A", "B"])
-        rs = df.reset_index(["A", "B"])
+        rs = df.reset_index(level=["A", "B"])
 
         # TODO should reset_index check_names ?
         tm.assert_frame_equal(rs, float_frame, check_names=False)
 
-        rs = df.reset_index(["index", "A", "B"])
+        rs = df.reset_index(level=["index", "A", "B"])
         tm.assert_frame_equal(rs, float_frame.reset_index(), check_names=False)
 
-        rs = df.reset_index(["index", "A", "B"])
+        rs = df.reset_index(level=["index", "A", "B"])
         tm.assert_frame_equal(rs, float_frame.reset_index(), check_names=False)
 
-        rs = df.reset_index("A")
+        rs = df.reset_index(level="A")
         xp = float_frame.reset_index().set_index(["index", "B"])
         tm.assert_frame_equal(rs, xp, check_names=False)
 
@@ -165,7 +165,7 @@ class TestResetIndex:
         tm.assert_frame_equal(df, reset, check_names=False)
 
         df = float_frame.reset_index().set_index(["index", "A", "B"])
-        rs = df.reset_index("A", drop=True)
+        rs = df.reset_index(level="A", drop=True)
         xp = float_frame.copy()
         del xp["A"]
         xp = xp.set_index(["B"], append=True)
@@ -262,7 +262,7 @@ class TestResetIndex:
             MultiIndex.from_arrays([[0, 1, 2], ["x", "y", "z"]], names=["d", "a"]),
             columns=[["b", "b", "c"], ["mean", "median", "mean"]],
         )
-        rs = df.reset_index("a")
+        rs = df.reset_index(level="a")
         xp = DataFrame(
             full,
             Index([0, 1, 2], name="d"),
@@ -270,7 +270,7 @@ class TestResetIndex:
         )
         tm.assert_frame_equal(rs, xp)
 
-        rs = df.reset_index("a", col_fill=None)
+        rs = df.reset_index(level="a", col_fill=None)
         xp = DataFrame(
             full,
             Index(range(3), name="d"),
@@ -278,7 +278,7 @@ class TestResetIndex:
         )
         tm.assert_frame_equal(rs, xp)
 
-        rs = df.reset_index("a", col_fill="blah", col_level=1)
+        rs = df.reset_index(level="a", col_fill="blah", col_level=1)
         xp = DataFrame(
             full,
             Index(range(3), name="d"),
@@ -665,9 +665,20 @@ def test_reset_index_multiindex_nat():
     tstamp = date_range("2015-07-01", freq="D", periods=3)
     df = DataFrame({"id": idx, "tstamp": tstamp, "a": list("abc")})
     df.loc[2, "tstamp"] = pd.NaT
-    result = df.set_index(["id", "tstamp"]).reset_index("id")
+    result = df.set_index(["id", "tstamp"]).reset_index(level="id")
     expected = DataFrame(
         {"id": range(3), "a": list("abc")},
         index=pd.DatetimeIndex(["2015-07-01", "2015-07-02", "NaT"], name="tstamp"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_drop_pos_args_deprecation():
+    # https://github.com/pandas-dev/pandas/issues/41485
+    df = DataFrame({"a": [1, 2, 3]}).set_index("a")
+    msg = (
+        r"Starting with Pandas version 2\.0 all arguments of reset_index except for "
+        r"the argument 'self' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.reset_index("a")

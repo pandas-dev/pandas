@@ -291,7 +291,7 @@ class TestGrouping:
 
         # Grouping a single-index frame by a column and the index should
         # be equivalent to resetting the index and grouping by two columns
-        df_single = df_multi.reset_index("outer")
+        df_single = df_multi.reset_index(level="outer")
         result = df_single.groupby(["B", pd.Grouper(level="inner")]).mean()
         expected = df_single.reset_index().groupby(["B", "inner"]).mean()
         tm.assert_frame_equal(result, expected)
