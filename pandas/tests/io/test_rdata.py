@@ -508,10 +508,10 @@ def test_write_index_false(rtype):
         assert "index" not in r_df.columns
 
 
-# COMPRESS
+# COMPRESSION
 
 
-def test_write_compress_all(rtype, comp):
+def test_write_all_compression(rtype, comp):
     with tm.ensure_clean("test.out") as path:
         ghg_df.to_rdata(path, file_format=rtype, compression=comp, index=False)
         r_dfs = read_rdata(path, file_format=rtype, compression=comp, rownames=False)
@@ -522,10 +522,17 @@ def test_write_compress_all(rtype, comp):
         tm.assert_frame_equal(output, expected)
 
 
-def test_write_compress_zip(rtype):
+def test_write_zip_compression(rtype):
     with tm.ensure_clean("test.out") as path:
         with pytest.raises(ValueError, match=("not a supported value for compression")):
-            ghg_df.to_rdata(path, file_format=rtype, index=False, compression="zip")
+            ghg_df.to_rdata(path, file_format=rtype, compression="zip")
+
+
+def test_write_read_mismatched_compression(rtype):
+    with tm.ensure_clean("test.out") as path:
+        with pytest.raises(gzip.BadGzipFile, match=("Not a gzipped file")):
+            ghg_df.to_rdata(path, file_format=rtype, compression=None)
+            read_rdata(path, file_format=rtype)
 
 
 # RDA_NAMES
@@ -592,7 +599,7 @@ def test_write_read_dtypes(rtype, comp):
             ),
             "interval": interval_range(start=10, periods=6, freq=10 * 2),
             "bool": [False, True, True, True, False, False],
-            "int": [2 ** 31 - 1, 1, -(2 ** 31) + 1, -1, 0, 10 ** 9],
+            "int": [2 ** 20 - 1, 1, -(2 ** 20) + 1, -1, 0, 10 ** 9],
             "float": [0, np.pi, float("nan"), np.e, np.euler_gamma, 0],
             "string": array(
                 ["acidification", "change", "loss", "use", "depletion", "aersols"],

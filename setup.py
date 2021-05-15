@@ -371,6 +371,7 @@ if is_platform_mac():
     extra_compile_args.append("-Wno-error=unreachable-code")
 
     # rdata requires system iconv library
+    os.environ["DYLD_LIBRARY_PATH"] = ""
     rdata_includes = ["/usr/include"]
     rdata_libs_dir = ["/usr/lib"]
     rdata_libs = ["iconv"]
@@ -663,9 +664,6 @@ rdata_srcs = [
 
 if is_platform_windows():
     rdata_srcs.append("pandas/_libs/src/librdata/win_iconv.c")
-
-if is_platform_mac():
-    os.environ["DYLD_LIBRARY_PATH"] = ""
 
 rdata_ext = Extension(
     name="pandas.io.rdata._rdata",
