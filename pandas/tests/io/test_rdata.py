@@ -1,19 +1,32 @@
+import gzip
 from io import BytesIO
 import os
+import pickle
+import shutil
 from urllib.error import HTTPError
 
+import numpy as np
 import pytest
 
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 from pandas import (
+    Categorical,
     DataFrame,
     Timestamp,
+    array,
+    interval_range,
+    period_range,
+    to_datetime,
 )
 import pandas._testing as tm
+from pandas.arrays import SparseArray
 
 from pandas.io.rdata._rdata import (
-    LibrdataParserError,
+    LibrdataReader,
+    LibrdataReaderError,
+    LibrdataWriter,
     LibrdataWriterError,
 )
 from pandas.io.rdata.rdata_reader import read_rdata
@@ -78,36 +91,36 @@ sea_ice_df = DataFrame(
 ppm_df = DataFrame(
     {
         "date": {
-            612: Timestamp("2020-12-16 23:42:25.920000256"),
-            613: Timestamp("2021-01-16 11:17:31.199999744"),
-            614: Timestamp("2021-02-15 21:00:00"),
-            615: Timestamp("2021-03-18 06:42:28.800000256"),
-            616: Timestamp("2021-04-17 17:17:31.199999744"),
+            754: Timestamp("2020-12-16 23:42:25.920000256"),
+            755: Timestamp("2021-01-16 11:17:31.199999744"),
+            756: Timestamp("2021-02-15 21:00:00"),
+            757: Timestamp("2021-03-18 06:42:28.800000256"),
+            758: Timestamp("2021-04-17 17:17:31.199999744"),
         },
         "decimal_date": {
-            612: 2020.9583,
-            613: 2021.0417,
-            614: 2021.125,
-            615: 2021.2083,
-            616: 2021.2917,
+            754: 2020.9583,
+            755: 2021.0417,
+            756: 2021.125,
+            757: 2021.2083,
+            758: 2021.2917,
         },
         "monthly_average": {
-            612: 414.25,
-            613: 415.52,
-            614: 416.75,
-            615: 417.64,
-            616: 419.05,
+            754: 414.25,
+            755: 415.52,
+            756: 416.75,
+            757: 417.64,
+            758: 419.05,
         },
         "deseasonalized": {
-            612: 414.98,
-            613: 415.26,
-            614: 415.93,
-            615: 416.18,
-            616: 416.23,
+            754: 414.98,
+            755: 415.26,
+            756: 415.93,
+            757: 416.18,
+            758: 416.23,
         },
-        "num_days": {612: 30, 613: 29, 614: 28, 615: 28, 616: 24},
-        "std_dev_of_days": {612: 0.47, 613: 0.44, 614: 1.02, 615: 0.86, 616: 1.12},
-        "unc_of_mon_mean": {612: 0.17, 613: 0.16, 614: 0.37, 615: 0.31, 616: 0.44},
+        "num_days": {754: 30, 755: 29, 756: 28, 757: 28, 758: 24},
+        "std_dev_of_days": {754: 0.47, 755: 0.44, 756: 1.02, 757: 0.86, 758: 1.12},
+        "unc_of_mon_mean": {754: 0.17, 755: 0.16, 756: 0.37, 757: 0.31, 758: 0.44},
     }
 ).rename_axis("rownames")
 
@@ -209,7 +222,7 @@ def test_read_wrong_file():
 
 def test_read_rds_non_df(datapath):
     with pytest.raises(
-        LibrdataParserError,
+        LibrdataReaderError,
         match="Invalid file, or file has unsupported features",
     ):
         filename = datapath("io", "data", "rdata", "ppm_ts.rds")
@@ -218,7 +231,7 @@ def test_read_rds_non_df(datapath):
 
 def test_read_rda_non_dfs(datapath):
     with pytest.raises(
-        LibrdataParserError,
+        LibrdataReaderError,
         match="Invalid file, or file has unsupported features",
     ):
         filename = datapath("io", "data", "rdata", "env_data_non_dfs.rda")
@@ -227,7 +240,7 @@ def test_read_rda_non_dfs(datapath):
 
 def test_read_not_rda_file(datapath):
     with pytest.raises(
-        LibrdataParserError, match="The file contains an unrecognized object"
+        LibrdataReaderError, match="The file contains an unrecognized object"
     ):
         filename = datapath("io", "data", "rdata", "ppm_df.csv")
         read_rdata(filename, file_format="rda", compression=None)
@@ -298,29 +311,10 @@ def test_read_wrong_url():
 @tm.network
 @td.skip_if_no("s3fs")
 def test_read_rda_s3():
-    s3 = "s3://assets.datacamp.com/production/course_1478/datasets/wine.RData"
-    s3_df = DataFrame(
-        {
-            "Alcohol": {1: 13.2, 2: 13.16, 3: 14.37, 4: 13.24, 5: 14.2},
-            "Malic.acid": {1: 1.78, 2: 2.36, 3: 1.95, 4: 2.59, 5: 1.76},
-            "Ash": {1: 2.14, 2: 2.67, 3: 2.5, 4: 2.87, 5: 2.45},
-            "Alcalinity.of.ash": {1: 11.2, 2: 18.6, 3: 16.8, 4: 21.0, 5: 15.2},
-            "Magnesium": {1: 100, 2: 101, 3: 113, 4: 118, 5: 112},
-            "Total.phenols": {1: 2.65, 2: 2.8, 3: 3.85, 4: 2.8, 5: 3.27},
-            "Flavanoids": {1: 2.76, 2: 3.24, 3: 3.49, 4: 2.69, 5: 3.39},
-            "Nonflavanoid.phenols": {1: 0.26, 2: 0.3, 3: 0.24, 4: 0.39, 5: 0.34},
-            "Proanthocyanins": {1: 1.28, 2: 2.81, 3: 2.18, 4: 1.82, 5: 1.97},
-            "Color.intensity": {1: 4.38, 2: 5.68, 3: 7.8, 4: 4.32, 5: 6.75},
-            "Hue": {1: 3.4, 2: 3.17, 3: 3.45, 4: 2.93, 5: 2.85},
-            "Proline": {1: 1050, 2: 1185, 3: 1480, 4: 735, 5: 1450},
-        }
-    ).rename_axis("rownames")
-    r_dfs = read_rdata(s3)
-
-    # librdata remove dots in colnames
-    r_dfs["wine"].columns = r_dfs["wine"].columns.str.replace(" ", ".")
-
-    tm.assert_frame_equal(s3_df, r_dfs["wine"].head())
+    # Public Data of CRAN Packages on GitHub
+    s3 = "s3://public-r-data/ghcran.Rdata"
+    with pytest.raises(SystemError, match=("returned a result with an error set")):
+        read_rdata(s3, compression=None)
 
 
 # TYPE
@@ -416,6 +410,14 @@ def test_utc_datetime_convert(datapath):
     assert str(r_dfs["ppm_df"]["date"].dtype) == "datetime64[ns]"
 
     tm.assert_frame_equal(ppm_df, r_dfs["ppm_df"].tail())
+
+
+def test_read_outbound_dates(datapath, rtype):
+    filename = datapath("io", "data", "rdata", f"planetary_boundaries_df.{rtype}")
+    with pytest.raises(
+        OutOfBoundsDatetime, match=("cannot convert input with unit 's'")
+    ):
+        read_rdata(filename)
 
 
 # RDATA WRITER
@@ -563,3 +565,156 @@ def test_write_read_utc_dateteime():
         ppm_df["date"] = ppm_df["date"].dt.floor("S")
 
         tm.assert_frame_equal(ppm_df.reset_index(drop=True), r_dfs["pandas_dataframe"])
+
+
+# DTYPES
+
+
+def test_write_read_dtypes(rtype, comp):
+    rda_name = "pandas_dataframe" if rtype == "rda" else "r_dataframe"
+
+    dts = [
+        Timestamp.min.ceil("S"),
+        Timestamp(-(10 ** 18)),
+        Timestamp(0),
+        Timestamp.now().floor("S"),
+        Timestamp(10 ** 18),
+        Timestamp.max.floor("S"),
+    ]
+
+    arr = np.random.randn(6)
+    arr[2:-2] = np.nan
+
+    dtypes_df = DataFrame(
+        {
+            "categ": Categorical(
+                ["ocean", "climate", "biosphere", "land", "freshwater", "atmosphere"]
+            ),
+            "interval": interval_range(start=10, periods=6, freq=10 * 2),
+            "bool": [False, True, True, True, False, False],
+            "int": [2 ** 31 - 1, 1, -(2 ** 31) + 1, -1, 0, 10 ** 9],
+            "float": [0, np.pi, float("nan"), np.e, np.euler_gamma, 0],
+            "string": array(
+                ["acidification", "change", "loss", "use", "depletion", "aersols"],
+                dtype="string",
+            ),
+            "sparse": SparseArray(arr),
+            "period": period_range(
+                start="2021-01-01 00:00:00", end="2021-06-01 00:00:00", freq="M"
+            ),
+            "datetime": to_datetime(dts),
+            "datetime_tz": to_datetime(dts).tz_localize("utc"),
+            "timedelta": [(dt - Timestamp(0)) for dt in dts],
+        }
+    )
+
+    with tm.ensure_clean("test") as path:
+        dtypes_df.to_rdata(path, file_format=rtype, index=False, compression=comp)
+        r_df = read_rdata(path, file_format=rtype, rownames=False, compression=comp)[
+            rda_name
+        ]
+
+    # convert non-primitive and non-datetimes to objects not supported in R
+    excl_types = ["bool", "number", "object", "datetime", "datetimetz", "timedelta"]
+    for col in dtypes_df.select_dtypes(exclude=excl_types).columns:
+        dtypes_df[col] = dtypes_df[col].astype(str)
+
+    # convert special types
+    dtypes_df["sparse"] = np.array(dtypes_df["sparse"].values, dtype="float64")
+    dtypes_df["datetime_tz"] = dtypes_df["datetime_tz"].dt.tz_localize(None)
+    dtypes_df["timedelta"] = dtypes_df["timedelta"].dt.total_seconds()
+
+    tm.assert_frame_equal(dtypes_df, r_df)
+
+
+# CYTHON CLASSES
+
+
+def test_reader_unpickled(datapath, rtype):
+    if rtype == "rda":
+        filename = datapath("io", "data", "rdata", "env_data_dfs.rda")
+        rda_name = "sea_ice_df"
+    elif rtype == "rds":
+        filename = datapath("io", "data", "rdata", "plants_df.rds")
+        rda_name = "r_dataframe"
+
+    lbr1 = LibrdataReader()
+
+    with tm.ensure_clean("test.pkl") as pklpath:
+        with open(pklpath, "wb") as f_w:
+            pickle.dump(lbr1, f_w)
+
+        with open(pklpath, "rb") as f_r:
+            lbr2 = pickle.load(f_r)
+
+    with tm.ensure_clean("test") as r_temp:
+        # need to decompress to temp file
+        with gzip.open(filename, "rb") as f_r:
+            with open(r_temp, "wb") as f_w:
+                shutil.copyfileobj(f_r, f_w)
+
+        df_output = read_rdata(
+            r_temp, file_format=rtype, compression=None, rownames=False
+        )[rda_name].to_dict()
+
+        cy_output = lbr2.read_rdata(r_temp)
+
+    lbr_output = {
+        vcol: vdata
+        for (kdata, vdata), (kcol, vcol) in zip(
+            cy_output[rda_name]["data"].items(), cy_output[rda_name]["colnames"].items()
+        )
+    }
+
+    assert lbr_output == df_output
+
+
+def test_writer_unpickled(datapath, rtype):
+    rda_name = "test_frame" if rtype == "rda" else "r_dataframe"
+
+    lbw1 = LibrdataWriter()
+
+    with tm.ensure_clean("test.pkl") as pklpath:
+        with open(pklpath, "wb") as f_w:
+            pickle.dump(lbw1, f_w)
+
+        with open(pklpath, "rb") as f_r:
+            lbw2 = pickle.load(f_r)
+
+    rdict = {"dtypes": {k: str(v) for k, v in ghg_df.dtypes.to_dict().items()}}
+    for k, v in rdict["dtypes"].items():
+        if any(x in v for x in ("bool", "Boolean")):
+            rdict["dtypes"][k] = "bool"
+
+        elif any(x in v for x in ("int", "uint", "Int", "UInt")):
+            rdict["dtypes"][k] = "int"
+
+        elif any(x in v for x in ("float", "Float")):
+            rdict["dtypes"][k] = "float"
+
+        elif any(x in v for x in ("datetime", "Datetime")):
+            rdict["dtypes"][k] = "datetime"
+
+        elif any(x in v for x in ("object", "string", "String")):
+            rdict["dtypes"][k] = "object"
+
+    rdict["data"] = ghg_df.reset_index(drop=True).to_dict()
+
+    expected = ghg_df.reset_index(drop=True)
+
+    with tm.ensure_clean("test") as r_temp:
+        lbw2.write_rdata(
+            rfile=r_temp,
+            rdict=rdict,
+            rformat=rtype,
+            tbl_name="test_frame",
+        )
+
+        output = read_rdata(
+            r_temp,
+            file_format=rtype,
+            rownames=False,
+            compression=None,
+        )[rda_name]
+
+    tm.assert_frame_equal(output, expected)

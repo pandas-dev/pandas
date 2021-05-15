@@ -328,6 +328,11 @@ else:
 
 extra_compile_args = []
 extra_link_args = []
+
+rdata_includes = []
+rdata_libs_dir = []
+rdata_libs = []
+
 if is_platform_windows():
     if debugging_symbols_requested:
         extra_compile_args.append("/Z7")
@@ -364,6 +369,11 @@ if is_platform_mac():
 
     # https://github.com/pandas-dev/pandas/issues/35559
     extra_compile_args.append("-Wno-error=unreachable-code")
+
+    # rdata requires system iconv library
+    rdata_includes = ["/usr/include"]
+    rdata_libs_dir = ["/usr/lib"]
+    rdata_libs = ["iconv"]
 
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
@@ -654,27 +664,20 @@ rdata_srcs = [
 if is_platform_windows():
     rdata_srcs.append("pandas/_libs/src/librdata/win_iconv.c")
 
-include = []
-libs_dir = []
-libs = []
 if is_platform_mac():
     os.environ["DYLD_LIBRARY_PATH"] = ""
-    include = ["/usr/include"]
-    libs_dir = ["/usr/lib"]
-    libs = ["iconv"]
 
 rdata_ext = Extension(
     name="pandas.io.rdata._rdata",
     sources=rdata_srcs,
-    include_dirs=include,
-    library_dirs=libs_dir,
-    libraries=libs,
+    include_dirs=rdata_includes,
+    library_dirs=rdata_libs_dir,
+    libraries=rdata_libs,
     language="c",
     define_macros=macros,
     extra_compile_args=extra_compile_args,
     extra_link_args=extra_link_args,
 )
-
 
 extensions.append(rdata_ext)
 

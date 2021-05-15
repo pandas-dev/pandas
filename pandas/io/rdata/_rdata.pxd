@@ -13,7 +13,7 @@ from libc.time cimport (
 )
 
 
-cdef extern from 'rdata.h':
+cdef extern from '../../_libs/src/librdata/rdata.h':
 
     ctypedef enum rdata_type_t:
         RDATA_TYPE_STRING,

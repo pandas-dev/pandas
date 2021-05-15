@@ -212,11 +212,14 @@ cdef int handle_dim_name(const char *name, int index, void *ctx) except *:
     return 0
 
 
-class LibrdataParserError(Exception):
+class LibrdataReaderError(Exception):
     """
     Base error class to capture exceptions in librdata parsing.
     """
     pass
+
+
+cdef int length = 40
 
 
 cdef class LibrdataReader:
@@ -242,7 +245,7 @@ cdef class LibrdataReader:
         int dims
         dict dim_str
 
-    cpdef read_rdata(self, rfile):
+    def read_rdata(self, rfile):
         self.rparser = rdata_parser_init()
 
         self.colidx = 0
@@ -289,9 +292,19 @@ cdef class LibrdataReader:
 
         if err != RDATA_OK:
             msg = rdata_error_message(err)
-            raise LibrdataParserError(msg)
+            raise LibrdataReaderError(msg)
 
         return self.rvalues
+
+    cdef bytes get_rparser(self):
+        return <bytes>(<char *>self.rparser)[:sizeof(rdata_parser_t)*length]
+
+    def __reduce__(self):
+        rparser = self.get_rparser()
+        return (rebuild_reader, (rparser,))
+
+cpdef object rebuild_reader(bytes data):
+    return LibrdataReader()
 
 
 class LibrdataWriterError(Exception):
@@ -334,23 +347,23 @@ cdef class LibrdataWriter():
         py_col = rdata_get_column(self.writer, i)
         rdata_begin_column(self.writer, py_col, self.row_count)
 
-        if vtype == "bool":
+        if vtype == RDATA_TYPE_LOGICAL:
             for k, v in vdata.items():
                 rdata_append_logical_value(self.writer, v)
 
-        if vtype.startswith(("int", "uint")):
+        if vtype == RDATA_TYPE_INT32:
             for k, v in vdata.items():
                 rdata_append_int32_value(self.writer, v)
 
-        if vtype.startswith("float"):
+        if vtype == RDATA_TYPE_REAL:
             for k, v in vdata.items():
                 rdata_append_real_value(self.writer, v)
 
-        if vtype.startswith("datetime64"):
+        if vtype == RDATA_TYPE_TIMESTAMP:
             for k, v in vdata.items():
                 rdata_append_timestamp_value(self.writer, v)
 
-        if vtype == "object":
+        if vtype == RDATA_TYPE_STRING:
             for k, v in vdata.items():
                 if v == v:
                     rdata_append_string_value(self.writer, v)
@@ -359,7 +372,7 @@ cdef class LibrdataWriter():
 
         rdata_end_column(self.writer, py_col)
 
-    cpdef write_rdata(self, rfile, rdict, rformat, tbl_name=None):
+    def write_rdata(self, rfile, rdict, rformat, tbl_name=None):
 
         self.rdict = rdict
         self.file_name = rfile.encode("utf-8")
@@ -374,19 +387,9 @@ cdef class LibrdataWriter():
 
         self.rtypes = {
             "bool": RDATA_TYPE_LOGICAL,
-            "int8": RDATA_TYPE_INT32,
-            "int16": RDATA_TYPE_INT32,
-            "int32": RDATA_TYPE_INT32,
-            "int64": RDATA_TYPE_INT32,
-            "uint8": RDATA_TYPE_INT32,
-            "uint16": RDATA_TYPE_INT32,
-            "uint32": RDATA_TYPE_INT32,
-            "uint64": RDATA_TYPE_INT32,
-            "float8": RDATA_TYPE_REAL,
-            "float16": RDATA_TYPE_REAL,
-            "float32": RDATA_TYPE_REAL,
-            "float64": RDATA_TYPE_REAL,
-            "datetime64[ns]": RDATA_TYPE_TIMESTAMP,
+            "int": RDATA_TYPE_INT32,
+            "float": RDATA_TYPE_REAL,
+            "datetime": RDATA_TYPE_TIMESTAMP,
             "object": RDATA_TYPE_STRING
         }
 
@@ -415,7 +418,7 @@ cdef class LibrdataWriter():
                     self.rdict["dtypes"].items()
                 )
             ):
-                self.write_col_data(n, kd, vd, kt, vt)
+                self.write_col_data(n, kd, vd, kt, self.rtypes[vt])
 
         except (TypeError, ValueError, UnicodeDecodeError):
             self.close_rdata()
@@ -435,3 +438,18 @@ cdef class LibrdataWriter():
             _close(self.fd)
         ELSE:
             close(self.fd)
+
+    cdef bytes get_writer(self):
+        return <bytes>(<char *>self.writer)[:sizeof(rdata_writer_t)*length]
+
+    cdef bytes get_py_col(self):
+        return <bytes>(<char *>self.py_col)[:sizeof(rdata_column_t)*length]
+
+    def __reduce__(self):
+        writer = self.get_writer()
+        py_col = self.get_py_col()
+        return (rebuild_writer, (writer, py_col))
+
+
+cpdef object rebuild_writer(bytes data1, bytes data2):
+    return LibrdataWriter()

@@ -2335,10 +2335,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         {storage_options}
 
-        Returns
-        -------
-        None
-            Either None for successful output or raises an error.
+        Raises
+        ------
+        LibrdataWriterError
+            * If DataFrame types or values not translatable to R data types.
 
         See Also
         --------
@@ -2415,7 +2415,7 @@ topics/readRDS
         """
         from pandas.io.rdata.rdata_writer import RDataWriter
 
-        r = RDataWriter(
+        RDataWriter(
             self,
             path_or_buffer=path_or_buffer,
             file_format=file_format,
@@ -2423,9 +2423,7 @@ topics/readRDS
             index=index,
             compression=compression,
             storage_options=storage_options,
-        )
-
-        return r.write_data()
+        ).write_data()
 
     @doc(storage_options=generic._shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")

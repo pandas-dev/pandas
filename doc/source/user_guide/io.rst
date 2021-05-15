@@ -6055,12 +6055,9 @@ will occur:
 
 .. code-block:: ipython
 
-   In [608]: rds_file = os.path.join(file_path, "env_data_non_dfs.rda")
+   In [608]: rds_file = pd.read_rdata("env_data_non_dfs.rda")
    ...
-   LibrdataParserError: Invalid file, or file has unsupported features
-
-
-.. _io.rdata_writer:
+   LibrdataReaderError: Invalid file, or file has unsupported features
 
 Finally, please note R's ``Date`` (without time component) will translate to
 ``datetime64`` in pandas. Also, R's date/time field type, ``POSIXct``, that can
@@ -6085,6 +6082,36 @@ In pandas, conversion shows adjustment in hours to UTC:
 
    r_dfs = pd.read_rdata(os.path.join(file_path, "ppm_df.rda"))
    r_dfs["ppm_df"].tail()
+
+Below is summary of how ``read_rdata`` handles data types between R and pandas.
+
+.. list-table::
+   :widths: 25 25 25
+   :header-rows: 1
+
+   * - R types
+     - Conversion notes
+     - pandas types
+   * - logical
+     -
+     - bool
+   * - integer
+     -
+     - int64
+   * - numeric
+     -
+     - float64
+   * - POSIXct
+     - UTC conversion
+     - datetime64[ns]
+   * - factor
+     -
+     - Categorical
+   * - character
+     -
+     - object
+
+.. _io.rdata_writer:
 
 Writing R data
 ''''''''''''''
@@ -6207,6 +6234,44 @@ Once exported, the single DataFrame can be read or loaded in R:
    143     Nitrous oxide 2018  434.5286
    144 Fluorinated gases 2018  182.7824
    145             Total 2018 6676.6496
+
+Please note R does not support all dtypes of pandas. For special dtypes,
+you may have to handle data in either end to fit your specific data needs.
+
+Below is summary of how ``write_rdata`` handles data types between pandas
+and R in order to translate pandas simpler dtypes to R's atomic types.
+
+.. list-table::
+   :widths: 25 25 25
+   :header-rows: 1
+
+   * - pandas types
+     - Conversion notes
+     - R types
+   * - bool
+     -
+     - logical
+   * - any uint/int
+     -
+     - integer
+   * - any float
+     -
+     - numeric
+   * - datetime64[ns]
+     -
+     - POSIXct
+   * - datetime64[ns, tz]
+     - remove tz awareness
+     - POSIXct
+   * - timedelta
+     - convert to seconds
+     - numeric
+   * - object
+     -
+     - character
+   * - all other dtypes
+     - convert to string
+     - character
 
 .. _io.stata:
 

@@ -130,10 +130,8 @@ class RDataWriter:
         """
         Write DataFrames to R data files.
 
-        Converts special class variables (Categorical, datetimes, etc.),
-        then exports dictionaries of each column to write to disk. For
-        datetimes, data is converted to epoch seconds with timezone
-        handling for midnight time-stamped datetimes to align to R types.
+        Converts non-primitive and non-datetimes to object to align to R
+        atomic types, then exports dictionaries of each column with meta data.
         """
 
         self.frame = (
@@ -142,7 +140,8 @@ class RDataWriter:
             else self.frame.reset_index(drop=True)
         )
 
-        for col in self.frame.select_dtypes(include="category").columns:
+        excl_types = ["bool", "number", "object", "datetime", "datetimetz", "timedelta"]
+        for col in self.frame.select_dtypes(exclude=excl_types).columns:
             self.frame[col] = self.frame[col].astype(str)
 
         for col in self.frame.select_dtypes(include=["datetimetz"]).columns:
@@ -152,6 +151,22 @@ class RDataWriter:
             self.frame[col] = self.frame[col].dt.total_seconds()
 
         rdict = {"dtypes": {k: str(v) for k, v in self.frame.dtypes.to_dict().items()}}
+
+        for k, v in rdict["dtypes"].items():
+            if any(x in v for x in ("bool", "Boolean")):
+                rdict["dtypes"][k] = "bool"
+
+            elif any(x in v for x in ("int", "uint", "Int", "UInt")):
+                rdict["dtypes"][k] = "int"
+
+            elif any(x in v for x in ("float", "Float")):
+                rdict["dtypes"][k] = "float"
+
+            elif any(x in v for x in ("datetime", "Datetime")):
+                rdict["dtypes"][k] = "datetime"
+
+            elif any(x in v for x in ("object", "string", "String")):
+                rdict["dtypes"][k] = "object"
 
         for col in self.frame.select_dtypes(include=["datetime"]).columns:
             self.frame[col] = self.frame[col].values.view("int64") / (10 ** 9)
