@@ -51,6 +51,7 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._validators import (
@@ -4485,6 +4486,7 @@ Keep all original rows and also all original values
     def reindex(self, index=None, **kwargs):
         return super().reindex(index=index, **kwargs)
 
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self", "labels"])
     def drop(
         self,
         labels=None,
