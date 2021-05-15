@@ -318,21 +318,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                     n = 0
                 regex = re.compile(pat)
                 f = lambda x: regex.split(x, maxsplit=n)
-
-        result = self._str_map(f, dtype=object)
-
-        # propagate nan values to match longest sequence (GH 18450)
-        if expand:
-            mask = isna(result)
-            valid = result[~mask]
-            if len(valid):
-                max_len = max(len(x) for x in valid)
-                na_value = self._str_na_value
-                empty_row = [na_value] * max_len
-                for idx in np.argwhere(mask):
-                    result[idx[0]] = empty_row
-
-        return result
+        return self._str_map(f, dtype=object)
 
     def _str_rsplit(self, pat=None, n=-1):
         if n is None or n == 0:
@@ -452,4 +438,4 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             result = self._str_map(mapper, dtype="object")
             for idx in np.argwhere(isna(result)):
                 result[idx[0]] = empty_row
-            return result
+            return np.array(list(result), dtype=object)

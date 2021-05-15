@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer,
     is_list_like,
+    is_object_dtype,
     is_re,
 )
 from pandas.core.dtypes.generic import (
@@ -264,6 +265,28 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
+        elif (
+            expand is True
+            and is_object_dtype(result)
+            and not isinstance(self._orig, ABCIndex)
+        ):
+            # required when expand=True is explicitly specified
+            # not needed when inferred
+
+            def cons_row(x):
+                if is_list_like(x):
+                    return x
+                else:
+                    return [x]
+
+            result = [cons_row(x) for x in result]
+            if result:
+                # propagate nan values to match longest sequence (GH 18450)
+                max_len = max(len(x) for x in result)
+                result = [
+                    x * max_len if len(x) == 0 or x[0] is np.nan else x for x in result
+                ]
+
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
 
@@ -299,14 +322,14 @@ class StringMethods(NoNewAttributesMixin):
             index = self._orig.index
             # This is a mess.
             dtype: Optional[str]
-            if not self._is_categorical and returns_string:
+            if self._is_string and returns_string:
                 dtype = self._orig.dtype
             else:
                 dtype = None
 
             if expand:
                 cons = self._orig._constructor_expanddim
-                result = cons(list(result), columns=name, index=index, dtype=dtype)
+                result = cons(result, columns=name, index=index, dtype=dtype)
             else:
                 # Must be a Series
                 cons = self._orig._constructor
@@ -2357,8 +2380,8 @@ class StringMethods(NoNewAttributesMixin):
             raise ValueError("only one regex group is supported with Index")
 
         result = self._data.array._str_extract(pat, flags, expand)
-
         returns_df = regex.groups > 1 or expand
+
         name = _get_group_names(regex) if returns_df else _get_single_group_name(regex)
 
         # extract is inconsistent for Indexes when expand is True. To avoid special
@@ -2368,9 +2391,24 @@ class StringMethods(NoNewAttributesMixin):
 
             # if expand is True, name is a list of column names
             assert isinstance(name, list)  # for mypy
-            return DataFrame(list(result), columns=name, dtype=object)
+            return DataFrame(result, columns=name, dtype=object)
 
-        return self._wrap_result(result, name=name, expand=returns_df)
+        # bypass padding code in _wrap_result
+        expand_kwarg: Optional[bool]
+        if returns_df:
+            if is_object_dtype(result):
+                if regex.groups == 1:
+                    result = result.reshape(1, -1).T
+                if result.size == 0:
+                    expand_kwarg = True
+                else:
+                    expand_kwarg = None
+            else:
+                expand_kwarg = True
+        else:
+            expand_kwarg = False
+
+        return self._wrap_result(result, name=name, expand=expand_kwarg)
 
     @forbid_nonstring_types(["bytes"])
     def extractall(self, pat, flags=0):
