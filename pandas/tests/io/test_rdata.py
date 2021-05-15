@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas.compat import PY38
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -528,6 +529,10 @@ def test_write_zip_compression(rtype):
             ghg_df.to_rdata(path, file_format=rtype, compression="zip")
 
 
+@pytest.mark.skipif(
+    not PY38,
+    reason=("gzip.BadGzipFile exception added in 3.8"),
+)
 def test_write_read_mismatched_compression(rtype):
     with tm.ensure_clean("test.out") as path:
         with pytest.raises(gzip.BadGzipFile, match=("Not a gzipped file")):
