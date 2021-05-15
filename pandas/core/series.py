@@ -4607,9 +4607,10 @@ Keep all original rows and also all original values
     def fillna(
         self,
         value,
-        method: FillnaOptions | None,
-        axis: Axis | None,
+        *,
         inplace: Literal[True],
+        method: FillnaOptions | None = ...,
+        axis: Axis | None = ...,
         limit=...,
         downcast=...,
     ) -> None:
@@ -4620,75 +4621,8 @@ Keep all original rows and also all original values
         self,
         *,
         inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        *,
-        method: FillnaOptions | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        *,
-        method: FillnaOptions | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        method: FillnaOptions | None,
-        *,
-        inplace: Literal[True],
+        method: FillnaOptions | None = ...,
+        axis: Axis | None = ...,
         limit=...,
         downcast=...,
     ) -> None:
