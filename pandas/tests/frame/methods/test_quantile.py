@@ -705,5 +705,7 @@ class TestQuantileExtensionDtype:
             }
         )
         result = df[["a", "c"]].quantile(0.5, axis=axis)
-        expected = Series(expected_data, name=0.5, index=Index(expected_index))
+        expected = Series(
+            expected_data, name=0.5, index=Index(expected_index), dtype=np.float64
+        )
         tm.assert_series_equal(result, expected)
