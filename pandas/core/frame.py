@@ -77,6 +77,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     deprecate_kwarg,
+    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -4675,6 +4676,7 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self", "labels"])
     @Appender(
         """
         Examples
