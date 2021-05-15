@@ -844,9 +844,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             pat = "^" + pat
         return self._str_contains(pat, case, flags, na, regex=True)
 
-    def _str_fullmatch(
-        self, pat, case: bool = True, flags: int = 0, na: Scalar = None
-    ):
+    def _str_fullmatch(self, pat, case: bool = True, flags: int = 0, na: Scalar = None):
         if pa_version_under4p0:
             return super()._str_fullmatch(pat, case, flags, na)
 
