@@ -2018,3 +2018,18 @@ Thu,Lunch,Yes,51.51,17"""
             ),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_unstack_categorical(self):
+        # GH 14018
+        idx = MultiIndex.from_product([["A"], [0, 1]])
+        df = DataFrame({"cat": pd.Categorical(["a", "b"])}, index=idx)
+        result = df.unstack()
+        expected = DataFrame(
+            [
+                pd.Categorical(["a"], categories=["a", "b"]),
+                pd.Categorical(["b"], categories=["a", "b"]),
+            ],
+            index=["A"],
+            columns=MultiIndex.from_tuples([("cat", 0), ("cat", 1)]),
+        )
+        tm.assert_frame_equal(result, expected)
