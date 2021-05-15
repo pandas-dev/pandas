@@ -1032,6 +1032,15 @@ def test_frame_single_columns_object_sum_axis_1():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("ts_value", [pd.Timestamp("2000-01-01"), pd.NaT])
+def test_frame_mixed_numeric_object_with_timestamp(ts_value):
+    # GH 13912
+    df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
+    result = df.sum()
+    expected = Series([1, 1.1, "foo"], index=list("abc"))
+    tm.assert_series_equal(result, expected)
+
+
 # -------------------------------------------------------------------
 # Unsorted
 #  These arithmetic tests were previously in other files, eventually
