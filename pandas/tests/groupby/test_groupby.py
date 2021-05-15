@@ -2273,3 +2273,12 @@ def test_groupby_all_nan_groups_drop():
     result = s.groupby(s.index).sum()
     expected = Series([], index=Index([], dtype=np.float64), dtype=np.int64)
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_empty_multi_column():
+    # GH 15106
+    result = DataFrame(data=[], columns=["A", "B", "C"]).groupby(["A", "B"]).sum()
+    expected = DataFrame(
+        [], columns=["C"], index=MultiIndex([[], []], [[], []], names=["A", "B"])
+    )
+    tm.assert_frame_equal(result, expected)
