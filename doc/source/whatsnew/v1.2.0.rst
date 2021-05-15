@@ -381,6 +381,7 @@ this pathological behavior (:issue:`37827`):
 *New behavior*:
 
 .. ipython:: python
+   :okwarning:
 
     df.mean()
 
