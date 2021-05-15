@@ -285,3 +285,11 @@ class TestDataFrameDiff:
         result = df.diff()
         expected = DataFrame(np.array(df)).diff()
         tm.assert_frame_equal(result, expected)
+
+    def test_diff_all_int_dtype(self, any_int_or_nullable_int_dtype):
+        # GH 14773
+        df = DataFrame(range(5))
+        df = df.astype(np.int8)
+        result = df.diff()
+        expected = DataFrame([np.nan, 1.0, 1.0, 1.0, 1.0], dtype="float32")
+        tm.assert_frame_equal(result, expected)
