@@ -20,7 +20,7 @@ dependencies:
   # code checks
   - black=20.8b1
   - cpplint
-  - flake8=3.9.1
+  - flake8=3.9.2
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
   - flake8-comprehensions=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
@@ -70,7 +70,7 @@ dependencies:
 
   # unused (required indirectly may be?)
   - ipywidgets
-  - nbformat=5.0.8
+  - nbformat
   - notebook>=5.7.5
   - pip
 
@@ -79,7 +79,7 @@ dependencies:
   - bottleneck>=1.2.1
   - ipykernel
   - ipython>=7.11.1
-  - jinja2  # pandas.Styler
+  - jinja2<3.0.0  # pandas.Styler
   - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.6.8
   - scipy>=1.2
@@ -99,7 +99,7 @@ dependencies:
   - xlwt
   - odfpy
 
-  - fastparquet>=0.3.2, <=0.5.0  # pandas.read_parquet, DataFrame.to_parquet
+  - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
   - pyarrow>=0.15.0  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
   - python-snappy  # required by pyarrow
 
