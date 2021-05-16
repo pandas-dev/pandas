@@ -478,7 +478,7 @@ def test_drop_duplicates_pos_args_deprecation():
     df = DataFrame({"a": [1, 1, 2], "b": [1, 1, 3], "c": [1, 1, 3]})
     msg = (
         r"Starting with Pandas version 2\.0 all arguments of drop_duplicates "
-        r"except for the argument 'self' will be keyword-only"
+        r"except for the arguments 'self' and 'subset' will be keyword-only"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.drop_duplicates(["b", "c"])
+        df.drop_duplicates(["b", "c"], "last")
