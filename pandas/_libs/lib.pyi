@@ -196,6 +196,7 @@ def map_infer_mask(
     convert: bool = ...,
     na_value: Any = ...,
     dtype: np.dtype = ...,
+    out: np.ndarray = ...,
 ) -> np.ndarray: ...
 
 def indices_fast(

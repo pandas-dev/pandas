@@ -19,6 +19,7 @@ from pandas._typing import (
 )
 
 from pandas.core.dtypes.common import (
+    is_object_dtype,
     is_re,
     is_scalar,
 )
@@ -419,23 +420,44 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         if regex.groups == 1:
 
-            def mapper(x):
+            def f(x):
                 m = regex.search(x)
                 return m.groups()[0] if m else na_value
 
-            return self._str_map(mapper, convert=False)
+            return self._str_map(f, convert=False)
         else:
-            empty_row = [self._str_na_value] * regex.groups
+            out = np.empty((len(self), regex.groups), dtype=object)
 
-            def mapper(x):
-                m = regex.search(x)
-                return (
-                    [na_value if item is None else item for item in m.groups()]
-                    if m
-                    else empty_row
-                )
+            if is_object_dtype(self):
 
-            result = self._str_map(mapper, dtype="object")
-            for idx in np.argwhere(isna(result)):
-                result[idx[0]] = empty_row
-            return np.array(list(result), dtype=object)
+                def f(x):
+                    if not isinstance(x, str):
+                        return na_value
+                    m = regex.search(x)
+                    if m:
+                        return [
+                            na_value if item is None else item for item in m.groups()
+                        ]
+                    else:
+                        return na_value
+
+            else:
+
+                def f(x):
+                    m = regex.search(x)
+                    if m:
+                        return [
+                            na_value if item is None else item for item in m.groups()
+                        ]
+                    else:
+                        return na_value
+
+            result = lib.map_infer_mask(
+                np.asarray(self),
+                f,
+                mask=isna(self).view("uint8"),
+                convert=False,
+                na_value=na_value,
+                out=out,
+            )
+            return result
