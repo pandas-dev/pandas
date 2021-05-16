@@ -314,13 +314,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @overload
     def __getitem__(
-        self, item: slice | np.ndarray | Sequence[int]
-    ) -> DatetimeLikeArrayMixin:
+        self: DatetimeLikeArrayT, item: slice | np.ndarray | Sequence[int]
+    ) -> DatetimeLikeArrayT:
         ...
 
     def __getitem__(
-        self, key: PositionalIndexer2D
-    ) -> DatetimeLikeArrayMixin | DTScalarOrNaT:
+        self: DatetimeLikeArrayT, key: PositionalIndexer2D
+    ) -> DatetimeLikeArrayT | DTScalarOrNaT:
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
