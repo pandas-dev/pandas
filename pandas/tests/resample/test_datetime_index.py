@@ -1026,12 +1026,14 @@ def test_resample_dtype_coercion():
     df = {"a": [1, 3, 1, 4]}
     df = DataFrame(df, index=date_range("2017-01-01", "2017-01-04"))
 
-    expected = df.astype("float64").resample("H").mean()["a"].interpolate("cubic")
+    expected = (
+        df.astype("float64").resample("H").mean()["a"].interpolate(method="cubic")
+    )
 
-    result = df.resample("H")["a"].mean().interpolate("cubic")
+    result = df.resample("H")["a"].mean().interpolate(method="cubic")
     tm.assert_series_equal(result, expected)
 
-    result = df.resample("H").mean()["a"].interpolate("cubic")
+    result = df.resample("H").mean()["a"].interpolate(method="cubic")
     tm.assert_series_equal(result, expected)
 
 
