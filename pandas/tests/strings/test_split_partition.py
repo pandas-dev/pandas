@@ -235,8 +235,12 @@ def test_split_to_dataframe(any_string_dtype):
     )
     tm.assert_frame_equal(result, exp)
 
-    with pytest.raises(ValueError, match="expand must be"):
-        s.str.split("_", expand="not_a_boolean")
+
+def test_split_expand_kwarg_raises(any_string_dtype):
+    ser = Series([], dtype=any_string_dtype)
+    msg = 'For argument "expand" expected type bool, received type str'
+    with pytest.raises(ValueError, match=msg):
+        ser.str.split("_", expand="not_a_boolean")
 
 
 def test_split_to_multiindex_expand():
@@ -274,7 +278,11 @@ def test_split_to_multiindex_expand():
     tm.assert_index_equal(result, exp)
     assert result.nlevels == 6
 
-    with pytest.raises(ValueError, match="expand must be"):
+
+def test_split_index_expand_kwarg_raises():
+    idx = Index(["some_unequal_splits", "one_of_these_things_is_not", np.nan, None])
+    msg = 'For argument "expand" expected type bool, received type str'
+    with pytest.raises(ValueError, match=msg):
         idx.str.split("_", expand="not_a_boolean")
 
 

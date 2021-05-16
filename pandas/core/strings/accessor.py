@@ -17,6 +17,7 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._typing import FrameOrSeriesUnion
 from pandas.util._decorators import Appender
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -24,7 +25,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer,
     is_list_like,
-    is_object_dtype,
     is_re,
 )
 from pandas.core.dtypes.generic import (
@@ -266,30 +266,29 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif (
-            expand is True
-            and is_object_dtype(result)
-            and not isinstance(self._orig, ABCIndex)
-        ):
-            # required when expand=True is explicitly specified
-            # not needed when inferred
+        elif expand in ("split", "rsplit"):
+            expand = True
+            if not isinstance(self._orig, ABCIndex):
 
-            def cons_row(x):
-                if is_list_like(x):
-                    return x
-                else:
-                    return [x]
+                def cons_row(x):
+                    if is_list_like(x):
+                        return x
+                    else:
+                        return [x]
 
-            result = [cons_row(x) for x in result]
-            if result:
-                # propagate nan values to match longest sequence (GH 18450)
-                max_len = max(len(x) for x in result)
-                result = [
-                    x * max_len if len(x) == 0 or x[0] is np.nan else x for x in result
-                ]
+                result = [cons_row(x) for x in result]
+                if result:
+                    # propagate nan values to match longest sequence (GH 18450)
+                    max_len = max(len(x) for x in result)
+                    result = [
+                        x * max_len if len(x) == 0 or x[0] is np.nan else x
+                        for x in result
+                    ]
 
-        if not isinstance(expand, bool):
-            raise ValueError("expand must be True or False")
+        elif expand in ("partition", "rpartition"):
+            expand = True
+            if not isinstance(self._orig, ABCIndex):
+                result = list(result)
 
         if expand is False:
             # if expand is False, result should have the same name
@@ -775,14 +774,20 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs["str_split"] % {"side": "beginning", "method": "split"})
     @forbid_nonstring_types(["bytes"])
     def split(self, pat=None, n=-1, expand=False):
+        validate_bool_kwarg(expand, "expand", none_allowed=False)
         result = self._data.array._str_split(pat, n, expand)
-        return self._wrap_result(result, returns_string=expand, expand=expand)
+        return self._wrap_result(
+            result, returns_string=expand, expand="split" if expand else False
+        )
 
     @Appender(_shared_docs["str_split"] % {"side": "end", "method": "rsplit"})
     @forbid_nonstring_types(["bytes"])
     def rsplit(self, pat=None, n=-1, expand=False):
+        validate_bool_kwarg(expand, "expand", none_allowed=False)
         result = self._data.array._str_rsplit(pat, n=n)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        return self._wrap_result(
+            result, expand="rsplit" if expand else False, returns_string=expand
+        )
 
     _shared_docs[
         "str_partition"
@@ -877,8 +882,11 @@ class StringMethods(NoNewAttributesMixin):
     )
     @forbid_nonstring_types(["bytes"])
     def partition(self, sep=" ", expand=True):
+        validate_bool_kwarg(expand, "expand", none_allowed=False)
         result = self._data.array._str_partition(sep, expand)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        return self._wrap_result(
+            result, expand="partition" if expand else False, returns_string=expand
+        )
 
     @Appender(
         _shared_docs["str_partition"]
@@ -891,8 +899,11 @@ class StringMethods(NoNewAttributesMixin):
     )
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep=" ", expand=True):
+        validate_bool_kwarg(expand, "expand", none_allowed=False)
         result = self._data.array._str_rpartition(sep, expand)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        return self._wrap_result(
+            result, expand="rpartition" if expand else False, returns_string=expand
+        )
 
     def get(self, i):
         """
