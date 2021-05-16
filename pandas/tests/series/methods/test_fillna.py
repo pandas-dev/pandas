@@ -765,6 +765,16 @@ class TestFillnaPad:
         ts[2] = np.NaN
         tm.assert_series_equal(ts.ffill(), ts.fillna(method="ffill"))
 
+    def test_ffill_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"Starting with Pandas version 2\.0 all arguments of ffill except "
+            r"for the argument 'self' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.ffill(0)
+
     def test_ffill_mixed_dtypes_without_missing_data(self):
         # GH#14956
         series = Series([datetime(2015, 1, 1, tzinfo=pytz.utc), 1])

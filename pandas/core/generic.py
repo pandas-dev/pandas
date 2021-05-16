@@ -61,6 +61,7 @@ from pandas.errors import (
     InvalidIndexError,
 )
 from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -6427,6 +6428,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> FrameOrSeries | None:
         ...
 
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self"])
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def ffill(
