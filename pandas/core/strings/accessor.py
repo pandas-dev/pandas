@@ -266,29 +266,26 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif expand in ("split", "rsplit"):
-            expand = True
-            if not isinstance(self._orig, ABCIndex):
+        elif expand in ("split", "rsplit") and not isinstance(self._orig, ABCIndex):
 
-                def cons_row(x):
-                    if is_list_like(x):
-                        return x
-                    else:
-                        return [x]
+            def cons_row(x):
+                if is_list_like(x):
+                    return x
+                else:
+                    return [x]
 
-                result = [cons_row(x) for x in result]
-                if result:
-                    # propagate nan values to match longest sequence (GH 18450)
-                    max_len = max(len(x) for x in result)
-                    result = [
-                        x * max_len if len(x) == 0 or x[0] is np.nan else x
-                        for x in result
-                    ]
+            result = [cons_row(x) for x in result]
+            if result:
+                # propagate nan values to match longest sequence (GH 18450)
+                max_len = max(len(x) for x in result)
+                result = [
+                    x * max_len if len(x) == 0 or x[0] is np.nan else x for x in result
+                ]
 
-        elif expand in ("partition", "rpartition"):
-            expand = True
-            if not isinstance(self._orig, ABCIndex):
-                result = list(result)
+        elif expand in ("partition", "rpartition") and not isinstance(
+            self._orig, ABCIndex
+        ):
+            result = list(result)
 
         if expand is False:
             # if expand is False, result should have the same name
