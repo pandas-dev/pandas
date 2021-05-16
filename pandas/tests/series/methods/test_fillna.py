@@ -776,6 +776,16 @@ class TestFillnaPad:
         ts[2] = np.NaN
         tm.assert_series_equal(ts.bfill(), ts.fillna(method="bfill"))
 
+    def test_bfill_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"Starting with Pandas version 2\.0 all arguments of bfill except "
+            r"for the argument 'self' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.bfill(0)
+
     def test_pad_nan(self):
         x = Series(
             [np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"], dtype=float

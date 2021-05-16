@@ -334,6 +334,16 @@ class TestFillNA:
             datetime_frame.bfill(), datetime_frame.fillna(method="bfill")
         )
 
+    def test_bfill_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"Starting with Pandas version 2\.0 all arguments of bfill except "
+            r"for the argument 'self' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.bfill(0)
+
     def test_frame_pad_backfill_limit(self):
         index = np.arange(10)
         df = DataFrame(np.random.randn(10, 4), index=index)
