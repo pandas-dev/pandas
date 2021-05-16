@@ -813,7 +813,12 @@ class ExtensionArray:
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
 
-    def searchsorted(self, value, side="left", sorter=None):
+    def searchsorted(
+        self,
+        value: ArrayLike,
+        side: Literal["left", "right"] = "left",
+        sorter: ArrayLike | None = None,
+    ):
         """
         Find indices where elements should be inserted to maintain order.
 
