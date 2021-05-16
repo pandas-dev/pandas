@@ -8812,18 +8812,18 @@ NaN 12.3   33.0
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'), index=[0, 2])
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'), index=['x', 'y'])
         >>> df
            A  B
-        0  1  2
-        2  3  4
-        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'), index=[0, 4])
+        x  1  2
+        y  3  4
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'), index=['x', 'y'])
         >>> df.append(df2)
            A  B
-        0  1  2
-        2  3  4
-        0  5  6
-        4  7  8
+        x  1  2
+        y  3  4
+        x  5  6
+        y  7  8
 
         With `ignore_index` set to True:
 
