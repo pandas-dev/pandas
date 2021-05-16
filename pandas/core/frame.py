@@ -77,6 +77,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     deprecate_kwarg,
+    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -5953,6 +5954,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return result
 
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self"])
     def drop_duplicates(
         self,
         subset: Hashable | Sequence[Hashable] | None = None,

@@ -51,6 +51,7 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._validators import (
@@ -2024,6 +2025,7 @@ Name: Max Speed, dtype: float64
     def drop_duplicates(self, keep=..., inplace: bool = ...) -> Series | None:
         ...
 
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self"])
     def drop_duplicates(self, keep="first", inplace=False) -> Series | None:
         """
         Return Series with duplicate values removed.

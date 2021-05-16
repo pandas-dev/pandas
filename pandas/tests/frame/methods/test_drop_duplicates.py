@@ -471,3 +471,14 @@ def test_drop_duplicates_non_boolean_ignore_index(arg):
     msg = '^For argument "ignore_index" expected type bool, received type .*.$'
     with pytest.raises(ValueError, match=msg):
         df.drop_duplicates(ignore_index=arg)
+
+
+def test_drop_duplicates_pos_args_deprecation():
+    # test deprecation warning message for positional arguments GH#41485
+    df = DataFrame({"a": [1, 1, 2], "b": [1, 1, 3], "c": [1, 1, 3]})
+    msg = (
+        r"Starting with Pandas version 2\.0 all arguments of drop_duplicates except for "
+        r"the argument 'self' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.drop_duplicates(["b", "c"])

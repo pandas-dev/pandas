@@ -223,3 +223,14 @@ class TestSeriesDropDuplicates:
         return_value = sc.drop_duplicates(keep=False, inplace=True)
         assert return_value is None
         tm.assert_series_equal(sc, tc[~expected])
+
+
+def test_drop_duplicates_pos_args_deprecation():
+    # test deprecation warning message for positional arguments GH#41485
+    s = Series(['a', 'b', 'c', 'b'])
+    msg = (
+        r"Starting with Pandas version 2\.0 all arguments of drop_duplicates except for "
+        r"the argument 'self' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        s.drop_duplicates("last")
