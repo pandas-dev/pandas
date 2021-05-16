@@ -77,6 +77,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     deprecate_kwarg,
+    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -6188,6 +6189,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Sorting
     # TODO: Just move the sort_values doc here.
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self", "by"])
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
     # error: Signature of "sort_values" incompatible with supertype "NDFrame"
