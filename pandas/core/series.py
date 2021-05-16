@@ -51,6 +51,7 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._validators import (
@@ -3434,6 +3435,7 @@ Keep all original rows and also all original values
         else:
             return result.__finalize__(self, method="sort_values")
 
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self"])
     def sort_index(
         self,
         axis=0,

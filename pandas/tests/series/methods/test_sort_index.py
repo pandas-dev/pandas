@@ -320,3 +320,13 @@ class TestSeriesSortIndexKey:
         result = s.sort_index(key=lambda x: x.month_name())
         expected = s.iloc[[2, 1, 0]]
         tm.assert_series_equal(result, expected)
+
+    def test_sort_index_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"Starting with Pandas version 2\.0 all arguments of sort_index "
+            r"except for the argument 'self' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.sort_index(0)
