@@ -1184,10 +1184,8 @@ a single value and returning a single value. For example:
 
    df4
 
-
    def f(x):
        return len(str(x))
-
 
    df4["one"].map(f)
    df4.applymap(f)

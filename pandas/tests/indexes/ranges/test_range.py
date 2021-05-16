@@ -11,7 +11,7 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.tests.indexes.test_numeric import Numeric
+from pandas.tests.indexes.common import NumericBase
 
 # aliases to make some tests easier to read
 RI = RangeIndex
@@ -20,8 +20,18 @@ F64 = Float64Index
 OI = Index
 
 
-class TestRangeIndex(Numeric):
+class TestRangeIndex(NumericBase):
     _index_cls = RangeIndex
+
+    @pytest.fixture
+    def dtype(self):
+        return np.int64
+
+    @pytest.fixture(
+        params=["uint64", "float64", "category", "datetime64"],
+    )
+    def invalid_dtype(self, request):
+        return request.param
 
     @pytest.fixture
     def simple_index(self) -> Index:
@@ -36,6 +46,11 @@ class TestRangeIndex(Numeric):
     )
     def index(self, request):
         return request.param
+
+    def test_constructor_unwraps_index(self, dtype):
+        result = self._index_cls(1, 3)
+        expected = np.array([1, 2], dtype=dtype)
+        tm.assert_numpy_array_equal(result._data, expected)
 
     def test_can_hold_identifiers(self, simple_index):
         idx = simple_index

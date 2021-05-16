@@ -43,7 +43,7 @@ def test_arrow_roundtrip(data):
     tm.assert_frame_equal(result, df)
 
 
-@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+@td.skip_if_no("pyarrow", min_version="0.16.0")
 def test_arrow_load_from_zero_chunks(data):
     # GH-41040
 
@@ -173,7 +173,7 @@ def test_from_arrow_type_error(request, data):
         # TODO numeric dtypes cast any incoming array to the correct dtype
         # instead of erroring
         request.node.add_marker(
-            pytest.mark.xfail(reason="numeric dtypes don't error but cast")
+            pytest.mark.xfail(raises=None, reason="numeric dtypes don't error but cast")
         )
 
     arr = pa.array(data).cast("string")
