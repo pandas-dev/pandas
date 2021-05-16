@@ -865,7 +865,7 @@ class PlotAccessor(PandasObject):
         if args and isinstance(data, ABCSeries):
             positional_args = str(args)[1:-1]
             keyword_args = ", ".join(
-                f"{name}={repr(value)}" for (name, default), value in zip(arg_def, args)
+                f"{name}={repr(value)}" for (name, _), value in zip(arg_def, args)
             )
             msg = (
                 "`Series.plot()` should not be called with positional "
@@ -876,7 +876,7 @@ class PlotAccessor(PandasObject):
             )
             raise TypeError(msg)
 
-        pos_args = {name: value for value, (name, _) in zip(args, arg_def)}
+        pos_args = {name: value for (name, _), value in zip(arg_def, args)}
         if backend_name == "pandas.plotting._matplotlib":
             kwargs = dict(arg_def, **pos_args, **kwargs)
         else:
@@ -1729,7 +1729,7 @@ _backends = {}
 
 def _find_backend(backend: str):
     """
-    Find a pandas plotting backend>
+    Find a pandas plotting backend.
 
     Parameters
     ----------
@@ -1749,11 +1749,8 @@ def _find_backend(backend: str):
     import pkg_resources  # Delay import for performance.
 
     for entry_point in pkg_resources.iter_entry_points("pandas_plotting_backends"):
-        if entry_point.name == "matplotlib":
-            # matplotlib is an optional dependency. When
-            # missing, this would raise.
-            continue
-        _backends[entry_point.name] = entry_point.load()
+        if entry_point.name == backend:
+            _backends[entry_point.name] = entry_point.load()
 
     try:
         return _backends[backend]
@@ -1778,20 +1775,25 @@ def _find_backend(backend: str):
     )
 
 
-def _get_plot_backend(backend=None):
+def _get_plot_backend(backend: str | None = None):
     """
     Return the plotting backend to use (e.g. `pandas.plotting._matplotlib`).
 
-    The plotting system of pandas has been using matplotlib, but the idea here
-    is that it can also work with other third-party backends. In the future,
-    this function will return the backend from a pandas option, and all the
-    rest of the code in this file will use the backend specified there for the
-    plotting.
+    The plotting system of pandas uses matplotlib by default, but the idea here
+    is that it can also work with other third-party backends. This function
+    returns the module which provides a top-level `.plot` method that will
+    actually do the plotting. The backend is specified from a string, which
+    either comes from the keyword argument `backend`, or, if not specified, from
+    the option `pandas.options.plotting.backend`. All the rest of the code in
+    this file uses the backend specified there for the plotting.
 
     The backend is imported lazily, as matplotlib is a soft dependency, and
     pandas can be used without it being installed.
     """
     backend = backend or get_option("plotting.backend")
+
+    if backend in _backends:
+        return _backends[backend]
 
     if backend == "matplotlib":
         # Because matplotlib is an optional dependency and first-party backend,
@@ -1805,10 +1807,7 @@ def _get_plot_backend(backend=None):
             ) from None
 
         _backends["matplotlib"] = module
-
-    if backend in _backends:
-        return _backends[backend]
+        return module
 
     module = _find_backend(backend)
-    _backends[backend] = module
     return module
