@@ -726,3 +726,28 @@ with cf.config_prefix("plotting.matplotlib"):
         validator=is_one_of_factory(["auto", True, False]),
         cb=register_converter_cb,
     )
+
+# ------
+# Styler
+# ------
+
+styler_sparsify_index_doc = """
+: bool
+    Whether to sparsify the display of a hierarchical index. Setting to False will
+    display each explicit level element in a hierarchical key for each row.
+"""
+
+styler_sparsify_columns_doc = """
+: bool
+    Whether to sparsify the display of hierarchical columns. Setting to False will
+    display each explicit level element in a hierarchical key for each column.
+"""
+
+with cf.config_prefix("styler"):
+    cf.register_option(
+        "sparsify_index", True, styler_sparsify_index_doc, validator=bool
+    )
+
+    cf.register_option(
+        "sparsify_columns", True, styler_sparsify_columns_doc, validator=bool
+    )

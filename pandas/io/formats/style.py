@@ -17,6 +17,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._typing import (
     Axis,
     FrameOrSeries,
@@ -200,14 +202,27 @@ class Styler(StylerRenderer):
         """
         Hooks into Jupyter notebook rich display system.
         """
-        return self._render_html()
+        return self.render()
 
-    def render(self, **kwargs) -> str:
+    def render(
+        self,
+        sparsify_index: bool | None = None,
+        sparsify_columns: bool | None = None,
+        **kwargs,
+    ) -> str:
         """
         Render the ``Styler`` including all applied styles to HTML.
 
         Parameters
         ----------
+        sparsify_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparsify_index`` value.
+        sparsify_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparsify_columns`` value.
         **kwargs
             Any additional keyword arguments are passed
             through to ``self.template.render``.
@@ -239,7 +254,11 @@ class Styler(StylerRenderer):
         * caption
         * table_attributes
         """
-        return self._render_html(**kwargs)
+        if sparsify_index is None:
+            sparsify_index = get_option("styler.sparsify_index")
+        if sparsify_columns is None:
+            sparsify_columns = get_option("styler.sparsify_columns")
+        return self._render_html(sparsify_index, sparsify_columns, **kwargs)
 
     def set_tooltips(
         self,
