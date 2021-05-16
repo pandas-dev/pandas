@@ -256,6 +256,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     get all NaN as a result.
     
     Constructing Series from an array with `copy=False`.
+    
     >>> r = [1,2]
     >>> ser = pd.Series(r, copy=False)
     >>> ser.iloc[0] = 999
@@ -267,9 +268,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dtype: int64
     
     The Series returns a `copy` of the original data, so
-    `r` is unchanged.
+    the original data is unchanged.
     
     Constructing Series from a `numpy.array` with `copy=False`.
+    
     >>> r = np.array([1,2])
     >>> ser = pd.Series(r, copy=False)
     >>> ser.iloc[0] = 999
@@ -281,7 +283,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dtype: int32
     
     The Series returns a `view` on the original data, so
-    `r` is changed as well.
+    the original data is changed as well.
     """
 
     _typ = "series"
