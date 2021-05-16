@@ -606,8 +606,8 @@ class TestStyler:
     def test_applymap_subset_multiindex(self, slice_):
         # GH 19861
         # edited for GH 33562
-        idx = pd.MultiIndex.from_product([["a", "b"], [1, 2]])
-        col = pd.MultiIndex.from_product([["x", "y"], ["A", "B"]])
+        idx = MultiIndex.from_product([["a", "b"], [1, 2]])
+        col = MultiIndex.from_product([["x", "y"], ["A", "B"]])
         df = DataFrame(np.random.rand(4, 4), columns=col, index=idx)
         df.style.applymap(lambda x: "color: red;", subset=slice_).render()
 
@@ -615,7 +615,7 @@ class TestStyler:
         # https://github.com/pandas-dev/pandas/issues/25858
         # Checks styler.applymap works with multindex when codes are provided
         codes = np.array([[0, 0, 1, 1], [0, 1, 0, 1]])
-        columns = pd.MultiIndex(
+        columns = MultiIndex(
             levels=[["a", "b"], ["%", "#"]], codes=codes, names=["", ""]
         )
         df = DataFrame(
@@ -929,7 +929,7 @@ class TestStyler:
             df.style._apply(f, axis=None)
 
     def test_get_level_lengths(self):
-        index = pd.MultiIndex.from_product([["a", "b"], [0, 1, 2]])
+        index = MultiIndex.from_product([["a", "b"], [0, 1, 2]])
         expected = {
             (0, 0): 3,
             (0, 3): 3,
@@ -961,7 +961,7 @@ class TestStyler:
         tm.assert_dict_equal(result, expected)
 
     def test_get_level_lengths_un_sorted(self):
-        index = pd.MultiIndex.from_arrays([[1, 1, 2, 1], ["a", "b", "b", "d"]])
+        index = MultiIndex.from_arrays([[1, 1, 2, 1], ["a", "b", "b", "d"]])
         expected = {
             (0, 0): 2,
             (0, 2): 1,
@@ -991,7 +991,7 @@ class TestStyler:
         # TODO this test is verbose can be minimised to more directly target test
         df = DataFrame(
             {"A": [1, 2]},
-            index=pd.MultiIndex.from_arrays(
+            index=MultiIndex.from_arrays(
                 [["a", "a"], [0, 1]], names=["idx_level_0", "idx_level_1"]
             ),
         )
@@ -1027,11 +1027,11 @@ class TestStyler:
         # TODO this test is verbose - could be minimised
         df = DataFrame(
             np.arange(16).reshape(4, 4),
-            index=pd.MultiIndex.from_arrays(
+            index=MultiIndex.from_arrays(
                 [["a", "a", "b", "a"], [0, 1, 1, 2]],
                 names=["idx_level_0", "idx_level_1"],
             ),
-            columns=pd.MultiIndex.from_arrays(
+            columns=MultiIndex.from_arrays(
                 [["C1", "C1", "C2", "C2"], [1, 0, 1, 0]], names=["col_0", "col_1"]
             ),
         )
@@ -1112,7 +1112,7 @@ class TestStyler:
         # GH 14194
         df = DataFrame(
             {"A": [1, 2]},
-            index=pd.MultiIndex.from_arrays(
+            index=MultiIndex.from_arrays(
                 [["a", "a"], [0, 1]], names=["idx_level_0", "idx_level_1"]
             ),
         )
@@ -1158,10 +1158,10 @@ class TestStyler:
     def test_hide_columns_mult_levels(self):
         # GH 14194
         # setup dataframe with multiple column levels and indices
-        i1 = pd.MultiIndex.from_arrays(
+        i1 = MultiIndex.from_arrays(
             [["a", "a"], [0, 1]], names=["idx_level_0", "idx_level_1"]
         )
-        i2 = pd.MultiIndex.from_arrays(
+        i2 = MultiIndex.from_arrays(
             [["b", "b"], [0, 1]], names=["col_level_0", "col_level_1"]
         )
         df = DataFrame([[1, 2], [3, 4]], index=i1, columns=i2)
@@ -1450,8 +1450,8 @@ class TestStyler:
     )
     def test_non_reducing_multi_slice_on_multiindex(self, slice_):
         # GH 33562
-        cols = pd.MultiIndex.from_product([["a", "b"], ["c", "d"], ["e", "f"]])
-        idxs = pd.MultiIndex.from_product([["U", "V"], ["W", "X"], ["Y", "Z"]])
+        cols = MultiIndex.from_product([["a", "b"], ["c", "d"], ["e", "f"]])
+        idxs = MultiIndex.from_product([["U", "V"], ["W", "X"], ["Y", "Z"]])
         df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
 
         expected = df.loc[slice_]
