@@ -297,3 +297,20 @@ class Slice:
     def time_vector_slice(self):
         # GH 2602
         self.s.str[:5]
+
+
+class Iter:
+    params = ["str", "string", "arrow_string"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+        try:
+            self.s = Series(["abcdefg", np.nan] * 500000, dtype=dtype)
+        except ImportError:
+            raise NotImplementedError
+
+    def time_iter(self, dtype):
+        for i in self.s:
+            pass
