@@ -6041,21 +6041,19 @@ To read from URL, pass link directly into method:
    airlines = pd.read_rdata(url, file_format="rda")
    airlines
 
-To read from an Amazon S3 bucket, point to the storage path. This also raises
-another issue. Any R data encoded in non utf-8 is currently not supported:
+To read from an Amazon S3 bucket, point to the storage path:
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [608]: ghcran = pd.read_rdata("s3://public-r-data/ghcran.Rdata")
-   ...
-   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe9 in position 45: invalid continuation byte
+   ghcran = pd.read_rdata("s3://public-r-data/ghcran.Rdata", compression=None)
+   ghcran
 
 Also, remember if R data files do not contain any data frame object, a parsing error
 will occur:
 
 .. code-block:: ipython
 
-   In [608]: rds_file = pd.read_rdata("env_data_non_dfs.rda")
+   In [610]: rds_file = pd.read_rdata("env_data_non_dfs.rda")
    ...
    LibrdataReaderError: Invalid file, or file has unsupported features
 

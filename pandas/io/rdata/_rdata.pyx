@@ -108,7 +108,13 @@ cdef int handle_text_value(const char *value, int index, void *ctx) except *:
     """
     lbr = <LibrdataReader>ctx
 
-    lbr.rtext[index] = value if value != NULL else None
+    if value != NULL:
+        try:
+            lbr.rtext[index] = value
+        except UnicodeDecodeError:
+            lbr.rtext[index] = None
+    else:
+        lbr.rtext[index] = None
 
     if index == (lbr.rows - 1):
         lbr.rvalues[lbr.tblname]["dtypes"][lbr.colidx] = "str"
