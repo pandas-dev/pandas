@@ -77,6 +77,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     deprecate_kwarg,
+    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -5804,6 +5805,7 @@ class DataFrame(NDFrame, OpsMixin):
     def notnull(self) -> DataFrame:
         return ~self.isna()
 
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self"])
     def dropna(
         self,
         axis: Axis = 0,

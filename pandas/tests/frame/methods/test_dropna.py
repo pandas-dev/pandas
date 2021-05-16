@@ -231,3 +231,13 @@ class TestDataFrameMissingData:
 
         result = df.dropna(subset=["A", "C"], how="all")
         tm.assert_frame_equal(result, expected)
+
+    def test_dropna_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"Starting with Pandas version 2\.0 all arguments of dropna except for the "
+            r"argument 'self' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.dropna(1)

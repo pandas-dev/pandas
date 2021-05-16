@@ -51,6 +51,7 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._validators import (
@@ -5059,6 +5060,7 @@ Keep all original rows and also all original values
     def notnull(self) -> Series:
         return super().notnull()
 
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self"])
     def dropna(self, axis=0, inplace=False, how=None):
         """
         Return a new Series with missing values removed.

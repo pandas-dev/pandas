@@ -101,3 +101,13 @@ class TestDropna:
         )
         assert result.dtype == "datetime64[ns, Asia/Tokyo]"
         tm.assert_series_equal(result, expected)
+
+    def test_dropna_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"Starting with Pandas version 2\.0 all arguments of dropna except for the "
+            r"argument 'self' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.dropna(0)
