@@ -1440,24 +1440,27 @@ class TestDataFrameReplaceRegex:
         ],
     )
     @pytest.mark.parametrize(
-        "regex,value", [(r"\s*\.\s*", np.nan), (r"\s*(\.)\s*", r"\1\1\1")]
+        "to_replace,value", [(r"\s*\.\s*", np.nan), (r"\s*(\.)\s*", r"\1\1\1")]
     )
     @pytest.mark.parametrize("compile_regex", [True, False])
-    @pytest.mark.parametrize("use_regex_value_arg", [True, False])
+    @pytest.mark.parametrize("regex_kwarg", [True, False])
     @pytest.mark.parametrize("inplace", [True, False])
     def test_regex_replace_scalar(
-        self, data, regex, value, compile_regex, use_regex_value_arg, inplace
+        self, data, to_replace, value, compile_regex, regex_kwarg, inplace
     ):
         df = DataFrame(data)
         expected = df.copy()
 
         if compile_regex:
-            regex = re.compile(regex)
+            to_replace = re.compile(to_replace)
 
-        if use_regex_value_arg:
-            result = df.replace(regex=regex, value=value, inplace=inplace)
+        if regex_kwarg:
+            regex = to_replace
+            to_replace = None
         else:
-            result = df.replace(regex, value, regex=True, inplace=inplace)
+            regex = True
+
+        result = df.replace(to_replace, value, inplace=inplace, regex=regex)
 
         if inplace:
             assert result is None
