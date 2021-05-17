@@ -648,7 +648,80 @@ Deprecations
 - Deprecated setting :attr:`Categorical._codes`, create a new :class:`Categorical` with the desired codes instead (:issue:`40606`)
 - Deprecated behavior of :meth:`DatetimeIndex.union` with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`)
 - Deprecated using ``usecols`` with out of bounds indices for ``read_csv`` with ``engine="c"`` (:issue:`25623`)
-- Deprecated ignoring "nuisance columns" in :meth:`DataFrameGroupBy.agg`, :meth:`DataFrameGroupBy.apply`, and :meth:`DataFrameGroupBy.transform`; select valid columns before calling the method (:issue:`41475`)
+
+.. _whatsnew_130.deprecations.nuisance_columns:
+
+Deprecated Dropping Nuisance Columns in DataFrame Reductions and DataFrameGroupBy Operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+When calling a reduction (.min, .max, .sum, ...) on a :class:`DataFrame` with
+``numeric_only=None`` (the default, columns on which the reduction raises ``TypeError``
+are silently ignored and dropped from the result.  This behavior is deprecated.
+In a future version, the ``TypeError`` will be raised, and users will need to
+select only valid columns before calling the function.
+
+For example:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3, 4], "B": pd.date_range("2016-01-01", periods=4)})
+
+*Old behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.prod()
+    Out[3]:
+    Out[3]:
+    A    24
+    dtype: int64
+
+*Future behavior*:
+
+.. code-block:: ipython
+
+    In [4]: df.prod()
+    ...
+    TypeError: 'DatetimeArray' does not implement reduction 'prod'
+
+    In [5]: df[["A"]].prod()
+    Out[5]:
+    A    24
+    dtype: int64
+
+Similarly, when applying a function to :class:`DataFrameGroupBy`, columns on which
+the function raises ``TypeError`` are currently silently ignored and dropped
+from the result.  This behavior is deprecated.  In a future version, the ``TypeError``
+will be raised, and users will need to select only valid columns before calling
+the function.
+
+For example:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3, 4], "B": pd.date_range("2016-01-01", periods=4)})
+   gb = df.groupby([1, 1, 2, 2])
+
+*Old behavior*:
+
+.. code-block:: ipython
+
+    In [4]: gb.prod(numeric_only=False)
+    Out[4]:
+    A
+    1   2
+    2  12
+
+.. code-block:: ipython
+
+    In [5]: gb.prod(numeric_only=False)
+    ...
+    TypeError: datetime64 type does not support prod operations
+
+    In [6]: gb[["A"]].prod(numeric_only=False)
+    Out[6]:
+        A
+    1   2
+    2  12
 
 .. ---------------------------------------------------------------------------
 

@@ -87,13 +87,15 @@ def test_max_min_object_multiple_columns(using_array_manager):
 
     gb = df.groupby("A")
 
-    result = gb.max(numeric_only=False)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = gb.max(numeric_only=False)
     # "max" is valid for column "C" but not for "B"
     ei = Index([1, 2, 3], name="A")
     expected = DataFrame({"C": ["b", "d", "e"]}, index=ei)
     tm.assert_frame_equal(result, expected)
 
-    result = gb.min(numeric_only=False)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = gb.min(numeric_only=False)
     # "min" is valid for column "C" but not for "B"
     ei = Index([1, 2, 3], name="A")
     expected = DataFrame({"C": ["a", "c", "e"]}, index=ei)
@@ -221,7 +223,10 @@ class TestNumericOnly:
             ],
         )
 
-        result = getattr(gb, method)(numeric_only=False)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Dropping invalid", check_stacklevel=False
+        ):
+            result = getattr(gb, method)(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         expected_columns = expected.columns
@@ -303,10 +308,27 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
-        result = getattr(gb, method)()
+        # cummin, cummax dont have numeric_only kwarg, always use False
+        warn = None
+        if method in ["cummin", "cummax"]:
+            # these dont have numeric_only kwarg, always use False
+            warn = FutureWarning
+        elif method in ["min", "max"]:
+            # these have numeric_only kwarg, but default to False
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+            result = getattr(gb, method)()
+
         tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        result = getattr(gb, method)(numeric_only=False)
+        # GH#41475 deprecated silently ignoring nuisance columns
+        warn = None
+        if len(expected_columns) < len(gb._obj_with_exclusions.columns):
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+            result = getattr(gb, method)(numeric_only=False)
+
         tm.assert_index_equal(result.columns, expected_columns)
 
 
