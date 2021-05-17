@@ -102,9 +102,15 @@ class Expanding(RollingAndExpandingMixin):
         center=None,
         axis: Axis = 0,
         method: str = "single",
+        selection=None,
     ):
         super().__init__(
-            obj=obj, min_periods=min_periods, center=center, axis=axis, method=method
+            obj=obj,
+            min_periods=min_periods,
+            center=center,
+            axis=axis,
+            method=method,
+            selection=selection,
         )
 
     def _get_window_indexer(self) -> BaseIndexer:

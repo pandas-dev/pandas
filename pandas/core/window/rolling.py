@@ -123,6 +123,8 @@ class BaseWindow(SelectionMixin):
         on: str | Index | None = None,
         closed: str | None = None,
         method: str = "single",
+        *,
+        selection=None,
     ):
         self.obj = obj
         self.on = on
@@ -150,6 +152,8 @@ class BaseWindow(SelectionMixin):
                 f"invalid on specified as {self.on}, "
                 "must be a column (of DataFrame), an Index or None"
             )
+
+        self._selection = selection
         self.validate()
 
     @property
@@ -242,16 +246,22 @@ class BaseWindow(SelectionMixin):
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
-        # TODO: Remove once win_type deprecation is enforced
+
+        # we need to make a shallow copy of ourselves
+        # with the same groupby
         with warnings.catch_warnings():
+            # TODO: Remove once win_type deprecation is enforced
             warnings.filterwarnings("ignore", "win_type", FutureWarning)
-            self = type(self)(
-                subset, **{attr: getattr(self, attr) for attr in self._attributes}
-            )
-        if subset.ndim == 2:
-            if is_scalar(key) and key in subset or is_list_like(key):
-                self._selection = key
-        return self
+            kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+
+        selection = None
+        if subset.ndim == 2 and (
+            (is_scalar(key) and key in subset) or is_list_like(key)
+        ):
+            selection = key
+
+        new_win = type(self)(subset, selection=selection, **kwargs)
+        return new_win
 
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:

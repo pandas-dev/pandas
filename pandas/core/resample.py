@@ -139,6 +139,8 @@ class Resampler(BaseGroupBy, PandasObject):
         groupby: TimeGrouper,
         axis: int = 0,
         kind=None,
+        *,
+        selection=None,
         **kwargs,
     ):
         self.groupby = groupby
@@ -152,6 +154,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         self.groupby._set_grouper(self._convert_obj(obj), sort=True)
         self.binner, self.grouper = self._get_binner()
+        self._selection = selection
 
     @final
     def _shallow_copy(self, obj, **kwargs):
@@ -1080,13 +1083,16 @@ class _GroupByMixin(PandasObject):
         except IndexError:
             groupby = self._groupby
 
-        self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
-        self._reset_cache()
+        selection = None
         if subset.ndim == 2 and (
-            lib.is_scalar(key) and key in subset or lib.is_list_like(key)
+            (lib.is_scalar(key) and key in subset) or lib.is_list_like(key)
         ):
-            self._selection = key
-        return self
+            selection = key
+
+        new_rs = type(self)(
+            subset, groupby=groupby, parent=self, selection=selection, **kwargs
+        )
+        return new_rs
 
 
 class DatetimeIndexResampler(Resampler):
