@@ -2338,7 +2338,7 @@ class DataFrame(NDFrame, OpsMixin):
         Raises
         ------
         LibrdataWriterError
-            * If DataFrame types or values not translatable to R data types.
+            * If DataFrame types or values do not conform to R data types.
 
         See Also
         --------

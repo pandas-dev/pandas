@@ -720,10 +720,10 @@ def test_write_read_dtypes(rtype, comp):
 
     dts = [
         Timestamp.min.ceil("S"),
-        Timestamp(-(10 ** 18)),
+        Timestamp(-(10.0 ** 18.0)).ceil("S"),
         Timestamp(0),
         Timestamp.now().floor("S"),
-        Timestamp(10 ** 18),
+        Timestamp(10.0 ** 18.0).floor("S"),
         Timestamp.max.floor("S"),
     ]
 
@@ -737,7 +737,7 @@ def test_write_read_dtypes(rtype, comp):
             ),
             "interval": interval_range(start=10, periods=6, freq=10 * 2),
             "bool": [False, True, True, True, False, False],
-            "int": [2 ** 10 - 1, 1, -(2 ** 10) + 1, -1, 0, 10 ** 9],
+            "int": [2 ** 20 - 1, 1, -(2 ** 20) + 1, -1, 0, 10 ** 9],
             "float": [0, np.pi, float("nan"), np.e, np.euler_gamma, 0],
             "string": array(
                 ["acidification", "change", "loss", "use", "depletion", "aersols"],
