@@ -20,7 +20,7 @@ class TestDropLevel:
             df = df.iloc[:, 0]
 
         # test that dropping of a level in index works
-        expected = df.reset_index(level="a", drop=True)
+        expected = df.reset_index("a", drop=True)
         result = df.droplevel("a", axis="index")
         tm.assert_equal(result, expected)
 

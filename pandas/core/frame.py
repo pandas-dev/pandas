@@ -5568,7 +5568,7 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self"])
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self", "level"])
     def reset_index(
         self,
         level: Hashable | Sequence[Hashable] | None = None,

@@ -312,7 +312,7 @@ The :ref:`multindexing <advanced.hierarchical>` docs.
    df.columns = pd.MultiIndex.from_tuples([tuple(c.split("_")) for c in df.columns])
    df
    # Now stack & Reset
-   df = df.stack(0).reset_index(level=1)
+   df = df.stack(0).reset_index(1)
    df
    # And fix the labels (Notice the label 'level_1' got added automatically)
    df.columns = ["Sample", "All_X", "All_Y"]
