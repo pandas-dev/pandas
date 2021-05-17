@@ -5686,6 +5686,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         to_numeric : Convert argument to a numeric type.
         numpy.ndarray.astype : Cast a numpy array to a specified type.
 
+        Notes
+        -----
+        .. deprecated:: 1.3.0
+
+            Using ``astype`` to convert from timezone-naive dtype to
+            timezone-aware dtype is deprecated and will raise in a
+            future version.  Use :meth:`Series.dt.tz_localize` instead.
+
         Examples
         --------
         Create a DataFrame:
@@ -5761,15 +5769,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1   2020-01-02
         2   2020-01-03
         dtype: datetime64[ns]
-
-        Datetimes are localized to UTC first before
-        converting to the specified timezone:
-
-        >>> ser_date.astype('datetime64[ns, US/Eastern]')
-        0   2019-12-31 19:00:00-05:00
-        1   2020-01-01 19:00:00-05:00
-        2   2020-01-02 19:00:00-05:00
-        dtype: datetime64[ns, US/Eastern]
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
@@ -11360,7 +11359,7 @@ Examples
 True
 >>> pd.Series([True, False]).all()
 False
->>> pd.Series([]).all()
+>>> pd.Series([], dtype="float64").all()
 True
 >>> pd.Series([np.nan]).all()
 True
@@ -11728,7 +11727,7 @@ is True.
 False
 >>> pd.Series([True, False]).any()
 True
->>> pd.Series([]).any()
+>>> pd.Series([], dtype="float64").any()
 False
 >>> pd.Series([np.nan]).any()
 False
@@ -11806,21 +11805,7 @@ cold     fish      0
 Name: legs, dtype: int64
 
 >>> s.{stat_func}()
-{default_output}
-
-{verb} using level names, as well as indices.
-
->>> s.{stat_func}(level='blooded')
-blooded
-warm    {level_output_0}
-cold    {level_output_1}
-Name: legs, dtype: int64
-
->>> s.{stat_func}(level=0)
-blooded
-warm    {level_output_0}
-cold    {level_output_1}
-Name: legs, dtype: int64"""
+{default_output}"""
 
 _sum_examples = _shared_docs["stat_func_example"].format(
     stat_func="sum", verb="Sum", default_output=14, level_output_0=6, level_output_1=8
@@ -11830,13 +11815,13 @@ _sum_examples += """
 
 By default, the sum of an empty or all-NA Series is ``0``.
 
->>> pd.Series([]).sum()  # min_count=0 is the default
+>>> pd.Series([], dtype="float64").sum()  # min_count=0 is the default
 0.0
 
 This can be controlled with the ``min_count`` parameter. For example, if
 you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
 
->>> pd.Series([]).sum(min_count=1)
+>>> pd.Series([], dtype="float64").sum(min_count=1)
 nan
 
 Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
@@ -11877,12 +11862,12 @@ Examples
 --------
 By default, the product of an empty or all-NA Series is ``1``
 
->>> pd.Series([]).prod()
+>>> pd.Series([], dtype="float64").prod()
 1.0
 
 This can be controlled with the ``min_count`` parameter
 
->>> pd.Series([]).prod(min_count=1)
+>>> pd.Series([], dtype="float64").prod(min_count=1)
 nan
 
 Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and

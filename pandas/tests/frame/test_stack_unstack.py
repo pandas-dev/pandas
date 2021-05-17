@@ -1998,3 +1998,38 @@ Thu,Lunch,Yes,51.51,17"""
             columns=Index([(0, None), (0, 2), (0, 3)]),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_stack_nan_level(self):
+        # GH 9406
+        df_nan = DataFrame(
+            np.arange(4).reshape(2, 2),
+            columns=MultiIndex.from_tuples(
+                [("A", np.nan), ("B", "b")], names=["Upper", "Lower"]
+            ),
+            index=Index([0, 1], name="Num"),
+            dtype=np.float64,
+        )
+        result = df_nan.stack()
+        expected = DataFrame(
+            [[0.0, np.nan], [np.nan, 1], [2.0, np.nan], [np.nan, 3.0]],
+            columns=Index(["A", "B"], name="Upper"),
+            index=MultiIndex.from_tuples(
+                [(0, np.nan), (0, "b"), (1, np.nan), (1, "b")], names=["Num", "Lower"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_unstack_categorical_columns(self):
+        # GH 14018
+        idx = MultiIndex.from_product([["A"], [0, 1]])
+        df = DataFrame({"cat": pd.Categorical(["a", "b"])}, index=idx)
+        result = df.unstack()
+        expected = DataFrame(
+            {
+                0: pd.Categorical(["a"], categories=["a", "b"]),
+                1: pd.Categorical(["b"], categories=["a", "b"]),
+            },
+            index=["A"],
+        )
+        expected.columns = MultiIndex.from_tuples([("cat", 0), ("cat", 1)])
+        tm.assert_frame_equal(result, expected)

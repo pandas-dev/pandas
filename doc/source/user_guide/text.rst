@@ -297,23 +297,18 @@ positional argument (a regex object) and return a string.
    # Reverse every lowercase alphabetic word
    pat = r"[a-z]+"
 
-
    def repl(m):
        return m.group(0)[::-1]
-
 
    pd.Series(["foo 123", "bar baz", np.nan], dtype="string").str.replace(
        pat, repl, regex=True
    )
 
-
    # Using regex groups
    pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
 
-
    def repl(m):
        return m.group("two").swapcase()
-
 
    pd.Series(["Foo Bar Baz", np.nan], dtype="string").str.replace(
        pat, repl, regex=True
