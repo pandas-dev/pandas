@@ -615,7 +615,7 @@ class Grouping:
     def group_index(self) -> Index:
         if self._group_index is not None:
             # set in __init__
-            return self._group_index  # TODO: set this in codes_and_unique?
+            return self._group_index
         uniques = self.group_arraylike
         return Index(uniques, name=self.name)
 
