@@ -347,7 +347,7 @@ class Index(IndexOpsMixin, PandasObject):
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
 
-    _typ = "index"
+    _typ: str = "index"
     _data: ExtensionArray | np.ndarray
     _id: object | None = None
     _name: Hashable = None
@@ -355,11 +355,11 @@ class Index(IndexOpsMixin, PandasObject):
     # don't allow this anymore, and raise if it happens rather than
     # failing silently.
     _no_setting_name: bool = False
-    _comparables = ["name"]
-    _attributes = ["name"]
-    _is_numeric_dtype = False
-    _can_hold_na = True
-    _can_hold_strings = True
+    _comparables: list[str] = ["name"]
+    _attributes: list[str] = ["name"]
+    _is_numeric_dtype: bool = False
+    _can_hold_na: bool = True
+    _can_hold_strings: bool = True
 
     # would we like our indexing holder to defer to us
     _defer_to_indexing = False
@@ -2685,7 +2685,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return super().drop_duplicates(keep=keep)
 
-    def duplicated(self, keep: str_t | bool = "first") -> np.ndarray:
+    def duplicated(self, keep: Literal["first", "last", False] = "first") -> np.ndarray:
         """
         Indicate duplicate index values.
 
@@ -2929,6 +2929,21 @@ class Index(IndexOpsMixin, PandasObject):
                 raise NotImplementedError(
                     "Can only union MultiIndex with MultiIndex or Index of tuples, "
                     "try mi.to_flat_index().union(other) instead."
+                )
+            if (
+                isinstance(self, ABCDatetimeIndex)
+                and isinstance(other, ABCDatetimeIndex)
+                and self.tz is not None
+                and other.tz is not None
+            ):
+                # GH#39328
+                warnings.warn(
+                    "In a future version, the union of DatetimeIndex objects "
+                    "with mismatched timezones will cast both to UTC instead of "
+                    "object dtype. To retain the old behavior, "
+                    "use `index.astype(object).union(other)`",
+                    FutureWarning,
+                    stacklevel=2,
                 )
 
             dtype = find_common_type([self.dtype, other.dtype])
@@ -3238,11 +3253,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1 = pd.Index([1, 2, 3, 4])
         >>> idx2 = pd.Index([2, 3, 4, 5])
         >>> idx1.symmetric_difference(idx2)
-        Int64Index([1, 5], dtype='int64')
-
-        You can also use the ``^`` operator:
-
-        >>> idx1 ^ idx2
         Int64Index([1, 5], dtype='int64')
         """
         self._validate_sort_keyword(sort)
@@ -3685,7 +3695,7 @@ class Index(IndexOpsMixin, PandasObject):
                 )
             indexer = key
         else:
-            indexer = self.slice_indexer(start, stop, step, kind=kind)
+            indexer = self.slice_indexer(start, stop, step)
 
         return indexer
 
@@ -4229,7 +4239,8 @@ class Index(IndexOpsMixin, PandasObject):
 
             else:  # tie out the order with other
                 if level == 0:  # outer most level, take the fast route
-                    ngroups = 1 + new_lev_codes.max()
+                    max_new_lev = 0 if len(new_lev_codes) == 0 else new_lev_codes.max()
+                    ngroups = 1 + max_new_lev
                     left_indexer, counts = libalgos.groupsort_indexer(
                         new_lev_codes, ngroups
                     )
@@ -5469,7 +5480,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        new_values = super()._map_values(mapper, na_action=na_action)
+        new_values = self._map_values(mapper, na_action=na_action)
 
         attributes = self._get_attributes_dict()
 
@@ -5648,7 +5659,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.slice_indexer(start='b', end=('c', 'g'))
         slice(1, 3, None)
         """
-        start_slice, end_slice = self.slice_locs(start, end, step=step, kind=kind)
+        start_slice, end_slice = self.slice_locs(start, end, step=step)
 
         # return a slice
         if not is_scalar(start_slice):
@@ -5678,7 +5689,7 @@ class Index(IndexOpsMixin, PandasObject):
         if key is not None and not is_integer(key):
             raise self._invalid_indexer(form, key)
 
-    def _maybe_cast_slice_bound(self, label, side: str_t, kind):
+    def _maybe_cast_slice_bound(self, label, side: str_t, kind=no_default):
         """
         This function should be overloaded in subclasses that allow non-trivial
         casting on label-slice bounds, e.g. datetime-like indices allowing
@@ -5698,7 +5709,8 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         Value of `side` parameter should be validated in caller.
         """
-        assert kind in ["loc", "getitem", None]
+        assert kind in ["loc", "getitem", None, no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         # We are a plain index here (sub-class override this method if they
         # wish to have special treatment for floats/ints, e.g. Float64Index and
@@ -5723,7 +5735,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(self, label, side: str_t, kind) -> int:
+    def get_slice_bound(self, label, side: str_t, kind=None) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
@@ -5753,7 +5765,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # For datetime indices label may be a string that has to be converted
         # to datetime boundary according to its resolution.
-        label = self._maybe_cast_slice_bound(label, side, kind)
+        label = self._maybe_cast_slice_bound(label, side)
 
         # we need to look up the label
         try:
@@ -5843,13 +5855,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         start_slice = None
         if start is not None:
-            start_slice = self.get_slice_bound(start, "left", kind)
+            start_slice = self.get_slice_bound(start, "left")
         if start_slice is None:
             start_slice = 0
 
         end_slice = None
         if end is not None:
-            end_slice = self.get_slice_bound(end, "right", kind)
+            end_slice = self.get_slice_bound(end, "right")
         if end_slice is None:
             end_slice = len(self)
 
@@ -6180,6 +6192,18 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # See GH#27775, GH#27384 for history/reasoning in how this is defined.
         return (len(self),)
+
+    def _deprecated_arg(self, value, name: str_t, methodname: str_t) -> None:
+        """
+        Issue a FutureWarning if the arg/kwarg is not no_default.
+        """
+        if value is not no_default:
+            warnings.warn(
+                f"'{name}' argument in {methodname} is deprecated "
+                "and will be removed in a future version.  Do not pass it.",
+                FutureWarning,
+                stacklevel=3,
+            )
 
 
 def ensure_index_from_sequences(sequences, names=None):
