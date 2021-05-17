@@ -1079,7 +1079,7 @@ class TestToDatetime:
 
     def test_mixed_offsets_with_native_datetime_raises(self):
         # GH 25978
-        s = Series(
+        ser = Series(
             [
                 "nan",
                 Timestamp("1990-01-01"),
@@ -1088,8 +1088,12 @@ class TestToDatetime:
                 None,
             ]
         )
-        with pytest.raises(ValueError, match="Tz-aware datetime.datetime"):
-            to_datetime(s)
+        msg = (
+            "Tz-aware datetime.datetime cannot be converted "
+            "to datetime64 unless utc=True"
+        )
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(ser)
 
     def test_non_iso_strings_with_tz_offset(self):
         result = to_datetime(["March 1, 2018 12:00:00+0400"] * 2)

@@ -458,7 +458,8 @@ class TestDatetimeIndex:
                 name="idx",
             )
 
-        with pytest.raises(ValueError, match=msg):
+        msg2 = "Cannot mix tz-aware with tz-naive values"
+        with pytest.raises(ValueError, match=msg2):
             DatetimeIndex(
                 [
                     Timestamp("2011-01-01 10:00"),
@@ -478,7 +479,7 @@ class TestDatetimeIndex:
                 name="idx",
             )
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg2):
             # passing tz should results in DatetimeIndex, then mismatch raises
             # TypeError
             with tm.assert_produces_warning(FutureWarning):

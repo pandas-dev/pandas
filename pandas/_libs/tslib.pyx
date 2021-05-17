@@ -63,6 +63,7 @@ from pandas._libs.tslibs.timestamps import Timestamp
 # Note: this is the only non-tslibs intra-pandas dependency here
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
+from pandas._libs.tslibs.timezones cimport tz_compare
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
 
@@ -429,6 +430,8 @@ cpdef array_to_datetime(
         bint seen_string = False
         bint seen_datetime = False
         bint seen_datetime_offset = False
+        bint seen_naive = False
+        bint seen_aware = False
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
@@ -439,6 +442,7 @@ cpdef array_to_datetime(
         float offset_seconds, tz_offset
         set out_tzoffset_vals = set()
         bint string_to_dts_failed
+        tzinfo seen_tz = None
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
@@ -457,26 +461,35 @@ cpdef array_to_datetime(
                 elif PyDateTime_Check(val):
                     seen_datetime = True
                     if val.tzinfo is not None:
-                        if utc_convert:
-                            _ts = convert_datetime_to_tsobject(val, None)
-                            iresult[i] = _ts.value
-                        else:
+                        seen_aware = True
+
+                        if seen_tz is None:
+                            seen_tz = val.tzinfo
+                            if not utc_convert:
+                                tz_out = val.tzinfo
+                        elif not utc_convert and not tz_compare(seen_tz, val.tzinfo):
                             raise ValueError('Tz-aware datetime.datetime '
                                              'cannot be converted to '
                                              'datetime64 unless utc=True')
+
+                        _ts = convert_datetime_to_tsobject(val, None)
+                        iresult[i] = _ts.value
+
                     elif isinstance(val, _Timestamp):
+                        seen_naive = True
                         iresult[i] = val.value
                     else:
+                        seen_naive = True
                         iresult[i] = pydatetime_to_dt64(val, &dts)
                         check_dts_bounds(&dts)
 
                 elif PyDate_Check(val):
-                    seen_datetime = True
+                    seen_naive = True
                     iresult[i] = pydate_to_dt64(val, &dts)
                     check_dts_bounds(&dts)
 
                 elif is_datetime64_object(val):
-                    seen_datetime = True
+                    seen_naive = True
                     iresult[i] = get_datetime64_nanos(val)
 
                 elif is_integer_object(val) or is_float_object(val):
@@ -553,7 +566,7 @@ cpdef array_to_datetime(
 
                         _ts = convert_datetime_to_tsobject(py_dt, None)
                         iresult[i] = _ts.value
-                    if not string_to_dts_failed:
+                    else:
                         # No error reported by string_to_dts, pick back up
                         # where we left off
                         value = dtstruct_to_dt64(&dts)
@@ -607,6 +620,11 @@ cpdef array_to_datetime(
     except TypeError:
         return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
 
+    seen_datetime = seen_naive or seen_aware
+
+    if seen_naive and seen_aware:
+        raise ValueError("Cannot mix tz-aware with tz-naive values")
+
     if seen_datetime and seen_integer:
         # we have mixed datetimes & integers
 
@@ -637,6 +655,15 @@ cpdef array_to_datetime(
         else:
             tz_offset = out_tzoffset_vals.pop()
             tz_out = pytz.FixedOffset(tz_offset / 60.)
+
+        # TODO: tests where we get here with seen_tz not None
+
+    elif seen_tz is not None:
+        if "naive" in out_tzoffset_vals:
+            # TODO: tests that get here
+            raise ValueError("Cannot mix tz-aware with tz-naive values")
+        if not utc_convert:
+            tz_out = seen_tz
     return result, tz_out
 
 

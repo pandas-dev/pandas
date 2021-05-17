@@ -23,7 +23,6 @@ from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     Timedelta,
     Timestamp,
-    conversion,
     iNaT,
     nat_strings,
     parsing,
@@ -479,40 +478,30 @@ def _to_datetime_with_format(
     Try parsing with the given format, returning None on failure.
     """
     result = None
-    try:
-        # shortcut formatting here
-        if fmt == "%Y%m%d":
-            # pass orig_arg as float-dtype may have been converted to
-            # datetime64[ns]
-            orig_arg = ensure_object(orig_arg)
-            try:
-                # may return None without raising
-                result = _attempt_YYYYMMDD(orig_arg, errors=errors)
-            except (ValueError, TypeError, OutOfBoundsDatetime) as err:
-                raise ValueError(
-                    "cannot convert the input to '%Y%m%d' date format"
-                ) from err
-            if result is not None:
-                utc = tz == "utc"
-                return _box_as_indexlike(result, utc=utc, name=name)
 
-        # fallback
-        if result is None:
-            res = _array_strptime_with_fallback(
-                arg, name, tz, fmt, exact, errors, infer_datetime_format
-            )
-            if res is not None:
-                return res
-
-    except ValueError as e:
-        # Fallback to try to convert datetime objects if timezone-aware
-        #  datetime objects are found without passing `utc=True`
+    # shortcut formatting here
+    if fmt == "%Y%m%d":
+        # pass orig_arg as float-dtype may have been converted to
+        # datetime64[ns]
+        orig_arg = ensure_object(orig_arg)
         try:
-            values, tz = conversion.datetime_to_datetime64(arg)
-            dta = DatetimeArray(values, dtype=tz_to_dtype(tz))
-            return DatetimeIndex._simple_new(dta, name=name)
-        except (ValueError, TypeError):
-            raise e
+            # may return None without raising
+            result = _attempt_YYYYMMDD(orig_arg, errors=errors)
+        except (ValueError, TypeError, OutOfBoundsDatetime) as err:
+            raise ValueError(
+                "cannot convert the input to '%Y%m%d' date format"
+            ) from err
+        if result is not None:
+            utc = tz == "utc"
+            return _box_as_indexlike(result, utc=utc, name=name)
+
+    # fallback
+    if result is None:
+        res = _array_strptime_with_fallback(
+            arg, name, tz, fmt, exact, errors, infer_datetime_format
+        )
+        if res is not None:
+            return res
 
     # error: Incompatible return value type (got "Optional[ndarray]", expected
     # "Optional[Index]")

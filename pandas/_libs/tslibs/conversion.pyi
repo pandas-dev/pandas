@@ -30,12 +30,4 @@ def ensure_timedelta64ns(
 ) -> np.ndarray: ...  # np.ndarray[timedelta64ns]
 
 
-def datetime_to_datetime64(
-    values: np.ndarray,  # np.ndarray[object]
-) -> tuple[
-    np.ndarray,  # np.ndarray[dt64ns]
-    tzinfo | None,
-]: ...
-
-
 def localize_pydatetime(dt: datetime, tz: tzinfo | None) -> datetime: ...

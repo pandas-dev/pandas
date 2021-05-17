@@ -301,67 +301,6 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
 
 
 # ----------------------------------------------------------------------
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def datetime_to_datetime64(ndarray[object] values):
-    """
-    Convert ndarray of datetime-like objects to int64 array representing
-    nanosecond timestamps.
-
-    Parameters
-    ----------
-    values : ndarray[object]
-
-    Returns
-    -------
-    result : ndarray[datetime64ns]
-    inferred_tz : tzinfo or None
-    """
-    cdef:
-        Py_ssize_t i, n = len(values)
-        object val
-        int64_t[:] iresult
-        npy_datetimestruct dts
-        _TSObject _ts
-        bint found_naive = False
-        tzinfo inferred_tz = None
-
-    result = np.empty(n, dtype='M8[ns]')
-    iresult = result.view('i8')
-    for i in range(n):
-        val = values[i]
-        if checknull_with_nat(val):
-            iresult[i] = NPY_NAT
-        elif PyDateTime_Check(val):
-            if val.tzinfo is not None:
-                if found_naive:
-                    raise ValueError('Cannot mix tz-aware with '
-                                     'tz-naive values')
-                if inferred_tz is not None:
-                    if not tz_compare(val.tzinfo, inferred_tz):
-                        raise ValueError('Array must be all same time zone')
-                else:
-                    inferred_tz = val.tzinfo
-
-                _ts = convert_datetime_to_tsobject(val, None)
-                iresult[i] = _ts.value
-                check_dts_bounds(&_ts.dts)
-            else:
-                found_naive = True
-                if inferred_tz is not None:
-                    raise ValueError('Cannot mix tz-aware with '
-                                     'tz-naive values')
-                iresult[i] = pydatetime_to_dt64(val, &dts)
-                check_dts_bounds(&dts)
-        else:
-            raise TypeError(f'Unrecognized value type: {type(val)}')
-
-    return result, inferred_tz
-
-
-# ----------------------------------------------------------------------
 # _TSObject Conversion
 
 # lightweight C object to hold datetime & int64 pair
