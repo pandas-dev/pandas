@@ -80,14 +80,6 @@ _num_index_shared_docs[
 """
 
 
-_numeric_index_descr_args = {
-    "klass": "NumericIndex",
-    "ltype": "integer or float",
-    "dtype": "inferred",
-    "extra": "",
-}
-
-
 class NumericIndex(Index):
     """
     Provide numeric type operations.
@@ -95,6 +87,12 @@ class NumericIndex(Index):
     This is an abstract class.
     """
 
+    _index_descr_args = {
+        "klass": "NumericIndex",
+        "ltype": "integer or float",
+        "dtype": "inferred",
+        "extra": "",
+    }
     _values: np.ndarray
     _default_dtype: np.dtype
     _dtype_validation_metadata: tuple[Callable[..., bool], str]
@@ -109,7 +107,7 @@ class NumericIndex(Index):
         else:
             return False
 
-    @property
+    @cache_readonly
     def _engine_type(self):
         return {
             np.int8: libindex.Int8Engine,
@@ -124,7 +122,7 @@ class NumericIndex(Index):
             np.float64: libindex.Float64Engine,
         }[self.dtype.type]
 
-    @property
+    @cache_readonly
     def inferred_type(self) -> str:
         return {
             "i": "integer",
@@ -357,16 +355,14 @@ class IntegerIndex(NumericIndex):
         return self._values.view(self._default_dtype)
 
 
-_int64_descr_args = {
-    "klass": "Int64Index",
-    "ltype": "integer",
-    "dtype": "int64",
-    "extra": "",
-}
-
-
 class Int64Index(IntegerIndex):
-    __doc__ = _num_index_shared_docs["class_descr"] % _int64_descr_args
+    _index_descr_args = {
+        "klass": "Int64Index",
+        "ltype": "integer",
+        "dtype": "int64",
+        "extra": "",
+    }
+    __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
 
     _typ = "int64index"
     _engine_type = libindex.Int64Engine
@@ -374,16 +370,14 @@ class Int64Index(IntegerIndex):
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
 
 
-_uint64_descr_args = {
-    "klass": "UInt64Index",
-    "ltype": "unsigned integer",
-    "dtype": "uint64",
-    "extra": "",
-}
-
-
 class UInt64Index(IntegerIndex):
-    __doc__ = _num_index_shared_docs["class_descr"] % _uint64_descr_args
+    _index_descr_args = {
+        "klass": "UInt64Index",
+        "ltype": "unsigned integer",
+        "dtype": "uint64",
+        "extra": "",
+    }
+    __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
 
     _typ = "uint64index"
     _engine_type = libindex.UInt64Engine
@@ -391,16 +385,14 @@ class UInt64Index(IntegerIndex):
     _dtype_validation_metadata = (is_unsigned_integer_dtype, "unsigned integer")
 
 
-_float64_descr_args = {
-    "klass": "Float64Index",
-    "dtype": "float64",
-    "ltype": "float",
-    "extra": "",
-}
-
-
 class Float64Index(NumericIndex):
-    __doc__ = _num_index_shared_docs["class_descr"] % _float64_descr_args
+    _index_descr_args = {
+        "klass": "Float64Index",
+        "dtype": "float64",
+        "ltype": "float",
+        "extra": "",
+    }
+    __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
 
     _typ = "float64index"
     _engine_type = libindex.Float64Engine
