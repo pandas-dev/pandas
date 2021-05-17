@@ -180,16 +180,6 @@ class SelectionMixin(Generic[FrameOrSeries]):
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 
-    @property
-    def _selection_name(self):
-        """
-        Return a name for myself;
-
-        This would ideally be called the 'name' property,
-        but we cannot conflict with the Series.name property which can be set.
-        """
-        return self._selection
-
     @final
     @property
     def _selection_list(self):
@@ -214,7 +204,7 @@ class SelectionMixin(Generic[FrameOrSeries]):
     @cache_readonly
     def _obj_with_exclusions(self):
         if self._selection is not None and isinstance(self.obj, ABCDataFrame):
-            return self.obj.reindex(columns=self._selection_list)
+            return self.obj[self._selection_list]
 
         if len(self.exclusions) > 0:
             return self.obj.drop(self.exclusions, axis=1)
@@ -239,7 +229,9 @@ class SelectionMixin(Generic[FrameOrSeries]):
         else:
             if key not in self.obj:
                 raise KeyError(f"Column not found: {key}")
-            return self._gotitem(key, ndim=1)
+            subset = self.obj[key]
+            ndim = subset.ndim
+            return self._gotitem(key, ndim=ndim, subset=subset)
 
     def _gotitem(self, key, ndim: int, subset=None):
         """

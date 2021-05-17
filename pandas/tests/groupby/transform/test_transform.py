@@ -20,6 +20,10 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.groupby.generic import (
+    DataFrameGroupBy,
+    SeriesGroupBy,
+)
 from pandas.core.groupby.groupby import DataError
 
 
@@ -391,13 +395,31 @@ def test_transform_select_columns(df):
     tm.assert_frame_equal(result, expected)
 
 
-def test_transform_exclude_nuisance(df):
+@pytest.mark.parametrize("duplicates", [True, False])
+def test_transform_exclude_nuisance(df, duplicates):
+    # case that goes through _transform_item_by_item
+
+    if duplicates:
+        # make sure we work with duplicate columns GH#41427
+        df.columns = ["A", "C", "C", "D"]
 
     # this also tests orderings in transform between
     # series/frame to make sure it's consistent
     expected = {}
     grouped = df.groupby("A")
-    expected["C"] = grouped["C"].transform(np.mean)
+
+    gbc = grouped["C"]
+    expected["C"] = gbc.transform(np.mean)
+    if duplicates:
+        # squeeze 1-column DataFrame down to Series
+        expected["C"] = expected["C"]["C"]
+
+        assert isinstance(gbc.obj, DataFrame)
+        assert isinstance(gbc, DataFrameGroupBy)
+    else:
+        assert isinstance(gbc, SeriesGroupBy)
+        assert isinstance(gbc.obj, Series)
+
     expected["D"] = grouped["D"].transform(np.mean)
     expected = DataFrame(expected)
     result = df.groupby("A").transform(np.mean)
