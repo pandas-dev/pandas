@@ -102,6 +102,19 @@ def series_of_dtype_all_na(request):
     return request.param
 
 
+@pytest.fixture
+def dfs_for_indicator():
+    df1 = DataFrame({"col1": [0, 1], "col_conflict": [1, 2], "col_left": ["a", "b"]})
+    df2 = DataFrame(
+        {
+            "col1": [1, 2, 3, 4, 5],
+            "col_conflict": [1, 2, 3, 4, 5],
+            "col_right": [2, 2, 2, 2, 2],
+        }
+    )
+    return df1, df2
+
+
 class TestMerge:
     def setup_method(self, method):
         # aggregate multiple columns
@@ -950,20 +963,6 @@ class TestMerge:
         tm.assert_frame_equal(result, expected)
         assert result["value_x"].dtype == "Period[D]"
         assert result["value_y"].dtype == "Period[D]"
-
-    @pytest.fixture
-    def dfs_for_indicator(self):
-        df1 = DataFrame(
-            {"col1": [0, 1], "col_conflict": [1, 2], "col_left": ["a", "b"]}
-        )
-        df2 = DataFrame(
-            {
-                "col1": [1, 2, 3, 4, 5],
-                "col_conflict": [1, 2, 3, 4, 5],
-                "col_right": [2, 2, 2, 2, 2],
-            }
-        )
-        return df1, df2
 
     def test_indicator(self, dfs_for_indicator):
         # PR #10054. xref #7412 and closes #8790.
