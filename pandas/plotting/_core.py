@@ -1727,15 +1727,15 @@ class PlotAccessor(PandasObject):
 _backends = {}
 
 
-def _find_backend(backend: str):
+def _load_backend(backend: str):
     """
-    Find a pandas plotting backend.
+    Load a pandas plotting backend.
 
     Parameters
     ----------
     backend : str
         The identifier for the backend. Either an entrypoint item registered
-        with pkg_resources, or a module name.
+        with pkg_resources, "matplotlib", or a module name.
 
     Notes
     -----
@@ -1746,32 +1746,45 @@ def _find_backend(backend: str):
     types.ModuleType
         The imported backend.
     """
-    import pkg_resources  # Delay import for performance.
-
-    for entry_point in pkg_resources.iter_entry_points("pandas_plotting_backends"):
-        if entry_point.name == backend:
-            _backends[entry_point.name] = entry_point.load()
-
-    try:
-        return _backends[backend]
-    except KeyError:
-        # Fall back to unregistered, module name approach.
+    if backend == "matplotlib":
+        # Because matplotlib is an optional dependency and first-party backend,
+        # we need to attempt an import here to raise an ImportError if needed.
         try:
-            module = importlib.import_module(backend)
+            import pandas.plotting._matplotlib as module
         except ImportError:
-            # We re-raise later on.
-            pass
-        else:
-            if hasattr(module, "plot"):
-                # Validate that the interface is implemented when the option
-                # is set, rather than at plot time.
-                _backends[backend] = module
-                return module
+            raise ImportError(
+                "matplotlib is required for plotting when the "
+                'default backend "matplotlib" is selected.'
+            ) from None
+
+    else:
+        module = None
+        # Delay import for performance.
+        # TODO: replace with `importlib.metadata` when python_requires >= 3.8.
+        from pkg_resources import iter_entry_points
+
+        for entry_point in iter_entry_points("pandas_plotting_backends"):
+            if entry_point.name == backend:
+                module = entry_point.load()
+
+        if module is None:
+            # Fall back to unregistered, module name approach.
+            try:
+                module = importlib.import_module(backend)
+            except ImportError:
+                # We re-raise later on.
+                pass
+
+    if hasattr(module, "plot"):
+        # Validate that the interface is implemented when the option is set,
+        # rather than at plot time.
+        _backends[backend] = module
+        return module
 
     raise ValueError(
-        f"Could not find plotting backend '{backend}'. Ensure that you've installed "
-        f"the package providing the '{backend}' entrypoint, or that the package has a "
-        "top-level `.plot` method."
+        f"Could not find plotting backend '{backend}'. Ensure that you've "
+        f"installed the package providing the '{backend}' entrypoint, or that "
+        "the package has a top-level `.plot` method."
     )
 
 
@@ -1795,19 +1808,4 @@ def _get_plot_backend(backend: str | None = None):
     if backend in _backends:
         return _backends[backend]
 
-    if backend == "matplotlib":
-        # Because matplotlib is an optional dependency and first-party backend,
-        # we need to attempt an import here to raise an ImportError if needed.
-        try:
-            import pandas.plotting._matplotlib as module
-        except ImportError:
-            raise ImportError(
-                "matplotlib is required for plotting when the "
-                'default backend "matplotlib" is selected.'
-            ) from None
-
-        _backends["matplotlib"] = module
-        return module
-
-    module = _find_backend(backend)
-    return module
+    return _load_backend(backend)
