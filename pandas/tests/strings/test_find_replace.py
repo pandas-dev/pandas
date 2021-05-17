@@ -494,10 +494,32 @@ def test_fullmatch(any_string_dtype):
     expected = Series([True, False, np.nan, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    ser = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
-    result = ser.str.fullmatch("ab", case=False)
+
+def test_fullmatch_na_kwarg(any_string_dtype):
+    ser = Series(
+        ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
+    )
+    result = ser.str.fullmatch(".*BAD[_]+.*BAD", na=False)
     expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
+    expected = Series([True, False, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_fullmatch_case_kwarg(any_string_dtype):
+    ser = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
+    expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
+
+    expected = Series([True, False, False, False], dtype=expected_dtype)
+
+    result = ser.str.fullmatch("ab", case=True)
+    tm.assert_series_equal(result, expected)
+
     expected = Series([True, True, False, False], dtype=expected_dtype)
+
+    result = ser.str.fullmatch("ab", case=False)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.fullmatch("ab", flags=re.IGNORECASE)
     tm.assert_series_equal(result, expected)
 
 

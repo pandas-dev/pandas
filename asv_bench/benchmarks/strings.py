@@ -85,6 +85,9 @@ class Methods(Dtypes):
     def time_rfind(self, dtype):
         self.s.str.rfind("[A-Z]+")
 
+    def time_fullmatch(self, dtype):
+        self.s.str.fullmatch("A")
+
     def time_get(self, dtype):
         self.s.str.get(0)
 
