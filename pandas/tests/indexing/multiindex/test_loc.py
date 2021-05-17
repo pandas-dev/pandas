@@ -776,3 +776,28 @@ def test_loc_getitem_drops_levels_for_one_row_dataframe():
     result = ser.loc["x", :, "z"]
     expected = Series([0], index=Index(["y"], name="b"))
     tm.assert_series_equal(result, expected)
+
+
+def test_mi_columns_loc_list_label_order():
+    # GH 10710
+    cols = MultiIndex.from_product([["A", "B", "C"], [1, 2]])
+    df = DataFrame(np.zeros((5, 6)), columns=cols)
+    result = df.loc[:, ["B", "A"]]
+    expected = DataFrame(
+        np.zeros((5, 4)),
+        columns=MultiIndex.from_tuples([("B", 1), ("B", 2), ("A", 1), ("A", 2)]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_mi_partial_indexing_list_raises():
+    # GH 13501
+    frame = DataFrame(
+        np.arange(12).reshape((4, 3)),
+        index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
+        columns=[["Ohio", "Ohio", "Colorado"], ["Green", "Red", "Green"]],
+    )
+    frame.index.names = ["key1", "key2"]
+    frame.columns.names = ["state", "color"]
+    with pytest.raises(KeyError, match="\\[2\\] not in index"):
+        frame.loc[["b", 2], "Colorado"]
