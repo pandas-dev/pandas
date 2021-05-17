@@ -61,6 +61,7 @@ from pandas.errors import (
     InvalidIndexError,
 )
 from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -9077,6 +9078,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         name="where",
         name_other="mask",
     )
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self", "labels"])
     def where(
         self,
         cond,
