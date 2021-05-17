@@ -900,20 +900,16 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         return type(self)(pc.utf8_upper(self._data))
 
     def _str_split(self, pat=None, n=-1, expand=False):
+        if pa_version_under3p0 or (pat is not None and len(pat) > 1):
+            return super()._str_split(pat=pat, n=n, expand=expand)
+
+        if n is None or n == 0:
+            n = -1
+
         if pat is None:
-            if hasattr(pc, "utf8_split_whitespace"):
-                if n is None or n == 0:
-                    n = -1
-                result = pc.utf8_split_whitespace(self._data, max_splits=n)
-            else:
-                return super()._str_split(pat=pat, n=n, expand=expand)
+            result = pc.utf8_split_whitespace(self._data, max_splits=n)
         else:
-            if len(pat) == 1 and hasattr(pc, "split_pattern"):
-                if n is None or n == 0:
-                    n = -1
-                result = pc.split_pattern(self._data, pattern=pat, max_splits=n)
-            else:
-                return super()._str_split(pat=pat, n=n, expand=expand)
+            result = pc.split_pattern(self._data, pattern=pat, max_splits=n)
 
         if result.null_count:
             is_valid = np.array(result.is_valid())
