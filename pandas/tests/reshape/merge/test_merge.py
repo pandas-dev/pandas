@@ -2446,3 +2446,14 @@ def test_merge_duplicate_columns_with_suffix_causing_another_duplicate():
         result = merge(left, right, on="a")
     expected = DataFrame([[1, 1, 1, 1, 2]], columns=["a", "b_x", "b_x", "b_x", "b_y"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_string_float_column_result():
+    # GH 13353
+    df1 = DataFrame([[1, 2], [3, 4]], columns=pd.Index(["a", 114.0]))
+    df2 = DataFrame([[9, 10], [11, 12]], columns=["x", "y"])
+    result = merge(df2, df1, how="inner", left_index=True, right_index=True)
+    expected = DataFrame(
+        [[9, 10, 1, 2], [11, 12, 3, 4]], columns=pd.Index(["x", "y", "a", 114.0])
+    )
+    tm.assert_frame_equal(result, expected)
