@@ -1519,3 +1519,11 @@ def test_apply_np_reducer(float_frame, op, how):
         getattr(np, op)(float_frame, axis=0, **kwargs), index=float_frame.columns
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_getitem_axis_1():
+    # GH 13427
+    df = DataFrame({"a": [0, 1, 2], "b": [1, 2, 3]})
+    result = df[["a", "a"]].apply(lambda x: x[0] + x[1], axis=1)
+    expected = Series([0, 2, 4])
+    tm.assert_series_equal(result, expected)
