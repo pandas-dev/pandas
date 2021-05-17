@@ -11,6 +11,19 @@ from pandas import (
 from .pandas_vb_common import tm
 
 
+class Dtypes:
+    params = ["str", "string", "arrow_string"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+        try:
+            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
+        except ImportError:
+            raise NotImplementedError
+
+
 class Construction:
 
     params = ["str", "string"]
@@ -49,18 +62,7 @@ class Construction:
         DataFrame(self.frame_cat_arr, dtype=dtype)
 
 
-class Methods:
-    params = ["str", "string", "arrow_string"]
-    param_names = ["dtype"]
-
-    def setup(self, dtype):
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-        try:
-            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
-        except ImportError:
-            raise NotImplementedError
-
+class Methods(Dtypes):
     def time_center(self, dtype):
         self.s.str.center(100)
 
@@ -211,35 +213,26 @@ class Cat:
         self.s.str.cat(others=self.others, sep=sep, na_rep=na_rep)
 
 
-class Contains:
+class Contains(Dtypes):
 
-    params = (["str", "string", "arrow_string"], [True, False])
+    params = (Dtypes.params, [True, False])
     param_names = ["dtype", "regex"]
 
     def setup(self, dtype, regex):
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-        try:
-            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
-        except ImportError:
-            raise NotImplementedError
+        super().setup(dtype)
 
     def time_contains(self, dtype, regex):
         self.s.str.contains("A", regex=regex)
 
 
-class Split:
+class Split(Dtypes):
 
-    params = (["str", "string", "arrow_string"], [True, False])
+    params = (Dtypes.params, [True, False])
     param_names = ["dtype", "expand"]
 
     def setup(self, dtype, expand):
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-        try:
-            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype).str.join("--")
-        except ImportError:
-            raise NotImplementedError
+        super().setup(dtype)
+        self.s = self.s.str.join("--")
 
     def time_split(self, dtype, expand):
         self.s.str.split("--", expand=expand)
@@ -248,35 +241,23 @@ class Split:
         self.s.str.rsplit("--", expand=expand)
 
 
-class Extract:
+class Extract(Dtypes):
 
-    params = (["str", "string", "arrow_string"], [True, False])
+    params = (Dtypes.params, [True, False])
     param_names = ["dtype", "expand"]
 
     def setup(self, dtype, expand):
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-        try:
-            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
-        except ImportError:
-            raise NotImplementedError
+        super().setup(dtype)
 
     def time_extract_single_group(self, dtype, expand):
         with warnings.catch_warnings(record=True):
             self.s.str.extract("(\\w*)A", expand=expand)
 
 
-class Dummies:
-    params = ["str", "string", "arrow_string"]
-    param_names = ["dtype"]
-
+class Dummies(Dtypes):
     def setup(self, dtype):
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-        try:
-            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype).str.join("|")
-        except ImportError:
-            raise NotImplementedError
+        super().setup(dtype)
+        self.s = self.s.str.join("|")
 
     def time_get_dummies(self, dtype):
         self.s.str.get_dummies("|")
@@ -299,18 +280,7 @@ class Slice:
         self.s.str[:5]
 
 
-class Iter:
-    params = ["str", "string", "arrow_string"]
-    param_names = ["dtype"]
-
-    def setup(self, dtype):
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-        try:
-            self.s = Series(["abcdefg", np.nan] * 500000, dtype=dtype)
-        except ImportError:
-            raise NotImplementedError
-
+class Iter(Dtypes):
     def time_iter(self, dtype):
         for i in self.s:
             pass
