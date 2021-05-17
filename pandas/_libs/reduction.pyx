@@ -23,6 +23,15 @@ from pandas._libs.util cimport (
 
 from pandas._libs.lib import is_scalar
 
+# Accessing the data member of ndarray is deprecated, but we depend on it.
+cdef extern from *:
+    """
+    static void PyArray_SET_DATA(PyArrayObject *arr, void * data) {
+        arr->data = data;
+    }
+    """
+    void PyArray_SET_DATA(ndarray arr, void * data)
+
 
 cdef cnp.dtype _dtype_obj = np.dtype("object")
 
@@ -340,18 +349,18 @@ cdef class Slider:
         self.stride = values.strides[0]
         self.orig_data = self.buf.data
 
-        self.buf.data = self.values.data
+        PyArray_SET_DATA(self.buf, self.values.data)
         self.buf.strides[0] = self.stride
 
     cdef move(self, int start, int end):
         """
         For slicing
         """
-        self.buf.data = self.values.data + self.stride * start
+        PyArray_SET_DATA(self.buf, self.values.data + self.stride * start)
         self.buf.shape[0] = end - start
 
     cdef reset(self):
-        self.buf.data = self.orig_data
+        PyArray_SET_DATA(self.buf, self.orig_data)
         self.buf.shape[0] = 0
 
 
@@ -469,7 +478,7 @@ cdef class BlockSlider:
             arr = self.blk_values[i]
 
             # axis=1 is the frame's axis=0
-            arr.data = self.base_ptrs[i] + arr.strides[1] * start
+            PyArray_SET_DATA(arr, self.base_ptrs[i] + arr.strides[1] * start)
             arr.shape[1] = end - start
 
         # move and set the index
@@ -490,7 +499,7 @@ cdef class BlockSlider:
             arr = self.blk_values[i]
 
             # axis=1 is the frame's axis=0
-            arr.data = self.base_ptrs[i]
+            PyArray_SET_DATA(arr, self.base_ptrs[i])
             arr.shape[1] = 0
 
     cdef _restore_blocks(self):
