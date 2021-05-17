@@ -438,6 +438,9 @@ class Grouping:
       * groups : dict of {group -> label_list}
     """
 
+    _codes: np.ndarray | None = None
+    _group_index: Index | None = None
+
     def __init__(
         self,
         index: Index,
@@ -461,6 +464,8 @@ class Grouping:
         self.in_axis = in_axis
         self.dropna = dropna
 
+        self._passed_categorical = False
+
         # right place for this?
         if isinstance(grouper, (Series, Index)) and name is None:
             self.name = grouper.name
@@ -468,20 +473,16 @@ class Grouping:
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
 
-        if level is not None:
-            if not isinstance(level, int):
-                if level not in index.names:
-                    raise AssertionError(f"Level {level} not in index")
-                level = index.names.index(level)
-
+        ilevel = self._ilevel
+        if ilevel is not None:
             if self.name is None:
-                self.name = index.names[level]
+                self.name = index.names[ilevel]
 
             (
-                self.grouper,
+                self.grouper,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(self.grouper, level)
+            ) = index._get_grouper_for_level(self.grouper, ilevel)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -502,31 +503,12 @@ class Grouping:
             self.grouper = grouper._get_grouper()
 
         else:
-
             # a passed Categorical
             if is_categorical_dtype(self.grouper):
+                self._passed_categorical = True
 
                 self.grouper, self.all_grouper = recode_for_groupby(
                     self.grouper, self.sort, observed
-                )
-                categories = self.grouper.categories
-
-                # we make a CategoricalIndex out of the cat grouper
-                # preserving the categories / ordered attributes
-                self._codes = self.grouper.codes
-                if observed:
-                    codes = algorithms.unique1d(self.grouper.codes)
-                    codes = codes[codes != -1]
-                    if sort or self.grouper.ordered:
-                        codes = np.sort(codes)
-                else:
-                    codes = np.arange(len(categories))
-
-                self._group_index = CategoricalIndex(
-                    Categorical.from_codes(
-                        codes=codes, categories=categories, ordered=self.grouper.ordered
-                    ),
-                    name=self.name,
                 )
 
             # we are done
@@ -564,8 +546,20 @@ class Grouping:
     def __iter__(self):
         return iter(self.indices)
 
-    _codes: np.ndarray | None = None
-    _group_index: Index | None = None
+    @cache_readonly
+    def _ilevel(self) -> int | None:
+        """
+        If necessary, converted index level name to index level position.
+        """
+        level = self.level
+        if level is None:
+            return None
+        if not isinstance(level, int):
+            index = self.index
+            if level not in index.names:
+                raise AssertionError(f"Level {level} not in index")
+            return index.names.index(level)
+        return level
 
     @property
     def ngroups(self) -> int:
@@ -582,6 +576,12 @@ class Grouping:
 
     @property
     def codes(self) -> np.ndarray:
+        if self._passed_categorical:
+            # we make a CategoricalIndex out of the cat grouper
+            # preserving the categories / ordered attributes
+            cat = self.grouper
+            return cat.codes
+
         if self._codes is None:
             self._make_codes()
         # error: Incompatible return value type (got "Optional[ndarray]",
@@ -592,12 +592,33 @@ class Grouping:
     def result_index(self) -> Index:
         if self.all_grouper is not None:
             group_idx = self.group_index
-            assert isinstance(group_idx, CategoricalIndex)  # set in __init__
+            assert isinstance(group_idx, CategoricalIndex)
             return recode_from_groupby(self.all_grouper, self.sort, group_idx)
         return self.group_index
 
-    @property
+    @cache_readonly
     def group_index(self) -> Index:
+        if self._passed_categorical:
+            # we make a CategoricalIndex out of the cat grouper
+            # preserving the categories / ordered attributes
+            cat = self.grouper
+            categories = cat.categories
+
+            if self.observed:
+                codes = algorithms.unique1d(cat.codes)
+                codes = codes[codes != -1]
+                if self.sort or cat.ordered:
+                    codes = np.sort(codes)
+            else:
+                codes = np.arange(len(categories))
+
+            return CategoricalIndex(
+                Categorical.from_codes(
+                    codes=codes, categories=categories, ordered=cat.ordered
+                ),
+                name=self.name,
+            )
+
         if self._group_index is None:
             self._make_codes()
         assert self._group_index is not None
