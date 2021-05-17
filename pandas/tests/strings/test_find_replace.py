@@ -495,7 +495,7 @@ def test_fullmatch(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_fullmatch_na_kwargs(any_string_dtype):
+def test_fullmatch_na_kwarg(any_string_dtype):
     ser = Series(
         ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
     )
