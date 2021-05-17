@@ -673,6 +673,7 @@ Performance improvements
 - Performance improvement for concatenation of data with type :class:`CategoricalDtype` (:issue:`40193`)
 - Performance improvement in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` with nullable data types (:issue:`37493`)
 - Performance improvement in :meth:`Series.nunique` with nan values (:issue:`40865`)
+- Performance improvement in :meth:`DataFrame.transpose`, :meth:`Series.unstack` with ``DatetimeTZDtype`` (:issue:`40149`)
 
 .. ---------------------------------------------------------------------------
 
