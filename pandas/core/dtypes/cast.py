@@ -1671,9 +1671,7 @@ def maybe_cast_to_datetime(
             value = maybe_infer_to_datetimelike(value)
 
     elif isinstance(value, list):
-        # only do this if we have an array and the dtype of the array is not
-        # setup already we are not an integer/object, so don't bother with this
-        # conversion
+        # we only get here with dtype=None, which we do not allow
         raise ValueError(
             "maybe_cast_to_datetime allows a list *only* if dtype is not None"
         )
