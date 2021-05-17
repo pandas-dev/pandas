@@ -1200,7 +1200,7 @@ class BinGrouper(BaseGrouper):
     @property
     def groupings(self) -> list[grouper.Grouping]:
         lev = self.binlabels
-        ping = grouper.Grouping(lev, lev, in_axis=False, level=None, name=lev.name)
+        ping = grouper.Grouping(lev, lev, in_axis=False, level=None)
         return [ping]
 
     def _aggregate_series_fast(self, obj: Series, func: F) -> np.ndarray:
