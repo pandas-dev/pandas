@@ -18,12 +18,12 @@ from pandas.tests.indexes.common import NumericBase
 class TestFloat64Index(NumericBase):
     _index_cls = Float64Index
 
-    @pytest.fixture
+    @pytest.fixture(params=[np.float64])
     def dtype(self, request):
-        return np.float64
+        return request.param
 
     @pytest.fixture(
-        params=["int64", "uint64", "category", "datetime64"],
+        params=["int64", "uint64", "category", "datetime64", "object"],
     )
     def invalid_dtype(self, request):
         return request.param
@@ -42,16 +42,16 @@ class TestFloat64Index(NumericBase):
         ],
         ids=["mixed", "float", "mixed_dec", "float_dec"],
     )
-    def index(self, request):
-        return self._index_cls(request.param)
+    def index(self, request, dtype):
+        return self._index_cls(request.param, dtype=dtype)
 
     @pytest.fixture
-    def mixed_index(self):
-        return self._index_cls([1.5, 2, 3, 4, 5])
+    def mixed_index(self, dtype):
+        return self._index_cls([1.5, 2, 3, 4, 5], dtype=dtype)
 
     @pytest.fixture
-    def float_index(self):
-        return self._index_cls([0.0, 2.5, 5.0, 7.5, 10.0])
+    def float_index(self, dtype):
+        return self._index_cls([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
 
     def test_repr_roundtrip(self, index):
         tm.assert_index_equal(eval(repr(index)), index)
@@ -72,22 +72,23 @@ class TestFloat64Index(NumericBase):
         index_cls = self._index_cls
 
         # explicit construction
-        index = index_cls([1, 2, 3, 4, 5])
+        index = index_cls([1, 2, 3, 4, 5], dtype=dtype)
 
         assert isinstance(index, index_cls)
-        assert index.dtype.type is dtype
+        assert index.dtype == dtype
 
         expected = np.array([1, 2, 3, 4, 5], dtype=dtype)
         tm.assert_numpy_array_equal(index.values, expected)
-        index = index_cls(np.array([1, 2, 3, 4, 5]))
+
+        index = index_cls(np.array([1, 2, 3, 4, 5]), dtype=dtype)
         assert isinstance(index, index_cls)
         assert index.dtype == dtype
 
-        index = index_cls([1.0, 2, 3, 4, 5])
+        index = index_cls([1.0, 2, 3, 4, 5], dtype=dtype)
         assert isinstance(index, index_cls)
         assert index.dtype == dtype
 
-        index = index_cls(np.array([1.0, 2, 3, 4, 5]))
+        index = index_cls(np.array([1.0, 2, 3, 4, 5]), dtype=dtype)
         assert isinstance(index, index_cls)
         assert index.dtype == dtype
 
@@ -100,13 +101,13 @@ class TestFloat64Index(NumericBase):
         assert index.dtype == dtype
 
         # nan handling
-        result = index_cls([np.nan, np.nan])
+        result = index_cls([np.nan, np.nan], dtype=dtype)
         assert pd.isna(result.values).all()
 
-        result = index_cls(np.array([np.nan]))
+        result = index_cls(np.array([np.nan]), dtype=dtype)
         assert pd.isna(result.values).all()
 
-        result = Index(np.array([np.nan]))
+        result = Index(np.array([np.nan], dtype=dtype))
         assert isinstance(result, index_cls)
         assert result.dtype == dtype
         assert pd.isna(result.values).all()
@@ -281,7 +282,7 @@ class NumericInt(NumericBase):
     def test_view(self, dtype):
         index_cls = self._index_cls
 
-        idx = index_cls([], name="Foo")
+        idx = index_cls([], dtype=dtype, name="Foo")
         idx_view = idx.view()
         assert idx_view.name == "Foo"
 
@@ -382,12 +383,12 @@ class NumericInt(NumericBase):
 class TestInt64Index(NumericInt):
     _index_cls = Int64Index
 
-    @pytest.fixture
-    def dtype(self):
-        return np.int64
+    @pytest.fixture(params=[np.int64])
+    def dtype(self, request):
+        return request.param
 
     @pytest.fixture(
-        params=["uint64", "float64", "category", "datetime64"],
+        params=["uint64", "float64", "category", "datetime64", "object"],
     )
     def invalid_dtype(self, request):
         return request.param
@@ -399,14 +400,14 @@ class TestInt64Index(NumericInt):
     @pytest.fixture(
         params=[range(0, 20, 2), range(19, -1, -1)], ids=["index_inc", "index_dec"]
     )
-    def index(self, request):
-        return self._index_cls(request.param)
+    def index(self, request, dtype):
+        return self._index_cls(request.param, dtype=dtype)
 
     def test_constructor(self, dtype):
         index_cls = self._index_cls
 
         # pass list, coerce fine
-        index = index_cls([-5, 0, 1, 2])
+        index = index_cls([-5, 0, 1, 2], dtype=dtype)
         expected = Index([-5, 0, 1, 2], dtype=dtype)
         tm.assert_index_equal(index, expected)
 
@@ -486,7 +487,7 @@ class TestUInt64Index(NumericInt):
         return np.uint64
 
     @pytest.fixture(
-        params=["int64", "float64", "category", "datetime64"],
+        params=["int64", "float64", "category", "datetime64", "object"],
     )
     def invalid_dtype(self, request):
         return request.param

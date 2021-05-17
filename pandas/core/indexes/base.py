@@ -347,7 +347,7 @@ class Index(IndexOpsMixin, PandasObject):
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
 
-    _typ = "index"
+    _typ: str = "index"
     _data: ExtensionArray | np.ndarray
     _id: object | None = None
     _name: Hashable = None
@@ -355,11 +355,11 @@ class Index(IndexOpsMixin, PandasObject):
     # don't allow this anymore, and raise if it happens rather than
     # failing silently.
     _no_setting_name: bool = False
-    _comparables = ["name"]
-    _attributes = ["name"]
-    _is_numeric_dtype = False
-    _can_hold_na = True
-    _can_hold_strings = True
+    _comparables: list[str] = ["name"]
+    _attributes: list[str] = ["name"]
+    _is_numeric_dtype: bool = False
+    _can_hold_na: bool = True
+    _can_hold_strings: bool = True
 
     # would we like our indexing holder to defer to us
     _defer_to_indexing = False
@@ -5480,7 +5480,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        new_values = super()._map_values(mapper, na_action=na_action)
+        new_values = self._map_values(mapper, na_action=na_action)
 
         attributes = self._get_attributes_dict()
 
