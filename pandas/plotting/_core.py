@@ -6,6 +6,9 @@ from typing import (
     Sequence,
 )
 
+# TODO: replace with `importlib.metadata` when python_requires >= 3.8.
+import pkg_resources
+
 from pandas._config import get_option
 
 from pandas._typing import IndexLabel
@@ -1737,10 +1740,6 @@ def _load_backend(backend: str):
         The identifier for the backend. Either an entrypoint item registered
         with pkg_resources, "matplotlib", or a module name.
 
-    Notes
-    -----
-    Modifies _backends with imported backends as a side effect.
-
     Returns
     -------
     types.ModuleType
@@ -1756,29 +1755,25 @@ def _load_backend(backend: str):
                 "matplotlib is required for plotting when the "
                 'default backend "matplotlib" is selected.'
             ) from None
+        return module
 
-    else:
-        module = None
-        # Delay import for performance.
-        # TODO: replace with `importlib.metadata` when python_requires >= 3.8.
-        from pkg_resources import iter_entry_points
+    module = None
 
-        for entry_point in iter_entry_points("pandas_plotting_backends"):
-            if entry_point.name == backend:
-                module = entry_point.load()
+    for entry_point in pkg_resources.iter_entry_points("pandas_plotting_backends"):
+        if entry_point.name == backend:
+            module = entry_point.load()
 
-        if module is None:
-            # Fall back to unregistered, module name approach.
-            try:
-                module = importlib.import_module(backend)
-            except ImportError:
-                # We re-raise later on.
-                pass
+    if module is None:
+        # Fall back to unregistered, module name approach.
+        try:
+            module = importlib.import_module(backend)
+        except ImportError:
+            # We re-raise later on.
+            pass
 
     if hasattr(module, "plot"):
         # Validate that the interface is implemented when the option is set,
         # rather than at plot time.
-        _backends[backend] = module
         return module
 
     raise ValueError(
@@ -1802,10 +1797,16 @@ def _get_plot_backend(backend: str | None = None):
 
     The backend is imported lazily, as matplotlib is a soft dependency, and
     pandas can be used without it being installed.
+
+    Notes
+    -----
+    Modifies `_backends` with imported backend as a side effect.
     """
     backend = backend or get_option("plotting.backend")
 
     if backend in _backends:
         return _backends[backend]
 
-    return _load_backend(backend)
+    module = _load_backend(backend)
+    _backends[backend] = module
+    return module
