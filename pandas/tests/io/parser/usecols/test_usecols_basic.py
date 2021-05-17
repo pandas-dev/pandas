@@ -383,7 +383,8 @@ def test_usecols_indices_out_of_bounds(all_parsers, names):
 a,b
 1,2
     """
-    result = parser.read_csv(StringIO(data), usecols=[0, 2], names=names, header=0)
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = parser.read_csv(StringIO(data), usecols=[0, 2], names=names, header=0)
     expected = DataFrame({"a": [1], "b": [None]})
     if names is None and parser.engine == "python":
         expected = DataFrame({"a": [1]})

@@ -813,8 +813,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> tzser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
         >>> np.asarray(tzser, dtype="object")
-        array([Timestamp('2000-01-01 00:00:00+0100', tz='CET', freq='D'),
-               Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
+        array([Timestamp('2000-01-01 00:00:00+0100', tz='CET'),
+               Timestamp('2000-01-02 00:00:00+0100', tz='CET')],
               dtype=object)
 
         Or the values may be localized to UTC and the tzinfo discarded with
