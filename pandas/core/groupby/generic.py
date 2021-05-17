@@ -539,9 +539,6 @@ class SeriesGroupBy(GroupBy[Series]):
             object.__setattr__(group, "name", name)
             res = func(group, *args, **kwargs)
 
-            if isinstance(res, (DataFrame, Series)):
-                res = res._values
-
             results.append(klass(res, index=group.index))
 
         # check for empty "results" to avoid concat ValueError
@@ -1251,11 +1248,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             columns = key_index
             stacked_values = stacked_values.T
 
+        if stacked_values.dtype == object:
+            # We'll have the DataFrame constructor do inference
+            stacked_values = stacked_values.tolist()
         result = self.obj._constructor(stacked_values, index=index, columns=columns)
-
-        # if we have date/time like in the original, then coerce dates
-        # as we are stacking can easily have object dtypes here
-        result = result._convert(datetime=True)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)

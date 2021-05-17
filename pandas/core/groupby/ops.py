@@ -966,11 +966,24 @@ class BaseGrouper:
         )
 
     @final
-    def agg_series(self, obj: Series, func: F) -> ArrayLike:
+    def agg_series(
+        self, obj: Series, func: F, preserve_dtype: bool = False
+    ) -> ArrayLike:
+        """
+        Parameters
+        ----------
+        obj : Series
+        func : function taking a Series and returning a scalar-like
+        preserve_dtype : bool
+            Whether the aggregation is known to be dtype-preserving.
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
         # test_groupby_empty_with_category gets here with self.ngroups == 0
         #  and len(obj) > 0
 
-        cast_back = True
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             result = self._aggregate_series_pure_python(obj, func)
@@ -982,17 +995,21 @@ class BaseGrouper:
             # TODO: can we get a performant workaround for EAs backed by ndarray?
             result = self._aggregate_series_pure_python(obj, func)
 
+            # we can preserve a little bit more aggressively with EA dtype
+            #  because maybe_cast_pointwise_result will do a try/except
+            #  with _from_sequence.  NB we are assuming here that _from_sequence
+            #  is sufficiently strict that it casts appropriately.
+            preserve_dtype = True
+
         elif obj.index._has_complex_internals:
             # Preempt TypeError in _aggregate_series_fast
             result = self._aggregate_series_pure_python(obj, func)
 
         else:
             result = self._aggregate_series_fast(obj, func)
-            cast_back = False
 
         npvalues = lib.maybe_convert_objects(result, try_float=False)
-        if cast_back:
-            # TODO: Is there a documented reason why we dont always cast_back?
+        if preserve_dtype:
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
             out = npvalues
