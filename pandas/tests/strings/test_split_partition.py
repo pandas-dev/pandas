@@ -614,56 +614,61 @@ def test_partition_sep_kwarg(any_string_dtype):
 
 
 def test_get():
-    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
-
-    result = values.str.split("_").str.get(1)
+    ser = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
+    result = ser.str.split("_").str.get(1)
     expected = Series(["b", "d", np.nan, "g"])
     tm.assert_series_equal(result, expected)
 
-    # mixed
-    mixed = Series(["a_b_c", np.nan, "c_d_e", True, datetime.today(), None, 1, 2.0])
 
-    rs = Series(mixed).str.split("_").str.get(1)
-    xp = Series(["b", np.nan, "d", np.nan, np.nan, np.nan, np.nan, np.nan])
+def test_get_mixed_object():
+    ser = Series(["a_b_c", np.nan, "c_d_e", True, datetime.today(), None, 1, 2.0])
+    result = ser.str.split("_").str.get(1)
+    expected = Series(["b", np.nan, "d", np.nan, np.nan, np.nan, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
 
-    assert isinstance(rs, Series)
-    tm.assert_almost_equal(rs, xp)
 
-    # bounds testing
-    values = Series(["1_2_3_4_5", "6_7_8_9_10", "11_12"])
+def test_get_bounds():
+    ser = Series(["1_2_3_4_5", "6_7_8_9_10", "11_12"])
 
     # positive index
-    result = values.str.split("_").str.get(2)
+    result = ser.str.split("_").str.get(2)
     expected = Series(["3", "8", np.nan])
     tm.assert_series_equal(result, expected)
 
     # negative index
-    result = values.str.split("_").str.get(-3)
+    result = ser.str.split("_").str.get(-3)
     expected = Series(["3", "8", np.nan])
     tm.assert_series_equal(result, expected)
 
 
 def test_get_complex():
     # GH 20671, getting value not in dict raising `KeyError`
-    values = Series([(1, 2, 3), [1, 2, 3], {1, 2, 3}, {1: "a", 2: "b", 3: "c"}])
+    ser = Series([(1, 2, 3), [1, 2, 3], {1, 2, 3}, {1: "a", 2: "b", 3: "c"}])
 
-    result = values.str.get(1)
+    result = ser.str.get(1)
     expected = Series([2, 2, np.nan, "a"])
     tm.assert_series_equal(result, expected)
 
-    result = values.str.get(-1)
+    result = ser.str.get(-1)
     expected = Series([3, 3, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("to_type", [tuple, list, np.array])
 def test_get_complex_nested(to_type):
-    values = Series([to_type([to_type([1, 2])])])
+    ser = Series([to_type([to_type([1, 2])])])
 
-    result = values.str.get(0)
+    result = ser.str.get(0)
     expected = Series([to_type([1, 2])])
     tm.assert_series_equal(result, expected)
 
-    result = values.str.get(1)
+    result = ser.str.get(1)
     expected = Series([np.nan])
+    tm.assert_series_equal(result, expected)
+
+
+def test_get_strings(any_string_dtype):
+    ser = Series(["a", "ab", np.nan, "abc"], dtype=any_string_dtype)
+    result = ser.str.get(2)
+    expected = Series([np.nan, np.nan, np.nan, "c"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)

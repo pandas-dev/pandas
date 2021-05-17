@@ -49,10 +49,21 @@ def test_lower_upper_mixed_object():
     tm.assert_series_equal(result, expected)
 
 
-def test_capitalize(any_string_dtype):
-    s = Series(["FOO", "BAR", np.nan, "Blah", "blurg"], dtype=any_string_dtype)
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        (
+            ["FOO", "BAR", np.nan, "Blah", "blurg"],
+            ["Foo", "Bar", np.nan, "Blah", "Blurg"],
+        ),
+        (["a", "b", "c"], ["A", "B", "C"]),
+        (["a b", "a bc. de"], ["A b", "A bc. de"]),
+    ],
+)
+def test_capitalize(data, expected, any_string_dtype):
+    s = Series(data, dtype=any_string_dtype)
     result = s.str.capitalize()
-    expected = Series(["Foo", "Bar", np.nan, "Blah", "Blurg"], dtype=any_string_dtype)
+    expected = Series(expected, dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
