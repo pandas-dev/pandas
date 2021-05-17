@@ -102,6 +102,19 @@ def series_of_dtype_all_na(request):
     return request.param
 
 
+@pytest.fixture
+def dfs_for_indicator():
+    df1 = DataFrame({"col1": [0, 1], "col_conflict": [1, 2], "col_left": ["a", "b"]})
+    df2 = DataFrame(
+        {
+            "col1": [1, 2, 3, 4, 5],
+            "col_conflict": [1, 2, 3, 4, 5],
+            "col_right": [2, 2, 2, 2, 2],
+        }
+    )
+    return df1, df2
+
+
 class TestMerge:
     def setup_method(self, method):
         # aggregate multiple columns
@@ -543,6 +556,7 @@ class TestMerge:
             result = merge(left, right, how="outer", **kwarg)
             tm.assert_frame_equal(result, exp)
 
+            # TODO: should the next loop be un-indented? doing so breaks this test
             for kwarg in [
                 {"left_index": True, "right_index": True},
                 {"left_index": True, "right_on": "x"},
@@ -652,6 +666,7 @@ class TestMerge:
         )
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_merge_nan_right2(self):
         df1 = DataFrame({"i1": [0, 1], "i2": [0.5, 1.5]})
         df2 = DataFrame({"i1": [0], "i3": [0.7]})
         result = df1.join(df2, rsuffix="_", on="i1")
@@ -695,6 +710,9 @@ class TestMerge:
             expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
+    def test_join_append_timedeltas2(self):
+        # timedelta64 issues with join/merge
+        # GH 5695
         td = np.timedelta64(300000000)
         lhs = DataFrame(Series([td, td], index=["A", "B"]))
         rhs = DataFrame(Series([td], index=["A"]))
@@ -806,6 +824,7 @@ class TestMerge:
         result = merge(left, right, on="key", how="outer")
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_datetime64tz_values(self):
         left = DataFrame(
             {
                 "key": [1, 2],
@@ -923,6 +942,7 @@ class TestMerge:
         result = merge(left, right, on="key", how="outer")
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_period_values(self):
         left = DataFrame(
             {"key": [1, 2], "value": pd.period_range("20151010", periods=2, freq="D")}
         )
@@ -944,20 +964,11 @@ class TestMerge:
         assert result["value_x"].dtype == "Period[D]"
         assert result["value_y"].dtype == "Period[D]"
 
-    def test_indicator(self):
+    def test_indicator(self, dfs_for_indicator):
         # PR #10054. xref #7412 and closes #8790.
-        df1 = DataFrame(
-            {"col1": [0, 1], "col_conflict": [1, 2], "col_left": ["a", "b"]}
-        )
+        df1, df2 = dfs_for_indicator
         df1_copy = df1.copy()
 
-        df2 = DataFrame(
-            {
-                "col1": [1, 2, 3, 4, 5],
-                "col_conflict": [1, 2, 3, 4, 5],
-                "col_right": [2, 2, 2, 2, 2],
-            }
-        )
         df2_copy = df2.copy()
 
         df_result = DataFrame(
@@ -1016,14 +1027,19 @@ class TestMerge:
         )
         tm.assert_frame_equal(test_custom_name, df_result_custom_name)
 
+    def test_merge_indicator_arg_validation(self, dfs_for_indicator):
         # Check only accepts strings and booleans
+        df1, df2 = dfs_for_indicator
+
         msg = "indicator option can only accept boolean or string arguments"
         with pytest.raises(ValueError, match=msg):
             merge(df1, df2, on="col1", how="outer", indicator=5)
         with pytest.raises(ValueError, match=msg):
             df1.merge(df2, on="col1", how="outer", indicator=5)
 
+    def test_merge_indicator_result_integrity(self, dfs_for_indicator):
         # Check result integrity
+        df1, df2 = dfs_for_indicator
 
         test2 = merge(df1, df2, on="col1", how="left", indicator=True)
         assert (test2._merge != "right_only").all()
@@ -1040,7 +1056,10 @@ class TestMerge:
         test4 = df1.merge(df2, on="col1", how="inner", indicator=True)
         assert (test4._merge == "both").all()
 
+    def test_merge_indicator_invalid(self, dfs_for_indicator):
         # Check if working name in df
+        df1, _ = dfs_for_indicator
+
         for i in ["_right_indicator", "_left_indicator", "_merge"]:
             df_badcolumn = DataFrame({"col1": [1, 2], i: [2, 2]})
 
@@ -1071,6 +1090,7 @@ class TestMerge:
                 df_badcolumn, on="col1", how="outer", indicator="custom_column_name"
             )
 
+    def test_merge_indicator_multiple_columns(self):
         # Merge on multiple columns
         df3 = DataFrame({"col1": [0, 1], "col2": ["a", "b"]})
 
@@ -1538,6 +1558,8 @@ class TestMergeDtypes:
         result = merge(df2, df1, on="key")
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_incompat_infer_boolean_object_with_missing(self):
+        # GH21119: bool + object bool merge OK
         # with missing value
         df1 = DataFrame({"key": Series([True, False, np.nan], dtype=object)})
         df2 = DataFrame({"key": [True, False]})
