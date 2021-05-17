@@ -55,6 +55,7 @@ class CSSDict(TypedDict):
 
 
 CSSStyles = List[CSSDict]
+Subset = Union[slice, Sequence, Index]
 
 
 class StylerRenderer:
@@ -402,7 +403,7 @@ class StylerRenderer:
     def format(
         self,
         formatter: ExtFormatter | None = None,
-        subset: slice | Sequence[Any] | None = None,
+        subset: Subset | None = None,
         na_rep: str | None = None,
         precision: int | None = None,
         decimal: str = ".",
@@ -772,7 +773,7 @@ def _maybe_wrap_formatter(
         return lambda x: na_rep if isna(x) else func_2(x)
 
 
-def non_reducing_slice(slice_):
+def non_reducing_slice(slice_: Subset):
     """
     Ensure that a slice doesn't reduce to a Series or Scalar.
 
@@ -809,7 +810,9 @@ def non_reducing_slice(slice_):
             # slice(a, b, c)
             slice_ = [slice_]  # to tuplize later
     else:
-        slice_ = [part if pred(part) else [part] for part in slice_]
+        # error: Item "slice" of "Union[slice, Sequence[Any]]" has no attribute
+        # "__iter__" (not iterable) -> is specifically list_like in conditional
+        slice_ = [p if pred(p) else [p] for p in slice_]  # type: ignore[union-attr]
     return tuple(slice_)
 
 
