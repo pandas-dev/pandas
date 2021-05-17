@@ -8793,6 +8793,7 @@ NaN 12.3   33.0
         Returns
         -------
         DataFrame
+            A new DataFrame consisting of the rows of caller and the rows of `other`.
 
         See Also
         --------
@@ -8811,18 +8812,18 @@ NaN 12.3   33.0
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'), index=['x', 'y'])
         >>> df
            A  B
-        0  1  2
-        1  3  4
-        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
+        x  1  2
+        y  3  4
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'), index=['x', 'y'])
         >>> df.append(df2)
            A  B
-        0  1  2
-        1  3  4
-        0  5  6
-        1  7  8
+        x  1  2
+        y  3  4
+        x  5  6
+        y  7  8
 
         With `ignore_index` set to True:
 
@@ -9635,15 +9636,6 @@ NaN 12.3   33.0
         3    3
         4    3
         dtype: int64
-
-        Counts for one level of a `MultiIndex`:
-
-        >>> df.set_index(["Person", "Single"]).count(level="Person")
-                Age
-        Person
-        John      2
-        Lewis     1
-        Myla      1
         """
         axis = self._get_axis_number(axis)
         if level is not None:
