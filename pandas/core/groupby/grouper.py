@@ -588,16 +588,11 @@ class Grouping:
 
     @property
     def codes(self) -> np.ndarray:
-        if self._passed_categorical:
-            # we make a CategoricalIndex out of the cat grouper
-            # preserving the categories / ordered attributes
-            return self._codes_and_uniques[0]
-
-        elif self._codes is not None:
+        if self._codes is not None:
             # set in __init__
             return self._codes
-        else:
-            return self._codes_and_uniques[0]
+
+        return self._codes_and_uniques[0]
 
     @cache_readonly
     def group_arraylike(self) -> ArrayLike:
