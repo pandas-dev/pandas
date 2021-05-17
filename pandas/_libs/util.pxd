@@ -1,7 +1,7 @@
 cimport numpy as cnp
 from numpy cimport ndarray
 
-from .tslibs.util cimport *
+from pandas._libs.tslibs.util cimport *
 
 
 cdef extern from "numpy/ndarraytypes.h":
