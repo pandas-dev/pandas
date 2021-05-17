@@ -293,16 +293,21 @@ def deprecate_nonkeyword_arguments(
             assert spec.defaults is not None  # for mypy
             allow_args = spec.args[: -len(spec.defaults)]
 
+        num_allow_args = len(allow_args)
+        msg = (
+            f"{future_version_msg(version)} all arguments of "
+            f"{func.__qualname__}{{arguments}} will be keyword-only"
+        )
+
         @wraps(func)
         def wrapper(*args, **kwargs):
             arguments = _format_argument_list(allow_args)
-            num_allow_args = len(allow_args)
             if len(args) > num_allow_args:
-                msg = (
-                    f"{future_version_msg(version)} all arguments of "
-                    f"{func.__qualname__}{arguments} will be keyword-only"
+                warnings.warn(
+                    msg.format(arguments=arguments),
+                    FutureWarning,
+                    stacklevel=stacklevel,
                 )
-                warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
             return func(*args, **kwargs)
 
         return wrapper
