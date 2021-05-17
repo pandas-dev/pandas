@@ -57,6 +57,7 @@ from pandas.core import (
 )
 from pandas.core.arrays import (
     Categorical,
+    DatetimeArray,
     ExtensionArray,
     TimedeltaArray,
 )
@@ -515,7 +516,9 @@ def treat_as_nested(data) -> bool:
 
 
 def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
-    if isinstance(values, TimedeltaArray):
+    if isinstance(values, TimedeltaArray) or (
+        isinstance(values, DatetimeArray) and values.tz is None
+    ):
         # On older numpy, np.asarray below apparently does not call __array__,
         #  so nanoseconds get dropped.
         values = values._ndarray
@@ -541,15 +544,12 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
         # we could have a 1-dim or 2-dim list here
         # this is equiv of np.asarray, but does object conversion
         # and platform dtype preservation
-        try:
-            if is_list_like(values[0]):
-                values = np.array([convert(v) for v in values])
-            elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
-                # GH#21861
-                values = np.array([convert(v) for v in values])
-            else:
-                values = convert(values)
-        except (ValueError, TypeError):
+        if is_list_like(values[0]):
+            values = np.array([convert(v) for v in values])
+        elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
+            # GH#21861
+            values = np.array([convert(v) for v in values])
+        else:
             values = convert(values)
 
     else:
