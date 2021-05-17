@@ -344,6 +344,7 @@ cdef class LibrdataWriter():
         dict rdict
         dict rformats
         dict rtypes
+        long long timeval
         bytes file_name
         bytes tbl_name
         rdata_writer_t *writer
@@ -367,7 +368,8 @@ cdef class LibrdataWriter():
 
         if vtype == RDATA_TYPE_TIMESTAMP:
             for k, v in vdata.items():
-                rdata_append_timestamp_value(self.writer, v)
+                self.timeval = v
+                rdata_append_timestamp_value(self.writer, self.timeval)
 
         if vtype == RDATA_TYPE_STRING:
             for k, v in vdata.items():
