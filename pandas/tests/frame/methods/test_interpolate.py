@@ -348,7 +348,7 @@ class TestDataFrameInterpolate:
         df = DataFrame({"a": [1, 2, 3]})
         msg = (
             r"Starting with Pandas version 2\.0 all arguments of interpolate except "
-            r"for the argument 'self' will be keyword-only"
+            r"for the arguments 'self' and 'method' will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.interpolate(0)
+            df.interpolate("pad", 0)

@@ -817,7 +817,7 @@ class TestSeriesInterpolateData:
         ser = Series([1, 2, 3])
         msg = (
             r"Starting with Pandas version 2\.0 all arguments of interpolate except "
-            r"for the argument 'self' will be keyword-only"
+            r"for the arguments 'self' and 'method' will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser.interpolate(0)
+            ser.interpolate("pad", 0)

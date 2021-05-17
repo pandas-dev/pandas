@@ -6697,7 +6697,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="replace")
 
-    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self"])
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self", "method"])
     @final
     def interpolate(
         self: FrameOrSeries,
