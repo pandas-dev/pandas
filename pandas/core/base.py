@@ -498,8 +498,8 @@ class IndexOpsMixin(OpsMixin):
 
         >>> ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
         >>> ser.to_numpy(dtype=object)
-        array([Timestamp('2000-01-01 00:00:00+0100', tz='CET', freq='D'),
-               Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
+        array([Timestamp('2000-01-01 00:00:00+0100', tz='CET'),
+               Timestamp('2000-01-02 00:00:00+0100', tz='CET')],
               dtype=object)
 
         Or ``dtype='datetime64[ns]'`` to return an ndarray of native

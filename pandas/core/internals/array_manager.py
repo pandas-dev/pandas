@@ -85,6 +85,7 @@ from pandas.core.internals.base import (
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     external_values,
+    maybe_coerce_values,
     new_block,
     to_native_types,
 )
@@ -701,7 +702,7 @@ class ArrayManager(BaseArrayManager):
 
         if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
-            self.arrays = [ensure_wrapped_if_datetimelike(arr) for arr in arrays]
+            self.arrays = [maybe_coerce_values(arr) for arr in arrays]
             self._verify_integrity()
 
     def _verify_integrity(self) -> None:
@@ -814,7 +815,7 @@ class ArrayManager(BaseArrayManager):
 
             # TODO we receive a datetime/timedelta64 ndarray from DataFrame._iset_item
             # but we should avoid that and pass directly the proper array
-            value = ensure_wrapped_if_datetimelike(value)
+            value = maybe_coerce_values(value)
 
             assert isinstance(value, (np.ndarray, ExtensionArray))
             assert value.ndim == 1
@@ -873,7 +874,7 @@ class ArrayManager(BaseArrayManager):
                 raise ValueError(
                     f"Expected a 1D array, got an array with shape {value.shape}"
                 )
-        value = ensure_wrapped_if_datetimelike(value)
+        value = maybe_coerce_values(value)
 
         # TODO self.arrays can be empty
         # assert len(value) == len(self.arrays[0])
@@ -1188,7 +1189,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             assert len(arrays) == 1
             self._axes = [ensure_index(ax) for ax in self._axes]
             arr = arrays[0]
-            arr = ensure_wrapped_if_datetimelike(arr)
+            arr = maybe_coerce_values(arr)
             if isinstance(arr, ABCPandasArray):
                 arr = arr.to_numpy()
             self.arrays = [arr]
