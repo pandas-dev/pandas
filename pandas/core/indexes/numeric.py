@@ -296,7 +296,7 @@ class NumericIndex(Index):
         return is_numeric_dtype(dtype)
 
     @classmethod
-    def _assert_safe_casting(cls, data, subarr) -> None:
+    def _assert_safe_casting(cls, data: np.ndarray, subarr: np.ndarray) -> None:
         """
         Ensure incoming data can be represented with matching signed-ness.
 
