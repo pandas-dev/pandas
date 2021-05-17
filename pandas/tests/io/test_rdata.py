@@ -9,7 +9,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas.compat import PY38
+from pandas.compat import (
+    IS64,
+    PY38,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -715,14 +718,18 @@ def test_write_read_utc_dateteime():
 # DTYPES
 
 
+@pytest.mark.skipif(
+    not IS64,
+    reason=("large dtypes not supported in 32-bit"),
+)
 def test_write_read_dtypes(rtype, comp):
     rda_name = "pandas_dataframe" if rtype == "rda" else "r_dataframe"
 
     dts = [
         Timestamp.min.ceil("S"),
-        Timestamp("1950-01-01").ceil("S"),
+        Timestamp(-(10 ** 18)),
         Timestamp(0),
-        Timestamp("2000-01-01").floor("S"),
+        Timestamp(10 ** 18),
         Timestamp.now().floor("S"),
         Timestamp.max.floor("S"),
     ]
@@ -737,7 +744,7 @@ def test_write_read_dtypes(rtype, comp):
             ),
             "interval": interval_range(start=10, periods=6, freq=10 * 2),
             "bool": [False, True, True, True, False, False],
-            "int": [2 ** 20 - 1, 1, -(2 ** 20) + 1, -1, 0, 10 ** 9],
+            "int": [2 ** 31 - 1, 1, -(2 ** 31) + 1, -1, 0, 10 ** 9],
             "float": [0, np.pi, float("nan"), np.e, np.euler_gamma, 0],
             "string": array(
                 ["acidification", "change", "loss", "use", "depletion", "aersols"],
