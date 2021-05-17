@@ -9803,7 +9803,7 @@ NaN 12.3   33.0
                 out = out.astype(np.float64)
 
             if numeric_only is None and out.shape[0] != df.shape[1]:
-                # columns have been dropped
+                # columns have been dropped GH#41480
                 arg_name = "numeric_only"
                 if name in ["all", "any"]:
                     arg_name = "bool_only"
@@ -9836,7 +9836,7 @@ NaN 12.3   33.0
             with np.errstate(all="ignore"):
                 result = func(values)
 
-            # columns have been dropped
+            # columns have been dropped GH#41480
             arg_name = "numeric_only"
             if name in ["all", "any"]:
                 arg_name = "bool_only"
