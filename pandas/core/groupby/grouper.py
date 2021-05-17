@@ -602,7 +602,7 @@ class Grouping:
         return self._codes  # type: ignore[return-value]
 
     @cache_readonly
-    def result_arraylike(self) -> ArrayLike:
+    def group_arraylike(self) -> ArrayLike:
         """
         Analogous to result_index, but holding an ArrayLike to ensure
         we can can retain ExtensionDtypes.

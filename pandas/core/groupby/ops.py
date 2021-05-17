@@ -916,10 +916,10 @@ class BaseGrouper:
         # TODO: once Index supports arbitrary EAs, this can be removed in favor
         #  of result_index
         if len(self.groupings) == 1:
-            return self.groupings[0].result_arraylike
+            return self.groupings[0].group_arraylike
 
         codes = self.reconstructed_codes
-        levels = [ping.result_arraylike for ping in self.groupings]
+        levels = [ping.group_arraylike for ping in self.groupings]
         return MultiIndex(
             levels=levels, codes=codes, verify_integrity=False, names=self.names
         )._values
@@ -940,12 +940,12 @@ class BaseGrouper:
         # Note: only called from _insert_inaxis_grouper_inplace, which
         #  is only called for BaseGrouper, never for BinGrouper
         if len(self.groupings) == 1:
-            return [self.groupings[0].result_arraylike]
+            return [self.groupings[0].group_arraylike]
 
         name_list = []
         for ping, codes in zip(self.groupings, self.reconstructed_codes):
             codes = ensure_platform_int(codes)
-            levels = ping.result_arraylike.take(codes)
+            levels = ping.group_arraylike.take(codes)
 
             name_list.append(levels)
 
