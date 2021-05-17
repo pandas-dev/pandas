@@ -70,7 +70,7 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v2
       with:
         activate-environment: pandas-dev
-        channel-priority: strict
+        channel-priority: flexible
         environment-file: ${{ matrix.ENV_FILE }}
         use-only-tar-bz2: true
 

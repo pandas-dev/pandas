@@ -1,6 +1,7 @@
 name: pandas-dev
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - python=3.7.*
 
@@ -21,7 +22,7 @@ dependencies:
   - numexpr
   - numpy=1.17.3
   - openpyxl
-  - pyarrow=0.15.1
+  - pyarrow=0.17.0
   - pytables
   - python-dateutil==2.7.3
   - pytz

@@ -23,7 +23,7 @@ dependencies:
   - pytables=3.5.1
   - python-dateutil=2.7.3
   - pytz=2017.3
-  - pyarrow=0.15
+  - pyarrow=0.17.0
   - scipy=1.2
   - xlrd=1.2.0
   - xlsxwriter=1.0.2
