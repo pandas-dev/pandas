@@ -230,10 +230,30 @@ class Contains:
 
 class Split:
 
-    params = (["str", "string", "arrow_string"], [None, "-", "--"], [True, False])
-    param_names = ["dtype", "pat", "expand"]
+    params = (["str", "string", "arrow_string"], [True, False])
+    param_names = ["dtype", "expand"]
 
-    def setup(self, dtype, pat, expand):
+    def setup(self, dtype, expand):
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+        try:
+            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype).str.join("--")
+        except ImportError:
+            raise NotImplementedError
+
+    def time_split(self, dtype, expand):
+        self.s.str.split("--", expand=expand)
+
+    def time_rsplit(self, dtype, expand):
+        self.s.str.rsplit("--", expand=expand)
+
+
+class SplitPattern:
+
+    params = (["str", "string", "arrow_string"], [None, "-"])
+    param_names = ["dtype", "pat"]
+
+    def setup(self, dtype, pat):
         from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
 
         if pat is None:
@@ -243,11 +263,11 @@ class Split:
         except ImportError:
             raise NotImplementedError
 
-    def time_split(self, dtype, pat, expand):
-        self.s.str.split(pat, expand=expand)
+    def time_split(self, dtype, pat):
+        self.s.str.split(pat)
 
-    def time_rsplit(self, dtype, pat, expand):
-        self.s.str.rsplit(pat, expand=expand)
+    def time_rsplit(self, dtype, pat):
+        self.s.str.rsplit(pat)
 
 
 class Dummies:
