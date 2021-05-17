@@ -206,8 +206,8 @@ class Styler(StylerRenderer):
 
     def render(
         self,
-        sparsify_index: bool | None = None,
-        sparsify_columns: bool | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
         **kwargs,
     ) -> str:
         """
@@ -215,14 +215,14 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        sparsify_index : bool, optional
+        sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
-            Defaults to ``pandas.options.styler.sparsify_index`` value.
-        sparsify_columns : bool, optional
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_columns : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
-            Defaults to ``pandas.options.styler.sparsify_columns`` value.
+            Defaults to ``pandas.options.styler.sparse.columns`` value.
         **kwargs
             Any additional keyword arguments are passed
             through to ``self.template.render``.
@@ -254,11 +254,11 @@ class Styler(StylerRenderer):
         * caption
         * table_attributes
         """
-        if sparsify_index is None:
-            sparsify_index = get_option("styler.sparsify_index")
-        if sparsify_columns is None:
-            sparsify_columns = get_option("styler.sparsify_columns")
-        return self._render_html(sparsify_index, sparsify_columns, **kwargs)
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+        return self._render_html(sparse_index, sparse_columns, **kwargs)
 
     def set_tooltips(
         self,

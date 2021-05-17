@@ -39,7 +39,7 @@ def mi_styler(mi_df):
 
 
 @pytest.mark.parametrize(
-    "sparsify_columns, exp_cols",
+    "sparse_columns, exp_cols",
     [
         (
             True,
@@ -57,11 +57,11 @@ def mi_styler(mi_df):
         ),
     ],
 )
-def test_mi_styler_sparsify_columns(mi_styler, sparsify_columns, exp_cols):
+def test_mi_styler_sparsify_columns(mi_styler, sparse_columns, exp_cols):
     exp_l1_c0 = {"is_visible": True, "attributes": "", "display_value": "c1_a"}
     exp_l1_c1 = {"is_visible": True, "attributes": "", "display_value": "c1_b"}
 
-    ctx = mi_styler._translate(True, sparsify_columns)
+    ctx = mi_styler._translate(True, sparse_columns)
 
     assert exp_cols[0].items() <= ctx["head"][0][2].items()
     assert exp_cols[1].items() <= ctx["head"][0][3].items()
@@ -70,7 +70,7 @@ def test_mi_styler_sparsify_columns(mi_styler, sparsify_columns, exp_cols):
 
 
 @pytest.mark.parametrize(
-    "sparsify_index, exp_rows",
+    "sparse_index, exp_rows",
     [
         (
             True,
@@ -88,11 +88,11 @@ def test_mi_styler_sparsify_columns(mi_styler, sparsify_columns, exp_cols):
         ),
     ],
 )
-def test_mi_styler_sparsify_index(mi_styler, sparsify_index, exp_rows):
+def test_mi_styler_sparsify_index(mi_styler, sparse_index, exp_rows):
     exp_l1_r0 = {"is_visible": True, "attributes": "", "display_value": "i1_a"}
     exp_l1_r1 = {"is_visible": True, "attributes": "", "display_value": "i1_b"}
 
-    ctx = mi_styler._translate(sparsify_index, True)
+    ctx = mi_styler._translate(sparse_index, True)
 
     assert exp_rows[0].items() <= ctx["body"][0][0].items()
     assert exp_rows[1].items() <= ctx["body"][1][0].items()
@@ -101,16 +101,16 @@ def test_mi_styler_sparsify_index(mi_styler, sparsify_index, exp_rows):
 
 
 def test_mi_styler_sparsify_options(mi_styler):
-    with pd.option_context("styler.sparsify_index", False):
+    with pd.option_context("styler.sparse.index", False):
         html1 = mi_styler.render()
-    with pd.option_context("styler.sparsify_index", True):
+    with pd.option_context("styler.sparse.index", True):
         html2 = mi_styler.render()
 
     assert html1 != html2
 
-    with pd.option_context("styler.sparsify_columns", False):
+    with pd.option_context("styler.sparse.columns", False):
         html1 = mi_styler.render()
-    with pd.option_context("styler.sparsify_columns", True):
+    with pd.option_context("styler.sparse.columns", True):
         html2 = mi_styler.render()
 
     assert html1 != html2

@@ -106,16 +106,14 @@ class StylerRenderer:
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
 
-    def _render_html(
-        self, sparsify_index: bool, sparsify_columns: bool, **kwargs
-    ) -> str:
+    def _render_html(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
         """
         Renders the ``Styler`` including all applied styles to HTML.
         Generates a dict with necessary kwargs passed to jinja2 template.
         """
         self._compute()
         # TODO: namespace all the pandas keys
-        d = self._translate(sparsify_index, sparsify_columns)
+        d = self._translate(sparse_index, sparse_columns)
         d.update(kwargs)
         return self.template_html.render(**d)
 
@@ -134,7 +132,7 @@ class StylerRenderer:
             r = func(self)(*args, **kwargs)
         return r
 
-    def _translate(self, sparsify_index: bool, sparsify_cols: bool):
+    def _translate(self, sparse_index: bool, sparse_cols: bool):
         """
         Process Styler data and settings into a dict for template rendering.
 
@@ -143,12 +141,12 @@ class StylerRenderer:
 
         Parameters
         ----------
-        sparsify_index : bool
+        sparse_index : bool
             Whether to sparsify the index or print all hierarchical index elements.
-            Upstream defaults are typically to `pandas.options.styler.sparsify_index`.
-        sparsify_cols : bool
+            Upstream defaults are typically to `pandas.options.styler.sparse.index`.
+        sparse_cols : bool
             Whether to sparsify the columns or print all hierarchical column elements.
-            Upstream defaults are typically to `pandas.options.styler.sparsify_columns`.
+            Upstream defaults are typically to `pandas.options.styler.sparse.columns`.
 
         Returns
         -------
@@ -172,14 +170,14 @@ class StylerRenderer:
         }
 
         head = self._translate_header(
-            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS, sparsify_cols
+            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS, sparse_cols
         )
         d.update({"head": head})
 
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS, sparsify_index)
+        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS, sparse_index)
         d.update({"body": body})
 
         cellstyle: list[dict[str, CSSList | list[str]]] = [
