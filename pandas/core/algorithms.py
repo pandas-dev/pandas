@@ -30,6 +30,8 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     FrameOrSeriesUnion,
+    NumpySorter,
+    NumpyValueArrayLike,
     Scalar,
 )
 from pandas.util._decorators import doc
@@ -1507,7 +1509,12 @@ def take(
 # ------------ #
 
 
-def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
+def searchsorted(
+    arr: ArrayLike,
+    value: NumpyValueArrayLike,
+    side: Literal["left", "right"] = "left",
+    sorter: NumpySorter = None,
+) -> np.ndarray:
     """
     Find indices where elements should be inserted to maintain order.
 
@@ -1532,7 +1539,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
         Input array. If `sorter` is None, then it must be sorted in
         ascending order, otherwise `sorter` must be an array of indices
         that sort it.
-    value : array_like
+    value : array_like or single value
         Values to insert into `arr`.
     side : {'left', 'right'}, optional
         If 'left', the index of the first suitable location found is given.
@@ -1573,9 +1580,10 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
             dtype = value_arr.dtype
 
         if is_scalar(value):
-            value = dtype.type(value)
+            # We know that value is int
+            value = cast(int, dtype.type(value))
         else:
-            value = pd_array(value, dtype=dtype)
+            value = pd_array(cast(ArrayLike, value), dtype=dtype)
     elif not (
         is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
     ):

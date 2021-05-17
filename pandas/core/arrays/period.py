@@ -7,6 +7,7 @@ from typing import (
     Any,
     Callable,
     Sequence,
+    cast,
 )
 
 import numpy as np
@@ -39,8 +40,10 @@ from pandas._libs.tslibs.period import (
 )
 from pandas._typing import (
     AnyArrayLike,
+    ArrayLike,
     Dtype,
     NpDtype,
+    NumpySorter,
 )
 from pandas.util._decorators import (
     cache_readonly,
@@ -74,6 +77,8 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas.core.arrays import DatetimeArray
 
 _shared_doc_kwargs = {
@@ -642,12 +647,19 @@ class PeriodArray(dtl.DatelikeOps):
             return self.asfreq(dtype.freq)
         return super().astype(dtype, copy=copy)
 
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
-        value = self._validate_searchsorted_value(value).view("M8[ns]")
+    def searchsorted(
+        self,
+        value: ArrayLike | object,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> np.ndarray:
+        npvalue = cast(
+            np.ndarray, self._validate_searchsorted_value(value).view("M8[ns]")
+        )
 
         # Cast to M8 to get datetime-like NaT placement
         m8arr = self._ndarray.view("M8[ns]")
-        return m8arr.searchsorted(value, side=side, sorter=sorter)
+        return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
     def fillna(self, value=None, method=None, limit=None) -> PeriodArray:
         if method is not None:

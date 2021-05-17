@@ -3545,7 +3545,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "if index and target are monotonic"
             )
 
-        side = "left" if method == "pad" else "right"
+        side: Literal["left", "right"] = "left" if method == "pad" else "right"
 
         # find exact matches first (this simplifies the algorithm)
         indexer = self.get_indexer(target)
@@ -5721,7 +5721,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return label
 
-    def _searchsorted_monotonic(self, label, side: str_t = "left"):
+    def _searchsorted_monotonic(self, label, side: Literal["left", "right"] = "left"):
         if self.is_monotonic_increasing:
             return self.searchsorted(label, side=side)
         elif self.is_monotonic_decreasing:
@@ -5735,7 +5735,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(self, label, side: str_t, kind=None) -> int:
+    def get_slice_bound(self, label, side: Literal["left", "right"], kind=None) -> int:
         """
         Calculate slice bound that corresponds to given label.
 

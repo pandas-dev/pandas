@@ -91,6 +91,12 @@ DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
 
+# numpy compatible types
+NumpyArrayLike = Union[np.ndarray, Sequence[PythonScalar]]
+NumpyValueArrayLike = Union[PythonScalar, Sequence[PythonScalar]]
+NumpySorter = Union[int, bool, np.ndarray, Sequence[int], Sequence[bool], None]
+
+
 # timestamp and timedelta convertible types
 
 TimestampConvertibleTypes = Union[

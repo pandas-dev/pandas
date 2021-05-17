@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import wraps
 from typing import (
+    TYPE_CHECKING,
     Any,
     Sequence,
     TypeVar,
@@ -13,7 +14,9 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
+    ArrayLike,
     F,
+    NumpySorter,
     PositionalIndexer2D,
     Shape,
     type_t,
@@ -44,6 +47,9 @@ from pandas.core.sorting import nargminmax
 NDArrayBackedExtensionArrayT = TypeVar(
     "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
 )
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 
 def ravel_compat(meth: F) -> F:
@@ -176,9 +182,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return to_concat[0]._from_backing_data(new_values)  # type: ignore[arg-type]
 
     @doc(ExtensionArray.searchsorted)
-    def searchsorted(self, value, side="left", sorter=None):
-        value = self._validate_searchsorted_value(value)
-        return self._ndarray.searchsorted(value, side=side, sorter=sorter)
+    def searchsorted(
+        self,
+        value: ArrayLike | object,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> np.ndarray:
+        npvalue: np.ndarray = cast(np.ndarray, self._validate_searchsorted_value(value))
+        return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
     def _validate_searchsorted_value(self, value):
         return value

@@ -2,6 +2,7 @@
 Shared methods for Index subclasses backed by ExtensionArray.
 """
 from typing import (
+    TYPE_CHECKING,
     Hashable,
     List,
     Type,
@@ -11,7 +12,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    NumpySorter,
+)
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -44,6 +48,9 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
 
@@ -292,7 +299,12 @@ class ExtensionIndex(Index):
         deprecate_ndim_indexing(result)
         return result
 
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+    def searchsorted(
+        self,
+        value: ArrayLike | object,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> np.ndarray:
         # overriding IndexOpsMixin improves performance GH#38083
         return self._data.searchsorted(value, side=side, sorter=sorter)
 

@@ -23,6 +23,8 @@ from pandas._typing import (
     DtypeObj,
     FrameOrSeries,
     IndexLabel,
+    NumpySorter,
+    NumpyValueArrayLike,
     Shape,
     final,
 )
@@ -1225,7 +1227,12 @@ class IndexOpsMixin(OpsMixin):
         """
 
     @doc(_shared_docs["searchsorted"], klass="Index")
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first"):

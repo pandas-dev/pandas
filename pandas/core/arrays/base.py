@@ -26,6 +26,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     FillnaOptions,
+    NumpySorter,
     PositionalIndexer,
     Shape,
 )
@@ -815,10 +816,10 @@ class ExtensionArray:
 
     def searchsorted(
         self,
-        value: ArrayLike,
+        value: ArrayLike | object,
         side: Literal["left", "right"] = "left",
-        sorter: ArrayLike | None = None,
-    ):
+        sorter: NumpySorter = None,
+    ) -> np.ndarray:
         """
         Find indices where elements should be inserted to maintain order.
 
@@ -839,7 +840,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        value : array_like
+        value : array_like or a single value
             Values to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
