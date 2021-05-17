@@ -543,6 +543,7 @@ class TestMerge:
             result = merge(left, right, how="outer", **kwarg)
             tm.assert_frame_equal(result, exp)
 
+            # TODO: should the next loop be un-indented? doing so breaks this test
             for kwarg in [
                 {"left_index": True, "right_index": True},
                 {"left_index": True, "right_on": "x"},
@@ -652,6 +653,7 @@ class TestMerge:
         )
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_merge_nan_right2(self):
         df1 = DataFrame({"i1": [0, 1], "i2": [0.5, 1.5]})
         df2 = DataFrame({"i1": [0], "i3": [0.7]})
         result = df1.join(df2, rsuffix="_", on="i1")
@@ -695,6 +697,9 @@ class TestMerge:
             expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
+    def test_join_append_timedeltas2(self):
+        # timedelta64 issues with join/merge
+        # GH 5695
         td = np.timedelta64(300000000)
         lhs = DataFrame(Series([td, td], index=["A", "B"]))
         rhs = DataFrame(Series([td], index=["A"]))
@@ -806,6 +811,7 @@ class TestMerge:
         result = merge(left, right, on="key", how="outer")
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_datetime64tz_values(self):
         left = DataFrame(
             {
                 "key": [1, 2],
@@ -923,6 +929,7 @@ class TestMerge:
         result = merge(left, right, on="key", how="outer")
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_period_values(self):
         left = DataFrame(
             {"key": [1, 2], "value": pd.period_range("20151010", periods=2, freq="D")}
         )
@@ -1552,6 +1559,8 @@ class TestMergeDtypes:
         result = merge(df2, df1, on="key")
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_incompat_infer_boolean_object_with_missing(self):
+        # GH21119: bool + object bool merge OK
         # with missing value
         df1 = DataFrame({"key": Series([True, False, np.nan], dtype=object)})
         df2 = DataFrame({"key": [True, False]})
