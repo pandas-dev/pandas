@@ -720,10 +720,10 @@ def test_write_read_dtypes(rtype, comp):
 
     dts = [
         Timestamp.min.ceil("S"),
-        Timestamp(-(10.0 ** 18.0)).ceil("S"),
+        Timestamp("1950-01-01").ceil("S"),
         Timestamp(0),
+        Timestamp("2000-01-01").floor("S"),
         Timestamp.now().floor("S"),
-        Timestamp(10.0 ** 18.0).floor("S"),
         Timestamp.max.floor("S"),
     ]
 
