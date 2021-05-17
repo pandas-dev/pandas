@@ -437,7 +437,7 @@ def test_fillna_args(dtype, request):
         arr.fillna(value=1)
 
 
-@td.skip_if_no("pyarrow", min_version="0.15.0")
+@td.skip_if_no("pyarrow")
 def test_arrow_array(dtype):
     # protocol added in 0.15.0
     import pyarrow as pa
@@ -451,7 +451,7 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
-@td.skip_if_no("pyarrow", min_version="0.16.0")
+@td.skip_if_no("pyarrow")
 def test_arrow_roundtrip(dtype, dtype_object):
     # roundtrip possible from arrow 1.0.0
     import pyarrow as pa
@@ -467,7 +467,7 @@ def test_arrow_roundtrip(dtype, dtype_object):
     assert result.loc[2, "a"] is pd.NA
 
 
-@td.skip_if_no("pyarrow", min_version="0.16.0")
+@td.skip_if_no("pyarrow")
 def test_arrow_load_from_zero_chunks(dtype, dtype_object):
     # GH-41040
     import pyarrow as pa

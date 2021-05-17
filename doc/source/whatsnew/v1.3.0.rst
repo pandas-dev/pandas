@@ -579,7 +579,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | openpyxl        | 3.0.0           |    X    |
 +-----------------+-----------------+---------+
-| pyarrow         | 0.15.0          |         |
+| pyarrow         | 0.17.0          |    X    |
 +-----------------+-----------------+---------+
 | pymysql         | 0.8.1           |    X    |
 +-----------------+-----------------+---------+
@@ -972,6 +972,7 @@ Other
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)
 - Bug in :meth:`DataFrame.clip` not interpreting missing values as no threshold (:issue:`40420`)
+- Bug in :class:`Series` backed by :class:`DatetimeArray` or :class:`TimedeltaArray` sometimes failing to set the array's ``freq`` to ``None`` (:issue:`41425`)
 
 .. ---------------------------------------------------------------------------
 
