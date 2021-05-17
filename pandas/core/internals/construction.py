@@ -57,6 +57,7 @@ from pandas.core import (
 )
 from pandas.core.arrays import (
     Categorical,
+    DatetimeArray,
     ExtensionArray,
     TimedeltaArray,
 )
@@ -515,7 +516,9 @@ def treat_as_nested(data) -> bool:
 
 
 def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
-    if isinstance(values, TimedeltaArray):
+    if isinstance(values, TimedeltaArray) or (
+        isinstance(values, DatetimeArray) and values.tz is None
+    ):
         # On older numpy, np.asarray below apparently does not call __array__,
         #  so nanoseconds get dropped.
         values = values._ndarray
