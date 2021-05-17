@@ -441,8 +441,11 @@ class Apply(metaclass=abc.ABCMeta):
             keys_to_use = keys_to_use if keys_to_use != [] else keys
             if selected_obj.ndim == 2:
                 # keys are columns, so we can preserve names
-                keys_to_use = Index(keys_to_use)
-                keys_to_use._set_names(selected_obj.columns.names)
+                ktu = Index(keys_to_use)
+                ktu._set_names(selected_obj.columns.names)
+                # Incompatible types in assignment (expression has type "Index",
+                # variable has type "List[Hashable]")
+                keys_to_use = ktu  # type: ignore[assignment]
 
             axis = 0 if isinstance(obj, ABCSeries) else 1
             result = concat(
