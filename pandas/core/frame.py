@@ -102,6 +102,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     infer_dtype_from_object,
     is_1d_only_ea_dtype,
+    is_1d_only_ea_obj,
     is_bool_dtype,
     is_dataclass,
     is_datetime64_any_dtype,
@@ -140,7 +141,11 @@ from pandas.core.aggregation import (
 )
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     extract_array,
@@ -852,6 +857,28 @@ class DataFrame(NDFrame, OpsMixin):
         dtype = blocks[0].dtype
         # TODO(EA2D) special case would be unnecessary with 2D EAs
         return not is_1d_only_ea_dtype(dtype)
+
+    @property
+    def _values_compat(self) -> np.ndarray | DatetimeArray | TimedeltaArray:
+        """
+        Analogue to ._values that may return a 2D ExtensionArray.
+        """
+        mgr = self._mgr
+        if isinstance(mgr, ArrayManager):
+            return self._values
+
+        blocks = mgr.blocks
+        if len(blocks) != 1:
+            return self._values
+
+        arr = blocks[0].values
+        if arr.ndim == 1:
+            # non-2D ExtensionArray
+            return self._values
+
+        # more generally, whatever we allow in NDArrayBackedExtensionBlock
+        arr = cast("DatetimeArray | TimedeltaArray", arr)
+        return arr.T
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -3293,7 +3320,18 @@ class DataFrame(NDFrame, OpsMixin):
         # construct the args
 
         dtypes = list(self.dtypes)
-        if self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0]):
+
+        if self._can_fast_transpose:
+            # Note: tests pass without this, but this improves perf quite a bit.
+            new_vals = self._values_compat.T
+            if copy:
+                new_vals = new_vals.copy()
+
+            result = self._constructor(new_vals, index=self.columns, columns=self.index)
+
+        elif (
+            self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0])
+        ):
             # We have EAs with the same dtype. We can preserve that dtype in transpose.
             dtype = dtypes[0]
             arr_type = dtype.construct_array_type()
@@ -8795,6 +8833,7 @@ NaN 12.3   33.0
         Returns
         -------
         DataFrame
+            A new DataFrame consisting of the rows of caller and the rows of `other`.
 
         See Also
         --------
@@ -8813,18 +8852,18 @@ NaN 12.3   33.0
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'), index=['x', 'y'])
         >>> df
            A  B
-        0  1  2
-        1  3  4
-        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
+        x  1  2
+        y  3  4
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'), index=['x', 'y'])
         >>> df.append(df2)
            A  B
-        0  1  2
-        1  3  4
-        0  5  6
-        1  7  8
+        x  1  2
+        y  3  4
+        x  5  6
+        y  7  8
 
         With `ignore_index` set to True:
 
@@ -9761,8 +9800,9 @@ NaN 12.3   33.0
 
         def blk_func(values, axis=1):
             if isinstance(values, ExtensionArray):
-                if values.ndim == 2:
-                    # i.e. DatetimeArray, TimedeltaArray
+                if not is_1d_only_ea_obj(values) and not isinstance(
+                    self._mgr, ArrayManager
+                ):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
                 return values._reduce(name, skipna=skipna, **kwds)
             else:
