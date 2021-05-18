@@ -820,32 +820,37 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             result[isna(result)] = bool(na)
         return result
 
-    def _str_startswith(self, pat, na=None):
+    def _str_startswith(self, pat: str, na=None):
         if pa_version_under4p0:
             return super()._str_startswith(pat, na)
 
-        result = pc.match_substring_regex(self._data, "^" + re.escape(pat))
-        result = BooleanDtype().__from_arrow__(result)
-        if not isna(na):
-            result[isna(result)] = bool(na)
-        return result
+        pat = "^" + re.escape(pat)
+        return self._str_contains(pat, na=na, regex=True)
 
-    def _str_endswith(self, pat, na=None):
+    def _str_endswith(self, pat: str, na=None):
         if pa_version_under4p0:
             return super()._str_endswith(pat, na)
 
-        result = pc.match_substring_regex(self._data, re.escape(pat) + "$")
-        result = BooleanDtype().__from_arrow__(result)
-        if not isna(na):
-            result[isna(result)] = bool(na)
-        return result
+        pat = re.escape(pat) + "$"
+        return self._str_contains(pat, na=na, regex=True)
 
     def _str_match(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
     ):
+        if pa_version_under4p0:
+            return super()._str_match(pat, case, flags, na)
+
         if not pat.startswith("^"):
             pat = "^" + pat
         return self._str_contains(pat, case, flags, na, regex=True)
+
+    def _str_fullmatch(self, pat, case: bool = True, flags: int = 0, na: Scalar = None):
+        if pa_version_under4p0:
+            return super()._str_fullmatch(pat, case, flags, na)
+
+        if not pat.endswith("$") or pat.endswith("//$"):
+            pat = pat + "$"
+        return self._str_match(pat, case, flags, na)
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._data)
