@@ -5267,6 +5267,16 @@ Keep all original rows and also all original values
     ) -> Series | None:
         return super().ffill(axis, inplace, limit, downcast)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def bfill(
+        self: Series,
+        axis: None | Axis = None,
+        inplace: bool = False,
+        limit: None | int = None,
+        downcast=None,
+    ) -> Series:
+        return super().bfill(axis, inplace, limit, downcast)
+
     # ----------------------------------------------------------------------
     # Add index
     _AXIS_ORDERS = ["index"]

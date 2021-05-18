@@ -10635,7 +10635,7 @@ NaN 12.3   33.0
         limit: None | int = None,
         downcast=None,
     ) -> DataFrame | None:
-        super().ffill(axis, inplace, limit, downcast)
+        return super().ffill(axis, inplace, limit, downcast)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def bfill(
@@ -10645,7 +10645,7 @@ NaN 12.3   33.0
         limit: None | int = None,
         downcast=None,
     ) -> DataFrame:
-        super().bfill(axis, inplace, limit, downcast)
+        return super().bfill(axis, inplace, limit, downcast)
 
 
 DataFrame._add_numeric_operations()

@@ -769,11 +769,13 @@ class TestFillnaPad:
         # https://github.com/pandas-dev/pandas/issues/41485
         ser = Series([1, 2, 3])
         msg = (
-            r"Starting with Pandas version 2\.0 all arguments of ffill except "
-            r"for the argument 'self' will be keyword-only"
+            r"In a future version of pandas all arguments of Series.ffill "
+            r"will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser.ffill(0)
+            result = ser.ffill(0)
+        expected = Series([1, 2, 3])
+        tm.assert_series_equal(result, expected)
 
     def test_ffill_mixed_dtypes_without_missing_data(self):
         # GH#14956
@@ -790,11 +792,13 @@ class TestFillnaPad:
         # https://github.com/pandas-dev/pandas/issues/41485
         ser = Series([1, 2, 3])
         msg = (
-            r"Starting with Pandas version 2\.0 all arguments of bfill except "
-            r"for the argument 'self' will be keyword-only"
+            r"In a future version of pandas all arguments of Series.bfill "
+            r"will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser.bfill(0)
+            result = ser.bfill(0)
+        expected = Series([1, 2, 3])
+        tm.assert_series_equal(result, expected)
 
     def test_pad_nan(self):
         x = Series(

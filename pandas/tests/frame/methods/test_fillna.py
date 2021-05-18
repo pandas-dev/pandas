@@ -334,7 +334,9 @@ class TestFillNA:
             r"will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.ffill(0)
+            result = df.ffill(0)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
 
     def test_bfill(self, datetime_frame):
         datetime_frame["A"][:5] = np.nan
@@ -352,7 +354,9 @@ class TestFillNA:
             r"will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.bfill(0)
+            result = df.bfill(0)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
 
     def test_frame_pad_backfill_limit(self):
         index = np.arange(10)
