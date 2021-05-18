@@ -673,7 +673,14 @@ class TestQuantileExtensionDtype:
     @pytest.mark.parametrize(
         "dtype, expected_data, expected_index, axis, expected_dtype",
         [
-            ["datetime64[ns]", [], [], 1, "float64"],
+            pytest.param(
+                "datetime64[ns]",
+                [],
+                [],
+                1,
+                "datetime64[ns]",
+                marks=pytest.mark.xfail(reason="#GH 41544"),
+            ),
             ["datetime64[ns]", [pd.NaT, pd.NaT], ["a", "b"], 0, "datetime64[ns]"],
         ],
     )
