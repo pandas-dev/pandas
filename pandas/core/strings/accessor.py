@@ -3140,25 +3140,26 @@ def str_extract(accessor: StringMethods, pat: str, flags: int = 0, expand: bool 
         columns = _get_group_names(regex)
 
         if obj.array.size == 0:
-            return DataFrame(columns=columns, dtype=result_dtype)
+            result = DataFrame(columns=columns, dtype=result_dtype)
 
-        result = _str_extract_expand(obj.array, pat, flags=flags)
-
-        result_index: Optional["Index"]
-        if isinstance(obj, ABCSeries):
-            result_index = obj.index
         else:
-            result_index = None
+            result_list = _str_extract_expand(obj.array, pat, flags=flags)
 
-        return DataFrame(
-            result, columns=columns, index=result_index, dtype=result_dtype
-        )
+            result_index: Optional["Index"]
+            if isinstance(obj, ABCSeries):
+                result_index = obj.index
+            else:
+                result_index = None
+
+            result = DataFrame(
+                result_list, columns=columns, index=result_index, dtype=result_dtype
+            )
 
     else:
         name = _get_single_group_name(regex)
-        result = _str_extract_noexpand(obj.array, pat, flags=flags)
+        result_arr = _str_extract_noexpand(obj.array, pat, flags=flags)
         # not dispatching, so we have to reconstruct here.
-        result = pd_array(result, dtype=result_dtype)
+        result = pd_array(result_arr, dtype=result_dtype)
     return accessor._wrap_result(result, name=name)
 
 
