@@ -456,7 +456,7 @@ class Grouping:
         self._orig_grouper = grouper
         self.grouper = _convert_grouper(index, grouper)
         self.all_grouper = None
-        self.index = index
+        self._index = index
         self.sort = sort
         self.obj = obj
         self.observed = observed
@@ -470,11 +470,16 @@ class Grouping:
 
         ilevel = self._ilevel
         if ilevel is not None:
+            mapper = self.grouper
             (
                 self.grouper,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(self.grouper, ilevel)
+            ) = index._get_grouper_for_level(mapper, ilevel)
+
+            # In extant tests, the new self.grouper matches
+            #  `index.get_level_values(ilevel)` whenever
+            #  mapper is None and isinstance(index, MultiIndex)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -516,10 +521,9 @@ class Grouping:
                 if getattr(self.grouper, "ndim", 1) != 1:
                     t = self.name or str(type(self.grouper))
                     raise ValueError(f"Grouper for '{t}' not 1-dimensional")
-                self.grouper = self.index.map(self.grouper)
+                self.grouper = index.map(self.grouper)
                 if not (
-                    hasattr(self.grouper, "__len__")
-                    and len(self.grouper) == len(self.index)
+                    hasattr(self.grouper, "__len__") and len(self.grouper) == len(index)
                 ):
                     grper = pprint_thing(self.grouper)
                     errmsg = (
@@ -544,7 +548,7 @@ class Grouping:
     def name(self) -> Hashable:
         ilevel = self._ilevel
         if ilevel is not None:
-            return self.index.names[ilevel]
+            return self._index.names[ilevel]
 
         if isinstance(self._orig_grouper, (Index, Series)):
             return self._orig_grouper.name
@@ -566,7 +570,7 @@ class Grouping:
         if level is None:
             return None
         if not isinstance(level, int):
-            index = self.index
+            index = self._index
             if level not in index.names:
                 raise AssertionError(f"Level {level} not in index")
             return index.names.index(level)
@@ -658,7 +662,7 @@ class Grouping:
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
-        return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
+        return self._index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
 def get_grouper(
