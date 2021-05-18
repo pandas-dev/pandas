@@ -508,33 +508,32 @@ class Grouping:
                 # use Index instead of ndarray so we can recover the name
                 self.grouper = Index(ng, name=newgrouper.result_index.name)
 
-        else:
+        elif is_categorical_dtype(self.grouper):
             # a passed Categorical
-            if is_categorical_dtype(self.grouper):
-                self._passed_categorical = True
+            self._passed_categorical = True
 
-                self.grouper, self._all_grouper = recode_for_groupby(
-                    self.grouper, sort, observed
-                )
+            self.grouper, self._all_grouper = recode_for_groupby(
+                self.grouper, sort, observed
+            )
 
+        elif not isinstance(self.grouper, (Series, Index, ExtensionArray, np.ndarray)):
             # no level passed
-            elif not isinstance(
-                self.grouper, (Series, Index, ExtensionArray, np.ndarray)
+            if getattr(self.grouper, "ndim", 1) != 1:
+                t = self.name or str(type(self.grouper))
+                raise ValueError(f"Grouper for '{t}' not 1-dimensional")
+
+            self.grouper = index.map(self.grouper)
+
+            if not (
+                hasattr(self.grouper, "__len__") and len(self.grouper) == len(index)
             ):
-                if getattr(self.grouper, "ndim", 1) != 1:
-                    t = self.name or str(type(self.grouper))
-                    raise ValueError(f"Grouper for '{t}' not 1-dimensional")
-                self.grouper = index.map(self.grouper)
-                if not (
-                    hasattr(self.grouper, "__len__") and len(self.grouper) == len(index)
-                ):
-                    grper = pprint_thing(self.grouper)
-                    errmsg = (
-                        "Grouper result violates len(labels) == "
-                        f"len(data)\nresult: {grper}"
-                    )
-                    self.grouper = None  # Try for sanity
-                    raise AssertionError(errmsg)
+                grper = pprint_thing(self.grouper)
+                errmsg = (
+                    "Grouper result violates len(labels) == "
+                    f"len(data)\nresult: {grper}"
+                )
+                self.grouper = None  # Try for sanity
+                raise AssertionError(errmsg)
 
         if isinstance(self.grouper, np.ndarray):
             # if we have a date/time-like grouper, make sure that we have
@@ -562,6 +561,7 @@ class Grouping:
         elif isinstance(self.grouper, Index):
             return self.grouper.name
 
+        # otherwise we have ndarray or ExtensionArray -> no name
         return None
 
     @cache_readonly
