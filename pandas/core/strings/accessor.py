@@ -1169,7 +1169,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        Series/array of boolean values
+        Series/Index/array of boolean values
 
         See Also
         --------
@@ -1196,14 +1196,14 @@ class StringMethods(NoNewAttributesMixin):
             If True, case sensitive.
         flags : int, default 0 (no flags)
             Regex module flags, e.g. re.IGNORECASE.
-        na : scalar, optional.
+        na : scalar, optional
             Fill value for missing values. The default depends on dtype of the
             array. For object-dtype, ``numpy.nan`` is used. For ``StringDtype``,
             ``pandas.NA`` is used.
 
         Returns
         -------
-        Series/array of boolean values
+        Series/Index/array of boolean values
 
         See Also
         --------
