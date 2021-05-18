@@ -1,4 +1,3 @@
-from copy import copy
 
 from libc.stdlib cimport (
     free,
@@ -395,7 +394,7 @@ def apply_frame_axis0(object frame, object f, object names,
                 try:
                     piece = piece.copy(deep="all")
                 except (TypeError, AttributeError):
-                    piece = copy(piece)
+                    pass
 
             results.append(piece)
 
