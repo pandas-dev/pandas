@@ -347,8 +347,10 @@ class TestDataFrameInterpolate:
         # https://github.com/pandas-dev/pandas/issues/41485
         df = DataFrame({"a": [1, 2, 3]})
         msg = (
-            r"Starting with Pandas version 2\.0 all arguments of interpolate except "
-            r"for the arguments 'self' and 'method' will be keyword-only"
+            r"In a future version of pandas all arguments of DataFrame.interpolate "
+            r"except for the argument 'method' will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.interpolate("pad", 0)
+            result = df.interpolate("pad", 0)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)

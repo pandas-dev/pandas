@@ -816,8 +816,10 @@ class TestSeriesInterpolateData:
         # https://github.com/pandas-dev/pandas/issues/41485
         ser = Series([1, 2, 3])
         msg = (
-            r"Starting with Pandas version 2\.0 all arguments of interpolate except "
-            r"for the arguments 'self' and 'method' will be keyword-only"
+            r"In a future version of pandas all arguments of Series.interpolate except "
+            r"for the argument 'method' will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser.interpolate("pad", 0)
+            result = ser.interpolate("pad", 0)
+        expected = Series([1, 2, 3])
+        tm.assert_series_equal(result, expected)
