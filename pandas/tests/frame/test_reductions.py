@@ -1704,6 +1704,7 @@ def test_groupy_regular_arithmetic_equivalent(meth):
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
     df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
-    result = df.sum()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping of nuisance"):
+        result = df.sum()
     expected = Series([1, 1.1, "foo"], index=list("abc"))
     tm.assert_series_equal(result, expected)
