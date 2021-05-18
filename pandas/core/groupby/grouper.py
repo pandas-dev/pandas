@@ -440,6 +440,9 @@ class Grouping:
 
     _codes: np.ndarray | None = None
     _group_index: Index | None = None
+    _passed_categorical: bool
+    _all_grouper: Categorical | None
+    _index: Index
 
     def __init__(
         self,
@@ -455,13 +458,13 @@ class Grouping:
         self.level = level
         self._orig_grouper = grouper
         self.grouper = _convert_grouper(index, grouper)
-        self.all_grouper = None
+        self._all_grouper = None
         self._index = index
-        self.sort = sort
+        self._sort = sort
         self.obj = obj
-        self.observed = observed
+        self._observed = observed
         self.in_axis = in_axis
-        self.dropna = dropna
+        self._dropna = dropna
 
         self._passed_categorical = False
 
@@ -510,8 +513,8 @@ class Grouping:
             if is_categorical_dtype(self.grouper):
                 self._passed_categorical = True
 
-                self.grouper, self.all_grouper = recode_for_groupby(
-                    self.grouper, self.sort, observed
+                self.grouper, self._all_grouper = recode_for_groupby(
+                    self.grouper, sort, observed
                 )
 
             # no level passed
@@ -605,10 +608,10 @@ class Grouping:
 
     @cache_readonly
     def result_index(self) -> Index:
-        if self.all_grouper is not None:
+        if self._all_grouper is not None:
             group_idx = self.group_index
             assert isinstance(group_idx, CategoricalIndex)
-            return recode_from_groupby(self.all_grouper, self.sort, group_idx)
+            return recode_from_groupby(self._all_grouper, self._sort, group_idx)
         return self.group_index
 
     @cache_readonly
@@ -619,10 +622,10 @@ class Grouping:
             cat = self.grouper
             categories = cat.categories
 
-            if self.observed:
+            if self._observed:
                 codes = algorithms.unique1d(cat.codes)
                 codes = codes[codes != -1]
-                if self.sort or cat.ordered:
+                if self._sort or cat.ordered:
                     codes = np.sort(codes)
             else:
                 codes = np.arange(len(categories))
@@ -649,12 +652,12 @@ class Grouping:
             uniques = self.grouper.result_index
         else:
             # GH35667, replace dropna=False with na_sentinel=None
-            if not self.dropna:
+            if not self._dropna:
                 na_sentinel = None
             else:
                 na_sentinel = -1
             codes, uniques = algorithms.factorize(
-                self.grouper, sort=self.sort, na_sentinel=na_sentinel
+                self.grouper, sort=self._sort, na_sentinel=na_sentinel
             )
             uniques = Index(uniques, name=self.name)
         self._codes = codes
