@@ -547,7 +547,7 @@ class Styler(StylerRenderer):
         self,
         func: Callable[..., Styler],
         axis: Axis | None = 0,
-        subset=None,
+        subset: Subset | None = None,
         **kwargs,
     ) -> Styler:
         subset = slice(None) if subset is None else subset
@@ -592,7 +592,7 @@ class Styler(StylerRenderer):
         self,
         func: Callable[..., Styler],
         axis: Axis | None = 0,
-        subset=None,
+        subset: Subset | None = None,
         **kwargs,
     ) -> Styler:
         """
@@ -653,7 +653,9 @@ class Styler(StylerRenderer):
         )
         return self
 
-    def _applymap(self, func: Callable, subset=None, **kwargs) -> Styler:
+    def _applymap(
+        self, func: Callable, subset: Subset | None = None, **kwargs
+    ) -> Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
             subset = IndexSlice[:]
@@ -662,7 +664,9 @@ class Styler(StylerRenderer):
         self._update_ctx(result)
         return self
 
-    def applymap(self, func: Callable, subset=None, **kwargs) -> Styler:
+    def applymap(
+        self, func: Callable, subset: Subset | None = None, **kwargs
+    ) -> Styler:
         """
         Apply a CSS-styling function elementwise.
 
@@ -709,7 +713,7 @@ class Styler(StylerRenderer):
         cond: Callable,
         value: str,
         other: str | None = None,
-        subset=None,
+        subset: Subset | None = None,
         **kwargs,
     ) -> Styler:
         """
@@ -1210,7 +1214,7 @@ class Styler(StylerRenderer):
         low: float = 0,
         high: float = 0,
         axis: Axis | None = 0,
-        subset=None,
+        subset: Subset | None = None,
         text_color_threshold: float = 0.408,
         vmin: float | None = None,
         vmax: float | None = None,
@@ -1356,7 +1360,7 @@ class Styler(StylerRenderer):
         )
         return self
 
-    def set_properties(self, subset=None, **kwargs) -> Styler:
+    def set_properties(self, subset: Subset | None = None, **kwargs) -> Styler:
         """
         Set defined CSS-properties to each ``<td>`` HTML element within the given
         subset.
@@ -1448,7 +1452,7 @@ class Styler(StylerRenderer):
 
     def bar(
         self,
-        subset=None,
+        subset: Subset | None = None,
         axis: Axis | None = 0,
         color="#d65f5f",
         width: float = 100,
@@ -1534,7 +1538,7 @@ class Styler(StylerRenderer):
     def highlight_null(
         self,
         null_color: str = "red",
-        subset: IndexLabel | None = None,
+        subset: Subset | None = None,
         props: str | None = None,
     ) -> Styler:
         """
@@ -1579,7 +1583,7 @@ class Styler(StylerRenderer):
 
     def highlight_max(
         self,
-        subset: IndexLabel | None = None,
+        subset: Subset | None = None,
         color: str = "yellow",
         axis: Axis | None = 0,
         props: str | None = None,
@@ -1628,7 +1632,7 @@ class Styler(StylerRenderer):
 
     def highlight_min(
         self,
-        subset: IndexLabel | None = None,
+        subset: Subset | None = None,
         color: str = "yellow",
         axis: Axis | None = 0,
         props: str | None = None,
@@ -1677,7 +1681,7 @@ class Styler(StylerRenderer):
 
     def highlight_between(
         self,
-        subset: IndexLabel | None = None,
+        subset: Subset | None = None,
         color: str = "yellow",
         axis: Axis | None = 0,
         left: Scalar | Sequence | None = None,
