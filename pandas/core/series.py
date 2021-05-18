@@ -223,10 +223,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     name : str, optional
         The name to give to the Series.
     copy : bool, default False
-        Copy input data. If False and the Series returns a `copy`
-        of the data, the memory location for the values is not shared.
-        If False and the Series returns a `view` on the data,
-        the memory location for the values is shared.
+        Copy input data. Only affects Series or 1d ndarray input. See examples.
 
     Examples
     --------
@@ -255,9 +252,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     After this the Series is reindexed with the given Index values, hence we
     get all NaN as a result.
     
-    Constructing Series from an array with `copy=False`.
-    
-    >>> r = [1,2]
+    Constructing Series from a list with `copy=False`.
+
+    >>> r = [1, 2]
     >>> ser = pd.Series(r, copy=False)
     >>> ser.iloc[0] = 999
     >>> r
@@ -266,13 +263,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     0    999
     1      2
     dtype: int64
-    
-    The Series returns a `copy` of the original data, so
-    the original data is unchanged.
-    
-    Constructing Series from a `numpy.array` with `copy=False`.
-    
-    >>> r = np.array([1,2])
+
+    Due to input data type the Series has a `copy` of the original data even though `copy=False`, so
+    the data is unchanged.
+
+    Constructing Series from a 1d ndarray with `copy=False`.
+
+    >>> r = np.array([1, 2])
     >>> ser = pd.Series(r, copy=False)
     >>> ser.iloc[0] = 999
     >>> r
@@ -281,9 +278,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     0    999
     1      2
     dtype: int32
-    
-    The Series returns a `view` on the original data, so
-    the original data is changed as well.
+
+    Due to input data type the Series has a `view` on the original data, so
+    the data is changed as well.
     """
 
     _typ = "series"
