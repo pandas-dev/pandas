@@ -2373,6 +2373,11 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
+        from pandas import (
+            DataFrame,
+            array as pd_array,
+        )
+
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
 
@@ -2384,7 +2389,38 @@ class StringMethods(NoNewAttributesMixin):
             raise ValueError("only one regex group is supported with Index")
 
         # TODO: dispatch
-        return str_extract(self, pat, flags, expand=expand)
+
+        obj = self._data
+        result_dtype = _result_dtype(obj)
+
+        returns_df = regex.groups > 1 or expand
+
+        if returns_df:
+            name = None
+            columns = _get_group_names(regex)
+
+            if obj.array.size == 0:
+                result = DataFrame(columns=columns, dtype=result_dtype)
+
+            else:
+                result_list = _str_extract_expand(obj.array, pat, flags=flags)
+
+                result_index: Optional["Index"]
+                if isinstance(obj, ABCSeries):
+                    result_index = obj.index
+                else:
+                    result_index = None
+
+                result = DataFrame(
+                    result_list, columns=columns, index=result_index, dtype=result_dtype
+                )
+
+        else:
+            name = _get_single_group_name(regex)
+            result_arr = _str_extract_noexpand(obj.array, pat, flags=flags)
+            # not dispatching, so we have to reconstruct here.
+            result = pd_array(result_arr, dtype=result_dtype)
+        return self._wrap_result(result, name=name)
 
     @forbid_nonstring_types(["bytes"])
     def extractall(self, pat, flags=0):
@@ -3122,45 +3158,6 @@ def _str_extract_expand(arr: ArrayLike, pat: str, flags: int = 0) -> List[List]:
     groups_or_na = _groups_or_na_fun(regex)
 
     return [groups_or_na(val) for val in np.asarray(arr)]
-
-
-def str_extract(accessor: StringMethods, pat: str, flags: int = 0, expand: bool = True):
-    from pandas import (
-        DataFrame,
-        array as pd_array,
-    )
-
-    obj = accessor._data
-    result_dtype = _result_dtype(obj)
-    regex = re.compile(pat, flags=flags)
-    returns_df = regex.groups > 1 or expand
-
-    if returns_df:
-        name = None
-        columns = _get_group_names(regex)
-
-        if obj.array.size == 0:
-            result = DataFrame(columns=columns, dtype=result_dtype)
-
-        else:
-            result_list = _str_extract_expand(obj.array, pat, flags=flags)
-
-            result_index: Optional["Index"]
-            if isinstance(obj, ABCSeries):
-                result_index = obj.index
-            else:
-                result_index = None
-
-            result = DataFrame(
-                result_list, columns=columns, index=result_index, dtype=result_dtype
-            )
-
-    else:
-        name = _get_single_group_name(regex)
-        result_arr = _str_extract_noexpand(obj.array, pat, flags=flags)
-        # not dispatching, so we have to reconstruct here.
-        result = pd_array(result_arr, dtype=result_dtype)
-    return accessor._wrap_result(result, name=name)
 
 
 def str_extractall(arr, pat, flags=0):
