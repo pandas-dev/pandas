@@ -1315,6 +1315,7 @@ def soft_convert_objects(
     datetime: bool = True,
     numeric: bool = True,
     timedelta: bool = True,
+    period: bool = True,
     copy: bool = True,
 ) -> ArrayLike:
     """
@@ -1327,6 +1328,7 @@ def soft_convert_objects(
     datetime : bool, default True
     numeric: bool, default True
     timedelta : bool, default True
+    period : bool, default True
     copy : bool, default True
 
     Returns
@@ -1348,7 +1350,10 @@ def soft_convert_objects(
         # bound of nanosecond-resolution 64-bit integers.
         try:
             converted = lib.maybe_convert_objects(
-                values, convert_datetime=datetime, convert_timedelta=timedelta
+                values,
+                convert_datetime=datetime,
+                convert_timedelta=timedelta,
+                convert_period=period,
             )
         except (OutOfBoundsDatetime, ValueError):
             return values
