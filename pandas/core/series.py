@@ -264,8 +264,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     1      2
     dtype: int64
 
-    Due to input data type the Series has a `copy` of the original data even though `copy=False`, so
-    the data is unchanged.
+    Due to input data type the Series has a `copy` of the original data 
+    even though `copy=False`, so the data is unchanged.
 
     Constructing Series from a 1d ndarray with `copy=False`.
 
