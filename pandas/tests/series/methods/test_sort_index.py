@@ -325,8 +325,10 @@ class TestSeriesSortIndexKey:
         # https://github.com/pandas-dev/pandas/issues/41485
         ser = Series([1, 2, 3])
         msg = (
-            r"Starting with Pandas version 2\.0 all arguments of sort_index "
-            r"except for the argument 'self' will be keyword-only"
+            r"In a future version of pandas all arguments of Series.sort_index "
+            r"will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser.sort_index(0)
+            result = ser.sort_index(0)
+        expected = Series([1, 2, 3])
+        tm.assert_series_equal(result, expected)
