@@ -1,10 +1,15 @@
+import importlib
+import sys
+
 import matplotlib
 import numpy as np
+import pkg_resources
 
 from pandas import (
     DataFrame,
     DatetimeIndex,
     Series,
+    __file__ as pd_file,
     date_range,
 )
 
@@ -12,6 +17,8 @@ try:
     from pandas.plotting import andrews_curves
 except ImportError:
     from pandas.tools.plotting import andrews_curves
+
+from pandas.plotting._core import _get_plot_backend
 
 matplotlib.use("Agg")
 
@@ -97,6 +104,31 @@ class Misc:
 
     def time_plot_andrews_curves(self):
         andrews_curves(self.df, "Name")
+
+
+class BackendLoading:
+    def setup(self):
+        dist = pkg_resources.get_distribution("pandas")
+        if dist.module_path not in pd_file:
+            # We are running from a non-installed pandas, and this benchmark is
+            # invalid
+            raise NotImplementedError("Testing a non-installed pandas")
+
+        spec = importlib.machinery.ModuleSpec("my_backend", None)
+        mod = importlib.util.module_from_spec(spec)
+        mod.plot = lambda *args, **kwargs: 1
+
+        backends = pkg_resources.get_entry_map("pandas")
+        my_entrypoint = pkg_resources.EntryPoint(
+            "pandas_plotting_backend", mod.__name__, dist=dist
+        )
+        backends["pandas_plotting_backends"][mod.__name__] = my_entrypoint
+        for i in range(1000):
+            backends["pandas_plotting_backends"][str(i)] = my_entrypoint
+        sys.modules["my_backend"] = mod
+
+    def time_get_plot_backend(self):
+        _get_plot_backend("my_backend")
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
