@@ -589,7 +589,7 @@ class Grouping:
     @property
     def codes(self) -> np.ndarray:
         if self._codes is not None:
-            # set in __init__
+            # _codes is set in __init__ for MultiIndex cases
             return self._codes
 
         return self._codes_and_uniques[0]
@@ -614,7 +614,7 @@ class Grouping:
     @cache_readonly
     def group_index(self) -> Index:
         if self._group_index is not None:
-            # set in __init__
+            # _group_index is set in __init__ for MultiIndex cases
             return self._group_index
         uniques = self.group_arraylike
         return Index(uniques, name=self.name)
