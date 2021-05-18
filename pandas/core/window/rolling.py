@@ -111,6 +111,7 @@ class BaseWindow(SelectionMixin):
 
     _attributes: list[str] = []
     exclusions: frozenset[Hashable] = frozenset()
+    _on: Index
 
     def __init__(
         self,
@@ -169,7 +170,7 @@ class BaseWindow(SelectionMixin):
         return self._win_type
 
     @property
-    def is_datetimelike(self):
+    def is_datetimelike(self) -> bool:
         warnings.warn(
             "is_datetimelike is deprecated and will be removed in a future version.",
             FutureWarning,
@@ -329,7 +330,7 @@ class BaseWindow(SelectionMixin):
         # expected "ndarray")
         return values  # type: ignore[return-value]
 
-    def _insert_on_column(self, result: DataFrame, obj: DataFrame):
+    def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:
         # if we have an 'on' column we want to put it back into
         # the results in the same location
         from pandas import Series

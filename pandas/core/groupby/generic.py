@@ -1105,8 +1105,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             # we get here in a number of test_multilevel tests
             for name in self.indices:
-                data = self.get_group(name, obj=obj)
-                fres = func(data, *args, **kwargs)
+                grp_df = self.get_group(name, obj=obj)
+                fres = func(grp_df, *args, **kwargs)
                 result[name] = fres
 
         result_index = self.grouper.result_index
