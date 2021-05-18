@@ -1638,3 +1638,12 @@ def test_groupy_regular_arithmetic_equivalent(meth):
 
     result = getattr(df.groupby(level=0), meth)(numeric_only=False)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("ts_value", [Timestamp("2000-01-01"), pd.NaT])
+def test_frame_mixed_numeric_object_with_timestamp(ts_value):
+    # GH 13912
+    df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
+    result = df.sum()
+    expected = Series([1, 1.1, "foo"], index=list("abc"))
+    tm.assert_series_equal(result, expected)

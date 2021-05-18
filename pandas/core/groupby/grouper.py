@@ -438,20 +438,22 @@ class Grouping:
       * groups : dict of {group -> label_list}
     """
 
+    _codes: np.ndarray | None = None
+    _group_index: Index | None = None
+
     def __init__(
         self,
         index: Index,
         grouper=None,
         obj: FrameOrSeries | None = None,
-        name: Hashable = None,
         level=None,
         sort: bool = True,
         observed: bool = False,
         in_axis: bool = False,
         dropna: bool = True,
     ):
-        self.name = name
         self.level = level
+        self._orig_grouper = grouper
         self.grouper = _convert_grouper(index, grouper)
         self.all_grouper = None
         self.index = index
@@ -461,27 +463,18 @@ class Grouping:
         self.in_axis = in_axis
         self.dropna = dropna
 
-        # right place for this?
-        if isinstance(grouper, (Series, Index)) and name is None:
-            self.name = grouper.name
+        self._passed_categorical = False
 
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
 
-        if level is not None:
-            if not isinstance(level, int):
-                if level not in index.names:
-                    raise AssertionError(f"Level {level} not in index")
-                level = index.names.index(level)
-
-            if self.name is None:
-                self.name = index.names[level]
-
+        ilevel = self._ilevel
+        if ilevel is not None:
             (
-                self.grouper,
+                self.grouper,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(self.grouper, level)
+            ) = index._get_grouper_for_level(self.grouper, ilevel)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -490,68 +483,50 @@ class Grouping:
             # what key/level refer to exactly, don't need to
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
-            _, grouper, _ = self.grouper._get_grouper(
+            _, newgrouper, newobj = self.grouper._get_grouper(
                 # error: Value of type variable "FrameOrSeries" of "_get_grouper"
                 # of "Grouper" cannot be "Optional[FrameOrSeries]"
                 self.obj,  # type: ignore[type-var]
                 validate=False,
             )
-            if self.name is None:
-                self.name = grouper.result_index.name
-            self.obj = self.grouper.obj
-            self.grouper = grouper._get_grouper()
+            self.obj = newobj
 
-        else:
+            ng = newgrouper._get_grouper()
+            if isinstance(newgrouper, ops.BinGrouper):
+                # in this case we have `ng is newgrouper`
+                self.grouper = ng
+            else:
+                # ops.BaseGrouper
+                # use Index instead of ndarray so we can recover the name
+                self.grouper = Index(ng, name=newgrouper.result_index.name)
 
+        elif is_categorical_dtype(self.grouper):
             # a passed Categorical
-            if is_categorical_dtype(self.grouper):
+            self._passed_categorical = True
 
-                self.grouper, self.all_grouper = recode_for_groupby(
-                    self.grouper, self.sort, observed
-                )
-                categories = self.grouper.categories
+            self.grouper, self.all_grouper = recode_for_groupby(
+                self.grouper, self.sort, observed
+            )
 
-                # we make a CategoricalIndex out of the cat grouper
-                # preserving the categories / ordered attributes
-                self._codes = self.grouper.codes
-                if observed:
-                    codes = algorithms.unique1d(self.grouper.codes)
-                    codes = codes[codes != -1]
-                    if sort or self.grouper.ordered:
-                        codes = np.sort(codes)
-                else:
-                    codes = np.arange(len(categories))
-
-                self._group_index = CategoricalIndex(
-                    Categorical.from_codes(
-                        codes=codes, categories=categories, ordered=self.grouper.ordered
-                    ),
-                    name=self.name,
-                )
-
-            # we are done
-            elif isinstance(self.grouper, Grouping):
-                self.grouper = self.grouper.grouper
-
+        elif not isinstance(self.grouper, (Series, Index, ExtensionArray, np.ndarray)):
             # no level passed
-            elif not isinstance(
-                self.grouper, (Series, Index, ExtensionArray, np.ndarray)
+            if getattr(self.grouper, "ndim", 1) != 1:
+                t = self.name or str(type(self.grouper))
+                raise ValueError(f"Grouper for '{t}' not 1-dimensional")
+
+            self.grouper = self.index.map(self.grouper)
+
+            if not (
+                hasattr(self.grouper, "__len__")
+                and len(self.grouper) == len(self.index)
             ):
-                if getattr(self.grouper, "ndim", 1) != 1:
-                    t = self.name or str(type(self.grouper))
-                    raise ValueError(f"Grouper for '{t}' not 1-dimensional")
-                self.grouper = self.index.map(self.grouper)
-                if not (
-                    hasattr(self.grouper, "__len__")
-                    and len(self.grouper) == len(self.index)
-                ):
-                    grper = pprint_thing(self.grouper)
-                    errmsg = (
-                        "Grouper result violates len(labels) == "
-                        f"len(data)\nresult: {grper}"
-                    )
-                    self.grouper = None  # Try for sanity
-                    raise AssertionError(errmsg)
+                grper = pprint_thing(self.grouper)
+                errmsg = (
+                    "Grouper result violates len(labels) == "
+                    f"len(data)\nresult: {grper}"
+                )
+                self.grouper = None  # Try for sanity
+                raise AssertionError(errmsg)
 
         if isinstance(self.grouper, np.ndarray):
             # if we have a date/time-like grouper, make sure that we have
@@ -564,8 +539,38 @@ class Grouping:
     def __iter__(self):
         return iter(self.indices)
 
-    _codes: np.ndarray | None = None
-    _group_index: Index | None = None
+    @cache_readonly
+    def name(self) -> Hashable:
+        ilevel = self._ilevel
+        if ilevel is not None:
+            return self.index.names[ilevel]
+
+        if isinstance(self._orig_grouper, (Index, Series)):
+            return self._orig_grouper.name
+
+        elif isinstance(self.grouper, ops.BaseGrouper):
+            return self.grouper.result_index.name
+
+        elif isinstance(self.grouper, Index):
+            return self.grouper.name
+
+        # otherwise we have ndarray or ExtensionArray -> no name
+        return None
+
+    @cache_readonly
+    def _ilevel(self) -> int | None:
+        """
+        If necessary, converted index level name to index level position.
+        """
+        level = self.level
+        if level is None:
+            return None
+        if not isinstance(level, int):
+            index = self.index
+            if level not in index.names:
+                raise AssertionError(f"Level {level} not in index")
+            return index.names.index(level)
+        return level
 
     @property
     def ngroups(self) -> int:
@@ -582,6 +587,12 @@ class Grouping:
 
     @property
     def codes(self) -> np.ndarray:
+        if self._passed_categorical:
+            # we make a CategoricalIndex out of the cat grouper
+            # preserving the categories / ordered attributes
+            cat = self.grouper
+            return cat.codes
+
         if self._codes is None:
             self._make_codes()
         # error: Incompatible return value type (got "Optional[ndarray]",
@@ -592,12 +603,33 @@ class Grouping:
     def result_index(self) -> Index:
         if self.all_grouper is not None:
             group_idx = self.group_index
-            assert isinstance(group_idx, CategoricalIndex)  # set in __init__
+            assert isinstance(group_idx, CategoricalIndex)
             return recode_from_groupby(self.all_grouper, self.sort, group_idx)
         return self.group_index
 
-    @property
+    @cache_readonly
     def group_index(self) -> Index:
+        if self._passed_categorical:
+            # we make a CategoricalIndex out of the cat grouper
+            # preserving the categories / ordered attributes
+            cat = self.grouper
+            categories = cat.categories
+
+            if self.observed:
+                codes = algorithms.unique1d(cat.codes)
+                codes = codes[codes != -1]
+                if self.sort or cat.ordered:
+                    codes = np.sort(codes)
+            else:
+                codes = np.arange(len(categories))
+
+            return CategoricalIndex(
+                Categorical.from_codes(
+                    codes=codes, categories=categories, ordered=cat.ordered
+                ),
+                name=self.name,
+            )
+
         if self._group_index is None:
             self._make_codes()
         assert self._group_index is not None
@@ -793,25 +825,29 @@ def get_grouper(
     for gpr, level in zip(keys, levels):
 
         if is_in_obj(gpr):  # df.groupby(df['name'])
-            in_axis, name = True, gpr.name
-            exclusions.add(name)
+            in_axis = True
+            exclusions.add(gpr.name)
 
         elif is_in_axis(gpr):  # df.groupby('name')
             if gpr in obj:
                 if validate:
                     obj._check_label_or_level_ambiguity(gpr, axis=axis)
                 in_axis, name, gpr = True, gpr, obj[gpr]
+                if gpr.ndim != 1:
+                    # non-unique columns; raise here to get the name in the
+                    # exception message
+                    raise ValueError(f"Grouper for '{name}' not 1-dimensional")
                 exclusions.add(name)
             elif obj._is_level_reference(gpr, axis=axis):
-                in_axis, name, level, gpr = False, None, gpr, None
+                in_axis, level, gpr = False, gpr, None
             else:
                 raise KeyError(gpr)
         elif isinstance(gpr, Grouper) and gpr.key is not None:
             # Add key to exclusions
             exclusions.add(gpr.key)
-            in_axis, name = False, None
+            in_axis = False
         else:
-            in_axis, name = False, None
+            in_axis = False
 
         if is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:
             raise ValueError(
@@ -826,7 +862,6 @@ def get_grouper(
                 group_axis,
                 gpr,
                 obj=obj,
-                name=name,
                 level=level,
                 sort=sort,
                 observed=observed,
