@@ -51,6 +51,7 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._validators import (
@@ -5255,6 +5256,16 @@ Keep all original rows and also all original values
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_period"
         )
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def ffill(
+        self: Series,
+        axis: None | Axis = None,
+        inplace: bool = False,
+        limit: None | int = None,
+        downcast=None,
+    ) -> Series | None:
+        return super().ffill(axis, inplace, limit, downcast)
 
     # ----------------------------------------------------------------------
     # Add index
