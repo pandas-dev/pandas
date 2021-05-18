@@ -9078,7 +9078,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         name="where",
         name_other="mask",
     )
-    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self", "labels"])
+    @deprecate_nonkeyword_arguments(
+        version="2.0", allowed_args=["self", "cond", "other"]
+    )
     def where(
         self,
         cond,
