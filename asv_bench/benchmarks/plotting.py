@@ -107,6 +107,10 @@ class Misc:
 
 
 class BackendLoading:
+    repeat = 1
+    number = 1
+    warmup_time = 0
+
     def setup(self):
         dist = pkg_resources.get_distribution("pandas")
         if dist.module_path not in pd_file:
