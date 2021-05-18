@@ -15,7 +15,10 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import FrameOrSeriesUnion
+from pandas._typing import (
+    ArrayLike,
+    FrameOrSeriesUnion,
+)
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -1170,7 +1173,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        Series/array of boolean values
+        Series/Index/array of boolean values
 
         See Also
         --------
@@ -1197,14 +1200,14 @@ class StringMethods(NoNewAttributesMixin):
             If True, case sensitive.
         flags : int, default 0 (no flags)
             Regex module flags, e.g. re.IGNORECASE.
-        na : scalar, optional.
+        na : scalar, optional
             Fill value for missing values. The default depends on dtype of the
             array. For object-dtype, ``numpy.nan`` is used. For ``StringDtype``,
             ``pandas.NA`` is used.
 
         Returns
         -------
-        Series/array of boolean values
+        Series/Index/array of boolean values
 
         See Also
         --------
@@ -3031,22 +3034,6 @@ def cat_core(list_of_columns: List, sep: str):
     return np.sum(arr_with_sep, axis=0)
 
 
-def _groups_or_na_fun(regex):
-    """Used in both extract_noexpand and extract_frame"""
-    empty_row = [np.nan] * regex.groups
-
-    def f(x):
-        if not isinstance(x, str):
-            return empty_row
-        m = regex.search(x)
-        if m:
-            return [np.nan if item is None else item for item in m.groups()]
-        else:
-            return empty_row
-
-    return f
-
-
 def _result_dtype(arr):
     # workaround #27953
     # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
@@ -3084,84 +3071,70 @@ def _get_group_names(regex: Pattern) -> List[Hashable]:
     return [names.get(1 + i, i) for i in range(regex.groups)]
 
 
-def _str_extract_noexpand(arr, pat, flags=0):
+def _str_extract(arr: ArrayLike, pat: str, flags=0, expand: bool = True):
     """
-    Find groups in each string in the Series using passed regular
-    expression. This function is called from
-    str_extract(expand=False), and can return Series, DataFrame, or
-    Index.
+    Find groups in each string in the array using passed regular expression.
 
+    Returns
+    -------
+    np.ndarray or list of lists is expand is True
     """
+    regex = re.compile(pat, flags=flags)
+
+    empty_row = [np.nan] * regex.groups
+
+    def f(x):
+        if not isinstance(x, str):
+            return empty_row
+        m = regex.search(x)
+        if m:
+            return [np.nan if item is None else item for item in m.groups()]
+        else:
+            return empty_row
+
+    if expand:
+        return [f(val) for val in np.asarray(arr)]
+
+    return np.array([f(val)[0] for val in np.asarray(arr)], dtype=object)
+
+
+def str_extract(accessor: StringMethods, pat: str, flags: int = 0, expand: bool = True):
     from pandas import (
         DataFrame,
         array as pd_array,
     )
 
+    obj = accessor._data
+    result_dtype = _result_dtype(obj)
     regex = re.compile(pat, flags=flags)
-    groups_or_na = _groups_or_na_fun(regex)
-    result_dtype = _result_dtype(arr)
+    returns_df = regex.groups > 1 or expand
 
-    if regex.groups == 1:
-        result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
-        name = _get_single_group_name(regex)
-        # not dispatching, so we have to reconstruct here.
-        result = pd_array(result, dtype=result_dtype)
-    else:
+    if returns_df:
         name = None
         columns = _get_group_names(regex)
-        if arr.size == 0:
-            # error: Incompatible types in assignment (expression has type
-            # "DataFrame", variable has type "ndarray")
-            result = DataFrame(  # type: ignore[assignment]
-                columns=columns, dtype=result_dtype
-            )
+
+        if obj.array.size == 0:
+            result = DataFrame(columns=columns, dtype=result_dtype)
+
         else:
-            # error: Incompatible types in assignment (expression has type
-            # "DataFrame", variable has type "ndarray")
-            result = DataFrame(  # type:ignore[assignment]
-                [groups_or_na(val) for val in arr],
-                columns=columns,
-                index=arr.index,
-                dtype=result_dtype,
+            result_list = _str_extract(obj.array, pat, flags=flags, expand=returns_df)
+
+            result_index: Optional["Index"]
+            if isinstance(obj, ABCSeries):
+                result_index = obj.index
+            else:
+                result_index = None
+
+            result = DataFrame(
+                result_list, columns=columns, index=result_index, dtype=result_dtype
             )
-    return result, name
 
-
-def _str_extract_frame(arr, pat, flags=0):
-    """
-    For each subject string in the Series, extract groups from the
-    first match of regular expression pat. This function is called from
-    str_extract(expand=True), and always returns a DataFrame.
-
-    """
-    from pandas import DataFrame
-
-    regex = re.compile(pat, flags=flags)
-    groups_or_na = _groups_or_na_fun(regex)
-    columns = _get_group_names(regex)
-    result_dtype = _result_dtype(arr)
-
-    if len(arr) == 0:
-        return DataFrame(columns=columns, dtype=result_dtype)
-    try:
-        result_index = arr.index
-    except AttributeError:
-        result_index = None
-    return DataFrame(
-        [groups_or_na(val) for val in arr],
-        columns=columns,
-        index=result_index,
-        dtype=result_dtype,
-    )
-
-
-def str_extract(arr, pat, flags=0, expand=True):
-    if expand:
-        result = _str_extract_frame(arr._orig, pat, flags=flags)
-        return result.__finalize__(arr._orig, method="str_extract")
     else:
-        result, name = _str_extract_noexpand(arr._orig, pat, flags=flags)
-        return arr._wrap_result(result, name=name, expand=expand)
+        name = _get_single_group_name(regex)
+        result_arr = _str_extract(obj.array, pat, flags=flags, expand=returns_df)
+        # not dispatching, so we have to reconstruct here.
+        result = pd_array(result_arr, dtype=result_dtype)
+    return accessor._wrap_result(result, name=name)
 
 
 def str_extractall(arr, pat, flags=0):
