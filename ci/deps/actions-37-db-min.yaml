@@ -31,7 +31,8 @@ dependencies:
   - openpyxl
   - pandas-gbq
   - google-cloud-bigquery>=1.27.2 # GH 36436
-  - pyarrow=0.17 # GH 38803
+  - protobuf>=3.12.4
+  - pyarrow=0.17.1 # GH 38803
   - pytables>=3.5.1
   - scipy
   - xarray=0.12.3
