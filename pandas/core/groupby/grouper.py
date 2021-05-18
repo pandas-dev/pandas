@@ -287,7 +287,7 @@ class Grouper:
 
     @final
     @property
-    def ax(self) -> Index | None:
+    def ax(self):
         return self.grouper
 
     def _get_grouper(self, obj: FrameOrSeries, validate: bool = True):
