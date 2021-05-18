@@ -933,3 +933,30 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         else:
             result = pc.utf8_rtrim(self._data, characters=to_strip)
         return type(self)(result)
+
+    def _str_get_dummies(self, sep="|"):
+        if pa_version_under4p0:
+            return super()._str_get_dummies(sep)
+
+        result = pc.split_pattern(self._data, pattern=sep)
+        valid = result.is_valid()
+        result = np.array(result)
+        result_valid = result[valid]
+        if not len(result_valid):
+            return np.empty((0, 0), dtype=np.int64), []
+        tags = sorted(np.unique(np.concatenate(result_valid)))
+        dummies = np.empty((len(result), len(tags)), dtype=np.int64)
+        for i, tag in enumerate(tags):
+            match_equal = pc.equal(self._data, tag)
+            match_mid = pc.match_substring(self._data, sep + tag + sep)
+            match_start = pc.match_substring_regex(
+                self._data, "^" + tag + re.escape(sep)
+            )
+            match_end = pc.match_substring_regex(self._data, re.escape(sep) + tag + "$")
+            match = pc.or_(
+                pc.or_(pc.or_(match_start, match_end), match_mid), match_equal
+            )
+            casted = match.cast(pa.int64())
+            filled = pc.fill_null(casted, 0)
+            dummies[:, i] = filled
+        return dummies, tags
