@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 
 from pandas._typing import (
+    ArrayLike,
     FrameOrSeries,
     final,
 )
@@ -587,20 +588,23 @@ class Grouping:
 
     @property
     def codes(self) -> np.ndarray:
-        if self._passed_categorical:
-            # we make a CategoricalIndex out of the cat grouper
-            # preserving the categories / ordered attributes
-            cat = self.grouper
-            return cat.codes
+        if self._codes is not None:
+            # _codes is set in __init__ for MultiIndex cases
+            return self._codes
 
-        if self._codes is None:
-            self._make_codes()
-        # error: Incompatible return value type (got "Optional[ndarray]",
-        # expected "ndarray")
-        return self._codes  # type: ignore[return-value]
+        return self._codes_and_uniques[0]
+
+    @cache_readonly
+    def group_arraylike(self) -> ArrayLike:
+        """
+        Analogous to result_index, but holding an ArrayLike to ensure
+        we can can retain ExtensionDtypes.
+        """
+        return self._codes_and_uniques[1]
 
     @cache_readonly
     def result_index(self) -> Index:
+        # TODO: what's the difference between result_index vs group_index?
         if self.all_grouper is not None:
             group_idx = self.group_index
             assert isinstance(group_idx, CategoricalIndex)
@@ -609,6 +613,14 @@ class Grouping:
 
     @cache_readonly
     def group_index(self) -> Index:
+        if self._group_index is not None:
+            # _group_index is set in __init__ for MultiIndex cases
+            return self._group_index
+        uniques = self.group_arraylike
+        return Index(uniques, name=self.name)
+
+    @cache_readonly
+    def _codes_and_uniques(self) -> tuple[np.ndarray, ArrayLike]:
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes
@@ -616,33 +628,22 @@ class Grouping:
             categories = cat.categories
 
             if self.observed:
-                codes = algorithms.unique1d(cat.codes)
-                codes = codes[codes != -1]
+                ucodes = algorithms.unique1d(cat.codes)
+                ucodes = ucodes[ucodes != -1]
                 if self.sort or cat.ordered:
-                    codes = np.sort(codes)
+                    ucodes = np.sort(ucodes)
             else:
-                codes = np.arange(len(categories))
+                ucodes = np.arange(len(categories))
 
-            return CategoricalIndex(
-                Categorical.from_codes(
-                    codes=codes, categories=categories, ordered=cat.ordered
-                ),
-                name=self.name,
+            uniques = Categorical.from_codes(
+                codes=ucodes, categories=categories, ordered=cat.ordered
             )
+            return cat.codes, uniques
 
-        if self._group_index is None:
-            self._make_codes()
-        assert self._group_index is not None
-        return self._group_index
-
-    def _make_codes(self) -> None:
-        if self._codes is not None and self._group_index is not None:
-            return
-
-        # we have a list of groupers
-        if isinstance(self.grouper, ops.BaseGrouper):
+        elif isinstance(self.grouper, ops.BaseGrouper):
+            # we have a list of groupers
             codes = self.grouper.codes_info
-            uniques = self.grouper.result_index
+            uniques = self.grouper.result_arraylike
         else:
             # GH35667, replace dropna=False with na_sentinel=None
             if not self.dropna:
@@ -652,9 +653,7 @@ class Grouping:
             codes, uniques = algorithms.factorize(
                 self.grouper, sort=self.sort, na_sentinel=na_sentinel
             )
-            uniques = Index(uniques, name=self.name)
-        self._codes = codes
-        self._group_index = uniques
+        return codes, uniques
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:

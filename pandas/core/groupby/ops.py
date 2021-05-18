@@ -908,6 +908,19 @@ class BaseGrouper:
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
 
     @cache_readonly
+    def result_arraylike(self) -> ArrayLike:
+        """
+        Analogous to result_index, but returning an ndarray/ExtensionArray
+        allowing us to retain ExtensionDtypes not supported by Index.
+        """
+        # TODO: once Index supports arbitrary EAs, this can be removed in favor
+        #  of result_index
+        if len(self.groupings) == 1:
+            return self.groupings[0].group_arraylike
+
+        return self.result_index._values
+
+    @cache_readonly
     def result_index(self) -> Index:
         if len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
@@ -919,7 +932,7 @@ class BaseGrouper:
         )
 
     @final
-    def get_group_levels(self) -> list[Index]:
+    def get_group_levels(self) -> list[ArrayLike]:
         # Note: only called from _insert_inaxis_grouper_inplace, which
         #  is only called for BaseGrouper, never for BinGrouper
         if len(self.groupings) == 1:
