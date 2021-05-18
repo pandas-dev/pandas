@@ -171,8 +171,10 @@ class TestDataFrameClip:
         # https://github.com/pandas-dev/pandas/issues/41485
         df = DataFrame({"a": [1, 2, 3]})
         msg = (
-            r"Starting with Pandas version 2\.0 all arguments of clip except "
-            r"for the arguments 'self', 'lower' and 'upper' will be keyword-only"
+            r"In a future version of pandas all arguments of DataFrame.clip except "
+            r"for the arguments 'lower' and 'upper' will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.clip(0, 1, 0)
+            result = df.clip(0, 1, 0)
+        expected = DataFrame({"a": [1, 1, 1]})
+        tm.assert_frame_equal(result, expected)

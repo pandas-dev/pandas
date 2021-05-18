@@ -51,6 +51,7 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._validators import (
@@ -5255,6 +5256,20 @@ Keep all original rows and also all original values
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_period"
         )
+
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "lower", "upper"]
+    )
+    def clip(
+        self: Series,
+        lower=None,
+        upper=None,
+        axis: Axis | None = None,
+        inplace: bool = False,
+        *args,
+        **kwargs,
+    ) -> Series | None:
+        return super().clip(lower, upper, axis, inplace, *args, **kwargs)
 
     # ----------------------------------------------------------------------
     # Add index

@@ -132,8 +132,10 @@ class TestSeriesClip:
         # https://github.com/pandas-dev/pandas/issues/41485
         ser = Series([1, 2, 3])
         msg = (
-            r"Starting with Pandas version 2\.0 all arguments of clip except "
-            r"for the arguments 'self', 'lower' and 'upper' will be keyword-only"
+            r"In a future version of pandas all arguments of Series.clip except "
+            r"for the arguments 'lower' and 'upper' will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser.clip(0, 1, 0)
+            result = ser.clip(0, 1, 0)
+        expected = Series([1, 1, 1])
+        tm.assert_series_equal(result, expected)
