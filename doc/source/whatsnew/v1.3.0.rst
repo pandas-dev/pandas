@@ -653,7 +653,7 @@ Deprecations
 
 Deprecated Dropping Nuisance Columns in DataFrame Reductions and DataFrameGroupBy Operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-When calling a reduction (.min, .max, .sum, ...) on a :class:`DataFrame` with
+The default of calling a reduction (.min, .max, .sum, ...) on a :class:`DataFrame` with
 ``numeric_only=None`` (the default, columns on which the reduction raises ``TypeError``
 are silently ignored and dropped from the result.
 
