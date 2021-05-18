@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import types
 from typing import (
     TYPE_CHECKING,
     Sequence,
@@ -1727,7 +1728,7 @@ class PlotAccessor(PandasObject):
         return self(kind="hexbin", x=x, y=y, C=C, **kwargs)
 
 
-_backends = {}
+_backends: dict[str, types.ModuleType] = {}
 
 
 def _load_backend(backend: str):
@@ -1745,19 +1746,19 @@ def _load_backend(backend: str):
     types.ModuleType
         The imported backend.
     """
+    module: types.ModuleType | None = None
+
     if backend == "matplotlib":
         # Because matplotlib is an optional dependency and first-party backend,
         # we need to attempt an import here to raise an ImportError if needed.
         try:
-            import pandas.plotting._matplotlib as module
+            module = __import__("pandas.plotting._matplotlib")
         except ImportError:
             raise ImportError(
                 "matplotlib is required for plotting when the "
                 'default backend "matplotlib" is selected.'
             ) from None
         return module
-
-    module = None
 
     for entry_point in pkg_resources.iter_entry_points("pandas_plotting_backends"):
         if entry_point.name == backend:
