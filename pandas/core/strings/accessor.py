@@ -1170,7 +1170,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        Series/array of boolean values
+        Series/Index/array of boolean values
 
         See Also
         --------
@@ -1197,14 +1197,14 @@ class StringMethods(NoNewAttributesMixin):
             If True, case sensitive.
         flags : int, default 0 (no flags)
             Regex module flags, e.g. re.IGNORECASE.
-        na : scalar, optional.
+        na : scalar, optional
             Fill value for missing values. The default depends on dtype of the
             array. For object-dtype, ``numpy.nan`` is used. For ``StringDtype``,
             ``pandas.NA`` is used.
 
         Returns
         -------
-        Series/array of boolean values
+        Series/Index/array of boolean values
 
         See Also
         --------
@@ -3101,7 +3101,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
     groups_or_na = _groups_or_na_fun(regex)
     result_dtype = _result_dtype(arr)
 
-    result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
+    result = np.array([groups_or_na(val)[0] for val in np.asarray(arr)], dtype=object)
     # not dispatching, so we have to reconstruct here.
     result = pd_array(result, dtype=result_dtype)
     return result
@@ -3136,7 +3136,7 @@ def _str_extract_frame(arr, pat, flags=0):
     else:
         result_index = None
     return DataFrame(
-        [groups_or_na(val) for val in arr],
+        [groups_or_na(val) for val in np.asarray(arr)],
         columns=columns,
         index=result_index,
         dtype=result_dtype,
