@@ -144,11 +144,14 @@ def test_split_blank_string(any_string_dtype):
 
 def test_split_noargs(any_string_dtype):
     # #1859
+    expected = ["Travis", "Oliphant"]
+
     s = Series(["Wes McKinney", "Travis  Oliphant"], dtype=any_string_dtype)
     result = s.str.split()
-    expected = ["Travis", "Oliphant"]
     assert result[1] == expected
-    result = s.str.rsplit()
+
+    s = Series(["Wes McKinney", "Travis  Oliphant", np.nan], dtype=any_string_dtype)
+    result = s.str.split()
     assert result[1] == expected
 
 
