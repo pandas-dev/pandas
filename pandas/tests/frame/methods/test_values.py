@@ -259,13 +259,17 @@ class TestPrivateValues:
         df2 = df - df
         tm.assert_equal(df2._values, tda)
 
-    def test_private_values_dt64_multiblock(self):
+    def test_private_values_dt64_multiblock(self, using_array_manager, request):
+        if using_array_manager:
+            mark = pytest.mark.xfail(reason="returns ndarray")
+            request.node.add_marker(mark)
+
         dta = date_range("2000", periods=8)._data
 
         df = DataFrame({"A": dta[:4]}, copy=False)
         df["B"] = dta[4:]
 
-        assert df._mgr.nblocks == 2
+        assert len(df._mgr.arrays) == 2
 
         result = df._values
         expected = dta.reshape(2, 4).T
