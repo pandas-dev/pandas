@@ -6386,19 +6386,18 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
     return name
 
 
-def _maybe_cast_data_without_dtype(subarr):
+def _maybe_cast_data_without_dtype(subarr: np.ndarray) -> ArrayLike:
     """
     If we have an arraylike input but no passed dtype, try to infer
     a supported dtype.
 
     Parameters
     ----------
-    subarr : np.ndarray, Index, or Series
+    subarr : np.ndarray[object]
 
     Returns
     -------
-    converted : np.ndarray or ExtensionArray
-    dtype : np.dtype or ExtensionDtype
+    np.ndarray or ExtensionArray
     """
     # Runtime import needed bc IntervalArray imports Index
     from pandas.core.arrays import (
@@ -6413,11 +6412,7 @@ def _maybe_cast_data_without_dtype(subarr):
 
     if inferred == "integer":
         try:
-            # error: Argument 3 to "_try_convert_to_int_array" has incompatible type
-            # "None"; expected "dtype[Any]"
-            data = _try_convert_to_int_array(
-                subarr, False, None  # type: ignore[arg-type]
-            )
+            data = _try_convert_to_int_array(subarr)
             return data
         except ValueError:
             pass
@@ -6463,18 +6458,13 @@ def _maybe_cast_data_without_dtype(subarr):
     return subarr
 
 
-def _try_convert_to_int_array(
-    data: np.ndarray, copy: bool, dtype: np.dtype
-) -> np.ndarray:
+def _try_convert_to_int_array(data: np.ndarray) -> np.ndarray:
     """
     Attempt to convert an array of data into an integer array.
 
     Parameters
     ----------
-    data : The data to convert.
-    copy : bool
-        Whether to copy the data or not.
-    dtype : np.dtype
+    data : np.ndarray[object]
 
     Returns
     -------
@@ -6484,22 +6474,19 @@ def _try_convert_to_int_array(
     ------
     ValueError if the conversion was not successful.
     """
-    if not is_unsigned_integer_dtype(dtype):
-        # skip int64 conversion attempt if uint-like dtype is passed, as
-        # this could return Int64Index when UInt64Index is what's desired
-        try:
-            res = data.astype("i8", copy=False)
-            if (res == data).all():
-                return res  # TODO: might still need to copy
-        except (OverflowError, TypeError, ValueError):
-            pass
+    try:
+        res = data.astype("i8", copy=False)
+        if (res == data).all():
+            return res
+    except (OverflowError, TypeError, ValueError):
+        pass
 
-    # Conversion to int64 failed (possibly due to overflow) or was skipped,
+    # Conversion to int64 failed (possibly due to overflow),
     # so let's try now with uint64.
     try:
         res = data.astype("u8", copy=False)
         if (res == data).all():
-            return res  # TODO: might still need to copy
+            return res
     except (OverflowError, TypeError, ValueError):
         pass
 
