@@ -916,22 +916,11 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         else:
             result = pc.split_pattern(self._data, pattern=pat, max_splits=n)
 
-        if result.null_count:
-            mask = np.array(result.is_null())
-            result = np.array(result)
-            result[mask] = self.dtype.na_value
-            if not expand:
-                # we need to loop through to avoid numpy indexing assignment errors when
-                # the result is not a ragged array and interpreted as a 2 dimensional
-                # array
-                for idx in np.argwhere(~mask):
-                    idx = idx[0]
-                    result[idx] = result[idx].tolist()
-        else:
-            result = np.array(result)
-            if not expand:
-                for i, val in enumerate(result):
-                    result[i] = val.tolist()
+        result = np.array(result)
+        if not expand:
+            result = ObjectStringArrayMixin._str_map(
+                result, lambda x: x.tolist(), na_value=self.dtype.na_value, dtype=object
+            )
         return result
 
     def _str_strip(self, to_strip=None):
