@@ -907,6 +907,26 @@ class TestParquetPyArrow(Base):
         else:
             assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
+    @td.skip_if_no("pyarrow")
+    def test_read_write_attrs(self, pa):
+        df = pd.DataFrame({"a": [1]})
+        df.attrs = {"name": "my custom dataset"}
+        df.a.attrs = {
+            "long_name": "Description about data",
+            "nodata": -1,
+            "units": "metre",
+        }
+        with tm.ensure_clean() as path:
+            df.to_parquet(path)
+            result = read_parquet(path)
+
+        assert result.attrs == {"name": "my custom dataset"}
+        assert result["a"].attrs == {
+            "long_name": "Description about data",
+            "nodata": -1,
+            "units": "metre",
+        }
+
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):

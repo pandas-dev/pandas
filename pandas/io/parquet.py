@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import json
 import os
 from typing import (
     Any,
@@ -154,6 +155,32 @@ class PyArrowImpl(BaseImpl):
 
         self.api = pyarrow
 
+    @staticmethod
+    def _write_attrs(table, df: DataFrame):
+        schema_metadata = table.schema.metadata or {}
+        pandas_metadata = json.loads(schema_metadata.get(b"pandas", "{}"))
+        column_attrs = {}
+        for col in df.columns:
+            attrs = df[col].attrs
+            if not attrs or not isinstance(col, str):
+                continue
+            column_attrs[col] = attrs
+        pandas_metadata.update(
+            attrs=df.attrs,
+            column_attrs=column_attrs,
+        )
+        schema_metadata[b"pandas"] = json.dumps(pandas_metadata)
+        return table.replace_schema_metadata(schema_metadata)
+
+    @staticmethod
+    def _read_attrs(table, df: DataFrame):
+        schema_metadata = table.schema.metadata or {}
+        pandas_metadata = json.loads(schema_metadata.get(b"pandas", "{}"))
+        df.attrs = pandas_metadata.get("attrs", {})
+        col_attrs = pandas_metadata.get("column_attrs", {})
+        for col, attrs in col_attrs.items():
+            df[col].attrs = attrs
+
     def write(
         self,
         df: DataFrame,
@@ -171,6 +198,7 @@ class PyArrowImpl(BaseImpl):
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+        table = self._write_attrs(table, df)
 
         path_or_handle, handles, kwargs["filesystem"] = _get_path_or_handle(
             path,
@@ -236,9 +264,11 @@ class PyArrowImpl(BaseImpl):
             mode="rb",
         )
         try:
-            result = self.api.parquet.read_table(
+            table = self.api.parquet.read_table(
                 path_or_handle, columns=columns, **kwargs
-            ).to_pandas(**to_pandas_kwargs)
+            )
+            result = table.to_pandas(**to_pandas_kwargs)
+            self._read_attrs(table, result)
             if manager == "array":
                 result = result._as_manager("array", copy=False)
             return result
