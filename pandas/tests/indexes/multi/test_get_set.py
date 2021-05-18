@@ -345,6 +345,19 @@ def test_set_names_with_nlevel_1(inplace):
     tm.assert_index_equal(result, expected)
 
 
+def test_multi_set_names_pos_args_deprecation():
+    # GH#41485
+    idx = MultiIndex.from_product([["python", "cobra"], [2018, 2019]])
+
+    msg = (
+        "Starting with pandas version 2.0 all arguments of Index.set_names "
+        "except for the argument 'names' will be keyword-only"
+    )
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        idx.set_names(["kind", "year"], None)
+
+
 @pytest.mark.parametrize("ordered", [True, False])
 def test_set_levels_categorical(ordered):
     # GH13854

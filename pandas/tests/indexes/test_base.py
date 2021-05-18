@@ -1738,3 +1738,16 @@ def test_construct_from_memoryview(klass, extra_kwargs):
     result = klass(memoryview(np.arange(2000, 2005)), **extra_kwargs)
     expected = klass(range(2000, 2005), **extra_kwargs)
     tm.assert_index_equal(result, expected)
+
+
+def test_index_set_names_pos_args_deprecation():
+    # GH#41485
+    idx = Index([1, 2, 3, 4])
+
+    msg = (
+        "Starting with pandas version 2.0 all arguments of Index.set_names "
+        "except for the argument 'names' will be keyword-only"
+    )
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        idx.set_names("quarter", None)
