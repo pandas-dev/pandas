@@ -97,7 +97,6 @@ class RangeIndex(NumericIndex):
     _typ = "rangeindex"
     _engine_type = libindex.Int64Engine
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
-    _can_hold_na = False
     _range: range
 
     # --------------------------------------------------------------------
