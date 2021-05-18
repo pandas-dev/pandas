@@ -1021,11 +1021,9 @@ class TestDataFrameReplace:
             columns=["fname"],
         )
         assert set(df.fname.values) == set(d["fname"].keys())
-        # We don't support converting object -> specialized EA in
-        # replace yet.
-        expected = DataFrame(
-            {"fname": [d["fname"][k] for k in df.fname.values]}, dtype=object
-        )
+
+        expected = DataFrame({"fname": [d["fname"][k] for k in df.fname.values]})
+        assert expected.dtypes[0] == "Period[M]"
         result = df.replace(d)
         tm.assert_frame_equal(result, expected)
 
