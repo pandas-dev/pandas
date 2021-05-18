@@ -861,8 +861,10 @@ class TestSortValuesLevelAsStr:
         # https://github.com/pandas-dev/pandas/issues/41485
         df = DataFrame({"a": [1, 2, 3]})
         msg = (
-            r"Starting with Pandas version 2\.0 all arguments of sort_values except "
-            r"for the arguments 'self' and 'by' will be keyword-only"
+            r"In a future version of pandas all arguments of DataFrame\.sort_values "
+            r"except for the argument 'by' will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.sort_values("a", 0)
+            result = df.sort_values("a", 0)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
