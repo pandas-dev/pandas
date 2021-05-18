@@ -939,12 +939,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return super()._str_get_dummies(sep)
 
         result = pc.split_pattern(self._data, pattern=sep)
-        valid = result.is_valid()
-        result = np.array(result)
-        result_valid = result[valid]
-        if not len(result_valid):
-            return np.empty((0, 0), dtype=np.int64), []
-        tags = sorted(np.unique(np.concatenate(result_valid)))
+        uniques = pc.list_flatten(result).unique()
+        tags = uniques.take(pc.array_sort_indices(uniques)).to_pylist()
         dummies = np.empty((len(result), len(tags)), dtype=np.int64)
         for i, tag in enumerate(tags):
             match_equal = pc.equal(self._data, tag)
