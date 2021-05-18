@@ -50,15 +50,15 @@ def nancorr(
     mat: np.ndarray,  # const float64_t[:, :]
     cov: bool = False,
     minp=None,
-) -> np.ndarray: ...
+) -> np.ndarray: ...  # ndarray[float64_t, ndim=2]
 def nancorr_spearman(
     mat: np.ndarray,  # ndarray[float64_t, ndim=2]
     minp: int = 1,
-) -> np.ndarray: ...
+) -> np.ndarray: ...  # ndarray[float64_t, ndim=2]
 def nancorr_kendall(
     mat: np.ndarray,  # ndarray[float64_t, ndim=2]
     minp: int = 1,
-) -> np.ndarray: ...
+) -> np.ndarray: ...  # ndarray[float64_t, ndim=2]
 
 # ----------------------------------------------------------------------
 
