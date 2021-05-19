@@ -586,7 +586,7 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
         ),
     ],
 )
-def test_rolling_window_as_string(center, expected_data, using_array_manager):
+def test_rolling_window_as_string(center, expected_data):
     # see gh-22590
     date_today = datetime.now()
     days = date_range(date_today, date_today + timedelta(365), freq="D")
@@ -602,9 +602,7 @@ def test_rolling_window_as_string(center, expected_data, using_array_manager):
     ].agg("max")
 
     index = days.rename("DateCol")
-    if not using_array_manager:
-        # INFO(ArrayManager) preserves the frequence of the index
-        index = index._with_freq(None)
+    index = index._with_freq(None)
     expected = Series(expected_data, index=index, name="metric")
     tm.assert_series_equal(result, expected)
 

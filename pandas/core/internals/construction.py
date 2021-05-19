@@ -57,6 +57,7 @@ from pandas.core import (
 )
 from pandas.core.arrays import (
     Categorical,
+    DatetimeArray,
     ExtensionArray,
     TimedeltaArray,
 )
@@ -116,7 +117,7 @@ def arrays_to_mgr(
     if verify_integrity:
         # figure out the index, if necessary
         if index is None:
-            index = extract_index(arrays)
+            index = _extract_index(arrays)
         else:
             index = ensure_index(index)
 
@@ -356,8 +357,8 @@ def ndarray_to_mgr(
         if values.ndim == 2 and values.shape[0] != 1:
             # transpose and separate blocks
 
-            dvals_list = [maybe_infer_to_datetimelike(row) for row in values]
-            dvals_list = [ensure_block_shape(dval, 2) for dval in dvals_list]
+            dtlike_vals = [maybe_infer_to_datetimelike(row) for row in values]
+            dvals_list = [ensure_block_shape(dval, 2) for dval in dtlike_vals]
 
             # TODO: What about re-joining object columns?
             block_values = [
@@ -423,7 +424,7 @@ def dict_to_mgr(
         if index is None:
             # GH10856
             # raise ValueError if only scalars in dict
-            index = extract_index(arrays[~missing])
+            index = _extract_index(arrays[~missing])
         else:
             index = ensure_index(index)
 
@@ -515,7 +516,9 @@ def treat_as_nested(data) -> bool:
 
 
 def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
-    if isinstance(values, TimedeltaArray):
+    if isinstance(values, TimedeltaArray) or (
+        isinstance(values, DatetimeArray) and values.tz is None
+    ):
         # On older numpy, np.asarray below apparently does not call __array__,
         #  so nanoseconds get dropped.
         values = values._ndarray
@@ -541,15 +544,12 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
         # we could have a 1-dim or 2-dim list here
         # this is equiv of np.asarray, but does object conversion
         # and platform dtype preservation
-        try:
-            if is_list_like(values[0]):
-                values = np.array([convert(v) for v in values])
-            elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
-                # GH#21861
-                values = np.array([convert(v) for v in values])
-            else:
-                values = convert(values)
-        except (ValueError, TypeError):
+        if is_list_like(values[0]):
+            values = np.array([convert(v) for v in values])
+        elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
+            # GH#21861
+            values = np.array([convert(v) for v in values])
+        else:
             values = convert(values)
 
     else:
@@ -603,7 +603,7 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None):
     return homogenized
 
 
-def extract_index(data) -> Index:
+def _extract_index(data) -> Index:
     """
     Try to infer an Index from the passed data, raise ValueError on failure.
     """

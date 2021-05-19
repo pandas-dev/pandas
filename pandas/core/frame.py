@@ -101,6 +101,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     infer_dtype_from_object,
     is_1d_only_ea_dtype,
+    is_1d_only_ea_obj,
     is_bool_dtype,
     is_dataclass,
     is_datetime64_any_dtype,
@@ -139,7 +140,11 @@ from pandas.core.aggregation import (
 )
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     extract_array,
@@ -851,6 +856,39 @@ class DataFrame(NDFrame, OpsMixin):
         dtype = blocks[0].dtype
         # TODO(EA2D) special case would be unnecessary with 2D EAs
         return not is_1d_only_ea_dtype(dtype)
+
+    # error: Return type "Union[ndarray, DatetimeArray, TimedeltaArray]" of
+    # "_values" incompatible with return type "ndarray" in supertype "NDFrame"
+    @property
+    def _values(  # type: ignore[override]
+        self,
+    ) -> np.ndarray | DatetimeArray | TimedeltaArray:
+        """
+        Analogue to ._values that may return a 2D ExtensionArray.
+        """
+        self._consolidate_inplace()
+
+        mgr = self._mgr
+
+        if isinstance(mgr, ArrayManager):
+            if len(mgr.arrays) == 1 and not is_1d_only_ea_obj(mgr.arrays[0]):
+                # error: Item "ExtensionArray" of "Union[ndarray, ExtensionArray]"
+                # has no attribute "reshape"
+                return mgr.arrays[0].reshape(-1, 1)  # type: ignore[union-attr]
+            return self.values
+
+        blocks = mgr.blocks
+        if len(blocks) != 1:
+            return self.values
+
+        arr = blocks[0].values
+        if arr.ndim == 1:
+            # non-2D ExtensionArray
+            return self.values
+
+        # more generally, whatever we allow in NDArrayBackedExtensionBlock
+        arr = cast("np.ndarray | DatetimeArray | TimedeltaArray", arr)
+        return arr.T
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -3422,7 +3460,18 @@ topics/readRDS
         # construct the args
 
         dtypes = list(self.dtypes)
-        if self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0]):
+
+        if self._can_fast_transpose:
+            # Note: tests pass without this, but this improves perf quite a bit.
+            new_vals = self._values.T
+            if copy:
+                new_vals = new_vals.copy()
+
+            result = self._constructor(new_vals, index=self.columns, columns=self.index)
+
+        elif (
+            self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0])
+        ):
             # We have EAs with the same dtype. We can preserve that dtype in transpose.
             dtype = dtypes[0]
             arr_type = dtype.construct_array_type()
@@ -9890,8 +9939,9 @@ NaN 12.3   33.0
 
         def blk_func(values, axis=1):
             if isinstance(values, ExtensionArray):
-                if values.ndim == 2:
-                    # i.e. DatetimeArray, TimedeltaArray
+                if not is_1d_only_ea_obj(values) and not isinstance(
+                    self._mgr, ArrayManager
+                ):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
                 return values._reduce(name, skipna=skipna, **kwds)
             else:
@@ -10711,11 +10761,6 @@ NaN 12.3   33.0
         """
         self._consolidate_inplace()
         return self._mgr.as_array(transpose=True)
-
-    @property
-    def _values(self) -> np.ndarray:
-        """internal implementation"""
-        return self.values
 
 
 DataFrame._add_numeric_operations()
