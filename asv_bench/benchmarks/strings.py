@@ -235,18 +235,18 @@ class Split(Dtypes):
 
     def setup(self, dtype, expand):
         super().setup(dtype)
-        self.s = self.s.str.join("--")
+        self.s = self.s.str.join("-")
 
     def time_split(self, dtype, expand):
-        self.s.str.split("--", expand=expand)
+        self.s.str.split("-", expand=expand)
 
     def time_rsplit(self, dtype, expand):
-        self.s.str.rsplit("--", expand=expand)
+        self.s.str.rsplit("-", expand=expand)
 
 
 class SplitPattern(Dtypes):
 
-    params = (Dtypes.params, [None, "-"])
+    params = (Dtypes.params, [None, "--"])
     param_names = ["dtype", "pat"]
 
     def setup(self, dtype, pat):
