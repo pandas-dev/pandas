@@ -599,7 +599,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 "will raise in a future version, pass "
                 f"{self._scalar_type.__name__} instead.",
                 FutureWarning,
-                stacklevel=8,
+                # There is no way to hard-code the level since this might be
+                #  reached directly or called from the Index or Block method
+                stacklevel=find_stack_level(),
             )
             fill_value = new_fill
 

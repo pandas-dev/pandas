@@ -5277,6 +5277,29 @@ Keep all original rows and also all original values
     ) -> Series | None:
         return super().bfill(axis, inplace, limit, downcast)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
+    def interpolate(
+        self: Series,
+        method: str = "linear",
+        axis: Axis = 0,
+        limit: int | None = None,
+        inplace: bool = False,
+        limit_direction: str | None = None,
+        limit_area: str | None = None,
+        downcast: str | None = None,
+        **kwargs,
+    ) -> Series | None:
+        return super().interpolate(
+            method,
+            axis,
+            limit,
+            inplace,
+            limit_direction,
+            limit_area,
+            downcast,
+            **kwargs,
+        )
+
     # ----------------------------------------------------------------------
     # Add index
     _AXIS_ORDERS = ["index"]
