@@ -525,7 +525,7 @@ class GroupByPlot(PandasObject):
     Class implementing the .plot attribute for groupby objects.
     """
 
-    def __init__(self, groupby):
+    def __init__(self, groupby: GroupBy):
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
@@ -727,7 +727,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[FrameOrSeries]):
     plot = property(GroupByPlot)
 
     @final
-    def get_group(self, name, obj=None):
+    def get_group(self, name, obj=None) -> FrameOrSeriesUnion:
         """
         Construct DataFrame from group with provided name.
 
@@ -960,10 +960,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         NOTE: this should be paired with a call to _reset_group_selection
         """
+        # This is a no-op for SeriesGroupBy
         grp = self.grouper
         if not (
             self.as_index
-            and getattr(grp, "groupings", None) is not None
+            and grp.groupings is not None
             and self.obj.ndim > 1
             and self._group_selection is None
         ):
@@ -1329,7 +1330,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             #  reductions; see GH#28949
             ser = df.iloc[:, 0]
 
-        res_values = self.grouper.agg_series(ser, alt)
+        # We do not get here with UDFs, so we know that our dtype
+        #  should always be preserved by the implemented aggregations
+        # TODO: Is this exactly right; see WrappedCythonOp get_result_dtype?
+        res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
 
         if isinstance(values, Categorical):
             # Because we only get here with known dtype-preserving
@@ -3060,7 +3064,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         # reindexing only applies to a Categorical grouper
         elif not any(
-            isinstance(ping.grouper, (Categorical, CategoricalIndex))
+            isinstance(ping.grouping_vector, (Categorical, CategoricalIndex))
             for ping in groupings
         ):
             return output
