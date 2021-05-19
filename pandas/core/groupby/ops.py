@@ -734,7 +734,7 @@ class BaseGrouper:
         We have a specific method of grouping, so cannot
         convert to a Index for our grouper.
         """
-        return self.groupings[0].grouper
+        return self.groupings[0].grouping_vector
 
     @final
     def _get_group_keys(self):
@@ -858,7 +858,7 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = zip(*(ping.grouper for ping in self.groupings))
+            to_groupby = zip(*(ping.grouping_vector for ping in self.groupings))
             index = Index(to_groupby)
             return self.axis.groupby(index)
 
