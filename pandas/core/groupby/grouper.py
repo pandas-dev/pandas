@@ -458,7 +458,7 @@ class Grouping:
     ):
         self.level = level
         self._orig_grouper = grouper
-        self.grouper = _convert_grouper(index, grouper)
+        self.grouping_vector = _convert_grouper(index, grouper)
         self._all_grouper = None
         self._index = index
         self._sort = sort
@@ -474,25 +474,24 @@ class Grouping:
 
         ilevel = self._ilevel
         if ilevel is not None:
-            mapper = self.grouper
+            mapper = self.grouping_vector
+            # In extant tests, the new self.grouping_vector matches
+            #  `index.get_level_values(ilevel)` whenever
+            #  mapper is None and isinstance(index, MultiIndex)
             (
-                self.grouper,  # Index
+                self.grouping_vector,  # Index
                 self._codes,
                 self._group_index,
             ) = index._get_grouper_for_level(mapper, ilevel)
 
-            # In extant tests, the new self.grouper matches
-            #  `index.get_level_values(ilevel)` whenever
-            #  mapper is None and isinstance(index, MultiIndex)
-
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
-        elif isinstance(self.grouper, Grouper):
+        elif isinstance(self.grouping_vector, Grouper):
             # get the new grouper; we already have disambiguated
             # what key/level refer to exactly, don't need to
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
-            _, newgrouper, newobj = self.grouper._get_grouper(
+            _, newgrouper, newobj = self.grouping_vector._get_grouper(
                 # error: Value of type variable "FrameOrSeries" of "_get_grouper"
                 # of "Grouper" cannot be "Optional[FrameOrSeries]"
                 self.obj,  # type: ignore[type-var]
@@ -503,43 +502,46 @@ class Grouping:
             ng = newgrouper._get_grouper()
             if isinstance(newgrouper, ops.BinGrouper):
                 # in this case we have `ng is newgrouper`
-                self.grouper = ng
+                self.grouping_vector = ng
             else:
                 # ops.BaseGrouper
                 # use Index instead of ndarray so we can recover the name
-                self.grouper = Index(ng, name=newgrouper.result_index.name)
+                self.grouping_vector = Index(ng, name=newgrouper.result_index.name)
 
-        elif is_categorical_dtype(self.grouper):
+        elif is_categorical_dtype(self.grouping_vector):
             # a passed Categorical
             self._passed_categorical = True
 
-            self.grouper, self._all_grouper = recode_for_groupby(
-                self.grouper, sort, observed
+            self.grouping_vector, self._all_grouper = recode_for_groupby(
+                self.grouping_vector, sort, observed
             )
 
-        elif not isinstance(self.grouper, (Series, Index, ExtensionArray, np.ndarray)):
+        elif not isinstance(
+            self.grouping_vector, (Series, Index, ExtensionArray, np.ndarray)
+        ):
             # no level passed
-            if getattr(self.grouper, "ndim", 1) != 1:
-                t = self.name or str(type(self.grouper))
+            if getattr(self.grouping_vector, "ndim", 1) != 1:
+                t = self.name or str(type(self.grouping_vector))
                 raise ValueError(f"Grouper for '{t}' not 1-dimensional")
 
-            self.grouper = index.map(self.grouper)
+            self.grouping_vector = index.map(self.grouping_vector)
 
             if not (
-                hasattr(self.grouper, "__len__") and len(self.grouper) == len(index)
+                hasattr(self.grouping_vector, "__len__")
+                and len(self.grouping_vector) == len(index)
             ):
-                grper = pprint_thing(self.grouper)
+                grper = pprint_thing(self.grouping_vector)
                 errmsg = (
                     "Grouper result violates len(labels) == "
                     f"len(data)\nresult: {grper}"
                 )
-                self.grouper = None  # Try for sanity
+                self.grouping_vector = None  # Try for sanity
                 raise AssertionError(errmsg)
 
-        if isinstance(self.grouper, np.ndarray):
+        if isinstance(self.grouping_vector, np.ndarray):
             # if we have a date/time-like grouper, make sure that we have
             # Timestamps like
-            self.grouper = sanitize_to_nanoseconds(self.grouper)
+            self.grouping_vector = sanitize_to_nanoseconds(self.grouping_vector)
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
@@ -556,11 +558,11 @@ class Grouping:
         if isinstance(self._orig_grouper, (Index, Series)):
             return self._orig_grouper.name
 
-        elif isinstance(self.grouper, ops.BaseGrouper):
-            return self.grouper.result_index.name
+        elif isinstance(self.grouping_vector, ops.BaseGrouper):
+            return self.grouping_vector.result_index.name
 
-        elif isinstance(self.grouper, Index):
-            return self.grouper.name
+        elif isinstance(self.grouping_vector, Index):
+            return self.grouping_vector.name
 
         # otherwise we have ndarray or ExtensionArray -> no name
         return None
@@ -587,10 +589,10 @@ class Grouping:
     @cache_readonly
     def indices(self):
         # we have a list of groupers
-        if isinstance(self.grouper, ops.BaseGrouper):
-            return self.grouper.indices
+        if isinstance(self.grouping_vector, ops.BaseGrouper):
+            return self.grouping_vector.indices
 
-        values = Categorical(self.grouper)
+        values = Categorical(self.grouping_vector)
         return values._reverse_indexer()
 
     @property
@@ -631,7 +633,7 @@ class Grouping:
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes
-            cat = self.grouper
+            cat = self.grouping_vector
             categories = cat.categories
 
             if self._observed:
@@ -647,10 +649,10 @@ class Grouping:
             )
             return cat.codes, uniques
 
-        elif isinstance(self.grouper, ops.BaseGrouper):
+        elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
-            codes = self.grouper.codes_info
-            uniques = self.grouper.result_arraylike
+            codes = self.grouping_vector.codes_info
+            uniques = self.grouping_vector.result_arraylike
         else:
             # GH35667, replace dropna=False with na_sentinel=None
             if not self._dropna:
@@ -658,7 +660,7 @@ class Grouping:
             else:
                 na_sentinel = -1
             codes, uniques = algorithms.factorize(
-                self.grouper, sort=self._sort, na_sentinel=na_sentinel
+                self.grouping_vector, sort=self._sort, na_sentinel=na_sentinel
             )
         return codes, uniques
 
