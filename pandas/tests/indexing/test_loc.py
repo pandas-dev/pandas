@@ -2400,7 +2400,7 @@ def test_loc_with_positional_slice_deprecation():
     # GH#31840
     ser = Series(range(4), index=["A", "B", "C", "D"])
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         ser.loc[:3] = 2
 
     expected = Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
@@ -2423,14 +2423,14 @@ def test_loc_slice_disallows_positional():
         with pytest.raises(TypeError, match=msg):
             obj.loc[1:3]
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#31840 deprecated incorrect behavior
             obj.loc[1:3] = 1
 
     with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1]
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         # GH#31840 deprecated incorrect behavior
         df.loc[1:3, 1] = 2
 
