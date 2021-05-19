@@ -811,3 +811,15 @@ class TestSeriesInterpolateData:
         result = ts.sort_index(ascending=ascending).interpolate(method="index")
         expected = Series(data=expected_values, index=expected_values, dtype=float)
         tm.assert_series_equal(result, expected)
+
+    def test_interpolate_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"In a future version of pandas all arguments of Series.interpolate except "
+            r"for the argument 'method' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.interpolate("pad", 0)
+        expected = Series([1, 2, 3])
+        tm.assert_series_equal(result, expected)
