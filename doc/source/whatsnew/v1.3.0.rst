@@ -228,7 +228,7 @@ Other enhancements
 - Constructing a :class:`DataFrame` or :class:`Series` with the ``data`` argument being a Python iterable that is *not* a NumPy ``ndarray`` consisting of NumPy scalars will now result in a dtype with a precision the maximum of the NumPy scalars; this was already the case when ``data`` is a NumPy ``ndarray`` (:issue:`40908`)
 - Add keyword ``sort`` to :func:`pivot_table` to allow non-sorting of the result (:issue:`39143`)
 - Add keyword ``dropna`` to :meth:`DataFrame.value_counts` to allow counting rows that include ``NA`` values (:issue:`41325`)
--
+- :meth:`Series.replace` will now cast results to ``PeriodDtype`` where possible instead of ``object`` dtype (:issue:`41526`)
 
 .. ---------------------------------------------------------------------------
 
@@ -648,7 +648,9 @@ Deprecations
 - Deprecated setting :attr:`Categorical._codes`, create a new :class:`Categorical` with the desired codes instead (:issue:`40606`)
 - Deprecated behavior of :meth:`DatetimeIndex.union` with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`)
 - Deprecated using ``usecols`` with out of bounds indices for ``read_csv`` with ``engine="c"`` (:issue:`25623`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.sort_values` (except for ``by``) and :meth:`Series.sort_values` (:issue:`41485`)
+- Deprecated passing arguments as positional in (:issue:`41485`) :
+  - :meth:`DataFrame.interpolate` (other than ``"method"``) and :meth:`Series.interpolate`
+  - :meth:`DataFrame.sort_values` (other than ``"by"``) and :meth:`Series.sort_values`
 
 .. ---------------------------------------------------------------------------
 
