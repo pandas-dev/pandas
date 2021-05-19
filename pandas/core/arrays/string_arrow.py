@@ -942,16 +942,21 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         uniques = pc.list_flatten(result).unique()
         tags = uniques.take(pc.array_sort_indices(uniques)).to_pylist()
         dummies = np.empty((len(result), len(tags)), dtype=np.int64)
+
+        # TODO: do this in pyarrow land
+        mask = np.array(self._data.is_null())
+        arr = np.array(self._data)
+        arr = lib.map_infer_mask(
+            arr,
+            lambda x: f"{sep}{x}{sep}",
+            mask.view(np.uint8),
+            na_value="",
+            dtype=np.dtype(object),
+        )
+        arr = pa.array(arr, mask=mask, type=pa.string())
+
         for i, tag in enumerate(tags):
-            match_equal = pc.equal(self._data, tag)
-            match_mid = pc.match_substring(self._data, sep + tag + sep)
-            match_start = pc.match_substring_regex(
-                self._data, "^" + tag + re.escape(sep)
-            )
-            match_end = pc.match_substring_regex(self._data, re.escape(sep) + tag + "$")
-            match = pc.or_(
-                pc.or_(pc.or_(match_start, match_end), match_mid), match_equal
-            )
+            match = pc.match_substring(arr, sep + tag + sep)
             casted = match.cast(pa.int64())
             filled = pc.fill_null(casted, 0)
             dummies[:, i] = filled
