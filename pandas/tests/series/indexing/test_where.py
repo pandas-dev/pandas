@@ -314,7 +314,7 @@ def test_broadcast(size, mask, item, box):
     tm.assert_series_equal(result, expected)
 
     s = Series(data)
-    result = s.mask(selection, box(item))
+    result = s.mask(selection, other=box(item))
     tm.assert_series_equal(result, expected)
 
 

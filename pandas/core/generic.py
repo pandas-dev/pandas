@@ -62,6 +62,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     doc,
+    deprecate_nonkeyword_arguments,
     rewrite_axis_style_signature,
 )
 from pandas.util._validators import (
@@ -9231,6 +9232,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         name="mask",
         name_other="where",
     )
+    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self", "cond"])
     def mask(
         self,
         cond,
