@@ -23,6 +23,7 @@ from pandas._libs.util cimport (
 
 from pandas._libs.lib import is_scalar
 
+
 # Accessing the data member of ndarray is deprecated, but we depend on it.
 cdef extern from *:
     """
