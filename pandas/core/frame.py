@@ -77,6 +77,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     deprecate_kwarg,
+    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -857,26 +858,37 @@ class DataFrame(NDFrame, OpsMixin):
         # TODO(EA2D) special case would be unnecessary with 2D EAs
         return not is_1d_only_ea_dtype(dtype)
 
+    # error: Return type "Union[ndarray, DatetimeArray, TimedeltaArray]" of
+    # "_values" incompatible with return type "ndarray" in supertype "NDFrame"
     @property
-    def _values_compat(self) -> np.ndarray | DatetimeArray | TimedeltaArray:
+    def _values(  # type: ignore[override]
+        self,
+    ) -> np.ndarray | DatetimeArray | TimedeltaArray:
         """
         Analogue to ._values that may return a 2D ExtensionArray.
         """
+        self._consolidate_inplace()
+
         mgr = self._mgr
+
         if isinstance(mgr, ArrayManager):
-            return self._values
+            if len(mgr.arrays) == 1 and not is_1d_only_ea_obj(mgr.arrays[0]):
+                # error: Item "ExtensionArray" of "Union[ndarray, ExtensionArray]"
+                # has no attribute "reshape"
+                return mgr.arrays[0].reshape(-1, 1)  # type: ignore[union-attr]
+            return self.values
 
         blocks = mgr.blocks
         if len(blocks) != 1:
-            return self._values
+            return self.values
 
         arr = blocks[0].values
         if arr.ndim == 1:
             # non-2D ExtensionArray
-            return self._values
+            return self.values
 
         # more generally, whatever we allow in NDArrayBackedExtensionBlock
-        arr = cast("DatetimeArray | TimedeltaArray", arr)
+        arr = cast("np.ndarray | DatetimeArray | TimedeltaArray", arr)
         return arr.T
 
     # ----------------------------------------------------------------------
@@ -1752,6 +1764,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "will be used in a future version. Use one of the above "
                 "to silence this warning.",
                 FutureWarning,
+                stacklevel=2,
             )
 
             if orient.startswith("d"):
@@ -3322,7 +3335,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
-            new_vals = self._values_compat.T
+            new_vals = self._values.T
             if copy:
                 new_vals = new_vals.copy()
 
@@ -10621,10 +10634,28 @@ NaN 12.3   33.0
         self._consolidate_inplace()
         return self._mgr.as_array(transpose=True)
 
-    @property
-    def _values(self) -> np.ndarray:
-        """internal implementation"""
-        return self.values
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
+    def interpolate(
+        self: DataFrame,
+        method: str = "linear",
+        axis: Axis = 0,
+        limit: int | None = None,
+        inplace: bool = False,
+        limit_direction: str | None = None,
+        limit_area: str | None = None,
+        downcast: str | None = None,
+        **kwargs,
+    ) -> DataFrame | None:
+        return super().interpolate(
+            method,
+            axis,
+            limit,
+            inplace,
+            limit_direction,
+            limit_area,
+            downcast,
+            **kwargs,
+        )
 
 
 DataFrame._add_numeric_operations()

@@ -682,17 +682,21 @@ def _try_cast(
         subarr = construct_1d_object_array_from_listlike(arr)
         return subarr
 
+    if dtype is None and isinstance(arr, list):
+        # filter out cases that we _dont_ want to go through maybe_cast_to_datetime
+        varr = np.array(arr, copy=False)
+        if varr.dtype != object or varr.size == 0:
+            return varr
+        arr = varr
+
     try:
         # GH#15832: Check if we are requesting a numeric dtype and
         # that we can convert the data to the requested dtype.
         if is_integer_dtype(dtype):
             # this will raise if we have e.g. floats
 
-            # error: Argument 2 to "maybe_cast_to_integer_array" has incompatible type
-            # "Union[dtype, ExtensionDtype, None]"; expected "Union[ExtensionDtype, str,
-            # dtype, Type[str], Type[float], Type[int], Type[complex], Type[bool],
-            # Type[object]]"
-            maybe_cast_to_integer_array(arr, dtype)  # type: ignore[arg-type]
+            dtype = cast(np.dtype, dtype)
+            maybe_cast_to_integer_array(arr, dtype)
             subarr = arr
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)
