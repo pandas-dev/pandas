@@ -64,7 +64,7 @@ class TestBase(Base):
         # GH#30588 multi-dim indexing is deprecated, but raising is also acceptable
         idx = simple_index
         with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(FutureWarning):
                 idx[:, None]
 
 

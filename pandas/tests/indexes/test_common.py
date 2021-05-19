@@ -343,7 +343,7 @@ class TestCommon:
             warn = FutureWarning
         try:
             # Some of these conversions cannot succeed so we use a try / except
-            with tm.assert_produces_warning(warn, check_stacklevel=False):
+            with tm.assert_produces_warning(warn):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return

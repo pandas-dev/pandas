@@ -443,8 +443,10 @@ def test_array_equivalent(dtype_equal):
 )
 def test_array_equivalent_series(val):
     arr = np.array([1, 2])
+    msg = "elementwise comparison failed"
     cm = (
-        tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
+        # stacklevel is chosen to make sense when called from .equals
+        tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False)
         if isinstance(val, str)
         else nullcontext()
     )

@@ -1175,6 +1175,7 @@ default 'raise'
             "future version.  "
             "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead",
             FutureWarning,
+            # stacklevel chosen to be correct for when called from DatetimeIndex
             stacklevel=3,
         )
         from pandas.core.arrays.timedeltas import TimedeltaArray

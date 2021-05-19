@@ -406,11 +406,13 @@ def test_maybe_promote_any_with_datetime64(
         exp_val_for_scalar = fill_value
 
     warn = None
+    msg = "Using a `date` object for fill_value"
     if type(fill_value) is datetime.date and dtype.kind == "M":
         # Casting date to dt64 is deprecated
         warn = FutureWarning
 
-    with tm.assert_produces_warning(warn, check_stacklevel=False):
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        # stacklevel is chosen to make sense when called from higher-level functions
         _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 

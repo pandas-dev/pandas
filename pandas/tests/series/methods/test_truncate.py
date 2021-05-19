@@ -13,7 +13,7 @@ class TestTruncate:
         # GH 9243
         idx = date_range("4/1/2005", "4/30/2005", freq="D", tz="US/Pacific")
         s = Series(range(len(idx)), index=idx)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#36148 in the future will require tzawareness compat
             s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
 

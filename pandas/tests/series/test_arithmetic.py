@@ -783,7 +783,9 @@ class TestNamePreservation:
         else:
             # GH#37374 logical ops behaving as set ops deprecated
             warn = FutureWarning if is_rlogical and box is Index else None
-            with tm.assert_produces_warning(warn, check_stacklevel=False):
+            msg = "operating as a set operation is deprecated"
+            with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+                # stacklevel is correct for Index op, not reversed op
                 result = op(left, right)
 
         if box is Index and is_rlogical:
