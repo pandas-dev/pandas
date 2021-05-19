@@ -277,13 +277,19 @@ class StringMethods(NoNewAttributesMixin):
             # required when expand=True is explicitly specified
             # not needed when inferred
 
-            mask = isna(result)
-            result = [[x] if mask[i] else x for i, x in enumerate(result)]
+            def cons_row(x):
+                if is_list_like(x):
+                    return x
+                else:
+                    return [x]
 
+            result = [cons_row(x) for x in result]
             if result and not self._is_string:
                 # propagate nan values to match longest sequence (GH 18450)
                 max_len = max(len(x) for x in result)
-                result = [x * max_len if mask[i] else x for i, x in enumerate(result)]
+                result = [
+                    x * max_len if len(x) == 0 or x[0] is np.nan else x for x in result
+                ]
 
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
