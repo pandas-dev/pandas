@@ -650,7 +650,6 @@ Deprecations
 - Deprecated using ``usecols`` with out of bounds indices for ``read_csv`` with ``engine="c"`` (:issue:`25623`)
 - Deprecated passing arguments as positional in (:issue:`41485`) :
   - :meth:`DataFrame.interpolate` (other than ``"method"``) and :meth:`Series.interpolate`
-  - :meth:`DataFrame.sort_values` (other than ``"by"``) and :meth:`Series.sort_values`
   - :meth:`DataFrame.set_index` (other than ``"keys"``)
 
 .. ---------------------------------------------------------------------------

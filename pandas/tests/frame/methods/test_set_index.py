@@ -709,8 +709,10 @@ class TestSetIndexCustomLabelType:
         # https://github.com/pandas-dev/pandas/issues/41485
         df = DataFrame({"a": [1, 2, 3]})
         msg = (
-            r"Starting with Pandas version 2\.0 all arguments of set_index except for "
-            r"the arguments 'self' and 'keys' will be keyword-only"
+            r"In a future version of pandas all arguments of DataFrame\.set_index "
+            r"except for the argument 'keys' will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.set_index("a", True)
+            result = df.set_index("a", True)
+        expected = DataFrame(index=Index([1, 2, 3], name="a"))
+        tm.assert_frame_equal(result, expected)
