@@ -682,6 +682,13 @@ def _try_cast(
         subarr = construct_1d_object_array_from_listlike(arr)
         return subarr
 
+    if dtype is None and isinstance(arr, list):
+        # filter out cases that we _dont_ want to go through maybe_cast_to_datetime
+        varr = np.array(arr, copy=False)
+        if varr.dtype != object or varr.size == 0:
+            return varr
+        arr = varr
+
     try:
         # GH#15832: Check if we are requesting a numeric dtype and
         # that we can convert the data to the requested dtype.

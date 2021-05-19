@@ -357,8 +357,8 @@ def ndarray_to_mgr(
         if values.ndim == 2 and values.shape[0] != 1:
             # transpose and separate blocks
 
-            dvals_list = [maybe_infer_to_datetimelike(row) for row in values]
-            dvals_list = [ensure_block_shape(dval, 2) for dval in dvals_list]
+            dtlike_vals = [maybe_infer_to_datetimelike(row) for row in values]
+            dvals_list = [ensure_block_shape(dval, 2) for dval in dtlike_vals]
 
             # TODO: What about re-joining object columns?
             block_values = [
