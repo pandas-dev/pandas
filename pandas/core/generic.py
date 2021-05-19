@@ -482,13 +482,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @property
     def _AXIS_NUMBERS(self) -> dict[str, int]:
         """.. deprecated:: 1.1.0"""
-        warnings.warn("_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=3)
+        level = self.ndim + 1
+        warnings.warn(
+            "_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=level
+        )
         return {"index": 0}
 
     @property
     def _AXIS_NAMES(self) -> dict[int, str]:
         """.. deprecated:: 1.1.0"""
-        warnings.warn("_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3)
+        level = self.ndim + 1
+        warnings.warn(
+            "_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=level
+        )
         return {0: "index"}
 
     @final
@@ -6697,7 +6703,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="replace")
 
-    @final
     def interpolate(
         self: FrameOrSeries,
         method: str = "linear",

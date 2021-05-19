@@ -735,7 +735,7 @@ class TestGetSliceBounds:
         key = box(year=2000, month=1, day=7)
 
         warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
             result = index.get_slice_bound(key, kind=kind, side=side)
         assert result == expected
@@ -753,7 +753,7 @@ class TestGetSliceBounds:
         key = box(year=year, month=1, day=7)
 
         warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
             result = index.get_slice_bound(key, kind=kind, side=side)
         assert result == expected
@@ -767,7 +767,7 @@ class TestGetSliceBounds:
         key = box(2010, 1, 1)
 
         warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
             result = index.slice_locs(key, box(2010, 1, 2))
         expected = (0, 1)
