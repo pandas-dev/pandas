@@ -1199,6 +1199,7 @@ cdef class Seen:
         bint coerce_numeric   # coerce data to numeric
         bint timedelta_       # seen_timedelta
         bint datetimetz_      # seen_datetimetz
+        bint period_          # seen_period
 
     def __cinit__(self, bint coerce_numeric=False):
         """
@@ -1223,6 +1224,7 @@ cdef class Seen:
         self.datetime_ = False
         self.timedelta_ = False
         self.datetimetz_ = False
+        self.period_ = False
         self.coerce_numeric = coerce_numeric
 
     cdef inline bint check_uint64_conflict(self) except -1:
@@ -2005,18 +2007,35 @@ cpdef bint is_time_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
-cdef class PeriodValidator(TemporalValidator):
-    cdef inline bint is_value_typed(self, object value) except -1:
-        return is_period_object(value)
-
-    cdef inline bint is_valid_null(self, object value) except -1:
-        return checknull_with_nat(value)
-
-
-cpdef bint is_period_array(ndarray values):
+cdef bint is_period_array(ndarray[object] values):
+    """
+    Is this an ndarray of Period objects (or NaT) with a single `freq`?
+    """
     cdef:
-        PeriodValidator validator = PeriodValidator(len(values), skipna=True)
-    return validator.validate(values)
+        Py_ssize_t i, n = len(values)
+        int dtype_code = -10000  # i.e. c_FreqGroup.FR_UND
+        object val
+
+    if len(values) == 0:
+        return False
+
+    for val in values:
+        if is_period_object(val):
+            if dtype_code == -10000:
+                dtype_code = val._dtype._dtype_code
+            elif dtype_code != val._dtype._dtype_code:
+                # mismatched freqs
+                return False
+        elif checknull_with_nat(val):
+            pass
+        else:
+            # Not a Period or NaT-like
+            return False
+
+    if dtype_code == -10000:
+        # we saw all-NaTs, no actual Periods
+        return False
+    return True
 
 
 cdef class IntervalValidator(Validator):
@@ -2258,9 +2277,13 @@ def maybe_convert_numeric(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
-                          bint safe=False, bint convert_datetime=False,
+def maybe_convert_objects(ndarray[object] objects,
+                          *,
+                          bint try_float=False,
+                          bint safe=False,
+                          bint convert_datetime=False,
                           bint convert_timedelta=False,
+                          bint convert_period=False,
                           bint convert_to_nullable_integer=False) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
@@ -2281,6 +2304,9 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
     convert_timedelta : bool, default False
         If an array-like object contains only timedelta values or NaT is
         encountered, whether to convert and return an array of m8[ns] dtype.
+    convert_period : bool, default False
+        If an array-like object contains only (homogeneous-freq) Period values
+        or NaT, whether to convert and return a PeriodArray.
     convert_to_nullable_integer : bool, default False
         If an array-like object contains only integer values (and NaN) is
         encountered, whether to convert and return an IntegerArray.
@@ -2301,7 +2327,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
         int64_t[:] itimedeltas
         Seen seen = Seen()
         object val
-        float64_t fval, fnan
+        float64_t fval, fnan = np.nan
 
     n = len(objects)
 
@@ -2320,8 +2346,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
         timedeltas = np.empty(n, dtype='m8[ns]')
         itimedeltas = timedeltas.view(np.int64)
 
-    fnan = np.nan
-
     for i in range(n):
         val = objects[i]
         if itemsize_max != -1:
@@ -2339,7 +2363,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                 idatetimes[i] = NPY_NAT
             if convert_timedelta:
                 itimedeltas[i] = NPY_NAT
-            if not (convert_datetime or convert_timedelta):
+            if not (convert_datetime or convert_timedelta or convert_period):
                 seen.object_ = True
                 break
         elif val is np.nan:
@@ -2352,14 +2376,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
         elif util.is_float_object(val):
             floats[i] = complexes[i] = val
             seen.float_ = True
-        elif util.is_datetime64_object(val):
-            if convert_datetime:
-                idatetimes[i] = convert_to_tsobject(
-                    val, None, None, 0, 0).value
-                seen.datetime_ = True
-            else:
-                seen.object_ = True
-                break
         elif is_timedelta(val):
             if convert_timedelta:
                 itimedeltas[i] = convert_to_timedelta64(val, "ns").view("i8")
@@ -2405,6 +2421,13 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
             else:
                 seen.object_ = True
                 break
+        elif is_period_object(val):
+            if convert_period:
+                seen.period_ = True
+                break
+            else:
+                seen.object_ = True
+                break
         elif try_float and not isinstance(val, str):
             # this will convert Decimal objects
             try:
@@ -2427,6 +2450,14 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
             # unbox to DatetimeArray
             return dti._data
         seen.object_ = True
+
+    if seen.period_:
+        if is_period_array(objects):
+            from pandas import PeriodIndex
+            pi = PeriodIndex(objects)
+
+            # unbox to PeriodArray
+            return pi._data
 
     if not seen.object_:
         result = None

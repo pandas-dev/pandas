@@ -20,7 +20,6 @@ import types
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Generic,
     Hashable,
     Iterable,
     Iterator,
@@ -526,7 +525,7 @@ class GroupByPlot(PandasObject):
     Class implementing the .plot attribute for groupby objects.
     """
 
-    def __init__(self, groupby):
+    def __init__(self, groupby: GroupBy):
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
@@ -567,7 +566,7 @@ _KeysArgType = Union[
 ]
 
 
-class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
+class BaseGroupBy(PandasObject, SelectionMixin[FrameOrSeries]):
     _group_selection: IndexLabel | None = None
     _apply_allowlist: frozenset[str] = frozenset()
     _hidden_attrs = PandasObject._hidden_attrs | {
@@ -588,7 +587,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     axis: int
     grouper: ops.BaseGrouper
-    obj: FrameOrSeries
     group_keys: bool
 
     @final
@@ -729,7 +727,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     plot = property(GroupByPlot)
 
     @final
-    def get_group(self, name, obj=None):
+    def get_group(self, name, obj=None) -> FrameOrSeriesUnion:
         """
         Construct DataFrame from group with provided name.
 
@@ -840,7 +838,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     more
     """
 
-    obj: FrameOrSeries
     grouper: ops.BaseGrouper
     as_index: bool
 
@@ -852,7 +849,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         axis: int = 0,
         level: IndexLabel | None = None,
         grouper: ops.BaseGrouper | None = None,
-        exclusions: set[Hashable] | None = None,
+        exclusions: frozenset[Hashable] | None = None,
         selection: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -901,7 +898,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         self.obj = obj
         self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
-        self.exclusions = exclusions or set()
+        self.exclusions = frozenset(exclusions) if exclusions else frozenset()
 
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
@@ -963,10 +960,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         NOTE: this should be paired with a call to _reset_group_selection
         """
+        # This is a no-op for SeriesGroupBy
         grp = self.grouper
         if not (
             self.as_index
-            and getattr(grp, "groupings", None) is not None
+            and grp.groupings is not None
             and self.obj.ndim > 1
             and self._group_selection is None
         ):
@@ -1055,9 +1053,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             values = reset_identity(values)
             result = concat(values, axis=self.axis)
 
-        if isinstance(result, Series) and self._selection_name is not None:
+        name = self.obj.name if self.obj.ndim == 1 else self._selection
+        if isinstance(result, Series) and name is not None:
 
-            result.name = self._selection_name
+            result.name = name
 
         return result
 
@@ -1331,7 +1330,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             #  reductions; see GH#28949
             ser = df.iloc[:, 0]
 
-        res_values = self.grouper.agg_series(ser, alt)
+        # We do not get here with UDFs, so we know that our dtype
+        #  should always be preserved by the implemented aggregations
+        # TODO: Is this exactly right; see WrappedCythonOp get_result_dtype?
+        res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
 
         if isinstance(values, Categorical):
             # Because we only get here with known dtype-preserving
@@ -1882,7 +1884,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             )
             return self._reindex_output(result)
 
-        return self._apply_to_column_groupbys(lambda x: x.ohlc())
+        return self._apply_to_column_groupbys(
+            lambda x: x.ohlc(), self._obj_with_exclusions
+        )
 
     @final
     @doc(DataFrame.describe)
@@ -3060,7 +3064,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         # reindexing only applies to a Categorical grouper
         elif not any(
-            isinstance(ping.grouper, (Categorical, CategoricalIndex))
+            isinstance(ping.grouping_vector, (Categorical, CategoricalIndex))
             for ping in groupings
         ):
             return output

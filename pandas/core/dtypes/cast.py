@@ -1315,6 +1315,7 @@ def soft_convert_objects(
     datetime: bool = True,
     numeric: bool = True,
     timedelta: bool = True,
+    period: bool = True,
     copy: bool = True,
 ) -> ArrayLike:
     """
@@ -1327,6 +1328,7 @@ def soft_convert_objects(
     datetime : bool, default True
     numeric: bool, default True
     timedelta : bool, default True
+    period : bool, default True
     copy : bool, default True
 
     Returns
@@ -1348,7 +1350,10 @@ def soft_convert_objects(
         # bound of nanosecond-resolution 64-bit integers.
         try:
             converted = lib.maybe_convert_objects(
-                values, convert_datetime=datetime, convert_timedelta=timedelta
+                values,
+                convert_datetime=datetime,
+                convert_timedelta=timedelta,
+                convert_period=period,
             )
         except (OutOfBoundsDatetime, ValueError):
             return values
@@ -1475,7 +1480,9 @@ def maybe_castable(dtype: np.dtype) -> bool:
     return dtype.name not in POSSIBLY_CAST_DTYPES
 
 
-def maybe_infer_to_datetimelike(value: np.ndarray | list):
+def maybe_infer_to_datetimelike(
+    value: np.ndarray,
+) -> np.ndarray | DatetimeArray | TimedeltaArray:
     """
     we might have a array (or single object) that is datetime like,
     and no dtype is passed don't change the value unless we find a
@@ -1486,17 +1493,18 @@ def maybe_infer_to_datetimelike(value: np.ndarray | list):
 
     Parameters
     ----------
-    value : np.ndarray or list
+    value : np.ndarray[object]
+
+    Returns
+    -------
+    np.ndarray, DatetimeArray, or TimedeltaArray
 
     """
-    if not isinstance(value, (np.ndarray, list)):
+    if not isinstance(value, np.ndarray) or value.dtype != object:
+        # Caller is responsible for passing only ndarray[object]
         raise TypeError(type(value))  # pragma: no cover
 
     v = np.array(value, copy=False)
-
-    # we only care about object dtypes
-    if not is_object_dtype(v.dtype):
-        return value
 
     shape = v.shape
     if v.ndim != 1:
@@ -1575,6 +1583,8 @@ def maybe_cast_to_datetime(
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
+
+    We allow a list *only* when dtype is not None.
     """
     from pandas.core.arrays.datetimes import sequence_to_datetimes
     from pandas.core.arrays.timedeltas import sequence_to_td64ns
@@ -1666,11 +1676,10 @@ def maybe_cast_to_datetime(
             value = maybe_infer_to_datetimelike(value)
 
     elif isinstance(value, list):
-        # only do this if we have an array and the dtype of the array is not
-        # setup already we are not an integer/object, so don't bother with this
-        # conversion
-
-        value = maybe_infer_to_datetimelike(value)
+        # we only get here with dtype=None, which we do not allow
+        raise ValueError(
+            "maybe_cast_to_datetime allows a list *only* if dtype is not None"
+        )
 
     return value
 
@@ -2017,7 +2026,7 @@ def maybe_cast_to_integer_array(
     if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
         raise OverflowError("Trying to coerce negative values to unsigned integers")
 
-    if is_float_dtype(arr) or is_object_dtype(arr):
+    if is_float_dtype(arr.dtype) or is_object_dtype(arr.dtype):
         raise ValueError("Trying to coerce float values to integers")
 
 
