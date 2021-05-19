@@ -4726,7 +4726,7 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self", "labels"])
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
         Examples
