@@ -178,8 +178,8 @@ class PyArrowImpl(BaseImpl):
         pandas_metadata = json.loads(schema_metadata.get(b"pandas", "{}"))
         df.attrs = pandas_metadata.get("attrs", {})
         col_attrs = pandas_metadata.get("column_attrs", {})
-        for col, attrs in col_attrs.items():
-            df[col].attrs = attrs
+        for col in df.columns:
+            df[col].attrs = col_attrs.get(col, {})
 
     def write(
         self,

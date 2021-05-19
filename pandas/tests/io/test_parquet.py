@@ -909,23 +909,25 @@ class TestParquetPyArrow(Base):
 
     @td.skip_if_no("pyarrow")
     def test_read_write_attrs(self, pa):
-        df = pd.DataFrame({"a": [1]})
+        df = pd.DataFrame({"a": [1], "b": [1]})
         df.attrs = {"name": "my custom dataset"}
         df.a.attrs = {
             "long_name": "Description about data",
             "nodata": -1,
             "units": "metre",
         }
+        df.b.attrs = {}
         with tm.ensure_clean() as path:
             df.to_parquet(path)
             result = read_parquet(path)
 
         assert result.attrs == {"name": "my custom dataset"}
-        assert result["a"].attrs == {
+        assert result.a.attrs == {
             "long_name": "Description about data",
             "nodata": -1,
             "units": "metre",
         }
+        assert result.b.attrs == {}
 
 
 class TestParquetFastParquet(Base):
