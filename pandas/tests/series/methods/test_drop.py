@@ -90,8 +90,10 @@ def test_drop_pos_args_deprecation():
     # https://github.com/pandas-dev/pandas/issues/41485
     ser = Series([1, 2, 3])
     msg = (
-        r"Starting with Pandas version 2\.0 all arguments of drop except for the "
-        r"arguments 'self' and 'labels' will be keyword-only"
+        r"In a future version of pandas all arguments of Series\.drop "
+        r"except for the argument 'labels' will be keyword-only"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        ser.drop(1, 0)
+        result = ser.drop(1, 0)
+    expected = Series([1, 3], index=[0, 2])
+    tm.assert_series_equal(result, expected)
