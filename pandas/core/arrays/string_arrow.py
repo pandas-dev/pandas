@@ -916,10 +916,15 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         else:
             result = pc.split_pattern(self._data, pattern=pat, max_splits=n)
 
+        mask = np.array(result.is_null())
         result = np.array(result)
         if not expand:
-            result = ObjectStringArrayMixin._str_map(
-                result, lambda x: x.tolist(), na_value=self.dtype.na_value, dtype=object
+            result = lib.map_infer_mask(
+                result,
+                lambda x: x.tolist(),
+                mask.view(np.uint8),
+                na_value=self.dtype.na_value,
+                dtype=np.dtype(object),
             )
         return result
 
