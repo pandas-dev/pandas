@@ -1527,7 +1527,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     names = property(fset=_set_names, fget=_get_names)
 
-    @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["self", "names"])
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
     @final
     def set_names(self, names, level=None, inplace: bool = False):
         """

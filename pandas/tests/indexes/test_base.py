@@ -1745,9 +1745,13 @@ def test_index_set_names_pos_args_deprecation():
     idx = Index([1, 2, 3, 4])
 
     msg = (
-        "Starting with pandas version 2.0 all arguments of Index.set_names "
+        "In a future version of pandas all arguments of Index.set_names "
         "except for the argument 'names' will be keyword-only"
     )
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        idx.set_names("quarter", None)
+        result = idx.set_names("quarter", None)
+
+    expected = Index([1, 2, 3, 4], name="quarter")
+
+    tm.assert_index_equal(result, expected)

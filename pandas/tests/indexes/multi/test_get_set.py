@@ -350,12 +350,20 @@ def test_multi_set_names_pos_args_deprecation():
     idx = MultiIndex.from_product([["python", "cobra"], [2018, 2019]])
 
     msg = (
-        "Starting with pandas version 2.0 all arguments of Index.set_names "
+        "In a future version of pandas all arguments of Index.set_names "
         "except for the argument 'names' will be keyword-only"
     )
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        idx.set_names(["kind", "year"], None)
+        result = idx.set_names(["kind", "year"], None)
+
+    expected = MultiIndex(
+        levels=[["python", "cobra"], [2018, 2019]],
+        codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
+        names=["kind", "year"],
+    )
+
+    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("ordered", [True, False])
