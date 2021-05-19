@@ -30,7 +30,7 @@ jobs:
         pip install git+https://github.com/numpy/numpy.git
         pip install git+https://github.com/pytest-dev/pytest.git
         pip install git+https://github.com/nedbat/coveragepy.git
-        pip install cython=3.0a6 python-dateutil pytz hypothesis pytest-xdist
+        pip install cython==3.0a6 python-dateutil pytz hypothesis pytest-xdist
         pip list
 
     - name: Build Pandas
