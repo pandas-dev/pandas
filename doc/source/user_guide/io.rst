@@ -5939,8 +5939,10 @@ and `rda`_ data formats.
 
 .. _rda: https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/save
 
-For example, consider the following generated data.frames in R using environment
-data samples from US EPA, UK BGCI, and NOAA pubilc data:
+To walk through an example, consider the following generated data.frames in R
+using natural environment data samples from US EPA, UK BGCI, and NOAA pubilc data.
+As shown below, each data.frame is saved individually in .rds types and all together
+in an .rda type.
 
 .. code-block:: r
 
@@ -5953,7 +5955,15 @@ data samples from US EPA, UK BGCI, and NOAA pubilc data:
      row.names = c(141:145),
      stringsAsFactors = FALSE
    )
+   ghg_df
+                     gas year emissions
+   141    Carbon dioxide 2018 5424.8815
+   142           Methane 2018  634.4571
+   143     Nitrous oxide 2018  434.5286
+   144 Fluorinated gases 2018  182.7824
+   145             Total 2018 6676.6496
 
+   # SAVE SINGLE OBJECT
    saveRDS(ghg_df, file="ghg_df.rds")
 
    plants_df <- data.frame(
@@ -5965,10 +5975,18 @@ data samples from US EPA, UK BGCI, and NOAA pubilc data:
      row.names = c(16:20),
      stringsAsFactors = FALSE
    )
+   plants_df
+        plant_group              status count
+   16 Pteridophytes      Data Deficient   398
+   17 Pteridophytes             Extinct    65
+   18 Pteridophytes      Not Threatened  1294
+   19 Pteridophytes Possibly Threatened   408
+   20 Pteridophytes          Threatened  1275
 
+   # SAVE SINGLE OBJECT
    saveRDS(plants_df, file="plants_df.rds")
 
-   sea_ice_df_new <- data.frame(
+   sea_ice_df <- data.frame(
      year = c(2016, 2017, 2018, 2019, 2020),
      mo = c(12, 12, 12, 12, 12),
      data.type = c("Goddard", "Goddard", "Goddard", "Goddard", "NRTSI-G"),
@@ -5978,12 +5996,22 @@ data samples from US EPA, UK BGCI, and NOAA pubilc data:
      row.names = c(1012:1016),
      stringsAsFactors = FALSE
    )
+   sea_ice_df
+        year mo data.type region extent area
+   1012 2016 12   Goddard      S   8.28 5.51
+   1013 2017 12   Goddard      S   9.48 6.23
+   1014 2018 12   Goddard      S   9.19 5.59
+   1015 2019 12   Goddard      S   9.41 6.59
+   1016 2020 12   NRTSI-G      S  10.44 6.50
 
+   # SAVE SINGLE OBJECT
    saveRDS(sea_ice_df, file="sea_ice_df.rds")
 
+   # SAVE MULTIPLE OBJECTS
    save(ghg_df, plants_df, sea_ice_df, file="env_data_dfs.rda")
 
-With ``read_rdata``, you can read these above .rds or .rda files:
+With ``read_rdata``, you can read these above .rds and .rda files, both
+generating a dictionary of DataFrame(s):
 
 .. ipython:: python
    :suppress:
@@ -5994,8 +6022,8 @@ With ``read_rdata``, you can read these above .rds or .rda files:
 .. ipython:: python
 
    rds_file = os.path.join(file_path, "ghg_df.rds")
-   ghg_df = pd.read_rdata(rds_file)["r_dataframe"].tail()
-   ghg_df
+   env_df = pd.read_rdata(rds_file)
+   {k: df.tail() for k, df in env_df.items()}
 
    rda_file = os.path.join(file_path, "env_data_dfs.rda")
    env_dfs = pd.read_rdata(rda_file)
@@ -6010,13 +6038,14 @@ To ignore the rownames of data.frame, use option ``rownames=False``:
    plants_df
 
 
-To select specific objects in .rda, pass a list of names into ``select_frames``:
+To select specific objects in .rda, pass a list of names into ``select_frames``.
+By default, all objects are returned.
 
 .. ipython:: python
 
    rda_file = os.path.join(file_path, "env_data_dfs.rda")
-   env_dfs = pd.read_rdata(rda_file, select_frames=["sea_ice_df"])
-   env_dfs
+   sub_env_dfs = pd.read_rdata(rda_file, select_frames=["sea_ice_df"])
+   sub_env_dfs
 
 To read from a file-like object, read object in argument, ``path_or_buffer``:
 
@@ -6059,7 +6088,7 @@ will occur:
 
 Finally, please note R's ``Date`` (without time component) will translate to
 ``datetime64`` in pandas. Also, R's date/time field type, ``POSIXct``, that can
-carry varying timezones will translate to UTC time in pandas. For example, in R,
+carry timezones will translate to UTC time in pandas. For example, in R,
 the following data sample from an .rda shows date/time in 'America/Chicago' local
 timezone:
 
@@ -6099,6 +6128,9 @@ Below is summary of how ``read_rdata`` handles data types between R and pandas.
    * - numeric
      -
      - float64
+   * - Date
+     -
+     - datetime64[ns]
    * - POSIXct
      - UTC conversion
      - datetime64[ns]
@@ -6123,17 +6155,19 @@ For a single DataFrame in rds type, pass in a file or buffer in method:
 
 .. ipython:: python
 
-   plants_df.to_rdata("plants_df.rds")
+   env_dfs["plants_df"].to_rdata("plants_df.rds")
 
 For a single DataFrame in RData or rda types, pass in a file or buffer in method
 and optionally give it a name:
 
 .. ipython:: python
 
-   ghg_df.to_rdata("ghg_df.rda", rda_name="ghg_df")
+   env_dfs["ghg_df"].to_rdata("ghg_df.rda", rda_name="ghg_df")
 
-While RData and rda types can hold multiple R objects, this method currently
-only supports writing out a single DataFrame.
+.. note::
+
+   While RData and rda types can hold multiple R objects, this method currently
+   only supports writing out a single DataFrame.
 
 Even write to a buffer and read its content (and be sure to adjust default
 ``gzip`` compression to ``compression=None``):
@@ -6161,7 +6195,7 @@ will output as a named column or multiple columns for MultiIndex.
 
 .. ipython:: python
 
-    ghg_df.rename_axis(None).to_rdata("ghg_df.rds")
+    env_dfs["ghg_df"].rename_axis(None).to_rdata("ghg_df.rds")
 
     pd.read_rdata("ghg_df.rds")["r_dataframe"].tail()
 
@@ -6169,7 +6203,7 @@ To ignore the index, use ``index=False``:
 
 .. ipython:: python
 
-    ghg_df.rename_axis(None).to_rdata("ghg_df.rds", index=False)
+    env_dfs["ghg_df"].rename_axis(None).to_rdata("ghg_df.rds", index=False)
 
     pd.read_rdata("ghg_df.rds")["r_dataframe"].tail()
 
@@ -6179,10 +6213,10 @@ is "gzip" or "gz". Notice size difference of compressed and uncompressed files:
 
 .. ipython:: python
 
-   plants_df.to_rdata("plants_df_gz.rds")
-   plants_df.to_rdata("plants_df_bz2.rds", compression="bz2")
-   plants_df.to_rdata("plants_df_xz.rds", compression="xz")
-   plants_df.to_rdata("plants_df_non_comp.rds", compression=None)
+   env_dfs["plants_df"].to_rdata("plants_df_gz.rds")
+   env_dfs["plants_df"].to_rdata("plants_df_bz2.rds", compression="bz2")
+   env_dfs["plants_df"].to_rdata("plants_df_xz.rds", compression="xz")
+   env_dfs["plants_df"].to_rdata("plants_df_non_comp.rds", compression=None)
 
    os.stat("plants_df_gz.rds").st_size
    os.stat("plants_df_bz2.rds").st_size
@@ -6193,7 +6227,7 @@ Like other IO methods, ``storage_options`` are enabled to write to those platfor
 
 .. code-block:: ipython
 
-   ghg_df.to_rdata(
+   env_dfs["ghg_df"].to_rdata(
        "s3://path/to/my/storage/pandas_df.rda",
        storage_options={"user": "xxx", "password": "???"}
    )
@@ -6233,10 +6267,13 @@ Once exported, the single DataFrame can be read or loaded in R:
    144 Fluorinated gases 2018  182.7824
    145             Total 2018 6676.6496
 
-Please note R does not support all dtypes of pandas. For special dtypes,
-you may have to handle data in either end to fit your specific data needs.
+.. note::
 
-Below is summary of how ``write_rdata`` handles data types between pandas
+   R does not support all dtypes of pandas. For special dtypes, you may
+   have to prepare or clean data in either end (R or pandas side) to
+   meet your specific data needs.
+
+Below is summary of how ``to_rdata`` handles data types between pandas
 and R in order to translate pandas simpler dtypes to R's atomic types.
 
 .. list-table::
@@ -6249,7 +6286,7 @@ and R in order to translate pandas simpler dtypes to R's atomic types.
    * - bool
      -
      - logical
-   * - any uint/int
+   * - any uint or int
      -
      - integer
    * - any float
