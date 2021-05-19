@@ -262,8 +262,8 @@ class TestGroupby(base.BaseGroupbyTests):
         gr1 = df.groupby("A").grouper.groupings[0]
         gr2 = df.groupby("B").grouper.groupings[0]
 
-        tm.assert_numpy_array_equal(gr1.grouper, df.A.values)
-        tm.assert_extension_array_equal(gr2.grouper, data_for_grouping)
+        tm.assert_numpy_array_equal(gr1.grouping_vector, df.A.values)
+        tm.assert_extension_array_equal(gr2.grouping_vector, data_for_grouping)
 
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):

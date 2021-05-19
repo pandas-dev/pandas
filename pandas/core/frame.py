@@ -857,26 +857,37 @@ class DataFrame(NDFrame, OpsMixin):
         # TODO(EA2D) special case would be unnecessary with 2D EAs
         return not is_1d_only_ea_dtype(dtype)
 
+    # error: Return type "Union[ndarray, DatetimeArray, TimedeltaArray]" of
+    # "_values" incompatible with return type "ndarray" in supertype "NDFrame"
     @property
-    def _values_compat(self) -> np.ndarray | DatetimeArray | TimedeltaArray:
+    def _values(  # type: ignore[override]
+        self,
+    ) -> np.ndarray | DatetimeArray | TimedeltaArray:
         """
         Analogue to ._values that may return a 2D ExtensionArray.
         """
+        self._consolidate_inplace()
+
         mgr = self._mgr
+
         if isinstance(mgr, ArrayManager):
-            return self._values
+            if len(mgr.arrays) == 1 and not is_1d_only_ea_obj(mgr.arrays[0]):
+                # error: Item "ExtensionArray" of "Union[ndarray, ExtensionArray]"
+                # has no attribute "reshape"
+                return mgr.arrays[0].reshape(-1, 1)  # type: ignore[union-attr]
+            return self.values
 
         blocks = mgr.blocks
         if len(blocks) != 1:
-            return self._values
+            return self.values
 
         arr = blocks[0].values
         if arr.ndim == 1:
             # non-2D ExtensionArray
-            return self._values
+            return self.values
 
         # more generally, whatever we allow in NDArrayBackedExtensionBlock
-        arr = cast("DatetimeArray | TimedeltaArray", arr)
+        arr = cast("np.ndarray | DatetimeArray | TimedeltaArray", arr)
         return arr.T
 
     # ----------------------------------------------------------------------
@@ -3322,7 +3333,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
-            new_vals = self._values_compat.T
+            new_vals = self._values.T
             if copy:
                 new_vals = new_vals.copy()
 
@@ -10620,11 +10631,6 @@ NaN 12.3   33.0
         """
         self._consolidate_inplace()
         return self._mgr.as_array(transpose=True)
-
-    @property
-    def _values(self) -> np.ndarray:
-        """internal implementation"""
-        return self.values
 
 
 DataFrame._add_numeric_operations()
