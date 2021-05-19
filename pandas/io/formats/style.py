@@ -623,7 +623,7 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        subset : key, array-like, IndexSlice
+        subset : key, array-like, IndexSlice, optional
             |subset_doc|
         **kwargs : dict
             Pass along to ``func``.
@@ -693,7 +693,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should take a scalar and return a scalar.
-        subset : key, array-like, IndexSlice
+        subset : key, array-like, IndexSlice, optional
             |subset_doc|
         **kwargs : dict
             Pass along to ``func``.
@@ -759,7 +759,7 @@ class Styler(StylerRenderer):
             Applied when ``cond`` returns true.
         other : str
             Applied when ``cond`` returns false.
-        subset : label, array-like, IndexSlice
+        subset : label, array-like, IndexSlice, optional
             |subset_doc|
         **kwargs : dict
             Pass along to ``cond``.
@@ -1152,7 +1152,7 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        subset : label, array-like, IndexSlice
+        subset : label, array-like, IndexSlice, optional
             |subset_doc|
         text_color_threshold : float or int
             Luminance threshold for determining text color in [0, 1]. Facilitates text
@@ -1276,7 +1276,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice
+        subset : label, array-like, IndexSlice, optional
             |subset_doc|
         **kwargs : dict
             A dictionary of property, value pairs to be set for each cell.
@@ -1374,7 +1374,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice
+        subset : label, array-like, IndexSlice, optional
             |subset_doc|.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
@@ -1456,7 +1456,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         null_color : str, default 'red'
-        subset : label, array-like, IndexSlice
+        subset : label, array-like, IndexSlice, optional
             |subset_doc|
 
             .. versionadded:: 1.1.0
@@ -1502,7 +1502,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice
+        subset : label, array-like, IndexSlice, optional
             |subset_doc|
         color : str, default 'yellow'
             Background color to use for highlighting.
@@ -1551,7 +1551,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice
+        subset : label, array-like, IndexSlice, optional
             |subset_doc|
         color : str, default 'yellow'
             Background color to use for highlighting.
@@ -1605,7 +1605,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice
+        subset : label, array-like, IndexSlice, optional
             |subset_doc|
         color : str, default 'yellow'
             Background color to use for highlighting.
@@ -1713,7 +1713,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice
+        subset : label, array-like, IndexSlice, optional
             |subset_doc|
         color : str, default 'yellow'
             Background color to use for highlighting
