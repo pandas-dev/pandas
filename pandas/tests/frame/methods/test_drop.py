@@ -481,3 +481,12 @@ class TestDataFrameDrop:
         df2 = df.take([2, 0, 1, 2, 1], axis=1)
         result = df2.drop("C", axis=1)
         tm.assert_frame_equal(result, expected)
+
+    def test_drop_inplace_no_leftover_column_reference(self):
+        # GH 13934
+        df = DataFrame({"a": [1, 2, 3]})
+        a = df.a
+        df.drop(["a"], axis=1, inplace=True)
+        tm.assert_index_equal(df.columns, Index([], dtype="object"))
+        a -= a.mean()
+        tm.assert_index_equal(df.columns, Index([], dtype="object"))

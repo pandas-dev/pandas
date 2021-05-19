@@ -240,4 +240,6 @@ class TestDataFrameMissingData:
             r"argument 'self' will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.dropna(1)
+            result = df.dropna(1)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)

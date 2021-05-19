@@ -110,4 +110,6 @@ class TestDropna:
             r"argument 'self' will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser.dropna(0)
+            result = ser.dropna(0)
+        expected = Series([1, 2, 3])
+        tm.assert_series_equal(result, expected)
