@@ -918,11 +918,8 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].group_arraylike
 
-        codes = self.reconstructed_codes
-        levels = [ping.group_arraylike for ping in self.groupings]
-        return MultiIndex(
-            levels=levels, codes=codes, verify_integrity=False, names=self.names
-        )._values
+        # result_index is MultiIndex
+        return self.result_index._values
 
     @cache_readonly
     def result_index(self) -> Index:
@@ -936,7 +933,7 @@ class BaseGrouper:
         )
 
     @final
-    def get_group_levels(self) -> list[Index]:
+    def get_group_levels(self) -> list[ArrayLike]:
         # Note: only called from _insert_inaxis_grouper_inplace, which
         #  is only called for BaseGrouper, never for BinGrouper
         if len(self.groupings) == 1:
