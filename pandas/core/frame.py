@@ -1764,6 +1764,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "will be used in a future version. Use one of the above "
                 "to silence this warning.",
                 FutureWarning,
+                stacklevel=2,
             )
 
             if orient.startswith("d"):
