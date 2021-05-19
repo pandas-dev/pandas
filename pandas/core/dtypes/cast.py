@@ -1125,7 +1125,7 @@ def astype_nansafe(
         return arr.astype(dtype, copy=copy)
 
     if issubclass(dtype.type, str):
-        return lib.ensure_string_array(arr, skipna=skipna, convert_na_value=False)
+        return lib.ensure_string_array(arr, skipna=skipna, convert_na_value="non-null")
 
     elif is_datetime64_dtype(arr):
         if dtype == np.int64:
@@ -1925,7 +1925,7 @@ def construct_1d_ndarray_preserving_na(
     """
 
     if dtype is not None and dtype.kind == "U":
-        subarr = lib.ensure_string_array(values, convert_na_value=False, copy=copy)
+        subarr = lib.ensure_string_array(values, coerce="non-null", copy=copy)
     else:
         if dtype is not None:
             _disallow_mismatched_datetimelike(values, dtype)

@@ -230,13 +230,8 @@ class StringArray(PandasArray):
             )
         try:
             lib.ensure_string_array(
-                self._ndarray, na_value=StringDtype.na_value, coerce=False, copy=False
+                self._ndarray, na_value=StringDtype.na_value, coerce="null", copy=False
             ),
-            NDArrayBacked.__init__(
-                self,
-                self._ndarray,
-                StringDtype(),
-            )
         except ValueError:
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
 
@@ -251,7 +246,7 @@ class StringArray(PandasArray):
             # avoid costly conversion to object dtype
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            result = lib.ensure_string_array(result, copy=copy, coerce="non-null")
             result[na_values] = StringDtype.na_value
 
         else:

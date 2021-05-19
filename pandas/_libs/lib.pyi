@@ -137,8 +137,7 @@ def maybe_convert_numeric(
 def ensure_string_array(
     arr,
     na_value: object = np.nan,
-    convert_na_value: bool = True,
-    coerce: bool = True,
+    coerce: str = "all,
     copy: bool = True,
     skipna: bool = True,
 ) -> np.ndarray: ...  # np.ndarray[object]

@@ -678,15 +678,14 @@ def astype_intsafe(ndarray[object] arr, cnp.dtype new_dtype) -> ndarray:
 cpdef ndarray[object] ensure_string_array(
         arr,
         object na_value=np.nan,
-        bint convert_na_value=True,
-        bint coerce=True,
+        coerce="all",
         bint copy=True,
         bint skipna=True,
 ):
     """
-    Checks that all elements in numpy are string or null and returns a new numpy array
-    with object dtype and only strings and na values if so. Otherwise,
-    raise a ValueError.
+    Checks that all elements in numpy array are string or null
+    and returns a new numpy array with object dtype
+    and only strings and na values if so. Otherwise, raise a ValueError.
 
     Parameters
     ----------
@@ -696,9 +695,14 @@ cpdef ndarray[object] ensure_string_array(
         The value to use for na. For example, np.nan or pd.NA.
     convert_na_value : bool, default True
         If False, existing na values will be used unchanged in the new array.
-    coerce : bool, default True
-        Whether to coerce non-null non-string elements to strings.
-        Will raise ValueError otherwise.
+    coerce : {{'all', 'null', 'non-null', None}}, default 'all'
+        Whether to coerce non-string elements to strings.
+            - 'all' will convert null values and non-null non-string values.
+            - 'null' will only convert nulls without converting other non-strings.
+            - 'non-null' will only convert non-null non-string elements to string.
+            - None will not convert anything.
+        If coerce is not all, a ValueError will be raised for values
+        that are not strings or na_value.
     copy : bool, default True
         Whether to ensure that a new array is returned.
     skipna : bool, default True
@@ -730,12 +734,12 @@ cpdef ndarray[object] ensure_string_array(
             continue
 
         if not checknull(val):
-            if coerce:
+            if coerce =="all" or coerce == "non-null":
                 result[i] = str(val)
             else:
                 raise ValueError("Non-string element encountered in array.")
         else:
-            if convert_na_value:
+            if coerce=="all" or coerce == "null":
                 val = na_value
             if skipna:
                 result[i] = val
