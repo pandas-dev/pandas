@@ -341,7 +341,7 @@ class TestResetIndex:
         )
         df.index.name = name
 
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             result = df.reset_index()
 
         item = name if name is not None else "index"
