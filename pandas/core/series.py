@@ -5274,7 +5274,7 @@ Keep all original rows and also all original values
         inplace: bool = False,
         limit: None | int = None,
         downcast=None,
-    ) -> Series:
+    ) -> Series | None:
         return super().bfill(axis, inplace, limit, downcast)
 
     # ----------------------------------------------------------------------
