@@ -918,14 +918,13 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
         mask = np.array(result.is_null())
         result = np.array(result)
-        if not expand:
-            result = lib.map_infer_mask(
-                result,
-                lambda x: x.tolist(),
-                mask.view(np.uint8),
-                na_value=self.dtype.na_value,
-                dtype=np.dtype(object),
-            )
+        result = lib.map_infer_mask(
+            result,
+            lambda x: x.tolist(),
+            mask.view(np.uint8),
+            na_value=self.dtype.na_value,
+            dtype=np.dtype(object),
+        )
         return result
 
     def _str_strip(self, to_strip=None):
