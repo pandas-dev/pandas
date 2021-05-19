@@ -224,10 +224,11 @@ Other enhancements
 - :meth:`pandas.read_csv` and :meth:`pandas.read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
 - :meth:`.GroupBy.any` and :meth:`.GroupBy.all` use Kleene logic with nullable data types (:issue:`37506`)
 - :meth:`.GroupBy.any` and :meth:`.GroupBy.all` return a ``BooleanDtype`` for columns with nullable data types (:issue:`33449`)
+- :meth:`.GroupBy.rank` now supports object-dtype data (:issue:`38278`)
 - Constructing a :class:`DataFrame` or :class:`Series` with the ``data`` argument being a Python iterable that is *not* a NumPy ``ndarray`` consisting of NumPy scalars will now result in a dtype with a precision the maximum of the NumPy scalars; this was already the case when ``data`` is a NumPy ``ndarray`` (:issue:`40908`)
 - Add keyword ``sort`` to :func:`pivot_table` to allow non-sorting of the result (:issue:`39143`)
 - Add keyword ``dropna`` to :meth:`DataFrame.value_counts` to allow counting rows that include ``NA`` values (:issue:`41325`)
--
+- :meth:`Series.replace` will now cast results to ``PeriodDtype`` where possible instead of ``object`` dtype (:issue:`41526`)
 
 .. ---------------------------------------------------------------------------
 
@@ -578,7 +579,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | openpyxl        | 3.0.0           |    X    |
 +-----------------+-----------------+---------+
-| pyarrow         | 0.15.0          |         |
+| pyarrow         | 0.17.0          |    X    |
 +-----------------+-----------------+---------+
 | pymysql         | 0.8.1           |    X    |
 +-----------------+-----------------+---------+
@@ -647,7 +648,9 @@ Deprecations
 - Deprecated setting :attr:`Categorical._codes`, create a new :class:`Categorical` with the desired codes instead (:issue:`40606`)
 - Deprecated behavior of :meth:`DatetimeIndex.union` with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`)
 - Deprecated using ``usecols`` with out of bounds indices for ``read_csv`` with ``engine="c"`` (:issue:`25623`)
-- Deprecated passing arguments as positional (except for ``"level"``) in :meth:`DataFrame.reset_index` and :meth:`Series.reset_index` (:issue:`41485`)
+- Deprecated passing arguments as positional in (:issue:`41485`) :
+  - :meth:`DataFrame.interpolate` (other than ``"method"``) and :meth:`Series.interpolate`
+  - :meth:`DataFrame.reset_index` (other than ``"level"``) and :meth:`Series.reset_index`
 
 .. ---------------------------------------------------------------------------
 
@@ -673,6 +676,7 @@ Performance improvements
 - Performance improvement for concatenation of data with type :class:`CategoricalDtype` (:issue:`40193`)
 - Performance improvement in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` with nullable data types (:issue:`37493`)
 - Performance improvement in :meth:`Series.nunique` with nan values (:issue:`40865`)
+- Performance improvement in :meth:`DataFrame.transpose`, :meth:`Series.unstack` with ``DatetimeTZDtype`` (:issue:`40149`)
 
 .. ---------------------------------------------------------------------------
 
@@ -972,6 +976,7 @@ Other
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)
 - Bug in :meth:`DataFrame.clip` not interpreting missing values as no threshold (:issue:`40420`)
+- Bug in :class:`Series` backed by :class:`DatetimeArray` or :class:`TimedeltaArray` sometimes failing to set the array's ``freq`` to ``None`` (:issue:`41425`)
 
 .. ---------------------------------------------------------------------------
 
