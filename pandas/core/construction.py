@@ -695,11 +695,8 @@ def _try_cast(
         if is_integer_dtype(dtype):
             # this will raise if we have e.g. floats
 
-            # error: Argument 2 to "maybe_cast_to_integer_array" has incompatible type
-            # "Union[dtype, ExtensionDtype, None]"; expected "Union[ExtensionDtype, str,
-            # dtype, Type[str], Type[float], Type[int], Type[complex], Type[bool],
-            # Type[object]]"
-            maybe_cast_to_integer_array(arr, dtype)  # type: ignore[arg-type]
+            dtype = cast(np.dtype, dtype)
+            maybe_cast_to_integer_array(arr, dtype)
             subarr = arr
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)
