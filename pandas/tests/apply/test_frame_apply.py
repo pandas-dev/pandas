@@ -164,8 +164,9 @@ def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
     if len(args) > 1 and how == "agg":
         request.node.add_marker(
             pytest.mark.xfail(
+                raises=TypeError,
                 reason="agg/apply signature mismatch - agg passes 2nd "
-                "argument to func"
+                "argument to func",
             )
         )
     result = getattr(float_frame, how)(func, *args, **kwds)
@@ -1549,3 +1550,11 @@ def test_aggregation_func_column_order():
         index=["sum", "foo", "count", "min"],
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_apply_getitem_axis_1():
+    # GH 13427
+    df = DataFrame({"a": [0, 1, 2], "b": [1, 2, 3]})
+    result = df[["a", "a"]].apply(lambda x: x[0] + x[1], axis=1)
+    expected = Series([0, 2, 4])
+    tm.assert_series_equal(result, expected)

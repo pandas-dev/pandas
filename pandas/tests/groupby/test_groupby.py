@@ -248,6 +248,26 @@ def test_pass_args_kwargs(ts, tsframe):
         tm.assert_frame_equal(apply_result, expected, check_names=False)
 
 
+@pytest.mark.parametrize("as_index", [True, False])
+def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
+    # go through _aggregate_frame with self.axis == 0 and duplicate columns
+    tsframe.columns = ["A", "B", "A", "C"]
+    gb = tsframe.groupby(lambda x: x.month, as_index=as_index)
+
+    res = gb.agg(np.percentile, 80, axis=0)
+
+    ex_data = {
+        1: tsframe[tsframe.index.month == 1].quantile(0.8),
+        2: tsframe[tsframe.index.month == 2].quantile(0.8),
+    }
+    expected = DataFrame(ex_data).T
+    if not as_index:
+        # TODO: try to get this more consistent?
+        expected.index = Index(range(2))
+
+    tm.assert_frame_equal(res, expected)
+
+
 def test_len():
     df = tm.makeTimeDataFrame()
     grouped = df.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day])
@@ -2245,3 +2265,20 @@ def test_groupby_mean_duplicate_index(rand_series_with_duplicate_datetimeindex):
     result = dups.groupby(level=0).mean()
     expected = dups.groupby(dups.index).mean()
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_all_nan_groups_drop():
+    # GH 15036
+    s = Series([1, 2, 3], [np.nan, np.nan, np.nan])
+    result = s.groupby(s.index).sum()
+    expected = Series([], index=Index([], dtype=np.float64), dtype=np.int64)
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_empty_multi_column():
+    # GH 15106
+    result = DataFrame(data=[], columns=["A", "B", "C"]).groupby(["A", "B"]).sum()
+    expected = DataFrame(
+        [], columns=["C"], index=MultiIndex([[], []], [[], []], names=["A", "B"])
+    )
+    tm.assert_frame_equal(result, expected)
