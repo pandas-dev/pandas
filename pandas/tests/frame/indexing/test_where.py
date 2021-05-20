@@ -745,3 +745,11 @@ def test_where_bool_comparison():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_where(self):
+
+    s = Series(range(5))
+
+    with tm.assert_produces_warning(FutureWarning):
+        s.where(s > 1, 10, False)
