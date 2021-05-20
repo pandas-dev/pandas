@@ -554,10 +554,8 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
 
     else:
 
-        # drop subclass info, do not copy data
-        values = np.asarray(values)
-        if copy:
-            values = values.copy()
+        # drop subclass info
+        values = np.array(values, copy=copy)
 
     if values.ndim == 1:
         values = values.reshape((values.shape[0], 1))
