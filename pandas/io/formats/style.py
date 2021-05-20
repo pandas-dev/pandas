@@ -1071,7 +1071,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice
+        subset : label, array-like, IndexSlice, optional
             A valid 1d input or single key along the index axis within
             `DataFrame.loc[<subset>, :]`, to limit ``data`` to *before* applying
             the function.
@@ -1086,6 +1086,13 @@ class Styler(StylerRenderer):
 
         Examples
         --------
+        Simple application hiding specific rows:
+
+        >>> df = pd.DataFrame([[1,2], [3,4], [5,6]], index=["a", "b", "c"])
+        >>> df.style.hide_index(["a", "b"])
+             0    1
+        c    5    6
+
         Hide the index and retain the data values:
 
         >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
@@ -1144,7 +1151,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice
+        subset : label, array-like, IndexSlice, optional
             A valid 1d input or single key along the columns axis within
             `DataFrame.loc[:, <subset>]`, to limit ``data`` to *before* applying
             the function.
@@ -1159,6 +1166,14 @@ class Styler(StylerRenderer):
 
         Examples
         --------
+        Simple application hiding specific rows:
+
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "b", "c"])
+        >>> df.style.hide_columns(["a", "b"])
+             c
+        0    3
+        1    6
+
         Hide column headers and retain the data values:
 
         >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
