@@ -41,6 +41,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 
@@ -807,6 +808,7 @@ class MultiIndex(Index):
 
         self._reset_cache()
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "levels"])
     def set_levels(
         self, levels, level=None, inplace=None, verify_integrity: bool = True
     ):
