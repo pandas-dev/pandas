@@ -97,8 +97,8 @@ class StylerRenderer:
 
         # add rendering variables
         self.hidden_index: bool = False
+        self.hide_columns_: bool = False
         self.hidden_rows: Sequence[int] = []
-        self.hidden_colheads: bool = False
         self.hidden_columns: Sequence[int] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
@@ -259,7 +259,7 @@ class StylerRenderer:
 
         head = []
         # 1) column headers
-        if not self.hidden_colheads:
+        if not self.hide_columns_:
             for r in range(self.data.columns.nlevels):
                 index_blanks = [
                     _element("th", blank_class, blank_value, not self.hidden_index)

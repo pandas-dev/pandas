@@ -1210,7 +1210,7 @@ class Styler(StylerRenderer):
             c    0.5    2.2
         """
         if subset is None:
-            self.hidden_colheads = True
+            self.hide_columns_ = True
         else:
             subset_ = IndexSlice[:, subset]  # new var so mypy reads not Optional
             subset = non_reducing_slice(subset_)
