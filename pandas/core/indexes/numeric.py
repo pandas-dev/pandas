@@ -258,8 +258,8 @@ class NumericIndex(Index):
     def _should_fallback_to_positional(self) -> bool:
         if self.inferred_type == "floating":
             return False
-
-        return super()._should_fallback_to_positional()
+        else:
+            return super()._should_fallback_to_positional()
 
     @doc(Index._convert_slice_indexer)
     def _convert_slice_indexer(self, key: slice, kind: str):
@@ -326,7 +326,7 @@ class NumericIndex(Index):
         return is_numeric_dtype(dtype)
 
     @classmethod
-    def _assert_safe_casting(cls, data, subarr) -> None:
+    def _assert_safe_casting(cls, data: np.ndarray, subarr: np.ndarray) -> None:
         """
         Ensure incoming data can be represented with matching signed-ness.
         """
@@ -340,8 +340,6 @@ class NumericIndex(Index):
         Checks that all the labels are datetime objects.
         """
         return False
-
-    # ----------------------------------------------------------------
 
     def _format_native_types(
         self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
