@@ -1071,9 +1071,10 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : IndexSlice
-            An argument to ``DataFrame.loc[subset, :]``, i.e. along the index, that
-            identifies which index key rows will be hidden.
+        subset : label, array-like, IndexSlice
+            A valid 1d input or single key along the index axis within
+            `DataFrame.loc[<subset>, :]`, to limit ``data`` to *before* applying
+            the function.
 
         Returns
         -------
@@ -1143,9 +1144,10 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : IndexSlice
-            An argument to ``DataFrame.loc[:, subset]``, i.e. along the columns, that
-            identifies which columns keys will be hidden.
+        subset : label, array-like, IndexSlice
+            A valid 1d input or single key along the columns axis within
+            `DataFrame.loc[:, <subset>]`, to limit ``data`` to *before* applying
+            the function.
 
         Returns
         -------
