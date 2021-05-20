@@ -437,7 +437,7 @@ class Index(IndexOpsMixin, PandasObject):
             return Index._simple_new(data, name=name)
 
         # index-like
-        elif data._is_numeric_index() and dtype is None:
+        elif isinstance(data, Index) and data._is_numeric_index() and dtype is None:
             return type(data)(data, name=name, copy=copy)
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
