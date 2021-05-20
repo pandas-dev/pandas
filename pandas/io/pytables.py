@@ -3378,10 +3378,7 @@ class Table(Fixed):
     @property
     def nrows_expected(self) -> int:
         """ based on our axes, compute the expected nrows """
-        # error: Incompatible return value type (got "number", expected "int")
-        return np.prod(  # type: ignore[return-value]
-            [i.cvalues.shape[0] for i in self.index_axes]
-        )
+        return np.prod([i.cvalues.shape[0] for i in self.index_axes])
 
     @property
     def is_exists(self) -> bool:

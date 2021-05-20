@@ -176,9 +176,7 @@ class _Unstacker:
         self.full_shape = ngroups, stride
 
         selector = self.sorted_labels[-1] + stride * comp_index + self.lift
-        # error: Argument 1 to "zeros" has incompatible type "number"; expected
-        # "Union[int, Sequence[int]]"
-        mask = np.zeros(np.prod(self.full_shape), dtype=bool)  # type: ignore[arg-type]
+        mask = np.zeros(np.prod(self.full_shape), dtype=bool)
         mask.put(selector, True)
 
         if mask.sum() < len(self.index):

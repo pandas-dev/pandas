@@ -493,8 +493,7 @@ class ExtensionArray:
         """
         The number of elements in the array.
         """
-        # error: Incompatible return value type (got "number", expected "int")
-        return np.prod(self.shape)  # type: ignore[return-value]
+        return np.prod(self.shape)
 
     @property
     def ndim(self) -> int:
