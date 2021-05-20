@@ -197,7 +197,9 @@ class NumericIndex(Index):
         dtype: Dtype | None,
         validate: bool = True,
     ) -> np.dtype | None:
-        """Ensure int64 dtype for Int64Index, etc. but allow int32 etc. for NumIndex."""
+        """
+        Ensure int64 dtype for Int64Index etc. but allow int32 etc. for NumericIndex.
+        """
         if validate:
             cls._validate_dtype(dtype)
 
@@ -207,10 +209,10 @@ class NumericIndex(Index):
         dtype = pandas_dtype(dtype)
         assert isinstance(dtype, np.dtype)
 
-        if cls._default_dtype is not None:
-            return cls._default_dtype
-        else:
+        if cls._default_dtype is None:
             return dtype
+        else:
+            return cls._default_dtype
 
     def __contains__(self, key) -> bool:
         """
