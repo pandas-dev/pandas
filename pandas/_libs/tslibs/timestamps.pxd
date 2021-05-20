@@ -18,7 +18,7 @@ cdef class _Timestamp(ABCTimestamp):
         int64_t value, nanosecond
         object freq
 
-    cdef bint _get_start_end_field(self, str field)
+    cdef bint _get_start_end_field(self, str field, freq)
     cdef _get_date_name_field(self, str field, object locale)
     cdef int64_t _maybe_convert_value_to_local(self)
     cdef bint _can_compare(self, datetime other)
@@ -26,3 +26,4 @@ cdef class _Timestamp(ABCTimestamp):
     cpdef datetime to_pydatetime(_Timestamp self, bint warn=*)
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1
+    cpdef void _set_freq(self, freq)

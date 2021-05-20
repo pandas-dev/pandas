@@ -509,9 +509,7 @@ class TestResetIndex:
             },
             columns=["level_0", "level_1", "a"],
         )
-        expected["level_1"] = expected["level_1"].apply(
-            lambda d: Timestamp(d, freq="D", tz=tz)
-        )
+        expected["level_1"] = expected["level_1"].apply(lambda d: Timestamp(d, tz=tz))
         result = df.reset_index()
         tm.assert_frame_equal(result, expected)
 
