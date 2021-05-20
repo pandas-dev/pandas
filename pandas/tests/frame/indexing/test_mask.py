@@ -101,9 +101,7 @@ class TestDataFrameMask:
             r"arguments 'self' and 'cond' will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.mask(cond, other)
-
-        # tm.assert_frame_equal(df.mask(cond, other), df.mask(cond, other=other))
+            tm.assert_frame_equal(df.mask(cond, other), df.mask(cond, other=other))
 
 
 def test_mask_try_cast_deprecated(frame_or_series):

@@ -90,12 +90,12 @@ def test_mask_stringdtype():
 
 def test_mask_pos_args_deprecation():
     # https://github.com/pandas-dev/pandas/issues/41485
-    df = Series(np.random.randn(6))
-    cond = df > 0
+    s = Series(np.random.randn(6))
+    cond = s > 0
 
     msg = (
         r"Starting with Pandas version 2\.0 all arguments of mask except for the "
         r"arguments 'self' and 'cond' will be keyword-only"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.mask(cond, np.nan)
+        tm.assert_series_equal(s.mask(cond, np.nan), s.mask(cond, other=np.nan))
