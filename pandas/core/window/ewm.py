@@ -268,6 +268,8 @@ class ExponentialMovingWindow(BaseWindow):
         ignore_na: bool = False,
         axis: Axis = 0,
         times: str | np.ndarray | FrameOrSeries | None = None,
+        *,
+        selection=None,
     ):
         super().__init__(
             obj=obj,
@@ -277,6 +279,7 @@ class ExponentialMovingWindow(BaseWindow):
             closed=None,
             method="single",
             axis=axis,
+            selection=selection,
         )
         self.com = com
         self.span = span
