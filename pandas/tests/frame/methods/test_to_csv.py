@@ -1330,3 +1330,11 @@ class TestDataFrameToCSV:
 
         result = buf.getvalue()
         assert "2000-01-01" in result
+
+    def test_to_csv_na_quoting(self):
+        # GH 15891
+        result = DataFrame([None, None]).to_csv(
+            None, header=False, index=False, na_rep=""
+        )
+        expected = '""\n""\n'
+        assert result == expected
