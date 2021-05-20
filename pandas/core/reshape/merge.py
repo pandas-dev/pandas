@@ -85,7 +85,7 @@ if TYPE_CHECKING:
     from pandas.core.arrays import DatetimeArray
 
 
-@Substitution("\nleft : DataFrame")
+@Substitution("\nleft : DataFrame or named Series")
 @Appender(_merge_doc, indents=0)
 def merge(
     left: FrameOrSeriesUnion,
@@ -322,8 +322,8 @@ def merge_ordered(
 
 
 def merge_asof(
-    left: DataFrame,
-    right: DataFrame,
+    left: FrameOrSeriesUnion,
+    right: FrameOrSeriesUnion,
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
@@ -362,8 +362,8 @@ def merge_asof(
 
     Parameters
     ----------
-    left : DataFrame
-    right : DataFrame
+    left : DataFrame or named Series
+    right : DataFrame or named Series
     on : label
         Field name to join on. Must be found in both DataFrames.
         The data MUST be ordered. Furthermore this must be a numeric column,
@@ -1599,8 +1599,8 @@ class _OrderedMerge(_MergeOperation):
 
     def __init__(
         self,
-        left: DataFrame,
-        right: DataFrame,
+        left: FrameOrSeriesUnion,
+        right: FrameOrSeriesUnion,
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
@@ -1704,8 +1704,8 @@ class _AsOfMerge(_OrderedMerge):
 
     def __init__(
         self,
-        left: DataFrame,
-        right: DataFrame,
+        left: FrameOrSeriesUnion,
+        right: FrameOrSeriesUnion,
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
