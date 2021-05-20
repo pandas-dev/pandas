@@ -96,7 +96,7 @@ class StylerRenderer:
         self.cell_ids = cell_ids
 
         # add rendering variables
-        self.hidden_index: bool = False
+        self.hide_index_: bool = False
         self.hide_columns_: bool = False
         self.hidden_rows: Sequence[int] = []
         self.hidden_columns: Sequence[int] = []
@@ -262,7 +262,7 @@ class StylerRenderer:
         if not self.hide_columns_:
             for r in range(self.data.columns.nlevels):
                 index_blanks = [
-                    _element("th", blank_class, blank_value, not self.hidden_index)
+                    _element("th", blank_class, blank_value, not self.hide_index_)
                 ] * (self.data.index.nlevels - 1)
 
                 name = self.data.columns.names[r]
@@ -271,7 +271,7 @@ class StylerRenderer:
                         "th",
                         f"{blank_class if name is None else index_name_class} level{r}",
                         name if name is not None else blank_value,
-                        not self.hidden_index,
+                        not self.hide_index_,
                     )
                 ]
 
@@ -296,7 +296,7 @@ class StylerRenderer:
         if (
             self.data.index.names
             and com.any_not_none(*self.data.index.names)
-            and not self.hidden_index
+            and not self.hide_index_
         ):
             index_names = [
                 _element(
@@ -363,7 +363,7 @@ class StylerRenderer:
                     "th",
                     f"{row_heading_class} level{c} row{r}",
                     value,
-                    (_is_visible(r, c, idx_lengths) and not self.hidden_index),
+                    (_is_visible(r, c, idx_lengths) and not self.hide_index_),
                     id=f"level{c}_row{r}",
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'

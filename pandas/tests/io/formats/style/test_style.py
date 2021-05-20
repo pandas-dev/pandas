@@ -85,7 +85,7 @@ class TestStyler:
                 [{"selector": "th", "props": [("foo", "bar")]}]
             )
             self.styler.set_table_attributes('class="foo" data-bar')
-            self.styler.hidden_index = not self.styler.hidden_index
+            self.styler.hide_index_ = not self.styler.hide_index_
             self.styler.hide_columns("A")
             classes = DataFrame(
                 [["favorite-val red", ""], [None, "blue my-val"]],
@@ -156,7 +156,7 @@ class TestStyler:
             "table_styles",
             "table_attributes",
             "cell_ids",
-            "hidden_index",
+            "hide_index_",
             "hidden_columns",
             "cell_context",
         ]
@@ -181,7 +181,7 @@ class TestStyler:
         assert len(s._todo) > 0
         assert s.tooltips
         assert len(s.cell_context) > 0
-        assert s.hidden_index is True
+        assert s.hide_index_ is True
         assert len(s.hidden_columns) > 0
 
         s = s._compute()
@@ -195,7 +195,7 @@ class TestStyler:
         assert len(s._todo) == 0
         assert not s.tooltips
         assert len(s.cell_context) == 0
-        assert s.hidden_index is False
+        assert s.hide_index_ is False
         assert len(s.hidden_columns) == 0
 
     def test_render(self):

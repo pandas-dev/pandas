@@ -499,7 +499,7 @@ class Styler(StylerRenderer):
         )
 
         styler.uuid = self.uuid
-        styler.hidden_index = self.hidden_index
+        styler.hide_index_ = self.hide_index_
 
         if deepcopy:
             styler.ctx = copy.deepcopy(self.ctx)
@@ -538,7 +538,7 @@ class Styler(StylerRenderer):
         self.cell_context.clear()
         self._todo.clear()
 
-        self.hidden_index = False
+        self.hide_index_ = False
         self.hidden_columns = []
         # self.format and self.table_styles may be dependent on user
         # input in self.__init__()
@@ -1125,7 +1125,7 @@ class Styler(StylerRenderer):
         -0.6    1.2    1.8    1.9    0.3    0.3
         """
         if subset is None:
-            self.hidden_index = True
+            self.hide_index_ = True
         else:
             subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
             subset = non_reducing_slice(subset_)
