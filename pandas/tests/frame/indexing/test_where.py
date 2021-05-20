@@ -747,7 +747,7 @@ def test_where_bool_comparison():
     tm.assert_frame_equal(result, expected)
 
 
-def test_where(self):
+def test_where():
 
     s = Series(range(5))
 
