@@ -282,18 +282,18 @@ class NumericIndex(Index):
 
     @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr) -> np.ndarray:
-        if is_unsigned_integer_dtype(self.dtype):
-            # Cast the indexer to uint64 if possible so that the values returned
-            # from indexing are also uint64.
-            dtype = None
-            if is_integer_dtype(keyarr) or (
-                lib.infer_dtype(keyarr, skipna=False) == "integer"
-            ):
-                dtype = np.dtype(np.uint64)
+        if not is_unsigned_integer_dtype(self.dtype):
+            return super()._convert_arr_indexer(keyarr)
 
-            return com.asarray_tuplesafe(keyarr, dtype=dtype)
+        # Cast the indexer to uint64 if possible so that the values returned
+        # from indexing are also uint64.
+        dtype = None
+        if is_integer_dtype(keyarr) or (
+            lib.infer_dtype(keyarr, skipna=False) == "integer"
+        ):
+            dtype = np.dtype(np.uint64)
 
-        return super()._convert_arr_indexer(keyarr)
+        return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
     # ----------------------------------------------------------------
 
