@@ -66,7 +66,7 @@ def import_optional_dependency(
     extra: str = "",
     errors: str = "raise",
     min_version: str | None = None,
-):
+) -> types.ModuleType | None:
     """
     Import an optional dependency.
 
@@ -95,7 +95,7 @@ def import_optional_dependency(
         minimum version required.
     Returns
     -------
-    maybe_module : Optional[ModuleType]
+    maybe_module : ModuleType or None
         The imported module, when found and the version is correct.
         None is returned when the package is not found and `errors`
         is False, or when the package's version is too old and `errors`
