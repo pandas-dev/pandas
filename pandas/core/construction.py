@@ -39,9 +39,9 @@ from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
-    maybe_castable,
     maybe_convert_platform,
     maybe_upcast,
+    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
@@ -664,30 +664,45 @@ def _try_cast(
     # perf shortcut as this is the most common case
     if (
         isinstance(arr, np.ndarray)
-        and maybe_castable(arr.dtype)
+        and arr.dtype != object
         and not copy
         and dtype is None
     ):
-        return arr
+        return sanitize_to_nanoseconds(arr)
 
-    if isinstance(dtype, ExtensionDtype) and not isinstance(dtype, DatetimeTZDtype):
+    if isinstance(dtype, ExtensionDtype):
         # create an extension array from its dtype
         # DatetimeTZ case needs to go through maybe_cast_to_datetime but
         # SparseDtype does not
+        if isinstance(dtype, DatetimeTZDtype):
+            # We can't go through _from_sequence because it handles dt64naive
+            #  data differently; _from_sequence treats naive as wall times,
+            #  while maybe_cast_to_datetime treats it as UTC
+            #  see test_maybe_promote_any_numpy_dtype_with_datetimetz
+
+            # error: Incompatible return value type (got "Union[ExtensionArray,
+            # ndarray, List[Any]]", expected "Union[ExtensionArray, ndarray]")
+            return maybe_cast_to_datetime(arr, dtype)  # type: ignore[return-value]
+            # TODO: copy?
+
         array_type = dtype.construct_array_type()._from_sequence
         subarr = array_type(arr, dtype=dtype, copy=copy)
         return subarr
 
-    if is_object_dtype(dtype) and not isinstance(arr, np.ndarray):
-        subarr = construct_1d_object_array_from_listlike(arr)
-        return subarr
+    elif is_object_dtype(dtype):
+        if not isinstance(arr, np.ndarray):
+            subarr = construct_1d_object_array_from_listlike(arr)
+            return subarr
+        return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
 
-    if dtype is None and isinstance(arr, list):
+    elif dtype is None and isinstance(arr, list):
         # filter out cases that we _dont_ want to go through maybe_cast_to_datetime
         varr = np.array(arr, copy=False)
         if varr.dtype != object or varr.size == 0:
             return varr
-        arr = varr
+        # error: Incompatible return value type (got "Union[ExtensionArray,
+        # ndarray, List[Any]]", expected "Union[ExtensionArray, ndarray]")
+        return maybe_cast_to_datetime(varr, None)  # type: ignore[return-value]
 
     try:
         # GH#15832: Check if we are requesting a numeric dtype and
