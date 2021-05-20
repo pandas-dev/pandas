@@ -1125,7 +1125,7 @@ def astype_nansafe(
         return arr.astype(dtype, copy=copy)
 
     if issubclass(dtype.type, str):
-        return lib.ensure_string_array(arr, skipna=skipna, convert_na_value="non-null")
+        return lib.ensure_string_array(arr, skipna=skipna, coerce="non-null")
 
     elif is_datetime64_dtype(arr):
         if dtype == np.int64:
