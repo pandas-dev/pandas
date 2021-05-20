@@ -20,7 +20,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.interval import IntervalIndex
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.numeric import (
-    BaseNumericIndex,
     Float64Index,
     Int64Index,
     NumericIndex,
@@ -46,7 +45,6 @@ __all__ = [
     "Index",
     "MultiIndex",
     "NumericIndex",
-    "BaseNumericIndex",
     "Float64Index",
     "Int64Index",
     "CategoricalIndex",

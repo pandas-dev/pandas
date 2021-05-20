@@ -212,13 +212,52 @@ class NumericIndex(Index):
         else:
             return dtype
 
+    def __contains__(self, key) -> bool:
+        """
+        Check if key is a float and has a decimal. If it has, return False.
+        """
+        if not is_integer_dtype(self.dtype):
+            return super().__contains__(key)
+
+        hash(key)
+        try:
+            if is_float(key) and int(key) != key:
+                # otherwise the `key in self._engine` check casts e.g. 1.1 -> 1
+                return False
+            return key in self._engine
+        except (OverflowError, TypeError, ValueError):
+            return False
+
+    @doc(Index.astype)
+    def astype(self, dtype, copy=True):
+        if is_float_dtype(self.dtype):
+            dtype = pandas_dtype(dtype)
+            if needs_i8_conversion(dtype):
+                raise TypeError(
+                    f"Cannot convert Float64Index to dtype {dtype}; integer "
+                    "values are required for conversion"
+                )
+            elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
+                # TODO(jreback); this can change once we have an EA Index type
+                # GH 13149
+                arr = astype_nansafe(self._values, dtype=dtype)
+                if isinstance(self, Float64Index):
+                    return Int64Index(arr, name=self.name)
+                else:
+                    return NumericIndex(arr, name=self.name, dtype=dtype)
+
+        return super().astype(dtype, copy=copy)
+
     # ----------------------------------------------------------------
     # Indexing Methods
 
     @cache_readonly
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
-        return False
+        if self.inferred_type == "floating":
+            return False
+
+        return super()._should_fallback_to_positional()
 
     @doc(Index._convert_slice_indexer)
     def _convert_slice_indexer(self, key: slice, kind: str):
@@ -238,6 +277,21 @@ class NumericIndex(Index):
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
+
+    @doc(Index._convert_arr_indexer)
+    def _convert_arr_indexer(self, keyarr) -> np.ndarray:
+        if is_unsigned_integer_dtype(self.dtype):
+            # Cast the indexer to uint64 if possible so that the values returned
+            # from indexing are also uint64.
+            dtype = None
+            if is_integer_dtype(keyarr) or (
+                lib.infer_dtype(keyarr, skipna=False) == "integer"
+            ):
+                dtype = np.dtype(np.uint64)
+
+            return com.asarray_tuplesafe(keyarr, dtype=dtype)
+
+        return super()._convert_arr_indexer(keyarr)
 
     # ----------------------------------------------------------------
 
@@ -270,13 +324,13 @@ class NumericIndex(Index):
         return is_numeric_dtype(dtype)
 
     @classmethod
-    def _assert_safe_casting(cls, data, subarr):
+    def _assert_safe_casting(cls, data, subarr) -> None:
         """
-        Subclasses need to override this only if the process of casting data
-        from some accepted dtype to the internal dtype(s) bears the risk of
-        truncation (e.g. float to int).
+        Ensure incoming data can be represented with matching signed-ness.
         """
-        pass
+        if is_integer_dtype(subarr.dtype):
+            if not np.array_equal(data, subarr):
+                raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
     @property
     def _is_all_dates(self) -> bool:

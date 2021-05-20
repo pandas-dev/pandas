@@ -1,7 +1,6 @@
 import warnings
 
 from pandas.core.indexes.api import (  # noqa:F401
-    BaseNumericIndex,
     CategoricalIndex,
     DatetimeIndex,
     Float64Index,
@@ -10,6 +9,7 @@ from pandas.core.indexes.api import (  # noqa:F401
     IntervalIndex,
     MultiIndex,
     NaT,
+    NumericIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,

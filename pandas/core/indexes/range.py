@@ -45,9 +45,9 @@ from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.numeric import (
-    BaseNumericIndex,
     Float64Index,
     Int64Index,
+    NumericIndex,
 )
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -57,7 +57,7 @@ if TYPE_CHECKING:
 _empty_range = range(0)
 
 
-class RangeIndex(BaseNumericIndex):
+class RangeIndex(NumericIndex):
     """
     Immutable Index implementing a monotonic integer range.
 

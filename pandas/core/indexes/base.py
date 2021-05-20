@@ -2441,16 +2441,17 @@ class Index(IndexOpsMixin, PandasObject):
 
         Used to check if an operation should return NumericIndex or plain Index.
         """
-        from pandas.core.indexes.numeric import (
+        from pandas import (
             Float64Index,
             Int64Index,
             NumericIndex,
+            RangeIndex,
             UInt64Index,
         )
 
         if not issubclass(cls, NumericIndex):
             return False
-        elif issubclass(cls, (Int64Index, UInt64Index, Float64Index)):
+        elif issubclass(cls, (RangeIndex, Int64Index, UInt64Index, Float64Index)):
             return False
         else:
             return True
