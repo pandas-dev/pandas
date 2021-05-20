@@ -140,6 +140,9 @@ def test_where():
     rs = s2.where(cond[:3], -s2)
     tm.assert_series_equal(rs, expected)
 
+    with tm.assert_produces_warning(FutureWarning):
+        s.where(s > 1, 10, False)
+
 
 def test_where_error():
     s = Series(np.random.randn(5))
