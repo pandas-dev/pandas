@@ -278,7 +278,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     >>> ser
     0    999
     1      2
-    dtype: int32
+    dtype: int64
 
     Due to input data type the Series has a `view` on
     the original data, so
