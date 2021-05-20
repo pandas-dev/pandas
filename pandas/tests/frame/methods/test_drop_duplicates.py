@@ -476,9 +476,16 @@ def test_drop_duplicates_non_boolean_ignore_index(arg):
 def test_drop_duplicates_pos_args_deprecation():
     # GH#41485
     df = DataFrame({"a": [1, 1, 2], "b": [1, 1, 3], "c": [1, 1, 3]})
+
     msg = (
-        r"Starting with Pandas version 2\.0 all arguments of drop_duplicates "
-        r"except for the arguments 'self' and 'subset' will be keyword-only"
+        "In a future version of pandas all arguments of "
+        "DataFrame.drop_duplicates except for the argument 'subset' "
+        "will be keyword-only"
     )
+
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.drop_duplicates(["b", "c"], "last")
+        result = df.drop_duplicates(["b", "c"], "last")
+
+    expected = DataFrame({"a": [1, 2], "b": [1, 3], "c": [1, 3]}, index=[1, 2])
+
+    tm.assert_frame_equal(expected, result)
