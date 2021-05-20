@@ -47,7 +47,7 @@ Methods
     DateOffset.is_quarter_start
     DateOffset.is_quarter_end
     DateOffset.is_year_start
-    dateOffset.is_year_end
+    DateOffset.is_year_end
 
 BusinessDay
 -----------
