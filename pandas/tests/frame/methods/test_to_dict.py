@@ -81,7 +81,8 @@ class TestDataFrameToDict:
     def test_to_dict_short_orient_warns(self, orient):
         # GH#32515
         df = DataFrame({"A": [0, 1]})
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "Using short name for 'orient' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             df.to_dict(orient=orient)
 
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
