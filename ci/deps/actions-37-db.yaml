@@ -31,7 +31,7 @@ dependencies:
   - pandas-gbq
   - google-cloud-bigquery>=1.27.2 # GH 36436
   - psycopg2
-  - pyarrow>=0.15.0
+  - pyarrow>=0.17.0
   - pymysql
   - pytables
   - python-snappy
