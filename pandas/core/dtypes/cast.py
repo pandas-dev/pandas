@@ -1964,7 +1964,11 @@ def construct_1d_ndarray_preserving_na(
             and isinstance(values, np.ndarray)
             and values.dtype.kind == "f"
         ):
-            return astype_float_to_int_nansafe(values, dtype, copy=copy)
+            # Argument 2 to "astype_float_to_int_nansafe" has incompatible
+            # type "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
+            return astype_float_to_int_nansafe(
+                values, dtype, copy=copy  # type: ignore[arg-type]
+            )
         else:
             # error: Argument "dtype" to "array" has incompatible type
             # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[dtype[Any],
