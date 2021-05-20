@@ -329,6 +329,9 @@ class NumericIndex(Index):
     def _assert_safe_casting(cls, data: np.ndarray, subarr: np.ndarray) -> None:
         """
         Ensure incoming data can be represented with matching signed-ness.
+
+        Needed if the process of casting data from some accepted dtype to the internal
+        dtype(s) bears the risk of truncation (e.g. float to int).
         """
         if is_integer_dtype(subarr.dtype):
             if not np.array_equal(data, subarr):
@@ -346,24 +349,25 @@ class NumericIndex(Index):
     ):
         from pandas.io.formats.format import FloatArrayFormatter
 
-        if not is_float_dtype(self.dtype):
-            return super()._format_native_types(
+        if is_float_dtype(self.dtype):
+            formatter = FloatArrayFormatter(
+                self._values,
                 na_rep=na_rep,
                 float_format=float_format,
                 decimal=decimal,
                 quoting=quoting,
+                fixed_width=False,
                 **kwargs,
             )
+            return formatter.get_result_as_array()
 
-        formatter = FloatArrayFormatter(
-            self._values,
+        return super()._format_native_types(
             na_rep=na_rep,
             float_format=float_format,
             decimal=decimal,
             quoting=quoting,
-            fixed_width=False,
+            **kwargs,
         )
-        return formatter.get_result_as_array()
 
 
 class IntegerIndex(NumericIndex):
