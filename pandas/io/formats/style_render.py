@@ -96,9 +96,9 @@ class StylerRenderer:
         self.cell_ids = cell_ids
 
         # add rendering variables
-        self.hide_index_: bool = False
+        self.hide_index_: bool = False  # bools for hiding col/row headers
         self.hide_columns_: bool = False
-        self.hidden_rows: Sequence[int] = []
+        self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
