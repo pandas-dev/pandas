@@ -339,11 +339,6 @@ class Generic:
         assert obj_copy is not obj
         self._compare(obj_copy, obj)
 
-    def test_where(self):
-        s = Series(range(5))
-        with tm.assert_produces_warning(FutureWarning):
-            s.where(s > 1, 10, False)
-
 
 class TestNDFrame:
     # tests that don't fit elsewhere
