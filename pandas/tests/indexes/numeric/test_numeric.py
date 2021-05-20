@@ -106,11 +106,6 @@ class TestFloatNumericIndex(NumericBase):
         result = index_cls(np.array([np.nan]), dtype=dtype)
         assert pd.isna(result.values).all()
 
-        result = Index(np.array([np.nan], dtype=dtype))
-        assert isinstance(result, index_cls)
-        assert result.dtype == dtype
-        assert pd.isna(result.values).all()
-
     def test_constructor_invalid(self):
         index_cls = self._index_cls
         cls_name = index_cls.__name__
@@ -289,6 +284,14 @@ class TestFloat64Index(TestFloatNumericIndex):
     )
     def invalid_dtype(self, request):
         return request.param
+
+    def test_constructor_from_base_index(self, dtype):
+        index_cls = self._index_cls
+
+        result = Index(np.array([np.nan], dtype=dtype))
+        assert isinstance(result, index_cls)
+        assert result.dtype == dtype
+        assert pd.isna(result.values).all()
 
     def test_constructor_32bit(self, dtype):
         index_cls = self._index_cls
