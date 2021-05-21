@@ -1110,10 +1110,9 @@ def test_agg_multiple_mixed_no_warning():
     with tm.assert_produces_warning(None):
         result = mdf[["D", "C", "B", "A"]].agg(["sum", "min"])
 
-    # For backwards compatibility, the result's index is
-    # still sorted by function name, so it's ['min', 'sum']
-    # not ['sum', 'min'].
-    expected = expected[["D", "C", "B", "A"]]
+    # GH40420: the result of .agg should have an index that is sorted
+    # according to the arguments provided to agg.
+    expected = expected[["D", "C", "B", "A"]].reindex(["sum", "min"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -1519,6 +1518,38 @@ def test_apply_np_reducer(float_frame, op, how):
         getattr(np, op)(float_frame, axis=0, **kwargs), index=float_frame.columns
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_aggregation_func_column_order():
+    # GH40420: the result of .agg should have an index that is sorted
+    # according to the arguments provided to agg.
+    df = DataFrame(
+        [
+            ("1", 1, 0, 0),
+            ("2", 2, 0, 0),
+            ("3", 3, 0, 0),
+            ("4", 4, 5, 4),
+            ("5", 5, 6, 6),
+            ("6", 6, 7, 7),
+        ],
+        columns=("item", "att1", "att2", "att3"),
+    )
+
+    def foo(s):
+        return s.sum() / 2
+
+    aggs = ["sum", foo, "count", "min"]
+    result = df.agg(aggs)
+    expected = DataFrame(
+        {
+            "item": ["123456", np.nan, 6, "1"],
+            "att1": [21.0, 10.5, 6.0, 1.0],
+            "att2": [18.0, 9.0, 6.0, 0.0],
+            "att3": [17.0, 8.5, 6.0, 0.0],
+        },
+        index=["sum", "foo", "count", "min"],
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_getitem_axis_1():

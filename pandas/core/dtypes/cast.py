@@ -40,6 +40,7 @@ from pandas._typing import (
     DtypeObj,
     Scalar,
 )
+from pandas.errors import IntCastingNaNError
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -1167,9 +1168,7 @@ def astype_nansafe(
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
     elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
-
-        if not np.isfinite(arr).all():
-            raise ValueError("Cannot convert non-finite values (NA or inf) to integer")
+        return astype_float_to_int_nansafe(arr, dtype, copy)
 
     elif is_object_dtype(arr):
 
@@ -1205,6 +1204,19 @@ def astype_nansafe(
         return arr.astype(dtype, copy=True)
 
     return arr.astype(dtype, copy=copy)
+
+
+def astype_float_to_int_nansafe(
+    values: np.ndarray, dtype: np.dtype, copy: bool
+) -> np.ndarray:
+    """
+    astype with a check preventing converting NaN to an meaningless integer value.
+    """
+    if not np.isfinite(values).all():
+        raise IntCastingNaNError(
+            "Cannot convert non-finite values (NA or inf) to integer"
+        )
+    return values.astype(dtype, copy=copy)
 
 
 def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> ArrayLike:
@@ -1946,6 +1958,17 @@ def construct_1d_ndarray_preserving_na(
         ):
             # TODO(numpy#12550): special-case can be removed
             subarr = construct_1d_object_array_from_listlike(list(values))
+        elif (
+            dtype is not None
+            and dtype.kind in ["i", "u"]
+            and isinstance(values, np.ndarray)
+            and values.dtype.kind == "f"
+        ):
+            # Argument 2 to "astype_float_to_int_nansafe" has incompatible
+            # type "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
+            return astype_float_to_int_nansafe(
+                values, dtype, copy=copy  # type: ignore[arg-type]
+            )
         else:
             # error: Argument "dtype" to "array" has incompatible type
             # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[dtype[Any],

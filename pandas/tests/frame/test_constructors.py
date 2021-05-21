@@ -66,6 +66,18 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_construct_ndarray_with_nas_and_int_dtype(self):
+        # GH#26919 match Series by not casting np.nan to meaningless int
+        arr = np.array([[1, np.nan], [2, 3]])
+        df = DataFrame(arr, dtype="i8")
+        assert df.values.dtype == arr.dtype
+        assert isna(df.iloc[0, 1])
+
+        # check this matches Series behavior
+        ser = Series(arr[0], dtype="i8", name=0)
+        expected = df.iloc[0]
+        tm.assert_series_equal(ser, expected)
+
     def test_construct_from_list_of_datetimes(self):
         df = DataFrame([datetime.now(), datetime.now()])
         assert df[0].dtype == np.dtype("M8[ns]")
@@ -851,9 +863,17 @@ class TestDataFrameConstructors:
         assert len(frame.index) == 3
         assert len(frame.columns) == 1
 
-        # cast type
         frame = DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
-        assert frame.values.dtype == np.int64
+        if empty is np.ones:
+            # passing dtype casts
+            assert frame.values.dtype == np.int64
+        else:
+            # i.e. ma.masked_all
+            # Since we have NaNs, refuse to cast to int dtype, which would take NaN
+            #  to meaningless integers.  This matches Series behavior.  GH#26919
+            assert frame.isna().all().all()
+            assert frame.values.dtype == np.float64
+            assert isna(frame.values).all()
 
         # wrong size axis labels
         msg = r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)"
@@ -2089,12 +2109,16 @@ class TestDataFrameConstructors:
 
     def test_construct_from_1item_list_of_categorical(self):
         # ndim != 1
-        df = DataFrame([Categorical(list("abc"))])
+        msg = "will be changed to match the behavior"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([Categorical(list("abc"))])
         expected = DataFrame({0: Series(list("abc"), dtype="category")})
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_list_of_categoricals(self):
-        df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
+        msg = "will be changed to match the behavior"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
         expected = DataFrame(
             {
                 0: Series(list("abc"), dtype="category"),
@@ -2106,7 +2130,9 @@ class TestDataFrameConstructors:
 
     def test_from_nested_listlike_mixed_types(self):
         # mixed
-        df = DataFrame([Categorical(list("abc")), list("def")])
+        msg = "will be changed to match the behavior"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([Categorical(list("abc")), list("def")])
         expected = DataFrame(
             {0: Series(list("abc"), dtype="category"), 1: list("def")}, columns=[0, 1]
         )
@@ -2120,8 +2146,10 @@ class TestDataFrameConstructors:
                 "Passed arrays should have the same length as the rows Index",
             ]
         )
+        msg2 = "will be changed to match the behavior"
         with pytest.raises(ValueError, match=msg):
-            DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
 
     def test_constructor_categorical_series(self):
 
