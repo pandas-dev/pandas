@@ -1,14 +1,12 @@
+from __future__ import annotations
+
 import codecs
 from functools import wraps
 import re
 from typing import (
     TYPE_CHECKING,
-    Dict,
     Hashable,
-    List,
-    Optional,
     Pattern,
-    Union,
 )
 import warnings
 
@@ -43,7 +41,7 @@ from pandas.core.base import NoNewAttributesMixin
 if TYPE_CHECKING:
     from pandas import Index
 
-_shared_docs: Dict[str, str] = {}
+_shared_docs: dict[str, str] = {}
 _cpython_optimized_encoders = (
     "utf-8",
     "utf8",
@@ -325,7 +323,7 @@ class StringMethods(NoNewAttributesMixin):
         else:
             index = self._orig.index
             # This is a mess.
-            dtype: Optional[str]
+            dtype: str | None
             if self._is_string and returns_string:
                 dtype = self._orig.dtype
             else:
@@ -391,7 +389,7 @@ class StringMethods(NoNewAttributesMixin):
                 or (isinstance(x, np.ndarray) and x.ndim == 1)
                 for x in others
             ):
-                los: List[Series] = []
+                los: list[Series] = []
                 while others:  # iterate through list and append each element
                     los = los + self._get_series_list(others.pop(0))
                 return los
@@ -2292,7 +2290,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def extract(
         self, pat: str, flags: int = 0, expand: bool = True
-    ) -> Union[FrameOrSeriesUnion, "Index"]:
+    ) -> FrameOrSeriesUnion | Index:
         r"""
         Extract capture groups in the regex `pat` as columns in a DataFrame.
 
@@ -2733,7 +2731,7 @@ class StringMethods(NoNewAttributesMixin):
     #   boolean:
     #     isalpha, isnumeric isalnum isdigit isdecimal isspace islower isupper istitle
     # _doc_args holds dict of strings to use in substituting casemethod docs
-    _doc_args: Dict[str, Dict[str, str]] = {}
+    _doc_args: dict[str, dict[str, str]] = {}
     _doc_args["lower"] = {"type": "lowercase", "method": "lower", "version": ""}
     _doc_args["upper"] = {"type": "uppercase", "method": "upper", "version": ""}
     _doc_args["title"] = {"type": "titlecase", "method": "title", "version": ""}
@@ -2971,7 +2969,7 @@ class StringMethods(NoNewAttributesMixin):
     )
 
 
-def cat_safe(list_of_columns: List, sep: str):
+def cat_safe(list_of_columns: list, sep: str):
     """
     Auxiliary function for :meth:`str.cat`.
 
@@ -3007,7 +3005,7 @@ def cat_safe(list_of_columns: List, sep: str):
     return result
 
 
-def cat_core(list_of_columns: List, sep: str):
+def cat_core(list_of_columns: list, sep: str):
     """
     Auxiliary function for :meth:`str.cat`
 
@@ -3053,7 +3051,7 @@ def _get_single_group_name(regex: Pattern) -> Hashable:
         return None
 
 
-def _get_group_names(regex: Pattern) -> List[Hashable]:
+def _get_group_names(regex: Pattern) -> list[Hashable]:
     """
     Get named groups from compiled regex.
 
@@ -3119,7 +3117,7 @@ def str_extract(accessor: StringMethods, pat: str, flags: int = 0, expand: bool 
         else:
             result_list = _str_extract(obj.array, pat, flags=flags, expand=returns_df)
 
-            result_index: Optional["Index"]
+            result_index: Index | None
             if isinstance(obj, ABCSeries):
                 result_index = obj.index
             else:

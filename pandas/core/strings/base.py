@@ -1,8 +1,7 @@
+from __future__ import annotations
+
 import abc
-from typing import (
-    Pattern,
-    Union,
-)
+from typing import Pattern
 
 import numpy as np
 
@@ -68,7 +67,7 @@ class BaseStringArrayMethods(abc.ABC):
     @abc.abstractmethod
     def _str_fullmatch(
         self,
-        pat: Union[str, Pattern],
+        pat: str | Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar = np.nan,
