@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable  # noqa: PDF001
 import re
 import textwrap
-from typing import Pattern
 import unicodedata
 
 import numpy as np
@@ -15,10 +15,7 @@ from pandas._typing import (
     Scalar,
 )
 
-from pandas.core.dtypes.common import (
-    is_re,
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.strings.base import BaseStringArrayMethods
@@ -135,15 +132,23 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         f = lambda x: x.endswith(pat)
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
-    def _str_replace(self, pat, repl, n=-1, case: bool = True, flags=0, regex=True):
-        is_compiled_re = is_re(pat)
-
+    def _str_replace(
+        self,
+        pat: str | re.Pattern,
+        repl: str | Callable,
+        n: int = -1,
+        case: bool = True,
+        flags: int = 0,
+        regex: bool = True,
+    ):
         if case is False:
             # add case flag, if provided
             flags |= re.IGNORECASE
 
-        if regex and (is_compiled_re or len(pat) > 1 or flags or callable(repl)):
-            if not is_compiled_re:
+        if regex and (
+            isinstance(pat, re.Pattern) or len(pat) > 1 or flags or callable(repl)
+        ):
+            if not isinstance(pat, re.Pattern):
                 pat = re.compile(pat, flags=flags)
 
             n = n if n >= 0 else 0
@@ -195,7 +200,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_fullmatch(
         self,
-        pat: str | Pattern,
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar = None,
