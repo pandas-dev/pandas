@@ -1,11 +1,8 @@
+from __future__ import annotations
+
 import re
 import textwrap
-from typing import (
-    Optional,
-    Pattern,
-    Set,
-    Union,
-)
+from typing import Pattern
 import unicodedata
 
 import numpy as np
@@ -38,7 +35,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         # For typing, _str_map relies on the object being sized.
         raise NotImplementedError
 
-    def _str_map(self, f, na_value=None, dtype: Optional[Dtype] = None):
+    def _str_map(self, f, na_value=None, dtype: Dtype | None = None):
         """
         Map a callable over valid element of the array.
 
@@ -198,7 +195,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_fullmatch(
         self,
-        pat: Union[str, Pattern],
+        pat: str | Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar = None,
@@ -339,7 +336,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         except TypeError:
             arr = sep + arr.astype(str) + sep
 
-        tags: Set[str] = set()
+        tags: set[str] = set()
         for ts in Series(arr).str.split(sep):
             tags.update(ts)
         tags2 = sorted(tags - {""})
