@@ -720,48 +720,12 @@ For example:
     A    24
     dtype: int64
 
-.. _whatsnew_130.deprecations.nuisance_columns:
-
-Deprecated Dropping Nuisance Columns in DataFrame Reductions and DataFrameGroupBy Operations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-When calling a reduction (.min, .max, .sum, ...) on a :class:`DataFrame` with
-``numeric_only=None`` (the default, columns on which the reduction raises ``TypeError``
-are silently ignored and dropped from the result.  This behavior is deprecated.
-In a future version, the ``TypeError`` will be raised, and users will need to
-select only valid columns before calling the function.
-
-For example:
-
-.. ipython:: python
-
-   df = pd.DataFrame({"A": [1, 2, 3, 4], "B": pd.date_range("2016-01-01", periods=4)})
-
-*Old behavior*:
-
-.. code-block:: ipython
-
-    In [3]: df.prod()
-    Out[3]:
-    Out[3]:
-    A    24
-    dtype: int64
-
-*Future behavior*:
-
-.. code-block:: ipython
-
-    In [4]: df.prod()
-    ...
-    TypeError: 'DatetimeArray' does not implement reduction 'prod'
-
-    In [5]: df[["A"]].prod()
-    Out[5]:
-    A    24
-    dtype: int64
 
 Similarly, when applying a function to :class:`DataFrameGroupBy`, columns on which
 the function raises ``TypeError`` are currently silently ignored and dropped
-from the result.  This behavior is deprecated.  In a future version, the ``TypeError``
+from the result.
+
+This behavior is deprecated.  In a future version, the ``TypeError``
 will be raised, and users will need to select only valid columns before calling
 the function.
 
