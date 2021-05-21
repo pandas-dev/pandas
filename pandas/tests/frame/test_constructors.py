@@ -2109,12 +2109,16 @@ class TestDataFrameConstructors:
 
     def test_construct_from_1item_list_of_categorical(self):
         # ndim != 1
-        df = DataFrame([Categorical(list("abc"))])
+        msg = "will be changed to match the behavior"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([Categorical(list("abc"))])
         expected = DataFrame({0: Series(list("abc"), dtype="category")})
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_list_of_categoricals(self):
-        df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
+        msg = "will be changed to match the behavior"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
         expected = DataFrame(
             {
                 0: Series(list("abc"), dtype="category"),
@@ -2126,7 +2130,9 @@ class TestDataFrameConstructors:
 
     def test_from_nested_listlike_mixed_types(self):
         # mixed
-        df = DataFrame([Categorical(list("abc")), list("def")])
+        msg = "will be changed to match the behavior"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([Categorical(list("abc")), list("def")])
         expected = DataFrame(
             {0: Series(list("abc"), dtype="category"), 1: list("def")}, columns=[0, 1]
         )
@@ -2140,8 +2146,10 @@ class TestDataFrameConstructors:
                 "Passed arrays should have the same length as the rows Index",
             ]
         )
+        msg2 = "will be changed to match the behavior"
         with pytest.raises(ValueError, match=msg):
-            DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
 
     def test_constructor_categorical_series(self):
 
