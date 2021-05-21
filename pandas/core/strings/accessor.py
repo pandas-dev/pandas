@@ -1354,7 +1354,7 @@ class StringMethods(NoNewAttributesMixin):
                 )
                 if len(pat) == 1:
                     msg += (
-                        " In addition, single character regular expressions will"
+                        " In addition, single character regular expressions will "
                         "*not* be treated as literal strings when regex=True."
                     )
                 warnings.warn(msg, FutureWarning, stacklevel=3)
