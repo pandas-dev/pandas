@@ -579,8 +579,8 @@ def test_replace_regex_single_character(regex, any_string_dtype):
 
     if regex is None:
         msg = re.escape(
-            "The default value of regex will change from True to False in a "
-            "future version. In addition, single character regular expressions will *not* "
+            "The default value of regex will change from True to False in a future "
+            "version. In addition, single character regular expressions will *not* "
             "be treated as literal strings when regex=True."
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
