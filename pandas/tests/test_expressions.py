@@ -2,15 +2,18 @@ import operator
 import re
 
 import numpy as np
-from numpy.random import randn
 import pytest
 
 import pandas._testing as tm
-from pandas.core.api import DataFrame
+from pandas.core.api import (
+    DataFrame,
+    Index,
+    Series,
+)
 from pandas.core.computation import expressions as expr
 
-_frame = DataFrame(randn(10000, 4), columns=list("ABCD"), dtype="float64")
-_frame2 = DataFrame(randn(100, 4), columns=list("ABCD"), dtype="float64")
+_frame = DataFrame(np.random.randn(10001, 4), columns=list("ABCD"), dtype="float64")
+_frame2 = DataFrame(np.random.randn(100, 4), columns=list("ABCD"), dtype="float64")
 _mixed = DataFrame(
     {
         "A": _frame["A"].copy(),
@@ -33,9 +36,14 @@ _integer = DataFrame(
 _integer2 = DataFrame(
     np.random.randint(1, 100, size=(101, 4)), columns=list("ABCD"), dtype="int64"
 )
+_array = _frame["A"].values.copy()
+_array2 = _frame2["A"].values.copy()
+
+_array_mixed = _mixed["D"].values.copy()
+_array_mixed2 = _mixed2["D"].values.copy()
 
 
-@pytest.mark.skipif(not expr._USE_NUMEXPR, reason="not using numexpr")
+@pytest.mark.skipif(not expr.USE_NUMEXPR, reason="not using numexpr")
 class TestExpressions:
     def setup_method(self, method):
 
@@ -48,30 +56,37 @@ class TestExpressions:
     def teardown_method(self, method):
         expr._MIN_ELEMENTS = self._MIN_ELEMENTS
 
-    def run_arithmetic(self, df, other):
+    @staticmethod
+    def call_op(df, other, flex: bool, opname: str):
+        if flex:
+            op = lambda x, y: getattr(x, opname)(y)
+            op.__name__ = opname
+        else:
+            op = getattr(operator, opname)
+
+        expr.set_use_numexpr(False)
+        expected = op(df, other)
+        expr.set_use_numexpr(True)
+
+        expr.get_test_result()
+
+        result = op(df, other)
+        return result, expected
+
+    def run_arithmetic(self, df, other, flex: bool):
         expr._MIN_ELEMENTS = 0
         operations = ["add", "sub", "mul", "mod", "truediv", "floordiv"]
-        for test_flex in [True, False]:
-            for arith in operations:
-                # TODO: share with run_binary
-                if test_flex:
-                    op = lambda x, y: getattr(x, arith)(y)
-                    op.__name__ = arith
+        for arith in operations:
+            result, expected = self.call_op(df, other, flex, arith)
+
+            if arith == "truediv":
+                if expected.ndim == 1:
+                    assert expected.dtype.kind == "f"
                 else:
-                    op = getattr(operator, arith)
-                expr.set_use_numexpr(False)
-                expected = op(df, other)
-                expr.set_use_numexpr(True)
+                    assert all(x.kind == "f" for x in expected.dtypes.values)
+            tm.assert_equal(expected, result)
 
-                result = op(df, other)
-                if arith == "truediv":
-                    if expected.ndim == 1:
-                        assert expected.dtype.kind == "f"
-                    else:
-                        assert all(x.kind == "f" for x in expected.dtypes.values)
-                tm.assert_equal(expected, result)
-
-    def run_binary(self, df, other):
+    def run_binary(self, df, other, flex: bool):
         """
         tests solely that the result is the same whether or not numexpr is
         enabled.  Need to test whether the function does the correct thing
@@ -81,37 +96,27 @@ class TestExpressions:
         expr.set_test_mode(True)
         operations = ["gt", "lt", "ge", "le", "eq", "ne"]
 
-        for test_flex in [True, False]:
-            for arith in operations:
-                if test_flex:
-                    op = lambda x, y: getattr(x, arith)(y)
-                    op.__name__ = arith
-                else:
-                    op = getattr(operator, arith)
-                expr.set_use_numexpr(False)
-                expected = op(df, other)
-                expr.set_use_numexpr(True)
+        for arith in operations:
+            result, expected = self.call_op(df, other, flex, arith)
 
-                expr.get_test_result()
-                result = op(df, other)
-                used_numexpr = expr.get_test_result()
-                assert used_numexpr, "Did not use numexpr as expected."
-                tm.assert_equal(expected, result)
+            used_numexpr = expr.get_test_result()
+            assert used_numexpr, "Did not use numexpr as expected."
+            tm.assert_equal(expected, result)
 
-    def run_frame(self, df, other, run_binary=True):
-        self.run_arithmetic(df, other)
-        if run_binary:
-            expr.set_use_numexpr(False)
-            binary_comp = other + 1
-            expr.set_use_numexpr(True)
-            self.run_binary(df, binary_comp)
+    def run_frame(self, df, other, flex: bool):
+        self.run_arithmetic(df, other, flex)
+
+        expr.set_use_numexpr(False)
+        binary_comp = other + 1
+        expr.set_use_numexpr(True)
+        self.run_binary(df, binary_comp, flex)
 
         for i in range(len(df.columns)):
-            self.run_arithmetic(df.iloc[:, i], other.iloc[:, i])
+            self.run_arithmetic(df.iloc[:, i], other.iloc[:, i], flex)
             # FIXME: dont leave commented-out
             # series doesn't uses vec_compare instead of numexpr...
             # binary_comp = other.iloc[:, i] + 1
-            # self.run_binary(df.iloc[:, i], binary_comp)
+            # self.run_binary(df.iloc[:, i], binary_comp, flex)
 
     @pytest.mark.parametrize(
         "df",
@@ -126,46 +131,33 @@ class TestExpressions:
             _mixed2,
         ],
     )
-    def test_arithmetic(self, df):
-        # TODO: FIGURE OUT HOW TO GET RUN_BINARY TO WORK WITH MIXED=...
-        # can't do arithmetic because comparison methods try to do *entire*
-        # frame instead of by-column
-        kinds = {x.kind for x in df.dtypes.values}
-        should = len(kinds) == 1
-
-        self.run_frame(df, df, run_binary=should)
+    @pytest.mark.parametrize("flex", [True, False])
+    def test_arithmetic(self, df, flex):
+        self.run_frame(df, df, flex)
 
     def test_invalid(self):
+        array = np.random.randn(1_000_001)
+        array2 = np.random.randn(100)
 
         # no op
-        result = expr._can_use_numexpr(
-            operator.add, None, self.frame, self.frame, "evaluate"
-        )
-        assert not result
-
-        # mixed
-        result = expr._can_use_numexpr(
-            operator.add, "+", self.mixed, self.frame, "evaluate"
-        )
+        result = expr._can_use_numexpr(operator.add, None, array, array, "evaluate")
         assert not result
 
         # min elements
-        result = expr._can_use_numexpr(
-            operator.add, "+", self.frame2, self.frame2, "evaluate"
-        )
+        result = expr._can_use_numexpr(operator.add, "+", array2, array2, "evaluate")
         assert not result
 
         # ok, we only check on first part of expression
-        result = expr._can_use_numexpr(
-            operator.add, "+", self.frame, self.frame2, "evaluate"
-        )
+        result = expr._can_use_numexpr(operator.add, "+", array, array2, "evaluate")
         assert result
 
     @pytest.mark.parametrize(
         "opname,op_str",
         [("add", "+"), ("sub", "-"), ("mul", "*"), ("truediv", "/"), ("pow", "**")],
     )
-    @pytest.mark.parametrize("left,right", [(_frame, _frame2), (_mixed, _mixed2)])
+    @pytest.mark.parametrize(
+        "left,right", [(_array, _array2), (_array_mixed, _array_mixed2)]
+    )
     def test_binary_ops(self, opname, op_str, left, right):
         def testit():
 
@@ -175,16 +167,9 @@ class TestExpressions:
 
             op = getattr(operator, opname)
 
-            result = expr._can_use_numexpr(op, op_str, left, left, "evaluate")
-            assert result != left._is_mixed_type
-
             result = expr.evaluate(op, left, left, use_numexpr=True)
             expected = expr.evaluate(op, left, left, use_numexpr=False)
-
-            if isinstance(result, DataFrame):
-                tm.assert_frame_equal(result, expected)
-            else:
-                tm.assert_numpy_array_equal(result, expected.values)
+            tm.assert_numpy_array_equal(result, expected)
 
             result = expr._can_use_numexpr(op, op_str, right, right, "evaluate")
             assert not result
@@ -208,7 +193,9 @@ class TestExpressions:
             ("ne", "!="),
         ],
     )
-    @pytest.mark.parametrize("left,right", [(_frame, _frame2), (_mixed, _mixed2)])
+    @pytest.mark.parametrize(
+        "left,right", [(_array, _array2), (_array_mixed, _array_mixed2)]
+    )
     def test_comparison_ops(self, opname, op_str, left, right):
         def testit():
             f12 = left + 1
@@ -216,15 +203,9 @@ class TestExpressions:
 
             op = getattr(operator, opname)
 
-            result = expr._can_use_numexpr(op, op_str, left, f12, "evaluate")
-            assert result != left._is_mixed_type
-
             result = expr.evaluate(op, left, f12, use_numexpr=True)
             expected = expr.evaluate(op, left, f12, use_numexpr=False)
-            if isinstance(result, DataFrame):
-                tm.assert_frame_equal(result, expected)
-            else:
-                tm.assert_numpy_array_equal(result, expected.values)
+            tm.assert_numpy_array_equal(result, expected)
 
             result = expr._can_use_numexpr(op, op_str, right, f22, "evaluate")
             assert not result
@@ -261,7 +242,7 @@ class TestExpressions:
     def test_bool_ops_raise_on_arithmetic(self, op_str, opname):
         df = DataFrame({"a": np.random.rand(10) > 0.5, "b": np.random.rand(10) > 0.5})
 
-        msg = f"operator {repr(op_str)} not implemented for bool dtypes"
+        msg = f"operator '{opname}' not implemented for bool dtypes"
         f = getattr(operator, opname)
         err_msg = re.escape(msg)
 
@@ -380,3 +361,41 @@ class TestExpressions:
 
         result = op_func(other, axis=axis)
         tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize(
+        "op",
+        [
+            "__mod__",
+            pytest.param("__rmod__", marks=pytest.mark.xfail(reason="GH-36552")),
+            "__floordiv__",
+            "__rfloordiv__",
+        ],
+    )
+    @pytest.mark.parametrize("box", [DataFrame, Series, Index])
+    @pytest.mark.parametrize("scalar", [-5, 5])
+    def test_python_semantics_with_numexpr_installed(self, op, box, scalar):
+        # https://github.com/pandas-dev/pandas/issues/36047
+        expr._MIN_ELEMENTS = 0
+        data = np.arange(-50, 50)
+        obj = box(data)
+        method = getattr(obj, op)
+        result = method(scalar)
+
+        # compare result with numpy
+        expr.set_use_numexpr(False)
+        expected = method(scalar)
+        expr.set_use_numexpr(True)
+        tm.assert_equal(result, expected)
+
+        # compare result element-wise with Python
+        for i, elem in enumerate(data):
+            if box == DataFrame:
+                scalar_result = result.iloc[i, 0]
+            else:
+                scalar_result = result[i]
+            try:
+                expected = getattr(int(elem), op)(scalar)
+            except ZeroDivisionError:
+                pass
+            else:
+                assert scalar_result == expected

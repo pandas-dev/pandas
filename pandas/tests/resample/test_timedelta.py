@@ -4,7 +4,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.indexes.timedeltas import timedelta_range
 
@@ -46,7 +49,7 @@ def test_resample_with_timedeltas():
 
     expected = DataFrame({"A": np.arange(1480)})
     expected = expected.groupby(expected.index // 30).sum()
-    expected.index = pd.timedelta_range("0 days", freq="30T", periods=50)
+    expected.index = timedelta_range("0 days", freq="30T", periods=50)
 
     df = DataFrame(
         {"A": np.arange(1480)}, index=pd.to_timedelta(np.arange(1480), unit="T")
@@ -62,21 +65,19 @@ def test_resample_with_timedeltas():
 
 def test_resample_single_period_timedelta():
 
-    s = Series(list(range(5)), index=pd.timedelta_range("1 day", freq="s", periods=5))
+    s = Series(list(range(5)), index=timedelta_range("1 day", freq="s", periods=5))
     result = s.resample("2s").sum()
-    expected = Series(
-        [1, 5, 4], index=pd.timedelta_range("1 day", freq="2s", periods=3)
-    )
+    expected = Series([1, 5, 4], index=timedelta_range("1 day", freq="2s", periods=3))
     tm.assert_series_equal(result, expected)
 
 
 def test_resample_timedelta_idempotency():
 
     # GH 12072
-    index = pd.timedelta_range("0", periods=9, freq="10L")
+    index = timedelta_range("0", periods=9, freq="10L")
     series = Series(range(9), index=index)
     result = series.resample("10L").mean()
-    expected = series
+    expected = series.astype(float)
     tm.assert_series_equal(result, expected)
 
 
@@ -143,10 +144,50 @@ def test_resample_timedelta_values():
 def test_resample_timedelta_edge_case(start, end, freq, resample_freq):
     # GH 33498
     # check that the timedelta bins does not contains an extra bin
-    idx = pd.timedelta_range(start=start, end=end, freq=freq)
-    s = pd.Series(np.arange(len(idx)), index=idx)
+    idx = timedelta_range(start=start, end=end, freq=freq)
+    s = Series(np.arange(len(idx)), index=idx)
     result = s.resample(resample_freq).min()
-    expected_index = pd.timedelta_range(freq=resample_freq, start=start, end=end)
+    expected_index = timedelta_range(freq=resample_freq, start=start, end=end)
     tm.assert_index_equal(result.index, expected_index)
     assert result.index.freq == expected_index.freq
     assert not np.isnan(result[-1])
+
+
+@pytest.mark.parametrize("duplicates", [True, False])
+def test_resample_with_timedelta_yields_no_empty_groups(duplicates):
+    # GH 10603
+    df = DataFrame(
+        np.random.normal(size=(10000, 4)),
+        index=timedelta_range(start="0s", periods=10000, freq="3906250n"),
+    )
+    if duplicates:
+        # case with non-unique columns
+        df.columns = ["A", "B", "A", "C"]
+
+    result = df.loc["1s":, :].resample("3s").apply(lambda x: len(x))
+
+    expected = DataFrame(
+        [[768] * 4] * 12 + [[528] * 4],
+        index=timedelta_range(start="1s", periods=13, freq="3s"),
+    )
+    expected.columns = df.columns
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_quantile_timedelta():
+    # GH: 29485
+    df = DataFrame(
+        {"value": pd.to_timedelta(np.arange(4), unit="s")},
+        index=pd.date_range("20200101", periods=4, tz="UTC"),
+    )
+    result = df.resample("2D").quantile(0.99)
+    expected = DataFrame(
+        {
+            "value": [
+                pd.Timedelta("0 days 00:00:00.990000"),
+                pd.Timedelta("0 days 00:00:02.990000"),
+            ]
+        },
+        index=pd.date_range("20200101", periods=2, tz="UTC", freq="2D"),
+    )
+    tm.assert_frame_equal(result, expected)

@@ -1,5 +1,8 @@
 import calendar
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import dateutil.tz
 from dateutil.tz import tzutc
@@ -7,9 +10,15 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
 
-from pandas import Period, Timedelta, Timestamp, compat
+from pandas import (
+    Period,
+    Timedelta,
+    Timestamp,
+    compat,
+)
 
 from pandas.tseries import offsets
 
@@ -135,7 +144,7 @@ class TestTimestampConstructors:
         # converted to Chicago tz
         result = Timestamp("2013-11-01 00:00:00-0500", tz="America/Chicago")
         assert result.value == Timestamp("2013-11-01 05:00").value
-        expected = "Timestamp('2013-11-01 00:00:00-0500', tz='America/Chicago')"  # noqa
+        expected = "Timestamp('2013-11-01 00:00:00-0500', tz='America/Chicago')"
         assert repr(result) == expected
         assert result == eval(repr(result))
 
@@ -174,7 +183,10 @@ class TestTimestampConstructors:
 
     def test_constructor_invalid_tz(self):
         # GH#17690
-        msg = "must be a datetime.tzinfo"
+        msg = (
+            "Argument 'tzinfo' has incorrect type "
+            r"\(expected datetime.tzinfo, got str\)"
+        )
         with pytest.raises(TypeError, match=msg):
             Timestamp("2017-10-22", tzinfo="US/Eastern")
 
@@ -212,7 +224,11 @@ class TestTimestampConstructors:
 
     def test_constructor_positional(self):
         # see gh-10758
-        msg = "an integer is required"
+        msg = (
+            "'NoneType' object cannot be interpreted as an integer"
+            if PY310
+            else "an integer is required"
+        )
         with pytest.raises(TypeError, match=msg):
             Timestamp(2000, 1)
 
@@ -256,17 +272,20 @@ class TestTimestampConstructors:
             Timestamp("20151112")
         )
 
-        assert repr(
-            Timestamp(
-                year=2015,
-                month=11,
-                day=12,
-                hour=1,
-                minute=2,
-                second=3,
-                microsecond=999999,
+        assert (
+            repr(
+                Timestamp(
+                    year=2015,
+                    month=11,
+                    day=12,
+                    hour=1,
+                    minute=2,
+                    second=3,
+                    microsecond=999999,
+                )
             )
-        ) == repr(Timestamp("2015-11-12 01:02:03.999999"))
+            == repr(Timestamp("2015-11-12 01:02:03.999999"))
+        )
 
     def test_constructor_fromordinal(self):
         base = datetime(2000, 1, 1)
@@ -317,7 +336,9 @@ class TestTimestampConstructors:
                 tz="UTC",
             ),
             Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, None),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),
+            # error: Argument 9 to "Timestamp" has incompatible type "_UTCclass";
+            # expected "Optional[int]"
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),  # type: ignore[arg-type]
         ],
     )
     def test_constructor_nanosecond(self, result):
@@ -366,7 +387,7 @@ class TestTimestampConstructors:
 
         # By definition we can't go out of bounds in [ns], so we
         # convert the datetime64s to [us] so we can go out of bounds
-        min_ts_us = np.datetime64(Timestamp.min).astype("M8[us]")
+        min_ts_us = np.datetime64(Timestamp.min).astype("M8[us]") + one_us
         max_ts_us = np.datetime64(Timestamp.max).astype("M8[us]")
 
         # No error for the min/max datetimes

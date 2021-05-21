@@ -4,22 +4,18 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import MultiIndex, Series, date_range
+from pandas import (
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-
-from .test_generic import Generic
+from pandas.tests.generic.test_generic import Generic
 
 
 class TestSeries(Generic):
     _typ = Series
     _comparator = lambda self, x, y: tm.assert_series_equal(x, y)
-
-    def test_rename_mi(self):
-        s = Series(
-            [11, 21, 31],
-            index=MultiIndex.from_tuples([("A", x) for x in ["a", "B", "c"]]),
-        )
-        s.rename(str.lower)
 
     @pytest.mark.parametrize("func", ["rename_axis", "_set_axis_name"])
     def test_set_axis_name_mi(self, func):
@@ -37,35 +33,15 @@ class TestSeries(Generic):
         assert result.index.names, ["L1", "L2"]
 
     def test_set_axis_name_raises(self):
-        s = pd.Series([1])
+        s = Series([1])
         msg = "No axis named 1 for object type Series"
         with pytest.raises(ValueError, match=msg):
             s._set_axis_name(name="a", axis=1)
 
-    def test_get_numeric_data_preserve_dtype(self):
-
-        # get the numeric data
-        o = Series([1, 2, 3])
-        result = o._get_numeric_data()
-        self._compare(result, o)
-
-        o = Series([1, "2", 3.0])
-        result = o._get_numeric_data()
-        expected = Series([], dtype=object, index=pd.Index([], dtype=object))
-        self._compare(result, expected)
-
-        o = Series([True, False, True])
-        result = o._get_numeric_data()
-        self._compare(result, o)
-
+    def test_get_bool_data_preserve_dtype(self):
         o = Series([True, False, True])
         result = o._get_bool_data()
         self._compare(result, o)
-
-        o = Series(date_range("20130101", periods=3))
-        result = o._get_numeric_data()
-        expected = Series([], dtype="M8[ns]", index=pd.Index([], dtype=object))
-        self._compare(result, expected)
 
     def test_nonzero_single_element(self):
 
@@ -76,45 +52,48 @@ class TestSeries(Generic):
         s = Series([False])
         assert not s.bool()
 
-        msg = "The truth value of a Series is ambiguous"
+    @pytest.mark.parametrize("data", [np.nan, pd.NaT, True, False])
+    def test_nonzero_single_element_raise_1(self, data):
         # single item nan to raise
-        for s in [Series([np.nan]), Series([pd.NaT]), Series([True]), Series([False])]:
-            with pytest.raises(ValueError, match=msg):
-                bool(s)
+        series = Series([data])
+
+        msg = "The truth value of a Series is ambiguous"
+        with pytest.raises(ValueError, match=msg):
+            bool(series)
+
+    @pytest.mark.parametrize("data", [np.nan, pd.NaT])
+    def test_nonzero_single_element_raise_2(self, data):
+        series = Series([data])
 
         msg = "bool cannot act on a non-boolean single element Series"
-        for s in [Series([np.nan]), Series([pd.NaT])]:
-            with pytest.raises(ValueError, match=msg):
-                s.bool()
+        with pytest.raises(ValueError, match=msg):
+            series.bool()
 
+    @pytest.mark.parametrize("data", [(True, True), (False, False)])
+    def test_nonzero_multiple_element_raise(self, data):
         # multiple bool are still an error
+        series = Series([data])
+
         msg = "The truth value of a Series is ambiguous"
-        for s in [Series([True, True]), Series([False, False])]:
-            with pytest.raises(ValueError, match=msg):
-                bool(s)
-            with pytest.raises(ValueError, match=msg):
-                s.bool()
+        with pytest.raises(ValueError, match=msg):
+            bool(series)
+        with pytest.raises(ValueError, match=msg):
+            series.bool()
 
+    @pytest.mark.parametrize("data", [1, 0, "a", 0.0])
+    def test_nonbool_single_element_raise(self, data):
         # single non-bool are an error
-        for s in [Series([1]), Series([0]), Series(["a"]), Series([0.0])]:
-            msg = "The truth value of a Series is ambiguous"
-            with pytest.raises(ValueError, match=msg):
-                bool(s)
-            msg = "bool cannot act on a non-boolean single element Series"
-            with pytest.raises(ValueError, match=msg):
-                s.bool()
+        series = Series([data])
 
-    def test_metadata_propagation_indiv(self):
-        # check that the metadata matches up on the resulting ops
+        msg = "The truth value of a Series is ambiguous"
+        with pytest.raises(ValueError, match=msg):
+            bool(series)
 
-        o = Series(range(3), range(3))
-        o.name = "foo"
-        o2 = Series(range(3), range(3))
-        o2.name = "bar"
+        msg = "bool cannot act on a non-boolean single element Series"
+        with pytest.raises(ValueError, match=msg):
+            series.bool()
 
-        result = o.T
-        self.check_metadata(o, result)
-
+    def test_metadata_propagation_indiv_resample(self):
         # resample
         ts = Series(
             np.random.rand(1000),
@@ -129,6 +108,17 @@ class TestSeries(Generic):
 
         result = ts.resample("1T").apply(lambda x: x.sum())
         self.check_metadata(ts, result)
+
+    def test_metadata_propagation_indiv(self):
+        # check that the metadata matches up on the resulting ops
+
+        o = Series(range(3), range(3))
+        o.name = "foo"
+        o2 = Series(range(3), range(3))
+        o2.name = "bar"
+
+        result = o.T
+        self.check_metadata(o, result)
 
         _metadata = Series._metadata
         _finalize = Series.__finalize__
@@ -157,25 +147,3 @@ class TestSeries(Generic):
         # reset
         Series._metadata = _metadata
         Series.__finalize__ = _finalize  # FIXME: use monkeypatch
-
-
-class TestSeries2:
-    # Separating off because it doesnt rely on parent class
-    @pytest.mark.parametrize(
-        "s",
-        [
-            Series([np.arange(5)]),
-            pd.date_range("1/1/2011", periods=24, freq="H"),
-            pd.Series(range(5), index=pd.date_range("2017", periods=5)),
-        ],
-    )
-    @pytest.mark.parametrize("shift_size", [0, 1, 2])
-    def test_shift_always_copy(self, s, shift_size):
-        # GH22397
-        assert s.shift(shift_size) is not s
-
-    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1M")])
-    def test_datetime_shift_always_copy(self, move_by_freq):
-        # GH22397
-        s = pd.Series(range(5), index=pd.date_range("2017", periods=5))
-        assert s.shift(freq=move_by_freq) is not s

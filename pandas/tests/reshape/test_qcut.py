@@ -23,7 +23,10 @@ import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.algorithms import quantile
 
-from pandas.tseries.offsets import Day, Nano
+from pandas.tseries.offsets import (
+    Day,
+    Nano,
+)
 
 
 def test_qcut():
@@ -166,10 +169,10 @@ def test_qcut_list_like_labels(labels, expected):
 @pytest.mark.parametrize(
     "kwargs,msg",
     [
-        (dict(duplicates="drop"), None),
-        (dict(), "Bin edges must be unique"),
-        (dict(duplicates="raise"), "Bin edges must be unique"),
-        (dict(duplicates="foo"), "invalid value for 'duplicates' parameter"),
+        ({"duplicates": "drop"}, None),
+        ({}, "Bin edges must be unique"),
+        ({"duplicates": "raise"}, "Bin edges must be unique"),
+        ({"duplicates": "foo"}, "invalid value for 'duplicates' parameter"),
     ],
 )
 def test_qcut_duplicates_bin(kwargs, msg):
@@ -199,7 +202,7 @@ def test_single_quantile(data, start, end, length, labels):
         intervals = IntervalIndex([Interval(start, end)] * length, closed="right")
         expected = Series(intervals).astype(CDT(ordered=True))
     else:
-        expected = Series([0] * length)
+        expected = Series([0] * length, dtype=np.intp)
 
     tm.assert_series_equal(result, expected)
 
@@ -290,8 +293,8 @@ def test_qcut_bool_coercion_to_int(bins, box, compare):
 
 
 @pytest.mark.parametrize("q", [2, 5, 10])
-def test_qcut_nullable_integer(q, any_nullable_int_dtype):
-    arr = pd.array(np.arange(100), dtype=any_nullable_int_dtype)
+def test_qcut_nullable_integer(q, any_nullable_numeric_dtype):
+    arr = pd.array(np.arange(100), dtype=any_nullable_numeric_dtype)
     arr[::2] = pd.NA
 
     result = qcut(arr, q)

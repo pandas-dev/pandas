@@ -46,7 +46,6 @@ _all_methods = [
     pytest.param(
         (pd.Series, ([0],), operator.methodcaller("to_frame")), marks=pytest.mark.xfail
     ),
-    (pd.Series, (0, mi), operator.methodcaller("count", level="A")),
     (pd.Series, ([0, 0],), operator.methodcaller("drop_duplicates")),
     (pd.Series, ([0, 0],), operator.methodcaller("duplicated")),
     (pd.Series, ([0, 0],), operator.methodcaller("round")),
@@ -85,18 +84,12 @@ _all_methods = [
         marks=pytest.mark.xfail(reason="Implement binary finalize"),
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("transpose")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("__getitem__", "A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("__getitem__", "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("__getitem__", ["A"])),
     (pd.DataFrame, frame_data, operator.methodcaller("__getitem__", np.array([True]))),
     (pd.DataFrame, ({("A", "a"): [1]},), operator.methodcaller("__getitem__", ["A"])),
     (pd.DataFrame, frame_data, operator.methodcaller("query", "A == 1")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("eval", "A + 1")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("eval", "A + 1", engine="python")),
     (pd.DataFrame, frame_data, operator.methodcaller("select_dtypes", include="int")),
     (pd.DataFrame, frame_data, operator.methodcaller("assign", b=1)),
     (pd.DataFrame, frame_data, operator.methodcaller("set_axis", ["A"])),
@@ -115,15 +108,12 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("notnull")),
     (pd.DataFrame, frame_data, operator.methodcaller("dropna")),
     (pd.DataFrame, frame_data, operator.methodcaller("drop_duplicates")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("duplicated")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("duplicated")),
     (pd.DataFrame, frame_data, operator.methodcaller("sort_values", by="A")),
     (pd.DataFrame, frame_data, operator.methodcaller("sort_index")),
     (pd.DataFrame, frame_data, operator.methodcaller("nlargest", 1, "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("nsmallest", 1, "A")),
-    (pd.DataFrame, frame_mi_data, operator.methodcaller("swaplevel"),),
+    (pd.DataFrame, frame_mi_data, operator.methodcaller("swaplevel")),
     pytest.param(
         (
             pd.DataFrame,
@@ -157,30 +147,23 @@ _all_methods = [
         ),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
-        marks=not_implemented_mark,
+    (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
+    (
+        pd.DataFrame,
+        ({"A": [1], "B": [1]},),
+        operator.methodcaller("pivot_table", columns="A"),
     ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            {"A": [1], "B": [1]},
-            operator.methodcaller("pivot_table", columns="A"),
-        ),
-        marks=not_implemented_mark,
+    (
+        pd.DataFrame,
+        ({"A": [1], "B": [1]},),
+        operator.methodcaller("pivot_table", columns="A", aggfunc=["mean", "sum"]),
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("stack")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("stack")),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack"),),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
     pytest.param(
         (
             pd.DataFrame,
@@ -190,20 +173,14 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("diff")),
-        marks=not_implemented_mark,
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x)),
-        marks=not_implemented_mark,
+        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
     ),
     pytest.param(
         (
             pd.DataFrame,
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"A": [1]})),
-        ),
-        marks=not_implemented_mark,
+        )
     ),
     pytest.param(
         (
@@ -211,7 +188,6 @@ _all_methods = [
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"B": [1]})),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (
@@ -250,7 +226,10 @@ _all_methods = [
     ),
     pytest.param(
         (pd.DataFrame, frame_mi_data, operator.methodcaller("count", level="A")),
-        marks=not_implemented_mark,
+        marks=[
+            not_implemented_mark,
+            pytest.mark.filterwarnings("ignore:Using the level keyword:FutureWarning"),
+        ],
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("nunique")),
@@ -308,16 +287,13 @@ _all_methods = [
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("swapaxes", 0, 1)),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("droplevel", "A")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("pop", "A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("pop", "A")),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("squeeze")),
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.Series, ([1, 2],), operator.methodcaller("squeeze")),
+        (pd.Series, ([1, 2],), operator.methodcaller("squeeze"))
         # marks=not_implemented_mark,
     ),
     (pd.Series, ([1, 2],), operator.methodcaller("rename_axis", index="a")),
@@ -330,16 +306,13 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.inv),
     (pd.Series, [1], operator.inv),
     (pd.DataFrame, frame_data, abs),
-    pytest.param((pd.Series, [1], abs), marks=not_implemented_mark),
+    (pd.Series, [1], abs),
     pytest.param((pd.DataFrame, frame_data, round), marks=not_implemented_mark),
     (pd.Series, [1], round),
     (pd.DataFrame, frame_data, operator.methodcaller("take", [0, 0])),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("xs", "a")),
     (pd.Series, (1, mi), operator.methodcaller("xs", "a")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("get", "A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("get", "A")),
     (
         pd.DataFrame,
         frame_data,
@@ -436,8 +409,6 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("where", np.array([[True]]))),
     (pd.Series, ([1, 2],), operator.methodcaller("mask", np.array([True, False]))),
     (pd.DataFrame, frame_data, operator.methodcaller("mask", np.array([[True]]))),
-    (pd.Series, ([1, 2],), operator.methodcaller("slice_shift")),
-    (pd.DataFrame, frame_data, operator.methodcaller("slice_shift")),
     pytest.param(
         (
             pd.Series,
@@ -553,6 +524,15 @@ def test_finalize_called(ndframe_method):
     assert result.attrs == {"a": 1}
 
 
+@not_implemented_mark
+def test_finalize_called_eval_numexpr():
+    pytest.importorskip("numexpr")
+    df = pd.DataFrame({"A": [1, 2]})
+    df.attrs["A"] = 1
+    result = df.eval("A + 1", engine="numexpr")
+    assert result.attrs == {"A": 1}
+
+
 # ----------------------------------------------------------------------------
 # Binary operations
 
@@ -571,14 +551,14 @@ def test_finalize_called(ndframe_method):
         (pd.DataFrame({"A": [1]}), pd.Series([1])),
     ],
 )
-def test_binops(args, annotate, all_arithmetic_functions):
+def test_binops(request, args, annotate, all_arithmetic_functions):
     # This generates 326 tests... Is that needed?
     left, right = args
     if annotate == "both" and isinstance(left, int) or isinstance(right, int):
         return
 
     if isinstance(left, pd.DataFrame) or isinstance(right, pd.DataFrame):
-        pytest.xfail(reason="not implemented")
+        request.node.add_marker(pytest.mark.xfail(reason="not implemented"))
 
     if annotate in {"left", "both"} and not isinstance(left, int):
         left.attrs = {"a": 1}
@@ -598,22 +578,13 @@ def test_binops(args, annotate, all_arithmetic_functions):
     [
         operator.methodcaller("capitalize"),
         operator.methodcaller("casefold"),
-        pytest.param(
-            operator.methodcaller("cat", ["a"]),
-            marks=pytest.mark.xfail(reason="finalize not called."),
-        ),
+        operator.methodcaller("cat", ["a"]),
         operator.methodcaller("contains", "a"),
         operator.methodcaller("count", "a"),
         operator.methodcaller("encode", "utf-8"),
         operator.methodcaller("endswith", "a"),
-        pytest.param(
-            operator.methodcaller("extract", r"(\w)(\d)"),
-            marks=pytest.mark.xfail(reason="finalize not called."),
-        ),
-        pytest.param(
-            operator.methodcaller("extract", r"(\w)(\d)"),
-            marks=pytest.mark.xfail(reason="finalize not called."),
-        ),
+        operator.methodcaller("extract", r"(\w)(\d)"),
+        operator.methodcaller("extract", r"(\w)(\d)", expand=False),
         operator.methodcaller("find", "a"),
         operator.methodcaller("findall", "a"),
         operator.methodcaller("get", 0),
@@ -655,7 +626,6 @@ def test_binops(args, annotate, all_arithmetic_functions):
     ],
     ids=idfn,
 )
-@not_implemented_mark
 def test_string_method(method):
     s = pd.Series(["a1"])
     s.attrs = {"a": 1}
@@ -678,7 +648,6 @@ def test_string_method(method):
     ],
     ids=idfn,
 )
-@not_implemented_mark
 def test_datetime_method(method):
     s = pd.Series(pd.date_range("2000", periods=4))
     s.attrs = {"a": 1}
@@ -701,7 +670,9 @@ def test_datetime_method(method):
         "microsecond",
         "nanosecond",
         "dayofweek",
+        "day_of_week",
         "dayofyear",
+        "day_of_year",
         "quarter",
         "is_month_start",
         "is_month_end",
@@ -714,7 +685,6 @@ def test_datetime_method(method):
         "days_in_month",
     ],
 )
-@not_implemented_mark
 def test_datetime_property(attr):
     s = pd.Series(pd.date_range("2000", periods=4))
     s.attrs = {"a": 1}
@@ -725,7 +695,6 @@ def test_datetime_property(attr):
 @pytest.mark.parametrize(
     "attr", ["days", "seconds", "microseconds", "nanoseconds", "components"]
 )
-@not_implemented_mark
 def test_timedelta_property(attr):
     s = pd.Series(pd.timedelta_range("2000", periods=4))
     s.attrs = {"a": 1}
@@ -733,10 +702,7 @@ def test_timedelta_property(attr):
     assert result.attrs == {"a": 1}
 
 
-@pytest.mark.parametrize(
-    "method", [operator.methodcaller("total_seconds")],
-)
-@not_implemented_mark
+@pytest.mark.parametrize("method", [operator.methodcaller("total_seconds")])
 def test_timedelta_methods(method):
     s = pd.Series(pd.timedelta_range("2000", periods=4))
     s.attrs = {"a": 1}
@@ -778,13 +744,43 @@ def test_categorical_accessor(method):
     [
         operator.methodcaller("sum"),
         lambda x: x.agg("sum"),
-        lambda x: x.agg(["sum", "count"]),
-        lambda x: x.transform(lambda y: y),
-        lambda x: x.apply(lambda y: y),
+        lambda x: x.agg("mean"),
+        lambda x: x.agg("median"),
     ],
 )
-@not_implemented_mark
-def test_groupby(obj, method):
+def test_groupby_finalize(obj, method):
     obj.attrs = {"a": 1}
     result = method(obj.groupby([0, 0]))
     assert result.attrs == {"a": 1}
+
+
+@pytest.mark.parametrize(
+    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
+)
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda x: x.agg(["sum", "count"]),
+        lambda x: x.transform(lambda y: y),
+        lambda x: x.apply(lambda y: y),
+        lambda x: x.agg("std"),
+        lambda x: x.agg("var"),
+        lambda x: x.agg("sem"),
+        lambda x: x.agg("size"),
+        lambda x: x.agg("ohlc"),
+        lambda x: x.agg("describe"),
+    ],
+)
+@not_implemented_mark
+def test_groupby_finalize_not_implemented(obj, method):
+    obj.attrs = {"a": 1}
+    result = method(obj.groupby([0, 0]))
+    assert result.attrs == {"a": 1}
+
+
+def test_finalize_frame_series_name():
+    # https://github.com/pandas-dev/pandas/pull/37186/files#r506978889
+    # ensure we don't copy the column `name` to the Series.
+    df = pd.DataFrame({"name": [1, 2]})
+    result = pd.Series([1, 2]).__finalize__(df)
+    assert result.name is None

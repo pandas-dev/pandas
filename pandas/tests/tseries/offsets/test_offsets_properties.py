@@ -9,10 +9,16 @@ tests, or when trying to pin down the bugs exposed by the tests below.
 """
 import warnings
 
-from hypothesis import assume, given, strategies as st
+from hypothesis import (
+    assume,
+    given,
+    strategies as st,
+)
+from hypothesis.errors import Flaky
 from hypothesis.extra.dateutil import timezones as dateutil_timezones
 from hypothesis.extra.pytz import timezones as pytz_timezones
 import pytest
+import pytz
 
 import pandas as pd
 from pandas import Timestamp
@@ -85,44 +91,24 @@ gen_yqm_offset = st.one_of(
 # Offset-specific behaviour tests
 
 
+@pytest.mark.arm_slow
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)
     # check that the class-specific implementations of is_on_offset match
     # the general case definition:
     #   (dt + offset) - offset == dt
-    compare = (dt + offset) - offset
+    try:
+        compare = (dt + offset) - offset
+    except pytz.NonExistentTimeError:
+        # dt + offset does not exist, assume(False) to indicate
+        #  to hypothesis that this is not a valid test case
+        assume(False)
+
     assert offset.is_on_offset(dt) == (compare == dt)
 
 
-@pytest.mark.xfail(
-    reason="res_v2 below is incorrect, needs to use the "
-    "commented-out version with tz_localize.  "
-    "But with that fix in place, hypothesis then "
-    "has errors in timezone generation."
-)
-@given(gen_yqm_offset, gen_date_range)
-def test_apply_index_implementations(offset, rng):
-    # offset.apply_index(dti)[i] should match dti[i] + offset
-    assume(offset.n != 0)  # TODO: test for that case separately
-
-    # rng = pd.date_range(start='1/1/2000', periods=100000, freq='T')
-    ser = pd.Series(rng)
-
-    res = rng + offset
-    res_v2 = offset.apply_index(rng)
-    # res_v2 = offset.apply_index(rng.tz_localize(None)).tz_localize(rng.tz)
-    assert (res == res_v2).all()
-
-    assert res[0] == rng[0] + offset
-    assert res[-1] == rng[-1] + offset
-    res2 = ser + offset
-    # apply_index is only for indexes, not series, so no res2_v2
-    assert res2.iloc[0] == ser.iloc[0] + offset
-    assert res2.iloc[-1] == ser.iloc[-1] + offset
-    # TODO: Check randomly assorted entries, not just first/last
-
-
+@pytest.mark.xfail(strict=False, raises=Flaky, reason="unreliable test timings")
 @given(gen_yqm_offset)
 def test_shift_across_dst(offset):
     # GH#18319 check that 1) timezone is correctly normalized and

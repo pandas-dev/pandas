@@ -112,8 +112,8 @@ class TestConfig:
 
         # if no doc is specified we get a default message
         # saying "description not available"
-        assert "vailable" in self.cf.describe_option("f", _print_desc=False)
-        assert "vailable" in self.cf.describe_option("g.h", _print_desc=False)
+        assert "available" in self.cf.describe_option("f", _print_desc=False)
+        assert "available" in self.cf.describe_option("g.h", _print_desc=False)
         assert "precated" in self.cf.describe_option("g.h", _print_desc=False)
         assert "k" in self.cf.describe_option("g.h", _print_desc=False)
 

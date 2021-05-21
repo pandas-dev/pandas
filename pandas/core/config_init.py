@@ -9,6 +9,7 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather than in the module.
 
 """
+import os
 import warnings
 
 import pandas._config.config as cf
@@ -52,6 +53,20 @@ def use_numexpr_cb(key):
     expressions.set_use_numexpr(cf.get_option(key))
 
 
+use_numba_doc = """
+: bool
+    Use the numba engine option for select operations if it is installed,
+    the default is False
+    Valid values: False,True
+"""
+
+
+def use_numba_cb(key):
+    from pandas.core.util import numba_
+
+    numba_.set_use_numba(cf.get_option(key))
+
+
 with cf.config_prefix("compute"):
     cf.register_option(
         "use_bottleneck",
@@ -63,13 +78,17 @@ with cf.config_prefix("compute"):
     cf.register_option(
         "use_numexpr", True, use_numexpr_doc, validator=is_bool, cb=use_numexpr_cb
     )
+    cf.register_option(
+        "use_numba", False, use_numba_doc, validator=is_bool, cb=use_numba_cb
+    )
 #
 # options from the "display" namespace
 
 pc_precision_doc = """
 : int
-    Floating point output precision (number of significant digits). This is
-    only a suggestion
+    Floating point output precision in terms of number of places after the
+    decimal, for regular formatting as well as scientific notation. Similar
+    to ``precision`` in :meth:`numpy.set_printoptions`.
 """
 
 pc_colspace_doc = """
@@ -232,7 +251,7 @@ pc_chop_threshold_doc = """
 
 pc_max_seq_items = """
 : int or None
-    when pretty-printing a long sequence, no more then `max_seq_items`
+    When pretty-printing a long sequence, no more then `max_seq_items`
     will be printed. If items are omitted, they will be denoted by the
     addition of "..." to the resulting string.
 
@@ -297,9 +316,9 @@ pc_latex_multirow = """
 
 
 def table_schema_cb(key):
-    from pandas.io.formats.printing import _enable_data_resource_formatter
+    from pandas.io.formats.printing import enable_data_resource_formatter
 
-    _enable_data_resource_formatter(cf.get_option(key))
+    enable_data_resource_formatter(cf.get_option(key))
 
 
 def is_terminal() -> bool:
@@ -310,7 +329,7 @@ def is_terminal() -> bool:
     """
     try:
         # error: Name 'get_ipython' is not defined
-        ip = get_ipython()  # type: ignore
+        ip = get_ipython()  # type: ignore[name-defined]
     except NameError:  # assume standard Python interpreter in a terminal
         return True
     else:
@@ -466,9 +485,29 @@ with cf.config_prefix("mode"):
         "use_inf_as_null", False, use_inf_as_null_doc, cb=use_inf_as_na_cb
     )
 
+
 cf.deprecate_option(
     "mode.use_inf_as_null", msg=use_inf_as_null_doc, rkey="mode.use_inf_as_na"
 )
+
+
+data_manager_doc = """
+: string
+    Internal data manager type; can be "block" or "array". Defaults to "block",
+    unless overridden by the 'PANDAS_DATA_MANAGER' environment variable (needs
+    to be set before pandas is imported).
+"""
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "data_manager",
+        # Get the default from an environment variable, if set, otherwise defaults
+        # to "block". This environment variable can be set for testing.
+        os.environ.get("PANDAS_DATA_MANAGER", "block"),
+        data_manager_doc,
+        validator=is_one_of_factory(["block", "array"]),
+    )
 
 
 # user warnings
@@ -506,7 +545,7 @@ with cf.config_prefix("io.excel.xls"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
-        validator=str,
+        validator=is_one_of_factory(_xls_options + ["auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsm"):
@@ -514,7 +553,7 @@ with cf.config_prefix("io.excel.xlsm"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsm", others=", ".join(_xlsm_options)),
-        validator=str,
+        validator=is_one_of_factory(_xlsm_options + ["auto"]),
     )
 
 
@@ -523,7 +562,7 @@ with cf.config_prefix("io.excel.xlsx"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsx", others=", ".join(_xlsx_options)),
-        validator=str,
+        validator=is_one_of_factory(_xlsx_options + ["auto"]),
     )
 
 
@@ -532,7 +571,7 @@ with cf.config_prefix("io.excel.ods"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="ods", others=", ".join(_ods_options)),
-        validator=str,
+        validator=is_one_of_factory(_ods_options + ["auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsb"):
@@ -540,7 +579,7 @@ with cf.config_prefix("io.excel.xlsb"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsb", others=", ".join(_xlsb_options)),
-        validator=str,
+        validator=is_one_of_factory(_xlsb_options + ["auto"]),
     )
 
 # Set up the io.excel specific writer configuration.
@@ -563,6 +602,13 @@ with cf.config_prefix("io.excel.xls"):
         writer_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
         validator=str,
     )
+cf.deprecate_option(
+    "io.excel.xls.writer",
+    msg="As the xlwt package is no longer maintained, the xlwt engine will be "
+    "removed in a future version of pandas. This is the only engine in pandas that "
+    "supports writing in the xls format. Install openpyxl and write to an "
+    "xlsx file instead.",
+)
 
 with cf.config_prefix("io.excel.xlsm"):
     cf.register_option(
@@ -606,6 +652,22 @@ with cf.config_prefix("io.parquet"):
         validator=is_one_of_factory(["auto", "pyarrow", "fastparquet"]),
     )
 
+
+# Set up the io.sql specific configuration.
+sql_engine_doc = """
+: string
+    The default sql reader/writer engine. Available options:
+    'auto', 'sqlalchemy', the default is 'auto'
+"""
+
+with cf.config_prefix("io.sql"):
+    cf.register_option(
+        "engine",
+        "auto",
+        sql_engine_doc,
+        validator=is_one_of_factory(["auto", "sqlalchemy"]),
+    )
+
 # --------
 # Plotting
 # ---------
@@ -645,8 +707,10 @@ register_converter_doc = """
 
 
 def register_converter_cb(key):
-    from pandas.plotting import register_matplotlib_converters
-    from pandas.plotting import deregister_matplotlib_converters
+    from pandas.plotting import (
+        deregister_matplotlib_converters,
+        register_matplotlib_converters,
+    )
 
     if cf.get_option(key):
         register_matplotlib_converters()
@@ -661,4 +725,27 @@ with cf.config_prefix("plotting.matplotlib"):
         register_converter_doc,
         validator=is_one_of_factory(["auto", True, False]),
         cb=register_converter_cb,
+    )
+
+# ------
+# Styler
+# ------
+
+styler_sparse_index_doc = """
+: bool
+    Whether to sparsify the display of a hierarchical index. Setting to False will
+    display each explicit level element in a hierarchical key for each row.
+"""
+
+styler_sparse_columns_doc = """
+: bool
+    Whether to sparsify the display of hierarchical columns. Setting to False will
+    display each explicit level element in a hierarchical key for each column.
+"""
+
+with cf.config_prefix("styler"):
+    cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
+
+    cf.register_option(
+        "sparse.columns", True, styler_sparse_columns_doc, validator=bool
     )

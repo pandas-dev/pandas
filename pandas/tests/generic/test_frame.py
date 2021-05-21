@@ -5,26 +5,23 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, date_range
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-
-from .test_generic import Generic
+from pandas.tests.generic.test_generic import Generic
 
 
 class TestDataFrame(Generic):
     _typ = DataFrame
     _comparator = lambda self, x, y: tm.assert_frame_equal(x, y)
 
-    def test_rename_mi(self):
-        df = DataFrame(
-            [11, 21, 31],
-            index=MultiIndex.from_tuples([("A", x) for x in ["a", "B", "c"]]),
-        )
-        df.rename(str.lower)
-
     @pytest.mark.parametrize("func", ["_set_axis_name", "rename_axis"])
     def test_set_axis_name(self, func):
-        df = pd.DataFrame([[1, 2], [3, 4]])
+        df = DataFrame([[1, 2], [3, 4]])
 
         result = methodcaller(func, "foo")(df)
         assert df.index.name is None
@@ -68,16 +65,7 @@ class TestDataFrame(Generic):
         with pytest.raises(ValueError, match=msg):
             bool(df)
 
-    def test_get_numeric_data_preserve_dtype(self):
-
-        # get the numeric data
-        o = DataFrame({"A": [1, "2", 3.0]})
-        result = o._get_numeric_data()
-        expected = DataFrame(index=[0, 1, 2], dtype=object)
-        self._compare(result, expected)
-
-    def test_metadata_propagation_indiv(self):
-
+    def test_metadata_propagation_indiv_groupby(self):
         # groupby
         df = DataFrame(
             {
@@ -90,6 +78,7 @@ class TestDataFrame(Generic):
         result = df.groupby("A").sum()
         self.check_metadata(df, result)
 
+    def test_metadata_propagation_indiv_resample(self):
         # resample
         df = DataFrame(
             np.random.randn(1000, 2),
@@ -98,6 +87,7 @@ class TestDataFrame(Generic):
         result = df.resample("1T")
         self.check_metadata(df, result)
 
+    def test_metadata_propagation_indiv(self):
         # merging with override
         # GH 6923
         _metadata = DataFrame._metadata
@@ -188,9 +178,6 @@ class TestDataFrame2:
 
         with pytest.raises(ValueError, match=msg):
             super(DataFrame, df).drop("a", axis=1, inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df)._consolidate(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
             super(DataFrame, df).fillna(value=0, inplace=value)

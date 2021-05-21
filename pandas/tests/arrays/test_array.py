@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.core.dtypes.dtypes import registry
+from pandas.core.dtypes.base import _registry as registry
 
 import pandas as pd
 import pandas._testing as tm
@@ -14,14 +14,22 @@ from pandas.api.types import is_scalar
 from pandas.arrays import (
     BooleanArray,
     DatetimeArray,
+    FloatingArray,
     IntegerArray,
     IntervalArray,
     SparseArray,
     StringArray,
     TimedeltaArray,
 )
-from pandas.core.arrays import PandasArray, integer_array, period_array
-from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decimal
+from pandas.core.arrays import (
+    PandasArray,
+    period_array,
+)
+from pandas.tests.extension.decimal import (
+    DecimalArray,
+    DecimalDtype,
+    to_decimal,
+)
 
 
 @pytest.mark.parametrize(
@@ -35,7 +43,12 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
             np.dtype("float32"),
             PandasArray(np.array([1.0, 2.0], dtype=np.dtype("float32"))),
         ),
-        (np.array([1, 2], dtype="int64"), None, IntegerArray._from_sequence([1, 2]),),
+        (np.array([1, 2], dtype="int64"), None, IntegerArray._from_sequence([1, 2])),
+        (
+            np.array([1.0, 2.0], dtype="float64"),
+            None,
+            FloatingArray._from_sequence([1.0, 2.0]),
+        ),
         # String alias passes through to NumPy
         ([1, 2], "float32", PandasArray(np.array([1, 2], dtype="float32"))),
         # Period alias
@@ -116,14 +129,14 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
         # Sparse
         ([0, 1], "Sparse[int64]", SparseArray([0, 1], dtype="int64")),
         # IntegerNA
-        ([1, None], "Int16", integer_array([1, None], dtype="Int16")),
+        ([1, None], "Int16", pd.array([1, None], dtype="Int16")),
         (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
         # String
         (["a", None], "string", StringArray._from_sequence(["a", None])),
-        (["a", None], pd.StringDtype(), StringArray._from_sequence(["a", None]),),
+        (["a", None], pd.StringDtype(), StringArray._from_sequence(["a", None])),
         # Boolean
         ([True, None], "boolean", BooleanArray._from_sequence([True, None])),
-        ([True, None], pd.BooleanDtype(), BooleanArray._from_sequence([True, None]),),
+        ([True, None], pd.BooleanDtype(), BooleanArray._from_sequence([True, None])),
         # Index
         (pd.Index([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
         # Series[EA] returns the EA
@@ -174,7 +187,7 @@ cet = pytz.timezone("CET")
             period_array(["2000", "2001"], freq="D"),
         ),
         # interval
-        ([pd.Interval(0, 1), pd.Interval(1, 2)], IntervalArray.from_breaks([0, 1, 2]),),
+        ([pd.Interval(0, 1), pd.Interval(1, 2)], IntervalArray.from_breaks([0, 1, 2])),
         # datetime
         (
             [pd.Timestamp("2000"), pd.Timestamp("2001")],
@@ -204,7 +217,9 @@ cet = pytz.timezone("CET")
                 datetime.datetime(2000, 1, 1, tzinfo=cet),
                 datetime.datetime(2001, 1, 1, tzinfo=cet),
             ],
-            DatetimeArray._from_sequence(["2000", "2001"], tz=cet),
+            DatetimeArray._from_sequence(
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet)
+            ),
         ),
         # timedelta
         (
@@ -224,6 +239,19 @@ cet = pytz.timezone("CET")
         ([1, None], IntegerArray._from_sequence([1, None])),
         ([1, pd.NA], IntegerArray._from_sequence([1, pd.NA])),
         ([1, np.nan], IntegerArray._from_sequence([1, np.nan])),
+        # float
+        ([0.1, 0.2], FloatingArray._from_sequence([0.1, 0.2])),
+        ([0.1, None], FloatingArray._from_sequence([0.1, pd.NA])),
+        ([0.1, np.nan], FloatingArray._from_sequence([0.1, pd.NA])),
+        ([0.1, pd.NA], FloatingArray._from_sequence([0.1, pd.NA])),
+        # integer-like float
+        ([1.0, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
+        ([1.0, None], FloatingArray._from_sequence([1.0, pd.NA])),
+        ([1.0, np.nan], FloatingArray._from_sequence([1.0, pd.NA])),
+        ([1.0, pd.NA], FloatingArray._from_sequence([1.0, pd.NA])),
+        # mixed-integer-float
+        ([1, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
+        ([1, np.nan, 2.0], FloatingArray._from_sequence([1.0, None, 2.0])),
         # string
         (["a", "b"], StringArray._from_sequence(["a", "b"])),
         (["a", None], StringArray._from_sequence(["a", None])),
@@ -257,7 +285,7 @@ def test_array_inference_fails(data):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("data", [np.array([[1, 2], [3, 4]]), [[1, 2], [3, 4]]])
+@pytest.mark.parametrize("data", [np.array(0)])
 def test_nd_raises(data):
     with pytest.raises(ValueError, match="PandasArray must be 1-dimensional"):
         pd.array(data, dtype="int64")

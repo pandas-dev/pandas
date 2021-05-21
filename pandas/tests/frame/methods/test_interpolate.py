@@ -3,7 +3,11 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -32,6 +36,14 @@ class TestDataFrameInterpolate:
         expected = df.set_index("C")
         expected.loc[3, "A"] = 3
         expected.loc[5, "B"] = 9
+        tm.assert_frame_equal(result, expected)
+
+    def test_interp_empty(self):
+        # https://github.com/pandas-dev/pandas/issues/35598
+        df = DataFrame()
+        result = df.interpolate()
+        assert result is not df
+        expected = df
         tm.assert_frame_equal(result, expected)
 
     def test_interp_bad_method(self):
@@ -246,11 +258,13 @@ class TestDataFrameInterpolate:
         df = DataFrame({"a": [1.0, 2.0, np.nan, 4.0]})
         expected = DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
         result = df.copy()
-        result["a"].interpolate(inplace=True)
+        return_value = result["a"].interpolate(inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result["a"].interpolate(inplace=True, downcast="infer")
+        return_value = result["a"].interpolate(inplace=True, downcast="infer")
+        assert return_value is None
         tm.assert_frame_equal(result, expected.astype("int64"))
 
     def test_interp_inplace_row(self):
@@ -259,7 +273,8 @@ class TestDataFrameInterpolate:
             {"a": [1.0, 2.0, 3.0, 4.0], "b": [np.nan, 2.0, 3.0, 4.0], "c": [3, 2, 2, 2]}
         )
         expected = result.interpolate(method="linear", axis=1, inplace=False)
-        result.interpolate(method="linear", axis=1, inplace=True)
+        return_value = result.interpolate(method="linear", axis=1, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
     def test_interp_ignore_all_good(self):
@@ -297,7 +312,8 @@ class TestDataFrameInterpolate:
         expected = DataFrame(index=idx, columns=idx, data=data)
 
         result = expected.interpolate(axis=0, method="time")
-        expected.interpolate(axis=0, method="time", inplace=True)
+        return_value = expected.interpolate(axis=0, method="time", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("axis_name, axis_number", [("index", 0), ("columns", 1)])
@@ -312,6 +328,7 @@ class TestDataFrameInterpolate:
         expected = df.interpolate(method="linear", axis=axis_number)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) support axis=1
     @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
     def test_interp_fillna_methods(self, axis, method):
         # GH 12918
@@ -324,4 +341,16 @@ class TestDataFrameInterpolate:
         )
         expected = df.fillna(axis=axis, method=method)
         result = df.interpolate(method=method, axis=axis)
+        tm.assert_frame_equal(result, expected)
+
+    def test_interpolate_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.interpolate "
+            r"except for the argument 'method' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.interpolate("pad", 0)
+        expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)

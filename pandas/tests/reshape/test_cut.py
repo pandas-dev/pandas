@@ -145,18 +145,28 @@ def test_bins_not_monotonic():
             ),
         ),
         (
-            [np.timedelta64(-1), np.timedelta64(0), np.timedelta64(1)],
+            [
+                np.timedelta64(-1, "ns"),
+                np.timedelta64(0, "ns"),
+                np.timedelta64(1, "ns"),
+            ],
             np.array(
                 [
-                    np.timedelta64(-np.iinfo(np.int64).max),
-                    np.timedelta64(0),
-                    np.timedelta64(np.iinfo(np.int64).max),
+                    np.timedelta64(-np.iinfo(np.int64).max, "ns"),
+                    np.timedelta64(0, "ns"),
+                    np.timedelta64(np.iinfo(np.int64).max, "ns"),
                 ]
             ),
             IntervalIndex.from_tuples(
                 [
-                    (np.timedelta64(-np.iinfo(np.int64).max), np.timedelta64(0)),
-                    (np.timedelta64(0), np.timedelta64(np.iinfo(np.int64).max)),
+                    (
+                        np.timedelta64(-np.iinfo(np.int64).max, "ns"),
+                        np.timedelta64(0, "ns"),
+                    ),
+                    (
+                        np.timedelta64(0, "ns"),
+                        np.timedelta64(np.iinfo(np.int64).max, "ns"),
+                    ),
                 ]
             ),
         ),
@@ -377,10 +387,10 @@ def test_series_ret_bins():
 @pytest.mark.parametrize(
     "kwargs,msg",
     [
-        (dict(duplicates="drop"), None),
-        (dict(), "Bin edges must be unique"),
-        (dict(duplicates="raise"), "Bin edges must be unique"),
-        (dict(duplicates="foo"), "invalid value for 'duplicates' parameter"),
+        ({"duplicates": "drop"}, None),
+        ({}, "Bin edges must be unique"),
+        ({"duplicates": "raise"}, "Bin edges must be unique"),
+        ({"duplicates": "foo"}, "invalid value for 'duplicates' parameter"),
     ],
 )
 def test_cut_duplicates_bin(kwargs, msg):
@@ -404,7 +414,7 @@ def test_single_bin(data, length):
     ser = Series([data] * length)
     result = cut(ser, 1, labels=False)
 
-    expected = Series([0] * length)
+    expected = Series([0] * length, dtype=np.intp)
     tm.assert_series_equal(result, expected)
 
 
@@ -664,3 +674,20 @@ def test_cut_unordered_with_missing_labels_raises_error():
     msg = "'labels' must be provided if 'ordered = False'"
     with pytest.raises(ValueError, match=msg):
         cut([0.5, 3], bins=[0, 1, 2], ordered=False)
+
+
+def test_cut_unordered_with_series_labels():
+    # https://github.com/pandas-dev/pandas/issues/36603
+    s = Series([1, 2, 3, 4, 5])
+    bins = Series([0, 2, 4, 6])
+    labels = Series(["a", "b", "c"])
+    result = cut(s, bins=bins, labels=labels, ordered=False)
+    expected = Series(["a", "a", "b", "b", "c"], dtype="category")
+    tm.assert_series_equal(result, expected)
+
+
+def test_cut_no_warnings():
+    df = DataFrame({"value": np.random.randint(0, 100, 20)})
+    labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
+    with tm.assert_produces_warning(False):
+        df["group"] = cut(df.value, range(0, 105, 10), right=False, labels=labels)

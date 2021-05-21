@@ -4,15 +4,27 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, Series
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase
+
+pytestmark = pytest.mark.slow
 
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
+    @pytest.mark.xfail(
+        is_platform_windows(),
+        reason="Looks like LinePlot._is_ts_plot is wrong",
+        strict=False,
+    )
     def test_series_groupby_plotting_nominally_works(self):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))

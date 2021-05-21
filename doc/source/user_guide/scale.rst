@@ -4,7 +4,7 @@
 Scaling to large datasets
 *************************
 
-Pandas provides data structures for in-memory analytics, which makes using pandas
+pandas provides data structures for in-memory analytics, which makes using pandas
 to analyze datasets that are larger than memory datasets somewhat tricky. Even datasets
 that are a sizable fraction of memory become unwieldy, as some pandas operations need
 to make intermediate copies.
@@ -13,7 +13,7 @@ This document provides a few recommendations for scaling your analysis to larger
 It's a complement to :ref:`enhancingperf`, which focuses on speeding up analysis
 for datasets that fit in memory.
 
-But first, it's worth considering *not using pandas*. Pandas isn't the right
+But first, it's worth considering *not using pandas*. pandas isn't the right
 tool for all situations. If you're working with very large datasets and a tool
 like PostgreSQL fits your needs, then you should probably be using that.
 Assuming you want or need the expressiveness and power of pandas, let's carry on.
@@ -72,7 +72,7 @@ Option 1 loads in all the data and then filters to what we need.
 
 .. ipython:: python
 
-   columns = ['id_0', 'name_0', 'x_0', 'y_0']
+   columns = ["id_0", "name_0", "x_0", "y_0"]
 
    pd.read_parquet("timeseries_wide.parquet")[columns]
 
@@ -123,7 +123,7 @@ space-efficient integers to know which specific name is used in each row.
 .. ipython:: python
 
    ts2 = ts.copy()
-   ts2['name'] = ts2['name'].astype('category')
+   ts2["name"] = ts2["name"].astype("category")
    ts2.memory_usage(deep=True)
 
 We can go a bit further and downcast the numeric columns to their smallest types
@@ -131,8 +131,8 @@ using :func:`pandas.to_numeric`.
 
 .. ipython:: python
 
-   ts2['id'] = pd.to_numeric(ts2['id'], downcast='unsigned')
-   ts2[['x', 'y']] = ts2[['x', 'y']].apply(pd.to_numeric, downcast='float')
+   ts2["id"] = pd.to_numeric(ts2["id"], downcast="unsigned")
+   ts2[["x", "y"]] = ts2[["x", "y"]].apply(pd.to_numeric, downcast="float")
    ts2.dtypes
 
 .. ipython:: python
@@ -141,8 +141,7 @@ using :func:`pandas.to_numeric`.
 
 .. ipython:: python
 
-   reduction = (ts2.memory_usage(deep=True).sum()
-                / ts.memory_usage(deep=True).sum())
+   reduction = ts2.memory_usage(deep=True).sum() / ts.memory_usage(deep=True).sum()
    print(f"{reduction:0.2f}")
 
 In all, we've reduced the in-memory footprint of this dataset to 1/5 of its
@@ -174,13 +173,13 @@ files. Each file in the directory represents a different year of the entire data
    import pathlib
 
    N = 12
-   starts = [f'20{i:>02d}-01-01' for i in range(N)]
-   ends = [f'20{i:>02d}-12-13' for i in range(N)]
+   starts = [f"20{i:>02d}-01-01" for i in range(N)]
+   ends = [f"20{i:>02d}-12-13" for i in range(N)]
 
    pathlib.Path("data/timeseries").mkdir(exist_ok=True)
 
    for i, (start, end) in enumerate(zip(starts, ends)):
-       ts = _make_timeseries(start=start, end=end, freq='1T', seed=i)
+       ts = _make_timeseries(start=start, end=end, freq="1T", seed=i)
        ts.to_parquet(f"data/timeseries/ts-{i:0>2d}.parquet")
 
 
@@ -214,8 +213,8 @@ work for arbitrary-sized datasets.
    for path in files:
        # Only one dataframe is in memory at a time...
        df = pd.read_parquet(path)
-       # ... plus a small Series `counts`, which is updated.
-       counts = counts.add(df['name'].value_counts(), fill_value=0)
+       # ... plus a small Series ``counts``, which is updated.
+       counts = counts.add(df["name"].value_counts(), fill_value=0)
    counts.astype(int)
 
 Some readers, like :meth:`pandas.read_csv`, offer parameters to control the
@@ -231,7 +230,7 @@ different library that implements these out-of-core algorithms for you.
 Use other libraries
 -------------------
 
-Pandas is just one library offering a DataFrame API. Because of its popularity,
+pandas is just one library offering a DataFrame API. Because of its popularity,
 pandas' API has become something of a standard that other libraries implement.
 The pandas documentation maintains a list of libraries implementing a DataFrame API
 in :ref:`our ecosystem page <ecosystem.out-of-core>`.
@@ -260,7 +259,7 @@ Inspecting the ``ddf`` object, we see a few things
 * There are new attributes like ``.npartitions`` and ``.divisions``
 
 The partitions and divisions are how Dask parallelizes computation. A **Dask**
-DataFrame is made up of many **Pandas** DataFrames. A single method call on a
+DataFrame is made up of many pandas DataFrames. A single method call on a
 Dask DataFrame ends up making many pandas method calls, and Dask knows how to
 coordinate everything to get the result.
 
@@ -278,8 +277,8 @@ Rather than executing immediately, doing operations build up a **task graph**.
 .. ipython:: python
 
    ddf
-   ddf['name']
-   ddf['name'].value_counts()
+   ddf["name"]
+   ddf["name"].value_counts()
 
 Each of these calls is instant because the result isn't being computed yet.
 We're just building up a list of computation to do when someone needs the
@@ -291,7 +290,7 @@ To get the actual result you can call ``.compute()``.
 
 .. ipython:: python
 
-   %time ddf['name'].value_counts().compute()
+   %time ddf["name"].value_counts().compute()
 
 At that point, you get back the same thing you'd get with pandas, in this case
 a concrete pandas Series with the count of each ``name``.
@@ -324,7 +323,7 @@ a familiar groupby aggregation.
 
 .. ipython:: python
 
-   %time ddf.groupby('name')[['x', 'y']].mean().compute().head()
+   %time ddf.groupby("name")[["x", "y"]].mean().compute().head()
 
 The grouping and aggregation is done out-of-core and in parallel.
 
@@ -336,8 +335,8 @@ we need to supply the divisions manually.
 .. ipython:: python
 
    N = 12
-   starts = [f'20{i:>02d}-01-01' for i in range(N)]
-   ends = [f'20{i:>02d}-12-13' for i in range(N)]
+   starts = [f"20{i:>02d}-01-01" for i in range(N)]
+   ends = [f"20{i:>02d}-12-13" for i in range(N)]
 
    divisions = tuple(pd.to_datetime(starts)) + (pd.Timestamp(ends[-1]),)
    ddf.divisions = divisions
@@ -346,10 +345,11 @@ we need to supply the divisions manually.
 Now we can do things like fast random access with ``.loc``.
 
 .. ipython:: python
+   :okwarning:
 
-   ddf.loc['2002-01-01 12:01':'2002-01-01 12:05'].compute()
+   ddf.loc["2002-01-01 12:01":"2002-01-01 12:05"].compute()
 
-Dask knows to just look in the 3rd partition for selecting values in `2002`. It
+Dask knows to just look in the 3rd partition for selecting values in 2002. It
 doesn't need to look at any other data.
 
 Many workflows involve a large amount of data and processing it in a way that
@@ -362,7 +362,7 @@ out of memory. At that point it's just a regular pandas object.
    :okwarning:
 
    @savefig dask_resample.png
-   ddf[['x', 'y']].resample("1D").mean().cumsum().compute().plot()
+   ddf[["x", "y"]].resample("1D").mean().cumsum().compute().plot()
 
 These Dask examples have all be done using multiple processes on a single
 machine. Dask can be `deployed on a cluster

@@ -14,7 +14,7 @@ What's new in 0.25.0 (July 18, 2019)
 
 .. warning::
 
-   `Panel` has been fully removed. For N-D labeled data structures, please
+   ``Panel`` has been fully removed. For N-D labeled data structures, please
    use `xarray <https://xarray.pydata.org/en/stable/>`_
 
 .. warning::
@@ -33,10 +33,10 @@ Enhancements
 
 .. _whatsnew_0250.enhancements.agg_relabel:
 
-Groupby aggregation with relabeling
+GroupBy aggregation with relabeling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has added special groupby behavior, known as "named aggregation", for naming the
+pandas has added special groupby behavior, known as "named aggregation", for naming the
 output columns when applying multiple aggregation functions to specific columns (:issue:`18366`, :issue:`26512`).
 
 .. ipython:: python
@@ -53,7 +53,7 @@ output columns when applying multiple aggregation functions to specific columns 
 
 Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
 should be tuples where the first element is the column selection, and the second element is the
-aggregation function to apply. Pandas provides the ``pandas.NamedAgg`` namedtuple to make it clearer
+aggregation function to apply. pandas provides the ``pandas.NamedAgg`` namedtuple to make it clearer
 what the arguments to the function are, but plain tuples are accepted as well.
 
 .. ipython:: python
@@ -85,7 +85,7 @@ See :ref:`groupby.aggregate.named` for more.
 
 .. _whatsnew_0250.enhancements.multiple_lambdas:
 
-Groupby aggregation with multiple lambdas
+GroupBy aggregation with multiple lambdas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can now provide multiple lambda functions to a list-like aggregation in
@@ -161,7 +161,7 @@ To restore the previous behaviour of a single threshold, set
 
 .. _whatsnew_0250.enhancements.json_normalize_with_max_level:
 
-Json normalize with max_level param support
+JSON normalize with max_level param support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`json_normalize` normalizes the provided input dict to all
@@ -308,7 +308,7 @@ would be reassigned as -1. (:issue:`19387`)
 
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
 
-``Groupby.apply`` on ``DataFrame`` evaluates first group only once
+``GroupBy.apply`` on ``DataFrame`` evaluates first group only once
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The implementation of :meth:`DataFrameGroupBy.apply() <pandas.core.groupby.DataFrameGroupBy.apply>`
@@ -422,10 +422,10 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
 
 .. _whatsnew_0250.api_breaking.groupby_categorical:
 
-Categorical dtypes are preserved during groupby
+Categorical dtypes are preserved during GroupBy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. Pandas now will preserve these dtypes. (:issue:`18502`)
+Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. pandas now will preserve these dtypes. (:issue:`18502`)
 
 .. ipython:: python
 
@@ -483,7 +483,7 @@ values are coerced to floating point, which may result in loss of precision. See
 :ref:`indexing.set_ops` for more.
 
 
-``DataFrame`` groupby ffill/bfill no longer return group labels
+``DataFrame`` GroupBy ffill/bfill no longer return group labels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The methods ``ffill``, ``bfill``, ``pad`` and ``backfill`` of
@@ -513,7 +513,7 @@ are returned. (:issue:`21521`)
 
     df.groupby("a").ffill()
 
-``DataFrame`` describe on an empty categorical / object column will return top and freq
+``DataFrame`` describe on an empty Categorical / object column will return top and freq
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When calling :meth:`DataFrame.describe` with an empty categorical / object
@@ -540,19 +540,19 @@ with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397
 
 .. ipython:: python
 
-    df.describe()
+   df.describe()
 
 ``__str__`` methods now call ``__repr__`` rather than vice versa
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has until now mostly defined string representations in a Pandas objects's
+pandas has until now mostly defined string representations in a pandas objects'
 ``__str__``/``__unicode__``/``__bytes__`` methods, and called ``__str__`` from the ``__repr__``
 method, if a specific ``__repr__`` method is not found. This is not needed for Python3.
-In Pandas 0.25, the string representations of Pandas objects are now generally
+In pandas 0.25, the string representations of pandas objects are now generally
 defined in ``__repr__``, and calls to ``__str__`` in general now pass the call on to
 the ``__repr__``, if a specific ``__str__`` method doesn't exist, as is standard for Python.
-This change is backward compatible for direct usage of Pandas, but if you subclass
-Pandas objects *and* give your subclasses specific ``__str__``/``__repr__`` methods,
+This change is backward compatible for direct usage of pandas, but if you subclass
+pandas objects *and* give your subclasses specific ``__str__``/``__repr__`` methods,
 you may have to adjust your ``__str__``/``__repr__`` methods (:issue:`26495`).
 
 .. _whatsnew_0250.api_breaking.interval_indexing:
@@ -829,7 +829,7 @@ If installed, we now require:
 | pytest (dev)    | 4.0.2           |          |
 +-----------------+-----------------+----------+
 
-For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
+For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 
@@ -881,7 +881,7 @@ Other API changes
 - Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
 - The ``arg`` argument in :meth:`pandas.core.groupby.DataFrameGroupBy.agg` has been renamed to ``func`` (:issue:`26089`)
 - The ``arg`` argument in :meth:`pandas.core.window._Window.aggregate` has been renamed to ``func`` (:issue:`26372`)
-- Most Pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
+- Most pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
 - The ``.str``-accessor has been disabled for 1-level :class:`MultiIndex`, use :meth:`MultiIndex.to_flat_index` if necessary (:issue:`23679`)
 - Removed support of gtk package for clipboards (:issue:`26563`)
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
@@ -1085,7 +1085,6 @@ Conversion
 
 - Bug in :func:`DataFrame.astype()` when passing a dict of columns and types the ``errors`` parameter was ignored. (:issue:`25905`)
 -
--
 
 Strings
 ^^^^^^^
@@ -1139,8 +1138,8 @@ MultiIndex
 - Bug in which incorrect exception raised by :class:`Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
 -
 
-I/O
-^^^
+IO
+^^
 
 - Bug in :func:`DataFrame.to_html()` where values were truncated using display options instead of outputting the full content (:issue:`17004`)
 - Fixed bug in missing text when using :meth:`to_clipboard` if copying utf-16 characters in Python 3 on Windows (:issue:`25040`)
@@ -1167,7 +1166,7 @@ I/O
 - Fixed bug in :func:`pandas.read_csv` where a BOM would result in incorrect parsing using engine='python' (:issue:`26545`)
 - :func:`read_excel` now raises a ``ValueError`` when input is of type :class:`pandas.io.excel.ExcelFile` and ``engine`` param is passed since :class:`pandas.io.excel.ExcelFile` has an engine defined (:issue:`26566`)
 - Bug while selecting from :class:`HDFStore` with ``where=''`` specified (:issue:`26610`).
-- Fixed bug in :func:`DataFrame.to_excel()` where custom objects (i.e. `PeriodIndex`) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
+- Fixed bug in :func:`DataFrame.to_excel()` where custom objects (i.e. ``PeriodIndex``) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
 - Bug in :meth:`read_hdf` where reading a timezone aware :class:`DatetimeIndex` would raise a ``TypeError`` (:issue:`11926`)
 - Bug in :meth:`to_msgpack` and :meth:`read_msgpack` which would raise a ``ValueError`` rather than a ``FileNotFoundError`` for an invalid path (:issue:`27160`)
 - Fixed bug in :meth:`DataFrame.to_parquet` which would raise a ``ValueError`` when the dataframe had no columns (:issue:`27339`)
@@ -1182,9 +1181,8 @@ Plotting
 - Fixed bug causing plots of :class:`PeriodIndex` timeseries to fail if the frequency is a multiple of the frequency rule code (:issue:`14763`)
 - Fixed bug when plotting a :class:`DatetimeIndex` with ``datetime.timezone.utc`` timezone (:issue:`17173`)
 -
--
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`pandas.core.resample.Resampler.agg` with a timezone aware index where ``OverflowError`` would raise when passing a list of functions (:issue:`22660`)
@@ -1262,7 +1260,7 @@ Other
 - Removed unused C functions from vendored UltraJSON implementation (:issue:`26198`)
 - Allow :class:`Index` and :class:`RangeIndex` to be passed to numpy ``min`` and ``max`` functions (:issue:`26125`)
 - Use actual class name in repr of empty objects of a ``Series`` subclass (:issue:`27001`).
-- Bug in :class:`DataFrame` where passing an object array of timezone-aware `datetime` objects would incorrectly raise ``ValueError`` (:issue:`13287`)
+- Bug in :class:`DataFrame` where passing an object array of timezone-aware ``datetime`` objects would incorrectly raise ``ValueError`` (:issue:`13287`)
 
 .. _whatsnew_0.250.contributors:
 

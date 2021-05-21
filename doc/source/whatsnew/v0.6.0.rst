@@ -5,17 +5,11 @@ Version 0.6.0 (November 25, 2011)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
-
 New features
 ~~~~~~~~~~~~
 - :ref:`Added <reshaping.melt>` ``melt`` function to ``pandas.core.reshape``
 - :ref:`Added <groupby.multiindex>` ``level`` parameter to group by level in Series and DataFrame descriptive statistics (:issue:`313`)
-- :ref:`Added <basics.head_tail>` ``head`` and ``tail`` methods to Series, analogous to to DataFrame (:issue:`296`)
+- :ref:`Added <basics.head_tail>` ``head`` and ``tail`` methods to Series, analogous to DataFrame (:issue:`296`)
 - :ref:`Added <indexing.boolean>` ``Series.isin`` function which checks if each value is contained in a passed sequence (:issue:`289`)
 - :ref:`Added <io.formatting>` ``float_format`` option to ``Series.to_string``
 - :ref:`Added <io.parse_dates>` ``skip_footer`` (:issue:`291`) and ``converters`` (:issue:`343`) options to ``read_csv`` and ``read_table``
@@ -52,7 +46,7 @@ New features
 Performance enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - VBENCH Cythonized ``cache_readonly``, resulting in substantial micro-performance enhancements throughout the code base (:issue:`361`)
-- VBENCH Special Cython matrix iterator for applying arbitrary reduction operations with 3-5x better performance than `np.apply_along_axis` (:issue:`309`)
+- VBENCH Special Cython matrix iterator for applying arbitrary reduction operations with 3-5x better performance than ``np.apply_along_axis`` (:issue:`309`)
 - VBENCH Improved performance of ``MultiIndex.from_tuples``
 - VBENCH Special Cython matrix iterator for applying arbitrary reduction operations
 - VBENCH + DOCUMENT Add ``raw`` option to ``DataFrame.apply`` for getting better performance when

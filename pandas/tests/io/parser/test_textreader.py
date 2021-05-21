@@ -2,7 +2,10 @@
 Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import os
 
 import numpy as np
@@ -14,7 +17,11 @@ from pandas._libs.parsers import TextReader
 from pandas import DataFrame
 import pandas._testing as tm
 
-from pandas.io.parsers import TextFileReader, read_csv
+from pandas.io.parsers import (
+    TextFileReader,
+    read_csv,
+)
+from pandas.io.parsers.c_parser_wrapper import ensure_dtype_objs
 
 
 class TestTextReader:
@@ -31,13 +38,10 @@ class TestTextReader:
             reader = TextReader(f)
             reader.read()
 
-    def test_string_filename(self):
-        reader = TextReader(self.csv1, header=None)
-        reader.read()
-
     def test_file_handle_mmap(self):
+        # this was never using memory_map=True
         with open(self.csv1, "rb") as f:
-            reader = TextReader(f, memory_map=True, header=None)
+            reader = TextReader(f, header=None)
             reader.read()
 
     def test_StringIO(self):
@@ -203,6 +207,8 @@ aaaa,4
 aaaaa,5"""
 
         def _make_reader(**kwds):
+            if "dtype" in kwds:
+                kwds["dtype"] = ensure_dtype_objs(kwds["dtype"])
             return TextReader(StringIO(data), delimiter=",", header=None, **kwds)
 
         reader = _make_reader(dtype="S5,i4")
@@ -230,6 +236,8 @@ one,two
 4,d"""
 
         def _make_reader(**kwds):
+            if "dtype" in kwds:
+                kwds["dtype"] = ensure_dtype_objs(kwds["dtype"])
             return TextReader(StringIO(data), delimiter=",", **kwds)
 
         reader = _make_reader(dtype={"one": "u1", 1: "S1"})
@@ -339,8 +347,10 @@ a,b,c
 
     def test_empty_csv_input(self):
         # GH14867
-        df = read_csv(StringIO(), chunksize=20, header=None, names=["a", "b", "c"])
-        assert isinstance(df, TextFileReader)
+        with read_csv(
+            StringIO(), chunksize=20, header=None, names=["a", "b", "c"]
+        ) as df:
+            assert isinstance(df, TextFileReader)
 
 
 def assert_array_dicts_equal(left, right):

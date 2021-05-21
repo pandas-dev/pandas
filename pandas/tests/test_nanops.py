@@ -10,7 +10,10 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import Series, isna
+from pandas import (
+    Series,
+    isna,
+)
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 import pandas.core.nanops as nanops
@@ -267,6 +270,7 @@ class TestnanopsDataFrame:
                 value = value.astype("f8")
         return func(value, **kwargs)
 
+    @pytest.mark.xfail(reason="GH12863: numpy result won't match for object type")
     @pytest.mark.parametrize(
         "nan_op,np_op", [(nanops.nanany, np.any), (nanops.nanall, np.all)]
     )
@@ -285,7 +289,7 @@ class TestnanopsDataFrame:
 
     def test_nanmean(self, skipna):
         self.check_funs(
-            nanops.nanmean, np.mean, skipna, allow_obj=False, allow_date=False,
+            nanops.nanmean, np.mean, skipna, allow_obj=False, allow_date=False
         )
 
     def test_nanmean_overflow(self):
@@ -988,11 +992,10 @@ class TestNankurtFixedValues:
 
 
 class TestDatetime64NaNOps:
-    @pytest.mark.parametrize("tz", [None, "UTC"])
     # Enabling mean changes the behavior of DataFrame.mean
     # See https://github.com/pandas-dev/pandas/issues/24752
-    def test_nanmean(self, tz):
-        dti = pd.date_range("2016-01-01", periods=3, tz=tz)
+    def test_nanmean(self):
+        dti = pd.date_range("2016-01-01", periods=3)
         expected = dti[1]
 
         for obj in [dti, DatetimeArray(dti), Series(dti)]:
@@ -1004,6 +1007,23 @@ class TestDatetime64NaNOps:
         for obj in [dti2, DatetimeArray(dti2), Series(dti2)]:
             result = nanops.nanmean(obj)
             assert result == expected
+
+    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+    def test_nanmean_skipna_false(self, dtype):
+        arr = np.arange(12).astype(np.int64).view(dtype).reshape(4, 3)
+
+        arr[-1, -1] = "NaT"
+
+        result = nanops.nanmean(arr, skipna=False)
+        assert result is pd.NaT
+
+        result = nanops.nanmean(arr, axis=0, skipna=False)
+        expected = np.array([4, 5, "NaT"], dtype=arr.dtype)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = nanops.nanmean(arr, axis=1, skipna=False)
+        expected = np.array([arr[0, 1], arr[1, 1], arr[2, 1], arr[-1, -1]])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 def test_use_bottleneck():
@@ -1036,7 +1056,7 @@ def test_use_bottleneck():
 )
 def test_numpy_ops(numpy_op, expected):
     # GH8383
-    result = numpy_op(pd.Series([1, 2, 3, 4]))
+    result = numpy_op(Series([1, 2, 3, 4]))
     assert result == expected
 
 
@@ -1062,7 +1082,7 @@ def test_numpy_ops(numpy_op, expected):
 )
 def test_nanops_independent_of_mask_param(operation):
     # GH22764
-    s = pd.Series([1, 2, np.nan, 3, np.nan, 4])
+    s = Series([1, 2, np.nan, 3, np.nan, 4])
     mask = s.isna()
     median_expected = operation(s)
     median_result = operation(s, mask=mask)

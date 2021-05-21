@@ -8,7 +8,7 @@ including other versions of pandas.
 
 .. note::
 
-    Pandas 0.25.2 adds compatibility for Python 3.8 (:issue:`28147`).
+    pandas 0.25.2 adds compatibility for Python 3.8 (:issue:`28147`).
 
 .. _whatsnew_0252.bug_fixes:
 
@@ -21,14 +21,14 @@ Indexing
 - Fix regression in :meth:`DataFrame.reindex` not following the ``limit`` argument (:issue:`28631`).
 - Fix regression in :meth:`RangeIndex.get_indexer` for decreasing :class:`RangeIndex` where target values may be improperly identified as missing/present (:issue:`28678`)
 
-I/O
-^^^
+IO
+^^
 
 - Fix regression in notebook display where ``<th>`` tags were missing for :attr:`DataFrame.index` values (:issue:`28204`).
 - Regression in :meth:`~DataFrame.to_csv` where writing a :class:`Series` or :class:`DataFrame` indexed by an :class:`IntervalIndex` would incorrectly raise a ``TypeError`` (:issue:`28210`)
 - Fix :meth:`~DataFrame.to_csv` with ``ExtensionArray`` with list-like values (:issue:`28840`).
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug incorrectly raising an ``IndexError`` when passing a list of quantiles to :meth:`pandas.core.groupby.DataFrameGroupBy.quantile` (:issue:`28113`).

@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, date_range, period_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -78,7 +83,7 @@ class TestPeriodIndex:
         # GH#5407
         idx = make_range(start="2013/10/01", freq="D", periods=10)
 
-        df = DataFrame(dict(units=[100 + i for i in range(10)]), index=idx)
+        df = DataFrame({"units": [100 + i for i in range(10)]}, index=idx)
         empty = DataFrame(index=type(idx)([], freq="D"), columns=["units"])
         empty["units"] = empty["units"].astype("int64")
 
@@ -89,6 +94,34 @@ class TestPeriodIndex:
         tm.assert_frame_equal(df["2013/10/15":"2013/10/17"], empty)
         tm.assert_frame_equal(df["2013-06":"2013-09"], empty)
         tm.assert_frame_equal(df["2013-11":"2013-12"], empty)
+
+    @pytest.mark.parametrize("make_range", [date_range, period_range])
+    def test_maybe_cast_slice_bound(self, make_range, frame_or_series):
+        idx = make_range(start="2013/10/01", freq="D", periods=10)
+
+        obj = DataFrame({"units": [100 + i for i in range(10)]}, index=idx)
+        if frame_or_series is not DataFrame:
+            obj = obj["units"]
+
+        msg = (
+            f"cannot do slice indexing on {type(idx).__name__} with "
+            r"these indexers \[foo\] of type str"
+        )
+
+        # Check the lower-level calls are raising where expected.
+        with pytest.raises(TypeError, match=msg):
+            idx._maybe_cast_slice_bound("foo", "left")
+        with pytest.raises(TypeError, match=msg):
+            idx.get_slice_bound("foo", "left")
+
+        with pytest.raises(TypeError, match=msg):
+            obj["2013/09/30":"foo"]
+        with pytest.raises(TypeError, match=msg):
+            obj["foo":"2013/09/30"]
+        with pytest.raises(TypeError, match=msg):
+            obj.loc["2013/09/30":"foo"]
+        with pytest.raises(TypeError, match=msg):
+            obj.loc["foo":"2013/09/30"]
 
     def test_partial_slice_doesnt_require_monotonicity(self):
         # See also: DatetimeIndex test ofm the same name

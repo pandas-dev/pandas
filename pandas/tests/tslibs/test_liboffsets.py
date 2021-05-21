@@ -5,6 +5,10 @@ from datetime import datetime
 
 import pytest
 
+from pandas._libs.tslibs.ccalendar import (
+    get_firstbday,
+    get_lastbday,
+)
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import roll_qtrday
 
@@ -25,7 +29,7 @@ def day_opt(request):
 )
 def test_get_last_bday(dt, exp_week_day, exp_last_day):
     assert dt.weekday() == exp_week_day
-    assert liboffsets.get_lastbday(dt.year, dt.month) == exp_last_day
+    assert get_lastbday(dt.year, dt.month) == exp_last_day
 
 
 @pytest.mark.parametrize(
@@ -37,7 +41,7 @@ def test_get_last_bday(dt, exp_week_day, exp_last_day):
 )
 def test_get_first_bday(dt, exp_week_day, exp_first_day):
     assert dt.weekday() == exp_week_day
-    assert liboffsets.get_firstbday(dt.year, dt.month) == exp_first_day
+    assert get_firstbday(dt.year, dt.month) == exp_first_day
 
 
 @pytest.mark.parametrize(

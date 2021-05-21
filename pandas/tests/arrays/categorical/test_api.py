@@ -3,7 +3,13 @@ import re
 import numpy as np
 import pytest
 
-from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.arrays.categorical import recode_for_categories
 from pandas.tests.arrays.categorical.common import TestCategorical
@@ -76,7 +82,10 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(result, expected)
 
         # and now inplace
-        res = cat.rename_categories([1, 2, 3], inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            # issue #37643 inplace kwarg deprecated
+            res = cat.rename_categories([1, 2, 3], inplace=True)
+
         assert res is None
         tm.assert_numpy_array_equal(
             cat.__array__(), np.array([1, 2, 3, 1], dtype=np.int64)
@@ -108,7 +117,10 @@ class TestCategoricalAPI:
         tm.assert_index_equal(res.categories, expected)
 
         # Test for inplace
-        res = cat.rename_categories({"a": 4, "b": 3, "c": 2, "d": 1}, inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            # issue #37643 inplace kwarg deprecated
+            res = cat.rename_categories({"a": 4, "b": 3, "c": 2, "d": 1}, inplace=True)
+
         assert res is None
         tm.assert_index_equal(cat.categories, expected)
 
@@ -147,7 +159,10 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(res, new)
 
         # inplace == True
-        res = cat.reorder_categories(["c", "b", "a"], inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            # issue #37643 inplace kwarg deprecated
+            res = cat.reorder_categories(["c", "b", "a"], inplace=True)
+
         assert res is None
         tm.assert_categorical_equal(cat, new)
 
@@ -182,7 +197,10 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(res, new)
 
         # inplace == True
-        res = cat.add_categories("d", inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            # issue #37643 inplace kwarg deprecated
+            res = cat.add_categories("d", inplace=True)
+
         tm.assert_categorical_equal(cat, new)
         assert res is None
 
@@ -211,7 +229,10 @@ class TestCategoricalAPI:
         exp_categories = Index(["c", "b", "a"])
         exp_values = np.array(["a", "b", "c", "a"], dtype=np.object_)
 
-        res = cat.set_categories(["c", "b", "a"], inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            # issue #37643 inplace kwarg deprecated
+            res = cat.set_categories(["c", "b", "a"], inplace=True)
+
         tm.assert_index_equal(cat.categories, exp_categories)
         tm.assert_numpy_array_equal(cat.__array__(), exp_values)
         assert res is None
@@ -348,7 +369,10 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(res, new)
 
         # inplace == True
-        res = cat.remove_categories("c", inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            # issue #37643 inplace kwarg deprecated
+            res = cat.remove_categories("c", inplace=True)
+
         tm.assert_categorical_equal(cat, new)
         assert res is None
 
@@ -371,7 +395,10 @@ class TestCategoricalAPI:
         tm.assert_index_equal(res.categories, exp_categories_dropped)
         tm.assert_index_equal(c.categories, exp_categories_all)
 
-        res = c.remove_unused_categories(inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            # issue #37643 inplace kwarg deprecated
+            res = c.remove_unused_categories(inplace=True)
+
         tm.assert_index_equal(c.categories, exp_categories_dropped)
         assert res is None
 
@@ -415,7 +442,11 @@ class TestCategoricalAPIWithFactor(TestCategorical):
 
         # check unused categories
         cat = self.factor.copy()
-        cat.set_categories(["a", "b", "c", "d"], inplace=True)
+
+        with tm.assert_produces_warning(FutureWarning):
+            # issue #37643 inplace kwarg deprecated
+            cat.set_categories(["a", "b", "c", "d"], inplace=True)
+
         desc = cat.describe()
 
         exp_index = CategoricalIndex(
@@ -451,8 +482,21 @@ class TestCategoricalAPIWithFactor(TestCategorical):
 
     def test_set_categories_inplace(self):
         cat = self.factor.copy()
-        cat.set_categories(["a", "b", "c", "d"], inplace=True)
+
+        with tm.assert_produces_warning(FutureWarning):
+            # issue #37643 inplace kwarg deprecated
+            cat.set_categories(["a", "b", "c", "d"], inplace=True)
+
         tm.assert_index_equal(cat.categories, Index(["a", "b", "c", "d"]))
+
+    def test_codes_setter_deprecated(self):
+        cat = Categorical([1, 2, 3, 1, 2, 3, 3, 2, 1, 1, 1])
+        new_codes = cat._codes + 1
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#40606
+            cat._codes = new_codes
+
+        assert cat._codes is new_codes
 
 
 class TestPrivateCategoricalAPI:

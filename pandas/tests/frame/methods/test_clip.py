@@ -1,8 +1,10 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -22,7 +24,8 @@ class TestDataFrameClip:
         median = float_frame.median().median()
         frame_copy = float_frame.copy()
 
-        frame_copy.clip(upper=median, lower=median, inplace=True)
+        return_value = frame_copy.clip(upper=median, lower=median, inplace=True)
+        assert return_value is None
         assert not (frame_copy.values != median).any()
 
     def test_dataframe_clip(self):
@@ -99,7 +102,7 @@ class TestDataFrameClip:
 
         result = original.clip(lower=lower, upper=[5, 6, 7], axis=axis, inplace=inplace)
 
-        expected = pd.DataFrame(res, columns=original.columns, index=original.index)
+        expected = DataFrame(res, columns=original.columns, index=original.index)
         if inplace:
             result = original
         tm.assert_frame_equal(result, expected, check_exact=True)
@@ -141,17 +144,25 @@ class TestDataFrameClip:
         tm.assert_frame_equal(float_frame.clip(np.nan), float_frame)
         tm.assert_frame_equal(float_frame.clip(upper=np.nan, lower=np.nan), float_frame)
 
-        # GH#19992
+        # GH#19992 and adjusted in GH#40420
         df = DataFrame({"col_0": [1, 2, 3], "col_1": [4, 5, 6], "col_2": [7, 8, 9]})
 
         result = df.clip(lower=[4, 5, np.nan], axis=0)
         expected = DataFrame(
-            {"col_0": [4, 5, np.nan], "col_1": [4, 5, np.nan], "col_2": [7, 8, np.nan]}
+            {"col_0": [4, 5, 3], "col_1": [4, 5, 6], "col_2": [7, 8, 9]}
         )
         tm.assert_frame_equal(result, expected)
 
         result = df.clip(lower=[4, 5, np.nan], axis=1)
         expected = DataFrame(
-            {"col_0": [4, 4, 4], "col_1": [5, 5, 6], "col_2": [np.nan, np.nan, np.nan]}
+            {"col_0": [4, 4, 4], "col_1": [5, 5, 6], "col_2": [7, 8, 9]}
         )
+        tm.assert_frame_equal(result, expected)
+
+        # GH#40420
+        data = {"col_0": [9, -3, 0, -1, 5], "col_1": [-2, -7, 6, 8, -5]}
+        df = DataFrame(data)
+        t = Series([2, -4, np.NaN, 6, 3])
+        result = df.clip(lower=t, axis=0)
+        expected = DataFrame({"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]})
         tm.assert_frame_equal(result, expected)

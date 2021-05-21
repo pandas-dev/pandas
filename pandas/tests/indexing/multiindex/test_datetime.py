@@ -2,7 +2,16 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas import Index, Period, Series, period_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Period,
+    Series,
+    period_range,
+    to_datetime,
+)
+import pandas._testing as tm
 
 
 def test_multiindex_period_datetime():
@@ -20,3 +29,22 @@ def test_multiindex_period_datetime():
     # try datetime as index
     result = s.loc["a", datetime(2012, 1, 1)]
     assert result == expected
+
+
+def test_multiindex_datetime_columns():
+    # GH35015, using datetime as column indices raises exception
+
+    mi = MultiIndex.from_tuples(
+        [(to_datetime("02/29/2020"), to_datetime("03/01/2020"))], names=["a", "b"]
+    )
+
+    df = DataFrame([], columns=mi)
+
+    expected_df = DataFrame(
+        [],
+        columns=MultiIndex.from_arrays(
+            [[to_datetime("02/29/2020")], [to_datetime("03/01/2020")]], names=["a", "b"]
+        ),
+    )
+
+    tm.assert_frame_equal(df, expected_df)

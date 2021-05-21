@@ -1,13 +1,27 @@
+from __future__ import annotations
+
 import importlib
-from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Sequence,
+)
 
 from pandas._config import get_option
 
-from pandas._typing import Label
-from pandas.util._decorators import Appender, Substitution
+from pandas._typing import IndexLabel
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+)
 
-from pandas.core.dtypes.common import is_integer, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.base import PandasObject
 
@@ -20,13 +34,13 @@ def hist_series(
     by=None,
     ax=None,
     grid: bool = True,
-    xlabelsize: Optional[int] = None,
-    xrot: Optional[float] = None,
-    ylabelsize: Optional[int] = None,
-    yrot: Optional[float] = None,
-    figsize: Optional[Tuple[int, int]] = None,
-    bins: Union[int, Sequence[int]] = 10,
-    backend: Optional[str] = None,
+    xlabelsize: int | None = None,
+    xrot: float | None = None,
+    ylabelsize: int | None = None,
+    yrot: float | None = None,
+    figsize: tuple[int, int] | None = None,
+    bins: int | Sequence[int] = 10,
+    backend: str | None = None,
     legend: bool = False,
     **kwargs,
 ):
@@ -99,26 +113,26 @@ def hist_series(
 
 
 def hist_frame(
-    data: "DataFrame",
-    column: Union[Label, Sequence[Label]] = None,
+    data: DataFrame,
+    column: IndexLabel = None,
     by=None,
     grid: bool = True,
-    xlabelsize: Optional[int] = None,
-    xrot: Optional[float] = None,
-    ylabelsize: Optional[int] = None,
-    yrot: Optional[float] = None,
+    xlabelsize: int | None = None,
+    xrot: float | None = None,
+    ylabelsize: int | None = None,
+    yrot: float | None = None,
     ax=None,
     sharex: bool = False,
     sharey: bool = False,
-    figsize: Optional[Tuple[int, int]] = None,
-    layout: Optional[Tuple[int, int]] = None,
-    bins: Union[int, Sequence[int]] = 10,
-    backend: Optional[str] = None,
+    figsize: tuple[int, int] | None = None,
+    layout: tuple[int, int] | None = None,
+    bins: int | Sequence[int] = 10,
+    backend: str | None = None,
     legend: bool = False,
     **kwargs,
 ):
     """
-    Make a histogram of the DataFrame's.
+    Make a histogram of the DataFrame's columns.
 
     A `histogram`_ is a representation of the distribution of data.
     This function calls :meth:`matplotlib.pyplot.hist`, on each series in
@@ -130,7 +144,7 @@ def hist_frame(
     ----------
     data : DataFrame
         The pandas object holding the data.
-    column : str or sequence
+    column : str or sequence, optional
         If passed, will be used to limit data to a subset of columns.
     by : object, optional
         If passed, then used to form histograms for separate groups.
@@ -157,7 +171,7 @@ def hist_frame(
     sharey : bool, default False
         In case subplots=True, share y axis and set some y axis labels to
         invisible.
-    figsize : tuple
+    figsize : tuple, optional
         The size in inches of the figure to create. Uses the value in
         `matplotlib.rcParams` by default.
     layout : tuple, optional
@@ -422,7 +436,9 @@ _bar_or_line_doc = """
             - A sequence of color strings referred to by name, RGB or RGBA
                 code, which will be used for each column recursively. For
                 instance ['green','yellow'] each column's %(kind)s will be filled in
-                green or yellow, alternatively.
+                green or yellow, alternatively. If there is only a single column to
+                be plotted, then only the first color from the color list will be
+                used.
 
             - A dict of the form {column name : color}, so that each column will be
                 colored accordingly. For example, if your columns are called `a` and
@@ -542,12 +558,8 @@ def boxplot_frame_groupby(
         The layout of the plot: (rows, columns).
     sharex : bool, default False
         Whether x-axes will be shared among subplots.
-
-        .. versionadded:: 0.23.1
     sharey : bool, default True
         Whether y-axes will be shared among subplots.
-
-        .. versionadded:: 0.23.1
     backend : str, default None
         Backend to use instead of the backend specified in the option
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
@@ -567,17 +579,25 @@ def boxplot_frame_groupby(
 
     Examples
     --------
-    >>> import itertools
-    >>> tuples = [t for t in itertools.product(range(1000), range(4))]
-    >>> index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
-    >>> data = np.random.randn(len(index),4)
-    >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
-    >>>
-    >>> grouped = df.groupby(level='lvl1')
-    >>> boxplot_frame_groupby(grouped)
-    >>>
-    >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
-    >>> boxplot_frame_groupby(grouped, subplots=False)
+    You can create boxplots for grouped data and show them as separate subplots:
+
+    .. plot::
+        :context: close-figs
+
+        >>> import itertools
+        >>> tuples = [t for t in itertools.product(range(1000), range(4))]
+        >>> index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
+        >>> data = np.random.randn(len(index),4)
+        >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
+        >>> grouped = df.groupby(level='lvl1')
+        >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8,10))
+
+    The ``subplots=False`` option shows the boxplots in a single figure.
+
+    .. plot::
+        :context: close-figs
+
+        >>> grouped.boxplot(subplots=False, rot=45, fontsize=12)
     """
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame_groupby(
@@ -624,8 +644,8 @@ class PlotAccessor(PandasObject):
         - 'density' : same as 'kde'
         - 'area' : area plot
         - 'pie' : pie plot
-        - 'scatter' : scatter plot
-        - 'hexbin' : hexbin plot.
+        - 'scatter' : scatter plot (DataFrame only)
+        - 'hexbin' : hexbin plot (DataFrame only)
     ax : matplotlib axes object, default None
         An axes of the current figure.
     subplots : bool, default False
@@ -674,14 +694,24 @@ class PlotAccessor(PandasObject):
     ylim : 2-tuple/list
         Set the y limits of the current axes.
     xlabel : label, optional
-        Name to use for the xlabel on x-axis. Default uses index name as xlabel.
+        Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
+        x-column name for planar plots.
 
         .. versionadded:: 1.1.0
+
+        .. versionchanged:: 1.2.0
+
+           Now applicable to planar plots (`scatter`, `hexbin`).
 
     ylabel : label, optional
-        Name to use for the ylabel on y-axis. Default will show no ylabel.
+        Name to use for the ylabel on y-axis. Default will show no ylabel, or the
+        y-column name for planar plots.
 
         .. versionadded:: 1.1.0
+
+        .. versionchanged:: 1.2.0
+
+           Now applicable to planar plots (`scatter`, `hexbin`).
 
     rot : int, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal

@@ -15,7 +15,7 @@ for imp in ["pandas._libs.lib", "pandas.lib"]:
 
 # Compatibility import for the testing module
 try:
-    import pandas._testing as tm  # noqa
+    import pandas._testing as tm
 except ImportError:
     import pandas.util.testing as tm  # noqa
 
@@ -70,7 +70,7 @@ class BaseIO:
     def remove(self, f):
         """Remove created files"""
         try:
-            os.remove(f)
+            os.remove(f)  # noqa: PDF008
         except OSError:
             # On Windows, attempting to remove a file that is in use
             # causes an exception to be raised

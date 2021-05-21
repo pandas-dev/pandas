@@ -39,22 +39,26 @@ class DocBuilder:
 
     def __init__(
         self,
-        num_jobs=0,
+        num_jobs="auto",
         include_api=True,
+        whatsnew=False,
         single_doc=None,
         verbosity=0,
         warnings_are_errors=False,
     ):
         self.num_jobs = num_jobs
+        self.include_api = include_api
+        self.whatsnew = whatsnew
         self.verbosity = verbosity
         self.warnings_are_errors = warnings_are_errors
 
         if single_doc:
             single_doc = self._process_single_doc(single_doc)
-            include_api = False
             os.environ["SPHINX_PATTERN"] = single_doc
         elif not include_api:
             os.environ["SPHINX_PATTERN"] = "-api"
+        elif whatsnew:
+            os.environ["SPHINX_PATTERN"] = "whatsnew"
 
         self.single_doc_html = None
         if single_doc and single_doc.endswith(".rst"):
@@ -130,7 +134,7 @@ class DocBuilder:
 
         cmd = ["sphinx-build", "-b", kind]
         if self.num_jobs:
-            cmd += ["-j", str(self.num_jobs)]
+            cmd += ["-j", self.num_jobs]
         if self.warnings_are_errors:
             cmd += ["-W", "--keep-going"]
         if self.verbosity:
@@ -188,7 +192,14 @@ class DocBuilder:
                 if not row or row[0].strip().startswith("#"):
                     continue
 
-                path = os.path.join(BUILD_PATH, "html", *row[0].split("/")) + ".html"
+                html_path = os.path.join(BUILD_PATH, "html")
+                path = os.path.join(html_path, *row[0].split("/")) + ".html"
+
+                if not self.include_api and (
+                    os.path.join(html_path, "reference") in path
+                    or os.path.join(html_path, "generated") in path
+                ):
+                    continue
 
                 try:
                     title = self._get_page_title(row[1])
@@ -197,11 +208,6 @@ class DocBuilder:
                     # may not be able to read the rst because it has some
                     # sphinx specific stuff
                     title = "this page"
-
-                if os.path.exists(path):
-                    raise RuntimeError(
-                        f"Redirection would overwrite an existing file: {path}"
-                    )
 
                 with open(path, "w") as moved_page_fd:
                     html = f"""\
@@ -232,6 +238,9 @@ class DocBuilder:
                 self._open_browser(self.single_doc_html)
             else:
                 self._add_redirects()
+                if self.whatsnew:
+                    self._open_browser(os.path.join("whatsnew", "index.html"))
+
         return ret_code
 
     def latex(self, force=False):
@@ -286,18 +295,24 @@ def main():
 
     joined = ",".join(cmds)
     argparser = argparse.ArgumentParser(
-        description="pandas documentation builder", epilog=f"Commands: {joined}",
+        description="pandas documentation builder", epilog=f"Commands: {joined}"
     )
 
     joined = ", ".join(cmds)
     argparser.add_argument(
-        "command", nargs="?", default="html", help=f"command to run: {joined}",
+        "command", nargs="?", default="html", help=f"command to run: {joined}"
     )
     argparser.add_argument(
-        "--num-jobs", type=int, default=0, help="number of jobs used by sphinx-build"
+        "--num-jobs", default="auto", help="number of jobs used by sphinx-build"
     )
     argparser.add_argument(
         "--no-api", default=False, help="omit api and autosummary", action="store_true"
+    )
+    argparser.add_argument(
+        "--whatsnew",
+        default=False,
+        help="only build whatsnew (and api for links)",
+        action="store_true",
     )
     argparser.add_argument(
         "--single",
@@ -350,6 +365,7 @@ def main():
     builder = DocBuilder(
         args.num_jobs,
         not args.no_api,
+        args.whatsnew,
         args.single,
         args.verbosity,
         args.warnings_are_errors,

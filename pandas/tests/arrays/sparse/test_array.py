@@ -11,12 +11,10 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import isna
 import pandas._testing as tm
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
-
-
-@pytest.fixture(params=["integer", "block"])
-def kind(request):
-    return request.param
+from pandas.core.arrays.sparse import (
+    SparseArray,
+    SparseDtype,
+)
 
 
 class TestSparseArray:
@@ -97,7 +95,7 @@ class TestSparseArray:
             SparseArray([0, 1, np.nan], dtype=dtype)
 
     def test_constructor_warns_when_losing_timezone(self):
-        # GH#32501 warn when losing timezone inforamtion
+        # GH#32501 warn when losing timezone information
         dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
 
         expected = SparseArray(np.asarray(dti, dtype="datetime64[ns]"))
@@ -187,16 +185,13 @@ class TestSparseArray:
     def test_constructor_inferred_fill_value(self, data, fill_value):
         result = SparseArray(data).fill_value
 
-        if pd.isna(fill_value):
-            assert pd.isna(result)
+        if isna(fill_value):
+            assert isna(result)
         else:
             assert result == fill_value
 
     @pytest.mark.parametrize("format", ["coo", "csc", "csr"])
-    @pytest.mark.parametrize(
-        "size",
-        [pytest.param(0, marks=td.skip_if_np_lt("1.16", reason="NumPy-11383")), 10],
-    )
+    @pytest.mark.parametrize("size", [0, 10])
     @td.skip_if_no_scipy
     def test_from_spmatrix(self, size, format):
         import scipy.sparse
@@ -280,6 +275,11 @@ class TestSparseArray:
 
         exp = SparseArray(np.take(self.arr_data, [0, 1, 2]))
         tm.assert_sp_array_equal(self.arr.take([0, 1, 2]), exp)
+
+    def test_take_all_empty(self):
+        a = pd.array([0, 0], dtype=SparseDtype("int64"))
+        result = a.take([0, 1], allow_fill=True, fill_value=np.nan)
+        tm.assert_sp_array_equal(a, result)
 
     def test_take_fill_value(self):
         data = np.array([1, np.nan, 0, 3, 0])
@@ -522,7 +522,7 @@ class TestSparseArray:
         tm.assert_numpy_array_equal(np.asarray(res.to_dense()), vals.astype(typ))
 
     @pytest.mark.parametrize(
-        "array, dtype, expected",
+        "arr, dtype, expected",
         [
             (
                 SparseArray([0, 1]),
@@ -557,14 +557,22 @@ class TestSparseArray:
             ),
         ],
     )
-    def test_astype_more(self, array, dtype, expected):
-        result = array.astype(dtype)
+    def test_astype_more(self, arr, dtype, expected):
+        result = arr.astype(dtype)
         tm.assert_sp_array_equal(result, expected)
 
     def test_astype_nan_raises(self):
         arr = SparseArray([1.0, np.nan])
         with pytest.raises(ValueError, match="Cannot convert non-finite"):
             arr.astype(int)
+
+    def test_astype_copy_false(self):
+        # GH#34456 bug caused by using .view instead of .astype in astype_nansafe
+        arr = SparseArray([1, 2, 3])
+
+        result = arr.astype(float, copy=False)
+        expected = SparseArray([1.0, 2.0, 3.0], fill_value=0.0)
+        tm.assert_sp_array_equal(result, expected)
 
     def test_set_fill_value(self):
         arr = SparseArray([1.0, np.nan, 2.0], fill_value=np.nan)
@@ -689,17 +697,13 @@ class TestSparseArray:
         dense = np.array([np.nan, 0, 3, 4, 0, 5, np.nan, np.nan, 0])
 
         sparse = SparseArray(dense)
-        res = sparse[
-            4:,
-        ]  # noqa: E231
-        exp = SparseArray(dense[4:,])  # noqa: E231
+        res = sparse[(slice(4, None),)]
+        exp = SparseArray(dense[4:])
         tm.assert_sp_array_equal(res, exp)
 
         sparse = SparseArray(dense, fill_value=0)
-        res = sparse[
-            4:,
-        ]  # noqa: E231
-        exp = SparseArray(dense[4:,], fill_value=0)  # noqa: E231
+        res = sparse[(slice(4, None),)]
+        exp = SparseArray(dense[4:], fill_value=0)
         tm.assert_sp_array_equal(res, exp)
 
         msg = "too many indices for array"
@@ -899,7 +903,6 @@ class TestSparseArrayAnalytics:
             ([1.0, 2.0, 1.0], 1.0, 0.0),
         ],
     )
-    @td.skip_if_np_lt("1.15")  # prior didn't dispatch
     def test_numpy_all(self, data, pos, neg):
         # GH 17570
         out = np.all(SparseArray(data))
@@ -951,7 +954,6 @@ class TestSparseArrayAnalytics:
             ([0.0, 2.0, 0.0], 2.0, 0.0),
         ],
     )
-    @td.skip_if_np_lt("1.15")  # prior didn't dispatch
     def test_numpy_any(self, data, pos, neg):
         # GH 17570
         out = np.any(SparseArray(data))
@@ -1183,7 +1185,9 @@ class TestAccessor:
         row = [0, 3, 1, 0]
         col = [0, 3, 1, 2]
         data = [4, 5, 7, 9]
-        sp_array = scipy.sparse.coo_matrix((data, (row, col)))
+        # TODO: Remove dtype when scipy is fixed
+        # https://github.com/scipy/scipy/issues/13585
+        sp_array = scipy.sparse.coo_matrix((data, (row, col)), dtype="int")
         result = pd.Series.sparse.from_coo(sp_array)
 
         index = pd.MultiIndex.from_arrays([[0, 0, 1, 3], [0, 2, 1, 3]])
@@ -1307,3 +1311,33 @@ def test_dropna(fill_value):
     df = pd.DataFrame({"a": [0, 1], "b": arr})
     expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Int64Index([1]))
     tm.assert_equal(df.dropna(), expected_df)
+
+
+def test_drop_duplicates_fill_value():
+    # GH 11726
+    df = pd.DataFrame(np.zeros((5, 5))).apply(lambda x: SparseArray(x, fill_value=0))
+    result = df.drop_duplicates()
+    expected = pd.DataFrame({i: SparseArray([0.0], fill_value=0) for i in range(5)})
+    tm.assert_frame_equal(result, expected)
+
+
+class TestMinMax:
+    plain_data = np.arange(5).astype(float)
+    data_neg = plain_data * (-1)
+    data_NaN = SparseArray(np.array([0, 1, 2, np.nan, 4]))
+    data_all_NaN = SparseArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan]))
+
+    @pytest.mark.parametrize(
+        "raw_data,max_expected,min_expected",
+        [
+            (plain_data, [4], [0]),
+            (data_neg, [0], [-4]),
+            (data_NaN, [4], [0]),
+            (data_all_NaN, [np.nan], [np.nan]),
+        ],
+    )
+    def test_maxmin(self, raw_data, max_expected, min_expected):
+        max_result = SparseArray(raw_data).max()
+        min_result = SparseArray(raw_data).min()
+        assert max_result in max_expected
+        assert min_result in min_expected
