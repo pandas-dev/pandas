@@ -658,19 +658,28 @@ def _try_cast(
     """
     is_ndarray = isinstance(arr, np.ndarray)
 
-    # perf shortcut as this is the most common case
-    # Item "List[Any]" of "Union[List[Any], ndarray]" has no attribute "dtype"
-    if (
-        is_ndarray
-        and arr.dtype != object  # type: ignore[union-attr]
-        and not copy
-        and dtype is None
-    ):
-        # Argument 1 to "sanitize_to_nanoseconds" has incompatible type
-        # "Union[List[Any], ndarray]"; expected "ndarray"
-        return sanitize_to_nanoseconds(arr)  # type: ignore[arg-type]
+    if dtype is None:
+        # perf shortcut as this is the most common case
+        if is_ndarray:
+            if arr.dtype != object:
+                return sanitize_to_nanoseconds(arr, copy=copy)
 
-    if isinstance(dtype, ExtensionDtype):
+            out = maybe_cast_to_datetime(arr, None)
+            if out is arr and copy:
+                out = out.copy()
+            return out
+
+        else:
+            # i.e. list
+            varr = np.array(arr, copy=False)
+            # filter out cases that we _dont_ want to go through maybe_cast_to_datetime
+            if varr.dtype != object or varr.size == 0:
+                return varr
+            # error: Incompatible return value type (got "Union[ExtensionArray,
+            # ndarray, List[Any]]", expected "Union[ExtensionArray, ndarray]")
+            return maybe_cast_to_datetime(varr, None)  # type: ignore[return-value]
+
+    elif isinstance(dtype, ExtensionDtype):
         # create an extension array from its dtype
         # DatetimeTZ case needs to go through maybe_cast_to_datetime but
         # SparseDtype does not
@@ -695,15 +704,6 @@ def _try_cast(
             return subarr
         return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
 
-    elif dtype is None and not is_ndarray:
-        # filter out cases that we _dont_ want to go through maybe_cast_to_datetime
-        varr = np.array(arr, copy=False)
-        if varr.dtype != object or varr.size == 0:
-            return varr
-        # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray, List[Any]]", expected "Union[ExtensionArray, ndarray]")
-        return maybe_cast_to_datetime(varr, None)  # type: ignore[return-value]
-
     try:
         # GH#15832: Check if we are requesting a numeric dtype and
         # that we can convert the data to the requested dtype.
@@ -719,7 +719,11 @@ def _try_cast(
                 return subarr
 
         if not isinstance(subarr, ABCExtensionArray):
+            # 4 tests fail if we move this to a try/except/else; see
+            #  test_constructor_compound_dtypes, test_constructor_cast_failure
+            #  test_constructor_dict_cast2, test_loc_setitem_dtype
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
+
     except OutOfBoundsDatetime:
         # in case of out of bound datetime64 -> always raise
         raise
