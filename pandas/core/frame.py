@@ -77,6 +77,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     deprecate_kwarg,
+    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -101,6 +102,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     infer_dtype_from_object,
     is_1d_only_ea_dtype,
+    is_1d_only_ea_obj,
     is_bool_dtype,
     is_dataclass,
     is_datetime64_any_dtype,
@@ -139,7 +141,11 @@ from pandas.core.aggregation import (
 )
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     extract_array,
@@ -851,6 +857,39 @@ class DataFrame(NDFrame, OpsMixin):
         dtype = blocks[0].dtype
         # TODO(EA2D) special case would be unnecessary with 2D EAs
         return not is_1d_only_ea_dtype(dtype)
+
+    # error: Return type "Union[ndarray, DatetimeArray, TimedeltaArray]" of
+    # "_values" incompatible with return type "ndarray" in supertype "NDFrame"
+    @property
+    def _values(  # type: ignore[override]
+        self,
+    ) -> np.ndarray | DatetimeArray | TimedeltaArray:
+        """
+        Analogue to ._values that may return a 2D ExtensionArray.
+        """
+        self._consolidate_inplace()
+
+        mgr = self._mgr
+
+        if isinstance(mgr, ArrayManager):
+            if len(mgr.arrays) == 1 and not is_1d_only_ea_obj(mgr.arrays[0]):
+                # error: Item "ExtensionArray" of "Union[ndarray, ExtensionArray]"
+                # has no attribute "reshape"
+                return mgr.arrays[0].reshape(-1, 1)  # type: ignore[union-attr]
+            return self.values
+
+        blocks = mgr.blocks
+        if len(blocks) != 1:
+            return self.values
+
+        arr = blocks[0].values
+        if arr.ndim == 1:
+            # non-2D ExtensionArray
+            return self.values
+
+        # more generally, whatever we allow in NDArrayBackedExtensionBlock
+        arr = cast("np.ndarray | DatetimeArray | TimedeltaArray", arr)
+        return arr.T
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -1725,6 +1764,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "will be used in a future version. Use one of the above "
                 "to silence this warning.",
                 FutureWarning,
+                stacklevel=2,
             )
 
             if orient.startswith("d"):
@@ -3292,7 +3332,18 @@ class DataFrame(NDFrame, OpsMixin):
         # construct the args
 
         dtypes = list(self.dtypes)
-        if self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0]):
+
+        if self._can_fast_transpose:
+            # Note: tests pass without this, but this improves perf quite a bit.
+            new_vals = self._values.T
+            if copy:
+                new_vals = new_vals.copy()
+
+            result = self._constructor(new_vals, index=self.columns, columns=self.index)
+
+        elif (
+            self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0])
+        ):
             # We have EAs with the same dtype. We can preserve that dtype in transpose.
             dtype = dtypes[0]
             arr_type = dtype.construct_array_type()
@@ -5128,6 +5179,7 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
@@ -9760,8 +9812,9 @@ NaN 12.3   33.0
 
         def blk_func(values, axis=1):
             if isinstance(values, ExtensionArray):
-                if values.ndim == 2:
-                    # i.e. DatetimeArray, TimedeltaArray
+                if not is_1d_only_ea_obj(values) and not isinstance(
+                    self._mgr, ArrayManager
+                ):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
                 return values._reduce(name, skipna=skipna, **kwds)
             else:
@@ -9801,6 +9854,21 @@ NaN 12.3   33.0
                 # Even if we are object dtype, follow numpy and return
                 #  float64, see test_apply_funcs_over_empty
                 out = out.astype(np.float64)
+
+            if numeric_only is None and out.shape[0] != df.shape[1]:
+                # columns have been dropped GH#41480
+                arg_name = "numeric_only"
+                if name in ["all", "any"]:
+                    arg_name = "bool_only"
+                warnings.warn(
+                    "Dropping of nuisance columns in DataFrame reductions "
+                    f"(with '{arg_name}=None') is deprecated; in a future "
+                    "version this will raise TypeError.  Select only valid "
+                    "columns before calling the reduction.",
+                    FutureWarning,
+                    stacklevel=5,
+                )
+
             return out
 
         assert numeric_only is None
@@ -9820,6 +9888,19 @@ NaN 12.3   33.0
             values = data.values
             with np.errstate(all="ignore"):
                 result = func(values)
+
+            # columns have been dropped GH#41480
+            arg_name = "numeric_only"
+            if name in ["all", "any"]:
+                arg_name = "bool_only"
+            warnings.warn(
+                "Dropping of nuisance columns in DataFrame reductions "
+                f"(with '{arg_name}=None') is deprecated; in a future "
+                "version this will raise TypeError.  Select only valid "
+                "columns before calling the reduction.",
+                FutureWarning,
+                stacklevel=5,
+            )
 
         if hasattr(result, "dtype"):
             if filter_type == "bool" and notna(result).all():
@@ -10582,10 +10663,28 @@ NaN 12.3   33.0
         self._consolidate_inplace()
         return self._mgr.as_array(transpose=True)
 
-    @property
-    def _values(self) -> np.ndarray:
-        """internal implementation"""
-        return self.values
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
+    def interpolate(
+        self: DataFrame,
+        method: str = "linear",
+        axis: Axis = 0,
+        limit: int | None = None,
+        inplace: bool = False,
+        limit_direction: str | None = None,
+        limit_area: str | None = None,
+        downcast: str | None = None,
+        **kwargs,
+    ) -> DataFrame | None:
+        return super().interpolate(
+            method,
+            axis,
+            limit,
+            inplace,
+            limit_direction,
+            limit_area,
+            downcast,
+            **kwargs,
+        )
 
 
 DataFrame._add_numeric_operations()

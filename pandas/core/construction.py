@@ -6,7 +6,6 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
-from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -501,6 +500,16 @@ def sanitize_array(
         if dtype is None:
             dtype = data.dtype
         data = lib.item_from_zerodim(data)
+    elif isinstance(data, range):
+        # GH#16804
+        data = np.arange(data.start, data.stop, data.step, dtype="int64")
+        copy = False
+
+    if not is_list_like(data):
+        if index is None:
+            raise ValueError("index must be specified when data is not list-like")
+        data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
+        return data
 
     # GH#846
     if isinstance(data, np.ndarray):
@@ -525,14 +534,16 @@ def sanitize_array(
             subarr = subarr.copy()
         return subarr
 
-    elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
-        # TODO: deque, array.array
+    else:
         if isinstance(data, (set, frozenset)):
             # Raise only for unordered sets, e.g., not for dict_keys
             raise TypeError(f"'{type(data).__name__}' type is unordered")
+
+        # materialize e.g. generators, convert e.g. tuples, abc.ValueView
+        # TODO: non-standard array-likes we can convert to ndarray more efficiently?
         data = list(data)
 
-        if dtype is not None:
+        if dtype is not None or len(data) == 0:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
             subarr = maybe_convert_platform(data)
@@ -540,22 +551,6 @@ def sanitize_array(
             # "Union[ExtensionArray, ndarray, List[Any]]", variable has type
             # "ExtensionArray")
             subarr = maybe_cast_to_datetime(subarr, dtype)  # type: ignore[assignment]
-
-    elif isinstance(data, range):
-        # GH#16804
-        arr = np.arange(data.start, data.stop, data.step, dtype="int64")
-        subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
-
-    elif not is_list_like(data):
-        if index is None:
-            raise ValueError("index must be specified when data is not list-like")
-        subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
-
-    else:
-        # realize e.g. generators
-        # TODO: non-standard array-likes we can convert to ndarray more efficiently?
-        data = list(data)
-        subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
     subarr = _sanitize_ndim(subarr, data, dtype, index)
 
@@ -682,17 +677,21 @@ def _try_cast(
         subarr = construct_1d_object_array_from_listlike(arr)
         return subarr
 
+    if dtype is None and isinstance(arr, list):
+        # filter out cases that we _dont_ want to go through maybe_cast_to_datetime
+        varr = np.array(arr, copy=False)
+        if varr.dtype != object or varr.size == 0:
+            return varr
+        arr = varr
+
     try:
         # GH#15832: Check if we are requesting a numeric dtype and
         # that we can convert the data to the requested dtype.
         if is_integer_dtype(dtype):
             # this will raise if we have e.g. floats
 
-            # error: Argument 2 to "maybe_cast_to_integer_array" has incompatible type
-            # "Union[dtype, ExtensionDtype, None]"; expected "Union[ExtensionDtype, str,
-            # dtype, Type[str], Type[float], Type[int], Type[complex], Type[bool],
-            # Type[object]]"
-            maybe_cast_to_integer_array(arr, dtype)  # type: ignore[arg-type]
+            dtype = cast(np.dtype, dtype)
+            maybe_cast_to_integer_array(arr, dtype)
             subarr = arr
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)
