@@ -193,17 +193,12 @@ class NumericIndex(Index):
             )
 
     @classmethod
-    def _ensure_dtype(
-        cls,
-        dtype: Dtype | None,
-        validate: bool = True,
-    ) -> np.dtype | None:
+    def _ensure_dtype(cls, dtype: Dtype | None) -> np.dtype | None:
         """
         Ensure int64 dtype for Int64Index etc. but allow int32 etc. for NumericIndex.
-        """
-        if validate:
-            cls._validate_dtype(dtype)
 
+        Assumed dtype has already been validated.
+        """
         if dtype is None:
             return cls._default_dtype
 
@@ -257,7 +252,7 @@ class NumericIndex(Index):
     @cache_readonly
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
-        if self.inferred_type == "floating":
+        if is_float_dtype(self.dtype):
             return False
         else:
             return super()._should_fallback_to_positional()
