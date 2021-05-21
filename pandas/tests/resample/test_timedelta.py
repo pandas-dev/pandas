@@ -77,7 +77,7 @@ def test_resample_timedelta_idempotency():
     index = timedelta_range("0", periods=9, freq="10L")
     series = Series(range(9), index=index)
     result = series.resample("10L").mean()
-    expected = series
+    expected = series.astype(float)
     tm.assert_series_equal(result, expected)
 
 

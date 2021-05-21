@@ -333,6 +333,31 @@ values as measured by ``np.allclose``. Now no such casting occurs.
 
     df.groupby('key').agg(lambda x: x.sum())
 
+``float`` result for :meth:`.GroupBy.mean`, :meth:`.GroupBy.median`, and :meth:`.GroupBy.var`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, these methods could result in different dtypes depending on the input values.
+Now, these methods will always return a float dtype. (:issue:`41137`)
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [True], 'b': [1], 'c': [1.0]})
+
+*pandas 1.2.x*
+
+.. code-block:: ipython
+
+    In [5]: df.groupby(df.index).mean()
+    Out[5]:
+            a  b    c
+    0    True  1  1.0
+
+*pandas 1.3.0*
+
+.. ipython:: python
+
+    df.groupby(df.index).mean()
+
 Try operating inplace when setting values with ``loc`` and ``iloc``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
