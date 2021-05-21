@@ -834,6 +834,7 @@ Missing
 - Bug in :func:`isna`, and :meth:`Series.isna`, :meth:`Index.isna`, :meth:`DataFrame.isna` (and the corresponding ``notna`` functions) not recognizing ``Decimal("NaN")`` objects (:issue:`39409`)
 - Bug in :meth:`DataFrame.fillna` not accepting dictionary for ``downcast`` keyword (:issue:`40809`)
 - Bug in :func:`isna` not returning a copy of the mask for nullable types, causing any subsequent mask modification to change the original array (:issue:`40935`)
+- Bug in :class:`DataFrame` construction with float data containing ``NaN`` and an integer ``dtype`` casting instead of retaining the ``NaN`` (:issue:`26919`)
 
 MultiIndex
 ^^^^^^^^^^
