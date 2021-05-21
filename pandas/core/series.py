@@ -4708,6 +4708,7 @@ Keep all original rows and also all original values
         ...
 
     # error: Cannot determine type of 'fillna'
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
     @doc(NDFrame.fillna, **_shared_doc_kwargs)  # type: ignore[has-type]
     def fillna(
         self,
