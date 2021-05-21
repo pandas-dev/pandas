@@ -60,6 +60,7 @@ from pandas.plotting._matplotlib.tools import (
     table,
 )
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
+from pandas._typing import IndexLabel
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -125,7 +126,7 @@ class MPLPlot:
         table=False,
         layout=None,
         include_bool=False,
-        column: Optional[Label] = None,
+        column: IndexLabel | None = None,
         **kwds,
     ):
 
