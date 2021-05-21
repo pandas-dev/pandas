@@ -259,21 +259,20 @@ class TestClipboard:
     @pytest.mark.parametrize(
         "multiindex",
         [
-            (
-                (  # Can't use `dedent` here as it will remove the leading `\t`
-                    "\t\t\tcol1\tcol2\n"
-                    "A\t0\tTrue\t1\tred\n"
-                    "A\t1\tTrue\t\tblue\n"
-                    "B\t0\tFalse\t2\tgreen\n"
+            (  # Can't use `dedent` here as it will remove the leading `\t`
+                "\n".join(
+                    [
+                        "\t\t\tcol1\tcol2",
+                        "A\t0\tTrue\t1\tred",
+                        "A\t1\tTrue\t\tblue",
+                        "B\t0\tFalse\t2\tgreen",
+                    ]
                 ),
                 [["A", "A", "B"], [0, 1, 0], [True, True, False]],
             ),
             (
-                (
-                    "\t\tcol1\tcol2\n"
-                    "A\t0\t1\tred\n"
-                    "A\t1\t\tblue\n"
-                    "B\t0\t2\tgreen\n"
+                "\n".join(
+                    ["\t\tcol1\tcol2", "A\t0\t1\tred", "A\t1\t\tblue", "B\t0\t2\tgreen"]
                 ),
                 [["A", "A", "B"], [0, 1, 0]],
             ),
