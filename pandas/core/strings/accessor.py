@@ -1377,11 +1377,13 @@ class StringMethods(NoNewAttributesMixin):
         elif callable(repl):
             raise ValueError("Cannot use a callable replacement when regex=False")
 
+        # The current behavior is to treat single character patterns as literal strings,
+        # even when ``regex`` is set to ``True``.
+        if isinstance(pat, str) and len(pat) == 1:
+            regex = False
+
         if regex is None:
-            if isinstance(pat, str) and len(pat) == 1:
-                regex = False
-            else:
-                regex = True
+            regex = True
 
         if case is None:
             case = True
