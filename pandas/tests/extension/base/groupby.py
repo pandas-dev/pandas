@@ -26,10 +26,10 @@ class BaseGroupbyTests(BaseExtensionTests):
 
         if as_index:
             index = pd.Index(uniques, name="B")
-            expected = pd.Series([3, 1, 4], index=index, name="A")
+            expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
-            expected = pd.DataFrame({"B": uniques, "A": [3, 1, 4]})
+            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0, 4.0]})
             self.assert_frame_equal(result, expected)
 
     def test_groupby_agg_extension(self, data_for_grouping):
