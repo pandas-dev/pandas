@@ -623,6 +623,7 @@ class FuncNode:
 
         if name not in MATHOPS or (
             NUMEXPR_INSTALLED
+            and NUMEXPR_VERSION is not None
             and Version(NUMEXPR_VERSION) < Version("2.6.9")
             and name in ("floor", "ceil")
         ):

@@ -3113,9 +3113,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         xarray = import_optional_dependency("xarray")
 
         if self.ndim == 1:
-            return xarray.DataArray.from_series(self)
+            return getattr(xarray, "DataArray").from_series(self)
         else:
-            return xarray.Dataset.from_dataframe(self)
+            return getattr(xarray, "Dataset").from_dataframe(self)
 
     @final
     @doc(returns=fmt.return_docstring)

@@ -63,8 +63,8 @@ class StylerRenderer:
     Base class to process rendering a Styler with a specified jinja2 template.
     """
 
-    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
-    env = jinja2.Environment(loader=loader, trim_blocks=True)
+    loader = getattr(jinja2, "PackageLoader")("pandas", "io/formats/templates")
+    env = getattr(jinja2, "Environment")(loader=loader, trim_blocks=True)
     template_html = env.get_template("html.tpl")
 
     def __init__(

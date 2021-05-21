@@ -2563,7 +2563,7 @@ class DataFrame(NDFrame, OpsMixin):
         kwargs.setdefault("tablefmt", "pipe")
         kwargs.setdefault("showindex", index)
         tabulate = import_optional_dependency("tabulate")
-        result = tabulate.tabulate(self, **kwargs)
+        result = getattr(tabulate, "tabulate")(self, **kwargs)
         if buf is None:
             return result
 

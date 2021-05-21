@@ -43,7 +43,7 @@ def read_spss(
         else:
             usecols = list(usecols)  # pyreadstat requires a list
 
-    df, _ = pyreadstat.read_sav(
+    df, _ = getattr(pyreadstat, "read_sav")(
         stringify_path(path), usecols=usecols, apply_value_formats=convert_categoricals
     )
     return df

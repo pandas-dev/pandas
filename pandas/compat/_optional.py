@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import sys
 import types
+from typing import overload
 import warnings
 
 from pandas.util.version import Version
@@ -61,12 +62,32 @@ def get_version(module: types.ModuleType) -> str:
     return version
 
 
+@overload
+def import_optional_dependency(name: str) -> types.ModuleType:
+    ...
+
+
+@overload
+def import_optional_dependency(name: str, extra: str) -> types.ModuleType:
+    ...
+
+
+@overload
 def import_optional_dependency(
     name: str,
     extra: str = "",
     errors: str = "raise",
     min_version: str | None = None,
 ) -> types.ModuleType | None:
+    ...
+
+
+def import_optional_dependency(
+    name,
+    extra="",
+    errors="raise",
+    min_version=None,
+):
     """
     Import an optional dependency.
 

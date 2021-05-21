@@ -568,13 +568,18 @@ class HDFStore:
 
         tables = import_optional_dependency("tables")
 
-        if complib is not None and complib not in tables.filters.all_complibs:
+        if (
+            complib is not None
+            and complib not in getattr(tables, "filters").all_complibs
+        ):
             raise ValueError(
-                f"complib only supports {tables.filters.all_complibs} compression."
+                "complib only supports {} compression.".format(
+                    getattr(tables, "filters").all_complibs
+                )
             )
 
         if complib is None and complevel is not None:
-            complib = tables.filters.default_complib
+            complib = getattr(tables, "filters").default_complib
 
         self._path = stringify_path(path)
         if mode is None:

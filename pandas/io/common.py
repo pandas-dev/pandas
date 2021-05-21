@@ -354,7 +354,7 @@ def _get_filepath_or_buffer(
             pass
 
         try:
-            file_obj = fsspec.open(
+            file_obj = getattr(fsspec, "open")(
                 filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
             ).open()
         # GH 34626 Reads from Public Buckets without Credentials needs anon=True
@@ -365,7 +365,7 @@ def _get_filepath_or_buffer(
                 # don't mutate user input.
                 storage_options = dict(storage_options)
                 storage_options["anon"] = True
-            file_obj = fsspec.open(
+            file_obj = getattr(fsspec, "open")(
                 filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
             ).open()
 

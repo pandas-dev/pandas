@@ -60,13 +60,14 @@ def generate_numba_apply_func(
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
+    numba_jit_decorator = getattr(numba, "jit")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba_jit_decorator(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_apply(
         values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
     ) -> np.ndarray:
         result = np.empty(len(begin))
-        for i in numba.prange(len(result)):
+        for i in getattr(numba, "prange")(len(result)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
@@ -111,8 +112,9 @@ def generate_numba_ewma_func(
         return NUMBA_FUNC_CACHE[cache_key]
 
     numba = import_optional_dependency("numba")
+    numba_jit_decorator = getattr(numba, "jit")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba_jit_decorator(nopython=nopython, nogil=nogil, parallel=parallel)
     def ewma(
         values: np.ndarray,
         begin: np.ndarray,
@@ -124,7 +126,7 @@ def generate_numba_ewma_func(
         old_wt_factor = 1.0 - alpha
         new_wt = 1.0 if adjust else alpha
 
-        for i in numba.prange(len(begin)):
+        for i in getattr(numba, "prange")(len(begin)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
@@ -211,14 +213,15 @@ def generate_numba_table_func(
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
+    numba_jit_decorator = getattr(numba, "jit")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba_jit_decorator(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_table(
         values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
     ):
         result = np.empty(values.shape)
         min_periods_mask = np.empty(values.shape)
-        for i in numba.prange(len(result)):
+        for i in getattr(numba, "prange")(len(result)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
@@ -239,11 +242,12 @@ def generate_numba_table_func(
 @functools.lru_cache(maxsize=None)
 def generate_manual_numpy_nan_agg_with_axis(nan_func):
     numba = import_optional_dependency("numba")
+    numba_jit_decorator = getattr(numba, "jit")
 
-    @numba.jit(nopython=True, nogil=True, parallel=True)
+    @numba_jit_decorator(nopython=True, nogil=True, parallel=True)
     def nan_agg_with_axis(table):
         result = np.empty(table.shape[1])
-        for i in numba.prange(table.shape[1]):
+        for i in getattr(numba, "prange")(table.shape[1]):
             partition = table[:, i]
             result[i] = nan_func(partition)
         return result

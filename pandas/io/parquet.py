@@ -80,7 +80,7 @@ def _get_path_or_handle(
     if is_fsspec_url(path_or_handle) and fs is None:
         fsspec = import_optional_dependency("fsspec")
 
-        fs, path_or_handle = fsspec.core.url_to_fs(
+        fs, path_or_handle = getattr(fsspec, "core").url_to_fs(
             path_or_handle, **(storage_options or {})
         )
     elif storage_options and (not is_url(path_or_handle) or mode != "rb"):
@@ -294,7 +294,7 @@ class FastParquetImpl(BaseImpl):
             fsspec = import_optional_dependency("fsspec")
 
             # if filesystem is provided by fsspec, file must be opened in 'wb' mode.
-            kwargs["open_with"] = lambda path, _: fsspec.open(
+            kwargs["open_with"] = lambda path, _: getattr(fsspec, "open")(
                 path, "wb", **(storage_options or {})
             ).open()
         elif storage_options:
@@ -303,7 +303,7 @@ class FastParquetImpl(BaseImpl):
             )
 
         with catch_warnings(record=True):
-            self.api.write(
+            getattr(self.api, "write")(
                 path,
                 df,
                 compression=compression,
@@ -327,12 +327,12 @@ class FastParquetImpl(BaseImpl):
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
 
-            if Version(self.api.__version__) > Version("0.6.1"):
-                parquet_kwargs["fs"] = fsspec.open(
+            if Version(getattr(self.api, "__version__")) > Version("0.6.1"):
+                parquet_kwargs["fs"] = getattr(fsspec, "open")(
                     path, "rb", **(storage_options or {})
                 ).fs
             else:
-                parquet_kwargs["open_with"] = lambda path, _: fsspec.open(
+                parquet_kwargs["open_with"] = lambda path, _: getattr(fsspec, "open")(
                     path, "rb", **(storage_options or {})
                 ).open()
         elif isinstance(path, str) and not os.path.isdir(path):
@@ -343,7 +343,7 @@ class FastParquetImpl(BaseImpl):
                 path, "rb", is_text=False, storage_options=storage_options
             )
             path = handles.handle
-        parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
+        parquet_file = getattr(self.api, "ParquetFile")(path, **parquet_kwargs)
 
         result = parquet_file.to_pandas(columns=columns, **kwargs)
 

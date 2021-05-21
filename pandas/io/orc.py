@@ -53,5 +53,5 @@ def read_orc(
     orc = import_optional_dependency("pyarrow.orc")
 
     with get_handle(path, "rb", is_text=False) as handles:
-        orc_file = orc.ORCFile(handles.handle)
+        orc_file = getattr(orc, "ORCFile")(handles.handle)
         return orc_file.read(columns=columns, **kwargs).to_pandas()

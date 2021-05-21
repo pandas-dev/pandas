@@ -90,24 +90,25 @@ def jit_user_function(
     """
     numba = import_optional_dependency("numba")
 
-    if Version(numba.__version__) >= Version("0.49.0"):
-        is_jitted = numba.extending.is_jitted(func)
+    if Version(getattr(numba, "__version__")) >= Version("0.49.0"):
+        is_jitted = getattr(numba, "extending").is_jitted(func)
     else:
-        is_jitted = isinstance(func, numba.targets.registry.CPUDispatcher)
+        is_jitted = isinstance(func, getattr(numba, "targets").registry.CPUDispatcher)
 
     if is_jitted:
         # Don't jit a user passed jitted function
         numba_func = func
     else:
+        numba_generated_git = getattr(numba, "generated_jit")
 
-        @numba.generated_jit(nopython=nopython, nogil=nogil, parallel=parallel)
+        @numba_generated_git(nopython=nopython, nogil=nogil, parallel=parallel)
         def numba_func(data, *_args):
             if getattr(np, func.__name__, False) is func or isinstance(
                 func, types.BuiltinFunctionType
             ):
                 jf = func
             else:
-                jf = numba.jit(func, nopython=nopython, nogil=nogil)
+                jf = getattr(numba, "jit")(func, nopython=nopython, nogil=nogil)
 
             def impl(data, *_args):
                 return jf(data, *_args)
