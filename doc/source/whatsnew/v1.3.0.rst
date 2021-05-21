@@ -679,6 +679,47 @@ Deprecations
 - Deprecated passing arguments (apart from ``value``) as positional in :meth:`DataFrame.fillna` and :meth:`Series.fillna` (:issue:`41485`)
 - Deprecated construction of :class:`Series` or :class:`DataFrame` with ``DatetimeTZDtype`` data and ``datetime64[ns]`` dtype.  Use ``Series(data).dt.tz_localize(None)`` instead (:issue:`41555`,:issue:`33401`)
 
+.. _whatsnew_130.deprecations.nuisance_columns:
+
+Deprecated Dropping Nuisance Columns in DataFrame Reductions and DataFrameGroupBy Operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The default of calling a reduction (.min, .max, .sum, ...) on a :class:`DataFrame` with
+``numeric_only=None`` (the default, columns on which the reduction raises ``TypeError``
+are silently ignored and dropped from the result.
+
+This behavior is deprecated. In a future version, the ``TypeError`` will be raised,
+and users will need to select only valid columns before calling the function.
+
+For example:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3, 4], "B": pd.date_range("2016-01-01", periods=4)})
+   df
+
+*Old behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.prod()
+    Out[3]:
+    Out[3]:
+    A    24
+    dtype: int64
+
+*Future behavior*:
+
+.. code-block:: ipython
+
+    In [4]: df.prod()
+    ...
+    TypeError: 'DatetimeArray' does not implement reduction 'prod'
+
+    In [5]: df[["A"]].prod()
+    Out[5]:
+    A    24
+    dtype: int64
+
 .. ---------------------------------------------------------------------------
 
 
