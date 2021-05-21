@@ -3,12 +3,16 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+    _check_plot_works,
+)
 
 
-@pytest.fixture(scope="module")
 def test_hist_with_by_df():
     np.random.seed(0)
     df = DataFrame(np.random.randn(30, 2), columns=["A", "B"])
@@ -111,6 +115,6 @@ class TestDataFrameColor(TestPlotBase):
 
     @pytest.mark.parametrize("figsize", [(12, 8), (20, 10)])
     def test_figure_shape_hist_with_by(self, figsize):
-    # GH 15079
+        # GH 15079
         axes = self.hist_df.plot.hist(column="A", by="C", figsize=figsize)
         self._check_axes_shape(axes, axes_num=3, figsize=figsize)

@@ -1,16 +1,29 @@
-from typing import Dict, List, Optional, Union
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Union,
+)
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion, Label
+from pandas._typing import (
+    FrameOrSeriesUnion,
+    IndexLabel,
+)
 
 from pandas.core.dtypes.missing import isna
 
-from pandas import DataFrame, MultiIndex, Series, concat
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    concat,
+)
 
 
 def create_iter_data_given_by(
-    data: DataFrame, by: Optional[List[Label]]
+    data: DataFrame, by: Optional[List[IndexLabel]]
 ) -> Union[DataFrame, Dict[str, FrameOrSeriesUnion]]:
     """
     Create data for iteration given `by` is assigned or not, and it is only
@@ -58,7 +71,7 @@ def create_iter_data_given_by(
 
 
 def reconstruct_data_with_by(
-    data: DataFrame, by: Union[Label, List[Label]], cols: List[Label]
+    data: DataFrame, by: Union[IndexLabel, List[IndexLabel]], cols: List[IndexLabel]
 ) -> DataFrame:
     """
     Internal function to group data, and reassign multiindex column names onto the
@@ -101,7 +114,7 @@ def reconstruct_data_with_by(
 
 
 def reformat_hist_y_given_by(
-    y: Union[Series, np.array], by: Optional[Union[Label, List[Label]]]
+    y: Union[Series, np.array], by: Optional[Union[IndexLabel, List[IndexLabel]]]
 ) -> Union[Series, np.array]:
     """Internal function to reformat y given `by` is applied or not for hist plot.
 
