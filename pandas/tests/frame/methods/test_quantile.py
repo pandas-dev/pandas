@@ -56,7 +56,8 @@ class TestDataFrameQuantile:
         # non-numeric exclusion
         df = DataFrame({"col1": ["A", "A", "B", "B"], "col2": [1, 2, 3, 4]})
         rs = df.quantile(0.5)
-        xp = df.median().rename(0.5)
+        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
+            xp = df.median().rename(0.5)
         tm.assert_series_equal(rs, xp)
 
         # axis

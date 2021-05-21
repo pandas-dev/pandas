@@ -282,7 +282,10 @@ def test_apply(ordered):
     # GH#21636 tracking down the xfail, in some builds np.mean(df.loc[[0]])
     #  is coming back as Series([0., 1., 0.], index=["missing", "dense", "values"])
     #  when we expect Series(0., index=["values"])
-    result = grouped.apply(lambda x: np.mean(x))
+    with tm.assert_produces_warning(
+        FutureWarning, match="Select only valid", check_stacklevel=False
+    ):
+        result = grouped.apply(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
 
     result = grouped.mean()
@@ -1289,6 +1292,7 @@ def test_groupby_categorical_axis_1(code):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_groupby_cat_preserves_structure(observed, ordered):
     # GH 28787
     df = DataFrame(

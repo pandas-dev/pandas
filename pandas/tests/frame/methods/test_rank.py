@@ -248,6 +248,7 @@ class TestRank:
 
     @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
+    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_rank_descending(self, method, dtype):
 
         if "i" in dtype:
