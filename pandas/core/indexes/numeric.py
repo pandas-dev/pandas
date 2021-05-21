@@ -163,7 +163,7 @@ class NumericIndex(Index):
         if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
 
-        dtype = cls._ensure_dtype(dtype, validate=False)
+        dtype = cls._ensure_dtype(dtype)
 
         if copy or not is_dtype_equal(data.dtype, dtype):
             subarr = np.array(data, dtype=dtype, copy=copy)
