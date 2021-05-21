@@ -220,6 +220,8 @@ def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     elif isinstance(value, Timestamp):
         if value.tz is None:
             value = value.to_datetime64()
+        elif not isinstance(dtype, DatetimeTZDtype):
+            raise TypeError("Cannot unbox tzaware Timestamp to tznaive dtype")
     elif isinstance(value, Timedelta):
         value = value.to_timedelta64()
 
@@ -1628,9 +1630,21 @@ def maybe_cast_to_datetime(
                             # didn't specify one
 
                             if dta.tz is not None:
+                                warnings.warn(
+                                    "Data is timezone-aware. Converting "
+                                    "timezone-aware data to timezone-naive by "
+                                    "passing dtype='datetime64[ns]' to "
+                                    "DataFrame or Series is deprecated and will "
+                                    "raise in a future version. Use "
+                                    "`pd.Series(values).dt.tz_localize(None)` "
+                                    "instead.",
+                                    FutureWarning,
+                                    stacklevel=8,
+                                )
                                 # equiv: dta.view(dtype)
                                 # Note: NOT equivalent to dta.astype(dtype)
                                 dta = dta.tz_localize(None)
+
                             value = dta
                         elif is_datetime64tz:
                             dtype = cast(DatetimeTZDtype, dtype)
@@ -1822,7 +1836,7 @@ def construct_2d_arraylike_from_scalar(
     shape = (length, width)
 
     if dtype.kind in ["m", "M"]:
-        value = maybe_unbox_datetimelike(value, dtype)
+        value = maybe_unbox_datetimelike_tz_deprecation(value, dtype, stacklevel=4)
     elif dtype == object:
         if isinstance(value, (np.timedelta64, np.datetime64)):
             # calling np.array below would cast to pytimedelta/pydatetime
@@ -1885,12 +1899,46 @@ def construct_1d_arraylike_from_scalar(
             if not isna(value):
                 value = ensure_str(value)
         elif dtype.kind in ["M", "m"]:
-            value = maybe_unbox_datetimelike(value, dtype)
+            value = maybe_unbox_datetimelike_tz_deprecation(value, dtype)
 
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)
 
     return subarr
+
+
+def maybe_unbox_datetimelike_tz_deprecation(
+    value: Scalar, dtype: DtypeObj, stacklevel: int = 5
+):
+    """
+    Wrap maybe_unbox_datetimelike with a check for a timezone-aware Timestamp
+    along with a timezone-naive datetime64 dtype, which is deprecated.
+    """
+    # Caller is responsible for checking dtype.kind in ["m", "M"]
+    try:
+        value = maybe_unbox_datetimelike(value, dtype)
+    except TypeError:
+        if (
+            isinstance(value, Timestamp)
+            and value.tz is not None
+            and isinstance(dtype, np.dtype)
+        ):
+            warnings.warn(
+                "Data is timezone-aware. Converting "
+                "timezone-aware data to timezone-naive by "
+                "passing dtype='datetime64[ns]' to "
+                "DataFrame or Series is deprecated and will "
+                "raise in a future version. Use "
+                "`pd.Series(values).dt.tz_localize(None)` "
+                "instead.",
+                FutureWarning,
+                stacklevel=stacklevel,
+            )
+            new_value = value.tz_localize(None)
+            return maybe_unbox_datetimelike(new_value, dtype)
+        else:
+            raise
+    return value
 
 
 def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
