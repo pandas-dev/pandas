@@ -357,7 +357,6 @@ class NumericIndex(Index):
                 decimal=decimal,
                 quoting=quoting,
                 fixed_width=False,
-                **kwargs,
             )
             return formatter.get_result_as_array()
 
