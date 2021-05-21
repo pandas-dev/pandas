@@ -417,9 +417,10 @@ class StylerRenderer:
         ----------
         formatter : str, callable, dict or None
             Object to define how values are displayed. See notes.
-        subset : IndexSlice
-            An argument to ``DataFrame.loc`` that restricts which elements
-            ``formatter`` is applied to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         na_rep : str, optional
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied.
