@@ -537,10 +537,10 @@ class Base:
 
         if len(index) == 0:
             return
+        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+            return
         elif isinstance(index, DatetimeIndexOpsMixin):
             values[1] = iNaT
-        elif issubclass(index.dtype.type, np.integer):
-            return
         else:
             values[1] = np.nan
 
@@ -557,7 +557,9 @@ class Base:
     def test_fillna(self, index):
         # GH 11343
         if len(index) == 0:
-            pass
+            return
+        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+            return
         elif isinstance(index, MultiIndex):
             idx = index.copy(deep=True)
             msg = "isna is not defined for MultiIndex"
@@ -578,8 +580,6 @@ class Base:
 
             if isinstance(index, DatetimeIndexOpsMixin):
                 values[1] = iNaT
-            elif issubclass(index.dtype.type, np.integer):
-                return
             else:
                 values[1] = np.nan
 
