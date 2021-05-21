@@ -17,7 +17,7 @@ dependencies:
   - bottleneck=1.2.1
   - jinja2=2.10
   - numba=0.46.0
-  - numexpr=2.6.8
+  - numexpr=2.7.0
   - numpy=1.17.3
   - openpyxl=3.0.0
   - pytables=3.5.1
