@@ -150,8 +150,8 @@ class Grouper:
     >>> df.groupby(pd.Grouper(key="Animal")).mean()
             Speed
     Animal
-    Falcon    200
-    Parrot     10
+    Falcon  200.0
+    Parrot   10.0
 
     Specify a resample operation on the column 'Publish date'
 
