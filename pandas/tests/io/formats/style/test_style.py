@@ -6,7 +6,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 jinja2 = pytest.importorskip("jinja2")
@@ -18,6 +21,99 @@ from pandas.io.formats.style_render import (
     maybe_convert_css_to_tuples,
     non_reducing_slice,
 )
+
+
+@pytest.fixture
+def mi_df():
+    return DataFrame(
+        [[1, 2], [3, 4]],
+        index=MultiIndex.from_product([["i0"], ["i1_a", "i1_b"]]),
+        columns=MultiIndex.from_product([["c0"], ["c1_a", "c1_b"]]),
+        dtype=int,
+    )
+
+
+@pytest.fixture
+def mi_styler(mi_df):
+    return Styler(mi_df, uuid_len=0)
+
+
+@pytest.mark.parametrize(
+    "sparse_columns, exp_cols",
+    [
+        (
+            True,
+            [
+                {"is_visible": True, "attributes": 'colspan="2"', "value": "c0"},
+                {"is_visible": False, "attributes": "", "value": "c0"},
+            ],
+        ),
+        (
+            False,
+            [
+                {"is_visible": True, "attributes": "", "value": "c0"},
+                {"is_visible": True, "attributes": "", "value": "c0"},
+            ],
+        ),
+    ],
+)
+def test_mi_styler_sparsify_columns(mi_styler, sparse_columns, exp_cols):
+    exp_l1_c0 = {"is_visible": True, "attributes": "", "display_value": "c1_a"}
+    exp_l1_c1 = {"is_visible": True, "attributes": "", "display_value": "c1_b"}
+
+    ctx = mi_styler._translate(True, sparse_columns)
+
+    assert exp_cols[0].items() <= ctx["head"][0][2].items()
+    assert exp_cols[1].items() <= ctx["head"][0][3].items()
+    assert exp_l1_c0.items() <= ctx["head"][1][2].items()
+    assert exp_l1_c1.items() <= ctx["head"][1][3].items()
+
+
+@pytest.mark.parametrize(
+    "sparse_index, exp_rows",
+    [
+        (
+            True,
+            [
+                {"is_visible": True, "attributes": 'rowspan="2"', "value": "i0"},
+                {"is_visible": False, "attributes": "", "value": "i0"},
+            ],
+        ),
+        (
+            False,
+            [
+                {"is_visible": True, "attributes": "", "value": "i0"},
+                {"is_visible": True, "attributes": "", "value": "i0"},
+            ],
+        ),
+    ],
+)
+def test_mi_styler_sparsify_index(mi_styler, sparse_index, exp_rows):
+    exp_l1_r0 = {"is_visible": True, "attributes": "", "display_value": "i1_a"}
+    exp_l1_r1 = {"is_visible": True, "attributes": "", "display_value": "i1_b"}
+
+    ctx = mi_styler._translate(sparse_index, True)
+
+    assert exp_rows[0].items() <= ctx["body"][0][0].items()
+    assert exp_rows[1].items() <= ctx["body"][1][0].items()
+    assert exp_l1_r0.items() <= ctx["body"][0][1].items()
+    assert exp_l1_r1.items() <= ctx["body"][1][1].items()
+
+
+def test_mi_styler_sparsify_options(mi_styler):
+    with pd.option_context("styler.sparse.index", False):
+        html1 = mi_styler.render()
+    with pd.option_context("styler.sparse.index", True):
+        html2 = mi_styler.render()
+
+    assert html1 != html2
+
+    with pd.option_context("styler.sparse.columns", False):
+        html1 = mi_styler.render()
+    with pd.option_context("styler.sparse.columns", True):
+        html2 = mi_styler.render()
+
+    assert html1 != html2
 
 
 class TestStyler:
@@ -256,7 +352,7 @@ class TestStyler:
     def test_empty_index_name_doesnt_display(self):
         # https://github.com/pandas-dev/pandas/pull/12090#issuecomment-180695902
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
-        result = df.style._translate()
+        result = df.style._translate(True, True)
 
         expected = [
             [
@@ -300,7 +396,7 @@ class TestStyler:
         # https://github.com/pandas-dev/pandas/issues/11655
         # TODO: this test can be minimised to address the test more directly
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
-        result = df.set_index("A").style._translate()
+        result = df.set_index("A").style._translate(True, True)
 
         expected = [
             [
@@ -359,7 +455,7 @@ class TestStyler:
         # https://github.com/pandas-dev/pandas/issues/11655
         # TODO: this test can be minimised to address the test more directly
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
-        result = df.set_index(["A", "B"]).style._translate()
+        result = df.set_index(["A", "B"]).style._translate(True, True)
 
         expected = [
             [
@@ -417,7 +513,7 @@ class TestStyler:
         # https://github.com/pandas-dev/pandas/issues/12125
         # smoke test for _translate
         df = DataFrame({0: [1, 2, 3]})
-        df.style._translate()
+        df.style._translate(True, True)
 
     def test_apply_axis(self):
         df = DataFrame({"A": [0, 0], "B": [1, 1]})
@@ -510,8 +606,8 @@ class TestStyler:
     def test_applymap_subset_multiindex(self, slice_):
         # GH 19861
         # edited for GH 33562
-        idx = pd.MultiIndex.from_product([["a", "b"], [1, 2]])
-        col = pd.MultiIndex.from_product([["x", "y"], ["A", "B"]])
+        idx = MultiIndex.from_product([["a", "b"], [1, 2]])
+        col = MultiIndex.from_product([["x", "y"], ["A", "B"]])
         df = DataFrame(np.random.rand(4, 4), columns=col, index=idx)
         df.style.applymap(lambda x: "color: red;", subset=slice_).render()
 
@@ -519,7 +615,7 @@ class TestStyler:
         # https://github.com/pandas-dev/pandas/issues/25858
         # Checks styler.applymap works with multindex when codes are provided
         codes = np.array([[0, 0, 1, 1], [0, 1, 0, 1]])
-        columns = pd.MultiIndex(
+        columns = MultiIndex(
             levels=[["a", "b"], ["%", "#"]], codes=codes, names=["", ""]
         )
         df = DataFrame(
@@ -627,7 +723,7 @@ class TestStyler:
         s = df.style
         s.ctx = {(0, 0): [("color", "red")], (1, 0): [("", "")]}
 
-        result = s._translate()["cellstyle"]
+        result = s._translate(True, True)["cellstyle"]
         expected = [
             {"props": [("color", "red")], "selectors": ["row0_col0"]},
             {"props": [("", "")], "selectors": ["row1_col0"]},
@@ -639,7 +735,7 @@ class TestStyler:
         s = df.style
         s.ctx = {(0, 0): [("color", "red")], (1, 0): [("color", "red")]}
 
-        result = s._translate()["cellstyle"]
+        result = s._translate(True, True)["cellstyle"]
         expected = [
             {"props": [("color", "red")], "selectors": ["row0_col0", "row1_col0"]}
         ]
@@ -649,7 +745,7 @@ class TestStyler:
         # GH 21527 28358
         df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
 
-        ctx = Styler(df, na_rep="NA")._translate()
+        ctx = Styler(df, na_rep="NA")._translate(True, True)
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "NA"
 
@@ -658,7 +754,7 @@ class TestStyler:
         df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
 
         with tm.assert_produces_warning(FutureWarning):
-            ctx = df.style.set_na_rep("NA")._translate()
+            ctx = df.style.set_na_rep("NA")._translate(True, True)
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "NA"
 
@@ -666,7 +762,7 @@ class TestStyler:
             ctx = (
                 df.style.set_na_rep("NA")
                 .format(None, na_rep="-", subset=["B"])
-                ._translate()
+                ._translate(True, True)
             )
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "-"
@@ -722,7 +818,7 @@ class TestStyler:
                 {"selector": "th,td", "props": "color:red;"},
                 {"selector": "tr", "props": "color:green;"},
             ]
-        )._translate()["table_styles"]
+        )._translate(True, True)["table_styles"]
         assert ctx == [
             {"selector": "th", "props": [("color", "red")]},
             {"selector": "td", "props": [("color", "red")]},
@@ -833,7 +929,7 @@ class TestStyler:
             df.style._apply(f, axis=None)
 
     def test_get_level_lengths(self):
-        index = pd.MultiIndex.from_product([["a", "b"], [0, 1, 2]])
+        index = MultiIndex.from_product([["a", "b"], [0, 1, 2]])
         expected = {
             (0, 0): 3,
             (0, 3): 3,
@@ -865,7 +961,7 @@ class TestStyler:
         tm.assert_dict_equal(result, expected)
 
     def test_get_level_lengths_un_sorted(self):
-        index = pd.MultiIndex.from_arrays([[1, 1, 2, 1], ["a", "b", "b", "d"]])
+        index = MultiIndex.from_arrays([[1, 1, 2, 1], ["a", "b", "b", "d"]])
         expected = {
             (0, 0): 2,
             (0, 2): 1,
@@ -891,97 +987,15 @@ class TestStyler:
         result = _get_level_lengths(index, sparsify=False)
         tm.assert_dict_equal(result, expected)
 
-    def test_mi_sparse(self):
-        df = DataFrame(
-            {"A": [1, 2]}, index=pd.MultiIndex.from_arrays([["a", "a"], [0, 1]])
-        )
-
-        result = df.style._translate()
-        body_0 = result["body"][0][0]
-        expected_0 = {
-            "value": "a",
-            "display_value": "a",
-            "is_visible": True,
-            "type": "th",
-            "attributes": 'rowspan="2"',
-            "class": "row_heading level0 row0",
-            "id": "level0_row0",
-        }
-        assert body_0 == expected_0
-
-        body_1 = result["body"][0][1]
-        expected_1 = {
-            "value": 0,
-            "display_value": 0,
-            "is_visible": True,
-            "type": "th",
-            "class": "row_heading level1 row0",
-            "id": "level1_row0",
-            "attributes": "",
-        }
-        assert body_1 == expected_1
-
-        body_10 = result["body"][1][0]
-        expected_10 = {
-            "value": "a",
-            "display_value": "a",
-            "is_visible": False,
-            "type": "th",
-            "class": "row_heading level0 row1",
-            "id": "level0_row1",
-            "attributes": "",
-        }
-        assert body_10 == expected_10
-
-        head = result["head"][0]
-        expected = [
-            {
-                "type": "th",
-                "class": "blank",
-                "value": self.blank_value,
-                "is_visible": True,
-                "display_value": self.blank_value,
-            },
-            {
-                "type": "th",
-                "class": "blank level0",
-                "value": self.blank_value,
-                "is_visible": True,
-                "display_value": self.blank_value,
-            },
-            {
-                "type": "th",
-                "class": "col_heading level0 col0",
-                "value": "A",
-                "is_visible": True,
-                "display_value": "A",
-                "attributes": "",
-            },
-        ]
-        assert head == expected
-
-    def test_mi_sparse_disabled(self):
-        df = DataFrame(
-            {"A": [1, 2]}, index=pd.MultiIndex.from_arrays([["a", "a"], [0, 1]])
-        )
-        result = df.style._translate()["body"]
-        assert 'rowspan="2"' in result[0][0]["attributes"]
-        assert result[1][0]["is_visible"] is False
-
-        with pd.option_context("display.multi_sparse", False):
-            result = df.style._translate()["body"]
-        assert 'rowspan="2"' not in result[0][0]["attributes"]
-        assert result[1][0]["is_visible"] is True
-
     def test_mi_sparse_index_names(self):
         # TODO this test is verbose can be minimised to more directly target test
         df = DataFrame(
             {"A": [1, 2]},
-            index=pd.MultiIndex.from_arrays(
+            index=MultiIndex.from_arrays(
                 [["a", "a"], [0, 1]], names=["idx_level_0", "idx_level_1"]
             ),
         )
-        result = df.style._translate()
+        result = df.style._translate(True, True)
         head = result["head"][1]
         expected = [
             {
@@ -1013,15 +1027,15 @@ class TestStyler:
         # TODO this test is verbose - could be minimised
         df = DataFrame(
             np.arange(16).reshape(4, 4),
-            index=pd.MultiIndex.from_arrays(
+            index=MultiIndex.from_arrays(
                 [["a", "a", "b", "a"], [0, 1, 1, 2]],
                 names=["idx_level_0", "idx_level_1"],
             ),
-            columns=pd.MultiIndex.from_arrays(
+            columns=MultiIndex.from_arrays(
                 [["C1", "C1", "C2", "C2"], [1, 0, 1, 0]], names=["col_0", "col_1"]
             ),
         )
-        result = df.style._translate()
+        result = df.style._translate(True, True)
         head = result["head"][1]
         expected = [
             {
@@ -1076,20 +1090,20 @@ class TestStyler:
     def test_hide_single_index(self):
         # GH 14194
         # single unnamed index
-        ctx = self.df.style._translate()
+        ctx = self.df.style._translate(True, True)
         assert ctx["body"][0][0]["is_visible"]
         assert ctx["head"][0][0]["is_visible"]
-        ctx2 = self.df.style.hide_index()._translate()
+        ctx2 = self.df.style.hide_index()._translate(True, True)
         assert not ctx2["body"][0][0]["is_visible"]
         assert not ctx2["head"][0][0]["is_visible"]
 
         # single named index
-        ctx3 = self.df.set_index("A").style._translate()
+        ctx3 = self.df.set_index("A").style._translate(True, True)
         assert ctx3["body"][0][0]["is_visible"]
         assert len(ctx3["head"]) == 2  # 2 header levels
         assert ctx3["head"][0][0]["is_visible"]
 
-        ctx4 = self.df.set_index("A").style.hide_index()._translate()
+        ctx4 = self.df.set_index("A").style.hide_index()._translate(True, True)
         assert not ctx4["body"][0][0]["is_visible"]
         assert len(ctx4["head"]) == 1  # only 1 header levels
         assert not ctx4["head"][0][0]["is_visible"]
@@ -1098,11 +1112,11 @@ class TestStyler:
         # GH 14194
         df = DataFrame(
             {"A": [1, 2]},
-            index=pd.MultiIndex.from_arrays(
+            index=MultiIndex.from_arrays(
                 [["a", "a"], [0, 1]], names=["idx_level_0", "idx_level_1"]
             ),
         )
-        ctx1 = df.style._translate()
+        ctx1 = df.style._translate(True, True)
         # tests for 'a' and '0'
         assert ctx1["body"][0][0]["is_visible"]
         assert ctx1["body"][0][1]["is_visible"]
@@ -1110,7 +1124,7 @@ class TestStyler:
         assert ctx1["head"][0][0]["is_visible"]
         assert ctx1["head"][0][1]["is_visible"]
 
-        ctx2 = df.style.hide_index()._translate()
+        ctx2 = df.style.hide_index()._translate(True, True)
         # tests for 'a' and '0'
         assert not ctx2["body"][0][0]["is_visible"]
         assert not ctx2["body"][0][1]["is_visible"]
@@ -1121,7 +1135,7 @@ class TestStyler:
     def test_hide_columns_single_level(self):
         # GH 14194
         # test hiding single column
-        ctx = self.df.style._translate()
+        ctx = self.df.style._translate(True, True)
         assert ctx["head"][0][1]["is_visible"]
         assert ctx["head"][0][1]["display_value"] == "A"
         assert ctx["head"][0][2]["is_visible"]
@@ -1129,13 +1143,13 @@ class TestStyler:
         assert ctx["body"][0][1]["is_visible"]  # col A, row 1
         assert ctx["body"][1][2]["is_visible"]  # col B, row 1
 
-        ctx = self.df.style.hide_columns("A")._translate()
+        ctx = self.df.style.hide_columns("A")._translate(True, True)
         assert not ctx["head"][0][1]["is_visible"]
         assert not ctx["body"][0][1]["is_visible"]  # col A, row 1
         assert ctx["body"][1][2]["is_visible"]  # col B, row 1
 
         # test hiding mulitiple columns
-        ctx = self.df.style.hide_columns(["A", "B"])._translate()
+        ctx = self.df.style.hide_columns(["A", "B"])._translate(True, True)
         assert not ctx["head"][0][1]["is_visible"]
         assert not ctx["head"][0][2]["is_visible"]
         assert not ctx["body"][0][1]["is_visible"]  # col A, row 1
@@ -1144,14 +1158,14 @@ class TestStyler:
     def test_hide_columns_mult_levels(self):
         # GH 14194
         # setup dataframe with multiple column levels and indices
-        i1 = pd.MultiIndex.from_arrays(
+        i1 = MultiIndex.from_arrays(
             [["a", "a"], [0, 1]], names=["idx_level_0", "idx_level_1"]
         )
-        i2 = pd.MultiIndex.from_arrays(
+        i2 = MultiIndex.from_arrays(
             [["b", "b"], [0, 1]], names=["col_level_0", "col_level_1"]
         )
         df = DataFrame([[1, 2], [3, 4]], index=i1, columns=i2)
-        ctx = df.style._translate()
+        ctx = df.style._translate(True, True)
         # column headers
         assert ctx["head"][0][2]["is_visible"]
         assert ctx["head"][1][2]["is_visible"]
@@ -1165,14 +1179,14 @@ class TestStyler:
         assert ctx["body"][1][3]["display_value"] == 4
 
         # hide top column level, which hides both columns
-        ctx = df.style.hide_columns("b")._translate()
+        ctx = df.style.hide_columns("b")._translate(True, True)
         assert not ctx["head"][0][2]["is_visible"]  # b
         assert not ctx["head"][1][2]["is_visible"]  # 0
         assert not ctx["body"][1][2]["is_visible"]  # 3
         assert ctx["body"][0][0]["is_visible"]  # index
 
         # hide first column only
-        ctx = df.style.hide_columns([("b", 0)])._translate()
+        ctx = df.style.hide_columns([("b", 0)])._translate(True, True)
         assert ctx["head"][0][2]["is_visible"]  # b
         assert not ctx["head"][1][2]["is_visible"]  # 0
         assert not ctx["body"][1][2]["is_visible"]  # 3
@@ -1180,7 +1194,7 @@ class TestStyler:
         assert ctx["body"][1][3]["display_value"] == 4
 
         # hide second column and index
-        ctx = df.style.hide_columns([("b", 1)]).hide_index()._translate()
+        ctx = df.style.hide_columns([("b", 1)]).hide_index()._translate(True, True)
         assert not ctx["body"][0][0]["is_visible"]  # index
         assert ctx["head"][0][2]["is_visible"]  # b
         assert ctx["head"][1][2]["is_visible"]  # 0
@@ -1436,8 +1450,8 @@ class TestStyler:
     )
     def test_non_reducing_multi_slice_on_multiindex(self, slice_):
         # GH 33562
-        cols = pd.MultiIndex.from_product([["a", "b"], ["c", "d"], ["e", "f"]])
-        idxs = pd.MultiIndex.from_product([["U", "V"], ["W", "X"], ["Y", "Z"]])
+        cols = MultiIndex.from_product([["a", "b"], ["c", "d"], ["e", "f"]])
+        idxs = MultiIndex.from_product([["U", "V"], ["W", "X"], ["Y", "Z"]])
         df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
 
         expected = df.loc[slice_]
