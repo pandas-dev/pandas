@@ -1102,8 +1102,18 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     def _resolve_numeric_only(self, numeric_only: bool | lib.NoDefault) -> bool:
         """
+        Determine subclass-specific default value for 'numeric_only'.
+
         For SeriesGroupBy we want the default to be False (to match Series behavior).
         For DataFrameGroupBy we want it to be True (for backwards-compat).
+
+        Parameters
+        ----------
+        numeric_only : bool or lib.no_default
+
+        Returns
+        -------
+        bool
         """
         # GH#41291
         if numeric_only is lib.no_default:
