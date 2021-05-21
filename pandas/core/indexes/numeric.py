@@ -97,6 +97,7 @@ class NumericIndex(Index):
     )
     _is_numeric_dtype = True
     _can_hold_strings = False
+    _is_numeric_index: bool = True
 
     @cache_readonly
     def _can_hold_na(self) -> bool:
@@ -374,6 +375,8 @@ class IntegerIndex(NumericIndex):
     This is an abstract class for Int64Index, UInt64Index.
     """
 
+    _is_numeric_index: bool = False
+
     @property
     def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
@@ -438,3 +441,4 @@ class Float64Index(NumericIndex):
     _engine_type = libindex.Float64Engine
     _default_dtype = np.dtype(np.float64)
     _dtype_validation_metadata = (is_float_dtype, "float")
+    _is_numeric_index: bool = False

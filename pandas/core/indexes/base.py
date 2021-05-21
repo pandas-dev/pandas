@@ -359,6 +359,9 @@ class Index(IndexOpsMixin, PandasObject):
     _is_numeric_dtype: bool = False
     _can_hold_na: bool = True
     _can_hold_strings: bool = True
+    # Whether this index is a NumericIndex, but not a Int64Index, Float64Index,
+    # UInt64Index or RangeIndex
+    _is_numeric_index: bool = False
 
     _engine_type: type[libindex.IndexEngine] = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
@@ -437,7 +440,7 @@ class Index(IndexOpsMixin, PandasObject):
             return Index._simple_new(data, name=name)
 
         # index-like
-        elif isinstance(data, Index) and data._is_numeric_index() and dtype is None:
+        elif isinstance(data, Index) and data._is_numeric_index and dtype is None:
             return type(data)(data, name=name, copy=copy)
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
@@ -5745,7 +5748,7 @@ class Index(IndexOpsMixin, PandasObject):
             # empty
             attributes["dtype"] = self.dtype
 
-        if self._is_numeric_index() and is_numeric_dtype(new_values.dtype):
+        if self._is_numeric_index and is_numeric_dtype(new_values.dtype):
             return type(self)(new_values, **attributes)
 
         return Index(new_values, **attributes)

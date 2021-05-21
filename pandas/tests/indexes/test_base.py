@@ -713,7 +713,7 @@ class TestIndex(Base):
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
-        elif index._is_numeric_index():
+        elif index._is_numeric_index:
             expected = type(index)(np.arange(len(index), 0, -1), dtype=index.dtype)
         else:
             expected = Index(np.arange(len(index), 0, -1))
