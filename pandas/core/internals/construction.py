@@ -21,6 +21,7 @@ from pandas._typing import (
     DtypeObj,
     Manager,
 )
+from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -315,10 +316,11 @@ def ndarray_to_mgr(
                 values = construct_1d_ndarray_preserving_na(
                     flat, dtype=dtype, copy=False
                 )
-            except Exception as err:
-                # e.g. ValueError when trying to cast object dtype to float64
-                msg = f"failed to cast to '{dtype}' (Exception was: {err})"
-                raise ValueError(msg) from err
+            except IntCastingNaNError:
+                # following Series, we ignore the dtype and retain floating
+                # values instead of casting nans to meaningless ints
+                pass
+
         values = values.reshape(shape)
 
     # _prep_ndarray ensures that values.ndim == 2 at this point

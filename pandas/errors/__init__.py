@@ -12,6 +12,15 @@ from pandas._libs.tslibs import (
 )
 
 
+class IntCastingNaNError(ValueError):
+    """
+    raised when attempting an astype operation on an array with NaN to an integer
+    dtype.
+    """
+
+    pass
+
+
 class NullFrequencyError(ValueError):
     """
     Error raised when a null `freq` attribute is used in an operation
