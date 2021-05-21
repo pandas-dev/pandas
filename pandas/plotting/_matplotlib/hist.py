@@ -30,6 +30,7 @@ from pandas.plotting._matplotlib.tools import (
     maybe_adjust_figure,
     set_ticks_props,
 )
+from pandas.plotting._matplotlib.groupby import create_iter_data_given_by, reformat_hist_y_given_by
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes

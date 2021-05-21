@@ -59,6 +59,7 @@ from pandas.plotting._matplotlib.tools import (
     handle_shared_axes,
     table,
 )
+from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
