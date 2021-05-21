@@ -1536,10 +1536,26 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
 
     def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
-        # GH#25843
+        # GH#25843, GH#41555, GH#33401
         tz = tz_aware_fixture
-        result = Series([Timestamp("2019", tz=tz)], dtype="datetime64[ns]")
-        expected = Series([Timestamp("2019")])
+        ts = Timestamp("2019", tz=tz)
+        ts_naive = Timestamp("2019")
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = Series([ts], dtype="datetime64[ns]")
+        expected = Series([ts_naive])
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = Series(np.array([ts], dtype=object), dtype="datetime64[ns]")
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = Series({0: ts}, dtype="datetime64[ns]")
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = Series(ts, index=[0], dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
 
     def test_constructor_datetime64(self):

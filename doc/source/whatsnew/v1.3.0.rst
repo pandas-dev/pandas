@@ -677,6 +677,48 @@ Deprecations
 - Deprecated special treatment of lists with first element a Categorical in the :class:`DataFrame` constructor; pass as ``pd.DataFrame({col: categorical, ...})`` instead (:issue:`38845`)
 - Deprecated passing arguments as positional (except for ``"method"``) in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (:issue:`41485`)
 - Deprecated passing arguments (apart from ``value``) as positional in :meth:`DataFrame.fillna` and :meth:`Series.fillna` (:issue:`41485`)
+- Deprecated construction of :class:`Series` or :class:`DataFrame` with ``DatetimeTZDtype`` data and ``datetime64[ns]`` dtype.  Use ``Series(data).dt.tz_localize(None)`` instead (:issue:`41555`,:issue:`33401`)
+
+.. _whatsnew_130.deprecations.nuisance_columns:
+
+Deprecated Dropping Nuisance Columns in DataFrame Reductions and DataFrameGroupBy Operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The default of calling a reduction (.min, .max, .sum, ...) on a :class:`DataFrame` with
+``numeric_only=None`` (the default, columns on which the reduction raises ``TypeError``
+are silently ignored and dropped from the result.
+
+This behavior is deprecated. In a future version, the ``TypeError`` will be raised,
+and users will need to select only valid columns before calling the function.
+
+For example:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3, 4], "B": pd.date_range("2016-01-01", periods=4)})
+   df
+
+*Old behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.prod()
+    Out[3]:
+    Out[3]:
+    A    24
+    dtype: int64
+
+*Future behavior*:
+
+.. code-block:: ipython
+
+    In [4]: df.prod()
+    ...
+    TypeError: 'DatetimeArray' does not implement reduction 'prod'
+
+    In [5]: df[["A"]].prod()
+    Out[5]:
+    A    24
+    dtype: int64
 
 .. ---------------------------------------------------------------------------
 
@@ -777,6 +819,8 @@ Conversion
 - Bug in :func:`factorize` where, when given an array with a numeric numpy dtype lower than int64, uint64 and float64, the unique values did not keep their original dtype (:issue:`41132`)
 - Bug in :class:`DataFrame` construction with a dictionary containing an arraylike with ``ExtensionDtype`` and ``copy=True`` failing to make a copy (:issue:`38939`)
 - Bug in :meth:`qcut` raising error when taking ``Float64DType`` as input (:issue:`40730`)
+- Bug in :class:`DataFrame` and :class:`Series` construction with ``datetime64[ns]`` data and ``dtype=object`` resulting in ``datetime`` objects instead of :class:`Timestamp` objects (:issue:`41599`)
+- Bug in :class:`DataFrame` and :class:`Series` construction with ``timedelta64[ns]`` data and ``dtype=object`` resulting in ``np.timedelta64`` objects instead of :class:`Timedelta` objects (:issue:`41599`)
 
 Strings
 ^^^^^^^
