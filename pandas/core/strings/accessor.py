@@ -282,7 +282,7 @@ class StringMethods(NoNewAttributesMixin):
                     return [x]
 
             result = [cons_row(x) for x in result]
-            if result:
+            if result and not self._is_string:
                 # propagate nan values to match longest sequence (GH 18450)
                 max_len = max(len(x) for x in result)
                 result = [
