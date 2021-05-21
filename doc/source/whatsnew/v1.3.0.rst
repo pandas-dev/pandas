@@ -333,6 +333,31 @@ values as measured by ``np.allclose``. Now no such casting occurs.
 
     df.groupby('key').agg(lambda x: x.sum())
 
+``float`` result for :meth:`.GroupBy.mean`, :meth:`.GroupBy.median`, and :meth:`.GroupBy.var`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, these methods could result in different dtypes depending on the input values.
+Now, these methods will always return a float dtype. (:issue:`41137`)
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [True], 'b': [1], 'c': [1.0]})
+
+*pandas 1.2.x*
+
+.. code-block:: ipython
+
+    In [5]: df.groupby(df.index).mean()
+    Out[5]:
+            a  b    c
+    0    True  1  1.0
+
+*pandas 1.3.0*
+
+.. ipython:: python
+
+    df.groupby(df.index).mean()
+
 Try operating inplace when setting values with ``loc`` and ``iloc``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -649,6 +674,7 @@ Deprecations
 - Deprecated behavior of :meth:`DatetimeIndex.union` with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`)
 - Deprecated using ``usecols`` with out of bounds indices for ``read_csv`` with ``engine="c"`` (:issue:`25623`)
 - Deprecated passing arguments as positional (except for ``"method"``) in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (:issue:`41485`)
+- Deprecated passing arguments (apart from ``value``) as positional in :meth:`DataFrame.fillna` and :meth:`Series.fillna` (:issue:`41485`)
 
 .. ---------------------------------------------------------------------------
 
@@ -808,6 +834,7 @@ Missing
 - Bug in :func:`isna`, and :meth:`Series.isna`, :meth:`Index.isna`, :meth:`DataFrame.isna` (and the corresponding ``notna`` functions) not recognizing ``Decimal("NaN")`` objects (:issue:`39409`)
 - Bug in :meth:`DataFrame.fillna` not accepting dictionary for ``downcast`` keyword (:issue:`40809`)
 - Bug in :func:`isna` not returning a copy of the mask for nullable types, causing any subsequent mask modification to change the original array (:issue:`40935`)
+- Bug in :class:`DataFrame` construction with float data containing ``NaN`` and an integer ``dtype`` casting instead of retaining the ``NaN`` (:issue:`26919`)
 
 MultiIndex
 ^^^^^^^^^^

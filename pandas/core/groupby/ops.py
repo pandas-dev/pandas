@@ -49,6 +49,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_sparse,
@@ -304,10 +305,13 @@ class WrappedCythonOp:
                 return np.dtype(np.int64)
             elif isinstance(dtype, (BooleanDtype, _IntegerDtype)):
                 return Int64Dtype()
-        elif how in ["mean", "median", "var"] and isinstance(
-            dtype, (BooleanDtype, _IntegerDtype)
-        ):
-            return Float64Dtype()
+        elif how in ["mean", "median", "var"]:
+            if isinstance(dtype, (BooleanDtype, _IntegerDtype)):
+                return Float64Dtype()
+            elif is_float_dtype(dtype):
+                return dtype
+            elif is_numeric_dtype(dtype):
+                return np.dtype(np.float64)
         return dtype
 
     def uses_mask(self) -> bool:
