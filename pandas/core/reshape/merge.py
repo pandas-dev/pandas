@@ -80,7 +80,10 @@ from pandas.core.internals import concatenate_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
     from pandas.core.arrays import DatetimeArray
 
 
