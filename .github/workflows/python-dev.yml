@@ -30,6 +30,7 @@ jobs:
         pip install git+https://github.com/numpy/numpy.git
         pip install git+https://github.com/pytest-dev/pytest.git
         pip install git+https://github.com/nedbat/coveragepy.git
+        pip install git+https://github.com/cython/cython.git
         pip install cython python-dateutil pytz hypothesis pytest-xdist
         pip list
 
