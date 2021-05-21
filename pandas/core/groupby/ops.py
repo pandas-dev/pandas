@@ -682,7 +682,7 @@ class BaseGrouper:
 
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
-        self.sort = sort
+        self._sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
@@ -895,7 +895,7 @@ class BaseGrouper:
     def _get_compressed_codes(self) -> tuple[np.ndarray, np.ndarray]:
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
-            return compress_group_index(group_index, sort=self.sort)
+            return compress_group_index(group_index, sort=self._sort)
 
         ping = self.groupings[0]
         return ping.codes, np.arange(len(ping.group_index))
