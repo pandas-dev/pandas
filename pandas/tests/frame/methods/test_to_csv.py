@@ -1333,8 +1333,11 @@ class TestDataFrameToCSV:
 
     def test_to_csv_na_quoting(self):
         # GH 15891
-        result = DataFrame([None, None]).to_csv(
-            None, header=False, index=False, na_rep=""
+        # Normalize carriage return for Windows OS
+        result = (
+            DataFrame([None, None])
+            .to_csv(None, header=False, index=False, na_rep="")
+            .replace("\r\n", "\n")
         )
         expected = '""\n""\n'
         assert result == expected
