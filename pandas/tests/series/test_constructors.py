@@ -1536,7 +1536,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
 
     def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
-        # GH#25843
+        # GH#25843, GH#41555, GH#33401
         tz = tz_aware_fixture
         ts = Timestamp("2019", tz=tz)
         ts_naive = Timestamp("2019")
