@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import codecs
+from collections.abc import Callable  # noqa: PDF001
 from functools import wraps
 import re
 from typing import (
     TYPE_CHECKING,
     Hashable,
-    Pattern,
 )
 import warnings
 
@@ -1217,7 +1217,15 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=None):
+    def replace(
+        self,
+        pat: str | re.Pattern,
+        repl: str | Callable,
+        n: int = -1,
+        case: bool | None = None,
+        flags: int = 0,
+        regex: bool | None = None,
+    ):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
 
@@ -1358,14 +1366,10 @@ class StringMethods(NoNewAttributesMixin):
 
         is_compiled_re = is_re(pat)
         if regex:
-            if is_compiled_re:
-                if (case is not None) or (flags != 0):
-                    raise ValueError(
-                        "case and flags cannot be set when pat is a compiled regex"
-                    )
-            elif case is None:
-                # not a compiled regex, set default case
-                case = True
+            if is_compiled_re and (case is not None or flags != 0):
+                raise ValueError(
+                    "case and flags cannot be set when pat is a compiled regex"
+                )
 
         elif is_compiled_re:
             raise ValueError(
@@ -1373,6 +1377,9 @@ class StringMethods(NoNewAttributesMixin):
             )
         elif callable(repl):
             raise ValueError("Cannot use a callable replacement when regex=False")
+
+        if case is None:
+            case = True
 
         result = self._data.array._str_replace(
             pat, repl, n=n, case=case, flags=flags, regex=regex
@@ -3044,14 +3051,14 @@ def _result_dtype(arr):
         return object
 
 
-def _get_single_group_name(regex: Pattern) -> Hashable:
+def _get_single_group_name(regex: re.Pattern) -> Hashable:
     if regex.groupindex:
         return next(iter(regex.groupindex))
     else:
         return None
 
 
-def _get_group_names(regex: Pattern) -> list[Hashable]:
+def _get_group_names(regex: re.Pattern) -> list[Hashable]:
     """
     Get named groups from compiled regex.
 
