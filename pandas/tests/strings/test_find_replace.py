@@ -555,11 +555,15 @@ def test_replace_moar(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("regex", [True, False])
-def test_replace_not_case_sensitive(regex, any_string_dtype):
-    ser = Series(["A", "a", np.nan], dtype=any_string_dtype)
-    result = ser.str.replace("A", "A", case=False, regex=regex)
-    expected = Series(["A", "A", np.nan], dtype=any_string_dtype)
+def test_replace_not_case_sensitive_not_regex(any_string_dtype):
+    ser = Series(["A.", "a.", "Ab", "ab", np.nan], dtype=any_string_dtype)
+
+    result = ser.str.replace("a", "c", case=False, regex=False)
+    expected = Series(["c.", "c.", "cb", "cb", np.nan], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.replace("a.", "c.", case=False, regex=False)
+    expected = Series(["c.", "c.", "Ab", "ab", np.nan], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 

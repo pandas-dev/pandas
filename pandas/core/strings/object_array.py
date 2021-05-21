@@ -147,6 +147,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         if regex or flags or callable(repl):
             if not isinstance(pat, re.Pattern):
+                if regex is False:
+                    pat = re.escape(pat)
                 pat = re.compile(pat, flags=flags)
 
             n = n if n >= 0 else 0
