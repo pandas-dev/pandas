@@ -656,13 +656,10 @@ def _try_cast(
     -------
     np.ndarray or ExtensionArray
     """
+    is_ndarray = isinstance(arr, np.ndarray)
+
     # perf shortcut as this is the most common case
-    if (
-        isinstance(arr, np.ndarray)
-        and arr.dtype != object
-        and not copy
-        and dtype is None
-    ):
+    if is_ndarray and arr.dtype != object and not copy and dtype is None:
         return sanitize_to_nanoseconds(arr)
 
     if isinstance(dtype, ExtensionDtype):
@@ -685,12 +682,12 @@ def _try_cast(
         return subarr
 
     elif is_object_dtype(dtype):
-        if not isinstance(arr, np.ndarray):
+        if not is_ndarray:
             subarr = construct_1d_object_array_from_listlike(arr)
             return subarr
         return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
 
-    elif dtype is None and isinstance(arr, list):
+    elif dtype is None and not is_ndarray:
         # filter out cases that we _dont_ want to go through maybe_cast_to_datetime
         varr = np.array(arr, copy=False)
         if varr.dtype != object or varr.size == 0:
