@@ -139,6 +139,7 @@ precision, and perform HTML escaping (:issue:`40437` :issue:`40134`). There have
 properly format HTML and eliminate some inconsistencies (:issue:`39942` :issue:`40356` :issue:`39807` :issue:`39889` :issue:`39627`)
 
 :class:`.Styler` has also been compatible with non-unique index or columns, at least for as many features as are fully compatible, others made only partially compatible (:issue:`41269`).
+One also has greater control of the display through separate sparsification of the index or columns, using the new 'styler' options context (:issue:`41142`).
 
 Documentation has also seen major revisions in light of new features (:issue:`39720` :issue:`39317` :issue:`40493`)
 
@@ -197,7 +198,7 @@ Other enhancements
 - Improved integer type mapping from pandas to SQLAlchemy when using :meth:`DataFrame.to_sql` (:issue:`35076`)
 - :func:`to_numeric` now supports downcasting of nullable ``ExtensionDtype`` objects (:issue:`33013`)
 - Add support for dict-like names in :class:`MultiIndex.set_names` and :class:`MultiIndex.rename` (:issue:`20421`)
-- :func:`pandas.read_excel` can now auto detect .xlsb files (:issue:`35416`)
+- :func:`pandas.read_excel` can now auto detect .xlsb files and older .xls files (:issue:`35416`, :issue:`41225`)
 - :class:`pandas.ExcelWriter` now accepts an ``if_sheet_exists`` parameter to control the behaviour of append mode when writing to existing sheets (:issue:`40230`)
 - :meth:`.Rolling.sum`, :meth:`.Expanding.sum`, :meth:`.Rolling.mean`, :meth:`.Expanding.mean`, :meth:`.ExponentialMovingWindow.mean`, :meth:`.Rolling.median`, :meth:`.Expanding.median`, :meth:`.Rolling.max`, :meth:`.Expanding.max`, :meth:`.Rolling.min`, and :meth:`.Expanding.min` now support ``Numba`` execution with the ``engine`` keyword (:issue:`38895`, :issue:`41267`)
 - :meth:`DataFrame.apply` can now accept NumPy unary operators as strings, e.g. ``df.apply("sqrt")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
@@ -228,7 +229,7 @@ Other enhancements
 - Constructing a :class:`DataFrame` or :class:`Series` with the ``data`` argument being a Python iterable that is *not* a NumPy ``ndarray`` consisting of NumPy scalars will now result in a dtype with a precision the maximum of the NumPy scalars; this was already the case when ``data`` is a NumPy ``ndarray`` (:issue:`40908`)
 - Add keyword ``sort`` to :func:`pivot_table` to allow non-sorting of the result (:issue:`39143`)
 - Add keyword ``dropna`` to :meth:`DataFrame.value_counts` to allow counting rows that include ``NA`` values (:issue:`41325`)
--
+- :meth:`Series.replace` will now cast results to ``PeriodDtype`` where possible instead of ``object`` dtype (:issue:`41526`)
 
 .. ---------------------------------------------------------------------------
 
@@ -332,6 +333,31 @@ values as measured by ``np.allclose``. Now no such casting occurs.
 .. ipython:: python
 
     df.groupby('key').agg(lambda x: x.sum())
+
+``float`` result for :meth:`.GroupBy.mean`, :meth:`.GroupBy.median`, and :meth:`.GroupBy.var`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, these methods could result in different dtypes depending on the input values.
+Now, these methods will always return a float dtype. (:issue:`41137`)
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [True], 'b': [1], 'c': [1.0]})
+
+*pandas 1.2.x*
+
+.. code-block:: ipython
+
+    In [5]: df.groupby(df.index).mean()
+    Out[5]:
+            a  b    c
+    0    True  1  1.0
+
+*pandas 1.3.0*
+
+.. ipython:: python
+
+    df.groupby(df.index).mean()
 
 Try operating inplace when setting values with ``loc`` and ``iloc``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -547,7 +573,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | bottleneck      | 1.2.1           |          |         |
 +-----------------+-----------------+----------+---------+
-| numexpr         | 2.6.8           |          |         |
+| numexpr         | 2.7.0           |          |    X    |
 +-----------------+-----------------+----------+---------+
 | pytest (dev)    | 6.0             |          |    X    |
 +-----------------+-----------------+----------+---------+
@@ -648,6 +674,9 @@ Deprecations
 - Deprecated setting :attr:`Categorical._codes`, create a new :class:`Categorical` with the desired codes instead (:issue:`40606`)
 - Deprecated behavior of :meth:`DatetimeIndex.union` with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`)
 - Deprecated using ``usecols`` with out of bounds indices for ``read_csv`` with ``engine="c"`` (:issue:`25623`)
+- Deprecated special treatment of lists with first element a Categorical in the :class:`DataFrame` constructor; pass as ``pd.DataFrame({col: categorical, ...})`` instead (:issue:`38845`)
+- Deprecated passing arguments as positional (except for ``"method"``) in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (:issue:`41485`)
+- Deprecated passing arguments (apart from ``value``) as positional in :meth:`DataFrame.fillna` and :meth:`Series.fillna` (:issue:`41485`)
 
 .. ---------------------------------------------------------------------------
 
@@ -807,6 +836,7 @@ Missing
 - Bug in :func:`isna`, and :meth:`Series.isna`, :meth:`Index.isna`, :meth:`DataFrame.isna` (and the corresponding ``notna`` functions) not recognizing ``Decimal("NaN")`` objects (:issue:`39409`)
 - Bug in :meth:`DataFrame.fillna` not accepting dictionary for ``downcast`` keyword (:issue:`40809`)
 - Bug in :func:`isna` not returning a copy of the mask for nullable types, causing any subsequent mask modification to change the original array (:issue:`40935`)
+- Bug in :class:`DataFrame` construction with float data containing ``NaN`` and an integer ``dtype`` casting instead of retaining the ``NaN`` (:issue:`26919`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -843,12 +873,15 @@ I/O
 - Bug in :func:`read_excel` dropping empty values from single-column spreadsheets (:issue:`39808`)
 - Bug in :func:`read_excel` loading trailing empty rows/columns for some filetypes (:issue:`41167`)
 - Bug in :func:`read_excel` raising ``AttributeError`` with ``MultiIndex`` header followed by two empty rows and no index, and bug affecting :func:`read_excel`, :func:`read_csv`, :func:`read_table`, :func:`read_fwf`, and :func:`read_clipboard` where one blank row after a ``MultiIndex`` header with no index would be dropped (:issue:`40442`)
-- Bug in :meth:`DataFrame.to_string` misplacing the truncation column when ``index=False`` (:issue:`40907`)
+- Bug in :meth:`DataFrame.to_string` misplacing the truncation column when ``index=False`` (:issue:`40904`)
+- Bug in :meth:`DataFrame.to_string` adding an extra dot and misaligning the truncation row when ``index=False`` (:issue:`40904`)
 - Bug in :func:`read_orc` always raising ``AttributeError`` (:issue:`40918`)
 - Bug in :func:`read_csv` and :func:`read_table` silently ignoring ``prefix`` if ``names`` and ``prefix`` are defined, now raising ``ValueError`` (:issue:`39123`)
 - Bug in :func:`read_csv` and :func:`read_excel` not respecting dtype for duplicated column name when ``mangle_dupe_cols`` is set to ``True`` (:issue:`35211`)
 - Bug in :func:`read_csv` and :func:`read_table` misinterpreting arguments when ``sys.setprofile`` had been previously called (:issue:`41069`)
 - Bug in the conversion from pyarrow to pandas (e.g. for reading Parquet) with nullable dtypes and a pyarrow array whose data buffer size is not a multiple of dtype size (:issue:`40896`)
+- Bug in :func:`read_excel` would raise an error when pandas could not determine the file type, even when user specified the ``engine`` argument (:issue:`41225`)
+-
 
 Period
 ^^^^^^
@@ -972,6 +1005,7 @@ Other
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)
+- Bug in :meth:`DataFrame.agg()` not sorting the aggregated axis in the order of the provided aggragation functions when one or more aggregation function fails to produce results (:issue:`33634`)
 - Bug in :meth:`DataFrame.clip` not interpreting missing values as no threshold (:issue:`40420`)
 - Bug in :class:`Series` backed by :class:`DatetimeArray` or :class:`TimedeltaArray` sometimes failing to set the array's ``freq`` to ``None`` (:issue:`41425`)
 
