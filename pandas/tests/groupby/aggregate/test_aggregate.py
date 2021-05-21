@@ -161,7 +161,7 @@ def test_agg_grouping_is_list_tuple(ts):
     df = tm.makeTimeDataFrame()
 
     grouped = df.groupby(lambda x: x.year)
-    grouper = grouped.grouper.groupings[0].grouper
+    grouper = grouped.grouper.groupings[0].grouping_vector
     grouped.grouper.groupings[0] = Grouping(ts.index, list(grouper))
 
     result = grouped.agg(np.mean)

@@ -149,7 +149,7 @@ def replace_regex(values: ArrayLike, rx: re.Pattern, value, mask: Optional[np.nd
             else:
                 return s
 
-    f = np.vectorize(re_replacer, otypes=[values.dtype])
+    f = np.vectorize(re_replacer, otypes=[np.object_])
 
     if mask is None:
         values[:] = f(values)

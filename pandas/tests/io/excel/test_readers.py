@@ -555,6 +555,14 @@ class TestReaders:
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
+    def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
+        # GH#35211
+        basename = "df_mangle_dup_col_dtypes"
+        result = pd.read_excel(basename + read_ext, dtype={"a": str, **dtypes})
+        expected = DataFrame({"a": ["1"], "a.1": [exp_value]})
+        tm.assert_frame_equal(result, expected)
+
     def test_reader_spaces(self, read_ext):
         # see gh-32207
         basename = "test_spaces"
@@ -719,9 +727,20 @@ class TestReaders:
 
     def test_corrupt_bytes_raises(self, read_ext, engine):
         bad_stream = b"foo"
-        if engine is None or engine == "xlrd":
+        if engine is None:
             error = ValueError
-            msg = "File is not a recognized excel file"
+            msg = (
+                "Excel file format cannot be determined, you must "
+                "specify an engine manually."
+            )
+        elif engine == "xlrd":
+            from xlrd import XLRDError
+
+            error = XLRDError
+            msg = (
+                "Unsupported format, or corrupt file: Expected BOF "
+                "record; found b'foo'"
+            )
         else:
             error = BadZipFile
             msg = "File is not a zip file"

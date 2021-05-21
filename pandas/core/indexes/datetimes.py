@@ -40,6 +40,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -660,7 +661,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "raise KeyError in a future version.  "
                     "Use a timezone-aware object instead."
                 )
-            warnings.warn(msg, FutureWarning, stacklevel=5)
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -724,7 +725,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             key = key.tz_convert(self.tz)
         return key
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         """
         If label is a string, cast it to datetime according to resolution.
 
@@ -742,7 +743,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -----
         Value of `side` parameter should be validated in caller.
         """
-        assert kind in ["loc", "getitem", None]
+        assert kind in ["loc", "getitem", None, lib.no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, str):
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
@@ -823,12 +825,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         mask = np.array(True)
         deprecation_mask = np.array(True)
         if start is not None:
-            start_casted = self._maybe_cast_slice_bound(start, "left", kind)
+            start_casted = self._maybe_cast_slice_bound(start, "left")
             mask = start_casted <= self
             deprecation_mask = start_casted == self
 
         if end is not None:
-            end_casted = self._maybe_cast_slice_bound(end, "right", kind)
+            end_casted = self._maybe_cast_slice_bound(end, "right")
             mask = (self <= end_casted) & mask
             deprecation_mask = (end_casted == self) | deprecation_mask
 

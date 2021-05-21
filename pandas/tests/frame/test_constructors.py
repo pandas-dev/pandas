@@ -2398,6 +2398,12 @@ class TestDataFrameConstructors:
             # assert b[0] == 0
             assert df.iloc[0, 2] == 0
 
+    def test_from_series_with_name_with_columns(self):
+        # GH 7893
+        result = DataFrame(Series(1, name="foo"), columns=["bar"])
+        expected = DataFrame(columns=["bar"])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameConstructorWithDatetimeTZ:
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
@@ -2675,3 +2681,14 @@ class TestFromScalar:
         result = constructor(scalar)
 
         assert type(get1(result)) is cls
+
+    def test_nested_list_columns(self):
+        # GH 14467
+        result = DataFrame(
+            [[1, 2, 3], [4, 5, 6]], columns=[["A", "A", "A"], ["a", "b", "c"]]
+        )
+        expected = DataFrame(
+            [[1, 2, 3], [4, 5, 6]],
+            columns=MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("A", "c")]),
+        )
+        tm.assert_frame_equal(result, expected)
