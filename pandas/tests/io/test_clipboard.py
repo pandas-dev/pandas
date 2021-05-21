@@ -260,17 +260,21 @@ class TestClipboard:
         "multiindex",
         [
             (
-                """\t\t\tcol1\tcol2
-                A\t0\tTrue\t1\tred
-                A\t1\tTrue\t\tblue
-                B\t0\tFalse\t2\tgreen""",
+                (  # Can't use `dedent` here as it will remove the leading `\t`
+                    "\t\t\tcol1\tcol2\n"
+                    "A\t0\tTrue\t1\tred\n"
+                    "A\t1\tTrue\t\tblue\n"
+                    "B\t0\tFalse\t2\tgreen\n"
+                ),
                 [["A", "A", "B"], [0, 1, 0], [True, True, False]],
             ),
             (
-                """\t\tcol1\tcol2
-                A\t0\t1\tred
-                A\t1\t\tblue
-                B\t0\t2\tgreen""",
+                (
+                    "\t\tcol1\tcol2\n"
+                    "A\t0\t1\tred\n"
+                    "A\t1\t\tblue\n"
+                    "B\t0\t2\tgreen\n"
+                ),
                 [["A", "A", "B"], [0, 1, 0]],
             ),
         ],
@@ -278,8 +282,7 @@ class TestClipboard:
     def test_infer_excel_with_multiindex(self, request, mock_clipboard, multiindex):
         # GH41108
 
-        # the `.replace()` is because `.dedent()` does not like the leading `\t`
-        mock_clipboard[request.node.name] = multiindex[0].replace(" ", "")
+        mock_clipboard[request.node.name] = multiindex[0]
         df = read_clipboard()
         df_expected = DataFrame(
             data={"col1": [1, None, 2], "col2": ["red", "blue", "green"]},
