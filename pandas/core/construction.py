@@ -659,8 +659,16 @@ def _try_cast(
     is_ndarray = isinstance(arr, np.ndarray)
 
     # perf shortcut as this is the most common case
-    if is_ndarray and arr.dtype != object and not copy and dtype is None:
-        return sanitize_to_nanoseconds(arr)
+    # Item "List[Any]" of "Union[List[Any], ndarray]" has no attribute "dtype"
+    if (
+        is_ndarray
+        and arr.dtype != object  # type: ignore[union-attr]
+        and not copy
+        and dtype is None
+    ):
+        # Argument 1 to "sanitize_to_nanoseconds" has incompatible type
+        # "Union[List[Any], ndarray]"; expected "ndarray"
+        return sanitize_to_nanoseconds(arr)  # type: ignore[arg-type]
 
     if isinstance(dtype, ExtensionDtype):
         # create an extension array from its dtype
