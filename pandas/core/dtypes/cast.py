@@ -1924,7 +1924,7 @@ def maybe_unbox_datetimelike_tz_deprecation(
         value = maybe_unbox_datetimelike(value, dtype)
     except TypeError:
         if (
-            isinstance(value, datetime)
+            isinstance(value, Timestamp)
             and value.tzinfo is not None
             and isinstance(dtype, np.dtype)
             and dtype.kind == "M"
