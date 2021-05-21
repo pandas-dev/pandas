@@ -441,6 +441,9 @@ class Grouping:
 
     _codes: np.ndarray | None = None
     _group_index: Index | None = None
+    _passed_categorical: bool
+    _all_grouper: Categorical | None
+    _index: Index
 
     def __init__(
         self,
@@ -456,13 +459,13 @@ class Grouping:
         self.level = level
         self._orig_grouper = grouper
         self.grouping_vector = _convert_grouper(index, grouper)
-        self.all_grouper = None
-        self.index = index
-        self.sort = sort
+        self._all_grouper = None
+        self._index = index
+        self._sort = sort
         self.obj = obj
-        self.observed = observed
+        self._observed = observed
         self.in_axis = in_axis
-        self.dropna = dropna
+        self._dropna = dropna
 
         self._passed_categorical = False
 
@@ -471,11 +474,15 @@ class Grouping:
 
         ilevel = self._ilevel
         if ilevel is not None:
+            mapper = self.grouping_vector
+            # In extant tests, the new self.grouping_vector matches
+            #  `index.get_level_values(ilevel)` whenever
+            #  mapper is None and isinstance(index, MultiIndex)
             (
                 self.grouping_vector,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(self.grouping_vector, ilevel)
+            ) = index._get_grouper_for_level(mapper, ilevel)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -505,8 +512,8 @@ class Grouping:
             # a passed Categorical
             self._passed_categorical = True
 
-            self.grouping_vector, self.all_grouper = recode_for_groupby(
-                self.grouping_vector, self.sort, observed
+            self.grouping_vector, self._all_grouper = recode_for_groupby(
+                self.grouping_vector, sort, observed
             )
 
         elif not isinstance(
@@ -517,11 +524,11 @@ class Grouping:
                 t = self.name or str(type(self.grouping_vector))
                 raise ValueError(f"Grouper for '{t}' not 1-dimensional")
 
-            self.grouping_vector = self.index.map(self.grouping_vector)
+            self.grouping_vector = index.map(self.grouping_vector)
 
             if not (
                 hasattr(self.grouping_vector, "__len__")
-                and len(self.grouping_vector) == len(self.index)
+                and len(self.grouping_vector) == len(index)
             ):
                 grper = pprint_thing(self.grouping_vector)
                 errmsg = (
@@ -546,7 +553,7 @@ class Grouping:
     def name(self) -> Hashable:
         ilevel = self._ilevel
         if ilevel is not None:
-            return self.index.names[ilevel]
+            return self._index.names[ilevel]
 
         if isinstance(self._orig_grouper, (Index, Series)):
             return self._orig_grouper.name
@@ -569,7 +576,7 @@ class Grouping:
         if level is None:
             return None
         if not isinstance(level, int):
-            index = self.index
+            index = self._index
             if level not in index.names:
                 raise AssertionError(f"Level {level} not in index")
             return index.names.index(level)
@@ -607,10 +614,10 @@ class Grouping:
     @cache_readonly
     def result_index(self) -> Index:
         # TODO: what's the difference between result_index vs group_index?
-        if self.all_grouper is not None:
+        if self._all_grouper is not None:
             group_idx = self.group_index
             assert isinstance(group_idx, CategoricalIndex)
-            return recode_from_groupby(self.all_grouper, self.sort, group_idx)
+            return recode_from_groupby(self._all_grouper, self._sort, group_idx)
         return self.group_index
 
     @cache_readonly
@@ -629,10 +636,10 @@ class Grouping:
             cat = self.grouping_vector
             categories = cat.categories
 
-            if self.observed:
+            if self._observed:
                 ucodes = algorithms.unique1d(cat.codes)
                 ucodes = ucodes[ucodes != -1]
-                if self.sort or cat.ordered:
+                if self._sort or cat.ordered:
                     ucodes = np.sort(ucodes)
             else:
                 ucodes = np.arange(len(categories))
@@ -648,18 +655,18 @@ class Grouping:
             uniques = self.grouping_vector.result_arraylike
         else:
             # GH35667, replace dropna=False with na_sentinel=None
-            if not self.dropna:
+            if not self._dropna:
                 na_sentinel = None
             else:
                 na_sentinel = -1
             codes, uniques = algorithms.factorize(
-                self.grouping_vector, sort=self.sort, na_sentinel=na_sentinel
+                self.grouping_vector, sort=self._sort, na_sentinel=na_sentinel
             )
         return codes, uniques
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
-        return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
+        return self._index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
 def get_grouper(
