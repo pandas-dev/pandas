@@ -1014,16 +1014,21 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return content
 
 
-XLS_SIGNATURE = b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"
+XLS_SIGNATURES = (
+    b"\x09\x00\x04\x00\x07\x00\x10\x00",  # BIFF2
+    b"\x09\x02\x06\x00\x00\x00\x10\x00",  # BIFF3
+    b"\x09\x04\x06\x00\x00\x00\x10\x00",  # BIFF4
+    b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1",  # Compound File Binary
+)
 ZIP_SIGNATURE = b"PK\x03\x04"
-PEEK_SIZE = max(len(XLS_SIGNATURE), len(ZIP_SIGNATURE))
+PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
 
 
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
     content_or_path: FilePathOrBuffer,
     storage_options: StorageOptions = None,
-) -> str:
+) -> str | None:
     """
     Inspect the path or content of an excel file and get its format.
 
@@ -1037,8 +1042,8 @@ def inspect_excel_format(
 
     Returns
     -------
-    str
-        Format of file.
+    str or None
+        Format of file if it can be determined.
 
     Raises
     ------
@@ -1063,10 +1068,10 @@ def inspect_excel_format(
             peek = buf
         stream.seek(0)
 
-        if peek.startswith(XLS_SIGNATURE):
+        if any(peek.startswith(sig) for sig in XLS_SIGNATURES):
             return "xls"
         elif not peek.startswith(ZIP_SIGNATURE):
-            raise ValueError("File is not a recognized excel file")
+            return None
 
         # ZipFile typing is overly-strict
         # https://github.com/python/typeshed/issues/4212
@@ -1174,8 +1179,12 @@ class ExcelFile:
                 ext = inspect_excel_format(
                     content_or_path=path_or_buffer, storage_options=storage_options
                 )
+                if ext is None:
+                    raise ValueError(
+                        "Excel file format cannot be determined, you must specify "
+                        "an engine manually."
+                    )
 
-            # ext will always be valid, otherwise inspect_excel_format would raise
             engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
@@ -1190,12 +1199,13 @@ class ExcelFile:
                         path_or_buffer, storage_options=storage_options
                     )
 
-            if ext != "xls" and xlrd_version >= Version("2"):
+            # Pass through if ext is None, otherwise check if ext valid for xlrd
+            if ext and ext != "xls" and xlrd_version >= Version("2"):
                 raise ValueError(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install openpyxl instead."
                 )
-            elif ext != "xls":
+            elif ext and ext != "xls":
                 caller = inspect.stack()[1]
                 if (
                     caller.filename.endswith(

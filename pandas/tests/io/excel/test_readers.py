@@ -727,9 +727,20 @@ class TestReaders:
 
     def test_corrupt_bytes_raises(self, read_ext, engine):
         bad_stream = b"foo"
-        if engine is None or engine == "xlrd":
+        if engine is None:
             error = ValueError
-            msg = "File is not a recognized excel file"
+            msg = (
+                "Excel file format cannot be determined, you must "
+                "specify an engine manually."
+            )
+        elif engine == "xlrd":
+            from xlrd import XLRDError
+
+            error = XLRDError
+            msg = (
+                "Unsupported format, or corrupt file: Expected BOF "
+                "record; found b'foo'"
+            )
         else:
             error = BadZipFile
             msg = "File is not a zip file"
