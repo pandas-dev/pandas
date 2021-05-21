@@ -48,9 +48,7 @@ class TestExpressions:
     def setup_method(self, method):
 
         self.frame = _frame.copy()
-        self.array = _array.copy()
         self.frame2 = _frame2.copy()
-        self.array2 = _array2.copy()
         self.mixed = _mixed.copy()
         self.mixed2 = _mixed2.copy()
         self._MIN_ELEMENTS = expr._MIN_ELEMENTS
@@ -138,23 +136,19 @@ class TestExpressions:
         self.run_frame(df, df, flex)
 
     def test_invalid(self):
+        array = np.random.randn(1_000_001)
+        array2 = np.random.randn(100)
 
         # no op
-        result = expr._can_use_numexpr(
-            operator.add, None, self.array, self.array, "evaluate"
-        )
+        result = expr._can_use_numexpr(operator.add, None, array, array, "evaluate")
         assert not result
 
         # min elements
-        result = expr._can_use_numexpr(
-            operator.add, "+", self.array2, self.array2, "evaluate"
-        )
+        result = expr._can_use_numexpr(operator.add, "+", array2, array2, "evaluate")
         assert not result
 
         # ok, we only check on first part of expression
-        result = expr._can_use_numexpr(
-            operator.add, "+", self.array, self.array2, "evaluate"
-        )
+        result = expr._can_use_numexpr(operator.add, "+", array, array2, "evaluate")
         assert result
 
     @pytest.mark.parametrize(
@@ -248,7 +242,7 @@ class TestExpressions:
     def test_bool_ops_raise_on_arithmetic(self, op_str, opname):
         df = DataFrame({"a": np.random.rand(10) > 0.5, "b": np.random.rand(10) > 0.5})
 
-        msg = f"operator {repr(op_str)} not implemented for bool dtypes"
+        msg = f"operator '{opname}' not implemented for bool dtypes"
         f = getattr(operator, opname)
         err_msg = re.escape(msg)
 

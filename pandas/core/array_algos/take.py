@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 from typing import (
     TYPE_CHECKING,
+    cast,
     overload,
 )
 
@@ -16,14 +17,15 @@ from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
-    ensure_int64,
     ensure_platform_int,
+    is_1d_only_ea_obj,
 )
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
     from pandas.core.arrays.base import ExtensionArray
 
 
@@ -77,7 +79,7 @@ def take_nd(
         Axis to take from
     fill_value : any, default np.nan
         Fill value to replace -1 values with
-    allow_fill : boolean, default True
+    allow_fill : bool, default True
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
         undefined if allow_fill == False and -1 is present in indexer.
@@ -93,6 +95,13 @@ def take_nd(
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
         # includes for EA to catch DatetimeArray, TimedeltaArray
+        if not is_1d_only_ea_obj(arr):
+            # i.e. DatetimeArray, TimedeltaArray
+            arr = cast("NDArrayBackedExtensionArray", arr)
+            return arr.take(
+                indexer, fill_value=fill_value, allow_fill=allow_fill, axis=axis
+            )
+
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = np.asarray(arr)
@@ -113,11 +122,8 @@ def _take_nd_ndarray(
     else:
         indexer = ensure_platform_int(indexer)
 
-    if not allow_fill:
-        return arr.take(indexer, axis=axis)
-
-    dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
-        arr, indexer, fill_value
+    indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
+        arr, indexer, fill_value, allow_fill
     )
 
     flip_order = False
@@ -184,8 +190,8 @@ def take_1d(
     if not allow_fill:
         return arr.take(indexer)
 
-    dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
-        arr, indexer, fill_value
+    indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
+        arr, indexer, fill_value, True
     )
 
     # at this point, it's guaranteed that dtype can hold both the arr values
@@ -201,7 +207,7 @@ def take_1d(
 
 
 def take_2d_multi(
-    arr: np.ndarray, indexer: np.ndarray, fill_value=np.nan
+    arr: np.ndarray, indexer: tuple[np.ndarray, np.ndarray], fill_value=np.nan
 ) -> np.ndarray:
     """
     Specialized Cython take which sets NaN values in one pass.
@@ -214,11 +220,9 @@ def take_2d_multi(
 
     row_idx, col_idx = indexer
 
-    row_idx = ensure_int64(row_idx)
-    col_idx = ensure_int64(col_idx)
-    # error: Incompatible types in assignment (expression has type "Tuple[Any, Any]",
-    # variable has type "ndarray")
-    indexer = row_idx, col_idx  # type: ignore[assignment]
+    row_idx = ensure_platform_int(row_idx)
+    col_idx = ensure_platform_int(col_idx)
+    indexer = row_idx, col_idx
     mask_info = None
 
     # check for promotion based on types only (do this first because
@@ -474,7 +478,7 @@ def _take_nd_object(
     if arr.dtype != out.dtype:
         arr = arr.astype(out.dtype)
     if arr.shape[axis] > 0:
-        arr.take(ensure_platform_int(indexer), axis=axis, out=out)
+        arr.take(indexer, axis=axis, out=out)
     if needs_masking:
         outindexer = [slice(None)] * arr.ndim
         outindexer[axis] = mask
@@ -482,11 +486,15 @@ def _take_nd_object(
 
 
 def _take_2d_multi_object(
-    arr: np.ndarray, indexer: np.ndarray, out: np.ndarray, fill_value, mask_info
+    arr: np.ndarray,
+    indexer: tuple[np.ndarray, np.ndarray],
+    out: np.ndarray,
+    fill_value,
+    mask_info,
 ) -> None:
     # this is not ideal, performance-wise, but it's better than raising
     # an exception (best to optimize in Cython to avoid getting here)
-    row_idx, col_idx = indexer
+    row_idx, col_idx = indexer  # both np.intp
     if mask_info is not None:
         (row_mask, col_mask), (row_needs, col_needs) = mask_info
     else:
@@ -510,21 +518,27 @@ def _take_preprocess_indexer_and_fill_value(
     arr: np.ndarray,
     indexer: np.ndarray,
     fill_value,
+    allow_fill: bool,
 ):
     mask_info = None
 
-    # check for promotion based on types only (do this first because
-    # it's faster than computing a mask)
-    dtype, fill_value = maybe_promote(arr.dtype, fill_value)
-    if dtype != arr.dtype:
-        # check if promotion is actually required based on indexer
-        mask = indexer == -1
-        needs_masking = mask.any()
-        mask_info = mask, needs_masking
-        if not needs_masking:
-            # if not, then depromote, set fill_value to dummy
-            # (it won't be used but we don't want the cython code
-            # to crash when trying to cast it to dtype)
-            dtype, fill_value = arr.dtype, arr.dtype.type()
+    if not allow_fill:
+        dtype, fill_value = arr.dtype, arr.dtype.type()
+        mask_info = None, False
+    else:
+        # check for promotion based on types only (do this first because
+        # it's faster than computing a mask)
+        dtype, fill_value = maybe_promote(arr.dtype, fill_value)
+        if dtype != arr.dtype:
+            # check if promotion is actually required based on indexer
+            mask = indexer == -1
+            needs_masking = mask.any()
+            mask_info = mask, needs_masking
+            if not needs_masking:
+                # if not, then depromote, set fill_value to dummy
+                # (it won't be used but we don't want the cython code
+                # to crash when trying to cast it to dtype)
+                dtype, fill_value = arr.dtype, arr.dtype.type()
 
-    return dtype, fill_value, mask_info
+    indexer = ensure_platform_int(indexer)
+    return indexer, dtype, fill_value, mask_info

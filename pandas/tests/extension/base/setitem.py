@@ -356,3 +356,14 @@ class BaseSetitemTests(BaseExtensionTests):
             data.astype(object), index=ser.index, name="data", dtype=object
         )
         self.assert_series_equal(result, expected)
+
+    def test_delitem_series(self, data):
+        # GH#40763
+        ser = pd.Series(data, name="data")
+
+        taker = np.arange(len(ser))
+        taker = np.delete(taker, 1)
+
+        expected = ser[taker]
+        del ser[1]
+        self.assert_series_equal(ser, expected)

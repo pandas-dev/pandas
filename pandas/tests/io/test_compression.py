@@ -8,14 +8,10 @@ import time
 
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 
 import pandas.io.common as icom
-
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.mark.parametrize(

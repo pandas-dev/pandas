@@ -4,8 +4,6 @@ from collections import namedtuple
 from typing import (
     TYPE_CHECKING,
     Iterator,
-    List,
-    Tuple,
 )
 
 from pandas._typing import ArrayLike
@@ -26,7 +24,7 @@ def _iter_block_pairs(
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
 
-    for n, blk in enumerate(left.blocks):
+    for blk in left.blocks:
         locs = blk.mgr_locs
         blk_vals = blk.values
 
@@ -40,7 +38,7 @@ def _iter_block_pairs(
         #    assert len(rblks) == 1, rblks
         #    assert rblks[0].shape[0] == 1, rblks[0].shape
 
-        for k, rblk in enumerate(rblks):
+        for rblk in rblks:
             right_ea = rblk.values.ndim == 1
 
             lvals, rvals = _get_same_shape_values(blk, rblk, left_ea, right_ea)
@@ -54,7 +52,7 @@ def operate_blockwise(
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
 
-    res_blks: List[Block] = []
+    res_blks: list[Block] = []
     for lvals, rvals, locs, left_ea, right_ea, rblk in _iter_block_pairs(left, right):
         res_values = array_op(lvals, rvals)
         if left_ea and not right_ea and hasattr(res_values, "reshape"):
@@ -78,11 +76,11 @@ def operate_blockwise(
     #  assert len(slocs) == nlocs, (len(slocs), nlocs)
     #  assert slocs == set(range(nlocs)), slocs
 
-    new_mgr = type(right)(res_blks, axes=right.axes, verify_integrity=False)
+    new_mgr = type(right)(tuple(res_blks), axes=right.axes, verify_integrity=False)
     return new_mgr
 
 
-def _reset_block_mgr_locs(nbs: List[Block], locs):
+def _reset_block_mgr_locs(nbs: list[Block], locs):
     """
     Reset mgr_locs to correspond to our original DataFrame.
     """
@@ -96,7 +94,7 @@ def _reset_block_mgr_locs(nbs: List[Block], locs):
 
 def _get_same_shape_values(
     lblk: Block, rblk: Block, left_ea: bool, right_ea: bool
-) -> Tuple[ArrayLike, ArrayLike]:
+) -> tuple[ArrayLike, ArrayLike]:
     """
     Slice lblk.values to align with rblk.  Squeeze if we have EAs.
     """

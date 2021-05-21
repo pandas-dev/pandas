@@ -15,10 +15,10 @@ dependencies:
   # pandas dependencies
   - botocore>=1.11
   - fsspec>=0.7.4
-  - numpy
+  - numpy=1.19
   - python-dateutil
   - nomkl
-  - pyarrow=0.15.1
+  - pyarrow
   - pytz
   - s3fs>=0.4.0
   - moto>=1.3.14
