@@ -568,16 +568,26 @@ def test_replace_regex_default_warning(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_replace_regex_default_warning_single_character(any_string_dtype):
+@pytest.mark.parametrize("regex", [True, False, None])
+def test_replace_regex_single_character(regex, any_string_dtype):
     # https://github.com/pandas-dev/pandas/pull/24809
+
+    # The current behavior is to treat single character patterns as literal strings,
+    # even when ``regex`` is set to ``True``.
+
     s = Series(["a.b", ".", "b", np.nan, ""], dtype=any_string_dtype)
-    msg = re.escape(
-        "The default value of regex will change from True to False in a "
-        "future version. In addition, single character regular expressions will *not* "
-        "be treated as literal strings when regex=True."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.str.replace(".", "a")
+
+    if regex is None:
+        msg = re.escape(
+            "The default value of regex will change from True to False in a "
+            "future version. In addition, single character regular expressions will *not* "
+            "be treated as literal strings when regex=True."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.str.replace(".", "a", regex=regex)
+    else:
+        result = s.str.replace(".", "a", regex=regex)
+
     expected = Series(["aab", "a", "b", np.nan, ""], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
