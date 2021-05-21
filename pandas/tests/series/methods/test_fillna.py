@@ -748,6 +748,18 @@ class TestSeriesFillNA:
         expected = Series([ser[0], ts, ser[2]], dtype=object)
         tm.assert_series_equal(result, expected)
 
+    def test_fillna_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        srs = Series([1, 2, 3, np.nan], dtype=float)
+        msg = (
+            r"In a future version of pandas all arguments of Series.fillna "
+            r"except for the argument 'value' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = srs.fillna(0, None, None)
+        expected = Series([1, 2, 3, 0], dtype=float)
+        tm.assert_series_equal(result, expected)
+
 
 class TestFillnaPad:
     def test_fillna_bug(self):
