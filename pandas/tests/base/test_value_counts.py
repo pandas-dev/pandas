@@ -43,7 +43,8 @@ def test_value_counts(index_or_series_obj):
 
 
 @pytest.mark.parametrize("null_obj", [np.nan, None])
-def test_value_counts_null(null_obj, index_or_series_obj):
+@pytest.mark.parametrize("dropna", [True, False])
+def test_value_counts_null(null_obj, dropna, index_or_series_obj):
     orig = index_or_series_obj
     obj = orig.copy()
 
@@ -70,20 +71,14 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     expected = Series(dict(counter.most_common()), dtype=np.int64)
     expected.index = expected.index.astype(obj.dtype)
 
-    result = obj.value_counts()
-    if obj.duplicated().any():
-        # TODO:
-        #  Order of entries with the same count is inconsistent on CI (gh-32449)
-        expected = expected.sort_index()
-        result = result.sort_index()
-    tm.assert_series_equal(result, expected)
+    if not dropna:
+        # can't use expected[null_obj] = 3 as
+        # IntervalIndex doesn't allow assignment
+        new_entry = Series({np.nan: 3}, dtype=np.int64)
+        expected = expected.append(new_entry)
 
-    # can't use expected[null_obj] = 3 as
-    # IntervalIndex doesn't allow assignment
-    new_entry = Series({np.nan: 3}, dtype=np.int64)
-    expected = expected.append(new_entry)
+    result = obj.value_counts(dropna=dropna)
 
-    result = obj.value_counts(dropna=False)
     if obj.duplicated().any():
         # TODO:
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
