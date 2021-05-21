@@ -11,6 +11,7 @@ from typing import (
     Hashable,
     Sequence,
 )
+import warnings
 
 import numpy as np
 import numpy.ma as ma
@@ -772,6 +773,16 @@ def to_arrays(
         return [], ensure_index([])
 
     elif isinstance(data[0], Categorical):
+        # GH#38845 deprecate special case
+        warnings.warn(
+            "The behavior of DataFrame([categorical, ...]) is deprecated and "
+            "in a future version will be changed to match the behavior of "
+            "DataFrame([any_listlike, ...]). "
+            "To retain the old behavior, pass as a dictionary "
+            "DataFrame({col: categorical, ..})",
+            FutureWarning,
+            stacklevel=4,
+        )
         if columns is None:
             columns = ibase.default_index(len(data))
         return data, columns
