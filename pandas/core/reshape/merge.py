@@ -27,7 +27,6 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     IndexLabel,
     Suffixes,
 )
@@ -81,15 +80,15 @@ from pandas.core.internals import concatenate_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import DataFrame, Series
     from pandas.core.arrays import DatetimeArray
 
 
 @Substitution("\nleft : DataFrame or named Series")
 @Appender(_merge_doc, indents=0)
 def merge(
-    left: FrameOrSeriesUnion,
-    right: FrameOrSeriesUnion,
+    left: DataFrame | Series,
+    right: DataFrame | Series,
     how: str = "inner",
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
@@ -322,8 +321,8 @@ def merge_ordered(
 
 
 def merge_asof(
-    left: FrameOrSeriesUnion,
-    right: FrameOrSeriesUnion,
+    left: DataFrame | Series,
+    right: DataFrame | Series,
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
@@ -608,8 +607,8 @@ class _MergeOperation:
 
     def __init__(
         self,
-        left: FrameOrSeriesUnion,
-        right: FrameOrSeriesUnion,
+        left: DataFrame | Series,
+        right: DataFrame | Series,
         how: str = "inner",
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
@@ -1599,8 +1598,8 @@ class _OrderedMerge(_MergeOperation):
 
     def __init__(
         self,
-        left: FrameOrSeriesUnion,
-        right: FrameOrSeriesUnion,
+        left: DataFrame | Series,
+        right: DataFrame | Series,
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
@@ -1704,8 +1703,8 @@ class _AsOfMerge(_OrderedMerge):
 
     def __init__(
         self,
-        left: FrameOrSeriesUnion,
-        right: FrameOrSeriesUnion,
+        left: DataFrame | Series,
+        right: DataFrame | Series,
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
