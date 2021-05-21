@@ -2684,3 +2684,13 @@ class TestLocSeries:
         expected = DataFrame({"A": ["newA", "def"], "B": ["newB", "jkl"]}, dtype=dtype)
 
         tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_dict_timedelta_multple_set(self):
+        # GH 16309
+        result = DataFrame(columns=["time", "value"])
+        result.loc[1] = {"time": Timedelta(6, unit="s"), "value": "foo"}
+        result.loc[1] = {"time": Timedelta(6, unit="s"), "value": "foo"}
+        expected = DataFrame(
+            [[Timedelta(6, unit="s"), "foo"]], columns=["time", "value"], index=[1]
+        )
+        tm.assert_frame_equal(result, expected)
