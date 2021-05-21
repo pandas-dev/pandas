@@ -31,7 +31,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     conversion,
-    ints_to_pydatetime,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
@@ -1679,18 +1678,13 @@ def maybe_cast_to_datetime(
                             raise
                         pass
 
-        # coerce datetimelike to object
-        elif is_datetime64_dtype(vdtype) and not is_datetime64_dtype(dtype):
-            if is_object_dtype(dtype):
-                value = cast(np.ndarray, value)
-
-                if value.dtype != DT64NS_DTYPE:
-                    value = value.astype(DT64NS_DTYPE)
-                ints = np.asarray(value).view("i8")
-                return ints_to_pydatetime(ints)
-
-            # we have a non-castable dtype that was passed
-            raise TypeError(f"Cannot cast datetime64 to {dtype}")
+        elif getattr(vdtype, "kind", None) in ["m", "M"]:
+            # we are already datetimelike and want to coerce to non-datetimelike;
+            #  astype_nansafe will raise for anything other than object, then upcast.
+            #  see test_datetimelike_values_with_object_dtype
+            # error: Argument 2 to "astype_nansafe" has incompatible type
+            # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
+            return astype_nansafe(value, dtype)  # type: ignore[arg-type]
 
     elif isinstance(value, np.ndarray):
         if value.dtype.kind in ["M", "m"]:

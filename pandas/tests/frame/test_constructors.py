@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
+    PandasDtype,
     PeriodDtype,
 )
 
@@ -110,6 +111,40 @@ class TestDataFrameConstructors:
         )
         with pytest.raises(ValueError, match=msg):
             frame_or_series(arr, dtype="m8[ns]")
+
+    @pytest.mark.parametrize("kind", ["m", "M"])
+    def test_datetimelike_values_with_object_dtype(self, kind, frame_or_series):
+        # with dtype=object, we should cast dt64 values to Timestamps, not pydatetimes
+        if kind == "M":
+            dtype = "M8[ns]"
+            scalar_type = Timestamp
+        else:
+            dtype = "m8[ns]"
+            scalar_type = Timedelta
+
+        arr = np.arange(6, dtype="i8").view(dtype).reshape(3, 2)
+        if frame_or_series is Series:
+            arr = arr[:, 0]
+
+        obj = frame_or_series(arr, dtype=object)
+        assert obj._mgr.arrays[0].dtype == object
+        assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
+
+        # go through a different path in internals.construction
+        obj = frame_or_series(frame_or_series(arr), dtype=object)
+        assert obj._mgr.arrays[0].dtype == object
+        assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
+
+        obj = frame_or_series(frame_or_series(arr), dtype=PandasDtype(object))
+        assert obj._mgr.arrays[0].dtype == object
+        assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
+
+        if frame_or_series is DataFrame:
+            # other paths through internals.construction
+            sers = [Series(x) for x in arr]
+            obj = frame_or_series(sers, dtype=object)
+            assert obj._mgr.arrays[0].dtype == object
+            assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
 
     def test_series_with_name_not_matching_column(self):
         # GH#9232
