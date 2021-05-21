@@ -252,6 +252,8 @@ class Grouper:
     axis: int
     sort: bool
     dropna: bool
+    _gpr_index: Index | None
+    _grouper: Index | None
 
     _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
 
@@ -279,6 +281,7 @@ class Grouper:
         self.sort = sort
 
         self.grouper = None
+        self._gpr_index = None
         self.obj = None
         self.indexer = None
         self.binner = None
@@ -288,8 +291,11 @@ class Grouper:
 
     @final
     @property
-    def ax(self):
-        return self.grouper
+    def ax(self) -> Index:
+        index = self._gpr_index
+        if index is None:
+            raise ValueError("_set_grouper must be called before ax is accessed")
+        return index
 
     def _get_grouper(self, obj: FrameOrSeries, validate: bool = True):
         """
@@ -317,6 +323,7 @@ class Grouper:
             validate=validate,
             dropna=self.dropna,
         )
+
         return self.binner, self.grouper, self.obj
 
     @final
@@ -338,14 +345,17 @@ class Grouper:
 
         # Keep self.grouper value before overriding
         if self._grouper is None:
-            self._grouper = self.grouper
+            # TODO: What are we assuming about subsequent calls?
+            self._grouper = self._gpr_index
             self._indexer = self.indexer
 
         # the key must be a valid info item
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
-            if getattr(self.grouper, "name", None) == key and isinstance(obj, Series):
+            if getattr(self._gpr_index, "name", None) == key and isinstance(
+                obj, Series
+            ):
                 # Sometimes self._grouper will have been resorted while
                 # obj has not. In this case there is a mismatch when we
                 # call self._grouper.take(obj.index) so we need to undo the sorting
@@ -390,10 +400,8 @@ class Grouper:
         # error: Incompatible types in assignment (expression has type
         # "FrameOrSeries", variable has type "None")
         self.obj = obj  # type: ignore[assignment]
-        # error: Incompatible types in assignment (expression has type "Index",
-        # variable has type "None")
-        self.grouper = ax  # type: ignore[assignment]
-        return self.grouper
+        self._gpr_index = ax
+        return self._gpr_index
 
     @final
     @property
