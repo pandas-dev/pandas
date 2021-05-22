@@ -1088,11 +1088,11 @@ class TestStyler:
         assert head == expected
 
     def test_hide_column_headers(self):
-        ctx = self.styler.hide_columns()._translate()
+        ctx = self.styler.hide_columns()._translate(True, True)
         assert len(ctx["head"]) == 0  # no header entries with an unnamed index
 
         self.df.index.name = "some_name"
-        ctx = self.df.style.hide_columns()._translate()
+        ctx = self.df.style.hide_columns()._translate(True, True)
         assert len(ctx["head"]) == 1  # only a single row for index names: no col heads
 
     def test_hide_single_index(self):
