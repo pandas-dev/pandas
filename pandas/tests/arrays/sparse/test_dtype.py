@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.compat import PY310
 from pandas.core.arrays.sparse import SparseDtype
 
 
