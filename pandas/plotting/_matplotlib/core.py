@@ -143,7 +143,7 @@ class MPLPlot:
         if self.by and column is None:
             self.columns = [col for col in data.columns if col not in self.by]
         else:
-            self.columns = com.convert_to_list_like(column)
+            self.columns = com.maybe_make_list(column)
 
         self.kind = kind
 
