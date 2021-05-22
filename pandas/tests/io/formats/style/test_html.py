@@ -36,7 +36,7 @@ def test_html_template_extends_options():
 
 
 def test_exclude_styles(styler):
-    result = styler.to_html(exclude_styles=True)
+    result = styler.to_html(exclude_styles=True, doctype_html=True)
     expected = dedent(
         """\
         <!DOCTYPE html>
@@ -136,7 +136,7 @@ def test_rowspan_w3():
 def test_styles(styler):
     styler.set_uuid("abc_")
     styler.set_table_styles([{"selector": "td", "props": "color: red;"}])
-    result = styler.to_html()
+    result = styler.to_html(doctype_html=True)
     expected = dedent(
         """\
         <!DOCTYPE html>

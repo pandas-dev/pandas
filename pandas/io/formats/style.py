@@ -413,7 +413,7 @@ class Styler(StylerRenderer):
         table_uuid: str | None = None,
         table_attributes: str | None = None,
         encoding: str | None = None,
-        doctype_html: bool = True,
+        doctype_html: bool = False,
         exclude_styles: bool = False,
     ):
         """
@@ -440,7 +440,7 @@ class Styler(StylerRenderer):
         encoding : str, optional
             Character encoding setting for file output, and HTML meta tags,
             defaults to "utf-8" if None.
-        doctype_html : bool, default True
+        doctype_html : bool, default False
             Whether to output a fully structured HTML file including all
             HTML elements, or just the core ``<style>`` and ``<table>`` elements.
         exclude_styles : bool, default False
