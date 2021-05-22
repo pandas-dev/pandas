@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Hashable,
-    Optional
 )
 import warnings
 
@@ -127,7 +126,7 @@ class MPLPlot:
         table=False,
         layout=None,
         include_bool=False,
-        column: Optional[IndexLabel] = None,
+        column: IndexLabel | None = None,
         **kwds,
     ):
 
