@@ -9,7 +9,10 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
-from pandas.compat import np_array_datetime64_compat
+from pandas.compat import (
+    np_array_datetime64_compat,
+    PY310,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -783,6 +786,7 @@ class TestUnique:
         expected = np.array([np.nan])
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
     def test_first_nan_kept(self):
         # GH 22295
         # create different nans from bit-patterns:
@@ -988,6 +992,7 @@ class TestIsin:
         # different objects -> False
         tm.assert_numpy_array_equal(algos.isin([a], [b]), np.array([False]))
 
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10)
     def test_different_nans(self):
         # GH 22160
         # all nans are handled as equivalent
@@ -1030,6 +1035,7 @@ class TestIsin:
         result = algos.isin(vals, empty)
         tm.assert_numpy_array_equal(expected, result)
 
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10)
     def test_different_nan_objects(self):
         # GH 22119
         comps = np.array(["nan", np.nan * 1j, float("nan")], dtype=object)
