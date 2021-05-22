@@ -135,15 +135,25 @@ class MPLPlot:
         self.data = data
         self.by = com.maybe_make_list(by)
 
-        if self.by:
-            self._grouped_data_size = len(data.groupby(self.by))
-
         # Assign the rest of columns into self.columns if by is explicitly defined
         # while column is not, so as to keep the same behaviour with current df.hist
+        # or df.boxplot.
         if self.by and column is None:
-            self.columns = [col for col in data.columns if col not in self.by]
+            self.columns = [
+                col
+                for col in data.columns
+                if col not in self.by and is_numeric_dtype(data[col])
+            ]
         else:
             self.columns = com.maybe_make_list(column)
+
+        # When `by` is explicitly assigned, grouped data size will be defined, and
+        # this will determine number of subplots to have, aka the size of `self.axes`
+        if self.by:
+            if self._kind == "hist":
+                self._grouped_data_size = len(data.groupby(self.by))
+            elif self._kind == "box":
+                self._grouped_data_size = len(self.columns)
 
         self.kind = kind
 

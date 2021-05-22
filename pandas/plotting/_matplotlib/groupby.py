@@ -22,7 +22,7 @@ from pandas import (
 
 
 def create_iter_data_given_by(
-    data: DataFrame, by: Optional[IndexLabel] = None
+    data: DataFrame, by: Optional[IndexLabel] = None, kind: str = "hist"
 ) -> Union[DataFrame, Dict[str, FrameOrSeriesUnion]]:
     """
     Create data for iteration given `by` is assigned or not, and it is only
@@ -35,8 +35,9 @@ def create_iter_data_given_by(
 
     Parameters
     ----------
-    data: reformatted grouped data from `_compute_plot_data` method
+    data: reformatted grouped data from `_compute_plot_data` method.
     by: list or None, value assigned to `by`.
+    kind: str, plot kind. This function is only used for `hist` and `box` plots.
 
     Returns
     -------
@@ -56,15 +57,23 @@ def create_iter_data_given_by(
     {'h1': DataFrame({'a': [1, 3, np.nan], 'b': [3, 4, np.nan]}),
      'h2': DataFrame({'a': [np.nan, np.nan, 5], 'b': [np.nan, np.nan, 6]})}
     """
+    if kind == "hist":
+        level = 0
+    elif kind == "box":
+        level = 1
+    else:
+        raise ValueError("This function is only used for hist and box plot")
+
     iter_data: Union[DataFrame, Dict[str, FrameOrSeriesUnion]]
     if not by:
         iter_data = data
     else:
         # Select sub-columns based on the value of first level of MI
         assert isinstance(data.columns, MultiIndex)
-        cols = data.columns.levels[0]
+        cols = data.columns.levels[level]
         iter_data = {
-            col: data.loc[:, data.columns.get_level_values(0) == col] for col in cols
+            col: data.loc[:, data.columns.get_level_values(level) == col]
+            for col in cols
         }
     return iter_data
 
