@@ -148,7 +148,7 @@ class MPLPlot:
             self.columns = com.maybe_make_list(column)
 
         # When `by` is explicitly assigned, grouped data size will be defined, and
-        # this will determine number of subplots to have, aka the size of `self.axes`
+        # this will determine number of subplots to have, aka `self.nseries`
         if self.by:
             if self._kind == "hist":
                 self._grouped_data_size = len(data.groupby(self.by))
