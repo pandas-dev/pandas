@@ -1,7 +1,5 @@
 from typing import (
     Dict,
-    List,
-    Optional,
     Union,
 )
 
@@ -23,7 +21,7 @@ from pandas import (
 
 
 def create_iter_data_given_by(
-    data: DataFrame, by: Optional[List[IndexLabel]]
+    data: DataFrame, by: IndexLabel | None = None
 ) -> Union[DataFrame, Dict[str, FrameOrSeriesUnion]]:
     """
     Create data for iteration given `by` is assigned or not, and it is only
@@ -71,7 +69,7 @@ def create_iter_data_given_by(
 
 
 def reconstruct_data_with_by(
-    data: DataFrame, by: Union[IndexLabel, List[IndexLabel]], cols: List[IndexLabel]
+    data: DataFrame, by: IndexLabel, cols: IndexLabel
 ) -> DataFrame:
     """
     Internal function to group data, and reassign multiindex column names onto the
@@ -114,8 +112,8 @@ def reconstruct_data_with_by(
 
 
 def reformat_hist_y_given_by(
-    y: Union[Series, np.array], by: Optional[Union[IndexLabel, List[IndexLabel]]]
-) -> Union[Series, np.array]:
+    y: Union[Series, np.ndarray], by: IndexLabel | None = None
+) -> Union[Series, np.ndarray]:
     """Internal function to reformat y given `by` is applied or not for hist plot.
 
     If by is None, input y is 1-d with NaN removed; and if by is not None, groupby

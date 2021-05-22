@@ -63,7 +63,7 @@ class HistPlot(LinePlot):
         if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
 
-    def _calculate_bins(self, data: DataFrame) -> np.array:
+    def _calculate_bins(self, data: DataFrame) -> np.ndarray:
         """Calculate bins given data"""
         values = data._convert(datetime=True)._get_numeric_data()
         values = np.ravel(values)
