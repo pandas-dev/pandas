@@ -7,6 +7,7 @@ from operator import (
 )
 import textwrap
 from typing import (
+    Callable,
     Sequence,
     TypeVar,
     cast,
@@ -607,9 +608,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 """\
         Examples
         --------
-        >>> pd.IntervalIndex.from_strings(["(0, 1]", "(1, 2]"])
-        IntervalIndex([(0, 1], (1, 2]],
-                       dtype='interval[int64, right]')
+        >>> pd.IntervalIndex.from_strings(["(0.0, 1.0]", "(1.0, 2.0]"])
+        IntervalIndex([(0.0, 1.0], (1.0, 2.0]],
+                       dtype='interval[float64, right]')
         """
             ),
         }
@@ -643,8 +644,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     f"Delimiter ', ' (comma + space) not found in string: {string}"
                 )
 
+            conversions: list[Callable] = [float, to_datetime, to_timedelta]
             # Try to parse the breaks first as floats, then datetime, then timedelta.
-            for conversion in [float, to_datetime, to_timedelta]:
+            for conversion in conversions:
                 try:
                     interval = Interval(*map(conversion, breaks))
                     break
