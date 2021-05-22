@@ -90,7 +90,9 @@ class TestHistWithBy(TestPlotBase):
         # GH 15079
         axes = _check_plot_works(self.hist_df.plot.hist, column=column, by=by)
         result_titles = [ax.get_title() for ax in axes]
-        result_legends = [[l.get_text() for l in ax.get_legend().texts] for ax in axes]
+        result_legends = [
+            [legend.get_text() for legend in ax.get_legend().texts] for ax in axes
+        ]
 
         assert result_legends == legends
         assert result_titles == titles
@@ -238,7 +240,7 @@ class TestBoxWithBy(TestPlotBase):
         axes = _check_plot_works(self.box_df.plot.box, column=column, by=by)
         result_titles = [ax.get_title() for ax in axes]
         result_xticklabels = [
-            [i.get_text() for i in ax.get_xticklabels()] for ax in axes
+            [label.get_text() for label in ax.get_xticklabels()] for ax in axes
         ]
 
         assert result_xticklabels == xticklabels
