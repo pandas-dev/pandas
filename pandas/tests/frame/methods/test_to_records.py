@@ -191,7 +191,7 @@ class TestDataFrameToRecords:
                         [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                         dtype=[("index", "<i8"), ("A", "<U"), ("B", "<U"), ("C", "<U")],
                     ),
-                    marks=pytest.marks.xfail(PY310, reason="Failing on Python 3.10"),
+                    marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10"),
                 )
             ),
             # Pass in a dictionary (name-only).
