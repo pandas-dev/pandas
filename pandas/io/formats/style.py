@@ -419,6 +419,8 @@ class Styler(StylerRenderer):
         """
         Write Styler to a file, buffer or string in HTML-CSS format.
 
+        .. versionadded:: 1.3.0
+
         Parameters
         ----------
         buf : str, Path, or StringIO-like, optional, default None
@@ -450,6 +452,10 @@ class Styler(StylerRenderer):
         -------
         str or None
             If `buf` is None, returns the result as a string. Otherwise returns `None`.
+
+        See Also
+        --------
+        DataFrame.to_html: Write a DataFrame to a file, buffer or string in HTML format.
         """
         if table_uuid:
             self.set_uuid(table_uuid)
