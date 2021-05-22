@@ -101,7 +101,7 @@ class MPLPlot:
         self,
         data,
         kind=None,
-        by=None,
+        by: IndexLabel | None = None,
         subplots=False,
         sharex=None,
         sharey=False,
