@@ -49,6 +49,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_sparse,
@@ -304,10 +305,13 @@ class WrappedCythonOp:
                 return np.dtype(np.int64)
             elif isinstance(dtype, (BooleanDtype, _IntegerDtype)):
                 return Int64Dtype()
-        elif how in ["mean", "median", "var"] and isinstance(
-            dtype, (BooleanDtype, _IntegerDtype)
-        ):
-            return Float64Dtype()
+        elif how in ["mean", "median", "var"]:
+            if isinstance(dtype, (BooleanDtype, _IntegerDtype)):
+                return Float64Dtype()
+            elif is_float_dtype(dtype):
+                return dtype
+            elif is_numeric_dtype(dtype):
+                return np.dtype(np.float64)
         return dtype
 
     def uses_mask(self) -> bool:
@@ -678,7 +682,7 @@ class BaseGrouper:
 
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
-        self.sort = sort
+        self._sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
@@ -734,7 +738,7 @@ class BaseGrouper:
         We have a specific method of grouping, so cannot
         convert to a Index for our grouper.
         """
-        return self.groupings[0].grouper
+        return self.groupings[0].grouping_vector
 
     @final
     def _get_group_keys(self):
@@ -858,7 +862,7 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = zip(*(ping.grouper for ping in self.groupings))
+            to_groupby = zip(*(ping.grouping_vector for ping in self.groupings))
             index = Index(to_groupby)
             return self.axis.groupby(index)
 
@@ -891,7 +895,7 @@ class BaseGrouper:
     def _get_compressed_codes(self) -> tuple[np.ndarray, np.ndarray]:
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
-            return compress_group_index(group_index, sort=self.sort)
+            return compress_group_index(group_index, sort=self._sort)
 
         ping = self.groupings[0]
         return ping.codes, np.arange(len(ping.group_index))
@@ -908,6 +912,19 @@ class BaseGrouper:
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
 
     @cache_readonly
+    def result_arraylike(self) -> ArrayLike:
+        """
+        Analogous to result_index, but returning an ndarray/ExtensionArray
+        allowing us to retain ExtensionDtypes not supported by Index.
+        """
+        # TODO: once Index supports arbitrary EAs, this can be removed in favor
+        #  of result_index
+        if len(self.groupings) == 1:
+            return self.groupings[0].group_arraylike
+
+        return self.result_index._values
+
+    @cache_readonly
     def result_index(self) -> Index:
         if len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
@@ -919,7 +936,7 @@ class BaseGrouper:
         )
 
     @final
-    def get_group_levels(self) -> list[Index]:
+    def get_group_levels(self) -> list[ArrayLike]:
         # Note: only called from _insert_inaxis_grouper_inplace, which
         #  is only called for BaseGrouper, never for BinGrouper
         if len(self.groupings) == 1:
