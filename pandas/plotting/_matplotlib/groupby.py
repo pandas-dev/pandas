@@ -11,7 +11,10 @@ from pandas._typing import (
     IndexLabel,
 )
 
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+    remove_na_arraylike,
+)
 
 from pandas import (
     DataFrame,
@@ -121,8 +124,7 @@ def reformat_hist_y_given_by(
     will take place and input y is multi-dimensional array.
     """
     if by is not None and len(y.shape) > 1:
-        notna = [col[~isna(col)] for col in y.T]
-        y = np.array(np.array(notna).T)
+        y = np.array([remove_na_arraylike(col) for col in y.T]).T
     else:
-        y = y[~isna(y)]
+        y = remove_na_arraylike(y)
     return y
