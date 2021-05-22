@@ -252,10 +252,7 @@ class NumericIndex(Index):
     @cache_readonly
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
-        if is_float_dtype(self.dtype):
-            return False
-        else:
-            return super()._should_fallback_to_positional()
+        return False
 
     @doc(Index._convert_slice_indexer)
     def _convert_slice_indexer(self, key: slice, kind: str):
