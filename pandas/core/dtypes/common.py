@@ -58,21 +58,6 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_sequence,
 )
 
-POSSIBLY_CAST_DTYPES = {
-    np.dtype(t).name
-    for t in [
-        "O",
-        "int8",
-        "uint8",
-        "int16",
-        "uint16",
-        "int32",
-        "uint32",
-        "int64",
-        "uint64",
-    ]
-}
-
 DT64NS_DTYPE = conversion.DT64NS_DTYPE
 TD64NS_DTYPE = conversion.TD64NS_DTYPE
 INT64_DTYPE = np.dtype(np.int64)
