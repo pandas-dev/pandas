@@ -663,6 +663,7 @@ def _try_cast(
     if dtype is None:
         # perf shortcut as this is the most common case
         if is_ndarray:
+            arr = cast(np.ndarray, arr)
             if arr.dtype != object:
                 return sanitize_to_nanoseconds(arr, copy=copy)
 
