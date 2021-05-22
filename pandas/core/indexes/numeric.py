@@ -106,7 +106,7 @@ class NumericIndex(Index):
         else:
             return False
 
-    @cache_readonly
+    @property
     def _engine_type(self):
         return {
             np.int8: libindex.Int8Engine,
@@ -228,7 +228,10 @@ class NumericIndex(Index):
 
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
-        return False
+        if is_float_dtype(self.dtype):
+            return False
+        else:
+            return super()._should_fallback_to_positional()
 
     @doc(Index._convert_slice_indexer)
     def _convert_slice_indexer(self, key: slice, kind: str):
