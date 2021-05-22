@@ -8,6 +8,8 @@ from itertools import permutations
 import numpy as np
 import pytest
 
+from pandas.compat import PY310
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -458,6 +460,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, float_frame)
         assert result is not float_frame
 
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
     def test_reindex_nan(self):
         df = DataFrame(
             [[1, 2], [3, 5], [7, 11], [9, 23]],
