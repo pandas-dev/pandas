@@ -12,9 +12,13 @@ import pandas._testing as tm
 
 class TestCategoricalIndexConstructors:
     def test_construction_disallows_scalar(self):
-        msg = "must be called with a collection of some kind"
-        with pytest.raises(TypeError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match="without passing data"):
             CategoricalIndex(categories=list("abcd"), ordered=False)
+
+        # Once the deprecation is enforced, we can revert the test to
+        # msg = "must be called with a collection of some kind"
+        # with pytest.raises(TypeError, match=msg):
+        #    CategoricalIndex(categories=list("abcd"), ordered=False)
 
     def test_construction(self):
 
