@@ -200,7 +200,7 @@ def test_multiindex_columns(df):
         """
     )
     s = df.style.format(precision=2)
-    assert expected == s.to_latex(sparsify=False)
+    assert expected == s.to_latex(sparse_columns=False)
 
 
 def test_multiindex_row(df):
@@ -232,7 +232,7 @@ def test_multiindex_row(df):
         \\end{tabular}
         """
     )
-    assert expected == s.to_latex(sparsify=False)
+    assert expected == s.to_latex(sparse_index=False)
 
 
 def test_multiindex_row_and_col(df):
@@ -267,7 +267,7 @@ def test_multiindex_row_and_col(df):
         \\end{tabular}
         """
     )
-    assert s.to_latex(sparsify=False) == expected
+    assert s.to_latex(sparse_index=False, sparse_columns=False) == expected
 
 
 def test_multiindex_columns_hidden():

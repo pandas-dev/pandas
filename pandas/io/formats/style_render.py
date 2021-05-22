@@ -119,13 +119,13 @@ class StylerRenderer:
         d.update(kwargs)
         return self.template_html.render(**d)
 
-    def _render_latex(self, **kwargs) -> str:
+    def _render_latex(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
         """
         Render a Styler in latex format
         """
         self._compute()
 
-        d = self._translate(blank="")
+        d = self._translate(sparse_index, sparse_columns, blank="")
         self._translate_latex(d)
 
         self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
@@ -151,7 +151,7 @@ class StylerRenderer:
             r = func(self)(*args, **kwargs)
         return r
 
-    def _translate(self, sparse_index: bool, sparse_cols: bool, blank: str = "&nbsp"):
+    def _translate(self, sparse_index: bool, sparse_cols: bool, blank: str = "&nbsp;"):
         """
         Process Styler data and settings into a dict for template rendering.
 

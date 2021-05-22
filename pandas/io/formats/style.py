@@ -417,7 +417,8 @@ class Styler(StylerRenderer):
         hrules: bool = False,
         label: str | None = None,
         caption: str | None = None,
-        sparsify: bool | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
         multirow_align: str = "c",
         multicol_align: str = "r",
         siunitx: bool = False,
@@ -458,9 +459,14 @@ class Styler(StylerRenderer):
             This is used with \\ref{<label>} in the main .tex file.
         caption : str, optional
             The LaTeX table caption included as: \\caption{<caption>}.
-        sparsify : bool, optional
-            Set to ``False`` to print every item of a hierarchical MultiIndex. Defaults
-            to the pandas ``multi_sparse`` display option.
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.columns`` value.
         multirow_align : {"c", "t", "b"}
             If sparsifying hierarchical MultiIndexes whether to align text centrally,
             at the top or bottom.
@@ -719,15 +725,17 @@ class Styler(StylerRenderer):
         if caption:
             self.set_caption(caption)
 
-        if sparsify is not None:
-            with pd.option_context("display.multi_sparse", sparsify):
-                latex = self._render_latex(
-                    multirow_align=multirow_align, multicol_align=multicol_align
-                )
-        else:
-            latex = self._render_latex(
-                multirow_align=multirow_align, multicol_align=multicol_align
-            )
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+
+        latex = self._render_latex(
+            sparse_index=sparse_index,
+            sparse_columns=sparse_columns,
+            multirow_align=multirow_align,
+            multicol_align=multicol_align,
+        )
 
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
