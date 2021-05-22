@@ -4499,14 +4499,9 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(value, Series):
             return _reindex_for_setitem(value, self.index)
 
-        elif len(self) or not is_list_like(value):
-            if is_list_like(value):
-                com.require_length_match(value, self.index)
-            return sanitize_array(value, self.index, copy=True, allow_2d=True)
-
-        else:
+        if is_list_like(value):
             com.require_length_match(value, self.index)
-            return sanitize_array(value, None, copy=True, allow_2d=True)
+        return sanitize_array(value, self.index, copy=True, allow_2d=True)
 
     @property
     def _series(self):
