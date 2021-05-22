@@ -45,7 +45,6 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
-    POSSIBLY_CAST_DTYPES,
     TD64NS_DTYPE,
     ensure_int8,
     ensure_int16,
@@ -58,7 +57,6 @@ from pandas.core.dtypes.common import (
     is_complex,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
@@ -73,7 +71,6 @@ from pandas.core.dtypes.common import (
     is_sparse,
     is_string_dtype,
     is_timedelta64_dtype,
-    is_timedelta64_ns_dtype,
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
@@ -1477,20 +1474,6 @@ def convert_dtypes(
         inferred_dtype = input_array.dtype
 
     return inferred_dtype
-
-
-def maybe_castable(dtype: np.dtype) -> bool:
-    # return False to force a non-fastpath
-
-    # check datetime64[ns]/timedelta64[ns] are valid
-    # otherwise try to coerce
-    kind = dtype.kind
-    if kind == "M":
-        return is_datetime64_ns_dtype(dtype)
-    elif kind == "m":
-        return is_timedelta64_ns_dtype(dtype)
-
-    return dtype.name not in POSSIBLY_CAST_DTYPES
 
 
 def maybe_infer_to_datetimelike(
