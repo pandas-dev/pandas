@@ -1590,10 +1590,8 @@ def maybe_cast_to_datetime(
     if is_timedelta64_dtype(dtype):
         # TODO: _from_sequence would raise ValueError in cases where
         #  ensure_nanosecond_dtype raises TypeError
-        # Argument 1 to "ensure_nanosecond_dtype" has incompatible type
-        # "Optional[Union[dtype[Any], ExtensionDtype]]"; expected
-        # "Union[dtype[Any], ExtensionDtype]"
-        dtype = ensure_nanosecond_dtype(dtype)  # type: ignore[arg-type]
+        dtype = cast(np.dtype, dtype)
+        dtype = ensure_nanosecond_dtype(dtype)
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
 
