@@ -3378,10 +3378,7 @@ class Table(Fixed):
     @property
     def nrows_expected(self) -> int:
         """ based on our axes, compute the expected nrows """
-        # error: Incompatible return value type (got "number", expected "int")
-        return np.prod(  # type: ignore[return-value]
-            [i.cvalues.shape[0] for i in self.index_axes]
-        )
+        return np.prod([i.cvalues.shape[0] for i in self.index_axes])
 
     @property
     def is_exists(self) -> bool:
@@ -4571,7 +4568,7 @@ class AppendableFrameTable(AppendableTable):
                 df = DataFrame(values, columns=cols_, index=index_)
             else:
                 # Categorical
-                df = DataFrame([values], columns=cols_, index=index_)
+                df = DataFrame._from_arrays([values], columns=cols_, index=index_)
             assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
             frames.append(df)
 
