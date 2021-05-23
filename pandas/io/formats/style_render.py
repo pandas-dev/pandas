@@ -107,14 +107,14 @@ class StylerRenderer:
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
 
-    def _render_html(self, **kwargs) -> str:
+    def _render_html(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
         """
         Renders the ``Styler`` including all applied styles to HTML.
         Generates a dict with necessary kwargs passed to jinja2 template.
         """
         self._compute()
         # TODO: namespace all the pandas keys
-        d = self._translate()
+        d = self._translate(sparse_index, sparse_columns)
         d.update(kwargs)
         return self.template_html.render(**d)
 
@@ -133,9 +133,7 @@ class StylerRenderer:
             r = func(self)(*args, **kwargs)
         return r
 
-    def _translate(
-        self, sparsify_index: bool | None = None, sparsify_cols: bool | None = None
-    ):
+    def _translate(self, sparse_index: bool, sparse_cols: bool):
         """
         Process Styler data and settings into a dict for template rendering.
 
@@ -144,10 +142,12 @@ class StylerRenderer:
 
         Parameters
         ----------
-        sparsify_index : bool, optional
-            Whether to sparsify the index or print all hierarchical index elements
-        sparsify_cols : bool, optional
-            Whether to sparsify the columns or print all hierarchical column elements
+        sparse_index : bool
+            Whether to sparsify the index or print all hierarchical index elements.
+            Upstream defaults are typically to `pandas.options.styler.sparse.index`.
+        sparse_cols : bool
+            Whether to sparsify the columns or print all hierarchical column elements.
+            Upstream defaults are typically to `pandas.options.styler.sparse.columns`.
 
         Returns
         -------
@@ -155,11 +155,6 @@ class StylerRenderer:
             The following structure: {uuid, table_styles, caption, head, body,
             cellstyle, table_attributes}
         """
-        if sparsify_index is None:
-            sparsify_index = get_option("display.multi_sparse")
-        if sparsify_cols is None:
-            sparsify_cols = get_option("display.multi_sparse")
-
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
         INDEX_NAME_CLASS = "index_name"
@@ -176,14 +171,14 @@ class StylerRenderer:
         }
 
         head = self._translate_header(
-            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS, sparsify_cols
+            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS, sparse_cols
         )
         d.update({"head": head})
 
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS, sparsify_index)
+        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS, sparse_index)
         d.update({"body": body})
 
         cellstyle: list[dict[str, CSSList | list[str]]] = [
@@ -417,9 +412,10 @@ class StylerRenderer:
         ----------
         formatter : str, callable, dict or None
             Object to define how values are displayed. See notes.
-        subset : IndexSlice
-            An argument to ``DataFrame.loc`` that restricts which elements
-            ``formatter`` is applied to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         na_rep : str, optional
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied.
