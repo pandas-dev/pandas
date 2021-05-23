@@ -929,19 +929,20 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        indices : list
+        indices : array-like
             Indices to be taken.
         axis : int, optional
             The axis over which to select values, always 0.
         allow_fill : bool, default True
-        fill_value : bool, default None
+        fill_value : scalar, default None
             If allow_fill=True and fill_value is not None, indices specified by
-            -1 is regarded as NA. If Index doesn't hold NA, raise ValueError.
+            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
 
         Returns
         -------
-        numpy.ndarray
-            Elements of given indices.
+        Index
+            An index formed of elements at the given indices. Will be the same
+            type as self, except for RangeIndex.
 
         See Also
         --------
@@ -950,7 +951,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+    def take(
+        self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
+    ):
         if kwargs:
             nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
