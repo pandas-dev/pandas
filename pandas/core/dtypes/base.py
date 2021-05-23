@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     TypeVar,
+    cast,
     overload,
 )
 
@@ -15,6 +16,7 @@ import numpy as np
 
 from pandas._typing import (
     DtypeObj,
+    NpDtype,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -203,7 +205,7 @@ class ExtensionDtype:
         return None
 
     @classmethod
-    def construct_array_type(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionArray]:
+    def construct_array_type(cls) -> type_t[ExtensionArray]:
         """
         Return the array type associated with this dtype.
 
@@ -216,7 +218,7 @@ class ExtensionDtype:
     @classmethod
     def construct_from_string(
         cls: type_t[ExtensionDtypeT], string: str
-    ) -> ExtensionDtype:
+    ) -> ExtensionDtypeT:
         r"""
         Construct this type from a string.
 
@@ -271,7 +273,7 @@ class ExtensionDtype:
         return cls()
 
     @classmethod
-    def is_dtype(cls: type_t[ExtensionDtypeT], dtype: object) -> bool:
+    def is_dtype(cls, dtype: object) -> bool:
         """
         Check if we match 'dtype'.
 
@@ -428,42 +430,51 @@ class Registry:
         self.dtypes.append(dtype)
 
     @overload
-    def find(self, dtype: type[ExtensionDtype]) -> ExtensionDtype:
+    def find(self, dtype: type[ExtensionDtypeT]) -> ExtensionDtypeT:
         ...
 
     @overload
-    def find(self, dtype: ExtensionDtype) -> ExtensionDtype:
+    def find(self, dtype: ExtensionDtypeT) -> ExtensionDtypeT:
         ...
 
     @overload
-    def find(self, dtype: str) -> ExtensionDtype | None:
+    def find(
+        self, dtype: NpDtype | type_t[str | float | int | complex | bool | object] | str
+    ) -> ExtensionDtype | None:
         ...
 
     def find(
-        self, dtype: type[ExtensionDtype] | ExtensionDtype | str
+        self,
+        dtype: type[ExtensionDtype]
+        | ExtensionDtype
+        | NpDtype
+        | type_t[str | float | int | complex | bool | object],
     ) -> type[ExtensionDtype] | ExtensionDtype | None:
         """
         Parameters
         ----------
-        dtype : ExtensionDtype class or instance or str
+        dtype : ExtensionDtype class or instance or str or numpy dtype or python type
 
         Returns
         -------
         return the first matching dtype, otherwise return None
         """
         if not isinstance(dtype, str):
+            dtype_type: type[ExtensionDtype] | type
             if not isinstance(dtype, type):
                 dtype_type = type(dtype)
             else:
                 dtype_type = dtype
             if issubclass(dtype_type, ExtensionDtype):
-                return dtype
+                # cast needed here as mypy doesn't know we have figured
+                # out it is an ExtensionDtype
+                return cast(ExtensionDtype, dtype)
 
             return None
 
-        for dtype_type in self.dtypes:
+        for dtype_loop in self.dtypes:
             try:
-                return dtype_type.construct_from_string(dtype)
+                return dtype_loop.construct_from_string(dtype)
             except TypeError:
                 pass
 
