@@ -1105,8 +1105,9 @@ class TestTypeInference:
         arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="D")])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
+        # non-homogeneous freqs -> mixed
         arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="M")])
-        assert lib.infer_dtype(arr, skipna=True) == "period"
+        assert lib.infer_dtype(arr, skipna=True) == "mixed"
 
     @pytest.mark.parametrize("klass", [pd.array, Series, Index])
     @pytest.mark.parametrize("skipna", [True, False])
@@ -1120,6 +1121,18 @@ class TestTypeInference:
             ]
         )
         assert lib.infer_dtype(values, skipna=skipna) == "period"
+
+        # periods but mixed freq
+        values = klass(
+            [
+                Period("2011-01-01", freq="D"),
+                Period("2011-01-02", freq="M"),
+                pd.NaT,
+            ]
+        )
+        # with pd.array this becomes PandasArray which ends up as "unknown-array"
+        exp = "unknown-array" if klass is pd.array else "mixed"
+        assert lib.infer_dtype(values, skipna=skipna) == exp
 
     def test_infer_dtype_period_mixed(self):
         arr = np.array(
@@ -1319,7 +1332,6 @@ class TestTypeInference:
             "is_date_array",
             "is_time_array",
             "is_interval_array",
-            "is_period_array",
         ],
     )
     def test_other_dtypes_for_array(self, func):
