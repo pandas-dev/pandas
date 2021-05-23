@@ -4915,13 +4915,19 @@ class Index(IndexOpsMixin, PandasObject):
             which correspond to the return values of the `asof` function
             for every element in `where`.
         """
-        locs = self._values[mask].searchsorted(where._values, side="right")
+        # error: Argument 1 to "searchsorted" of "ndarray" has incompatible type
+        # "Union[ExtensionArray, ndarray]"; expected "Union[Union[int, float, complex,
+        # str, bytes, generic], Sequence[Union[int, float, complex, str, bytes,
+        # generic]], Sequence[Sequence[Any]], _SupportsArray]"
+        # TODO: will be fixed when ExtensionArray.searchsorted() is fixed
+        locs = self._values[mask].searchsorted(
+            where._values, side="right"  # type: ignore[arg-type]
+        )
         locs = np.where(locs > 0, locs - 1, 0)
 
         result = np.arange(len(self), dtype=np.intp)[mask].take(locs)
 
-        # TODO: overload return type of ExtensionArray.__getitem__
-        first_value = cast(Any, self._values[mask.argmax()])
+        first_value = self._values[mask.argmax()]
         result[(locs == 0) & (where._values < first_value)] = -1
 
         return result

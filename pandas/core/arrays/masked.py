@@ -5,6 +5,7 @@ from typing import (
     Any,
     Sequence,
     TypeVar,
+    overload,
 )
 
 import numpy as np
@@ -135,7 +136,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 
-    def __getitem__(self, item: PositionalIndexer) -> BaseMaskedArray | Any:
+    @overload
+    def __getitem__(self, item: int | np.integer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(
+        self: BaseMaskedArrayT, item: slice | np.ndarray | list[int]
+    ) -> BaseMaskedArrayT:
+        ...
+
+    def __getitem__(
+        self: BaseMaskedArrayT, item: PositionalIndexer
+    ) -> BaseMaskedArrayT | Any:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value

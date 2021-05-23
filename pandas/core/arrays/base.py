@@ -27,7 +27,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     FillnaOptions,
-    PositionalIndexer2D,
+    PositionalIndexer,
     Shape,
 )
 from pandas.compat import set_function_name
@@ -297,10 +297,14 @@ class ExtensionArray:
         ...
 
     @overload
-    def __getitem__(self, item: slice | np.ndarray | Sequence[int]) -> ExtensionArray:
+    def __getitem__(
+        self: ExtensionArrayT, item: slice | np.ndarray | list[int]
+    ) -> ExtensionArrayT:
         ...
 
-    def __getitem__(self, item: PositionalIndexer2D) -> ExtensionArray | Any:
+    def __getitem__(
+        self: ExtensionArrayT, item: PositionalIndexer
+    ) -> ExtensionArrayT | Any:
         """
         Select a subset of self.
 
@@ -313,6 +317,8 @@ class ExtensionArray:
               integers or None
 
             * ndarray: A 1-d boolean NumPy ndarray the same length as 'self'
+
+            * list[int]:  A list of int
 
         Returns
         -------

@@ -48,6 +48,7 @@ from pandas._typing import (
     DtypeObj,
     NpDtype,
     PositionalIndexer2D,
+    PositionalIndexerTuple,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -314,7 +315,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @overload
     def __getitem__(
-        self: DatetimeLikeArrayT, item: slice | np.ndarray | Sequence[int]
+        self: DatetimeLikeArrayT,
+        item: slice | np.ndarray | list[int] | PositionalIndexerTuple,
     ) -> DatetimeLikeArrayT:
         ...
 
@@ -325,11 +327,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
         """
-        #  error: Invalid index type "Union[Union[int, integer[Any], slice,
-        # Sequence[int], ndarray], Tuple[Union[int, integer[Any], slice, Sequence[int],
-        # ndarray], Union[int, integer[Any], slice, Sequence[int], ndarray]]]" for
-        # "DatetimeLikeArrayMixin"; expected type "Union[int, integer[Any]]"
-        result = super().__getitem__(key)  # type: ignore[index]
+        # Use cast as we know we will get back a DatetimeLikeArray
+        result = cast(DatetimeLikeArrayT, super().__getitem__(key))
         if lib.is_scalar(result):
             return result
 

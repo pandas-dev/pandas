@@ -211,7 +211,6 @@ Manager2D = Union["ArrayManager", "BlockManager"]
 # TODO: add Ellipsis, see
 # https://github.com/python/typing/issues/684#issuecomment-548203158
 # https://bugs.python.org/issue41810
-PositionalIndexer = Union[int, np.integer, slice, Sequence[int], np.ndarray]
-PositionalIndexer2D = Union[
-    PositionalIndexer, Tuple[PositionalIndexer, PositionalIndexer]
-]
+PositionalIndexer = Union[int, np.integer, slice, List[int], np.ndarray]
+PositionalIndexerTuple = Tuple[PositionalIndexer, PositionalIndexer]
+PositionalIndexer2D = Union[PositionalIndexer, PositionalIndexerTuple]

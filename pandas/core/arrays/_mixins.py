@@ -16,6 +16,7 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     F,
     PositionalIndexer2D,
+    PositionalIndexerTuple,
     Shape,
     type_t,
 )
@@ -206,19 +207,20 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return value
 
     @overload
-    def __getitem__(self, item: int | np.integer) -> Any:
+    def __getitem__(self, key: int | np.integer) -> Any:
         ...
 
     @overload
     def __getitem__(
-        self: NDArrayBackedExtensionArray, item: slice | np.ndarray | Sequence[int]
+        self: NDArrayBackedExtensionArray,
+        key: slice | np.ndarray | list[int] | PositionalIndexerTuple,
     ) -> NDArrayBackedExtensionArray:
         ...
 
     def __getitem__(
-        self: NDArrayBackedExtensionArray,
+        self: NDArrayBackedExtensionArrayT,
         key: PositionalIndexer2D,
-    ) -> NDArrayBackedExtensionArray | Any:
+    ) -> NDArrayBackedExtensionArrayT | Any:
         if lib.is_integer(key):
             # fast-path
             result = self._ndarray[key]

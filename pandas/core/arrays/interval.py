@@ -10,6 +10,7 @@ from typing import (
     Sequence,
     TypeVar,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -28,6 +29,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     NpDtype,
+    PositionalIndexer,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
@@ -629,7 +631,19 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._left)
 
-    def __getitem__(self, key):
+    @overload
+    def __getitem__(self, key: int | np.integer) -> Interval:
+        ...
+
+    @overload
+    def __getitem__(
+        self: IntervalArrayT, key: slice | np.ndarray | list[int]
+    ) -> IntervalArrayT:
+        ...
+
+    def __getitem__(
+        self: IntervalArrayT, key: PositionalIndexer
+    ) -> IntervalArrayT | Interval:
         key = check_array_indexer(self, key)
         left = self._left[key]
         right = self._right[key]

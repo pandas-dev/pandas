@@ -11,6 +11,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    overload,
 )
 from warnings import (
     catch_warnings,
@@ -34,6 +35,8 @@ from pandas._typing import (
     Dtype,
     NpDtype,
     Ordered,
+    PositionalIndexer2D,
+    PositionalIndexerTuple,
     Scalar,
     Shape,
     type_t,
@@ -2015,7 +2018,20 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def __getitem__(self, key):
+    @overload
+    def __getitem__(self, key: int | np.integer) -> object:
+        ...
+
+    @overload
+    def __getitem__(
+        self: CategoricalT,
+        key: slice | np.ndarray | list[int] | PositionalIndexerTuple,
+    ) -> CategoricalT:
+        ...
+
+    def __getitem__(
+        self: CategoricalT, key: PositionalIndexer2D
+    ) -> CategoricalT | object:
         """
         Return an item.
         """

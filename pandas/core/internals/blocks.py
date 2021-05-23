@@ -316,9 +316,9 @@ class Block(PandasObject):
 
         Assumes self.ndim == 2
         """
-        # error: Invalid index type "Tuple[ellipsis, slice]" for
-        # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
-        new_values = self.values[..., slicer]  # type: ignore[index]
+        # error: No overload variant of "__getitem__" of "ExtensionArray" matches
+        # argument type "Tuple[int, slice]"
+        new_values = self.values[..., slicer]  # type: ignore[call-overload]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
     @final

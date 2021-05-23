@@ -7,10 +7,13 @@ from collections import abc
 import numbers
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Sequence,
     TypeVar,
+    cast,
+    overload,
 )
 import warnings
 
@@ -27,6 +30,7 @@ from pandas._libs.tslibs import NaT
 from pandas._typing import (
     Dtype,
     NpDtype,
+    PositionalIndexer,
     Scalar,
 )
 from pandas.compat.numpy import function as nv
@@ -76,6 +80,17 @@ from pandas.core.nanops import check_below_min_count
 import pandas.core.ops as ops
 
 import pandas.io.formats.printing as printing
+
+# See https://github.com/python/typing/issues/684
+if TYPE_CHECKING:
+    from enum import Enum
+
+    class ellipsis(Enum):
+        Ellipsis = "..."
+
+    Ellipsis = ellipsis.Ellipsis
+else:
+    ellipsis = type(Ellipsis)
 
 # ----------------------------------------------------------------------------
 # Array
@@ -810,8 +825,21 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # --------
     # Indexing
     # --------
+    @overload
+    def __getitem__(self, key: int | np.integer) -> Any:
+        ...
 
-    def __getitem__(self, key):
+    @overload
+    def __getitem__(
+        self: SparseArrayT,
+        key: slice | np.ndarray | list[int] | tuple[int | ellipsis, ...],
+    ) -> SparseArrayT:
+        ...
+
+    def __getitem__(
+        self: SparseArrayT,
+        key: PositionalIndexer | tuple[int | ellipsis, ...],
+    ) -> SparseArrayT | Any:
 
         if isinstance(key, tuple):
             if len(key) > 1:
@@ -821,6 +849,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     key = key[:-1]
             if len(key) > 1:
                 raise IndexError("too many indices for array.")
+            if key[0] is Ellipsis:
+                raise ValueError("Cannot slice with Ellipsis")
             key = key[0]
 
         if is_integer(key):
@@ -849,7 +879,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             key = check_array_indexer(self, key)
 
             if com.is_bool_indexer(key):
-
+                # mypy doesn't know we have an array here
+                key = cast(np.ndarray, key)
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, "__len__"):
                 return self.take(key)

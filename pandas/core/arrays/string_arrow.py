@@ -6,6 +6,7 @@ from typing import (
     Any,
     Sequence,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -341,7 +342,19 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             )
         )
 
-    def __getitem__(self, item: PositionalIndexer) -> Any:
+    @overload
+    def __getitem__(self, item: int | np.integer) -> str:
+        ...
+
+    @overload
+    def __getitem__(
+        self: ArrowStringArray, item: slice | np.ndarray | list[int]
+    ) -> ArrowStringArray:
+        ...
+
+    def __getitem__(
+        self: ArrowStringArray, item: PositionalIndexer
+    ) -> ArrowStringArray | str:
         """Select a subset of self.
 
         Parameters
