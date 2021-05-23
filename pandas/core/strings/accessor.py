@@ -282,7 +282,7 @@ class StringMethods(NoNewAttributesMixin):
                     return [x]
 
             result = [cons_row(x) for x in result]
-            if result:
+            if result and not self._is_string:
                 # propagate nan values to match longest sequence (GH 18450)
                 max_len = max(len(x) for x in result)
                 result = [
@@ -1354,7 +1354,7 @@ class StringMethods(NoNewAttributesMixin):
                 )
                 if len(pat) == 1:
                     msg += (
-                        " In addition, single character regular expressions will"
+                        " In addition, single character regular expressions will "
                         "*not* be treated as literal strings when regex=True."
                     )
                 warnings.warn(msg, FutureWarning, stacklevel=3)
