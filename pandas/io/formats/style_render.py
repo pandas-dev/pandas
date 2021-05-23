@@ -418,7 +418,7 @@ class StylerRenderer:
                         "td",
                         f"{data_class} col{c} {trimmed_row_class}",
                         "...",
-                        True,
+                        (c not in self.hidden_columns),
                         attributes="",
                     )
                     for c in range(max_cols)
