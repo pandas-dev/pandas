@@ -1741,6 +1741,8 @@ def test_construct_from_memoryview(klass, extra_kwargs):
 
 
 def test_drop_duplicates_pos_args_deprecation():
+    # GH#41485
+
     idx = Index([1, 2, 3, 1])
 
     msg = (
