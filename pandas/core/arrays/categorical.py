@@ -2477,11 +2477,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import PandasArray
 
-        # error: Argument 1 to "PandasArray" has incompatible type
-        # "ExtensionArray"; expected "Union[ndarray, PandasArray]"
-        return PandasArray(self.astype(str))._str_get_dummies(  # type: ignore[arg-type]
-            sep
-        )
+        return PandasArray(self.astype(str))._str_get_dummies(sep)
 
 
 # The Series.cat accessor

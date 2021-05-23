@@ -588,9 +588,7 @@ def _sanitize_ndim(
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
 
-            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
-            # "Type[object]"; expected "Union[str, dtype[Any], None]"
-            result = com.asarray_tuplesafe(data, dtype=object)  # type: ignore[arg-type]
+            result = com.asarray_tuplesafe(data, dtype=object)
             cls = dtype.construct_array_type()
             result = cls._from_sequence(result, dtype=dtype)
         else:

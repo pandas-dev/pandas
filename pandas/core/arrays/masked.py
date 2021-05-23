@@ -281,9 +281,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            # error: Incompatible types in assignment (expression has type
-            # "Type[object]", variable has type "Union[str, dtype[Any], None]")
-            dtype = object  # type: ignore[assignment]
+            dtype = object
         if self._hasna:
             if (
                 not is_object_dtype(dtype)

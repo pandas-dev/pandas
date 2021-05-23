@@ -518,16 +518,16 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @overload
-    def astype(self, dtype: NpDtype, copy: bool = True) -> np.ndarray:
+    def astype(self, dtype: NpDtype, copy: bool = ...) -> np.ndarray:
         ...
 
     @overload
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: Dtype, copy: bool = ...) -> ArrayLike:
         ...
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         """
-        Cast to a NumPy array with 'dtype'.
+        Cast to a NumPy array or ExtensionArray with 'dtype'.
 
         Parameters
         ----------
@@ -947,9 +947,7 @@ class ExtensionArray:
         The values returned by this method are also used in
         :func:`pandas.util.hash_pandas_object`.
         """
-        # error: Incompatible return value type (got "Tuple[Union[ExtensionArray,
-        # ndarray], float]", expected "Tuple[ndarray, Any]")
-        return self.astype(object), np.nan  # type: ignore[return-value]
+        return self.astype(object), np.nan
 
     def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         """

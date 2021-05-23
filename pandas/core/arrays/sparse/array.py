@@ -523,9 +523,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             try:
                 dtype = np.result_type(self.sp_values.dtype, type(fill_value))
             except TypeError:
-                # error: Incompatible types in assignment (expression has type
-                # "Type[object]", variable has type "Union[str, dtype[Any], None]")
-                dtype = object  # type: ignore[assignment]
+                dtype = object
 
         out = np.full(self.shape, fill_value, dtype=dtype)
         out[self.sp_index.to_int_index().indices] = self.sp_values
