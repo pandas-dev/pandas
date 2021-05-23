@@ -298,6 +298,7 @@ def makeBoolIndex(k=10, name=None):
 
 def makeNumericIndex(k=10, name=None, *, dtype):
     dtype = pandas_dtype(dtype)
+    assert isinstance(dtype, np.dtype)
 
     if dtype.kind == "i":
         values = list(range(k))
@@ -314,7 +315,7 @@ def makeNumericIndex(k=10, name=None, *, dtype):
 
 
 def makeIntIndex(k=10, name=None):
-    base_idx = makeNumericIndex(k, dtype="int64")
+    base_idx = makeNumericIndex(k, name=name, dtype="int64")
     return Int64Index(base_idx)
 
 
