@@ -793,13 +793,16 @@ class ParserBase:
 
         return names, data
 
-    def _check_data_length(self, columns: List[str], data: List[ArrayLike]):
-        """Checks if length of data is equal to length of column names. One set of
-        trailing commas is allowed.
+    def _check_data_length(self, columns: list[str], data: list[ArrayLike]) -> None:
+        """Checks if length of data is equal to length of column names.
+
+        One set of trailing commas is allowed. self.index_col not False
+        results in a ParserError previously when lengths do not match.
+
         Parameters
         ----------
         columns: list of column names
-        data: list of array-likes containing the data column-wise
+        data: list of array-likes containing the data column-wise.
         """
         if not self.index_col and len(columns) != len(data) and columns:
             if len(columns) == len(data) - 1 and np.all(
