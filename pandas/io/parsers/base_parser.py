@@ -213,29 +213,9 @@ class ParserBase:
 
         self.handles: Optional[IOHandles] = None
 
-        # Bad line handling
-        on_bad_lines = kwds.get("on_bad_lines", "error")
-        if on_bad_lines == "error":
-            self.on_bad_lines = self.BadLineHandleMethod.ERROR
-        elif on_bad_lines == "warn":
-            self.on_bad_lines = self.BadLineHandleMethod.WARN
-        elif on_bad_lines == "skip":
-            self.on_bad_lines = self.BadLineHandleMethod.SKIP
-        else:
-            raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
-        # Override on_bad_lines w/ deprecated args for backward compatibility
-        error_bad_lines = kwds.get("error_bad_lines")
-        warn_bad_lines = kwds.get("warn_bad_lines")
-        if error_bad_lines:
-            self.on_bad_lines = self.BadLineHandleMethod.ERROR
-        elif warn_bad_lines and error_bad_lines is not None:
-            # Kinda sketch, but maintain BC in that needs explicit
-            # error_bad_lines -> False to warn even if warn_bad_lines->True.
-            # With new default of None, this is necessary.
-            self.on_bad_lines = self.BadLineHandleMethod.WARN
-        elif error_bad_lines is False and warn_bad_lines is False:
-            # Be careful - None evaluates to False
-            self.on_bad_lines = self.BadLineHandleMethod.SKIP
+        # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
+        # Normally, this arg would get pre-processed earlier on
+        self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
 
     def _open_handles(self, src: FilePathOrBuffer, kwds: Dict[str, Any]) -> None:
         """
