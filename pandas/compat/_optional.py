@@ -17,7 +17,7 @@ VERSIONS = {
     "gcsfs": "0.6.0",
     "lxml.etree": "4.3.0",
     "matplotlib": "2.2.3",
-    "numexpr": "2.6.8",
+    "numexpr": "2.7.0",
     "odfpy": "1.3.0",
     "openpyxl": "3.0.0",
     "pandas_gbq": "0.12.0",
