@@ -45,7 +45,10 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.cast import coerce_indexer_dtype
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype,
+    convert_dtypes,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -2146,7 +2149,7 @@ class MultiIndex(Index):
             levels=self.levels, codes=taken, names=self.names, verify_integrity=False
         )
 
-    def append(self, other, concat_indexes=False):
+    def append(self, other):
         """
         Append a collection of Index options together
 
@@ -2169,12 +2172,7 @@ class MultiIndex(Index):
                 o.names.count(None) > 1 for o in other
             ):
 
-                for i in range(self.nlevels):
-
-                    label = self._get_level_values(i)
-                    appended = [o._get_level_values(i) for o in other]
-                    arrays.append(label.append(appended))
-                    index_label_list = self.names
+                arrays, index_label_list = self.simple_append(other=other)
 
             else:
                 index_label_list = self.get_unique_indexes(other)
@@ -2210,6 +2208,19 @@ class MultiIndex(Index):
         except (TypeError, IndexError):
             return Index(new_tuples)
 
+    def simple_append(self, other):
+
+        arr = []
+
+        for i in range(self.nlevels):
+
+            label = self._get_level_values(i)
+            appended = [o._get_level_values(i) for o in other]
+            arr.append(label.append(appended))
+            index_label_list = self.names
+
+        return arr, index_label_list
+
     def get_index_data(self, data_index, column_name, other, search_self=False):
 
         # Returns original data if the data_index input has data for this column name
@@ -2226,14 +2237,14 @@ class MultiIndex(Index):
             if search_self is True:
                 if column_name in self.names:
                     Index_position = self.names.index(column_name)
-                    NA_type = self.levels[Index_position].dtype
+                    NA_type = convert_dtypes(self.levels[Index_position])
                     data = Index([NA] * data_index.size, dtype=NA_type)
                     return data
 
             for o in other:
                 if o is not data_index and column_name in o.names:
                     Index_position = o.names.index(column_name)
-                    NA_type = o.levels[Index_position].dtype
+                    NA_type = convert_dtypes(o.levels[Index_position].dtype)
                     data = Index([NA] * data_index.size, dtype=NA_type)
                     return data
 
