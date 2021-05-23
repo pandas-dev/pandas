@@ -68,6 +68,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_signed_integer_dtype,
     is_string_dtype,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
@@ -1779,13 +1780,14 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     return dtype
 
 
-def find_common_type(types: list[DtypeObj]) -> DtypeObj:
+def find_common_type(types: list[DtypeObj], *, strict_uint64: bool = False) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
 
     Parameters
     ----------
     types : list of dtypes
+    strict_uint64 : if True, object dtype is returned if uint64 and signed int present.
 
     Returns
     -------
@@ -1830,6 +1832,13 @@ def find_common_type(types: list[DtypeObj]) -> DtypeObj:
         for t in types:
             if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
                 return np.dtype("object")
+
+    # Index.union is special: uint64 & signed int -> object
+    if strict_uint64:
+        has_uint64 = any(t == "uint64" for t in types)
+        has_signed_int = any(is_signed_integer_dtype(t) for t in types)
+        if has_uint64 and has_signed_int:
+            return np.dtype("object")
 
     # error: Argument 1 to "find_common_type" has incompatible type
     # "List[Union[dtype, ExtensionDtype]]"; expected "Sequence[Union[dtype,
