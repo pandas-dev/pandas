@@ -419,7 +419,7 @@ def test_set_levels_pos_args_deprecation():
     )
     msg = (
         r"In a future version of pandas all arguments of MultiIndex.set_levels except "
-        r"for the arguments 'levels' will be keyword-only"
+        r"for the argument 'levels' will be keyword-only"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = idx.set_levels(["a", "b", "c"], 0)
