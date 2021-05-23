@@ -1208,7 +1208,7 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        Simple application hiding specific rows:
+        Simple application hiding specific columns:
 
         >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "b", "c"])
         >>> df.style.hide_columns(["a", "b"])
