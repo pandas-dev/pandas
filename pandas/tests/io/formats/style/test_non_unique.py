@@ -108,7 +108,7 @@ def test_set_td_classes_non_unique_raises(styler):
 
 
 def test_hide_columns_non_unique(styler):
-    ctx = styler.hide_columns(["d"])._translate()
+    ctx = styler.hide_columns(["d"])._translate(True, True)
 
     assert ctx["head"][0][1]["display_value"] == "c"
     assert ctx["head"][0][1]["is_visible"] is True

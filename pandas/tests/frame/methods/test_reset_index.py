@@ -677,8 +677,8 @@ def test_drop_pos_args_deprecation():
     # https://github.com/pandas-dev/pandas/issues/41485
     df = DataFrame({"a": [1, 2, 3]}).set_index("a")
     msg = (
-        r"Starting with Pandas version 2\.0 all arguments of reset_index except for "
-        r"the arguments 'self' and 'level' will be keyword-only"
+        r"In a future version of pandas all arguments of DataFrame\.reset_index "
+        r"except for the argument 'level' will be keyword-only"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.reset_index("a", False)
