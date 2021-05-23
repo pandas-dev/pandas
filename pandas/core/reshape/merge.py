@@ -673,6 +673,8 @@ class _MergeOperation:
                 f"in a future version. ({left.columns.nlevels} levels on the left,"
                 f"{right.columns.nlevels} on the right)"
             )
+            # stacklevel chosen to be correct when this is reached via pd.merge
+            # (and not DataFrame.join)
             warnings.warn(msg, FutureWarning, stacklevel=3)
 
         self._validate_specification()
@@ -2153,7 +2155,7 @@ def _factorize_keys(
         rk = ensure_int64(np.asarray(rk, dtype=np.int64))
 
     else:
-        klass = libhashtable.Factorizer
+        klass = libhashtable.ObjectFactorizer
         lk = ensure_object(lk)
         rk = ensure_object(rk)
 

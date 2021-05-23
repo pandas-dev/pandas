@@ -1861,6 +1861,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @_codes.setter
     def _codes(self, value: np.ndarray):
+        warn(
+            "Setting the codes on a Categorical is deprecated and will raise in "
+            "a future version. Create a new Categorical object instead",
+            FutureWarning,
+            stacklevel=2,
+        )  # GH#40606
         NDArrayBacked.__init__(self, value, self.dtype)
 
     def _box_func(self, i: int):
@@ -2183,11 +2189,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if dropna:
             good = self._codes != -1
             codes = self._codes[good]
-        # error: Incompatible types in assignment (expression has type "List[Any]",
-        # variable has type "ndarray")
-        codes = sorted(  # type: ignore[assignment]
-            htable.mode_int64(ensure_int64(codes), dropna)
-        )
+
+        codes = htable.mode(codes, dropna)
+        codes.sort()
         codes = coerce_indexer_dtype(codes, self.dtype.categories)
         return self._from_backing_data(codes)
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from distutils.version import LooseVersion
 import re
 from typing import (
     TYPE_CHECKING,
@@ -21,6 +20,11 @@ from pandas._typing import (
     PositionalIndexer,
     Scalar,
     type_t,
+)
+from pandas.compat import (
+    pa_version_under2p0,
+    pa_version_under3p0,
+    pa_version_under4p0,
 )
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -48,6 +52,7 @@ from pandas.core.indexers import (
     validate_indices,
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
+from pandas.util.version import Version
 
 try:
     import pyarrow as pa
@@ -57,7 +62,7 @@ else:
     # PyArrow backed StringArrays are available starting at 1.0.0, but this
     # file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
     # and its compute functions existed. GH38801
-    if LooseVersion(pa.__version__) >= "1.0.0":
+    if Version(pa.__version__) >= Version("1.0.0"):
         import pyarrow.compute as pc
 
         ARROW_CMP_FUNCS = {
@@ -227,7 +232,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     def _chk_pyarrow_available(cls) -> None:
         # TODO: maybe update import_optional_dependency to allow a minimum
         # version to be specified rather than use the global minimum
-        if pa is None or LooseVersion(pa.__version__) < "1.0.0":
+        if pa is None or Version(pa.__version__) < Version("1.0.0"):
             msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
             raise ImportError(msg)
 
@@ -667,9 +672,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return type(self)(self._data.take(indices_array))
 
     def isin(self, values):
-
-        # pyarrow.compute.is_in added in pyarrow 2.0.0
-        if not hasattr(pc, "is_in"):
+        if pa_version_under2p0:
             return super().isin(values)
 
         value_set = [
@@ -684,7 +687,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return np.zeros(len(self), dtype=bool)
 
         kwargs = {}
-        if LooseVersion(pa.__version__) < "3.0.0":
+        if pa_version_under3p0:
             # in pyarrow 2.0.0 skip_null is ignored but is a required keyword and raises
             # with unexpected keyword argument in pyarrow 3.0.0+
             kwargs["skip_null"] = True
@@ -789,7 +792,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             result = lib.map_infer_mask(
                 arr, f, mask.view("uint8"), convert=False, na_value=na_value
             )
-            return self._from_sequence(result)
+            result = pa.array(result, mask=mask, type=pa.string(), from_pandas=True)
+            return type(self)(result)
         else:
             # This is when the result type is object. We reach this when
             # -> We know the result type is truly object (e.g. .encode returns bytes
@@ -802,11 +806,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             return super()._str_contains(pat, case, flags, na, regex)
 
         if regex:
-            # match_substring_regex added in pyarrow 4.0.0
-            if hasattr(pc, "match_substring_regex") and case:
-                result = pc.match_substring_regex(self._data, pat)
-            else:
+            if pa_version_under4p0 or case is False:
                 return super()._str_contains(pat, case, flags, na, regex)
+            else:
+                result = pc.match_substring_regex(self._data, pat)
         else:
             if case:
                 result = pc.match_substring(self._data, pat)
@@ -817,34 +820,37 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             result[isna(result)] = bool(na)
         return result
 
-    def _str_startswith(self, pat, na=None):
-        # match_substring_regex added in pyarrow 4.0.0
-        if hasattr(pc, "match_substring_regex"):
-            result = pc.match_substring_regex(self._data, "^" + re.escape(pat))
-            result = BooleanDtype().__from_arrow__(result)
-            if not isna(na):
-                result[isna(result)] = bool(na)
-            return result
-        else:
+    def _str_startswith(self, pat: str, na=None):
+        if pa_version_under4p0:
             return super()._str_startswith(pat, na)
 
-    def _str_endswith(self, pat, na=None):
-        # match_substring_regex added in pyarrow 4.0.0
-        if hasattr(pc, "match_substring_regex"):
-            result = pc.match_substring_regex(self._data, re.escape(pat) + "$")
-            result = BooleanDtype().__from_arrow__(result)
-            if not isna(na):
-                result[isna(result)] = bool(na)
-            return result
-        else:
+        pat = "^" + re.escape(pat)
+        return self._str_contains(pat, na=na, regex=True)
+
+    def _str_endswith(self, pat: str, na=None):
+        if pa_version_under4p0:
             return super()._str_endswith(pat, na)
+
+        pat = re.escape(pat) + "$"
+        return self._str_contains(pat, na=na, regex=True)
 
     def _str_match(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
     ):
+        if pa_version_under4p0:
+            return super()._str_match(pat, case, flags, na)
+
         if not pat.startswith("^"):
             pat = "^" + pat
         return self._str_contains(pat, case, flags, na, regex=True)
+
+    def _str_fullmatch(self, pat, case: bool = True, flags: int = 0, na: Scalar = None):
+        if pa_version_under4p0:
+            return super()._str_fullmatch(pat, case, flags, na)
+
+        if not pat.endswith("$") or pat.endswith("//$"):
+            pat = pat + "$"
+        return self._str_match(pat, case, flags, na)
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._data)
@@ -871,12 +877,11 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         return BooleanDtype().__from_arrow__(result)
 
     def _str_isspace(self):
-        # utf8_is_space added in pyarrow 2.0.0
-        if hasattr(pc, "utf8_is_space"):
-            result = pc.utf8_is_space(self._data)
-            return BooleanDtype().__from_arrow__(result)
-        else:
+        if pa_version_under2p0:
             return super()._str_isspace()
+
+        result = pc.utf8_is_space(self._data)
+        return BooleanDtype().__from_arrow__(result)
 
     def _str_istitle(self):
         result = pc.utf8_is_title(self._data)
@@ -887,12 +892,11 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         return BooleanDtype().__from_arrow__(result)
 
     def _str_len(self):
-        # utf8_length added in pyarrow 4.0.0
-        if hasattr(pc, "utf8_length"):
-            result = pc.utf8_length(self._data)
-            return Int64Dtype().__from_arrow__(result)
-        else:
+        if pa_version_under4p0:
             return super()._str_len()
+
+        result = pc.utf8_length(self._data)
+        return Int64Dtype().__from_arrow__(result)
 
     def _str_lower(self):
         return type(self)(pc.utf8_lower(self._data))
@@ -901,34 +905,31 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         return type(self)(pc.utf8_upper(self._data))
 
     def _str_strip(self, to_strip=None):
+        if pa_version_under4p0:
+            return super()._str_strip(to_strip)
+
         if to_strip is None:
-            # utf8_trim_whitespace added in pyarrow 4.0.0
-            if hasattr(pc, "utf8_trim_whitespace"):
-                return type(self)(pc.utf8_trim_whitespace(self._data))
+            result = pc.utf8_trim_whitespace(self._data)
         else:
-            # utf8_trim added in pyarrow 4.0.0
-            if hasattr(pc, "utf8_trim"):
-                return type(self)(pc.utf8_trim(self._data, characters=to_strip))
-        return super()._str_strip(to_strip)
+            result = pc.utf8_trim(self._data, characters=to_strip)
+        return type(self)(result)
 
     def _str_lstrip(self, to_strip=None):
+        if pa_version_under4p0:
+            return super()._str_lstrip(to_strip)
+
         if to_strip is None:
-            # utf8_ltrim_whitespace added in pyarrow 4.0.0
-            if hasattr(pc, "utf8_ltrim_whitespace"):
-                return type(self)(pc.utf8_ltrim_whitespace(self._data))
+            result = pc.utf8_ltrim_whitespace(self._data)
         else:
-            # utf8_ltrim added in pyarrow 4.0.0
-            if hasattr(pc, "utf8_ltrim"):
-                return type(self)(pc.utf8_ltrim(self._data, characters=to_strip))
-        return super()._str_lstrip(to_strip)
+            result = pc.utf8_ltrim(self._data, characters=to_strip)
+        return type(self)(result)
 
     def _str_rstrip(self, to_strip=None):
+        if pa_version_under4p0:
+            return super()._str_rstrip(to_strip)
+
         if to_strip is None:
-            # utf8_rtrim_whitespace added in pyarrow 4.0.0
-            if hasattr(pc, "utf8_rtrim_whitespace"):
-                return type(self)(pc.utf8_rtrim_whitespace(self._data))
+            result = pc.utf8_rtrim_whitespace(self._data)
         else:
-            # utf8_rtrim added in pyarrow 4.0.0
-            if hasattr(pc, "utf8_rtrim"):
-                return type(self)(pc.utf8_rtrim(self._data, characters=to_strip))
-        return super()._str_rstrip(to_strip)
+            result = pc.utf8_rtrim(self._data, characters=to_strip)
+        return type(self)(result)

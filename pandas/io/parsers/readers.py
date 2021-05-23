@@ -20,6 +20,7 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
+    ArrayLike,
     DtypeArg,
     FilePathOrBuffer,
     StorageOptions,
@@ -505,11 +506,11 @@ def read_csv(
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
-    names=None,
+    names=lib.no_default,
     index_col=None,
     usecols=None,
     squeeze=False,
-    prefix=None,
+    prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
     dtype: Optional[DtypeArg] = None,
@@ -563,7 +564,8 @@ def read_csv(
     float_precision=None,
     storage_options: StorageOptions = None,
 ):
-    kwds = locals()
+    # locals() should never be modified
+    kwds = locals().copy()
     del kwds["filepath_or_buffer"]
     del kwds["sep"]
 
@@ -576,6 +578,8 @@ def read_csv(
         error_bad_lines,
         warn_bad_lines,
         on_bad_lines,
+        names,
+        prefix,
         defaults={"delimiter": ","},
     )
     kwds.update(kwds_defaults)
@@ -597,11 +601,11 @@ def read_table(
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
-    names=None,
+    names=lib.no_default,
     index_col=None,
     usecols=None,
     squeeze=False,
-    prefix=None,
+    prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
     dtype: Optional[DtypeArg] = None,
@@ -654,7 +658,8 @@ def read_table(
     memory_map=False,
     float_precision=None,
 ):
-    kwds = locals()
+    # locals() should never be modified
+    kwds = locals().copy()
     del kwds["filepath_or_buffer"]
     del kwds["sep"]
 
@@ -667,6 +672,8 @@ def read_table(
         error_bad_lines,
         warn_bad_lines,
         on_bad_lines,
+        names,
+        prefix,
         defaults={"delimiter": "\t"},
     )
     kwds.update(kwds_defaults)
@@ -1217,6 +1224,8 @@ def _refine_defaults_read(
     error_bad_lines: Optional[str],
     warn_bad_lines: Optional[str],
     on_bad_lines: Optional[str],
+    names: Union[Optional[ArrayLike], object],
+    prefix: Union[Optional[str], object],
     defaults: Dict[str, Any],
 ):
     """Validate/refine default values of input parameters of read_csv, read_table.
@@ -1248,6 +1257,12 @@ def _refine_defaults_read(
         Whether to warn on a bad line or not.
     on_bad_lines : str or None
         An option for handling bad lines or a sentinel value(None).
+    names : array-like, optional
+        List of column names to use. If the file contains a header row,
+        then you should explicitly pass ``header=0`` to override the column names.
+        Duplicates in this list are not allowed.
+    prefix : str, optional
+        Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
     defaults: dict
         Default values of input parameters.
 
@@ -1283,6 +1298,12 @@ def _refine_defaults_read(
         kwds["sep_override"] = delimiter is None and (
             sep is lib.no_default or sep == delim_default
         )
+
+    if names is not lib.no_default and prefix is not lib.no_default:
+        raise ValueError("Specified named and prefix; you can only specify one.")
+
+    kwds["names"] = None if names is lib.no_default else names
+    kwds["prefix"] = None if prefix is lib.no_default else prefix
 
     # Alias sep -> delimiter.
     if delimiter is None:
