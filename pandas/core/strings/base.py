@@ -1,8 +1,8 @@
+from __future__ import annotations
+
 import abc
-from typing import (
-    Pattern,
-    Union,
-)
+from collections.abc import Callable  # noqa: PDF001
+import re
 
 import numpy as np
 
@@ -52,7 +52,15 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
+    def _str_replace(
+        self,
+        pat: str | re.Pattern,
+        repl: str | Callable,
+        n: int = -1,
+        case: bool = True,
+        flags: int = 0,
+        regex: bool = True,
+    ):
         pass
 
     @abc.abstractmethod
@@ -68,7 +76,7 @@ class BaseStringArrayMethods(abc.ABC):
     @abc.abstractmethod
     def _str_fullmatch(
         self,
-        pat: Union[str, Pattern],
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar = np.nan,

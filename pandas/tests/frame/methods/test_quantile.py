@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     Timestamp,
 )
@@ -55,7 +56,8 @@ class TestDataFrameQuantile:
         # non-numeric exclusion
         df = DataFrame({"col1": ["A", "A", "B", "B"], "col2": [1, 2, 3, 4]})
         rs = df.quantile(0.5)
-        xp = df.median().rename(0.5)
+        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
+            xp = df.median().rename(0.5)
         tm.assert_series_equal(rs, xp)
 
         # axis
@@ -650,3 +652,68 @@ class TestQuantileExtensionDtype:
             assert result == expected
         else:
             tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, expected_data, expected_index, axis",
+        [
+            ["float64", [], [], 1],
+            ["int64", [], [], 1],
+            ["float64", [np.nan, np.nan], ["a", "b"], 0],
+            ["int64", [np.nan, np.nan], ["a", "b"], 0],
+        ],
+    )
+    def test_empty_numeric(self, dtype, expected_data, expected_index, axis):
+        # GH 14564
+        df = DataFrame(columns=["a", "b"], dtype=dtype)
+        result = df.quantile(0.5, axis=axis)
+        expected = Series(
+            expected_data, name=0.5, index=Index(expected_index), dtype="float64"
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, expected_data, expected_index, axis, expected_dtype",
+        [
+            pytest.param(
+                "datetime64[ns]",
+                [],
+                [],
+                1,
+                "datetime64[ns]",
+                marks=pytest.mark.xfail(reason="#GH 41544"),
+            ),
+            ["datetime64[ns]", [pd.NaT, pd.NaT], ["a", "b"], 0, "datetime64[ns]"],
+        ],
+    )
+    def test_empty_datelike(
+        self, dtype, expected_data, expected_index, axis, expected_dtype
+    ):
+        # GH 14564
+        df = DataFrame(columns=["a", "b"], dtype=dtype)
+        result = df.quantile(0.5, axis=axis, numeric_only=False)
+        expected = Series(
+            expected_data, name=0.5, index=Index(expected_index), dtype=expected_dtype
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "expected_data, expected_index, axis",
+        [
+            [[np.nan, np.nan], range(2), 1],
+            [[], [], 0],
+        ],
+    )
+    def test_datelike_numeric_only(self, expected_data, expected_index, axis):
+        # GH 14564
+        df = DataFrame(
+            {
+                "a": pd.to_datetime(["2010", "2011"]),
+                "b": [0, 5],
+                "c": pd.to_datetime(["2011", "2012"]),
+            }
+        )
+        result = df[["a", "c"]].quantile(0.5, axis=axis)
+        expected = Series(
+            expected_data, name=0.5, index=Index(expected_index), dtype=np.float64
+        )
+        tm.assert_series_equal(result, expected)
