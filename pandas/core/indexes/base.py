@@ -1164,9 +1164,14 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return format_object_attrs(self)
 
-    def _mpl_repr(self):
+    @final
+    def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
-        return self.values
+        if isinstance(self.dtype, np.dtype) and self.dtype.kind != "M":
+            # Incompatible return value type (got "Union[ExtensionArray, ndarray]",
+            # expected "ndarray")
+            return self.values  # type: ignore[return-value]
+        return self.astype(object, copy=False)._values
 
     def format(
         self,
