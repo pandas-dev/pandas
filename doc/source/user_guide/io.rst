@@ -365,7 +365,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
     Allowed values are :
 
         - 'error', raise an ParserError when a bad line is encountered.
-        - 'warn', raise a  when a bad line is encountered and skip that line.
+        - 'warn', print a warning when a bad line is encountered and skip that line.
         - 'skip', skip bad lines without raising or warning when they are encountered.
 
     .. versionadded:: 1.3
