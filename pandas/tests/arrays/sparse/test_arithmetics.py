@@ -132,7 +132,7 @@ class TestSparseArrayArithmetics:
                 elif op is ops.rfloordiv and scalar == 0:
                     pass
                 else:
-                    mark = pytest.mark.xfail(reason="GH#38172")
+                    mark = pytest.mark.xfail(raises=AssertionError, reason="GH#38172")
                     request.node.add_marker(mark)
 
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
@@ -177,11 +177,13 @@ class TestSparseArrayArithmetics:
         # when sp_index are the same
         op = all_arithmetic_functions
 
-        if not np_version_under1p20:
-            if op is ops.rfloordiv:
-                if not (mix and kind == "block"):
-                    mark = pytest.mark.xfail(reason="GH#38172")
-                    request.node.add_marker(mark)
+        if (
+            not np_version_under1p20
+            and op is ops.rfloordiv
+            and not (mix and kind == "block")
+        ):
+            mark = pytest.mark.xfail(raises=AssertionError, reason="GH#38172")
+            request.node.add_marker(mark)
 
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
         rvalues = self._base([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
@@ -358,10 +360,13 @@ class TestSparseArrayArithmetics:
     def test_mixed_array_float_int(self, kind, mix, all_arithmetic_functions, request):
         op = all_arithmetic_functions
 
-        if not np_version_under1p20:
-            if op in [operator.floordiv, ops.rfloordiv] and mix:
-                mark = pytest.mark.xfail(reason="GH#38172")
-                request.node.add_marker(mark)
+        if (
+            not np_version_under1p20
+            and op in [operator.floordiv, ops.rfloordiv]
+            and mix
+        ):
+            mark = pytest.mark.xfail(raises=AssertionError, reason="GH#38172")
+            request.node.add_marker(mark)
 
         rdtype = "int64"
 
