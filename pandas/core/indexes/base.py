@@ -2635,7 +2635,6 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy(result)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    @final
     def drop_duplicates(self: _IndexT, keep: str_t | bool = "first") -> _IndexT:
         """
         Return Index with duplicate values removed.
