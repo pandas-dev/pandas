@@ -81,7 +81,7 @@ dependencies:
   - ipython>=7.11.1
   - jinja2<3.0.0  # pandas.Styler
   - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
-  - numexpr>=2.6.8
+  - numexpr>=2.7.0
   - scipy>=1.2
   - numba>=0.46.0
 
