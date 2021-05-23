@@ -652,6 +652,22 @@ with cf.config_prefix("io.parquet"):
         validator=is_one_of_factory(["auto", "pyarrow", "fastparquet"]),
     )
 
+
+# Set up the io.sql specific configuration.
+sql_engine_doc = """
+: string
+    The default sql reader/writer engine. Available options:
+    'auto', 'sqlalchemy', the default is 'auto'
+"""
+
+with cf.config_prefix("io.sql"):
+    cf.register_option(
+        "engine",
+        "auto",
+        sql_engine_doc,
+        validator=is_one_of_factory(["auto", "sqlalchemy"]),
+    )
+
 # --------
 # Plotting
 # ---------
@@ -709,4 +725,27 @@ with cf.config_prefix("plotting.matplotlib"):
         register_converter_doc,
         validator=is_one_of_factory(["auto", True, False]),
         cb=register_converter_cb,
+    )
+
+# ------
+# Styler
+# ------
+
+styler_sparse_index_doc = """
+: bool
+    Whether to sparsify the display of a hierarchical index. Setting to False will
+    display each explicit level element in a hierarchical key for each row.
+"""
+
+styler_sparse_columns_doc = """
+: bool
+    Whether to sparsify the display of hierarchical columns. Setting to False will
+    display each explicit level element in a hierarchical key for each column.
+"""
+
+with cf.config_prefix("styler"):
+    cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
+
+    cf.register_option(
+        "sparse.columns", True, styler_sparse_columns_doc, validator=bool
     )
