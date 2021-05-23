@@ -743,9 +743,19 @@ styler_sparse_columns_doc = """
     display each explicit level element in a hierarchical key for each column.
 """
 
+styler_max_elements = """
+: int
+    The maximum number of data-cell (<td>) elements that will b rendered before
+    trimming will occur over columns, rows or both.
+"""
+
 with cf.config_prefix("styler"):
     cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
 
     cf.register_option(
         "sparse.columns", True, styler_sparse_columns_doc, validator=bool
+    )
+
+    cf.register_option(
+        "max.elements", 2 ** 14, styler_sparse_columns_doc, validator=bool
     )

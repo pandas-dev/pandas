@@ -940,7 +940,7 @@ class TestStyler:
             (1, 4): 1,
             (1, 5): 1,
         }
-        result = _get_level_lengths(index, sparsify=True)
+        result = _get_level_lengths(index, sparsify=True, max_index=100)
         tm.assert_dict_equal(result, expected)
 
         expected = {
@@ -957,7 +957,7 @@ class TestStyler:
             (1, 4): 1,
             (1, 5): 1,
         }
-        result = _get_level_lengths(index, sparsify=False)
+        result = _get_level_lengths(index, sparsify=False, max_index=100)
         tm.assert_dict_equal(result, expected)
 
     def test_get_level_lengths_un_sorted(self):
@@ -971,7 +971,7 @@ class TestStyler:
             (1, 2): 1,
             (1, 3): 1,
         }
-        result = _get_level_lengths(index, sparsify=True)
+        result = _get_level_lengths(index, sparsify=True, max_index=100)
         tm.assert_dict_equal(result, expected)
 
         expected = {
@@ -984,7 +984,7 @@ class TestStyler:
             (1, 2): 1,
             (1, 3): 1,
         }
-        result = _get_level_lengths(index, sparsify=False)
+        result = _get_level_lengths(index, sparsify=False, max_index=100)
         tm.assert_dict_equal(result, expected)
 
     def test_mi_sparse_index_names(self):

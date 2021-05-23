@@ -11,6 +11,7 @@ import pandas._testing as tm
 
 pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
+from pandas.io.formats.style_render import _get_trimming_maximums
 
 
 @pytest.fixture
@@ -239,3 +240,11 @@ def test_format_decimal(formatter, thousands, precision):
         decimal="_", formatter=formatter, thousands=thousands, precision=precision
     )._translate(True, True)
     assert "000_123" in result["body"][0][1]["display_value"]
+
+
+def test_trimming_maximum():
+    rn, cn = _get_trimming_maximums(100, 100, 100, scaling_factor=0.5)
+    assert (rn, cn) == (12, 6)
+
+    rn, cn = _get_trimming_maximums(1000, 3, 750, scaling_factor=0.5)
+    assert (rn, cn) == (250, 3)
