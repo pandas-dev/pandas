@@ -106,7 +106,7 @@ class NumericIndex(Index):
         else:
             return False
 
-    _engine_types: dict[np.dtype, libindex.IndexEngine] = {
+    _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
         np.dtype(np.int16): libindex.Int16Engine,
         np.dtype(np.int32): libindex.Int32Engine,
@@ -120,7 +120,7 @@ class NumericIndex(Index):
     }
 
     @property
-    def _engine_type(self) -> libindex.IndexEngine:
+    def _engine_type(self):
         return self._engine_types[self.dtype]
 
     @cache_readonly
