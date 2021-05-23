@@ -4568,7 +4568,7 @@ class AppendableFrameTable(AppendableTable):
                 df = DataFrame(values, columns=cols_, index=index_)
             else:
                 # Categorical
-                df = DataFrame([values], columns=cols_, index=index_)
+                df = DataFrame._from_arrays([values], columns=cols_, index=index_)
             assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
             frames.append(df)
 
