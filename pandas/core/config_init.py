@@ -757,5 +757,5 @@ with cf.config_prefix("styler"):
     )
 
     cf.register_option(
-        "max.elements", 2 ** 14, styler_sparse_columns_doc, validator=bool
+        "max.elements", 2 ** 18, styler_sparse_columns_doc, validator=bool
     )
