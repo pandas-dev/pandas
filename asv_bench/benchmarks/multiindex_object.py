@@ -232,4 +232,17 @@ class SetOperations:
         getattr(self.left, method)(self.right)
 
 
+class Append:
+    def setup(self):
+        self.MI1 = MultiIndex.from_arrays(
+            [np.arange(10), np.arange(100, 200, 10)], names=["first", "second"]
+        )
+        self.MI2 = MultiIndex.from_arrays(
+            [np.arange(10, 20, 1), np.arange(200, 300, 10)], names=["first", "third"]
+        )
+
+    def time_append(self):
+        self.MI1.append(self.MI2)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
