@@ -106,8 +106,8 @@ class TestDropna:
         # https://github.com/pandas-dev/pandas/issues/41485
         ser = Series([1, 2, 3])
         msg = (
-            r"Starting with Pandas version 2\.0 all arguments of dropna except for the "
-            r"argument 'self' will be keyword-only"
+            r"In a future version of pandas all arguments of Series\.dropna "
+            r"will be keyword-only"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = ser.dropna(0)
