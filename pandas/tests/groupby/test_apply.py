@@ -1003,16 +1003,14 @@ def test_apply_function_with_indexing_return_column():
             "foo2": [1, 2, 4, 4, 5, 6],
         }
     )
-    result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
+    with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
+        result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
     expected = DataFrame({"foo1": ["one", "three", "two"], "foo2": [3.0, 4.0, 4.0]})
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_with_timezones_aware(using_array_manager, request):
+def test_apply_with_timezones_aware():
     # GH: 27212
-    if not using_array_manager:
-        request.node.add_marker(pytest.mark.xfail(reason="GH-34998"))
-
     dates = ["2001-01-01"] * 2 + ["2001-01-02"] * 2 + ["2001-01-03"] * 2
     index_no_tz = pd.DatetimeIndex(dates)
     index_tz = pd.DatetimeIndex(dates, tz="UTC")
@@ -1124,3 +1122,27 @@ def test_apply_dropna_with_indexed_same():
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "as_index, expected",
+    [
+        [
+            False,
+            DataFrame(
+                [[1, 1, 1], [2, 2, 1]], columns=Index(["a", "b", None], dtype=object)
+            ),
+        ],
+        [
+            True,
+            Series(
+                [1, 1], index=MultiIndex.from_tuples([(1, 1), (2, 2)], names=["a", "b"])
+            ),
+        ],
+    ],
+)
+def test_apply_as_index_constant_lambda(as_index, expected):
+    # GH 13217
+    df = DataFrame({"a": [1, 1, 2, 2], "b": [1, 1, 2, 2], "c": [1, 1, 1, 1]})
+    result = df.groupby(["a", "b"], as_index=as_index).apply(lambda x: 1)
+    tm.assert_equal(result, expected)

@@ -1,6 +1,8 @@
 from typing import (
     Any,
     Callable,
+    Literal,
+    overload,
 )
 
 import numpy as np
@@ -35,9 +37,19 @@ def vec_binop(
     op: _BinOp,         # binary operator
 ) -> np.ndarray: ...
 
-
+@overload
 def maybe_convert_bool(
     arr: np.ndarray,  # np.ndarray[object]
     true_values=...,
-    false_values=...
-) -> np.ndarray: ...
+    false_values=...,
+    convert_to_masked_nullable: Literal[False] = ...,
+) -> tuple[np.ndarray, None]: ...
+
+@overload
+def maybe_convert_bool(
+    arr: np.ndarray,  # np.ndarray[object]
+    true_values=...,
+    false_values=...,
+    *,
+    convert_to_masked_nullable: Literal[True],
+) -> tuple[np.ndarray, np.ndarray]: ...

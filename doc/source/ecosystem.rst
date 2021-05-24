@@ -98,7 +98,8 @@ which can be used for a wide variety of time series data mining tasks.
 Visualization
 -------------
 
-While :ref:`pandas has built-in support for data visualization with matplotlib <visualization>`,
+`Pandas has its own Styler class for table visualization <user_guide/style.ipynb>`_, and while
+:ref:`pandas also has built-in support for data visualization through charts with matplotlib <visualization>`,
 there are a number of other pandas-compatible libraries.
 
 `Altair <https://altair-viz.github.io/>`__
@@ -162,6 +163,21 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
+
+`Lux <https://github.com/lux-org/lux>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`Lux <https://github.com/lux-org/lux>`__ is a Python library that facilitates fast and easy experimentation with data by automating the visual data exploration process. To use Lux, simply add an extra import alongside pandas:
+
+.. code:: python
+
+    import lux
+    import pandas as pd
+
+    df = pd.read_csv("data.csv")
+    df  # discover interesting insights!
+
+By printing out a dataframe, Lux automatically `recommends a set of visualizations <https://github.com/lux-org/lux-resources/blob/master/readme_img/demohighlight.gif?raw=true>`__ that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a `powerful, intuitive language <https://lux-api.readthedocs.io/en/latest/source/guide/vis.html>`__ that allow users to create  `Altair <https://altair-viz.github.io/>`__, `matplotlib <https://matplotlib.org>`__, or `Vega-Lite <https://vega.github.io/vega-lite/>`__ visualizations without having to think at the level of code.
 
 `Qtpandas <https://github.com/draperjames/qtpandas>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -368,6 +384,14 @@ far exceeding the performance of the native ``df.to_sql`` method. Internally, it
 Microsoft's BCP utility, but the complexity is fully abstracted away from the end user.
 Rigorously tested, it is a complete replacement for ``df.to_sql``.
 
+`Deltalake <https://pypi.org/project/deltalake>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Deltalake python package lets you access tables stored in
+`Delta Lake <https://delta.io/>`__ natively in Python without the need to use Spark or
+JVM. It provides the ``delta_table.to_pyarrow_table().to_pandas()`` method to convert
+any Delta table into Pandas dataframe.
+
 
 .. _ecosystem.out-of-core:
 
@@ -380,6 +404,35 @@ Out-of-core
 Blaze provides a standard API for doing computations with various
 in-memory and on-disk backends: NumPy, pandas, SQLAlchemy, MongoDB, PyTables,
 PySpark.
+
+`Cylon <https://cylondata.org/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Cylon is a fast, scalable, distributed memory parallel runtime with a pandas
+like Python DataFrame API. ”Core Cylon” is implemented with C++ using Apache
+Arrow format to represent the data in-memory. Cylon DataFrame API implements
+most of the core operators of pandas such as merge, filter, join, concat,
+group-by, drop_duplicates, etc. These operators are designed to work across
+thousands of cores to scale applications. It can interoperate with pandas
+DataFrame by reading data from pandas or converting data to pandas so users
+can selectively scale parts of their pandas DataFrame applications.
+
+.. code:: python
+
+    from pycylon import read_csv, DataFrame, CylonEnv
+    from pycylon.net import MPIConfig
+
+    # Initialize Cylon distributed environment
+    config: MPIConfig = MPIConfig()
+    env: CylonEnv = CylonEnv(config=config, distributed=True)
+
+    df1: DataFrame = read_csv('/tmp/csv1.csv')
+    df2: DataFrame = read_csv('/tmp/csv2.csv')
+
+    # Using 1000s of cores across the cluster to compute the join
+    df3: Table = df1.join(other=df2, on=[0], algorithm="hash", env=env)
+
+    print(df3)
 
 `Dask <https://dask.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -466,7 +519,7 @@ arrays can be stored inside pandas' Series and DataFrame.
 `Pandas-Genomics`_
 ~~~~~~~~~~~~~~~~~~
 
-Pandas-Genomics provides extension types and extension arrays for working with genomics data
+Pandas-Genomics provides extension types, extension arrays, and extension accessors for working with genomics data
 
 `Pint-Pandas`_
 ~~~~~~~~~~~~~~
@@ -493,16 +546,17 @@ A directory of projects providing
 :ref:`extension accessors <extending.register-accessors>`. This is for users to
 discover new accessors and for library authors to coordinate on the namespace.
 
-=============== ============ ==================================== ===============================================================
-Library         Accessor     Classes                              Description
-=============== ============ ==================================== ===============================================================
-`cyberpandas`_  ``ip``       ``Series``                           Provides common operations for working with IP addresses.
-`pdvega`_       ``vgplot``   ``Series``, ``DataFrame``            Provides plotting functions from the Altair_ library.
-`pandas_path`_  ``path``     ``Index``, ``Series``                Provides `pathlib.Path`_ functions for Series.
-`pint-pandas`_  ``pint``     ``Series``, ``DataFrame``            Provides units support for numeric Series and DataFrames.
-`composeml`_    ``slice``    ``DataFrame``                        Provides a generator for enhanced data slicing.
-`datatest`_     ``validate`` ``Series``, ``DataFrame``, ``Index`` Provides validation, differences, and acceptance managers.
-=============== ============ ==================================== ===============================================================
+================== ============ ==================================== ===============================================================================
+Library            Accessor     Classes                              Description
+================== ============ ==================================== ===============================================================================
+`cyberpandas`_     ``ip``       ``Series``                           Provides common operations for working with IP addresses.
+`pdvega`_          ``vgplot``   ``Series``, ``DataFrame``            Provides plotting functions from the Altair_ library.
+`pandas-genomics`_ ``genomics`` ``Series``, ``DataFrame``            Provides common operations for quality control and analysis of genomics data
+`pandas_path`_     ``path``     ``Index``, ``Series``                Provides `pathlib.Path`_ functions for Series.
+`pint-pandas`_     ``pint``     ``Series``, ``DataFrame``            Provides units support for numeric Series and DataFrames.
+`composeml`_       ``slice``    ``DataFrame``                        Provides a generator for enhanced data slicing.
+`datatest`_        ``validate`` ``Series``, ``DataFrame``, ``Index`` Provides validation, differences, and acceptance managers.
+================== ============ ==================================== ===============================================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://altair-viz.github.io/pdvega/

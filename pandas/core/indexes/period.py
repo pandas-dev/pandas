@@ -6,7 +6,7 @@ from datetime import (
 )
 from typing import (
     Any,
-    Optional,
+    Hashable,
 )
 import warnings
 
@@ -217,11 +217,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         data=None,
         ordinal=None,
         freq=None,
-        dtype: Optional[Dtype] = None,
-        copy=False,
-        name=None,
+        dtype: Dtype | None = None,
+        copy: bool = False,
+        name: Hashable = None,
         **fields,
-    ):
+    ) -> PeriodIndex:
 
         valid_field_set = {
             "year",
@@ -325,7 +325,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # ------------------------------------------------------------------------
     # Rendering Methods
 
-    def _mpl_repr(self):
+    def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
         return self.astype(object)._values
 
@@ -389,7 +389,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
         """
         where : array of timestamps
-        mask : array of booleans where data is not NA
+        mask : np.ndarray[bool]
+            Array of booleans where data is not NA.
         """
         if isinstance(where, DatetimeIndex):
             where = PeriodIndex(where._values, freq=self.freq)
@@ -490,12 +491,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 pass
 
             try:
-                asdt, reso = parse_time_string(key, self.freq)
+                asdt, reso_str = parse_time_string(key, self.freq)
             except (ValueError, DateParseError) as err:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
-            reso = Resolution.from_attrname(reso)
+            reso = Resolution.from_attrname(reso_str)
             grp = reso.freq_group.value
             freqn = self.dtype.freq_group_code
 
@@ -530,7 +531,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         except KeyError as err:
             raise KeyError(orig_key) from err
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind: str):
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         """
         If label is a string or a datetime, cast it to Period.ordinal according
         to resolution.
@@ -539,7 +540,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'}
+        kind : {'loc', 'getitem'}, or None
 
         Returns
         -------
@@ -550,14 +551,15 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Value of `side` parameter should be validated in caller.
 
         """
-        assert kind in ["loc", "getitem"]
+        assert kind in ["loc", "getitem", None, lib.no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, datetime):
             return Period(label, freq=self.freq)
         elif isinstance(label, str):
             try:
-                parsed, reso = parse_time_string(label, self.freq)
-                reso = Resolution.from_attrname(reso)
+                parsed, reso_str = parse_time_string(label, self.freq)
+                reso = Resolution.from_attrname(reso_str)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
             except ValueError as err:
@@ -585,8 +587,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             raise ValueError
 
     def _get_string_slice(self, key: str):
-        parsed, reso = parse_time_string(key, self.freq)
-        reso = Resolution.from_attrname(reso)
+        parsed, reso_str = parse_time_string(key, self.freq)
+        reso = Resolution.from_attrname(reso_str)
         try:
             return self._partial_date_slice(reso, parsed)
         except KeyError as err:
@@ -594,7 +596,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods: Optional[int] = None, freq=None, name=None
+    start=None, end=None, periods: int | None = None, freq=None, name=None
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.

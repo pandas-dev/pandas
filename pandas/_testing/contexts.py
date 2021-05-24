@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 import os
 from pathlib import Path
@@ -8,7 +10,6 @@ import tempfile
 from typing import (
     IO,
     Any,
-    Union,
 )
 
 import numpy as np
@@ -111,7 +112,7 @@ def ensure_clean(filename=None, return_filelike: bool = False, **kwargs: Any):
 
     path.touch()
 
-    handle_or_str: Union[str, IO] = str(path)
+    handle_or_str: str | IO = str(path)
     if return_filelike:
         kwargs.setdefault("mode", "w+b")
         handle_or_str = open(path, **kwargs)

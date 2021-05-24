@@ -8,9 +8,6 @@ import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    Optional,
-    Tuple,
     Union,
     cast,
 )
@@ -33,25 +30,24 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     FrameOrSeriesUnion,
+    Scalar,
 )
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     infer_dtype_from_array,
+    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
-    ensure_int64,
     ensure_object,
     ensure_platform_int,
-    ensure_uint64,
     is_array_like,
     is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_datetime64_ns_dtype,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
@@ -59,11 +55,8 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
-    is_period_dtype,
     is_scalar,
-    is_signed_integer_dtype,
     is_timedelta64_dtype,
-    is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -91,6 +84,8 @@ from pandas.core.construction import (
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas import (
         Categorical,
         DataFrame,
@@ -102,13 +97,13 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
 
-_shared_docs: Dict[str, str] = {}
+_shared_docs: dict[str, str] = {}
 
 
 # --------------- #
 # dtype access    #
 # --------------- #
-def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
+def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
     """
     routine to ensure that our data is of the correct
     input dtype for lower-level routines
@@ -136,79 +131,50 @@ def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
         values = extract_array(values, extract_numpy=True)
 
     # we check some simple dtypes first
-    if is_object_dtype(values):
+    if is_object_dtype(values.dtype):
         return ensure_object(np.asarray(values)), np.dtype("object")
 
-    try:
-        if is_bool_dtype(values):
-            # we are actually coercing to uint64
-            # until our algos support uint8 directly (see TODO)
-            return np.asarray(values).astype("uint64"), np.dtype("bool")
-        elif is_signed_integer_dtype(values):
-            return ensure_int64(values), np.dtype("int64")
-        elif is_unsigned_integer_dtype(values):
-            return ensure_uint64(values), np.dtype("uint64")
-        elif is_float_dtype(values):
-            return ensure_float64(values), np.dtype("float64")
-        elif is_complex_dtype(values):
+    elif is_bool_dtype(values.dtype):
+        if isinstance(values, np.ndarray):
+            # i.e. actually dtype == np.dtype("bool")
+            return np.asarray(values).view("uint8"), values.dtype
+        else:
+            # i.e. all-bool Categorical, BooleanArray
+            return np.asarray(values).astype("uint8", copy=False), values.dtype
 
-            # ignore the fact that we are casting to float
-            # which discards complex parts
-            with catch_warnings():
-                simplefilter("ignore", np.ComplexWarning)
-                values = ensure_float64(values)
-            # error: Incompatible return value type (got "Tuple[ExtensionArray,
-            # dtype[floating[_64Bit]]]", expected "Tuple[ndarray, Union[dtype[Any],
-            # ExtensionDtype]]")
-            return values, np.dtype("float64")  # type: ignore[return-value]
+    elif is_integer_dtype(values.dtype):
+        return np.asarray(values), values.dtype
 
-    except (TypeError, ValueError, OverflowError):
-        # if we are trying to coerce to a dtype
-        # and it is incompatible this will fall through to here
-        return ensure_object(values), np.dtype("object")
+    elif is_float_dtype(values.dtype):
+        # Note: checking `values.dtype == "float128"` raises on Windows and 32bit
+        # error: Item "ExtensionDtype" of "Union[Any, ExtensionDtype, dtype[Any]]"
+        # has no attribute "itemsize"
+        if values.dtype.itemsize in [2, 12, 16]:  # type: ignore[union-attr]
+            # we dont (yet) have float128 hashtable support
+            return ensure_float64(values), values.dtype
+        return np.asarray(values), values.dtype
+
+    elif is_complex_dtype(values.dtype):
+        # ignore the fact that we are casting to float
+        # which discards complex parts
+        with catch_warnings():
+            simplefilter("ignore", np.ComplexWarning)
+            values = ensure_float64(values)
+        return values, np.dtype("float64")
 
     # datetimelike
-    if needs_i8_conversion(values.dtype):
-        if is_period_dtype(values.dtype):
-            from pandas import PeriodIndex
-
-            values = PeriodIndex(values)._data
-        elif is_timedelta64_dtype(values.dtype):
-            from pandas import TimedeltaIndex
-
-            values = TimedeltaIndex(values)._data
-        else:
-            # Datetime
-            if values.ndim > 1 and is_datetime64_ns_dtype(values.dtype):
-                # Avoid calling the DatetimeIndex constructor as it is 1D only
-                # Note: this is reached by DataFrame.rank calls GH#27027
-                # TODO(EA2D): special case not needed with 2D EAs
-                asi8 = values.view("i8")
-                dtype = values.dtype
-                # error: Incompatible return value type (got "Tuple[Any,
-                # Union[dtype, ExtensionDtype, None]]", expected
-                # "Tuple[ndarray, Union[dtype, ExtensionDtype]]")
-                return asi8, dtype  # type: ignore[return-value]
-
-            from pandas import DatetimeIndex
-
-            values = DatetimeIndex(values)._data
-        dtype = values.dtype
-        return values.asi8, dtype
+    elif needs_i8_conversion(values.dtype):
+        if isinstance(values, np.ndarray):
+            values = sanitize_to_nanoseconds(values)
+        npvalues = values.view("i8")
+        npvalues = cast(np.ndarray, npvalues)
+        return npvalues, values.dtype
 
     elif is_categorical_dtype(values.dtype):
         values = cast("Categorical", values)
         values = values.codes
         dtype = pandas_dtype("category")
-
-        # we are actually coercing to int64
-        # until our algos support int* directly (not all do)
-        values = ensure_int64(values)
-
-        # error: Incompatible return value type (got "Tuple[ExtensionArray,
-        # Union[dtype[Any], ExtensionDtype]]", expected "Tuple[ndarray,
-        # Union[dtype[Any], ExtensionDtype]]")
-        return values, dtype  # type: ignore[return-value]
+        return values, dtype
 
     # we have failed, return object
     values = np.asarray(values, dtype=object)
@@ -224,7 +190,7 @@ def _reconstruct_data(
     Parameters
     ----------
     values : np.ndarray or ExtensionArray
-    dtype : np.ndtype or ExtensionDtype
+    dtype : np.dtype or ExtensionDtype
     original : AnyArrayLike
 
     Returns
@@ -277,8 +243,15 @@ def _ensure_arraylike(values) -> ArrayLike:
 
 _hashtables = {
     "float64": htable.Float64HashTable,
+    "float32": htable.Float32HashTable,
     "uint64": htable.UInt64HashTable,
+    "uint32": htable.UInt32HashTable,
+    "uint16": htable.UInt16HashTable,
+    "uint8": htable.UInt8HashTable,
     "int64": htable.Int64HashTable,
+    "int32": htable.Int32HashTable,
+    "int16": htable.Int16HashTable,
+    "int8": htable.Int8HashTable,
     "string": htable.StringHashTable,
     "object": htable.PyObjectHashTable,
 }
@@ -302,20 +275,22 @@ def _get_hashtable_algo(values: np.ndarray):
     return htable, values
 
 
-def _get_values_for_rank(values: ArrayLike):
+def _get_values_for_rank(values: ArrayLike) -> np.ndarray:
     if is_categorical_dtype(values):
         values = cast("Categorical", values)._values_for_rank()
 
     values, _ = _ensure_data(values)
+    if values.dtype.kind in ["i", "u", "f"]:
+        # rank_t includes only object, int64, uint64, float64
+        dtype = values.dtype.kind + "8"
+        values = values.astype(dtype, copy=False)
     return values
 
 
 def get_data_algo(values: ArrayLike):
     values = _get_values_for_rank(values)
 
-    # error: Argument 1 to "_check_object_for_strings" has incompatible type
-    # "ExtensionArray"; expected "ndarray"
-    ndtype = _check_object_for_strings(values)  # type: ignore[arg-type]
+    ndtype = _check_object_for_strings(values)
     htable = _hashtables.get(ndtype, _hashtables["object"])
 
     return htable, values
@@ -386,46 +361,60 @@ def unique(values):
     >>> pd.unique(pd.Series([2] + [1] * 5))
     array([2, 1])
 
-    >>> pd.unique(pd.Series([pd.Timestamp('20160101'),
-    ...                     pd.Timestamp('20160101')]))
+    >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
     array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
 
-    >>> pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
-    ...                      pd.Timestamp('20160101', tz='US/Eastern')]))
-    array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
-          dtype=object)
+    >>> pd.unique(
+    ...     pd.Series(
+    ...         [
+    ...             pd.Timestamp("20160101", tz="US/Eastern"),
+    ...             pd.Timestamp("20160101", tz="US/Eastern"),
+    ...         ]
+    ...     )
+    ... )
+    <DatetimeArray>
+    ['2016-01-01 00:00:00-05:00']
+    Length: 1, dtype: datetime64[ns, US/Eastern]
 
-    >>> pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
-    ...                     pd.Timestamp('20160101', tz='US/Eastern')]))
+    >>> pd.unique(
+    ...     pd.Index(
+    ...         [
+    ...             pd.Timestamp("20160101", tz="US/Eastern"),
+    ...             pd.Timestamp("20160101", tz="US/Eastern"),
+    ...         ]
+    ...     )
+    ... )
     DatetimeIndex(['2016-01-01 00:00:00-05:00'],
-    ...           dtype='datetime64[ns, US/Eastern]', freq=None)
+            dtype='datetime64[ns, US/Eastern]',
+            freq=None)
 
-    >>> pd.unique(list('baabc'))
+    >>> pd.unique(list("baabc"))
     array(['b', 'a', 'c'], dtype=object)
 
     An unordered Categorical will return categories in the
     order of appearance.
 
-    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'))))
-    [b, a, c]
-    Categories (3, object): [b, a, c]
+    >>> pd.unique(pd.Series(pd.Categorical(list("baabc"))))
+    ['b', 'a', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
-    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
-    ...                                    categories=list('abc'))))
-    [b, a, c]
-    Categories (3, object): [b, a, c]
+    >>> pd.unique(pd.Series(pd.Categorical(list("baabc"), categories=list("abc"))))
+    ['b', 'a', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
     An ordered Categorical preserves the category ordering.
 
-    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
-    ...                                    categories=list('abc'),
-    ...                                    ordered=True)))
-    [b, a, c]
-    Categories (3, object): [a < b < c]
+    >>> pd.unique(
+    ...     pd.Series(
+    ...         pd.Categorical(list("baabc"), categories=list("abc"), ordered=True)
+    ...     )
+    ... )
+    ['b', 'a', 'c']
+    Categories (3, object): ['a' < 'b' < 'c']
 
     An array of tuples
 
-    >>> pd.unique([('a', 'b'), ('b', 'a'), ('a', 'c'), ('b', 'a')])
+    >>> pd.unique([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
     values = _ensure_arraylike(values)
@@ -477,14 +466,13 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # Avoid raising in extract_array
         values = np.array(values)
     else:
-        values = extract_array(values, extract_numpy=True)
+        values = extract_array(values, extract_numpy=True, extract_range=True)
 
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
-    if is_extension_array_dtype(comps.dtype):
-        # error: Incompatible return value type (got "Series", expected "ndarray")
-        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute "isin"
-        return comps.isin(values)  # type: ignore[return-value,union-attr]
+    if not isinstance(comps, np.ndarray):
+        # i.e. Extension Array
+        return comps.isin(values)
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
@@ -530,10 +518,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         )
         values = values.astype(common, copy=False)
         comps = comps.astype(common, copy=False)
-        name = common.name
-        if name == "bool":
-            name = "uint8"
-        f = getattr(htable, f"ismember_{name}")
+        f = htable.ismember
 
     return f(comps, values)
 
@@ -541,10 +526,10 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 def factorize_array(
     values: np.ndarray,
     na_sentinel: int = -1,
-    size_hint: Optional[int] = None,
+    size_hint: int | None = None,
     na_value=None,
-    mask: Optional[np.ndarray] = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+    mask: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
 
@@ -568,7 +553,7 @@ def factorize_array(
 
     Returns
     -------
-    codes : ndarray
+    codes : ndarray[np.intp]
     uniques : ndarray
     """
     hash_klass, values = get_data_algo(values)
@@ -607,9 +592,9 @@ def factorize_array(
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: Optional[int] = -1,
-    size_hint: Optional[int] = None,
-) -> Tuple[np.ndarray, Union[np.ndarray, Index]]:
+    na_sentinel: int | None = -1,
+    size_hint: int | None = None,
+) -> tuple[np.ndarray, np.ndarray | Index]:
     """
     Encode the object as an enumerated type or categorical variable.
 
@@ -763,6 +748,7 @@ def factorize(
         dtype = original.dtype
     else:
         values, dtype = _ensure_data(values)
+        na_value: Scalar
 
         if original.dtype.kind in ["m", "M"]:
             # Note: factorize_array will cast NaT bc it has a __int__
@@ -901,30 +887,24 @@ def value_counts_arraylike(values, dropna: bool):
     values = _ensure_arraylike(values)
     original = values
     values, _ = _ensure_data(values)
-    ndtype = values.dtype.name
+
+    # TODO: handle uint8
+    keys, counts = htable.value_count(values, dropna)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
-
-        keys, counts = htable.value_count_int64(values, dropna)
 
         if dropna:
             msk = keys != iNaT
             keys, counts = keys[msk], counts[msk]
 
-    else:
-        # ndarray like
-
-        # TODO: handle uint8
-        f = getattr(htable, f"value_count_{ndtype}")
-        keys, counts = f(values, dropna)
-
-    keys = _reconstruct_data(keys, original.dtype, original)
-
-    return keys, counts
+    res_keys = _reconstruct_data(keys, original.dtype, original)
+    return res_keys, counts
 
 
-def duplicated(values: ArrayLike, keep: Union[str, bool] = "first") -> np.ndarray:
+def duplicated(
+    values: ArrayLike, keep: Literal["first", "last", False] = "first"
+) -> np.ndarray:
     """
     Return boolean ndarray denoting duplicate values.
 
@@ -941,12 +921,10 @@ def duplicated(values: ArrayLike, keep: Union[str, bool] = "first") -> np.ndarra
 
     Returns
     -------
-    duplicated : ndarray
+    duplicated : ndarray[bool]
     """
     values, _ = _ensure_data(values)
-    ndtype = values.dtype.name
-    f = getattr(htable, f"duplicated_{ndtype}")
-    return f(values, keep=keep)
+    return htable.duplicated(values, keep=keep)
 
 
 def mode(values, dropna: bool = True) -> Series:
@@ -957,7 +935,7 @@ def mode(values, dropna: bool = True) -> Series:
     ----------
     values : array-like
         Array over which to check for duplicate values.
-    dropna : boolean, default True
+    dropna : bool, default True
         Don't consider counts of NaN/NaT.
 
         .. versionadded:: 0.24.0
@@ -984,16 +962,14 @@ def mode(values, dropna: bool = True) -> Series:
         values = values[~mask]
 
     values, _ = _ensure_data(values)
-    ndtype = values.dtype.name
 
-    f = getattr(htable, f"mode_{ndtype}")
-    result = f(values, dropna=dropna)
+    npresult = htable.mode(values, dropna=dropna)
     try:
-        result = np.sort(result)
+        npresult = np.sort(npresult)
     except TypeError as err:
         warn(f"Unable to sort modes: {err}")
 
-    result = _reconstruct_data(result, original.dtype, original)
+    result = _reconstruct_data(npresult, original.dtype, original)
     # Ensure index is type stable (should always use int index)
     return Series(result, index=ibase.default_index(len(result)))
 
@@ -1023,27 +999,29 @@ def rank(
         - ``keep``: rank each NaN value with a NaN ranking
         - ``top``: replace each NaN with either +/- inf so that they
                    there are ranked at the top
-    ascending : boolean, default True
+    ascending : bool, default True
         Whether or not the elements should be ranked in ascending order.
-    pct : boolean, default False
+    pct : bool, default False
         Whether or not to the display the returned rankings in integer form
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
+    is_datetimelike = needs_i8_conversion(values.dtype)
+    values = _get_values_for_rank(values)
     if values.ndim == 1:
-        values = _get_values_for_rank(values)
         ranks = algos.rank_1d(
             values,
-            labels=np.zeros(len(values), dtype=np.int64),
+            labels=np.zeros(len(values), dtype=np.intp),
+            is_datetimelike=is_datetimelike,
             ties_method=method,
             ascending=ascending,
             na_option=na_option,
             pct=pct,
         )
     elif values.ndim == 2:
-        values = _get_values_for_rank(values)
         ranks = algos.rank_2d(
             values,
             axis=axis,
+            is_datetimelike=is_datetimelike,
             ties_method=method,
             ascending=ascending,
             na_option=na_option,
@@ -1058,8 +1036,8 @@ def rank(
 def checked_add_with_arr(
     arr: np.ndarray,
     b,
-    arr_mask: Optional[np.ndarray] = None,
-    b_mask: Optional[np.ndarray] = None,
+    arr_mask: np.ndarray | None = None,
+    b_mask: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Perform array addition that checks for underflow and overflow.
@@ -1305,7 +1283,9 @@ class SelectNSeries(SelectN):
         narr = len(arr)
         n = min(n, narr)
 
-        kth_val = algos.kth_smallest(arr.copy(), n - 1)
+        # arr passed into kth_smallest must be contiguous. We copy
+        # here because kth_smallest will modify its input
+        kth_val = algos.kth_smallest(arr.copy(order="C"), n - 1)
         (ns,) = np.nonzero(arr <= kth_val)
         inds = ns[arr[ns].argsort(kind="mergesort")]
 
@@ -1613,7 +1593,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0, stacklevel=3):
+def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1625,7 +1605,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
         number of periods
     axis : {0, 1}
         axis to shift on
-    stacklevel : int
+    stacklevel : int, default 3
         The stacklevel for the lost dtype warning.
 
     Returns
@@ -1735,7 +1715,7 @@ def safe_sort(
     na_sentinel: int = -1,
     assume_unique: bool = False,
     verify: bool = True,
-) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """
     Sort ``values`` and reorder corresponding ``codes``.
 
@@ -1859,7 +1839,7 @@ def safe_sort(
     return ordered, ensure_platform_int(new_codes)
 
 
-def _sort_mixed(values):
+def _sort_mixed(values) -> np.ndarray:
     """ order ints before strings in 1d arrays, safe in py3 """
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
     nums = np.sort(values[~str_pos])
@@ -1882,29 +1862,33 @@ def _sort_tuples(values: np.ndarray) -> np.ndarray:
     return values[indexer]
 
 
-def union_with_duplicates(lvals: np.ndarray, rvals: np.ndarray) -> np.ndarray:
+def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     """
     Extracts the union from lvals and rvals with respect to duplicates and nans in
     both arrays.
 
     Parameters
     ----------
-    lvals: np.ndarray
+    lvals: np.ndarray or ExtensionArray
         left values which is ordered in front.
-    rvals: np.ndarray
+    rvals: np.ndarray or ExtensionArray
         right values ordered after lvals.
 
     Returns
     -------
-    np.ndarray containing the unsorted union of both arrays
+    np.ndarray or ExtensionArray
+        Containing the unsorted union of both arrays.
     """
     indexer = []
     l_count = value_counts(lvals, dropna=False)
     r_count = value_counts(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
     unique_array = unique(np.append(lvals, rvals))
-    if is_extension_array_dtype(lvals) or is_extension_array_dtype(rvals):
-        unique_array = pd_array(unique_array)
+    if not isinstance(lvals, np.ndarray):
+        # i.e. ExtensionArray
+        # Note: we only get here with lvals.dtype == rvals.dtype
+        # TODO: are there any cases where union won't be type/dtype preserving?
+        unique_array = type(lvals)._from_sequence(unique_array, dtype=lvals.dtype)
     for i, value in enumerate(unique_array):
         indexer += [i] * int(max(l_count[value], r_count[value]))
     return unique_array.take(indexer)

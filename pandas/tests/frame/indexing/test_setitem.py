@@ -5,7 +5,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.base import registry as ea_registry
+from pandas.core.dtypes.base import _registry as ea_registry
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_interval_dtype,
@@ -18,6 +18,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
+import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
@@ -610,6 +611,21 @@ class TestDataFrameSetItem:
         expected = Series(tuples, index=float_frame.index, name="tuples")
         tm.assert_series_equal(result, expected)
 
+    def test_setitem_iloc_generator(self):
+        # GH#39614
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        indexer = (x for x in [1, 2])
+        df.iloc[indexer] = 1
+        expected = DataFrame({"a": [1, 1, 1], "b": [4, 1, 1]})
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_iloc_two_dimensional_generator(self):
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        indexer = (x for x in [1, 2])
+        df.iloc[indexer, 1] = 1
+        expected = DataFrame({"a": [1, 2, 3], "b": [4, 1, 1]})
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -776,6 +792,41 @@ class TestDataFrameSetItemSlicing:
         expected = DataFrame(arr)
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("indexer", [tm.setitem, tm.iloc])
+    @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
+    @pytest.mark.parametrize("n", [1, 2, 3])
+    def test_setitem_slice_indexer_broadcasting_rhs(self, n, box, indexer):
+        # GH#40440
+        df = DataFrame([[1, 3, 5]] + [[2, 4, 6]] * n, columns=["a", "b", "c"])
+        indexer(df)[1:] = box([10, 11, 12])
+        expected = DataFrame([[1, 3, 5]] + [[10, 11, 12]] * n, columns=["a", "b", "c"])
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
+    @pytest.mark.parametrize("n", [1, 2, 3])
+    def test_setitem_list_indexer_broadcasting_rhs(self, n, box):
+        # GH#40440
+        df = DataFrame([[1, 3, 5]] + [[2, 4, 6]] * n, columns=["a", "b", "c"])
+        df.iloc[list(range(1, n + 1))] = box([10, 11, 12])
+        expected = DataFrame([[1, 3, 5]] + [[10, 11, 12]] * n, columns=["a", "b", "c"])
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", [tm.setitem, tm.iloc])
+    @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
+    @pytest.mark.parametrize("n", [1, 2, 3])
+    def test_setitem_slice_broadcasting_rhs_mixed_dtypes(self, n, box, indexer):
+        # GH#40440
+        df = DataFrame(
+            [[1, 3, 5], ["x", "y", "z"]] + [[2, 4, 6]] * n, columns=["a", "b", "c"]
+        )
+        indexer(df)[1:] = box([10, 11, 12])
+        expected = DataFrame(
+            [[1, 3, 5]] + [[10, 11, 12]] * (n + 1),
+            columns=["a", "b", "c"],
+            dtype="object",
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetItemCallable:
     def test_setitem_callable(self):
@@ -844,9 +895,11 @@ class TestDataFrameSetItemBooleanMask:
         df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
 
         exp_fancy = exp_multi_row.copy()
-        return_value = exp_fancy["cats"].cat.set_categories(
-            ["a", "b", "c"], inplace=True
-        )
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # issue #37643 inplace kwarg deprecated
+            return_value = exp_fancy["cats"].cat.set_categories(
+                ["a", "b", "c"], inplace=True
+            )
         assert return_value is None
 
         mask = df["cats"] == "c"
@@ -888,6 +941,14 @@ class TestDataFrameSetItemBooleanMask:
         with pytest.raises(ValueError, match="Item wrong length"):
             df1[df1.index[:-1] > 2] = -1
 
+    def test_loc_setitem_all_false_boolean_two_blocks(self):
+        # GH#40885
+        df = DataFrame({"a": [1, 2], "b": [3, 4], "c": "a"})
+        expected = df.copy()
+        indexer = Series([False, False], name="c")
+        df.loc[indexer, ["b"]] = DataFrame({"b": [5, 6]}, index=[0, 1])
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetitemCopyViewSemantics:
     def test_setitem_always_copy(self, float_frame):
@@ -926,7 +987,9 @@ class TestDataFrameSetitemCopyViewSemantics:
         tm.assert_frame_equal(df_view, df_copy)
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("value", [1, np.array([[1], [1]]), [[1], [1]]])
+    @pytest.mark.parametrize(
+        "value", [1, np.array([[1], [1]], dtype="int64"), [[1], [1]]]
+    )
     def test_setitem_same_dtype_not_inplace(self, value, using_array_manager, request):
         # GH#39510
         if not using_array_manager:
