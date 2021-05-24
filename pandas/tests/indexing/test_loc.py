@@ -2685,7 +2685,8 @@ class TestLocSeries:
 
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_dict_timedelta_multple_set(self):
+    @td.skip_array_manager_invalid_test
+    def test_loc_setitem_dict_timedelta_multiple_set(self):
         # GH 16309
         result = DataFrame(columns=["time", "value"])
         result.loc[1] = {"time": Timedelta(6, unit="s"), "value": "foo"}
