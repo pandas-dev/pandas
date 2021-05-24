@@ -210,27 +210,21 @@ class PyArrowImpl(BaseImpl):
 
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
-            if Version(self.api.__version__) >= Version("0.16"):
-                import pandas as pd
+            import pandas as pd
 
-                mapping = {
-                    self.api.int8(): pd.Int8Dtype(),
-                    self.api.int16(): pd.Int16Dtype(),
-                    self.api.int32(): pd.Int32Dtype(),
-                    self.api.int64(): pd.Int64Dtype(),
-                    self.api.uint8(): pd.UInt8Dtype(),
-                    self.api.uint16(): pd.UInt16Dtype(),
-                    self.api.uint32(): pd.UInt32Dtype(),
-                    self.api.uint64(): pd.UInt64Dtype(),
-                    self.api.bool_(): pd.BooleanDtype(),
-                    self.api.string(): pd.StringDtype(),
-                }
-                to_pandas_kwargs["types_mapper"] = mapping.get
-            else:
-                raise ValueError(
-                    "'use_nullable_dtypes=True' is only supported for pyarrow >= 0.16 "
-                    f"({self.api.__version__} is installed"
-                )
+            mapping = {
+                self.api.int8(): pd.Int8Dtype(),
+                self.api.int16(): pd.Int16Dtype(),
+                self.api.int32(): pd.Int32Dtype(),
+                self.api.int64(): pd.Int64Dtype(),
+                self.api.uint8(): pd.UInt8Dtype(),
+                self.api.uint16(): pd.UInt16Dtype(),
+                self.api.uint32(): pd.UInt32Dtype(),
+                self.api.uint64(): pd.UInt64Dtype(),
+                self.api.bool_(): pd.BooleanDtype(),
+                self.api.string(): pd.StringDtype(),
+            }
+            to_pandas_kwargs["types_mapper"] = mapping.get
         manager = get_option("mode.data_manager")
         if manager == "array":
             to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]

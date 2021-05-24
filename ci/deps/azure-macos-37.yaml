@@ -6,7 +6,7 @@ dependencies:
   - python=3.7.*
 
   # tools
-  - pytest>=5.0.1
+  - pytest>=6.0
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
   - pytest-azurepipelines

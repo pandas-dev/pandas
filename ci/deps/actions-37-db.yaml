@@ -6,7 +6,7 @@ dependencies:
 
   # tools
   - cython>=0.29.21
-  - pytest>=5.0.1
+  - pytest>=6.0
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
   - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
@@ -25,7 +25,7 @@ dependencies:
   - flask
   - nomkl
   - numexpr
-  - numpy=1.16.*
+  - numpy=1.17.*
   - odfpy
   - openpyxl
   - pandas-gbq
