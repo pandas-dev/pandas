@@ -1021,6 +1021,7 @@ def test_zero_len_frame_with_series_corner_cases():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_frame_single_columns_object_sum_axis_1():
     # GH 13758
     data = {

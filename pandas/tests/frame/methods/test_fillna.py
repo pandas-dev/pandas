@@ -538,6 +538,18 @@ class TestFillNA:
         expected = DataFrame({"col1": [1, 2]})
         tm.assert_frame_equal(result, expected)
 
+    def test_fillna_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3, np.nan]}, dtype=float)
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.fillna "
+            r"except for the argument 'value' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.fillna(0, None, None)
+        expected = DataFrame({"a": [1, 2, 3, 0]}, dtype=float)
+        tm.assert_frame_equal(result, expected)
+
 
 def test_fillna_nonconsolidated_frame():
     # https://github.com/pandas-dev/pandas/issues/36495
