@@ -245,6 +245,9 @@ new column. In 0.21.0 and later, this will raise a ``UserWarning``:
     1  2.0
     2  3.0
 
+While attribute access will work in many cases, bracket indexing is the recommended syntax for indexing a DataFrame. For 10 reasons why,
+please check `this post <https://medium.com/dunder-data/select-a-single-column-of-a-pandas-dataframe-with-the-brackets-and-not-dot-notation-a5ec981cbae6` about attribute vs bracket indexing.
+
 Slicing ranges
 --------------
 
