@@ -158,7 +158,7 @@ class BoxPlot(LinePlot):
                 # When `by` is assigned, the ticklabels will become unique grouped
                 # values, instead of label which is used as subtitle in this case.
                 if self.by is not None:
-                    label = self.data.columns.levels[0]
+                    label = [pprint_thing(col) for col in self.data.columns.levels[0]]
                 self._set_ticklabels(ax, label)
         else:
             y = self.data.values.T
