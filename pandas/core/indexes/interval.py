@@ -255,8 +255,6 @@ def _setop(op_name: str):
 @inherit_names(["is_non_overlapping_monotonic", "closed"], IntervalArray, cache=True)
 class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
-    _comparables = ["name"]
-    _attributes = ["name", "closed"]
 
     # annotate properties pinned via inherit_names
     closed: str
@@ -427,7 +425,7 @@ class IntervalIndex(ExtensionIndex):
         return result
 
     def __reduce__(self):
-        d = {"left": self.left, "right": self.right}
+        d = {"left": self.left, "right": self.right, "closed": self.closed}
         d.update(self._get_attributes_dict())
         return _new_IntervalIndex, (type(self), d), None
 
