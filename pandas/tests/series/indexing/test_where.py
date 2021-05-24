@@ -144,6 +144,16 @@ def test_where():
         s.where(s > 1, 10, False)
 
 
+def test_where_non_keyword():
+    # GH 41523
+    s = Series(range(5))
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = s.where(s > 1, 10, False)
+    expected = Series([10, 10, 2, 3, 4])
+    tm.assert_series_equal(expected, result)
+
+
 def test_where_error():
     s = Series(np.random.randn(5))
     cond = s > 0

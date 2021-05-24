@@ -760,7 +760,7 @@ def test_where_none_nan_coerce():
 
 
 def test_where_non_keyword():
-
+    # GH 41523
     s = DataFrame(range(5))
 
     with tm.assert_produces_warning(FutureWarning):
