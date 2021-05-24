@@ -2179,7 +2179,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
     if dtype.kind in ["i", "u"]:
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
-                if (is_float(element) and element.is_integer()):
+                if is_float(element) and element.is_integer():
                     return True
                 # Anything other than integer we cannot hold
                 return False
