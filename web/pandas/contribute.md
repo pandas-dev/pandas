@@ -14,7 +14,7 @@ and about current sponsors in the [sponsors page](about/sponsors.html).
             <i class="fas fa-circle fa-stack-2x pink"></i>
             <i class="fas fa-building fa-stack-1x fa-inverse"></i>
           </span>
-          <h4 class="service-heading mt-3 font-weight-bold blue">Corporate support</h4>
+          <h4 class="service-heading mt-3 fw-bold blue">Corporate support</h4>
           <p class="text-muted">
             pandas depends on companies and institutions using the software to support its development. Hiring
             people to work on pandas, or letting existing employees to contribute to the
@@ -28,7 +28,7 @@ and about current sponsors in the [sponsors page](about/sponsors.html).
             <i class="fas fa-circle fa-stack-2x pink"></i>
             <i class="fas fa-users fa-stack-1x fa-inverse"></i>
           </span>
-          <h4 class="service-heading mt-3 font-weight-bold blue">Individual contributors</h4>
+          <h4 class="service-heading mt-3 fw-bold blue">Individual contributors</h4>
           <p class="text-muted">
             pandas is mostly developed by volunteers. All kind of contributions are welcome,
             such as contributions to the code, to the website (including graphical designers),
@@ -42,7 +42,7 @@ and about current sponsors in the [sponsors page](about/sponsors.html).
             <i class="fas fa-circle fa-stack-2x pink"></i>
             <i class="fas fa-dollar-sign fa-stack-1x fa-inverse"></i>
           </span>
-          <h4 class="service-heading mt-3 font-weight-bold blue">Donations</h4>
+          <h4 class="service-heading mt-3 fw-bold blue">Donations</h4>
           <p class="text-muted">
             Individual donations are appreciated, and are used for things like the project
             infrastructure, travel expenses for our volunteer contributors to attend
