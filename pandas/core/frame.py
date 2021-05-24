@@ -260,6 +260,8 @@ _numeric_only_doc = """numeric_only : bool or None, default None
 _merge_doc = """
 Merge DataFrame or named Series objects with a database-style join.
 
+A named Series object is treated as a DataFrame with a single named column.
+
 The join is done on columns or indexes. If joining columns on
 columns, the DataFrame indexes *will be ignored*. Otherwise if joining indexes
 on indexes or indexes on a column or columns, the index will be passed on.
