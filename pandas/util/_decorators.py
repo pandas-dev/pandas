@@ -267,7 +267,7 @@ def deprecate_nonkeyword_arguments(
 
     Parameters
     ----------
-    version : str
+    version : str, optional
         The version in which positional arguments will become
         keyword-only. If None, then the warning message won't
         specify any particular version.
