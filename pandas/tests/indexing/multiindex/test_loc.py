@@ -801,3 +801,33 @@ def test_mi_partial_indexing_list_raises():
     frame.columns.names = ["state", "color"]
     with pytest.raises(KeyError, match="\\[2\\] not in index"):
         frame.loc[["b", 2], "Colorado"]
+
+
+def test_mi_indexing_list_nonexistent_raises():
+    # GH 15452
+    s = Series(range(4), index=MultiIndex.from_product([[1, 2], ["a", "b"]]))
+    with pytest.raises(KeyError, match="\\['not' 'found'\\] not in index"):
+        s.loc[["not", "found"]]
+
+
+def test_mi_add_cell_missing_row_non_unique():
+    # GH 16018
+    result = DataFrame(
+        [[1, 2, 5, 6], [3, 4, 7, 8]],
+        index=["a", "a"],
+        columns=MultiIndex.from_product([[1, 2], ["A", "B"]]),
+    )
+    result.loc["c"] = -1
+    result.loc["c", (1, "A")] = 3
+    result.loc["d", (1, "A")] = 3
+    expected = DataFrame(
+        [
+            [1.0, 2.0, 5.0, 6.0],
+            [3.0, 4.0, 7.0, 8.0],
+            [3.0, -1.0, -1, -1],
+            [3.0, np.nan, np.nan, np.nan],
+        ],
+        index=["a", "a", "c", "d"],
+        columns=MultiIndex.from_product([[1, 2], ["A", "B"]]),
+    )
+    tm.assert_frame_equal(result, expected)

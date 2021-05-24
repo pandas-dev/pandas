@@ -747,9 +747,13 @@ def test_where_bool_comparison():
     tm.assert_frame_equal(result, expected)
 
 
-def test_where():
-
-    s = Series(range(5))
-
-    with tm.assert_produces_warning(FutureWarning):
-        s.where(s > 1, 10, False)
+def test_where_none_nan_coerce():
+    # GH 15613
+    expected = DataFrame(
+        {
+            "A": [Timestamp("20130101"), pd.NaT, Timestamp("20130103")],
+            "B": [1, 2, np.nan],
+        }
+    )
+    result = expected.where(expected.notnull(), None)
+    tm.assert_frame_equal(result, expected)
