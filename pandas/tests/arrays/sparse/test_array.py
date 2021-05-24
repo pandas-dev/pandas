@@ -1354,7 +1354,6 @@ def test_concat_with_different_index_arrangement():
         [["i1_bottom", "i2_bottom", 1]], columns=["index1", "index4", "value1"]
     )
 
-    df_concatenated_result = pd.concat([df_first, df_second, df_third])
     df_concatenated_expected = pd.DataFrame(
         [
             ["i1_top", "i2_top", 1, pd.NA, pd.NA],
