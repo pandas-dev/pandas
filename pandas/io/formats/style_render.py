@@ -429,7 +429,7 @@ class StylerRenderer:
         d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
         body = []
         for r, row in enumerate(d["body"]):
-            if self.hidden_index:
+            if self.hide_index_:
                 row_body_headers = []
             else:
                 row_body_headers = [
