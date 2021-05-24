@@ -444,7 +444,7 @@ def test_parse_latex_table_wrapping(styler):
 @pytest.mark.parametrize(
     "css, expected",
     [
-        ([("color", "red")], [("color", "{red}")]),
+        ([("color", "red")], [("color", "{red}")]),  # test color and input format types
         (
             [("color", "rgb(128, 128, 128 )")],
             [("color", "[rgb]{0.502, 0.502, 0.502}")],
@@ -459,17 +459,19 @@ def test_parse_latex_table_wrapping(styler):
         ),
         ([("color", "#FF00FF")], [("color", "[HTML]{FF00FF}")]),
         ([("color", "#F0F")], [("color", "[HTML]{FF00FF}")]),
-        ([("font-weight", "bold")], [("bfseries", "")]),
+        ([("font-weight", "bold")], [("bfseries", "")]),  # test font-weight and types
         ([("font-weight", "bolder")], [("bfseries", "")]),
         ([("font-weight", "normal")], []),
         ([("background-color", "red")], [("cellcolor", "{red}--lwrap")]),
         (
-            [("background-color", "#FF00FF")],
+            [("background-color", "#FF00FF")],  # test background-color command and wrap
             [("cellcolor", "[HTML]{FF00FF}--lwrap")],
         ),
-        ([("font-style", "italic")], [("itshape", "")]),
+        ([("font-style", "italic")], [("itshape", "")]),  # test font-style and types
         ([("font-style", "oblique")], [("slshape", "")]),
         ([("font-style", "normal")], []),
+        ([("color", "red /*--dwrap*/")], [("color", "{red}--dwrap")]),  # css comments
+        ([("background-color", "red /* --dwrap */")], [("cellcolor", "{red}--dwrap")]),
     ],
 )
 def test_parse_latex_css_conversion(css, expected):
