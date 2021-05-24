@@ -1126,7 +1126,7 @@ def astype_nansafe(
     if issubclass(dtype.type, str):
         return lib.ensure_string_array(arr, skipna=skipna, convert_na_value=False)
 
-    elif is_datetime64_dtype(arr):
+    elif is_datetime64_dtype(arr.dtype):
         if dtype == np.int64:
             warnings.warn(
                 f"casting {arr.dtype} values to int64 with .astype(...) "
@@ -1146,7 +1146,7 @@ def astype_nansafe(
 
         raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
-    elif is_timedelta64_dtype(arr):
+    elif is_timedelta64_dtype(arr.dtype):
         if dtype == np.int64:
             warnings.warn(
                 f"casting {arr.dtype} values to int64 with .astype(...) "

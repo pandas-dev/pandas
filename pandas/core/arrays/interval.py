@@ -49,7 +49,10 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    IntervalDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -71,7 +74,6 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     _extension_array_shared_docs,
 )
-from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -828,7 +830,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ExtensionArray or NumPy ndarray with 'dtype' for its dtype.
         """
         from pandas import Index
-        from pandas.core.arrays.string_ import StringDtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -849,13 +850,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 )
                 raise TypeError(msg) from err
             return self._shallow_copy(new_left, new_right)
-        elif is_categorical_dtype(dtype):
-            return Categorical(np.asarray(self), dtype=dtype)
-        elif isinstance(dtype, StringDtype):
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
 
-        # TODO: This try/except will be repeated.
         try:
+            if isinstance(dtype, ExtensionDtype):
+                cls = dtype.construct_array_type()
+                return cls._from_sequence(self, dtype=dtype, copy=copy)
             return np.asarray(self).astype(dtype, copy=copy)
         except (TypeError, ValueError) as err:
             msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
