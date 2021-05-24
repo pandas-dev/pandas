@@ -929,19 +929,20 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        indices : list
+        indices : array-like
             Indices to be taken.
         axis : int, optional
             The axis over which to select values, always 0.
         allow_fill : bool, default True
-        fill_value : bool, default None
+        fill_value : scalar, default None
             If allow_fill=True and fill_value is not None, indices specified by
-            -1 is regarded as NA. If Index doesn't hold NA, raise ValueError.
+            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
 
         Returns
         -------
-        numpy.ndarray
-            Elements of given indices.
+        Index
+            An index formed of elements at the given indices. Will be the same
+            type as self, except for RangeIndex.
 
         See Also
         --------
@@ -950,7 +951,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+    def take(
+        self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
+    ):
         if kwargs:
             nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
@@ -3691,7 +3694,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "and will raise TypeError in a future version.  "
                     "Use .loc with labels or .iloc with positions instead.",
                     FutureWarning,
-                    stacklevel=6,
+                    stacklevel=5,
                 )
             indexer = key
         else:
@@ -6386,19 +6389,18 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
     return name
 
 
-def _maybe_cast_data_without_dtype(subarr):
+def _maybe_cast_data_without_dtype(subarr: np.ndarray) -> ArrayLike:
     """
     If we have an arraylike input but no passed dtype, try to infer
     a supported dtype.
 
     Parameters
     ----------
-    subarr : np.ndarray, Index, or Series
+    subarr : np.ndarray[object]
 
     Returns
     -------
-    converted : np.ndarray or ExtensionArray
-    dtype : np.dtype or ExtensionDtype
+    np.ndarray or ExtensionArray
     """
     # Runtime import needed bc IntervalArray imports Index
     from pandas.core.arrays import (
@@ -6413,11 +6415,7 @@ def _maybe_cast_data_without_dtype(subarr):
 
     if inferred == "integer":
         try:
-            # error: Argument 3 to "_try_convert_to_int_array" has incompatible type
-            # "None"; expected "dtype[Any]"
-            data = _try_convert_to_int_array(
-                subarr, False, None  # type: ignore[arg-type]
-            )
+            data = _try_convert_to_int_array(subarr)
             return data
         except ValueError:
             pass
@@ -6463,18 +6461,13 @@ def _maybe_cast_data_without_dtype(subarr):
     return subarr
 
 
-def _try_convert_to_int_array(
-    data: np.ndarray, copy: bool, dtype: np.dtype
-) -> np.ndarray:
+def _try_convert_to_int_array(data: np.ndarray) -> np.ndarray:
     """
     Attempt to convert an array of data into an integer array.
 
     Parameters
     ----------
-    data : The data to convert.
-    copy : bool
-        Whether to copy the data or not.
-    dtype : np.dtype
+    data : np.ndarray[object]
 
     Returns
     -------
@@ -6484,22 +6477,19 @@ def _try_convert_to_int_array(
     ------
     ValueError if the conversion was not successful.
     """
-    if not is_unsigned_integer_dtype(dtype):
-        # skip int64 conversion attempt if uint-like dtype is passed, as
-        # this could return Int64Index when UInt64Index is what's desired
-        try:
-            res = data.astype("i8", copy=False)
-            if (res == data).all():
-                return res  # TODO: might still need to copy
-        except (OverflowError, TypeError, ValueError):
-            pass
+    try:
+        res = data.astype("i8", copy=False)
+        if (res == data).all():
+            return res
+    except (OverflowError, TypeError, ValueError):
+        pass
 
-    # Conversion to int64 failed (possibly due to overflow) or was skipped,
+    # Conversion to int64 failed (possibly due to overflow),
     # so let's try now with uint64.
     try:
         res = data.astype("u8", copy=False)
         if (res == data).all():
-            return res  # TODO: might still need to copy
+            return res
     except (OverflowError, TypeError, ValueError):
         pass
 
