@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import abc
 from datetime import (
     datetime,
     time,
@@ -2012,7 +2013,7 @@ def sequence_to_dt64ns(
 
     if not hasattr(data, "dtype"):
         # e.g. list, tuple
-        if np.ndim(data) == 0:
+        if lib.is_iterator(data) or isinstance(data, (abc.KeysView, abc.ValuesView)):
             # i.e. generator
             data = list(data)
         data = np.asarray(data)

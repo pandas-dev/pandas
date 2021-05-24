@@ -1712,7 +1712,7 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif np.ndim(value) == 2:
+            elif np.ndim(value) == 2:  # FIXME: calls asarray
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):

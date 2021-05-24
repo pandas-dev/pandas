@@ -410,7 +410,7 @@ class BaseBlockManager(DataManager):
         )
 
     def replace(self: T, to_replace, value, inplace: bool, regex: bool) -> T:
-        assert np.ndim(value) == 0, value
+        assert not is_list_like(value)
         return self.apply(
             "replace", to_replace=to_replace, value=value, inplace=inplace, regex=regex
         )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import abc
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
@@ -965,7 +966,7 @@ def sequence_to_td64ns(
     # Unwrap whatever we have into a np.ndarray
     if not hasattr(data, "dtype"):
         # e.g. list, tuple
-        if np.ndim(data) == 0:
+        if lib.is_iterator(data) or isinstance(data, (abc.KeysView, abc.ValuesView)):
             # i.e. generator
             data = list(data)
         data = np.array(data, copy=False)

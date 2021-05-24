@@ -421,7 +421,7 @@ class BaseArrayManager(DataManager):
         return self.apply(_convert)
 
     def replace(self: T, value, **kwargs) -> T:
-        assert np.ndim(value) == 0, value
+        assert not lib.is_list_like(value)
         # TODO "replace" is right now implemented on the blocks, we should move
         # it to general array algos so it can be reused here
         return self.apply_with_block("replace", value=value, **kwargs)
