@@ -3260,6 +3260,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         \bottomrule
         \end{{tabular}}
         """
+        warnings.warn(
+            "this method is deprecated in favour of `Styler.to_latex()`",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         # Get defaults from the pandas config
         if self.ndim == 1:
             self = self.to_frame()
