@@ -1055,6 +1055,7 @@ Other
 - Bug in :meth:`DataFrame.agg()` not sorting the aggregated axis in the order of the provided aggragation functions when one or more aggregation function fails to produce results (:issue:`33634`)
 - Bug in :meth:`DataFrame.clip` not interpreting missing values as no threshold (:issue:`40420`)
 - Bug in :class:`Series` backed by :class:`DatetimeArray` or :class:`TimedeltaArray` sometimes failing to set the array's ``freq`` to ``None`` (:issue:`41425`)
+- Bug in creating a :class:`Series` from a ``range`` object that does not fit in the bounds of ``int64`` dtype (:issue:`30173`)
 
 .. ---------------------------------------------------------------------------
 

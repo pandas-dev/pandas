@@ -66,6 +66,7 @@ from pandas.core.arrays import (
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
+    range_to_ndarray,
     sanitize_array,
 )
 from pandas.core.indexes import base as ibase
@@ -530,7 +531,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
         elif isinstance(values, range):
-            arr = np.arange(values.start, values.stop, values.step, dtype="int64")
+            arr = range_to_ndarray(values)
             return arr[..., np.newaxis]
 
         def convert(v):
