@@ -157,7 +157,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     """
 
     _typ = "periodindex"
-    _attributes = ["name", "freq"]
+    _attributes = ["name"]
 
     # define my properties & methods for delegation
     _is_numeric_dtype = False
