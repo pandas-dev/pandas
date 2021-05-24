@@ -141,6 +141,9 @@ properly format HTML and eliminate some inconsistencies (:issue:`39942` :issue:`
 :class:`.Styler` has also been compatible with non-unique index or columns, at least for as many features as are fully compatible, others made only partially compatible (:issue:`41269`).
 One also has greater control of the display through separate sparsification of the index or columns, using the new 'styler' options context (:issue:`41142`).
 
+We have added an extension to allow LaTeX styling as an alternative to CSS styling and a method :meth:`.Styler.to_latex`
+which renders the necessary LaTeX format including built-up styles.
+
 Documentation has also seen major revisions in light of new features (:issue:`39720` :issue:`39317` :issue:`40493`)
 
 .. _whatsnew_130.dataframe_honors_copy_with_dict:
