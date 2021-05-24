@@ -48,7 +48,11 @@ class TestCatAccessor:
         assert not ser.cat.ordered, False
 
         exp = Categorical(["a", "b", np.nan, "a"], categories=["b", "a"])
-        return_value = ser.cat.set_categories(["b", "a"], inplace=True)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # issue #37643 inplace kwarg deprecated
+            return_value = ser.cat.set_categories(["b", "a"], inplace=True)
+
         assert return_value is None
         tm.assert_categorical_equal(ser.values, exp)
 

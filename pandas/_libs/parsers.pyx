@@ -101,13 +101,13 @@ from pandas.errors import (
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_categorical_dtype,
     is_datetime64_dtype,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -305,35 +305,36 @@ cdef class TextReader:
         object na_fvalues
         object true_values, false_values
         object handle
+        object orig_header
         bint na_filter, keep_default_na, verbose, has_usecols, has_mi_columns
-        uint64_t parser_start
+        bint mangle_dupe_cols, allow_leading_cols
+        uint64_t parser_start  # this is modified after __init__
         list clocks
         const char *encoding_errors
         kh_str_starts_t *false_set
         kh_str_starts_t *true_set
+        int64_t buffer_lines, skipfooter
+        list dtype_cast_order  # list[np.dtype]
+        list names   # can be None
+        set noconvert  # set[int]
 
     cdef public:
-        int64_t leading_cols, table_width, skipfooter, buffer_lines
-        bint allow_leading_cols, mangle_dupe_cols
-        bint delim_whitespace
+        int64_t leading_cols, table_width
         object delimiter  # bytes or str
         object converters
         object na_values
-        object orig_header, names, header_start, header_end
         list header  # list[list[non-negative integers]]
         object index_col
         object skiprows
         object dtype
         object usecols
-        list dtype_cast_order  # list[np.dtype]
         set unnamed_cols  # set[str]
-        set noconvert  # set[int]
 
     def __cinit__(self, source,
                   delimiter=b',',  # bytes | str
                   header=0,
-                  header_start=0,
-                  header_end=0,
+                  int64_t header_start=0,
+                  uint64_t header_end=0,
                   index_col=None,
                   names=None,
                   tokenize_chunksize=DEFAULT_CHUNKSIZE,
@@ -457,7 +458,6 @@ cdef class TextReader:
             self.parser.warn_bad_lines = 0
 
         self.delimiter = delimiter
-        self.delim_whitespace = delim_whitespace
 
         self.na_values = na_values
         if na_fvalues is None:
@@ -502,7 +502,7 @@ cdef class TextReader:
         # header stuff
 
         self.allow_leading_cols = allow_leading_cols
-        self.leading_cols = 0
+        self.leading_cols = 0  # updated in _get_header
 
         # TODO: no header vs. header is not the first row
         self.has_mi_columns = 0
@@ -535,10 +535,11 @@ cdef class TextReader:
                 self.parser.header_end = header
                 self.parser_start = header + 1
                 self.parser.header = header
-                prelim_header = [ header ]
+                prelim_header = [header]
 
         self.names = names
         header, table_width, unnamed_cols = self._get_header(prelim_header)
+        # header, table_width, and unnamed_cols are set here, never changed
         self.header = header
         self.table_width = table_width
         self.unnamed_cols = unnamed_cols
@@ -618,6 +619,11 @@ cdef class TextReader:
 
     cdef _get_header(self, list prelim_header):
         # header is now a list of lists, so field_count should use header[0]
+        #
+        # modifies:
+        #   self.parser attributes
+        #   self.parser_start
+        #   self.leading_cols
 
         cdef:
             Py_ssize_t i, start, field_count, passed_count, unnamed_count, level
@@ -679,10 +685,17 @@ cdef class TextReader:
                     count = counts.get(name, 0)
 
                     if not self.has_mi_columns and self.mangle_dupe_cols:
-                        while count > 0:
-                            counts[name] = count + 1
-                            name = f'{name}.{count}'
-                            count = counts.get(name, 0)
+                        if count > 0:
+                            while count > 0:
+                                counts[name] = count + 1
+                                name = f'{name}.{count}'
+                                count = counts.get(name, 0)
+                            if (
+                                self.dtype is not None
+                                and self.dtype.get(old_name) is not None
+                                and self.dtype.get(name) is None
+                            ):
+                                self.dtype.update({name: self.dtype.get(old_name)})
 
                     if old_name == '':
                         unnamed_cols.add(name)
@@ -710,7 +723,7 @@ cdef class TextReader:
                 header.append(this_header)
 
             if self.names is not None:
-                header = [ self.names ]
+                header = [self.names]
 
         elif self.names is not None:
             # Enforce this unless usecols
@@ -721,7 +734,7 @@ cdef class TextReader:
             if self.parser.lines < 1:
                 self._tokenize_rows(1)
 
-            header = [ self.names ]
+            header = [self.names]
 
             if self.parser.lines < 1:
                 field_count = len(header[0])
@@ -778,7 +791,7 @@ cdef class TextReader:
         """
         # Conserve intermediate space
         # Caller is responsible for concatenating chunks,
-        #  see c_parser_wrapper._concatenatve_chunks
+        #  see c_parser_wrapper._concatenate_chunks
         cdef:
             size_t rows_read = 0
             list chunks = []
@@ -885,7 +898,7 @@ cdef class TextReader:
     cdef _start_clock(self):
         self.clocks.append(time.time())
 
-    cdef _end_clock(self, what):
+    cdef _end_clock(self, str what):
         if self.verbose:
             elapsed = time.time() - self.clocks.pop(-1)
             print(f'{what} took: {elapsed * 1000:.2f} ms')
@@ -933,6 +946,17 @@ cdef class TextReader:
             raise ParserError(f"Too many columns specified: expected "
                               f"{self.table_width - self.leading_cols} "
                               f"and found {num_cols}")
+
+        if (self.usecols is not None and not callable(self.usecols) and
+                all(isinstance(u, int) for u in self.usecols)):
+            missing_usecols = [col for col in self.usecols if col >= num_cols]
+            if missing_usecols:
+                warnings.warn(
+                    "Defining usecols with out of bounds indices is deprecated "
+                    "and will raise a ParserError in a future version.",
+                    FutureWarning,
+                    stacklevel=6,
+                )
 
         results = {}
         nused = 0
@@ -1090,7 +1114,7 @@ cdef class TextReader:
                              bint user_dtype,
                              kh_str_starts_t *na_hashset,
                              object na_flist):
-        if is_categorical_dtype(dtype):
+        if isinstance(dtype, CategoricalDtype):
             # TODO: I suspect that _categorical_convert could be
             # optimized when dtype is an instance of CategoricalDtype
             codes, cats, na_count = _categorical_convert(
@@ -1205,6 +1229,7 @@ cdef class TextReader:
         return self.converters.get(i)
 
     cdef _get_na_list(self, Py_ssize_t i, name):
+        # Note: updates self.na_values, self.na_fvalues
         if self.na_values is None:
             return None, set()
 

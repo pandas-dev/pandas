@@ -5,6 +5,7 @@ import pytest
 from pandas import (
     DataFrame,
     MultiIndex,
+    option_context,
 )
 
 pytest.importorskip("jinja2")
@@ -201,7 +202,7 @@ def test_multiindex_columns(df):
         """
     )
     s = df.style.format(precision=2)
-    assert expected == s.to_latex(sparsify=False)
+    assert expected == s.to_latex(sparse_columns=False)
 
 
 def test_multiindex_row(df):
@@ -233,7 +234,7 @@ def test_multiindex_row(df):
         \\end{tabular}
         """
     )
-    assert expected == s.to_latex(sparsify=False)
+    assert expected == s.to_latex(sparse_index=False)
 
 
 def test_multiindex_row_and_col(df):
@@ -268,7 +269,7 @@ def test_multiindex_row_and_col(df):
         \\end{tabular}
         """
     )
-    assert s.to_latex(sparsify=False) == expected
+    assert s.to_latex(sparse_index=False, sparse_columns=False) == expected
 
 
 def test_multiindex_columns_hidden():
@@ -279,6 +280,32 @@ def test_multiindex_columns_hidden():
     s.set_table_styles([])  # reset the position command
     s.hide_columns([("A", 2)])
     assert "{tabular}{lrrr}" in s.to_latex()
+
+
+def test_sparse_options(df):
+    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    df.loc[2, :] = [2, -2.22, "de"]
+    df.index, df.columns = ridx, cidx
+    s = df.style
+
+    latex1 = s.to_latex()
+
+    with option_context("styler.sparse.index", True):
+        latex2 = s.to_latex()
+    assert latex1 == latex2
+
+    with option_context("styler.sparse.index", False):
+        latex2 = s.to_latex()
+    assert latex1 != latex2
+
+    with option_context("styler.sparse.columns", True):
+        latex2 = s.to_latex()
+    assert latex1 == latex2
+
+    with option_context("styler.sparse.columns", False):
+        latex2 = s.to_latex()
+    assert latex1 != latex2
 
 
 def test_hidden_index(styler):

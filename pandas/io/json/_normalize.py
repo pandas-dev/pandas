@@ -70,15 +70,17 @@ def nested_to_record(
 
     Examples
     --------
-    IN[52]: nested_to_record(dict(flat1=1,dict1=dict(c=1,d=2),
-                                  nested=dict(e=dict(c=1,d=2),d=2)))
-    Out[52]:
-    {'dict1.c': 1,
-     'dict1.d': 2,
-     'flat1': 1,
-     'nested.d': 2,
-     'nested.e.c': 1,
-     'nested.e.d': 2}
+    >>> nested_to_record(
+    ...     dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2))
+    ... )
+    {\
+'flat1': 1, \
+'dict1.c': 1, \
+'dict1.d': 2, \
+'nested.e.c': 1, \
+'nested.e.d': 2, \
+'nested.d': 2\
+}
     """
     singleton = False
     if isinstance(ds, dict):
@@ -208,18 +210,21 @@ def _simple_json_normalize(
 
     Examples
     --------
-    IN[52]: _simple_json_normalize({
-             'flat1': 1,
-             'dict1': {'c': 1, 'd': 2},
-             'nested': {'e': {'c': 1, 'd': 2}, 'd': 2}
-             })
-    Out[52]:
-    {'dict1.c': 1,
-     'dict1.d': 2,
-     'flat1': 1,
-     'nested.d': 2,
-     'nested.e.c': 1,
-     'nested.e.d': 2}
+    >>> _simple_json_normalize(
+    ...     {
+    ...         "flat1": 1,
+    ...         "dict1": {"c": 1, "d": 2},
+    ...         "nested": {"e": {"c": 1, "d": 2}, "d": 2},
+    ...     }
+    ... )
+    {\
+'flat1': 1, \
+'dict1.c': 1, \
+'dict1.d': 2, \
+'nested.e.c': 1, \
+'nested.e.d': 2, \
+'nested.d': 2\
+}
 
     """
     normalised_json_object = {}
@@ -283,22 +288,30 @@ def _json_normalize(
 
     Examples
     --------
-    >>> data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
-    ...         {'name': {'given': 'Mark', 'family': 'Regner'}},
-    ...         {'id': 2, 'name': 'Faye Raker'}]
+    >>> data = [
+    ...     {"id": 1, "name": {"first": "Coleen", "last": "Volk"}},
+    ...     {"name": {"given": "Mark", "family": "Regner"}},
+    ...     {"id": 2, "name": "Faye Raker"},
+    ... ]
     >>> pd.json_normalize(data)
         id name.first name.last name.given name.family        name
     0  1.0     Coleen      Volk        NaN         NaN         NaN
     1  NaN        NaN       NaN       Mark      Regner         NaN
     2  2.0        NaN       NaN        NaN         NaN  Faye Raker
 
-    >>> data = [{'id': 1,
-    ...          'name': "Cole Volk",
-    ...          'fitness': {'height': 130, 'weight': 60}},
-    ...         {'name': "Mark Reg",
-    ...          'fitness': {'height': 130, 'weight': 60}},
-    ...         {'id': 2, 'name': 'Faye Raker',
-    ...          'fitness': {'height': 130, 'weight': 60}}]
+    >>> data = [
+    ...     {
+    ...         "id": 1,
+    ...         "name": "Cole Volk",
+    ...         "fitness": {"height": 130, "weight": 60},
+    ...     },
+    ...     {"name": "Mark Reg", "fitness": {"height": 130, "weight": 60}},
+    ...     {
+    ...         "id": 2,
+    ...         "name": "Faye Raker",
+    ...         "fitness": {"height": 130, "weight": 60},
+    ...     },
+    ... ]
     >>> pd.json_normalize(data, max_level=0)
         id        name                        fitness
     0  1.0   Cole Volk  {'height': 130, 'weight': 60}
@@ -307,32 +320,49 @@ def _json_normalize(
 
     Normalizes nested data up to level 1.
 
-    >>> data = [{'id': 1,
-    ...          'name': "Cole Volk",
-    ...          'fitness': {'height': 130, 'weight': 60}},
-    ...         {'name': "Mark Reg",
-    ...          'fitness': {'height': 130, 'weight': 60}},
-    ...         {'id': 2, 'name': 'Faye Raker',
-    ...          'fitness': {'height': 130, 'weight': 60}}]
+    >>> data = [
+    ...     {
+    ...         "id": 1,
+    ...         "name": "Cole Volk",
+    ...         "fitness": {"height": 130, "weight": 60},
+    ...     },
+    ...     {"name": "Mark Reg", "fitness": {"height": 130, "weight": 60}},
+    ...     {
+    ...         "id": 2,
+    ...         "name": "Faye Raker",
+    ...         "fitness": {"height": 130, "weight": 60},
+    ...     },
+    ... ]
     >>> pd.json_normalize(data, max_level=1)
         id        name  fitness.height  fitness.weight
     0  1.0   Cole Volk             130              60
     1  NaN    Mark Reg             130              60
     2  2.0  Faye Raker             130              60
 
-    >>> data = [{'state': 'Florida',
-    ...          'shortname': 'FL',
-    ...          'info': {'governor': 'Rick Scott'},
-    ...          'counties': [{'name': 'Dade', 'population': 12345},
-    ...                       {'name': 'Broward', 'population': 40000},
-    ...                       {'name': 'Palm Beach', 'population': 60000}]},
-    ...         {'state': 'Ohio',
-    ...          'shortname': 'OH',
-    ...          'info': {'governor': 'John Kasich'},
-    ...          'counties': [{'name': 'Summit', 'population': 1234},
-    ...                       {'name': 'Cuyahoga', 'population': 1337}]}]
-    >>> result = pd.json_normalize(data, 'counties', ['state', 'shortname',
-    ...                                            ['info', 'governor']])
+    >>> data = [
+    ...     {
+    ...         "state": "Florida",
+    ...         "shortname": "FL",
+    ...         "info": {"governor": "Rick Scott"},
+    ...         "counties": [
+    ...             {"name": "Dade", "population": 12345},
+    ...             {"name": "Broward", "population": 40000},
+    ...             {"name": "Palm Beach", "population": 60000},
+    ...         ],
+    ...     },
+    ...     {
+    ...         "state": "Ohio",
+    ...         "shortname": "OH",
+    ...         "info": {"governor": "John Kasich"},
+    ...         "counties": [
+    ...             {"name": "Summit", "population": 1234},
+    ...             {"name": "Cuyahoga", "population": 1337},
+    ...         ],
+    ...     },
+    ... ]
+    >>> result = pd.json_normalize(
+    ...     data, "counties", ["state", "shortname", ["info", "governor"]]
+    ... )
     >>> result
              name  population    state shortname info.governor
     0        Dade       12345   Florida    FL    Rick Scott
@@ -341,8 +371,8 @@ def _json_normalize(
     3      Summit        1234   Ohio       OH    John Kasich
     4    Cuyahoga        1337   Ohio       OH    John Kasich
 
-    >>> data = {'A': [1, 2]}
-    >>> pd.json_normalize(data, 'A', record_prefix='Prefix.')
+    >>> data = {"A": [1, 2]}
+    >>> pd.json_normalize(data, "A", record_prefix="Prefix.")
         Prefix.0
     0          1
     1          2

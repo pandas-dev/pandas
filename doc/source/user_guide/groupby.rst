@@ -739,6 +739,26 @@ optimized Cython implementations:
 Of course ``sum`` and ``mean`` are implemented on pandas objects, so the above
 code would work even without the special versions via dispatching (see below).
 
+.. _groupby.aggregate.udfs:
+
+Aggregations with User-Defined Functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Users can also provide their own functions for custom aggregations. When aggregating
+with a User-Defined Function (UDF), the UDF should not mutate the provided ``Series``, see
+:ref:`gotchas.udf-mutation` for more information.
+
+.. ipython:: python
+
+   animals.groupby("kind")[["height"]].agg(lambda x: set(x))
+
+The resulting dtype will reflect that of the aggregating function. If the results from different groups have
+different dtypes, then a common dtype will be determined in the same way as ``DataFrame`` construction.
+
+.. ipython:: python
+
+   animals.groupby("kind")[["height"]].agg(lambda x: x.astype(int).sum())
+
 .. _groupby.transform:
 
 Transformation
@@ -759,7 +779,11 @@ as the one being grouped. The transform function must:
 * (Optionally) operates on the entire group chunk. If this is supported, a
   fast path is used starting from the *second* chunk.
 
-For example, suppose we wished to standardize the data within each group:
+Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
+transformation function. If the results from different groups have different dtypes, then
+a common dtype will be determined in the same way as ``DataFrame`` construction.
+
+Suppose we wished to standardize the data within each group:
 
 .. ipython:: python
 
@@ -1065,12 +1089,15 @@ that is itself a series, and possibly upcast the result to a DataFrame:
     s
     s.apply(f)
 
-
 .. note::
 
    ``apply`` can act as a reducer, transformer, *or* filter function, depending on exactly what is passed to it.
    So depending on the path taken, and exactly what you are grouping. Thus the grouped columns(s) may be included in
    the output as well as set the indices.
+
+Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
+apply function. If the results from different groups have different dtypes, then
+a common dtype will be determined in the same way as ``DataFrame`` construction.
 
 
 Numba Accelerated Routines
@@ -1590,11 +1617,9 @@ column index name will be used as the name of the inserted column:
        }
    )
 
-
    def compute_metrics(x):
        result = {"b_sum": x["b"].sum(), "c_mean": x["c"].mean()}
        return pd.Series(result, name="metrics")
-
 
    result = df.groupby("a").apply(compute_metrics)
 

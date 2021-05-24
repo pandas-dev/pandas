@@ -17,6 +17,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._typing import (
     Axis,
     FilePathOrBuffer,
@@ -29,6 +31,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 import pandas as pd
+from pandas import RangeIndex
 from pandas.api.types import is_list_like
 from pandas.core import generic
 import pandas.core.common as com
@@ -46,6 +49,7 @@ from pandas.io.formats.style_render import (
     CSSProperties,
     CSSStyles,
     StylerRenderer,
+    Subset,
     Tooltips,
     maybe_convert_css_to_tuples,
     non_reducing_slice,
@@ -203,14 +207,27 @@ class Styler(StylerRenderer):
         """
         Hooks into Jupyter notebook rich display system.
         """
-        return self._render_html()
+        return self.render()
 
-    def render(self, **kwargs) -> str:
+    def render(
+        self,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
+        **kwargs,
+    ) -> str:
         """
         Render the ``Styler`` including all applied styles to HTML.
 
         Parameters
         ----------
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.columns`` value.
         **kwargs
             Any additional keyword arguments are passed
             through to ``self.template.render``.
@@ -242,7 +259,11 @@ class Styler(StylerRenderer):
         * caption
         * table_attributes
         """
-        return self._render_html(**kwargs)
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+        return self._render_html(sparse_index, sparse_columns, **kwargs)
 
     def set_tooltips(
         self,
@@ -325,6 +346,10 @@ class Styler(StylerRenderer):
             raise NotImplementedError(
                 "Tooltips can only render with 'cell_ids' is True."
             )
+        if not ttips.index.is_unique or not ttips.columns.is_unique:
+            raise KeyError(
+                "Tooltips render only if `ttips` has unique index and columns."
+            )
         if self.tooltips is None:  # create a default instance if necessary
             self.tooltips = Tooltips()
         self.tooltips.tt_data = ttips
@@ -385,13 +410,15 @@ class Styler(StylerRenderer):
     def to_latex(
         self,
         buf: FilePathOrBuffer[str] | None = None,
+        *,
         column_format: str | None = None,
         position: str | None = None,
         position_float: str | None = None,
         hrules: bool = False,
         label: str | None = None,
         caption: str | None = None,
-        sparsify: bool | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
         multirow_align: str = "c",
         multicol_align: str = "r",
         siunitx: bool = False,
@@ -401,7 +428,7 @@ class Styler(StylerRenderer):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
 
-        .. versionadded:: TODO
+        .. versionadded:: 1.3.0
 
         Parameters
         ----------
@@ -433,9 +460,14 @@ class Styler(StylerRenderer):
             This is used with \\ref{<label>} in the main .tex file.
         caption : str, optional
             The LaTeX table caption included as: \\caption{<caption>}.
-        sparsify : bool, optional
-            Set to ``False`` to print every item of a hierarchical MultiIndex. Defaults
-            to the pandas ``multi_sparse`` display option.
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.columns`` value.
         multirow_align : {"c", "t", "b"}
             If sparsifying hierarchical MultiIndexes whether to align text centrally,
             at the top or bottom.
@@ -449,9 +481,7 @@ class Styler(StylerRenderer):
         convert_css : bool, default False
             Convert simple cell-styles from CSS to LaTeX format. Any CSS not found in
             conversion table is dropped. A style can be forced by adding option
-            `--latex`.
-
-        .. versionadded:: TODO
+            `--latex`. See notes.
 
         Returns
         -------
@@ -551,22 +581,42 @@ class Styler(StylerRenderer):
         **Table Styles**
 
         Internally Styler uses its ``table_styles`` object to parse the
-        ``column_format``, ``position``, ``position_float``, ``hrules`` and ``label``
-        input arguments. There is additional scope to add custom LaTeX commands,
-        which are included and positioned
-        immediately above the '\\begin{tabular}' command. For example to add odd and
-        even row coloring, from the {colortbl} package, use:
+        ``column_format``, ``position``, ``position_float``, and ``label``
+        input arguments. These arguments are added to table styles in the format:
 
-        >>> s.set_table_styles([{'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}],
-        ...                    overwrite=False])
+        .. code-block:: python
 
-        Instead of using ``hrules`` it is also possible to change the rule definition,
-        for example by setting just a ``toprule`` and ``bottomrule`` and ignoring
-        any ``midrule``:
+            set_table_styles([
+                {"selector": "column_format", "props": f":{column_format};"},
+                {"selector": "position", "props": f":{position};"},
+                {"selector": "position_float", "props": f":{position_float};"},
+                {"selector": "label", "props": f":{{{label.replace(':','§')}}};"}
+            ], overwrite=False)
 
-        >>> s.set_table_styles([{'selector': 'toprule', 'props': ':toprule;'},
-        ...                     {'selector': 'bottomrule', 'props': ':hline;'}],
-        ...                    overwrite=False])
+        Exception is made for the ``hrules`` argument which, in fact, controls all three
+        commands: ``toprule``, ``bottomrule`` and ``midrule`` simultaneously. Instead of
+        setting ``hrules`` to ``True``, it is also possible to set each
+        individual rule definition, by manually setting the ``table_styles``,
+        for example below we set a regular ``toprule``, set an ``hline`` for
+        ``bottomrule`` and exclude the ``midrule``:
+
+        .. code-block:: python
+
+            set_table_styles([
+                {'selector': 'toprule', 'props': ':toprule;'},
+                {'selector': 'bottomrule', 'props': ':hline;'},
+            ], overwrite=False)
+
+        If other ``commands`` are added to table styles they will be detected, and
+        positioned immediately above the '\\begin{tabular}' command. For example to
+        add odd and even row coloring, from the {colortbl} package, in format
+        ``\rowcolors{1}{pink}{red}``, use:
+
+        .. code-block:: python
+
+            set_table_styles([
+                {'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}
+            ], overwrite=False)
 
         A more comprehensive example using these arguments is as follows:
 
@@ -592,7 +642,7 @@ class Styler(StylerRenderer):
         **Formatting**
 
         To format values :meth:`Styler.format` should be used prior to calling
-        `Styler.to_latex`, as well as other method such as :meth:`Styler.hide_index`
+        `Styler.to_latex`, as well as other methods such as :meth:`Styler.hide_index`
         or :meth:`Styler.hide_columns`, for example:
 
         >>> s.clear()
@@ -604,13 +654,13 @@ class Styler(StylerRenderer):
         ...    ("Non-Numeric", "Strings"): str.upper
         ... })
         >>> s.to_latex()
-        \\begin{tabular}{llrrl}
-        {} & {} & \\multicolumn{2}{r}{Numeric} & {Non-Numeric} \\\\
-        {} & {} & {Integers} & {Floats} & {Strings} \\\\
-        \\multirow[c]{2}{*}{L0} & ix1 & \\$1 & 2.200 & DOGS \\
-         & ix2 & \\$3 & 4.400 & CATS \\\\
-        L1 & ix3 & \\$2 & 6.600 & COWS \\\\
-        \\end{tabular}
+        \begin{tabular}{llrrl}
+        {} & {} & \multicolumn{2}{r}{Numeric} & {Non-Numeric} \\
+        {} & {} & {Integers} & {Floats} & {Strings} \\
+        \multirow[c]{2}{*}{L0} & ix1 & \\$1 & 2.200 & DOGS \\
+         & ix2 & \$3 & 4.400 & CATS \\
+        L1 & ix3 & \$2 & 6.600 & COWS \\
+        \end{tabular}
 
         **CSS Conversion**
 
@@ -632,8 +682,10 @@ class Styler(StylerRenderer):
             pass  # adopt what has been previously set in table_styles
         else:
             # create a default: set float, complex, int cols to 'r' ('S'), index to 'l'
-            numeric_cols = list(self.data.select_dtypes(include=[np.number]).columns)
-            numeric_cols = list(self.columns.get_indexer_for(numeric_cols))
+            _original_columns = self.data.columns
+            self.data.columns = RangeIndex(stop=len(self.data.columns))
+            numeric_cols = self.data._get_numeric_data().columns.to_list()
+            self.data.columns = _original_columns
             column_format = "" if self.hidden_index else "l" * self.data.index.nlevels
             for ci, _ in enumerate(self.data.columns):
                 if ci not in self.hidden_columns:
@@ -682,19 +734,18 @@ class Styler(StylerRenderer):
         if caption:
             self.set_caption(caption)
 
-        if sparsify is not None:
-            with pd.option_context("display.multi_sparse", sparsify):
-                latex = self._render_latex(
-                    multirow_align=multirow_align,
-                    multicol_align=multicol_align,
-                    convert_css=convert_css,
-                )
-        else:
-            latex = self._render_latex(
-                multirow_align=multirow_align,
-                multicol_align=multicol_align,
-                convert_css=convert_css,
-            )
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+
+        latex = self._render_latex(
+            sparse_index=sparse_index,
+            sparse_columns=sparse_columns,
+            multirow_align=multirow_align,
+            multicol_align=multicol_align,
+            convert_css=convert_css,
+        )
 
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
@@ -761,6 +812,10 @@ class Styler(StylerRenderer):
         '  </tbody>'
         '</table>'
         """
+        if not classes.index.is_unique or not classes.columns.is_unique:
+            raise KeyError(
+                "Classes render only if `classes` has unique index and columns."
+            )
         classes = classes.reindex_like(self.data)
 
         for r, row_tup in enumerate(classes.itertuples()):
@@ -783,6 +838,12 @@ class Styler(StylerRenderer):
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
+        if not self.index.is_unique or not self.columns.is_unique:
+            raise KeyError(
+                "`Styler.apply` and `.applymap` are not compatible "
+                "with non-unique index or columns."
+            )
+
         for cn in attrs.columns:
             for rn, c in attrs[[cn]].itertuples():
                 if not c:
@@ -850,7 +911,7 @@ class Styler(StylerRenderer):
         self,
         func: Callable[..., Styler],
         axis: Axis | None = 0,
-        subset=None,
+        subset: Subset | None = None,
         **kwargs,
     ) -> Styler:
         subset = slice(None) if subset is None else subset
@@ -895,7 +956,7 @@ class Styler(StylerRenderer):
         self,
         func: Callable[..., Styler],
         axis: Axis | None = 0,
-        subset=None,
+        subset: Subset | None = None,
         **kwargs,
     ) -> Styler:
         """
@@ -918,9 +979,10 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        subset : IndexSlice
-            A valid indexer to limit ``data`` to *before* applying the
-            function. Consider using a pandas.IndexSlice.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         **kwargs : dict
             Pass along to ``func``.
 
@@ -946,17 +1008,29 @@ class Styler(StylerRenderer):
         --------
         >>> def highlight_max(x, color):
         ...     return np.where(x == np.nanmax(x.to_numpy()), f"color: {color};", None)
-        >>> df = pd.DataFrame(np.random.randn(5, 2))
+        >>> df = pd.DataFrame(np.random.randn(5, 2), columns=["A", "B"])
         >>> df.style.apply(highlight_max, color='red')
         >>> df.style.apply(highlight_max, color='blue', axis=1)
         >>> df.style.apply(highlight_max, color='green', axis=None)
+
+        Using ``subset`` to restrict application to a single column or multiple columns
+
+        >>> df.style.apply(highlight_max, color='red', subset="A")
+        >>> df.style.apply(highlight_max, color='red', subset=["A", "B"])
+
+        Using a 2d input to ``subset`` to select rows in addition to columns
+
+        >>> df.style.apply(highlight_max, color='red', subset=([0,1,2], slice(None))
+        >>> df.style.apply(highlight_max, color='red', subset=(slice(0,5,2), "A")
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_apply"), (func, axis, subset), kwargs)
         )
         return self
 
-    def _applymap(self, func: Callable, subset=None, **kwargs) -> Styler:
+    def _applymap(
+        self, func: Callable, subset: Subset | None = None, **kwargs
+    ) -> Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
             subset = pd.IndexSlice[:]
@@ -965,7 +1039,9 @@ class Styler(StylerRenderer):
         self._update_ctx(result)
         return self
 
-    def applymap(self, func: Callable, subset=None, **kwargs) -> Styler:
+    def applymap(
+        self, func: Callable, subset: Subset | None = None, **kwargs
+    ) -> Styler:
         """
         Apply a CSS-styling function elementwise.
 
@@ -975,9 +1051,10 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should take a scalar and return a scalar.
-        subset : IndexSlice
-            A valid indexer to limit ``data`` to *before* applying the
-            function. Consider using a pandas.IndexSlice.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         **kwargs : dict
             Pass along to ``func``.
 
@@ -999,8 +1076,18 @@ class Styler(StylerRenderer):
         --------
         >>> def color_negative(v, color):
         ...     return f"color: {color};" if v < 0 else None
-        >>> df = pd.DataFrame(np.random.randn(5, 2))
+        >>> df = pd.DataFrame(np.random.randn(5, 2), columns=["A", "B"])
         >>> df.style.applymap(color_negative, color='red')
+
+        Using ``subset`` to restrict application to a single column or multiple columns
+
+        >>> df.style.applymap(color_negative, color='red', subset="A")
+        >>> df.style.applymap(color_negative, color='red', subset=["A", "B"])
+
+        Using a 2d input to ``subset`` to select rows in addition to columns
+
+        >>> df.style.applymap(color_negative, color='red', subset=([0,1,2], slice(None))
+        >>> df.style.applymap(color_negative, color='red', subset=(slice(0,5,2), "A")
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_applymap"), (func, subset), kwargs)
@@ -1012,7 +1099,7 @@ class Styler(StylerRenderer):
         cond: Callable,
         value: str,
         other: str | None = None,
-        subset=None,
+        subset: Subset | None = None,
         **kwargs,
     ) -> Styler:
         """
@@ -1032,9 +1119,10 @@ class Styler(StylerRenderer):
             Applied when ``cond`` returns true.
         other : str
             Applied when ``cond`` returns false.
-        subset : IndexSlice
-            A valid indexer to limit ``data`` to *before* applying the
-            function. Consider using a pandas.IndexSlice.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         **kwargs : dict
             Pass along to ``cond``.
 
@@ -1305,10 +1393,11 @@ class Styler(StylerRenderer):
 
             table_styles = [
                 {
-                    "selector": str(s["selector"]) + idf + str(obj.get_loc(key)),
+                    "selector": str(s["selector"]) + idf + str(idx),
                     "props": maybe_convert_css_to_tuples(s["props"]),
                 }
                 for key, styles in table_styles.items()
+                for idx in obj.get_indexer_for([key])
                 for s in styles
             ]
         else:
@@ -1365,15 +1454,15 @@ class Styler(StylerRenderer):
         self.hidden_index = True
         return self
 
-    def hide_columns(self, subset) -> Styler:
+    def hide_columns(self, subset: Subset) -> Styler:
         """
         Hide columns from rendering.
 
         Parameters
         ----------
-        subset : IndexSlice
-            An argument to ``DataFrame.loc`` that identifies which columns
-            are hidden.
+        subset : label, array-like, IndexSlice
+            A valid 1d input or single key along the appropriate axis within
+            `DataFrame.loc[]`, to limit ``data`` to *before* applying the function.
 
         Returns
         -------
@@ -1397,7 +1486,7 @@ class Styler(StylerRenderer):
         low: float = 0,
         high: float = 0,
         axis: Axis | None = 0,
-        subset=None,
+        subset: Subset | None = None,
         text_color_threshold: float = 0.408,
         vmin: float | None = None,
         vmax: float | None = None,
@@ -1426,8 +1515,10 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        subset : IndexSlice
-            A valid slice for ``data`` to limit the style application to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         text_color_threshold : float or int
             Luminance threshold for determining text color in [0, 1]. Facilitates text
             visibility across varying background colors. All text is dark if 0, and
@@ -1543,15 +1634,17 @@ class Styler(StylerRenderer):
         )
         return self
 
-    def set_properties(self, subset=None, **kwargs) -> Styler:
+    def set_properties(self, subset: Subset | None = None, **kwargs) -> Styler:
         """
         Set defined CSS-properties to each ``<td>`` HTML element within the given
         subset.
 
         Parameters
         ----------
-        subset : IndexSlice
-            A valid slice for ``data`` to limit the style application to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         **kwargs : dict
             A dictionary of property, value pairs to be set for each cell.
 
@@ -1635,7 +1728,7 @@ class Styler(StylerRenderer):
 
     def bar(
         self,
-        subset=None,
+        subset: Subset | None = None,
         axis: Axis | None = 0,
         color="#d65f5f",
         width: float = 100,
@@ -1648,8 +1741,10 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : IndexSlice, optional
-            A valid slice for `data` to limit the style application to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -1721,7 +1816,7 @@ class Styler(StylerRenderer):
     def highlight_null(
         self,
         null_color: str = "red",
-        subset: IndexLabel | None = None,
+        subset: Subset | None = None,
         props: str | None = None,
     ) -> Styler:
         """
@@ -1730,8 +1825,10 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         null_color : str, default 'red'
-        subset : label or list of labels, default None
-            A valid slice for ``data`` to limit the style application to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
 
             .. versionadded:: 1.1.0
 
@@ -1766,7 +1863,7 @@ class Styler(StylerRenderer):
 
     def highlight_max(
         self,
-        subset: IndexLabel | None = None,
+        subset: Subset | None = None,
         color: str = "yellow",
         axis: Axis | None = 0,
         props: str | None = None,
@@ -1776,8 +1873,10 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : IndexSlice, default None
-            A valid slice for ``data`` to limit the style application to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         color : str, default 'yellow'
             Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
@@ -1815,7 +1914,7 @@ class Styler(StylerRenderer):
 
     def highlight_min(
         self,
-        subset: IndexLabel | None = None,
+        subset: Subset | None = None,
         color: str = "yellow",
         axis: Axis | None = 0,
         props: str | None = None,
@@ -1825,8 +1924,10 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : IndexSlice, default None
-            A valid slice for ``data`` to limit the style application to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         color : str, default 'yellow'
             Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
@@ -1864,7 +1965,7 @@ class Styler(StylerRenderer):
 
     def highlight_between(
         self,
-        subset: IndexLabel | None = None,
+        subset: Subset | None = None,
         color: str = "yellow",
         axis: Axis | None = 0,
         left: Scalar | Sequence | None = None,
@@ -1879,8 +1980,10 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : IndexSlice, default None
-            A valid slice for ``data`` to limit the style application to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         color : str, default 'yellow'
             Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
@@ -1971,7 +2074,7 @@ class Styler(StylerRenderer):
 
     def highlight_quantile(
         self,
-        subset: IndexLabel | None = None,
+        subset: Subset | None = None,
         color: str = "yellow",
         axis: Axis | None = 0,
         q_left: float = 0.0,
@@ -1987,8 +2090,10 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : IndexSlice, default None
-            A valid slice for ``data`` to limit the style application to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         color : str, default 'yellow'
             Background color to use for highlighting
         axis : {0 or 'index', 1 or 'columns', None}, default 0

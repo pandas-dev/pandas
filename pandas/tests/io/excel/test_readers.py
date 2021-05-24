@@ -21,6 +21,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.tests.io.excel import xlrd_version
+from pandas.util.version import Version
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -70,7 +71,7 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
     if (
         engine == "xlrd"
         and xlrd_version is not None
-        and xlrd_version >= "2"
+        and xlrd_version >= Version("2")
         and read_ext != ".xls"
     ):
         return False
@@ -554,6 +555,14 @@ class TestReaders:
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
+    def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
+        # GH#35211
+        basename = "df_mangle_dup_col_dtypes"
+        result = pd.read_excel(basename + read_ext, dtype={"a": str, **dtypes})
+        expected = DataFrame({"a": ["1"], "a.1": [exp_value]})
+        tm.assert_frame_equal(result, expected)
+
     def test_reader_spaces(self, read_ext):
         # see gh-32207
         basename = "test_spaces"
@@ -718,9 +727,20 @@ class TestReaders:
 
     def test_corrupt_bytes_raises(self, read_ext, engine):
         bad_stream = b"foo"
-        if engine is None or engine == "xlrd":
+        if engine is None:
             error = ValueError
-            msg = "File is not a recognized excel file"
+            msg = (
+                "Excel file format cannot be determined, you must "
+                "specify an engine manually."
+            )
+        elif engine == "xlrd":
+            from xlrd import XLRDError
+
+            error = XLRDError
+            msg = (
+                "Unsupported format, or corrupt file: Expected BOF "
+                "record; found b'foo'"
+            )
         else:
             error = BadZipFile
             msg = "File is not a zip file"
@@ -1204,6 +1224,15 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_trailing_blanks(self, read_ext):
+        """
+        Sheets can contain blank cells with no data. Some of our readers
+        were including those cells, creating many empty rows and columns
+        """
+        file_name = "trailing_blanks" + read_ext
+        result = pd.read_excel(file_name)
+        assert result.shape == (3, 3)
+
 
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)
@@ -1404,7 +1433,7 @@ class TestExcelFileRead:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(
-        xlrd_version is not None and xlrd_version >= "2",
+        xlrd_version is not None and xlrd_version >= Version("2"),
         reason="xlrd no longer supports xlsx",
     )
     def test_excel_high_surrogate(self, engine):
