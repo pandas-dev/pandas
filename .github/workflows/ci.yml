@@ -22,7 +22,9 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Looking for unwanted patterns
       run: ci/code_checks.sh patterns
@@ -94,7 +96,9 @@ jobs:
     steps:
 
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Set up pandas
       uses: ./.github/actions/setup
@@ -147,7 +151,9 @@ jobs:
     steps:
 
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Set up pandas
       uses: ./.github/actions/setup
