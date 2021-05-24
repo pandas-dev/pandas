@@ -402,7 +402,6 @@ _c_parser_defaults = {
     "memory_map": False,
     "error_bad_lines": None,
     "warn_bad_lines": None,
-    "on_bad_lines": "error",
     "float_precision": None,
 }
 

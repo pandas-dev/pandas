@@ -109,6 +109,7 @@ parser_defaults = {
     "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
+    "on_bad_lines": "error",
 }
 
 
