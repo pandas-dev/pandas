@@ -1196,12 +1196,9 @@ def _parse_latex_options_strip(value: str | int | float, arg: str) -> str:
 
 def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     """
-    Accept list of CSS (attribute,value) pairs and convert to equivalent LaTeX
-    (command,options) pairs.
+    Convert CSS (attribute,value) pairs to equivalent LaTeX (command,options) pairs.
 
-    Ignore conversion if tagged with `--latex` option
-
-    Removed if no conversion found.
+    Ignore conversion if tagged with `--latex` option, skipped if no conversion found.
     """
 
     def font_weight(value, arg):
