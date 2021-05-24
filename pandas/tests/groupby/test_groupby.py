@@ -1657,7 +1657,7 @@ def test_index_label_overlaps_location():
     expected = ser.take([1, 3, 4])
     tm.assert_series_equal(actual, expected)
 
-    # ... and again, with a generic Index of floats
+    #  and again, with a generic Index of floats
     df.index = df.index.astype(float)
     g = df.groupby(list("ababb"))
     actual = g.filter(lambda x: len(x) > 2)
@@ -2281,5 +2281,25 @@ def test_groupby_empty_multi_column():
     result = DataFrame(data=[], columns=["A", "B", "C"]).groupby(["A", "B"]).sum()
     expected = DataFrame(
         [], columns=["C"], index=MultiIndex([[], []], [[], []], names=["A", "B"])
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_filtered_df_std():
+    # GH 16174
+    dicts = [
+        {"filter_col": False, "groupby_col": True, "bool_col": True, "float_col": 10.5},
+        {"filter_col": True, "groupby_col": True, "bool_col": True, "float_col": 20.5},
+        {"filter_col": True, "groupby_col": True, "bool_col": True, "float_col": 30.5},
+    ]
+    df = DataFrame(dicts)
+
+    df_filter = df[df["filter_col"] == True]  # noqa:E712
+    dfgb = df_filter.groupby("groupby_col")
+    result = dfgb.std()
+    expected = DataFrame(
+        [[0.0, 0.0, 7.071068]],
+        columns=["filter_col", "bool_col", "float_col"],
+        index=Index([True], name="groupby_col"),
     )
     tm.assert_frame_equal(result, expected)
