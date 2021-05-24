@@ -405,3 +405,32 @@ def test_set_levels_inplace_deprecated(idx, inplace):
 
     with tm.assert_produces_warning(FutureWarning):
         idx.set_levels(levels=new_level, level=1, inplace=inplace)
+
+
+def test_set_codes_pos_args_depreciation():
+    # https://github.com/pandas-dev/pandas/issues/41485
+    idx = MultiIndex.from_tuples(
+        [
+            (1, "one"),
+            (1, "two"),
+            (2, "one"),
+            (2, "two"),
+        ],
+        names=["foo", "bar"]
+    )
+    msg = (
+        r"In a future version of pandas all arguments of MultiIndex.set_codes except"
+        r"for the argument 'codes' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = idx.set_codes([[1, 0, 1, 0], [0, 0, 1, 1]])
+    expected = MultiIndex.from_tuples(
+        [
+            (2, "one"), 
+            (1, "one"), 
+            (2, "two"), 
+            (1, "two"),
+        ],
+        names=["foo", "bar"]
+    )
+    tm.assert_index_equal(result, expected)
