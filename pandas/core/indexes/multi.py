@@ -78,10 +78,8 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
     _index_shared_docs,
-    _IndexT,
     ensure_index,
     get_unanimous_names,
-    str_t,
 )
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
@@ -3797,8 +3795,8 @@ class MultiIndex(Index):
             return levs.isin(values)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(self: _IndexT, keep: str_t | bool = "first") -> _IndexT:
-        return super(Index, self).drop_duplicates(keep=keep)
+    def drop_duplicates(self, keep: str | bool = "first") -> MultiIndex:
+        return super().drop_duplicates(keep=keep)
 
     # ---------------------------------------------------------------
     # Arithmetic/Numeric Methods - Disabled

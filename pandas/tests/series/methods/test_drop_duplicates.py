@@ -228,15 +228,11 @@ class TestSeriesDropDuplicates:
 def test_drop_duplicates_pos_args_deprecation():
     # GH#41485
     s = Series(["a", "b", "c", "b"])
-
     msg = (
         "In a future version of pandas all arguments of "
         "Series.drop_duplicates will be keyword-only"
     )
-
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = s.drop_duplicates("last")
-
     expected = Series(["a", "c", "b"], index=[0, 2, 3])
-
     tm.assert_series_equal(expected, result)

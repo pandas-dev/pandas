@@ -1742,18 +1742,13 @@ def test_construct_from_memoryview(klass, extra_kwargs):
 
 def test_drop_duplicates_pos_args_deprecation():
     # GH#41485
-
     idx = Index([1, 2, 3, 1])
-
     msg = (
         "In a future version of pandas all arguments of "
         "Index.drop_duplicates will be keyword-only"
     )
-
     with tm.assert_produces_warning(FutureWarning, match=msg):
         idx.drop_duplicates("last")
         result = idx.drop_duplicates("last")
-
     expected = Index([2, 3, 1])
-
     tm.assert_index_equal(expected, result)
