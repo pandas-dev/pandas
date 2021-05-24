@@ -96,12 +96,11 @@ class TestDataFrameMask:
         cond = df > 0
         other = DataFrame(np.random.randn(5, 3))
 
-        msg = (
-            r"Starting with Pandas version 2\.0 all arguments of mask except for the "
-            r"arguments 'self' and 'cond' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            tm.assert_frame_equal(df.mask(cond, other), df.mask(cond, other=other))
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.mask(cond, other, False)
+
+        expected = df.mask(cond, other=other, inplace=False)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_mask_try_cast_deprecated(frame_or_series):

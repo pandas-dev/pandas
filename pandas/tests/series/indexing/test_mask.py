@@ -93,9 +93,8 @@ def test_mask_pos_args_deprecation():
     s = Series(np.random.randn(6))
     cond = s > 0
 
-    msg = (
-        r"Starting with Pandas version 2\.0 all arguments of mask except for the "
-        r"arguments 'self' and 'cond' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        tm.assert_series_equal(s.mask(cond, np.nan), s.mask(cond, other=np.nan))
+    with tm.assert_produces_warning(FutureWarning):
+        result = s.mask(cond, np.nan, False)
+
+    expected = s.mask(cond, other=np.nan, inplace=False)
+    tm.assert_series_equal(result, expected)
