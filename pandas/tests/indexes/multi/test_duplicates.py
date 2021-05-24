@@ -316,7 +316,6 @@ def test_multi_drop_duplicates_pos_args_deprecation():
         "MultiIndex.drop_duplicates will be keyword-only"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        idx.drop_duplicates("last")
         result = idx.drop_duplicates("last")
     expected = MultiIndex.from_arrays([[2, 3, 1], [2, 3, 1]])
     tm.assert_index_equal(expected, result)
