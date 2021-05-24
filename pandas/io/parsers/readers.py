@@ -31,9 +31,9 @@ from pandas.errors import (
     ParserWarning,
 )
 from pandas.util._decorators import Appender
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    is_bool,
     is_file_like,
     is_float,
     is_integer,
@@ -1348,29 +1348,25 @@ def _refine_defaults_read(
     else:
         if error_bad_lines is not None:
             # Must check is_bool, because other stuff(e.g. non-empty lists) eval to true
-            if is_bool(error_bad_lines):
-                if error_bad_lines:
-                    kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
-                else:
-                    if warn_bad_lines is not None:
-                        # This is the case where error_bad_lines is False
-                        # We can only warn/skip if error_bad_lines is False
-                        # None doesn't work because backwards-compatibility reasons
-                        if warn_bad_lines is True:
-                            kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
-                        elif warn_bad_lines is False:
-                            kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
-                        else:
-                            raise ValueError("warn_bad_lines must be a boolean")
-                    else:
-                        # Backwards compat, when only error_bad_lines = false, we warn
-                        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
+            validate_bool_kwarg(error_bad_lines, "error_bad_lines")
+            if error_bad_lines:
+                kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
             else:
-                raise ValueError("error_bad_lines must be a boolean")
+                if warn_bad_lines is not None:
+                    # This is the case where error_bad_lines is False
+                    # We can only warn/skip if error_bad_lines is False
+                    # None doesn't work because backwards-compatibility reasons
+                    validate_bool_kwarg(warn_bad_lines, "warn_bad_lines")
+                    if warn_bad_lines:
+                        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
+                    else:
+                        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
+                else:
+                    # Backwards compat, when only error_bad_lines = false, we warn
+                    kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
         else:
             # Everything None -> Error
             kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
-    # print(kwds["on_bad_lines"])
 
     return kwds
 
