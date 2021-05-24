@@ -5065,10 +5065,7 @@ Keep all original rows and also all original values
                 convert_boolean,
                 convert_floating,
             )
-            try:
-                result = input_series.astype(inferred_dtype)
-            except TypeError:
-                result = input_series.copy()
+            result = input_series.astype(inferred_dtype)
         else:
             result = input_series.copy()
         return result
