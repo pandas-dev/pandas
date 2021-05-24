@@ -782,6 +782,9 @@ def test_loc_getitem_index_differently_ordered_slice_none_duplicates(indexer):
     )
     tm.assert_frame_equal(result, expected)
 
+    result = df.loc[df.index.isin(indexer, level=1), :]
+    tm.assert_frame_equal(result, df)
+
 
 def test_loc_getitem_drops_levels_for_one_row_dataframe():
     # GH#10521
