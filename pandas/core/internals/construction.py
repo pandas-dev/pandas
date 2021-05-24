@@ -11,6 +11,7 @@ from typing import (
     Hashable,
     Sequence,
 )
+import warnings
 
 import numpy as np
 import numpy.ma as ma
@@ -21,6 +22,7 @@ from pandas._typing import (
     DtypeObj,
     Manager,
 )
+from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -315,10 +317,11 @@ def ndarray_to_mgr(
                 values = construct_1d_ndarray_preserving_na(
                     flat, dtype=dtype, copy=False
                 )
-            except Exception as err:
-                # e.g. ValueError when trying to cast object dtype to float64
-                msg = f"failed to cast to '{dtype}' (Exception was: {err})"
-                raise ValueError(msg) from err
+            except IntCastingNaNError:
+                # following Series, we ignore the dtype and retain floating
+                # values instead of casting nans to meaningless ints
+                pass
+
         values = values.reshape(shape)
 
     # _prep_ndarray ensures that values.ndim == 2 at this point
@@ -554,10 +557,8 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
 
     else:
 
-        # drop subclass info, do not copy data
-        values = np.asarray(values)
-        if copy:
-            values = values.copy()
+        # drop subclass info
+        values = np.array(values, copy=copy)
 
     if values.ndim == 1:
         values = values.reshape((values.shape[0], 1))
@@ -772,6 +773,16 @@ def to_arrays(
         return [], ensure_index([])
 
     elif isinstance(data[0], Categorical):
+        # GH#38845 deprecate special case
+        warnings.warn(
+            "The behavior of DataFrame([categorical, ...]) is deprecated and "
+            "in a future version will be changed to match the behavior of "
+            "DataFrame([any_listlike, ...]). "
+            "To retain the old behavior, pass as a dictionary "
+            "DataFrame({col: categorical, ..})",
+            FutureWarning,
+            stacklevel=4,
+        )
         if columns is None:
             columns = ibase.default_index(len(data))
         return data, columns

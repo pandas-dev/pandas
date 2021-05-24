@@ -333,6 +333,7 @@ class TestGroupByNonCythonPaths:
         return gni
 
     # TODO: non-unique columns, as_index=False
+    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_idxmax(self, gb):
         # object dtype so idxmax goes through _aggregate_item_by_item
         # GH#5610
@@ -342,6 +343,7 @@ class TestGroupByNonCythonPaths:
         result = gb.idxmax()
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_idxmin(self, gb):
         # object dtype so idxmax goes through _aggregate_item_by_item
         # GH#5610
@@ -524,6 +526,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
         ("idxmax", {"c_int": [1, 3], "c_float": [0, 2], "c_date": [0, 3]}),
     ],
 )
+@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_idxmin_idxmax_returns_int_types(func, values):
     # GH 25444
     df = DataFrame(
