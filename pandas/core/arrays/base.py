@@ -515,7 +515,7 @@ class ExtensionArray:
     # Additional Methods
     # ------------------------------------------------------------------------
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype: Dtype, copy: bool = True):
         """
         Cast to a NumPy array with 'dtype'.
 
@@ -530,10 +530,8 @@ class ExtensionArray:
 
         Returns
         -------
-        array : ndarray
-            NumPy ndarray with 'dtype' for its dtype.
+        np.ndarray or ExtensionArray
         """
-        from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(dtype, self.dtype):
@@ -542,10 +540,10 @@ class ExtensionArray:
             else:
                 return self.copy()
 
-        # FIXME: Really hard-code here?
-        if isinstance(dtype, StringDtype):
-            # allow conversion to StringArrays
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
+        if isinstance(dtype, ExtensionDtype):
+            # allow conversion to e.g. StringArrays
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(self, dtype=dtype, copy=copy)
 
         return np.array(self, dtype=dtype, copy=copy)
 
