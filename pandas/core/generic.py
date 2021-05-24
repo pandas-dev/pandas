@@ -9225,7 +9225,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "try_cast keyword is deprecated and will be removed in a "
                 "future version",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
 
         return self._where(cond, other, inplace, axis, level, errors=errors)

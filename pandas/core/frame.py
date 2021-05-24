@@ -10688,6 +10688,154 @@ NaN 12.3   33.0
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "cond", "other"]
+    )
+    def where(
+        self,
+        cond,
+        other=np.nan,
+        inplace=False,
+        axis=None,
+        level=None,
+        errors="raise",
+        try_cast=lib.no_default,
+    ):
+        """
+        Replace values where the condition is {cond_rev}.
+
+        Parameters
+        ----------
+        cond : bool {klass}, array-like, or callable
+            Where `cond` is {cond}, keep the original value. Where
+            {cond_rev}, replace with corresponding value from `other`.
+            If `cond` is callable, it is computed on the {klass} and
+            should return boolean {klass} or array. The callable must
+            not change input {klass} (though pandas doesn't check it).
+        other : scalar, {klass}, or callable
+            Entries where `cond` is {cond_rev} are replaced with
+            corresponding value from `other`.
+            If other is callable, it is computed on the {klass} and
+            should return scalar or {klass}. The callable must not
+            change input {klass} (though pandas doesn't check it).
+        inplace : bool, default False
+            Whether to perform the operation in place on the data.
+        axis : int, default None
+            Alignment axis if needed.
+        level : int, default None
+            Alignment level if needed.
+        errors : str, {{'raise', 'ignore'}}, default 'raise'
+            Note that currently this parameter won't affect
+            the results and will always coerce to a suitable dtype.
+
+            - 'raise' : allow exceptions to be raised.
+            - 'ignore' : suppress exceptions. On error return original object.
+
+        try_cast : bool, default None
+            Try to cast the result back to the input type (if possible).
+
+            .. deprecated:: 1.3.0
+                Manually cast back if necessary.
+
+        Returns
+        -------
+        Same type as caller or None if ``inplace=True``.
+
+        See Also
+        --------
+        :func:`DataFrame.{name_other}` : Return an object of same shape as
+            self.
+
+        Notes
+        -----
+        The {name} method is an application of the if-then idiom. For each
+        element in the calling DataFrame, if ``cond`` is ``{cond}`` the
+        element is used; otherwise the corresponding element from the DataFrame
+        ``other`` is used.
+
+        The signature for :func:`DataFrame.where` differs from
+        :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
+        ``np.where(m, df1, df2)``.
+
+        For further details and examples see the ``{name}`` documentation in
+        :ref:`indexing <indexing.where_mask>`.
+
+        Examples
+        --------
+        >>> s = pd.Series(range(5))
+        >>> s.where(s > 0)
+        0    NaN
+        1    1.0
+        2    2.0
+        3    3.0
+        4    4.0
+        dtype: float64
+        >>> s.mask(s > 0)
+        0    0.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    NaN
+        dtype: float64
+
+        >>> s.where(s > 1, 10)
+        0    10
+        1    10
+        2    2
+        3    3
+        4    4
+        dtype: int64
+        >>> s.mask(s > 1, 10)
+        0     0
+        1     1
+        2    10
+        3    10
+        4    10
+        dtype: int64
+
+        >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
+        >>> df
+           A  B
+        0  0  1
+        1  2  3
+        2  4  5
+        3  6  7
+        4  8  9
+        >>> m = df % 3 == 0
+        >>> df.where(m, -df)
+           A  B
+        0  0 -1
+        1 -2  3
+        2 -4 -5
+        3  6 -7
+        4 -8  9
+        >>> df.where(m, -df) == np.where(m, df, -df)
+              A     B
+        0  True  True
+        1  True  True
+        2  True  True
+        3  True  True
+        4  True  True
+        >>> df.where(m, -df) == df.mask(~m, -df)
+              A     B
+        0  True  True
+        1  True  True
+        2  True  True
+        3  True  True
+        4  True  True
+        """
+        other = com.apply_if_callable(other, self)
+
+        if try_cast is not lib.no_default:
+            warnings.warn(
+                "try_cast keyword is deprecated and will be removed in a "
+                "future version",
+                FutureWarning,
+                stacklevel=3,
+            )
+
+        return self._where(cond, other, inplace, axis, level, errors=errors)
+
 
 DataFrame._add_numeric_operations()
 
