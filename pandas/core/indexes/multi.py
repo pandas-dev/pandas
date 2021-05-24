@@ -2237,14 +2237,14 @@ class MultiIndex(Index):
             if search_self is True:
                 if column_name in self.names:
                     Index_position = self.names.index(column_name)
-                    NA_type = convert_dtypes(self.levels[Index_position])
+                    NA_type = convert_dtypes(self)
                     data = Index([NA] * data_index.size, dtype=NA_type)
                     return data
 
             for o in other:
                 if o is not data_index and column_name in o.names:
                     Index_position = o.names.index(column_name)
-                    NA_type = convert_dtypes(o.levels[Index_position].dtype)
+                    NA_type = convert_dtypes(o)
                     data = Index([NA] * data_index.size, dtype=NA_type)
                     return data
 
