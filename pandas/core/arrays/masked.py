@@ -320,8 +320,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return cls(data, mask, copy=False)
 
         if isinstance(dtype, ExtensionDtype):
-            eacls = dtype.construct_array_type()
-            return eacls._from_sequence(self, dtype=dtype, copy=copy)
+            return super().astype(dtype=dtype, copy=copy)
 
         raise NotImplementedError("subclass must implement astype to np.dtype")
 
