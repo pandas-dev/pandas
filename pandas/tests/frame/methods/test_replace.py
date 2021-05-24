@@ -1428,7 +1428,7 @@ class TestDataFrameReplace:
         tm.assert_equal(obj, expected)
 
     @pytest.mark.parametrize(
-        "s, to_replace, value, expected",
+        "data, to_replace, value, expected",
         [
             ([1], np.array([1.0]), [0], [0]),
             ([1], np.array([1]), [0], [0]),
@@ -1441,12 +1441,12 @@ class TestDataFrameReplace:
         ],
     )
     def test_replace_list_with_mixed_type(
-        self, s, to_replace, value, expected, frame_or_series
+        self, data, to_replace, value, expected, frame_or_series
     ):
         # GH#40371
-        s = frame_or_series(s)
+        obj = frame_or_series(data)
         expected = frame_or_series(expected)
-        result = s.replace(to_replace, value)
+        result = obj.replace(to_replace, value)
         tm.assert_equal(result, expected)
 
 
