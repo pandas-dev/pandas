@@ -10688,9 +10688,7 @@ NaN 12.3   33.0
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "cond"])
     def where(
         self,
         cond,
@@ -10831,7 +10829,7 @@ NaN 12.3   33.0
                 "try_cast keyword is deprecated and will be removed in a "
                 "future version",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=2,
             )
 
         return self._where(cond, other, inplace, axis, level, errors=errors)
