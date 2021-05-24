@@ -173,7 +173,9 @@ def test_transform_bad_dtype(op, frame_or_series, request):
     # GH 35964
     if op == "rank":
         request.node.add_marker(
-            pytest.mark.xfail(reason="GH 40418: rank does not raise a TypeError")
+            pytest.mark.xfail(
+                raises=ValueError, reason="GH 40418: rank does not raise a TypeError"
+            )
         )
 
     obj = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms

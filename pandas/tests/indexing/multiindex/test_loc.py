@@ -790,6 +790,19 @@ def test_mi_columns_loc_list_label_order():
     tm.assert_frame_equal(result, expected)
 
 
+def test_mi_partial_indexing_list_raises():
+    # GH 13501
+    frame = DataFrame(
+        np.arange(12).reshape((4, 3)),
+        index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
+        columns=[["Ohio", "Ohio", "Colorado"], ["Green", "Red", "Green"]],
+    )
+    frame.index.names = ["key1", "key2"]
+    frame.columns.names = ["state", "color"]
+    with pytest.raises(KeyError, match="\\[2\\] not in index"):
+        frame.loc[["b", 2], "Colorado"]
+
+
 def test_loc_get_scalar_casting_to_float():
     # GH#41369
     df = DataFrame(
