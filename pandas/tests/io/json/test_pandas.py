@@ -1211,7 +1211,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert dumps(ts, iso_dates=True) == exp
         dt = ts.to_pydatetime()
         assert dumps(dt, iso_dates=True) == exp
-    
+
     @pytest.mark.parametrize(
         "tz_range",
         [
@@ -1234,7 +1234,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = DataFrame({"DT": dti})
         result = dumps(df, iso_dates=True)
         assert result == dfexp
-    
+
     @pytest.mark.parametrize(
         "tz_range",
         [
