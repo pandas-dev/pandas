@@ -361,7 +361,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                 freq = self.freqstr
                 if freq is not None:
                     freq = repr(freq)
-                attrs.append(("freq", freq))
+                # Argument 1 to "append" of "list" has incompatible type
+                # "Tuple[str, Optional[str]]"; expected "Tuple[str, Union[str, int]]"
+                attrs.append(("freq", freq))  # type: ignore[arg-type]
         return attrs
 
     def _summary(self, name=None) -> str:
