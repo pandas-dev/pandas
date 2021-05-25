@@ -71,7 +71,7 @@ class TestSeriesConstructors:
     )
     def test_empty_constructor(self, constructor, check_index_type):
         # TODO: share with frame test of the same name
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(DeprecationWarning):
             expected = Series()
             result = constructor()
 
@@ -116,7 +116,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
     def test_constructor(self, datetime_series):
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(DeprecationWarning):
             empty_series = Series()
         assert datetime_series.index._is_all_dates
 
@@ -134,7 +134,7 @@ class TestSeriesConstructors:
         assert mixed[1] is np.NaN
 
         assert not empty_series.index._is_all_dates
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(DeprecationWarning):
             assert not Series().index._is_all_dates
 
         # exception raised is of type ValueError GH35744
@@ -154,7 +154,7 @@ class TestSeriesConstructors:
 
     @pytest.mark.parametrize("input_class", [list, dict, OrderedDict])
     def test_constructor_empty(self, input_class):
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(DeprecationWarning):
             empty = Series()
             empty2 = Series(input_class())
 
@@ -174,7 +174,7 @@ class TestSeriesConstructors:
 
         if input_class is not list:
             # With index:
-            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(DeprecationWarning):
                 empty = Series(index=range(10))
                 empty2 = Series(input_class(), index=range(10))
             tm.assert_series_equal(empty, empty2)
@@ -208,7 +208,7 @@ class TestSeriesConstructors:
         assert len(result) == 0
 
     def test_constructor_no_data_index_order(self):
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(DeprecationWarning):
             result = Series(index=["b", "a", "c"])
         assert result.index.tolist() == ["b", "a", "c"]
 
@@ -674,7 +674,7 @@ class TestSeriesConstructors:
         assert s._mgr.blocks[0].values is not index
 
     def test_constructor_pass_none(self):
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(DeprecationWarning):
             s = Series(None, index=range(5))
         assert s.dtype == np.float64
 
@@ -683,7 +683,7 @@ class TestSeriesConstructors:
 
         # GH 7431
         # inference on the index
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(DeprecationWarning):
             s = Series(index=np.array([None]))
             expected = Series(index=Index([None]))
         tm.assert_series_equal(s, expected)
@@ -840,7 +840,7 @@ class TestSeriesConstructors:
         dts = Series(dates, dtype="datetime64[ns]")
 
         # valid astype
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             # astype(np.int64) deprecated
             dts.astype("int64")
 
@@ -852,7 +852,7 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             # astype(np.int64) deprecated
             result = Series(dts, dtype=np.int64)
             expected = Series(dts.astype(np.int64))
@@ -1341,7 +1341,7 @@ class TestSeriesConstructors:
         #        td.astype('m8[%s]' % t)
 
         # valid astype
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             # astype(int64) deprecated
             td.astype("int64")
 
@@ -1465,7 +1465,7 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             # asype(np.int64) deprecated, use .view(np.int64) instead
             result = Series(index, dtype=np.int64)
             expected = Series(index.astype(np.int64))
@@ -1525,6 +1525,36 @@ class TestSeriesConstructors:
         result = Series(range(5), dtype=dtype)
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_range_overflows(self):
+        # GH#30173 range objects that overflow int64
+        rng = range(2 ** 63, 2 ** 63 + 4)
+        ser = Series(rng)
+        expected = Series(list(rng))
+        tm.assert_series_equal(ser, expected)
+        assert list(ser) == list(rng)
+        assert ser.dtype == np.uint64
+
+        rng2 = range(2 ** 63 + 4, 2 ** 63, -1)
+        ser2 = Series(rng2)
+        expected2 = Series(list(rng2))
+        tm.assert_series_equal(ser2, expected2)
+        assert list(ser2) == list(rng2)
+        assert ser2.dtype == np.uint64
+
+        rng3 = range(-(2 ** 63), -(2 ** 63) - 4, -1)
+        ser3 = Series(rng3)
+        expected3 = Series(list(rng3))
+        tm.assert_series_equal(ser3, expected3)
+        assert list(ser3) == list(rng3)
+        assert ser3.dtype == object
+
+        rng4 = range(2 ** 73, 2 ** 73 + 4)
+        ser4 = Series(rng4)
+        expected4 = Series(list(rng4))
+        tm.assert_series_equal(ser4, expected4)
+        assert list(ser4) == list(rng4)
+        assert ser4.dtype == object
+
     def test_constructor_tz_mixed_data(self):
         # GH 13051
         dt_list = [
@@ -1535,11 +1565,30 @@ class TestSeriesConstructors:
         expected = Series(dt_list, dtype=object)
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
-        # GH#25843
+    @pytest.mark.parametrize("pydt", [True, False])
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture, pydt):
+        # GH#25843, GH#41555, GH#33401
         tz = tz_aware_fixture
-        result = Series([Timestamp("2019", tz=tz)], dtype="datetime64[ns]")
-        expected = Series([Timestamp("2019")])
+        ts = Timestamp("2019", tz=tz)
+        if pydt:
+            ts = ts.to_pydatetime()
+        ts_naive = Timestamp("2019")
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = Series([ts], dtype="datetime64[ns]")
+        expected = Series([ts_naive])
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = Series(np.array([ts], dtype=object), dtype="datetime64[ns]")
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = Series({0: ts}, dtype="datetime64[ns]")
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = Series(ts, index=[0], dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
 
     def test_constructor_datetime64(self):

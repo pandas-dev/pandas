@@ -776,3 +776,58 @@ def test_loc_getitem_drops_levels_for_one_row_dataframe():
     result = ser.loc["x", :, "z"]
     expected = Series([0], index=Index(["y"], name="b"))
     tm.assert_series_equal(result, expected)
+
+
+def test_mi_columns_loc_list_label_order():
+    # GH 10710
+    cols = MultiIndex.from_product([["A", "B", "C"], [1, 2]])
+    df = DataFrame(np.zeros((5, 6)), columns=cols)
+    result = df.loc[:, ["B", "A"]]
+    expected = DataFrame(
+        np.zeros((5, 4)),
+        columns=MultiIndex.from_tuples([("B", 1), ("B", 2), ("A", 1), ("A", 2)]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_mi_partial_indexing_list_raises():
+    # GH 13501
+    frame = DataFrame(
+        np.arange(12).reshape((4, 3)),
+        index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
+        columns=[["Ohio", "Ohio", "Colorado"], ["Green", "Red", "Green"]],
+    )
+    frame.index.names = ["key1", "key2"]
+    frame.columns.names = ["state", "color"]
+    with pytest.raises(KeyError, match="\\[2\\] not in index"):
+        frame.loc[["b", 2], "Colorado"]
+
+
+def test_mi_indexing_list_nonexistent_raises():
+    # GH 15452
+    s = Series(range(4), index=MultiIndex.from_product([[1, 2], ["a", "b"]]))
+    with pytest.raises(KeyError, match="\\['not' 'found'\\] not in index"):
+        s.loc[["not", "found"]]
+
+
+def test_mi_add_cell_missing_row_non_unique():
+    # GH 16018
+    result = DataFrame(
+        [[1, 2, 5, 6], [3, 4, 7, 8]],
+        index=["a", "a"],
+        columns=MultiIndex.from_product([[1, 2], ["A", "B"]]),
+    )
+    result.loc["c"] = -1
+    result.loc["c", (1, "A")] = 3
+    result.loc["d", (1, "A")] = 3
+    expected = DataFrame(
+        [
+            [1.0, 2.0, 5.0, 6.0],
+            [3.0, 4.0, 7.0, 8.0],
+            [3.0, -1.0, -1, -1],
+            [3.0, np.nan, np.nan, np.nan],
+        ],
+        index=["a", "a", "c", "d"],
+        columns=MultiIndex.from_product([[1, 2], ["A", "B"]]),
+    )
+    tm.assert_frame_equal(result, expected)

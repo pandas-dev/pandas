@@ -729,3 +729,31 @@ def test_where_string_dtype(frame_or_series):
         dtype=StringDtype(),
     )
     tm.assert_equal(result, expected)
+
+
+def test_where_bool_comparison():
+    # GH 10336
+    df_mask = DataFrame(
+        {"AAA": [True] * 4, "BBB": [False] * 4, "CCC": [True, False, True, False]}
+    )
+    result = df_mask.where(df_mask == False)  # noqa:E712
+    expected = DataFrame(
+        {
+            "AAA": np.array([np.nan] * 4, dtype=object),
+            "BBB": [False] * 4,
+            "CCC": [np.nan, False, np.nan, False],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_where_none_nan_coerce():
+    # GH 15613
+    expected = DataFrame(
+        {
+            "A": [Timestamp("20130101"), pd.NaT, Timestamp("20130103")],
+            "B": [1, 2, np.nan],
+        }
+    )
+    result = expected.where(expected.notnull(), None)
+    tm.assert_frame_equal(result, expected)

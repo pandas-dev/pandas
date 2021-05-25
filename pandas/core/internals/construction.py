@@ -11,6 +11,7 @@ from typing import (
     Hashable,
     Sequence,
 )
+import warnings
 
 import numpy as np
 import numpy.ma as ma
@@ -21,6 +22,7 @@ from pandas._typing import (
     DtypeObj,
     Manager,
 )
+from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -57,12 +59,14 @@ from pandas.core import (
 )
 from pandas.core.arrays import (
     Categorical,
+    DatetimeArray,
     ExtensionArray,
     TimedeltaArray,
 )
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
+    range_to_ndarray,
     sanitize_array,
 )
 from pandas.core.indexes import base as ibase
@@ -116,7 +120,7 @@ def arrays_to_mgr(
     if verify_integrity:
         # figure out the index, if necessary
         if index is None:
-            index = extract_index(arrays)
+            index = _extract_index(arrays)
         else:
             index = ensure_index(index)
 
@@ -314,10 +318,11 @@ def ndarray_to_mgr(
                 values = construct_1d_ndarray_preserving_na(
                     flat, dtype=dtype, copy=False
                 )
-            except Exception as err:
-                # e.g. ValueError when trying to cast object dtype to float64
-                msg = f"failed to cast to '{dtype}' (Exception was: {err})"
-                raise ValueError(msg) from err
+            except IntCastingNaNError:
+                # following Series, we ignore the dtype and retain floating
+                # values instead of casting nans to meaningless ints
+                pass
+
         values = values.reshape(shape)
 
     # _prep_ndarray ensures that values.ndim == 2 at this point
@@ -356,8 +361,8 @@ def ndarray_to_mgr(
         if values.ndim == 2 and values.shape[0] != 1:
             # transpose and separate blocks
 
-            dvals_list = [maybe_infer_to_datetimelike(row) for row in values]
-            dvals_list = [ensure_block_shape(dval, 2) for dval in dvals_list]
+            dtlike_vals = [maybe_infer_to_datetimelike(row) for row in values]
+            dvals_list = [ensure_block_shape(dval, 2) for dval in dtlike_vals]
 
             # TODO: What about re-joining object columns?
             block_values = [
@@ -423,7 +428,7 @@ def dict_to_mgr(
         if index is None:
             # GH10856
             # raise ValueError if only scalars in dict
-            index = extract_index(arrays[~missing])
+            index = _extract_index(arrays[~missing])
         else:
             index = ensure_index(index)
 
@@ -515,7 +520,9 @@ def treat_as_nested(data) -> bool:
 
 
 def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
-    if isinstance(values, TimedeltaArray):
+    if isinstance(values, TimedeltaArray) or (
+        isinstance(values, DatetimeArray) and values.tz is None
+    ):
         # On older numpy, np.asarray below apparently does not call __array__,
         #  so nanoseconds get dropped.
         values = values._ndarray
@@ -524,7 +531,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
         elif isinstance(values, range):
-            arr = np.arange(values.start, values.stop, values.step, dtype="int64")
+            arr = range_to_ndarray(values)
             return arr[..., np.newaxis]
 
         def convert(v):
@@ -541,23 +548,18 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
         # we could have a 1-dim or 2-dim list here
         # this is equiv of np.asarray, but does object conversion
         # and platform dtype preservation
-        try:
-            if is_list_like(values[0]):
-                values = np.array([convert(v) for v in values])
-            elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
-                # GH#21861
-                values = np.array([convert(v) for v in values])
-            else:
-                values = convert(values)
-        except (ValueError, TypeError):
+        if is_list_like(values[0]):
+            values = np.array([convert(v) for v in values])
+        elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
+            # GH#21861
+            values = np.array([convert(v) for v in values])
+        else:
             values = convert(values)
 
     else:
 
-        # drop subclass info, do not copy data
-        values = np.asarray(values)
-        if copy:
-            values = values.copy()
+        # drop subclass info
+        values = np.array(values, copy=copy)
 
     if values.ndim == 1:
         values = values.reshape((values.shape[0], 1))
@@ -603,7 +605,7 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None):
     return homogenized
 
 
-def extract_index(data) -> Index:
+def _extract_index(data) -> Index:
     """
     Try to infer an Index from the passed data, raise ValueError on failure.
     """
@@ -772,6 +774,16 @@ def to_arrays(
         return [], ensure_index([])
 
     elif isinstance(data[0], Categorical):
+        # GH#38845 deprecate special case
+        warnings.warn(
+            "The behavior of DataFrame([categorical, ...]) is deprecated and "
+            "in a future version will be changed to match the behavior of "
+            "DataFrame([any_listlike, ...]). "
+            "To retain the old behavior, pass as a dictionary "
+            "DataFrame({col: categorical, ..})",
+            FutureWarning,
+            stacklevel=4,
+        )
         if columns is None:
             columns = ibase.default_index(len(data))
         return data, columns
