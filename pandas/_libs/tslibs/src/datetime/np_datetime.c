@@ -795,19 +795,18 @@ int get_tzoffset_from_pytzinfo(PyObject *timezone_obj, npy_datetimestruct *dts)
 {
     PyDateTime_Date *dt;
     PyDateTime_Delta *tzoffset;
-    npy_datetimestruct loc_dts;
 
     /* Create a Python datetime to give to the timezone object */
-    dt = PyDateTime_FromDateAndTimeAndZone((int)dts->year, dts->month, dts->day,
+    dt = (PyDateTime_Date *) PyDateTime_FromDateAndTimeAndZone((int)dts->year, dts->month, dts->day,
                             dts->hour, dts->min, 0, 0, timezone_obj);
-    if (dt == NULL || !(PyDateTime_Check(dt))) {
+    if (!(PyDateTime_Check(dt))) {
         Py_DECREF(dt);
         return -1;
     }
-    tzoffset = PyObject_CallMethod(timezone_obj, "utcoffset", "O", dt);
+    tzoffset = (PyDateTime_Delta *) PyObject_CallMethod(timezone_obj, "utcoffset", "O", dt);
     
     Py_DECREF(dt);
-    if ((tzoffset == Py_None || tzoffset == NULL) || !(PyDelta_Check(tzoffset))){
+    if (!(PyDelta_Check(tzoffset))){
         Py_DECREF(tzoffset);
         return -1;
     }

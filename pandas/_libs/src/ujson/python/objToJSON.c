@@ -216,13 +216,13 @@ static TypeContext *createTypeContext(void) {
     return pc;
 }
 
-static PyObject *get_tzinfo(PyObject *obj){
-    if (PyObject_HasAttrString(obj, "tzinfo")){
-        PyObject *tzinfo = PyObject_GetAttrString(obj, "tzinfo");
-        return tzinfo;
-    }
-    return Py_None;
-}
+// static PyObject *get_tzinfo(PyObject *obj){
+//     if (PyObject_HasAttrString(obj, "tzinfo")){
+//         PyObject *tzinfo = PyObject_GetAttrString(obj, "tzinfo");
+//         return tzinfo;
+//     }
+//     return Py_None;
+// }
 
 static PyObject *get_values(PyObject *obj) {
     PyObject *values = NULL;
