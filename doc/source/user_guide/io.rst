@@ -2846,9 +2846,9 @@ Writing to LaTeX files
 .. note::
 
    DataFrame *and* Styler objects currently have a ``to_latex`` method. We recommend
-   using the ``Styler.to_latex()`` method over ``DataFrame.to_latex()``
-   due to the former's greater flexibility with conditional styling, and the latter's
-   possible future deprecation.
+   using the `Styler.to_latex() <../reference/api/pandas.io.formats.style.Styler.to_latex.rst>`__ method
+   over `DataFrame.to_latex() <../reference/api/pandas.DataFrame.to_latex.rst>`__ due to the former's greater flexibility with
+   conditional styling, and the latter's possible future deprecation.
 
 Review the documentation for `Styler.to_latex <../reference/api/pandas.io.formats.style.Styler.to_latex.rst>`__,
 which gives examples of conditional styling and explains the operation of its keyword
