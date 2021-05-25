@@ -322,13 +322,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return dtype.freq == self.freq
 
     # ------------------------------------------------------------------------
-    # Rendering Methods
-
-    def _mpl_repr(self) -> np.ndarray:
-        # how to represent ourselves to matplotlib
-        return self.astype(object)._values
-
-    # ------------------------------------------------------------------------
     # Indexing
 
     @doc(Index.__contains__)
