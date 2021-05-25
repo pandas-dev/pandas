@@ -1710,6 +1710,22 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 # Constructor Helpers
 
 
+def create_block_manager_from_blocks(
+    blocks: list[Block], axes: list[Index], consolidate: bool = True
+) -> BlockManager:
+    try:
+        mgr = BlockManager(blocks, axes)
+
+    except ValueError as err:
+        arrays = [blk.values for blk in blocks]
+        tot_items = sum(arr.shape[0] for arr in arrays)
+        raise construction_error(tot_items, arrays[0].shape[1:], axes, err)
+
+    if consolidate:
+        mgr._consolidate_inplace()
+    return mgr
+
+
 # We define this here so we can override it in tests.extension.test_numpy
 def _extract_array(obj):
     return extract_array(obj, extract_numpy=True)

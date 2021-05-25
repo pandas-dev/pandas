@@ -40,7 +40,7 @@ def test_namespace():
         "SingleArrayManager",
         "concatenate_managers",
         "create_block_manager_from_arrays",
-        "create_block_manager_from_array",
+        "create_block_manager_from_blocks",
     ]
 
     result = [x for x in dir(internals) if not x.startswith("__")]
