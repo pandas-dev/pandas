@@ -90,11 +90,16 @@ def test_mask_stringdtype():
 
 def test_mask_pos_args_deprecation():
     # https://github.com/pandas-dev/pandas/issues/41485
-    s = Series(np.random.randn(6))
-    cond = s > 0
+    s = Series(range(5))
+    expected = Series([-1, 1, -1, 3, -1])
+    cond = s % 2 == 0
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = s.mask(cond, np.nan, False)
+    msg = (
+        r"In a future version of pandas all arguments of NDFrame.mask except for "
+        r"the arguments 'cond' and 'other' will be keyword-only"
+    )
 
-    expected = s.mask(cond, other=np.nan, inplace=False)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.mask(cond, -1, False)
+
     tm.assert_series_equal(result, expected)

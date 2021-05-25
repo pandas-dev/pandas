@@ -92,14 +92,19 @@ class TestDataFrameMask:
 
     def test_mask_pos_args_deprecation(self):
         # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame(np.random.randn(5, 5))
-        cond = df > 0
-        other = DataFrame(np.random.randn(5, 3))
+        df = DataFrame({"a": range(5)})
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.mask(cond, other, False)
+        expected = DataFrame({"a": [-1, 1, -1, 3, -1]})
+        cond = df % 2 == 0
 
-        expected = df.mask(cond, other=other, inplace=False)
+        msg = (
+            r"In a future version of pandas all arguments of NDFrame.mask except for "
+            r"the arguments 'cond' and 'other' will be keyword-only"
+        )
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.mask(cond, -1, False)
+
         tm.assert_frame_equal(result, expected)
 
 
