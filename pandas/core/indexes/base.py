@@ -1158,14 +1158,18 @@ class Index(IndexOpsMixin, PandasObject):
                 is_justify = False
 
         return format_object_summary(
-            self, self._formatter_func, is_justify=is_justify, name=name
+            self,
+            self._formatter_func,
+            is_justify=is_justify,
+            name=name,
+            line_break_each_value=self._is_multi,
         )
 
-    def _format_attrs(self):
+    def _format_attrs(self) -> list[tuple[str_t, str_t | int]]:
         """
         Return a list of tuples of the (attr,formatted_value).
         """
-        return format_object_attrs(self)
+        return format_object_attrs(self, include_dtype=not self._is_multi)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -2406,6 +2410,13 @@ class Index(IndexOpsMixin, PandasObject):
             stacklevel=2,
         )
         return self._is_all_dates
+
+    @cache_readonly
+    def _is_multi(self) -> bool:
+        """
+        Cached check equivalent to isinstance(self, MultiIndex)
+        """
+        return isinstance(self, ABCMultiIndex)
 
     # --------------------------------------------------------------------
     # Pickle Methods
