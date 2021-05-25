@@ -1,14 +1,12 @@
+from __future__ import annotations
+
 import codecs
+from collections.abc import Callable  # noqa: PDF001
 from functools import wraps
 import re
 from typing import (
     TYPE_CHECKING,
-    Dict,
     Hashable,
-    List,
-    Optional,
-    Pattern,
-    Union,
 )
 import warnings
 
@@ -43,7 +41,7 @@ from pandas.core.base import NoNewAttributesMixin
 if TYPE_CHECKING:
     from pandas import Index
 
-_shared_docs: Dict[str, str] = {}
+_shared_docs: dict[str, str] = {}
 _cpython_optimized_encoders = (
     "utf-8",
     "utf8",
@@ -284,7 +282,7 @@ class StringMethods(NoNewAttributesMixin):
                     return [x]
 
             result = [cons_row(x) for x in result]
-            if result:
+            if result and not self._is_string:
                 # propagate nan values to match longest sequence (GH 18450)
                 max_len = max(len(x) for x in result)
                 result = [
@@ -325,7 +323,7 @@ class StringMethods(NoNewAttributesMixin):
         else:
             index = self._orig.index
             # This is a mess.
-            dtype: Optional[str]
+            dtype: str | None
             if self._is_string and returns_string:
                 dtype = self._orig.dtype
             else:
@@ -391,7 +389,7 @@ class StringMethods(NoNewAttributesMixin):
                 or (isinstance(x, np.ndarray) and x.ndim == 1)
                 for x in others
             ):
-                los: List[Series] = []
+                los: list[Series] = []
                 while others:  # iterate through list and append each element
                     los = los + self._get_series_list(others.pop(0))
                 return los
@@ -1219,7 +1217,15 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=None):
+    def replace(
+        self,
+        pat: str | re.Pattern,
+        repl: str | Callable,
+        n: int = -1,
+        case: bool | None = None,
+        flags: int = 0,
+        regex: bool | None = None,
+    ):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
 
@@ -1348,7 +1354,7 @@ class StringMethods(NoNewAttributesMixin):
                 )
                 if len(pat) == 1:
                     msg += (
-                        " In addition, single character regular expressions will"
+                        " In addition, single character regular expressions will "
                         "*not* be treated as literal strings when regex=True."
                     )
                 warnings.warn(msg, FutureWarning, stacklevel=3)
@@ -1360,14 +1366,10 @@ class StringMethods(NoNewAttributesMixin):
 
         is_compiled_re = is_re(pat)
         if regex:
-            if is_compiled_re:
-                if (case is not None) or (flags != 0):
-                    raise ValueError(
-                        "case and flags cannot be set when pat is a compiled regex"
-                    )
-            elif case is None:
-                # not a compiled regex, set default case
-                case = True
+            if is_compiled_re and (case is not None or flags != 0):
+                raise ValueError(
+                    "case and flags cannot be set when pat is a compiled regex"
+                )
 
         elif is_compiled_re:
             raise ValueError(
@@ -1375,6 +1377,9 @@ class StringMethods(NoNewAttributesMixin):
             )
         elif callable(repl):
             raise ValueError("Cannot use a callable replacement when regex=False")
+
+        if case is None:
+            case = True
 
         result = self._data.array._str_replace(
             pat, repl, n=n, case=case, flags=flags, regex=regex
@@ -2292,7 +2297,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def extract(
         self, pat: str, flags: int = 0, expand: bool = True
-    ) -> Union[FrameOrSeriesUnion, "Index"]:
+    ) -> FrameOrSeriesUnion | Index:
         r"""
         Extract capture groups in the regex `pat` as columns in a DataFrame.
 
@@ -2733,7 +2738,7 @@ class StringMethods(NoNewAttributesMixin):
     #   boolean:
     #     isalpha, isnumeric isalnum isdigit isdecimal isspace islower isupper istitle
     # _doc_args holds dict of strings to use in substituting casemethod docs
-    _doc_args: Dict[str, Dict[str, str]] = {}
+    _doc_args: dict[str, dict[str, str]] = {}
     _doc_args["lower"] = {"type": "lowercase", "method": "lower", "version": ""}
     _doc_args["upper"] = {"type": "uppercase", "method": "upper", "version": ""}
     _doc_args["title"] = {"type": "titlecase", "method": "title", "version": ""}
@@ -2971,7 +2976,7 @@ class StringMethods(NoNewAttributesMixin):
     )
 
 
-def cat_safe(list_of_columns: List, sep: str):
+def cat_safe(list_of_columns: list, sep: str):
     """
     Auxiliary function for :meth:`str.cat`.
 
@@ -3007,7 +3012,7 @@ def cat_safe(list_of_columns: List, sep: str):
     return result
 
 
-def cat_core(list_of_columns: List, sep: str):
+def cat_core(list_of_columns: list, sep: str):
     """
     Auxiliary function for :meth:`str.cat`
 
@@ -3046,14 +3051,14 @@ def _result_dtype(arr):
         return object
 
 
-def _get_single_group_name(regex: Pattern) -> Hashable:
+def _get_single_group_name(regex: re.Pattern) -> Hashable:
     if regex.groupindex:
         return next(iter(regex.groupindex))
     else:
         return None
 
 
-def _get_group_names(regex: Pattern) -> List[Hashable]:
+def _get_group_names(regex: re.Pattern) -> list[Hashable]:
     """
     Get named groups from compiled regex.
 
@@ -3119,7 +3124,7 @@ def str_extract(accessor: StringMethods, pat: str, flags: int = 0, expand: bool 
         else:
             result_list = _str_extract(obj.array, pat, flags=flags, expand=returns_df)
 
-            result_index: Optional["Index"]
+            result_index: Index | None
             if isinstance(obj, ABCSeries):
                 result_index = obj.index
             else:

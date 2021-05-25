@@ -8,6 +8,8 @@ import pytest
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.common import is_categorical_dtype
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -90,7 +92,7 @@ def assert_stat_op_calc(
         tm.assert_series_equal(
             result0, frame.apply(wrapper), check_dtype=check_dtype, rtol=rtol, atol=atol
         )
-        # HACK: win32
+        # FIXME: HACK: win32
         tm.assert_series_equal(
             result1,
             frame.apply(wrapper, axis=1),
@@ -140,7 +142,7 @@ def assert_stat_op_calc(
             tm.assert_series_equal(r1, expected)
 
 
-def assert_stat_op_api(opname, float_frame, float_string_frame, has_numeric_only=False):
+def assert_stat_op_api(opname, float_frame, float_string_frame, has_numeric_only=True):
     """
     Check that API for operator opname works as advertised on frame
 
@@ -199,7 +201,7 @@ def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
         tm.assert_series_equal(result0, frame.apply(wrapper))
         tm.assert_series_equal(
             result1, frame.apply(wrapper, axis=1), check_dtype=False
-        )  # HACK: win32
+        )  # FIXME: HACK: win32
     else:
         skipna_wrapper = alternative
         wrapper = alternative
@@ -249,6 +251,7 @@ def assert_bool_op_api(
     # make sure op works on mixed-type frame
     mixed = float_string_frame
     mixed["_bool_"] = np.random.randn(len(mixed)) > 0.5
+
     getattr(mixed, opname)(axis=0)
     getattr(mixed, opname)(axis=1)
 
@@ -264,21 +267,22 @@ class TestDataFrameAnalytics:
     # ---------------------------------------------------------------------
     # Reductions
 
+    @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
     def test_stat_op_api(self, float_frame, float_string_frame):
-        assert_stat_op_api(
-            "count", float_frame, float_string_frame, has_numeric_only=True
-        )
-        assert_stat_op_api(
-            "sum", float_frame, float_string_frame, has_numeric_only=True
-        )
+        assert_stat_op_api("count", float_frame, float_string_frame)
+        assert_stat_op_api("sum", float_frame, float_string_frame)
 
-        assert_stat_op_api("nunique", float_frame, float_string_frame)
+        assert_stat_op_api(
+            "nunique", float_frame, float_string_frame, has_numeric_only=False
+        )
         assert_stat_op_api("mean", float_frame, float_string_frame)
         assert_stat_op_api("product", float_frame, float_string_frame)
         assert_stat_op_api("median", float_frame, float_string_frame)
         assert_stat_op_api("min", float_frame, float_string_frame)
         assert_stat_op_api("max", float_frame, float_string_frame)
-        assert_stat_op_api("mad", float_frame, float_string_frame)
+        assert_stat_op_api(
+            "mad", float_frame, float_string_frame, has_numeric_only=False
+        )
         assert_stat_op_api("var", float_frame, float_string_frame)
         assert_stat_op_api("std", float_frame, float_string_frame)
         assert_stat_op_api("sem", float_frame, float_string_frame)
@@ -435,12 +439,17 @@ class TestDataFrameAnalytics:
                 "str": ["a", "b", "c", "d"],
             }
         )
-
-        result = getattr(df, op)()
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns"
+        ):
+            result = getattr(df, op)()
         assert len(result) == 2
 
         with pd.option_context("use_bottleneck", False):
-            result = getattr(df, op)()
+            with tm.assert_produces_warning(
+                FutureWarning, match="Select only valid columns"
+            ):
+                result = getattr(df, op)()
             assert len(result) == 2
 
     def test_reduce_mixed_frame(self):
@@ -457,7 +466,8 @@ class TestDataFrameAnalytics:
         tm.assert_numpy_array_equal(
             test.values, np.array([2, 150, "abcde"], dtype=object)
         )
-        tm.assert_series_equal(test, df.T.sum(axis=1))
+        alt = df.T.sum(axis=1)
+        tm.assert_series_equal(test, alt)
 
     def test_nunique(self):
         df = DataFrame({"A": [1, 1, 1], "B": [1, 2, 3], "C": [1, np.nan, 3]})
@@ -510,7 +520,10 @@ class TestDataFrameAnalytics:
 
         df = DataFrame(d)
 
-        result = df.mean()
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns"
+        ):
+            result = df.mean()
         expected = Series([2.7, 681.6], index=["A", "C"])
         tm.assert_series_equal(result, expected)
 
@@ -740,7 +753,8 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
         # excludes numeric
-        result = mixed.min(axis=1)
+        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
+            result = mixed.min(axis=1)
         expected = Series([1, 1, 1.0], index=[0, 1, 2])
         tm.assert_series_equal(result, expected)
 
@@ -801,8 +815,9 @@ class TestDataFrameAnalytics:
         idx = ["a", "b", "c"]
         df = DataFrame({"a": [unit, unit], "b": [unit, np.nan], "c": [np.nan, np.nan]})
         # The default
-        result = getattr(df, method)
+        result = getattr(df, method)()
         expected = Series([unit, unit, unit], index=idx, dtype="float64")
+        tm.assert_series_equal(result, expected)
 
         # min_count=1
         result = getattr(df, method)(min_count=1)
@@ -873,20 +888,23 @@ class TestDataFrameAnalytics:
         df = DataFrame({"A": date_range("2000", periods=4), "B": [1, 2, 3, 4]}).reindex(
             [2, 3, 4]
         )
-        result = df.sum()
+        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
+            result = df.sum()
 
         expected = Series({"B": 7.0})
         tm.assert_series_equal(result, expected)
 
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
-        the_mean = float_string_frame.mean(axis=0)
+        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
+            the_mean = float_string_frame.mean(axis=0)
         the_sum = float_string_frame.sum(axis=0, numeric_only=True)
         tm.assert_index_equal(the_sum.index, the_mean.index)
         assert len(the_mean.index) < len(float_string_frame.columns)
 
         # xs sum mixed type, just want to know it works...
-        the_mean = float_string_frame.mean(axis=1)
+        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
+            the_mean = float_string_frame.mean(axis=1)
         the_sum = float_string_frame.sum(axis=1, numeric_only=True)
         tm.assert_index_equal(the_sum.index, the_mean.index)
 
@@ -947,10 +965,13 @@ class TestDataFrameAnalytics:
 
     def test_stats_mixed_type(self, float_string_frame):
         # don't blow up
-        float_string_frame.std(1)
-        float_string_frame.var(1)
-        float_string_frame.mean(1)
-        float_string_frame.skew(1)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns"
+        ):
+            float_string_frame.std(1)
+            float_string_frame.var(1)
+            float_string_frame.mean(1)
+            float_string_frame.skew(1)
 
     def test_sum_bools(self):
         df = DataFrame(index=range(1), columns=range(10))
@@ -1125,7 +1146,6 @@ class TestDataFrameAnalytics:
                 [np.nan, np.nan, "5", np.nan],
             ]
         )
-
         result = getattr(df, bool_agg_func)(axis=axis, skipna=skipna)
         expected = Series([True, True, True, True])
         tm.assert_series_equal(result, expected)
@@ -1224,12 +1244,23 @@ class TestDataFrameAnalytics:
     def test_any_all_np_func(self, func, data, expected):
         # GH 19976
         data = DataFrame(data)
-        result = func(data)
+
+        warn = None
+        if any(is_categorical_dtype(x) for x in data.dtypes):
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(
+            warn, match="Select only valid columns", check_stacklevel=False
+        ):
+            result = func(data)
         assert isinstance(result, np.bool_)
         assert result.item() is expected
 
         # method version
-        result = getattr(DataFrame(data), func.__name__)(axis=None)
+        with tm.assert_produces_warning(
+            warn, match="Select only valid columns", check_stacklevel=False
+        ):
+            result = getattr(DataFrame(data), func.__name__)(axis=None)
         assert isinstance(result, np.bool_)
         assert result.item() is expected
 
@@ -1349,7 +1380,6 @@ class TestDataFrameReductions:
                 "b": [Timestamp("2020-02-01 08:00:00", tz=tz), pd.NaT],
             }
         )
-
         res = df.min(axis=1, skipna=False)
         expected = Series([df.loc[0, "a"], pd.NaT])
         assert expected.dtype == df["a"].dtype
@@ -1411,12 +1441,12 @@ class TestDataFrameReductions:
             ],
         )
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, match="Using the level"):
             result = df.any(level=0)
         ex = DataFrame({"data": [False, True]}, index=["one", "two"])
         tm.assert_frame_equal(result, ex)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, match="Using the level"):
             result = df.all(level=0)
         ex = DataFrame({"data": [False, False]}, index=["one", "two"])
         tm.assert_frame_equal(result, ex)
@@ -1463,7 +1493,7 @@ class TestDataFrameReductions:
         obj = frame_or_series(
             [1, 2, 3], index=MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, match="level"):
             getattr(obj, func)(level=0)
 
 
@@ -1486,11 +1516,17 @@ class TestNuisanceColumns:
 
         # With bool_only=None, operating on this column raises and is ignored,
         #  so we expect an empty result.
-        result = getattr(df, method)(bool_only=None)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns"
+        ):
+            result = getattr(df, method)(bool_only=None)
         expected = Series([], index=Index([]), dtype=bool)
         tm.assert_series_equal(result, expected)
 
-        result = getattr(np, method)(df, axis=0)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns", check_stacklevel=False
+        ):
+            result = getattr(np, method)(df, axis=0)
         tm.assert_series_equal(result, expected)
 
     def test_median_categorical_dtype_nuisance_column(self):
@@ -1505,7 +1541,10 @@ class TestNuisanceColumns:
         with pytest.raises(TypeError, match="does not implement reduction"):
             df.median(numeric_only=False)
 
-        result = df.median()
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns"
+        ):
+            result = df.median()
         expected = Series([], index=Index([]), dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
@@ -1515,7 +1554,10 @@ class TestNuisanceColumns:
         with pytest.raises(TypeError, match="does not implement reduction"):
             df.median(numeric_only=False)
 
-        result = df.median()
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns"
+        ):
+            result = df.median()
         expected = Series([2.0], index=["B"])
         tm.assert_series_equal(result, expected)
 
@@ -1539,23 +1581,35 @@ class TestNuisanceColumns:
         with pytest.raises(TypeError, match="is not ordered for operation"):
             getattr(df, method)(numeric_only=False)
 
-        result = getattr(df, method)()
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns"
+        ):
+            result = getattr(df, method)()
         expected = Series([], index=Index([]), dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
-        result = getattr(np, method)(df)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns", check_stacklevel=False
+        ):
+            result = getattr(np, method)(df)
         tm.assert_series_equal(result, expected)
 
         # same thing, but with an additional non-categorical column
         df["B"] = df["A"].astype(object)
-        result = getattr(df, method)()
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns"
+        ):
+            result = getattr(df, method)()
         if method == "min":
             expected = Series(["a"], index=["B"])
         else:
             expected = Series(["c"], index=["B"])
         tm.assert_series_equal(result, expected)
 
-        result = getattr(np, method)(df)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns", check_stacklevel=False
+        ):
+            result = getattr(np, method)(df)
         tm.assert_series_equal(result, expected)
 
     def test_reduction_object_block_splits_nuisance_columns(self):
@@ -1563,14 +1617,20 @@ class TestNuisanceColumns:
         df = DataFrame({"A": [0, 1, 2], "B": ["a", "b", "c"]}, dtype=object)
 
         # We should only exclude "B", not "A"
-        result = df.mean()
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns"
+        ):
+            result = df.mean()
         expected = Series([1.0], index=["A"])
         tm.assert_series_equal(result, expected)
 
         # Same behavior but heterogeneous dtype
         df["C"] = df["A"].astype(int) + 4
 
-        result = df.mean()
+        with tm.assert_produces_warning(
+            FutureWarning, match="Select only valid columns"
+        ):
+            result = df.mean()
         expected = Series([1.0, 5.0], index=["A", "C"])
         tm.assert_series_equal(result, expected)
 
@@ -1644,6 +1704,7 @@ def test_groupy_regular_arithmetic_equivalent(meth):
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
     df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
-    result = df.sum()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping of nuisance"):
+        result = df.sum()
     expected = Series([1, 1.1, "foo"], index=list("abc"))
     tm.assert_series_equal(result, expected)

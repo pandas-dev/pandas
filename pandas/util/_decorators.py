@@ -261,7 +261,7 @@ def deprecate_nonkeyword_arguments(
     version: str | None,
     allowed_args: list[str] | None = None,
     stacklevel: int = 2,
-) -> Callable:
+) -> Callable[[F], F]:
     """
     Decorator to deprecate a use of non-keyword arguments of a function.
 
