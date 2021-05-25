@@ -1658,6 +1658,8 @@ def maybe_cast_to_datetime(
                             # so localize and convert
                             # equiv: Series(dta).astype(dtype) # though deprecated
                             if getattr(vdtype, "kind", None) == "M":
+                                # GH#24559, GH#33401 deprecate behavior inconsistent
+                                #  with DatetimeArray/DatetimeIndex
                                 warnings.warn(
                                     "In a future version, constructing a Series "
                                     "from datetime64[ns] data and a "

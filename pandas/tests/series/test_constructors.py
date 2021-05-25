@@ -1096,7 +1096,19 @@ class TestSeriesConstructors:
 
         msg = "will interpret the data as wall-times"
         with tm.assert_produces_warning(FutureWarning, match=msg):
+            # deprecate behavior inconsistent with DatetimeIndex GH#33401
             result = Series(ser.values, dtype=ser.dtype)
+        tm.assert_series_equal(result, ser)
+
+        with tm.assert_produces_warning(None):
+            # one suggested alternative to the deprecated usage
+            middle = Series(ser.values).dt.tz_localize("UTC")
+            result = middle.dt.tz_convert(ser.dtype.tz)
+        tm.assert_series_equal(result, ser)
+
+        with tm.assert_produces_warning(None):
+            # the other suggested alternative to the deprecated usage
+            result = Series(ser.values.view("int64"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
     @pytest.mark.parametrize(
