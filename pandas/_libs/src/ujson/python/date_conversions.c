@@ -96,6 +96,9 @@ char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
 
         if ((tzinfo != NULL) && (tzinfo != Py_None)){
             tzoffset = get_tzoffset_from_pytzinfo(tzinfo, &dts);
+            if (tzoffset == 0){
+                tzoffset = -1;
+            }
         }
     }
 

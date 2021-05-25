@@ -1185,8 +1185,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         "ts",
         [
             Timestamp("2013-01-10 05:00:00Z"),
-            Timestamp("2013-01-10 00:00:00", tz="US/Eastern"),
-            Timestamp("2013-01-10 00:00:00-0500"),
         ],
     )
     def test_tz_is_utc(self, ts):
@@ -1199,11 +1197,25 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert dumps(dt, iso_dates=True) == exp
 
     @pytest.mark.parametrize(
+        "ts",
+        [
+            Timestamp("2013-01-10 00:00:00", tz="US/Eastern"),
+            Timestamp("2013-01-10 00:00:00-0500"),
+        ],
+    )
+    def test_tz_is_localized(self, ts):
+        from pandas.io.json import dumps
+
+        exp = '"2013-01-10T00:00:00.000-05:00"'
+
+        assert dumps(ts, iso_dates=True) == exp
+        dt = ts.to_pydatetime()
+        assert dumps(dt, iso_dates=True) == exp
+    
+    @pytest.mark.parametrize(
         "tz_range",
         [
-            pd.date_range("2013-01-01 05:00:00Z", periods=2),
-            pd.date_range("2013-01-01 00:00:00", periods=2, tz="US/Eastern"),
-            pd.date_range("2013-01-01 00:00:00-0500", periods=2),
+            pd.date_range("2013-01-01 05:00:00Z", periods=2)
         ],
     )
     def test_tz_range_is_utc(self, tz_range):
@@ -1214,6 +1226,30 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             '{"DT":{'
             '"0":"2013-01-01T05:00:00.000Z",'
             '"1":"2013-01-02T05:00:00.000Z"}}'
+        )
+
+        assert dumps(tz_range, iso_dates=True) == exp
+        dti = DatetimeIndex(tz_range)
+        assert dumps(dti, iso_dates=True) == exp
+        df = DataFrame({"DT": dti})
+        result = dumps(df, iso_dates=True)
+        assert result == dfexp
+    
+    @pytest.mark.parametrize(
+        "tz_range",
+        [
+            pd.date_range("2013-01-01 00:00:00", periods=2, tz='US/Eastern'),
+            pd.date_range("2013-01-01 00:00:00-0500", periods=2)
+        ],
+    )
+    def test_tz_range_is_local(self, tz_range):
+        from pandas.io.json import dumps
+
+        exp = '["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]'
+        dfexp = (
+            '{"DT":{'
+            '"0":"2013-01-01T00:00:00.000-05:00",'
+            '"1":"2013-01-02T00:00:00.000-05:00"}}'
         )
 
         assert dumps(tz_range, iso_dates=True) == exp
