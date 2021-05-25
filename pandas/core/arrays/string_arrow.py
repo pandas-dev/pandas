@@ -26,6 +26,7 @@ from pandas.compat import (
     pa_version_under3p0,
     pa_version_under4p0,
 )
+from pandas.compat.pyarrow import pa_version_under1p0
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
@@ -52,7 +53,6 @@ from pandas.core.indexers import (
     validate_indices,
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
-from pandas.util.version import Version
 
 try:
     import pyarrow as pa
@@ -62,7 +62,7 @@ else:
     # PyArrow backed StringArrays are available starting at 1.0.0, but this
     # file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
     # and its compute functions existed. GH38801
-    if Version(pa.__version__) >= Version("1.0.0"):
+    if not pa_version_under1p0:
         import pyarrow.compute as pc
 
         ARROW_CMP_FUNCS = {
@@ -232,7 +232,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     def _chk_pyarrow_available(cls) -> None:
         # TODO: maybe update import_optional_dependency to allow a minimum
         # version to be specified rather than use the global minimum
-        if pa is None or Version(pa.__version__) < Version("1.0.0"):
+        if pa is None or pa_version_under1p0:
             msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
             raise ImportError(msg)
 

@@ -267,7 +267,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if (
                 isinstance(mgr, BlockManager)
                 and len(mgr.blocks) == 1
-                and mgr.blocks[0].values.dtype == dtype
+                and is_dtype_equal(mgr.blocks[0].values.dtype, dtype)
             ):
                 pass
             else:
@@ -481,13 +481,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @property
     def _AXIS_NUMBERS(self) -> dict[str, int]:
         """.. deprecated:: 1.1.0"""
-        warnings.warn("_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=3)
+        level = self.ndim + 1
+        warnings.warn(
+            "_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=level
+        )
         return {"index": 0}
 
     @property
     def _AXIS_NAMES(self) -> dict[int, str]:
         """.. deprecated:: 1.1.0"""
-        warnings.warn("_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3)
+        level = self.ndim + 1
+        warnings.warn(
+            "_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=level
+        )
         return {0: "index"}
 
     @final
@@ -687,8 +693,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.size
         4
         """
-        # error: Incompatible return value type (got "number", expected "int")
-        return np.prod(self.shape)  # type: ignore[return-value]
+        return np.prod(self.shape)
 
     @overload
     def set_axis(
@@ -6696,7 +6701,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="replace")
 
-    @final
     def interpolate(
         self: FrameOrSeries,
         method: str = "linear",
