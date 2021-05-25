@@ -2381,6 +2381,8 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
+        from pandas import DataFrame
+
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
 
@@ -2391,36 +2393,37 @@ class StringMethods(NoNewAttributesMixin):
         if not expand and regex.groups > 1 and isinstance(self._data, ABCIndex):
             raise ValueError("only one regex group is supported with Index")
 
-        result = self._data.array._str_extract(pat, flags, expand)
+        obj = self._data
+        result_dtype = _result_dtype(obj)
+
         returns_df = regex.groups > 1 or expand
 
-        name = _get_group_names(regex) if returns_df else _get_single_group_name(regex)
-
-        # extract is inconsistent for Indexes when expand is True. To avoid special
-        # casing _wrap_result we handle that case here
-        if expand and isinstance(self._data, ABCIndex):
-            from pandas import DataFrame
-
-            # if expand is True, name is a list of column names
-            assert isinstance(name, list)  # for mypy
-            return DataFrame(result, columns=name, dtype=object)
-
-        # bypass padding code in _wrap_result
-        expand_kwarg: bool | None
         if returns_df:
-            if is_object_dtype(result):
-                if regex.groups == 1:
-                    result = result.reshape(1, -1).T
-                if result.size == 0:
-                    expand_kwarg = True
-                else:
-                    expand_kwarg = None
-            else:
-                expand_kwarg = True
-        else:
-            expand_kwarg = False
+            name = None
+            columns = _get_group_names(regex)
 
-        return self._wrap_result(result, name=name, expand=expand_kwarg)
+            if obj.array.size == 0:
+                result = DataFrame(columns=columns, dtype=result_dtype)
+
+            else:
+                result_list = self._data.array._str_extract(
+                    pat, flags=flags, expand=returns_df
+                )
+
+                result_index: Index | None
+                if isinstance(obj, ABCSeries):
+                    result_index = obj.index
+                else:
+                    result_index = None
+
+                result = DataFrame(
+                    result_list, columns=columns, index=result_index, dtype=result_dtype
+                )
+
+        else:
+            name = _get_single_group_name(regex)
+            result = self._data.array._str_extract(pat, flags=flags, expand=returns_df)
+        return self._wrap_result(result, name=name)
 
     @forbid_nonstring_types(["bytes"])
     def extractall(self, pat, flags=0):
