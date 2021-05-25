@@ -119,9 +119,9 @@ class Styler(StylerRenderer):
 
         .. versionadded:: 1.3.0
 
-    escape_html : bool, default False
-        Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
-        strings with HTML-safe sequences.
+    escape : str, optional
+        Use "html" to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+        in cell display strings with HTML-safe sequences.
 
         ... versionadded:: 1.3.0
 
@@ -179,7 +179,7 @@ class Styler(StylerRenderer):
         uuid_len: int = 5,
         decimal: str = ".",
         thousands: str | None = None,
-        escape_html: bool = False,
+        escape: str | None = None,
     ):
         super().__init__(
             data=data,
@@ -198,7 +198,7 @@ class Styler(StylerRenderer):
             formatter=None,
             precision=precision,
             na_rep=na_rep,
-            escape_html=escape_html,
+            escape=escape,
             decimal=decimal,
             thousands=thousands,
         )

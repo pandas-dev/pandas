@@ -40,7 +40,7 @@ from pandas.api.types import is_list_like
 import pandas.core.common as com
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-from markupsafe import escape as escape_html_f  # markupsafe is jinja2 dependency
+from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
@@ -457,7 +457,7 @@ class StylerRenderer:
         precision: int | None = None,
         decimal: str = ".",
         thousands: str | None = None,
-        escape_html: bool = False,
+        escape: str | None = None,
     ) -> StylerRenderer:
         """
         Format the text display value of cells.
@@ -492,9 +492,10 @@ class StylerRenderer:
 
             .. versionadded:: 1.3.0
 
-        escape_html : bool, default False
-            Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
-            string with HTML-safe sequences. Escaping is done before ``formatter``.
+        escape : str, optional
+            Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+            in cell display string with HTML-safe sequences. Escaping is done
+            before ``formatter``.
 
             .. versionadded:: 1.3.0
 
@@ -572,7 +573,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([['<div></div>', '"A&B"', None]])
         >>> s = df.style.format(
-        ...     '<a href="a.com/{0}">{0}</a>', escape_html=True, na_rep="NA"
+        ...     '<a href="a.com/{0}">{0}</a>', escape='html', na_rep="NA"
         ...     )
         >>> s.render()
         ...
@@ -589,7 +590,7 @@ class StylerRenderer:
                 decimal == ".",
                 thousands is None,
                 na_rep is None,
-                escape_html is False,
+                escape is None,
             )
         ):
             self._display_funcs.clear()
@@ -611,7 +612,7 @@ class StylerRenderer:
                 precision=precision,
                 decimal=decimal,
                 thousands=thousands,
-                escape_html=escape_html,
+                escape=escape,
             )
             for ri in ris:
                 self._display_funcs[(ri, ci)] = format_func
@@ -776,7 +777,7 @@ def _wrap_decimal_thousands(
 def _str_escape_html(x):
     """if escaping html: only use on str, else return input"""
     if isinstance(x, str):
-        return escape_html_f(x)
+        return escape_html(x)
     return x
 
 
@@ -786,7 +787,7 @@ def _maybe_wrap_formatter(
     precision: int | None = None,
     decimal: str = ".",
     thousands: str | None = None,
-    escape_html: bool = False,
+    escape: str | None = None,
 ) -> Callable:
     """
     Allows formatters to be expressed as str, callable or None, where None returns
@@ -807,7 +808,7 @@ def _maybe_wrap_formatter(
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
     # Replace HTML chars if escaping
-    if escape_html:
+    if escape is not None and "html" in escape:
         func_1 = lambda x: func_0(_str_escape_html(x))
     else:
         func_1 = func_0

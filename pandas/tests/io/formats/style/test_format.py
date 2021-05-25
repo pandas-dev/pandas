@@ -108,12 +108,12 @@ def test_format_clear(styler):
 
 def test_format_escape():
     df = DataFrame([['<>&"']])
-    s = Styler(df, uuid_len=0).format("X&{0}>X", escape_html=False)
+    s = Styler(df, uuid_len=0).format("X&{0}>X", escape=None)
     expected = '<td id="T__row0_col0" class="data row0 col0" >X&<>&">X</td>'
     assert expected in s.render()
 
     # only the value should be escaped before passing to the formatter
-    s = Styler(df, uuid_len=0).format("X&{0}>X", escape_html=True)
+    s = Styler(df, uuid_len=0).format("X&{0}>X", escape="html")
     ex = '<td id="T__row0_col0" class="data row0 col0" >X&&lt;&gt;&amp;&#34;>X</td>'
     assert ex in s.render()
 
@@ -121,7 +121,7 @@ def test_format_escape():
 def test_format_escape_na_rep():
     # tests the na_rep is not escaped
     df = DataFrame([['<>&"', None]])
-    s = Styler(df, uuid_len=0).format("X&{0}>X", escape_html=True, na_rep="&")
+    s = Styler(df, uuid_len=0).format("X&{0}>X", escape="html", na_rep="&")
     ex = '<td id="T__row0_col0" class="data row0 col0" >X&&lt;&gt;&amp;&#34;>X</td>'
     expected2 = '<td id="T__row0_col1" class="data row0 col1" >&</td>'
     assert ex in s.render()
@@ -130,11 +130,11 @@ def test_format_escape_na_rep():
 
 def test_format_escape_floats(styler):
     # test given formatter for number format is not impacted by escape
-    s = styler.format("{:.1f}", escape_html=True)
+    s = styler.format("{:.1f}", escape="html")
     for expected in [">0.0<", ">1.0<", ">-1.2<", ">-0.6<"]:
         assert expected in s.render()
     # tests precision of floats is not impacted by escape
-    s = styler.format(precision=1, escape_html=True)
+    s = styler.format(precision=1, escape="html")
     for expected in [">0<", ">1<", ">-1.2<", ">-0.6<"]:
         assert expected in s.render()
 
