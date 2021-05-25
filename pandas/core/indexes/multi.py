@@ -3780,7 +3780,7 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
 
-    # @doc(Index.isin)
+    @doc(Index.isin)
     def isin(self, values, level=None) -> np.ndarray:
         if level is None:
             values = MultiIndex.from_tuples(values, names=self.names)._values
