@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import (
     abc,
     defaultdict,
@@ -9,12 +11,9 @@ import sys
 from typing import (
     DefaultDict,
     Iterator,
-    List,
-    Optional,
-    Set,
-    Tuple,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -43,14 +42,14 @@ _BOM = "\ufeff"
 
 
 class PythonParser(ParserBase):
-    def __init__(self, f: Union[FilePathOrBuffer, List], **kwds):
+    def __init__(self, f: Union[FilePathOrBuffer, list], **kwds):
         """
         Workhorse function for processing nested list into DataFrame
         """
         ParserBase.__init__(self, kwds)
 
-        self.data: Optional[Iterator[str]] = None
-        self.buf: List = []
+        self.data: Iterator[str] | None = None
+        self.buf: list = []
         self.pos = 0
         self.line_pos = 0
 
@@ -109,7 +108,7 @@ class PythonParser(ParserBase):
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
-        self._col_indices: Optional[List[int]] = None
+        self._col_indices: list[int] | None = None
         try:
             (
                 self.columns,
@@ -142,7 +141,7 @@ class PythonParser(ParserBase):
             self.columns = self.columns[0]
 
         # get popped off for index
-        self.orig_names: List[Union[int, str, Tuple]] = list(self.columns)
+        self.orig_names: list[int | str | tuple] = list(self.columns)
 
         # needs to be cleaned/refactored
         # multiple date column thing turning into a real spaghetti factory
@@ -159,7 +158,7 @@ class PythonParser(ParserBase):
             self._col_indices = list(range(len(self.columns)))
 
         self._validate_parse_dates_presence(self.columns)
-        no_thousands_columns: Optional[Set[int]] = None
+        no_thousands_columns: set[int] | None = None
         if self.parse_dates:
             no_thousands_columns = self._set_noconvert_dtype_columns(
                 self._col_indices, self.columns
@@ -359,7 +358,7 @@ class PythonParser(ParserBase):
         names = self.names
         num_original_columns = 0
         clear_buffer = True
-        unnamed_cols: Set[Optional[Union[int, str]]] = set()
+        unnamed_cols: set[str | int | None] = set()
 
         if self.header is not None:
             header = self.header
@@ -373,7 +372,7 @@ class PythonParser(ParserBase):
                 have_mi_columns = False
                 header = [header]
 
-            columns: List[List[Optional[Union[int, str]]]] = []
+            columns: list[list[int | str | None]] = []
             for level, hr in enumerate(header):
                 try:
                     line = self._buffered_line()
@@ -402,7 +401,7 @@ class PythonParser(ParserBase):
 
                     line = self.names[:]
 
-                this_columns: List[Optional[Union[int, str]]] = []
+                this_columns: list[int | str | None] = []
                 this_unnamed_cols = []
 
                 for i, c in enumerate(line):
@@ -477,7 +476,7 @@ class PythonParser(ParserBase):
                 if self.usecols is not None:
                     # Set _use_cols. We don't store columns because they are
                     # overwritten.
-                    self._handle_usecols(columns, names)
+                    self._handle_usecols(columns, names, num_original_columns)
                 else:
                     num_original_columns = len(names)
                 if self._col_indices is not None and len(names) != len(
@@ -487,7 +486,9 @@ class PythonParser(ParserBase):
                 else:
                     columns = [names]
             else:
-                columns = self._handle_usecols(columns, columns[0])
+                columns = self._handle_usecols(
+                    columns, columns[0], num_original_columns
+                )
         else:
             try:
                 line = self._buffered_line()
@@ -506,10 +507,12 @@ class PythonParser(ParserBase):
                     columns = [[f"{self.prefix}{i}" for i in range(ncols)]]
                 else:
                     columns = [list(range(ncols))]
-                columns = self._handle_usecols(columns, columns[0])
+                columns = self._handle_usecols(
+                    columns, columns[0], num_original_columns
+                )
             else:
                 if self.usecols is None or len(names) >= num_original_columns:
-                    columns = self._handle_usecols([names], names)
+                    columns = self._handle_usecols([names], names, num_original_columns)
                     num_original_columns = len(names)
                 else:
                     if not callable(self.usecols) and len(names) != len(self.usecols):
@@ -518,13 +521,18 @@ class PythonParser(ParserBase):
                             "header fields in the file"
                         )
                     # Ignore output but set used columns.
-                    self._handle_usecols([names], names)
+                    self._handle_usecols([names], names, ncols)
                     columns = [names]
                     num_original_columns = ncols
 
         return columns, num_original_columns, unnamed_cols
 
-    def _handle_usecols(self, columns, usecols_key):
+    def _handle_usecols(
+        self,
+        columns: list[list[str | int | None]],
+        usecols_key: list[str | int | None],
+        num_original_columns: int,
+    ):
         """
         Sets self._col_indices
 
@@ -549,6 +557,16 @@ class PythonParser(ParserBase):
                     else:
                         col_indices.append(col)
             else:
+                missing_usecols = [
+                    col for col in self.usecols if col >= num_original_columns
+                ]
+                if missing_usecols:
+                    warnings.warn(
+                        "Defining usecols with out of bounds indices is deprecated "
+                        "and will raise a ParserError in a future version.",
+                        FutureWarning,
+                        stacklevel=8,
+                    )
                 col_indices = self.usecols
 
             columns = [
@@ -1189,7 +1207,7 @@ class FixedWidthFieldParser(PythonParser):
             self.infer_nrows,
         )
 
-    def _remove_empty_lines(self, lines) -> List:
+    def _remove_empty_lines(self, lines) -> list:
         """
         Returns the list of lines without the empty ones. With fixed-width
         fields, empty lines become arrays of empty strings.

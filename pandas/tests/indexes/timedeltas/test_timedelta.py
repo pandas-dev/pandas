@@ -42,9 +42,6 @@ class TestTimedeltaIndex(DatetimeLike):
     def test_shift(self):
         pass  # this is handled in test_arithmetic.py
 
-    def test_pickle_compat_construction(self):
-        pass
-
     def test_pickle_after_set_freq(self):
         tdi = timedelta_range("1 day", periods=4, freq="s")
         tdi = tdi._with_freq(None)
