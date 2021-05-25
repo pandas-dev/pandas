@@ -2,6 +2,7 @@
 Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
+from collections import defaultdict
 from io import (
     BytesIO,
     StringIO,
@@ -254,6 +255,11 @@ one,two
         result = reader.read()
         assert result[0].dtype == "u1"
         assert result[1].dtype == "O"
+
+        reader = _make_reader(dtype=defaultdict(lambda: "u1", {1: "S1"}))
+        result = reader.read()
+        assert result[0].dtype == "u1"
+        assert result[1].dtype == "S1"
 
     def test_usecols(self):
         data = """\
