@@ -1492,7 +1492,16 @@ class TestSeriesConstructors:
         s = Series(index.astype(object), dtype=object)
         exp = Series(index).astype(object)
         tm.assert_series_equal(s, exp)
-
+    
+    def test_constructor_with_float_cast_object(self):
+        # GH#35603
+        # data after casting is float not int
+        ser = Series([1.0]).astype(object)
+        val = ser.iloc[0]
+        assert ser.dtype == "object"
+        assert isinstance(val, float)
+        assert val == 1.0
+    
     @pytest.mark.parametrize("dtype", [np.datetime64, np.timedelta64])
     def test_constructor_generic_timestamp_no_frequency(self, dtype, request):
         # see gh-15524, gh-15987
