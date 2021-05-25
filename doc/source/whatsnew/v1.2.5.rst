@@ -1,0 +1,48 @@
+.. _whatsnew_125:
+
+What's new in 1.2.5 (May ??, 2021)
+----------------------------------
+
+These are the changes in pandas 1.2.5. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_125.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Regression in :func:`concat` between two :class:`DataFrames` where one has an :class:`Index` that is all-None and the other is :class:`DatetimeIndex` incorrectly raising (:issue:`40841`)
+- Regression in :func:`read_csv` when using ``memory_map=True`` with an non-UTF8 encoding (:issue:`40986`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_125.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_125.other:
+
+Other
+~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_125.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.2.4..v1.2.5|HEAD

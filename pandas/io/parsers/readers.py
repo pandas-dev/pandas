@@ -1,32 +1,59 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
-
 from collections import abc
 import csv
 import sys
 from textwrap import fill
-from typing import Any, Dict, Optional, Set, Type
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Type,
+)
 import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import DtypeArg, FilePathOrBuffer, StorageOptions, Union
-from pandas.errors import AbstractMethodError, ParserWarning
+from pandas._typing import (
+    ArrayLike,
+    DtypeArg,
+    FilePathOrBuffer,
+    StorageOptions,
+    Union,
+)
+from pandas.errors import (
+    AbstractMethodError,
+    ParserWarning,
+)
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_file_like, is_float, is_integer, is_list_like
+from pandas.core.dtypes.common import (
+    is_file_like,
+    is_float,
+    is_integer,
+    is_list_like,
+)
 
 from pandas.core import generic
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
 
 from pandas.io.common import validate_header_arg
-from pandas.io.parsers.base_parser import ParserBase, is_index_col, parser_defaults
+from pandas.io.parsers.base_parser import (
+    ParserBase,
+    is_index_col,
+    parser_defaults,
+)
 from pandas.io.parsers.c_parser_wrapper import CParserWrapper
-from pandas.io.parsers.python_parser import FixedWidthFieldParser, PythonParser
+from pandas.io.parsers.python_parser import (
+    FixedWidthFieldParser,
+    PythonParser,
+)
 
 _doc_read_csv_and_table = (
     r"""
@@ -270,6 +297,24 @@ encoding : str, optional
     Encoding to use for UTF when reading/writing (ex. 'utf-8'). `List of Python
     standard encodings
     <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
+
+    .. versionchanged:: 1.2
+
+       When ``encoding`` is ``None``, ``errors="replace"`` is passed to
+       ``open()``. Otherwise, ``errors="strict"`` is passed to ``open()``.
+       This behavior was previously only the case for ``engine="python"``.
+
+    .. versionchanged:: 1.3
+
+       ``encoding_errors`` is a new argument. ``encoding`` has no longer an
+       influence on how encoding errors are handled.
+
+encoding_errors : str, optional, default "strict"
+    How encoding errors are treated. `List of possible values
+    <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
+
+    .. versionadded:: 1.3
+
 dialect : str or csv.Dialect, optional
     If provided, this parameter will override values (default or not) for the
     following parameters: `delimiter`, `doublequote`, `escapechar`,
@@ -279,7 +324,7 @@ dialect : str or csv.Dialect, optional
 error_bad_lines : bool, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
-    If False, then these "bad lines" will dropped from the DataFrame that is
+    If False, then these "bad lines" will be dropped from the DataFrame that is
     returned.
 warn_bad_lines : bool, default True
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
@@ -359,7 +404,7 @@ def validate_integer(name, val, min_val=0):
 
     Parameters
     ----------
-    name : string
+    name : str
         Parameter name (used for error reporting)
     val : int or float
         The value to check
@@ -441,11 +486,11 @@ def read_csv(
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
-    names=None,
+    names=lib.no_default,
     index_col=None,
     usecols=None,
     squeeze=False,
-    prefix=None,
+    prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
     dtype: Optional[DtypeArg] = None,
@@ -484,6 +529,7 @@ def read_csv(
     escapechar=None,
     comment=None,
     encoding=None,
+    encoding_errors: Optional[str] = "strict",
     dialect=None,
     # Error Handling
     error_bad_lines=True,
@@ -495,12 +541,20 @@ def read_csv(
     float_precision=None,
     storage_options: StorageOptions = None,
 ):
-    kwds = locals()
+    # locals() should never be modified
+    kwds = locals().copy()
     del kwds["filepath_or_buffer"]
     del kwds["sep"]
 
     kwds_defaults = _refine_defaults_read(
-        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": ","}
+        dialect,
+        delimiter,
+        delim_whitespace,
+        engine,
+        sep,
+        names,
+        prefix,
+        defaults={"delimiter": ","},
     )
     kwds.update(kwds_defaults)
 
@@ -521,11 +575,11 @@ def read_table(
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
-    names=None,
+    names=lib.no_default,
     index_col=None,
     usecols=None,
     squeeze=False,
-    prefix=None,
+    prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
     dtype: Optional[DtypeArg] = None,
@@ -568,18 +622,27 @@ def read_table(
     # Error Handling
     error_bad_lines=True,
     warn_bad_lines=True,
+    encoding_errors: Optional[str] = "strict",
     # Internal
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
     float_precision=None,
 ):
-    kwds = locals()
+    # locals() should never be modified
+    kwds = locals().copy()
     del kwds["filepath_or_buffer"]
     del kwds["sep"]
 
     kwds_defaults = _refine_defaults_read(
-        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": "\t"}
+        dialect,
+        delimiter,
+        delim_whitespace,
+        engine,
+        sep,
+        names,
+        prefix,
+        defaults={"delimiter": "\t"},
     )
     kwds.update(kwds_defaults)
 
@@ -722,6 +785,7 @@ class TextFileReader(abc.Iterator):
         kwds = self.orig_options
 
         options = {}
+        default: Optional[object]
 
         for argname, default in parser_defaults.items():
             value = kwds.get(argname, default)
@@ -751,10 +815,7 @@ class TextFileReader(abc.Iterator):
             options[argname] = value
 
         if engine == "python-fwf":
-            # pandas\io\parsers.py:907: error: Incompatible types in assignment
-            # (expression has type "object", variable has type "Union[int, str,
-            # None]")  [assignment]
-            for argname, default in _fwf_defaults.items():  # type: ignore[assignment]
+            for argname, default in _fwf_defaults.items():
                 options[argname] = kwds.get(argname, default)
 
         return options
@@ -1048,15 +1109,13 @@ def TextParser(*args, **kwds):
 
 
 def _clean_na_values(na_values, keep_default_na=True):
-
+    na_fvalues: Union[Set, Dict]
     if na_values is None:
         if keep_default_na:
             na_values = STR_NA_VALUES
         else:
             na_values = set()
-        # pandas\io\parsers.py:3387: error: Need type annotation for
-        # 'na_fvalues' (hint: "na_fvalues: Set[<type>] = ...")  [var-annotated]
-        na_fvalues = set()  # type: ignore[var-annotated]
+        na_fvalues = set()
     elif isinstance(na_values, dict):
         old_na_values = na_values.copy()
         na_values = {}  # Prevent aliasing.
@@ -1073,12 +1132,7 @@ def _clean_na_values(na_values, keep_default_na=True):
                 v = set(v) | STR_NA_VALUES
 
             na_values[k] = v
-        # pandas\io\parsers.py:3404: error: Incompatible types in assignment
-        # (expression has type "Dict[Any, Any]", variable has type "Set[Any]")
-        # [assignment]
-        na_fvalues = {  # type: ignore[assignment]
-            k: _floatify_na_values(v) for k, v in na_values.items()
-        }
+        na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
@@ -1106,7 +1160,7 @@ def _floatify_na_values(na_values):
 
 def _stringify_na_values(na_values):
     """ return a stringified and numeric for these values """
-    result = []
+    result: List[Union[int, str, float]] = []
     for x in na_values:
         result.append(str(x))
         result.append(x)
@@ -1119,15 +1173,11 @@ def _stringify_na_values(na_values):
                 result.append(f"{v}.0")
                 result.append(str(v))
 
-            # pandas\io\parsers.py:3522: error: Argument 1 to "append" of
-            # "list" has incompatible type "float"; expected "str"  [arg-type]
-            result.append(v)  # type: ignore[arg-type]
+            result.append(v)
         except (TypeError, ValueError, OverflowError):
             pass
         try:
-            # pandas\io\parsers.py:3526: error: Argument 1 to "append" of
-            # "list" has incompatible type "int"; expected "str"  [arg-type]
-            result.append(int(x))  # type: ignore[arg-type]
+            result.append(int(x))
         except (TypeError, ValueError, OverflowError):
             pass
     return set(result)
@@ -1139,6 +1189,8 @@ def _refine_defaults_read(
     delim_whitespace: bool,
     engine: str,
     sep: Union[str, object],
+    names: Union[Optional[ArrayLike], object],
+    prefix: Union[Optional[str], object],
     defaults: Dict[str, Any],
 ):
     """Validate/refine default values of input parameters of read_csv, read_table.
@@ -1164,6 +1216,12 @@ def _refine_defaults_read(
     sep : str or object
         A delimiter provided by the user (str) or a sentinel value, i.e.
         pandas._libs.lib.no_default.
+    names : array-like, optional
+        List of column names to use. If the file contains a header row,
+        then you should explicitly pass ``header=0`` to override the column names.
+        Duplicates in this list are not allowed.
+    prefix : str, optional
+        Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
     defaults: dict
         Default values of input parameters.
 
@@ -1196,6 +1254,12 @@ def _refine_defaults_read(
         kwds["sep_override"] = delimiter is None and (
             sep is lib.no_default or sep == delim_default
         )
+
+    if names is not lib.no_default and prefix is not lib.no_default:
+        raise ValueError("Specified named and prefix; you can only specify one.")
+
+    kwds["names"] = None if names is lib.no_default else names
+    kwds["prefix"] = None if prefix is lib.no_default else prefix
 
     # Alias sep -> delimiter.
     if delimiter is None:

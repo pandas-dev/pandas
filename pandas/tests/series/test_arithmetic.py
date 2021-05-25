@@ -7,7 +7,10 @@ import pytz
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -21,7 +24,21 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core import nanops, ops
+from pandas.core import (
+    nanops,
+    ops,
+)
+from pandas.core.computation import expressions as expr
+
+
+@pytest.fixture(
+    autouse=True, scope="module", params=[0, 1000000], ids=["numexpr", "python"]
+)
+def switch_numexpr_min_elements(request):
+    _MIN_ELEMENTS = expr._MIN_ELEMENTS
+    expr._MIN_ELEMENTS = request.param
+    yield request.param
+    expr._MIN_ELEMENTS = _MIN_ELEMENTS
 
 
 def _permute(obj):
@@ -766,7 +783,9 @@ class TestNamePreservation:
         else:
             # GH#37374 logical ops behaving as set ops deprecated
             warn = FutureWarning if is_rlogical and box is Index else None
-            with tm.assert_produces_warning(warn, check_stacklevel=False):
+            msg = "operating as a set operation is deprecated"
+            with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+                # stacklevel is correct for Index op, not reversed op
                 result = op(left, right)
 
         if box is Index and is_rlogical:

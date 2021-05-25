@@ -8,7 +8,10 @@ from pandas.tests.extension import base
 
 pytest.importorskip("pyarrow", minversion="0.13.0")
 
-from .arrays import ArrowBoolArray, ArrowBoolDtype  # isort:skip
+from pandas.tests.extension.arrow.arrays import (  # isort:skip
+    ArrowBoolArray,
+    ArrowBoolDtype,
+)
 
 
 @pytest.fixture
@@ -78,6 +81,10 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     @pytest.mark.xfail(reason="raises AssertionError")
     def test_construct_empty_dataframe(self, dtype):
         super().test_construct_empty_dataframe(dtype)
+
+    @pytest.mark.xfail(reason="_from_sequence ignores dtype keyword")
+    def test_empty(self, dtype):
+        super().test_empty(dtype)
 
 
 class TestReduce(base.BaseNoReduceTests):

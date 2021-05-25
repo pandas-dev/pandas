@@ -1,16 +1,32 @@
 import warnings
 
 cimport numpy as cnp
-from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompareBool
-from numpy cimport int64_t, ndarray
+from cpython.object cimport (
+    Py_EQ,
+    Py_NE,
+    PyObject_RichCompareBool,
+)
+from numpy cimport (
+    int64_t,
+    ndarray,
+)
 
 import numpy as np
 
 cnp.import_array()
 
-from libc.stdlib cimport free, malloc
-from libc.string cimport memset, strlen
-from libc.time cimport strftime, tm
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
+from libc.string cimport (
+    memset,
+    strlen,
+)
+from libc.time cimport (
+    strftime,
+    tm,
+)
 
 import cython
 
@@ -54,7 +70,10 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_week_of_year,
     is_leapyear,
 )
-from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds, is_any_td_scalar
+from pandas._libs.tslibs.timedeltas cimport (
+    delta_to_nanoseconds,
+    is_any_td_scalar,
+)
 
 from pandas._libs.tslibs.conversion import ensure_datetime64ns
 
@@ -1426,7 +1445,7 @@ def from_ordinals(const int64_t[:] values, freq):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def extract_ordinals(ndarray[object] values, freq):
+def extract_ordinals(ndarray[object] values, freq) -> np.ndarray:
     # TODO: Change type to const object[:] when Cython supports that.
 
     cdef:
@@ -1464,7 +1483,7 @@ def extract_ordinals(ndarray[object] values, freq):
     return ordinals.base  # .base to access underlying np.ndarray
 
 
-def extract_freq(ndarray[object] values):
+def extract_freq(ndarray[object] values) -> BaseOffset:
     # TODO: Change type to const object[:] when Cython supports that.
 
     cdef:
@@ -2520,7 +2539,7 @@ cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
                           minute, second, 0, 0, base)
 
 
-def validate_end_alias(how):
+def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
     how_dict = {'S': 'S', 'E': 'E',
                 'START': 'S', 'FINISH': 'E',
                 'BEGIN': 'S', 'END': 'E'}

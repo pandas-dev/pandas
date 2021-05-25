@@ -1,4 +1,8 @@
-from datetime import datetime, timedelta, timezone
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 
 import numpy as np
 import pytest
@@ -204,8 +208,9 @@ class TestSeriesFillNA:
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
-        # interpreted as seconds, deprecated
-        with pytest.raises(TypeError, match="Passing integers to fillna"):
+        # interpreted as seconds, no longer supported
+        msg = "value should be a 'Timedelta', 'NaT', or array of those. Got 'int'"
+        with pytest.raises(TypeError, match=msg):
             obj.fillna(1)
 
         result = obj.fillna(Timedelta(seconds=1))
@@ -329,7 +334,7 @@ class TestSeriesFillNA:
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "Asia/Tokyo"])
     def test_datetime64_tz_fillna(self, tz):
-        # DatetimeBlock
+        # DatetimeLikeBlock
         ser = Series(
             [
                 Timestamp("2011-01-01 10:00"),
@@ -409,7 +414,7 @@ class TestSeriesFillNA:
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        # DatetimeBlockTZ
+        # DatetimeTZBlock
         idx = DatetimeIndex(["2011-01-01 10:00", NaT, "2011-01-03 10:00", NaT], tz=tz)
         ser = Series(idx)
         assert ser.dtype == f"datetime64[ns, {tz}]"
@@ -666,13 +671,15 @@ class TestSeriesFillNA:
     def test_fillna_categorical_raises(self):
         data = ["a", np.nan, "b", np.nan, np.nan]
         ser = Series(Categorical(data, categories=["a", "b"]))
+        cat = ser._values
 
         msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             ser.fillna("d")
 
-        with pytest.raises(ValueError, match=msg):
-            ser.fillna(Series("d"))
+        msg2 = "Length of 'value' does not match."
+        with pytest.raises(ValueError, match=msg2):
+            cat.fillna(Series("d"))
 
         with pytest.raises(ValueError, match=msg):
             ser.fillna({1: "d", 3: "a"})
@@ -739,6 +746,18 @@ class TestSeriesFillNA:
         ser2 = Series(ser._values.tz_convert("dateutil/US/Pacific"))
         result = ser2.fillna(ts)
         expected = Series([ser[0], ts, ser[2]], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+    def test_fillna_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        srs = Series([1, 2, 3, np.nan], dtype=float)
+        msg = (
+            r"In a future version of pandas all arguments of Series.fillna "
+            r"except for the argument 'value' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = srs.fillna(0, None, None)
+        expected = Series([1, 2, 3, 0], dtype=float)
         tm.assert_series_equal(result, expected)
 
 

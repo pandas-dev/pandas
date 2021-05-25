@@ -1,12 +1,14 @@
-from typing import Optional, Type
+from typing import (
+    Optional,
+    Type,
+)
 
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseOpsUtil(BaseExtensionTests):

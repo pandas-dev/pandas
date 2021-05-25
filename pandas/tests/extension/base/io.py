@@ -4,8 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseParsingTests(BaseExtensionTests):

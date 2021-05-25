@@ -7,7 +7,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import DataFrame, option_context
+from pandas import (
+    DataFrame,
+    option_context,
+)
 import pandas._testing as tm
 
 

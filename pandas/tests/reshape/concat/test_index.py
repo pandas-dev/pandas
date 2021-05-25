@@ -2,7 +2,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    concat,
+)
 import pandas._testing as tm
 
 
@@ -54,7 +60,7 @@ class TestIndexConcat:
         frames = [
             DataFrame({c: [0, 1, 2]}, index=i) for i, c in zip(indices, ["x", "y", "z"])
         ]
-        result = pd.concat(frames, axis=1)
+        result = concat(frames, axis=1)
 
         exp_ind = Index(["a", "b", "c", "d", "e"], name=name_out)
         expected = DataFrame(
@@ -107,7 +113,7 @@ class TestIndexConcat:
         # is_series and ignore_index
         s1 = Series([1, 2, 3], name="x")
         s2 = Series([4, 5, 6], name="y")
-        res = pd.concat([s1, s2], axis=1, ignore_index=True)
+        res = concat([s1, s2], axis=1, ignore_index=True)
         assert isinstance(res.columns, pd.RangeIndex)
         exp = DataFrame([[1, 4], [2, 5], [3, 6]])
         # use check_index_type=True to check the result have
@@ -117,7 +123,7 @@ class TestIndexConcat:
         # is_series and all inputs have no names
         s1 = Series([1, 2, 3])
         s2 = Series([4, 5, 6])
-        res = pd.concat([s1, s2], axis=1, ignore_index=False)
+        res = concat([s1, s2], axis=1, ignore_index=False)
         assert isinstance(res.columns, pd.RangeIndex)
         exp = DataFrame([[1, 4], [2, 5], [3, 6]])
         exp.columns = pd.RangeIndex(2)
@@ -127,11 +133,11 @@ class TestIndexConcat:
         df1 = DataFrame({"A": [1, 2], "B": [5, 6]})
         df2 = DataFrame({"A": [3, 4], "B": [7, 8]})
 
-        res = pd.concat([df1, df2], axis=0, ignore_index=True)
+        res = concat([df1, df2], axis=0, ignore_index=True)
         exp = DataFrame([[1, 5], [2, 6], [3, 7], [4, 8]], columns=["A", "B"])
         tm.assert_frame_equal(res, exp, check_index_type=True, check_column_type=True)
 
-        res = pd.concat([df1, df2], axis=1, ignore_index=True)
+        res = concat([df1, df2], axis=1, ignore_index=True)
         exp = DataFrame([[1, 5, 3, 7], [2, 6, 4, 8]])
         tm.assert_frame_equal(res, exp, check_index_type=True, check_column_type=True)
 
@@ -255,7 +261,7 @@ class TestMultiIndexConcat:
             names=["testname", None, None],
         )
         expected = DataFrame([[0], [1]], index=expected_index)
-        result_copy = pd.concat(deepcopy(example_dict), names=["testname"])
+        result_copy = concat(deepcopy(example_dict), names=["testname"])
         tm.assert_frame_equal(result_copy, expected)
-        result_no_copy = pd.concat(example_dict, names=["testname"])
+        result_no_copy = concat(example_dict, names=["testname"])
         tm.assert_frame_equal(result_no_copy, expected)

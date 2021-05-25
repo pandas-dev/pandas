@@ -1,10 +1,20 @@
+"""
+Series.item method, mainly testing that we get python scalars as opposed to
+numpy scalars.
+"""
 import pytest
 
-from pandas import Series, Timedelta, Timestamp, date_range
+from pandas import (
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+)
 
 
 class TestItem:
     def test_item(self):
+        # We are testing that we get python scalars as opposed to numpy scalars
         ser = Series([1])
         result = ser.item()
         assert result == 1

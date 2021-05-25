@@ -4,18 +4,32 @@ import decimal
 import numbers
 import random
 import sys
-from typing import Type
 
 import numpy as np
 
+from pandas._typing import type_t
+
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import is_dtype_equal, is_float, pandas_dtype
+from pandas.core.dtypes.common import (
+    is_dtype_equal,
+    is_float,
+    pandas_dtype,
+)
 
 import pandas as pd
-from pandas.api.extensions import no_default, register_extension_dtype
-from pandas.api.types import is_list_like, is_scalar
+from pandas.api.extensions import (
+    no_default,
+    register_extension_dtype,
+)
+from pandas.api.types import (
+    is_list_like,
+    is_scalar,
+)
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
+from pandas.core.arrays import (
+    ExtensionArray,
+    ExtensionScalarOpsMixin,
+)
 from pandas.core.indexers import check_array_indexer
 
 
@@ -33,7 +47,7 @@ class DecimalDtype(ExtensionDtype):
         return f"DecimalDtype(context={self.context})"
 
     @classmethod
-    def construct_array_type(cls) -> Type[DecimalArray]:
+    def construct_array_type(cls) -> type_t[DecimalArray]:
         """
         Return the array type associated with this dtype.
 
@@ -94,7 +108,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
             result = np.asarray([round(x, decimals) for x in result])
         return result
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         #
         if not all(
             isinstance(t, self._HANDLED_TYPES + (DecimalArray,)) for t in inputs
@@ -134,7 +148,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return self._from_sequence(result)
 
     def copy(self):
-        return type(self)(self._data.copy())
+        return type(self)(self._data.copy(), dtype=self.dtype)
 
     def astype(self, dtype, copy=True):
         if is_dtype_equal(dtype, self._dtype):
@@ -160,7 +174,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._data)
 
-    def __contains__(self, item) -> bool:
+    def __contains__(self, item) -> bool | np.bool_:
         if not isinstance(item, decimal.Decimal):
             return False
         elif item.is_nan():
@@ -230,7 +244,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
         return np.asarray(res, dtype=bool)
 
-    def value_counts(self, dropna: bool = False):
+    def value_counts(self, dropna: bool = True):
         from pandas.core.algorithms import value_counts
 
         return value_counts(self.to_numpy(), dropna=dropna)

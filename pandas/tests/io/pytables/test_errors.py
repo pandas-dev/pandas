@@ -6,7 +6,8 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-import pandas as pd
+import pandas.util._test_decorators as td
+
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -16,11 +17,17 @@ from pandas import (
     date_range,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_store
+from pandas.tests.io.pytables.common import (
+    ensure_clean_path,
+    ensure_clean_store,
+)
 
-from pandas.io.pytables import Term, _maybe_adjust_name
+from pandas.io.pytables import (
+    Term,
+    _maybe_adjust_name,
+)
 
-pytestmark = pytest.mark.single
+pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
 
 
 def test_pass_spec_to_storer(setup_path):
@@ -201,7 +208,7 @@ def test_unsuppored_hdf_file_error(datapath):
     )
 
     with pytest.raises(ValueError, match=message):
-        pd.read_hdf(data_path)
+        read_hdf(data_path)
 
 
 def test_read_hdf_errors(setup_path):

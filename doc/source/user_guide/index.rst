@@ -38,12 +38,12 @@ Further information on any specific method can be obtained in the
     integer_na
     boolean
     visualization
+    style
     computation
     groupby
     window
     timeseries
     timedeltas
-    style
     options
     enhancingperf
     scale

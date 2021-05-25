@@ -1,11 +1,22 @@
+from __future__ import annotations
+
 import bz2
 from functools import wraps
 import gzip
-from typing import Any, Callable, Optional, Tuple
+from typing import (
+    Any,
+    Callable,
+)
 import zipfile
 
-from pandas._typing import FilePathOrBuffer, FrameOrSeries
-from pandas.compat import get_lzma_file, import_lzma
+from pandas._typing import (
+    FilePathOrBuffer,
+    FrameOrSeries,
+)
+from pandas.compat import (
+    get_lzma_file,
+    import_lzma,
+)
 
 import pandas as pd
 from pandas._testing._random import rands
@@ -82,10 +93,7 @@ def optional_args(decorator):
         is_decorating = not kwargs and len(args) == 1 and callable(args[0])
         if is_decorating:
             f = args[0]
-            # pandas\_testing.py:2331: error: Incompatible types in assignment
-            # (expression has type "List[<nothing>]", variable has type
-            # "Tuple[Any, ...]")
-            args = []  # type: ignore[assignment]
+            args = ()
             return dec(f)
         else:
             return dec
@@ -205,8 +213,7 @@ def network(
         except Exception as err:
             errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
-                # pandas\_testing.py:2521: error: "Exception" has no attribute
-                # "reason"
+                # error: "Exception" has no attribute "reason"
                 errno = getattr(err.reason, "errno", None)  # type: ignore[attr-defined]
 
             if errno in skip_errnos:
@@ -265,9 +272,7 @@ def can_connect(url, error_classes=None):
 # File-IO
 
 
-def round_trip_pickle(
-    obj: Any, path: Optional[FilePathOrBuffer] = None
-) -> FrameOrSeries:
+def round_trip_pickle(obj: Any, path: FilePathOrBuffer | None = None) -> FrameOrSeries:
     """
     Pickle an object and then read it again.
 
@@ -291,7 +296,7 @@ def round_trip_pickle(
         return pd.read_pickle(temp_path)
 
 
-def round_trip_pathlib(writer, reader, path: Optional[str] = None):
+def round_trip_pathlib(writer, reader, path: str | None = None):
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -320,7 +325,7 @@ def round_trip_pathlib(writer, reader, path: Optional[str] = None):
     return obj
 
 
-def round_trip_localpath(writer, reader, path: Optional[str] = None):
+def round_trip_localpath(writer, reader, path: str | None = None):
     """
     Write an object to file specified by a py.path LocalPath and read it back.
 
@@ -368,7 +373,7 @@ def write_to_compressed(compression, path, data, dest="test"):
     ------
     ValueError : An invalid compression value was passed in.
     """
-    args: Tuple[Any, ...] = (data,)
+    args: tuple[Any, ...] = (data,)
     mode = "wb"
     method = "write"
     compress_method: Callable
@@ -396,7 +401,10 @@ def write_to_compressed(compression, path, data, dest="test"):
 
 
 def close(fignum=None):
-    from matplotlib.pyplot import close as _close, get_fignums
+    from matplotlib.pyplot import (
+        close as _close,
+        get_fignums,
+    )
 
     if fignum is None:
         for fignum in get_fignums():

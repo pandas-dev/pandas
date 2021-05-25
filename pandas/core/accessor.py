@@ -4,29 +4,30 @@ accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
 
 """
-from typing import FrozenSet, List, Set
+from __future__ import annotations
+
 import warnings
 
 from pandas.util._decorators import doc
 
 
 class DirNamesMixin:
-    _accessors: Set[str] = set()
-    _hidden_attrs: FrozenSet[str] = frozenset()
+    _accessors: set[str] = set()
+    _hidden_attrs: frozenset[str] = frozenset()
 
-    def _dir_deletions(self) -> Set[str]:
+    def _dir_deletions(self) -> set[str]:
         """
         Delete unwanted __dir__ for this object.
         """
         return self._accessors | self._hidden_attrs
 
-    def _dir_additions(self) -> Set[str]:
+    def _dir_additions(self) -> set[str]:
         """
         Add additional __dir__ for this object.
         """
         return {accessor for accessor in self._accessors if hasattr(self, accessor)}
 
-    def __dir__(self) -> List[str]:
+    def __dir__(self) -> list[str]:
         """
         Provide method name lookup and completion.
 

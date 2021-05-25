@@ -4,7 +4,13 @@ import pytest
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas.compat import np_version_under1p18
 
-from pandas import NaT, Period, PeriodIndex, Series, array
+from pandas import (
+    NaT,
+    Period,
+    PeriodIndex,
+    Series,
+    array,
+)
 import pandas._testing as tm
 
 

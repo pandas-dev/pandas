@@ -3,12 +3,22 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, PYPY
+from pandas.compat import (
+    IS64,
+    PYPY,
+)
 
-from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_object_dtype,
+)
 
 import pandas as pd
-from pandas import DataFrame, Index, Series
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+)
 
 
 @pytest.mark.parametrize(

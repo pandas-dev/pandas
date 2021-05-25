@@ -3,7 +3,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
+)
 
 from pandas import (
     CategoricalIndex,
@@ -202,7 +205,7 @@ class TestDatetimelikeSubtype(AstypeTests):
     @pytest.mark.parametrize("subtype", ["int64", "uint64"])
     def test_subtype_integer(self, index, subtype):
         dtype = IntervalDtype(subtype, "right")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = index.astype(dtype)
             expected = IntervalIndex.from_arrays(
                 index.left.astype(subtype),

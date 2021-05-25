@@ -4,7 +4,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+    is_timedelta64_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -17,6 +20,10 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.groupby.generic import (
+    DataFrameGroupBy,
+    SeriesGroupBy,
+)
 from pandas.core.groupby.groupby import DataError
 
 
@@ -98,7 +105,7 @@ def test_transform_fast():
         {
             "grouping": [0, 1, 1, 3],
             "f": [1.1, 2.1, 3.1, 4.5],
-            "d": pd.date_range("2014-1-1", "2014-1-4"),
+            "d": date_range("2014-1-1", "2014-1-4"),
             "i": [1, 2, 3, 4],
         },
         columns=["grouping", "f", "i", "d"],
@@ -158,8 +165,13 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res.xs(idx), agged[idx])
 
 
-def test_transform_axis_1(request, transformation_func):
+def test_transform_axis_1(request, transformation_func, using_array_manager):
     # GH 36308
+    if using_array_manager and transformation_func == "pct_change":
+        # TODO(ArrayManager) column-wise shift
+        request.node.add_marker(
+            pytest.mark.xfail(reason="ArrayManager: shift axis=1 not yet implemented")
+        )
     warn = None
     if transformation_func == "tshift":
         warn = FutureWarning
@@ -234,7 +246,7 @@ def test_transform_bug():
     # transforming on a datetime column
     df = DataFrame({"A": Timestamp("20130101"), "B": np.arange(5)})
     result = df.groupby("A")["B"].transform(lambda x: x.rank(ascending=False))
-    expected = Series(np.arange(5, 0, step=-1), name="B")
+    expected = Series(np.arange(5, 0, step=-1), name="B", dtype="float64")
     tm.assert_series_equal(result, expected)
 
 
@@ -344,7 +356,7 @@ def test_transform_transformation_func(request, transformation_func):
             "A": ["foo", "foo", "foo", "foo", "bar", "bar", "baz"],
             "B": [1, 2, np.nan, 3, 3, np.nan, 4],
         },
-        index=pd.date_range("2020-01-01", "2020-01-07"),
+        index=date_range("2020-01-01", "2020-01-07"),
     )
 
     if transformation_func == "cumcount":
@@ -383,13 +395,31 @@ def test_transform_select_columns(df):
     tm.assert_frame_equal(result, expected)
 
 
-def test_transform_exclude_nuisance(df):
+@pytest.mark.parametrize("duplicates", [True, False])
+def test_transform_exclude_nuisance(df, duplicates):
+    # case that goes through _transform_item_by_item
+
+    if duplicates:
+        # make sure we work with duplicate columns GH#41427
+        df.columns = ["A", "C", "C", "D"]
 
     # this also tests orderings in transform between
     # series/frame to make sure it's consistent
     expected = {}
     grouped = df.groupby("A")
-    expected["C"] = grouped["C"].transform(np.mean)
+
+    gbc = grouped["C"]
+    expected["C"] = gbc.transform(np.mean)
+    if duplicates:
+        # squeeze 1-column DataFrame down to Series
+        expected["C"] = expected["C"]["C"]
+
+        assert isinstance(gbc.obj, DataFrame)
+        assert isinstance(gbc, DataFrameGroupBy)
+    else:
+        assert isinstance(gbc, SeriesGroupBy)
+        assert isinstance(gbc.obj, Series)
+
     expected["D"] = grouped["D"].transform(np.mean)
     expected = DataFrame(expected)
     result = df.groupby("A").transform(np.mean)
@@ -410,7 +440,7 @@ def test_transform_function_aliases(df):
 def test_series_fast_transform_date():
     # GH 13191
     df = DataFrame(
-        {"grouping": [np.nan, 1, 1, 3], "d": pd.date_range("2014-1-1", "2014-1-4")}
+        {"grouping": [np.nan, 1, 1, 3], "d": date_range("2014-1-1", "2014-1-4")}
     )
     result = df.groupby("grouping")["d"].transform("first")
     dates = [
@@ -485,7 +515,7 @@ def test_groupby_transform_with_int():
     )
     with np.errstate(all="ignore"):
         result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
-    expected = DataFrame({"B": np.nan, "C": [-1, 0, 1, -1, 0, 1]})
+    expected = DataFrame({"B": np.nan, "C": [-1.0, 0.0, 1.0, -1.0, 0.0, 1.0]})
     tm.assert_frame_equal(result, expected)
 
     # int that needs float conversion
@@ -501,9 +531,9 @@ def test_groupby_transform_with_int():
     expected = DataFrame({"B": np.nan, "C": concat([s1, s2])})
     tm.assert_frame_equal(result, expected)
 
-    # int downcasting
+    # int doesn't get downcasted
     result = df.groupby("A").transform(lambda x: x * 2 / 2)
-    expected = DataFrame({"B": 1, "C": [2, 3, 4, 10, 5, -1]})
+    expected = DataFrame({"B": 1.0, "C": [2.0, 3.0, 4.0, 10.0, 5.0, -1.0]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -623,7 +653,7 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
     tm.assert_series_equal(expected, result)
 
 
-@pytest.mark.arm_slow
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "op, args, targop",
     [
@@ -646,7 +676,7 @@ def test_cython_transform_frame(op, args, targop):
             "float": s,
             "float_missing": s_missing,
             "int": [1, 1, 1, 1, 2] * 200,
-            "datetime": pd.date_range("1990-1-1", periods=1000),
+            "datetime": date_range("1990-1-1", periods=1000),
             "timedelta": pd.timedelta_range(1, freq="s", periods=1000),
             "string": strings * 50,
             "string_missing": strings_missing * 50,
@@ -664,7 +694,7 @@ def test_cython_transform_frame(op, args, targop):
     df["cat"] = df["string"].astype("category")
 
     df2 = df.copy()
-    df2.index = pd.MultiIndex.from_product([range(100), range(10)])
+    df2.index = MultiIndex.from_product([range(100), range(10)])
 
     # DataFrame - Single and MultiIndex,
     # group by values, index level, columns
@@ -688,7 +718,7 @@ def test_cython_transform_frame(op, args, targop):
                 # to apply separately and concat
                 i = gb[["int"]].apply(targop)
                 f = gb[["float", "float_missing"]].apply(targop)
-                expected = pd.concat([f, i], axis=1)
+                expected = concat([f, i], axis=1)
             else:
                 expected = gb.apply(targop)
 
@@ -712,7 +742,7 @@ def test_cython_transform_frame(op, args, targop):
 
 def test_transform_with_non_scalar_group():
     # GH 10165
-    cols = pd.MultiIndex.from_tuples(
+    cols = MultiIndex.from_tuples(
         [
             ("syn", "A"),
             ("mis", "A"),
@@ -758,7 +788,7 @@ def test_transform_numeric_ret(cols, exp, comp_func, agg_func, request):
 
     # GH 19200
     df = DataFrame(
-        {"a": pd.date_range("2018-01-01", periods=3), "b": range(3), "c": range(7, 10)}
+        {"a": date_range("2018-01-01", periods=3), "b": range(3), "c": range(7, 10)}
     )
 
     result = df.groupby("b")[cols].transform(agg_func)
@@ -767,6 +797,18 @@ def test_transform_numeric_ret(cols, exp, comp_func, agg_func, request):
         exp = exp.astype("float")
 
     comp_func(result, exp)
+
+
+def test_transform_ffill():
+    # GH 24211
+    data = [["a", 0.0], ["a", float("nan")], ["b", 1.0], ["b", float("nan")]]
+    df = DataFrame(data, columns=["key", "values"])
+    result = df.groupby("key").transform("ffill")
+    expected = DataFrame({"values": [0.0, 0.0, 1.0, 1.0]})
+    tm.assert_frame_equal(result, expected)
+    result = df.groupby("key")["values"].transform("ffill")
+    expected = Series([0.0, 0.0, 1.0, 1.0], name="values")
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("mix_groupings", [True, False])
@@ -943,7 +985,7 @@ def test_groupby_transform_rename():
     def demean_rename(x):
         result = x - x.mean()
 
-        if isinstance(x, pd.Series):
+        if isinstance(x, Series):
             return result
 
         result = result.rename(columns={c: "{c}_demeaned" for c in result.columns})
@@ -978,7 +1020,7 @@ def test_groupby_transform_timezone_column(func):
 )
 def test_groupby_transform_with_datetimes(func, values):
     # GH 15306
-    dates = pd.date_range("1/1/2011", periods=10, freq="D")
+    dates = date_range("1/1/2011", periods=10, freq="D")
 
     stocks = DataFrame({"price": np.arange(10.0)}, index=dates)
     stocks["week_id"] = dates.isocalendar().week

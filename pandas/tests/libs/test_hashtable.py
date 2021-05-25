@@ -155,6 +155,28 @@ class TestHashTable:
             del table
             assert get_allocated_khash_memory() == 0
 
+    def test_get_state(self, table_type, dtype):
+        table = table_type(1000)
+        state = table.get_state()
+        assert state["size"] == 0
+        assert state["n_occupied"] == 0
+        assert "n_buckets" in state
+        assert "upper_bound" in state
+
+    def test_no_reallocation(self, table_type, dtype):
+        for N in range(1, 110):
+            keys = np.arange(N).astype(dtype)
+            preallocated_table = table_type(N)
+            n_buckets_start = preallocated_table.get_state()["n_buckets"]
+            preallocated_table.map_locations(keys)
+            n_buckets_end = preallocated_table.get_state()["n_buckets"]
+            # original number of buckets was enough:
+            assert n_buckets_start == n_buckets_end
+            # check with clean table (not too much preallocated)
+            clean_table = table_type()
+            clean_table.map_locations(keys)
+            assert n_buckets_start == clean_table.get_state()["n_buckets"]
+
 
 def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()
@@ -188,6 +210,21 @@ def test_tracemalloc_for_empty_StringHashTable():
         assert used == my_size
         del table
         assert get_allocated_khash_memory() == 0
+
+
+def test_no_reallocation_StringHashTable():
+    for N in range(1, 110):
+        keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+        preallocated_table = ht.StringHashTable(N)
+        n_buckets_start = preallocated_table.get_state()["n_buckets"]
+        preallocated_table.map_locations(keys)
+        n_buckets_end = preallocated_table.get_state()["n_buckets"]
+        # original number of buckets was enough:
+        assert n_buckets_start == n_buckets_end
+        # check with clean table (not too much preallocated)
+        clean_table = ht.StringHashTable()
+        clean_table.map_locations(keys)
+        assert n_buckets_start == clean_table.get_state()["n_buckets"]
 
 
 @pytest.mark.parametrize(
@@ -241,7 +278,7 @@ class TestHashTableWithNans:
 
 
 def get_ht_function(fun_name, type_suffix):
-    return getattr(ht, fun_name + "_" + type_suffix)
+    return getattr(ht, fun_name)
 
 
 @pytest.mark.parametrize(
@@ -337,7 +374,7 @@ def test_modes_with_nans():
     values = np.array([True, pd.NA, np.nan], dtype=np.object_)
     # pd.Na and np.nan will have the same representative: np.nan
     # thus we have 2 nans and 1 True
-    modes = ht.mode_object(values, False)
+    modes = ht.mode(values, False)
     assert modes.size == 1
     assert np.isnan(modes[0])
 

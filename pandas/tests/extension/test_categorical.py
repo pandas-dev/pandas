@@ -19,7 +19,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, CategoricalIndex, Timestamp
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
@@ -113,13 +117,18 @@ class TestInterface(base.BaseInterfaceTests):
 
 
 class TestConstructors(base.BaseConstructorsTests):
-    pass
+    def test_empty(self, dtype):
+        cls = dtype.construct_array_type()
+        result = cls._empty((4,), dtype=dtype)
+
+        assert isinstance(result, cls)
+        # the dtype we passed is not initialized, so will not match the
+        #  dtype on our result.
+        assert result.dtype == CategoricalDtype([])
 
 
 class TestReshaping(base.BaseReshapingTests):
-    @pytest.mark.xfail(reason="Deliberately upcast to object?")
-    def test_concat_with_reindex(self, data):
-        super().test_concat_with_reindex(data)
+    pass
 
 
 class TestGetitem(base.BaseGetitemTests):

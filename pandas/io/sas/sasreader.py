@@ -3,8 +3,15 @@ Read SAS sas7bdat or xport files.
 """
 from __future__ import annotations
 
-from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Hashable, Optional, Union, overload
+from abc import (
+    ABCMeta,
+    abstractmethod,
+)
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+    overload,
+)
 
 from pandas._typing import FilePathOrBuffer
 
@@ -38,9 +45,9 @@ class ReaderBase(metaclass=ABCMeta):
 @overload
 def read_sas(
     filepath_or_buffer: FilePathOrBuffer,
-    format: Optional[str] = ...,
-    index: Optional[Hashable] = ...,
-    encoding: Optional[str] = ...,
+    format: str | None = ...,
+    index: Hashable | None = ...,
+    encoding: str | None = ...,
     chunksize: int = ...,
     iterator: bool = ...,
 ) -> ReaderBase:
@@ -50,23 +57,23 @@ def read_sas(
 @overload
 def read_sas(
     filepath_or_buffer: FilePathOrBuffer,
-    format: Optional[str] = ...,
-    index: Optional[Hashable] = ...,
-    encoding: Optional[str] = ...,
+    format: str | None = ...,
+    index: Hashable | None = ...,
+    encoding: str | None = ...,
     chunksize: None = ...,
     iterator: bool = ...,
-) -> Union[DataFrame, ReaderBase]:
+) -> DataFrame | ReaderBase:
     ...
 
 
 def read_sas(
     filepath_or_buffer: FilePathOrBuffer,
-    format: Optional[str] = None,
-    index: Optional[Hashable] = None,
-    encoding: Optional[str] = None,
-    chunksize: Optional[int] = None,
+    format: str | None = None,
+    index: Hashable | None = None,
+    encoding: str | None = None,
+    chunksize: int | None = None,
     iterator: bool = False,
-) -> Union[DataFrame, ReaderBase]:
+) -> DataFrame | ReaderBase:
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 

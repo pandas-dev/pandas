@@ -21,22 +21,41 @@ import os
 from pathlib import Path
 import pickle
 import shutil
-from warnings import catch_warnings, simplefilter
+from warnings import (
+    catch_warnings,
+    simplefilter,
+)
 import zipfile
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY38, get_lzma_file, import_lzma, is_platform_little_endian
+from pandas.compat import (
+    PY38,
+    get_lzma_file,
+    import_lzma,
+    is_platform_little_endian,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Index, Series, period_range
+from pandas import (
+    Index,
+    Series,
+    period_range,
+)
 import pandas._testing as tm
 
-from pandas.tseries.offsets import Day, MonthEnd
+from pandas.tseries.offsets import (
+    Day,
+    MonthEnd,
+)
 
 lzma = import_lzma()
+
+
+# TODO(ArrayManager) pickling
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture(scope="module")
@@ -413,7 +432,7 @@ class TestProtocol:
 @pytest.mark.parametrize(
     ["pickle_file", "excols"],
     [
-        ("test_py27.pkl", pd.Index(["a", "b", "c"])),
+        ("test_py27.pkl", Index(["a", "b", "c"])),
         (
             "test_mi_py27.pkl",
             pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),

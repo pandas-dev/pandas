@@ -159,6 +159,7 @@ class TestPDApi(Base):
         "read_gbq",
         "read_hdf",
         "read_html",
+        "read_xml",
         "read_json",
         "read_pickle",
         "read_sas",
@@ -191,7 +192,6 @@ class TestPDApi(Base):
         "_hashtable",
         "_lib",
         "_libs",
-        "_np_version_under1p17",
         "_np_version_under1p18",
         "_is_numpy_dev",
         "_testing",
@@ -235,9 +235,9 @@ def test_datetime():
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
-        assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
+        assert datetime(2015, 1, 2, 0, 0) == datetime(2015, 1, 2, 0, 0)
 
-        assert isinstance(pd.datetime(2015, 1, 2, 0, 0), pd.datetime)
+        assert isinstance(datetime(2015, 1, 2, 0, 0), datetime)
 
 
 def test_sparsearray():
@@ -274,7 +274,7 @@ class TestTesting(Base):
     ]
 
     def test_testing(self):
-        from pandas import testing
+        from pandas import testing  # noqa: PDF015
 
         self.check(testing, self.funcs)
 

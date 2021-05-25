@@ -1,4 +1,9 @@
-from pandas import Index, NaT, Period, PeriodIndex
+from pandas import (
+    Index,
+    NaT,
+    Period,
+    PeriodIndex,
+)
 import pandas._testing as tm
 
 
