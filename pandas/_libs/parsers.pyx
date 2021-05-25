@@ -986,10 +986,13 @@ cdef class TextReader:
             col_dtype = None
             if self.dtype is not None:
                 if isinstance(self.dtype, dict):
-                    if name in self.dtype:
+                    try:
                         col_dtype = self.dtype[name]
-                    elif i in self.dtype:
-                        col_dtype = self.dtype[i]
+                    except KeyError:
+                        try:
+                            col_dtype = self.dtype[i]
+                        except KeyError:
+                            pass
                 else:
                     if self.dtype.names:
                         # structured array
