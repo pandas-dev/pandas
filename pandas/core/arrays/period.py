@@ -564,15 +564,15 @@ class PeriodArray(dtl.DatelikeOps):
         >>> pidx = pd.period_range('2010-01-01', '2015-01-01', freq='A')
         >>> pidx
         PeriodIndex(['2010', '2011', '2012', '2013', '2014', '2015'],
-        dtype='period[A-DEC]', freq='A-DEC')
+        dtype='period[A-DEC]')
 
         >>> pidx.asfreq('M')
         PeriodIndex(['2010-12', '2011-12', '2012-12', '2013-12', '2014-12',
-        '2015-12'], dtype='period[M]', freq='M')
+        '2015-12'], dtype='period[M]')
 
         >>> pidx.asfreq('M', how='S')
         PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
-        '2015-01'], dtype='period[M]', freq='M')
+        '2015-01'], dtype='period[M]')
         """
         how = libperiod.validate_end_alias(how)
 

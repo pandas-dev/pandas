@@ -44,7 +44,9 @@ class DatetimeLike(Base):
         if hasattr(idx, "tz"):
             if idx.tz is not None:
                 assert idx.tz in str(idx)
-        if hasattr(idx, "freq"):
+        if isinstance(idx, pd.PeriodIndex):
+            assert f"dtype='period[{idx.freqstr}]'" in str(idx)
+        else:
             assert f"freq='{idx.freqstr}'" in str(idx)
 
     def test_view(self, simple_index):
