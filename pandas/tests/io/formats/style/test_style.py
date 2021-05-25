@@ -1504,6 +1504,6 @@ def test_from_custom_template(tmpdir):
     assert styler.render()
 
 
-def test_caption_no_sequence(mi_styler):
-    mi_styler.set_caption(("short cap", "long_cap"))
-    assert "<caption>" not in mi_styler.render()
+def test_caption_as_sequence(mi_styler):
+    mi_styler.set_caption(("full cap", "short cap"))
+    assert "<caption>full cap</caption>" in mi_styler.render()
