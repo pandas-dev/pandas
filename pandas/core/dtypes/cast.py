@@ -1386,7 +1386,7 @@ def convert_dtypes(
     convert_integer: bool = True,
     convert_boolean: bool = True,
     convert_floating: bool = True,
-) -> Dtype:
+) -> DtypeObj:
     """
     Convert objects to best possible type, and optionally,
     to types supporting ``pd.NA``.
@@ -1407,23 +1407,28 @@ def convert_dtypes(
 
     Returns
     -------
-    str, np.dtype, or ExtensionDtype
-    dtype
-        new dtype
+    np.dtype, or ExtensionDtype
     """
-    inferred_dtype: str | np.dtype | ExtensionDtype
-    # TODO: rule out str
+    inferred_dtype: str | DtypeObj
 
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and isinstance(input_array, np.ndarray):
-        inferred_dtype = lib.infer_dtype(input_array)
 
-        if not convert_string and is_string_dtype(inferred_dtype):
+        if is_object_dtype(input_array.dtype):
+            inferred_dtype = lib.infer_dtype(input_array)
+        else:
             inferred_dtype = input_array.dtype
 
+        if is_string_dtype(inferred_dtype):
+            if not convert_string:
+                inferred_dtype = input_array.dtype
+            else:
+                inferred_dtype = pandas_dtype("string")
+            return inferred_dtype
+
         if convert_integer:
-            target_int_dtype = "Int64"
+            target_int_dtype = pandas_dtype("Int64")
 
             if is_integer_dtype(input_array.dtype):
                 from pandas.core.arrays.integer import INT_STR_TO_DTYPE
@@ -1431,14 +1436,13 @@ def convert_dtypes(
                 inferred_dtype = INT_STR_TO_DTYPE.get(
                     input_array.dtype.name, target_int_dtype
                 )
-            if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
-                input_array.dtype
-            ):
-                inferred_dtype = target_int_dtype
-
-        else:
-            if is_integer_dtype(inferred_dtype):
-                inferred_dtype = input_array.dtype
+            elif is_numeric_dtype(input_array.dtype):
+                # TODO: de-dup with maybe_cast_to_integer_array?
+                arr = input_array[notna(input_array)]
+                if (arr.astype(int) == arr).all():
+                    inferred_dtype = target_int_dtype
+                else:
+                    inferred_dtype = input_array.dtype
 
         if convert_floating:
             if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
@@ -1446,32 +1450,33 @@ def convert_dtypes(
             ):
                 from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
 
-                inferred_float_dtype = FLOAT_STR_TO_DTYPE.get(
-                    input_array.dtype.name, "Float64"
+                inferred_float_dtype: DtypeObj = FLOAT_STR_TO_DTYPE.get(
+                    input_array.dtype.name, pandas_dtype("Float64")
                 )
                 # if we could also convert to integer, check if all floats
                 # are actually integers
                 if convert_integer:
+                    # TODO: de-dup with maybe_cast_to_integer_array?
                     arr = input_array[notna(input_array)]
                     if (arr.astype(int) == arr).all():
-                        inferred_dtype = "Int64"
+                        inferred_dtype = pandas_dtype("Int64")
                     else:
                         inferred_dtype = inferred_float_dtype
                 else:
                     inferred_dtype = inferred_float_dtype
-        else:
-            if is_float_dtype(inferred_dtype):
-                inferred_dtype = input_array.dtype
 
         if convert_boolean:
             if is_bool_dtype(input_array.dtype):
-                inferred_dtype = "boolean"
-        else:
-            if isinstance(inferred_dtype, str) and inferred_dtype == "boolean":
-                inferred_dtype = input_array.dtype
+                inferred_dtype = pandas_dtype("boolean")
+            elif isinstance(inferred_dtype, str) and inferred_dtype == "boolean":
+                inferred_dtype = pandas_dtype("boolean")
+
+        if isinstance(inferred_dtype, str):
+            # If we couldn't do anything else, then we retain the dtype
+            inferred_dtype = input_array.dtype
 
     else:
-        inferred_dtype = input_array.dtype
+        return input_array.dtype
 
     return inferred_dtype
 
