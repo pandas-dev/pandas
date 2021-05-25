@@ -56,6 +56,7 @@ Builtin styles
    Styler.highlight_min
    Styler.highlight_between
    Styler.background_gradient
+   Styler.text_gradient
    Styler.bar
 
 Style export and import
