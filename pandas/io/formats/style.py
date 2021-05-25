@@ -1470,6 +1470,13 @@ class Styler(StylerRenderer):
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
+    @doc(
+        name="background",
+        alt="text",
+        image_prefix="bg",
+        axis="{0 or 'index', 1 or 'columns', None}",
+        text_threshold="",
+    )
     def background_gradient(
         self,
         cmap="PuBu",
@@ -1483,9 +1490,9 @@ class Styler(StylerRenderer):
         gmap: Sequence | None = None,
     ) -> Styler:
         """
-        Color the background in a gradient style.
+        Color the {name} in a gradient style.
 
-        The background color is determined according
+        The {name} color is determined according
         to the data in each column, row or frame, or by a given
         gradient map. Requires matplotlib.
 
@@ -1501,7 +1508,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
+        axis : {axis}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
@@ -1510,6 +1517,7 @@ class Styler(StylerRenderer):
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
         text_color_threshold : float or int
+            {text_threshold}
             Luminance threshold for determining text color in [0, 1]. Facilitates text
             visibility across varying background colors. All text is dark if 0, and
             light if 1, defaults to 0.408.
@@ -1529,7 +1537,7 @@ class Styler(StylerRenderer):
             .. versionadded:: 1.0.0
 
         gmap : array-like, optional
-            Gradient map for determining the background colors. If not supplied
+            Gradient map for determining the {name} colors. If not supplied
             will use the underlying data from rows, columns or frame. If given as an
             ndarray or list-like must be an identical shape to the underlying data
             considering ``axis`` and ``subset``. If given as DataFrame or Series must
@@ -1542,6 +1550,10 @@ class Styler(StylerRenderer):
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.{alt}_gradient: Color the {alt} in a gradient style.
 
         Notes
         -----
@@ -1560,52 +1572,50 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({
-        ...          'City': ['Stockholm', 'Oslo', 'Copenhagen'],
-        ...          'Temp (c)': [21.6, 22.4, 24.5],
-        ...          'Rain (mm)': [5.0, 13.3, 0.0],
-        ...          'Wind (m/s)': [3.2, 3.1, 6.7]
-        ... })
+        >>> df = pd.DataFrame(columns=["City", "Temp (c)", "Rain (mm)", "Wind (m/s)"],
+        ...                   data=[["Stockholm", 21.6, 5.0, 3.2],
+        ...                         ["Oslo", 22.4, 13.3, 3.1],
+        ...                         ["Copenhagen", 24.5, 0.0, 6.7]])
 
         Shading the values column-wise, with ``axis=0``, preselecting numeric columns
 
-        >>> df.style.background_gradient(axis=0)
+        >>> df.style.{name}_gradient(axis=0)
 
-        .. figure:: ../../_static/style/bg_ax0.png
+        .. figure:: ../../_static/style/{image_prefix}_ax0.png
 
         Shading all values collectively using ``axis=None``
 
-        >>> df.style.background_gradient(axis=None)
+        >>> df.style.{name}_gradient(axis=None)
 
-        .. figure:: ../../_static/style/bg_axNone.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone.png
 
         Compress the color map from the both ``low`` and ``high`` ends
 
-        >>> df.style.background_gradient(axis=None, low=0.75, high=1.0)
+        >>> df.style.{name}_gradient(axis=None, low=0.75, high=1.0)
 
-        .. figure:: ../../_static/style/bg_axNone_lowhigh.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone_lowhigh.png
 
         Manually setting ``vmin`` and ``vmax`` gradient thresholds
 
-        >>> df.style.background_gradient(axis=None, vmin=6.7, vmax=21.6)
+        >>> df.style.{name}_gradient(axis=None, vmin=6.7, vmax=21.6)
 
-        .. figure:: ../../_static/style/bg_axNone_vminvmax.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone_vminvmax.png
 
         Setting a ``gmap`` and applying to all columns with another ``cmap``
 
-        >>> df.style.background_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
+        >>> df.style.{name}_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
 
-        .. figure:: ../../_static/style/bg_gmap.png
+        .. figure:: ../../_static/style/{image_prefix}_gmap.png
 
         Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to
         explicitly state ``subset`` to match the ``gmap`` shape
 
         >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
-        >>> df.style.background_gradient(axis=None, gmap=gmap,
+        >>> df.style.{name}_gradient(axis=None, gmap=gmap,
         ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
         ... )
 
-        .. figure:: ../../_static/style/bg_axNone_gmap.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
         if subset is None and gmap is None:
             subset = self.data.select_dtypes(include=np.number).columns
@@ -1623,6 +1633,41 @@ class Styler(StylerRenderer):
             gmap=gmap,
         )
         return self
+
+    @doc(
+        background_gradient,
+        name="text",
+        alt="background",
+        image_prefix="tg",
+        axis="{0 or 'index', 1 or 'columns', None}",
+        text_threshold="This argument is ignored (only used in `background_gradient`).",
+    )
+    def text_gradient(
+        self,
+        cmap="PuBu",
+        low: float = 0,
+        high: float = 0,
+        axis: Axis | None = 0,
+        subset: Subset | None = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
+        gmap: Sequence | None = None,
+    ) -> Styler:
+        if subset is None and gmap is None:
+            subset = self.data.select_dtypes(include=np.number).columns
+
+        return self.apply(
+            _background_gradient,
+            cmap=cmap,
+            subset=subset,
+            axis=axis,
+            low=low,
+            high=high,
+            vmin=vmin,
+            vmax=vmax,
+            gmap=gmap,
+            text_only=True,
+        )
 
     def set_properties(self, subset: Subset | None = None, **kwargs) -> Styler:
         """
@@ -2332,6 +2377,7 @@ def _background_gradient(
     vmin: float | None = None,
     vmax: float | None = None,
     gmap: Sequence | np.ndarray | FrameOrSeries | None = None,
+    text_only: bool = False,
 ):
     """
     Color background in a range according to the data or a gradient map
@@ -2371,16 +2417,19 @@ def _background_gradient(
             )
             return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
-        def css(rgba) -> str:
-            dark = relative_luminance(rgba) < text_color_threshold
-            text_color = "#f1f1f1" if dark else "#000000"
-            return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
+        def css(rgba, text_only) -> str:
+            if not text_only:
+                dark = relative_luminance(rgba) < text_color_threshold
+                text_color = "#f1f1f1" if dark else "#000000"
+                return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
+            else:
+                return f"color: {colors.rgb2hex(rgba)};"
 
         if data.ndim == 1:
-            return [css(rgba) for rgba in rgbas]
+            return [css(rgba, text_only) for rgba in rgbas]
         else:
             return DataFrame(
-                [[css(rgba) for rgba in row] for row in rgbas],
+                [[css(rgba, text_only) for rgba in row] for row in rgbas],
                 index=data.index,
                 columns=data.columns,
             )
