@@ -1172,9 +1172,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return format_object_attrs(self, include_dtype=not self._is_multi)
 
-    def _mpl_repr(self):
+    @final
+    def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
-        return self.values
+        if isinstance(self.dtype, np.dtype) and self.dtype.kind != "M":
+            return cast(np.ndarray, self.values)
+        return self.astype(object, copy=False)._values
 
     def format(
         self,
