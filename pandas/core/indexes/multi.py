@@ -89,11 +89,7 @@ from pandas.core.sorting import (
     lexsort_indexer,
 )
 
-from pandas.io.formats.printing import (
-    format_object_attrs,
-    format_object_summary,
-    pprint_thing,
-)
+from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
     from pandas import (
@@ -1286,20 +1282,6 @@ class MultiIndex(Index):
         """
         formatter_funcs = [level._formatter_func for level in self.levels]
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
-
-    def _format_data(self, name=None) -> str:
-        """
-        Return the formatted data as a unicode string
-        """
-        return format_object_summary(
-            self, self._formatter_func, name=name, line_break_each_value=True
-        )
-
-    def _format_attrs(self):
-        """
-        Return a list of tuples of the (attr,formatted_value).
-        """
-        return format_object_attrs(self, include_dtype=False)
 
     def _format_native_types(self, na_rep="nan", **kwargs):
         new_levels = []
