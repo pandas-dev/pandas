@@ -27,7 +27,7 @@
 {% block table %}
 <table id="T_{{uuid}}"{% if table_attributes %} {{table_attributes}}{% endif %}>
 {% block caption %}
-{% if caption %}
+{% if caption and caption is string %}
   <caption>{{caption}}</caption>
 {% endif %}
 {% endblock caption %}

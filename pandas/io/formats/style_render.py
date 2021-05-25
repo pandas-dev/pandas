@@ -75,7 +75,7 @@ class StylerRenderer:
         uuid_len: int = 5,
         table_styles: CSSStyles | None = None,
         table_attributes: str | None = None,
-        caption: str | None = None,
+        caption: str | tuple | None = None,
         cell_ids: bool = True,
     ):
 

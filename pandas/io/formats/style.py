@@ -87,8 +87,8 @@ class Styler(StylerRenderer):
         List of {selector: (attr, value)} dicts; see Notes.
     uuid : str, default None
         A unique identifier to avoid CSS collisions; generated automatically.
-    caption : str, default None
-        Caption to attach to the table.
+    caption : str, tuple, default None
+        String caption to attach to the table. Tuple only used for LaTeX dual captions.
     table_attributes : str, default None
         Items that show up in the opening ``<table>`` tag
         in addition to automatic (by default) id.
@@ -172,7 +172,7 @@ class Styler(StylerRenderer):
         precision: int | None = None,
         table_styles: CSSStyles | None = None,
         uuid: str | None = None,
-        caption: str | None = None,
+        caption: str | tuple | None = None,
         table_attributes: str | None = None,
         cell_ids: bool = True,
         na_rep: str | None = None,
@@ -416,7 +416,7 @@ class Styler(StylerRenderer):
         position_float: str | None = None,
         hrules: bool = False,
         label: str | None = None,
-        caption: str | None = None,
+        caption: str | tuple | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         multirow_align: str = "c",
@@ -457,8 +457,9 @@ class Styler(StylerRenderer):
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
-        caption : str, optional
-            The LaTeX table caption included as: \\caption{<caption>}.
+        caption : str, tuple, optional
+            If string, the LaTeX table caption included as: \\caption{<caption>}.
+            If tuple, the caption included as: \\caption[<caption[0]>]{<caption[1]>}.
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
@@ -1273,13 +1274,15 @@ class Styler(StylerRenderer):
         self.uuid = uuid
         return self
 
-    def set_caption(self, caption: str) -> Styler:
+    def set_caption(self, caption: str | tuple) -> Styler:
         """
         Set the text added to a ``<caption>`` HTML element.
 
         Parameters
         ----------
-        caption : str
+        caption : str, tuple
+            For HTML output only string input is used, for LaTeX the additional
+            tuple input allows for short and long captions.
 
         Returns
         -------

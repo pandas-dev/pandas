@@ -1502,3 +1502,8 @@ def test_from_custom_template(tmpdir):
     assert result.template_html is not Styler.template_html
     styler = result(DataFrame({"A": [1, 2]}))
     assert styler.render()
+
+
+def test_caption_no_sequence(mi_styler):
+    mi_styler.set_caption(("short cap", "long_cap"))
+    assert "<caption>" not in mi_styler.render()
