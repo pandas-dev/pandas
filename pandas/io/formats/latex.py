@@ -361,7 +361,7 @@ class TableBuilderAbstract(ABC):
             self.bottom_separator,
             self.env_end,
         ]
-        result = "\n".join([item for item in elements if item])
+        result = "\n".join(item for item in elements if item)
         trailing_newline = "\n"
         result += trailing_newline
         return result
@@ -530,13 +530,13 @@ class LongTableBuilder(GenericTableBuilder):
             f"\\begin{{longtable}}{self._position_macro}{{{self.column_format}}}"
         )
         elements = [first_row, f"{self._caption_and_label()}"]
-        return "\n".join([item for item in elements if item])
+        return "\n".join(item for item in elements if item)
 
     def _caption_and_label(self) -> str:
         if self.caption or self.label:
             double_backslash = "\\\\"
             elements = [f"{self._caption_macro}", f"{self._label_macro}"]
-            caption_and_label = "\n".join([item for item in elements if item])
+            caption_and_label = "\n".join(item for item in elements if item)
             caption_and_label += double_backslash
             return caption_and_label
         else:
@@ -614,7 +614,7 @@ class RegularTableBuilder(GenericTableBuilder):
             f"{self._label_macro}",
             f"\\begin{{tabular}}{{{self.column_format}}}",
         ]
-        return "\n".join([item for item in elements if item])
+        return "\n".join(item for item in elements if item)
 
     @property
     def bottom_separator(self) -> str:

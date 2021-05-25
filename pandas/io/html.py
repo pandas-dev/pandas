@@ -627,7 +627,7 @@ def _build_xpath_expr(attrs) -> str:
     if "class_" in attrs:
         attrs["class"] = attrs.pop("class_")
 
-    s = " and ".join([f"@{k}={repr(v)}" for k, v in attrs.items()])
+    s = " and ".join(f"@{k}={repr(v)}" for k, v in attrs.items())
     return f"[{s}]"
 
 
