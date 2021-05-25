@@ -1358,14 +1358,13 @@ class StringMethods(NoNewAttributesMixin):
                         "*not* be treated as literal strings when regex=True."
                     )
                 warnings.warn(msg, FutureWarning, stacklevel=3)
-            regex = True
 
         # Check whether repl is valid (GH 13438, GH 15055)
         if not (isinstance(repl, str) or callable(repl)):
             raise TypeError("repl must be a string or callable")
 
         is_compiled_re = is_re(pat)
-        if regex:
+        if regex or regex is None:
             if is_compiled_re and (case is not None or flags != 0):
                 raise ValueError(
                     "case and flags cannot be set when pat is a compiled regex"
@@ -1377,6 +1376,14 @@ class StringMethods(NoNewAttributesMixin):
             )
         elif callable(repl):
             raise ValueError("Cannot use a callable replacement when regex=False")
+
+        # The current behavior is to treat single character patterns as literal strings,
+        # even when ``regex`` is set to ``True``.
+        if isinstance(pat, str) and len(pat) == 1:
+            regex = False
+
+        if regex is None:
+            regex = True
 
         if case is None:
             case = True
