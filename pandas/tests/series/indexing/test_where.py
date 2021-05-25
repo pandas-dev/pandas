@@ -141,10 +141,9 @@ def test_where():
     tm.assert_series_equal(rs, expected)
 
 
-def test_where_non_keyword():
-    # GH 41523
+def test_where_non_keyword_deprecation():
+    # GH 41485
     s = Series(range(5))
-
     msg = (
         "In a future version of pandas all arguments of "
         "Series.where except for the arguments 'cond' "
