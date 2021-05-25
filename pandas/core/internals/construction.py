@@ -79,13 +79,10 @@ from pandas.core.internals.array_manager import (
     ArrayManager,
     SingleArrayManager,
 )
-from pandas.core.internals.blocks import (
-    ensure_block_shape,
-)
 from pandas.core.internals.managers import (
-    create_block_manager_from_array,
     BlockManager,
     SingleBlockManager,
+    create_block_manager_from_array,
     create_block_manager_from_arrays,
 )
 
@@ -362,8 +359,8 @@ def ndarray_to_mgr(
             ]
             # don't convert (and copy) the objects if no type inference occurs
             if any(
-                    not is_dtype_equal(instance.dtype, array.dtype)
-                    for instance in maybe_datetime
+                not is_dtype_equal(instance.dtype, array.dtype)
+                for instance in maybe_datetime
             ):
                 return create_block_manager_from_arrays(
                     maybe_datetime, columns, [columns, index]
