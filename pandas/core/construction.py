@@ -12,6 +12,7 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 import numpy.ma as ma
@@ -815,3 +816,20 @@ def create_series_with_explicit_dtype(
     return Series(
         data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
     )
+
+
+def create_ndarray(
+    obj, *, dtype: np.dtype | None = None, copy: bool = True
+) -> np.ndarray:
+    """
+    Call np.ndarray if we do not know the outcome dtype.
+    """
+    if dtype is not None:
+        return np.array(obj, dtype=dtype, copy=copy)
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            out = np.array(obj, copy=copy)
+    except (TypeError, ValueError):
+        out = np.array(obj, dtype=object, copy=copy)
+    return out

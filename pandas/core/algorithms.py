@@ -13,6 +13,7 @@ from typing import (
 )
 from warnings import (
     catch_warnings,
+    filterwarnings,
     simplefilter,
     warn,
 )
@@ -1583,7 +1584,9 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
         # and `value` is a pd.Timestamp, we may need to convert value
         arr = ensure_wrapped_if_datetimelike(arr)
 
-    return arr.searchsorted(value, side=side, sorter=sorter)
+    with catch_warnings():
+        filterwarnings("ignore", category=FutureWarning)
+        return arr.searchsorted(value, side=side, sorter=sorter)
 
 
 # ---- #

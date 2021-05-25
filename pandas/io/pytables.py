@@ -84,7 +84,10 @@ from pandas.core.computation.pytables import (
     PyTablesExpr,
     maybe_expression,
 )
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    create_ndarray,
+    extract_array,
+)
 from pandas.core.indexes.api import ensure_index
 from pandas.core.internals import BlockManager
 
@@ -3854,11 +3857,16 @@ class Table(Fixed):
         if table_exists:
             indexer = len(new_non_index_axes)  # i.e. 0
             exist_axis = self.non_index_axes[indexer][1]
-            if not array_equivalent(np.array(append_axis), np.array(exist_axis)):
+
+            if not array_equivalent(
+                create_ndarray(append_axis, copy=True),
+                create_ndarray(exist_axis, copy=True),
+            ):
 
                 # ahah! -> reindex
                 if array_equivalent(
-                    np.array(sorted(append_axis)), np.array(sorted(exist_axis))
+                    create_ndarray(sorted(append_axis), copy=True),
+                    create_ndarray(sorted(exist_axis), copy=True),
                 ):
                     append_axis = exist_axis
 

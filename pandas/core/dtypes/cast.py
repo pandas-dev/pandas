@@ -882,7 +882,9 @@ def maybe_infer_dtype_type(element):
     if hasattr(element, "dtype"):
         tipo = element.dtype
     elif is_list_like(element):
-        element = np.asarray(element)
+        from pandas.core.construction import create_ndarray
+
+        element = create_ndarray(element, copy=False)
         tipo = element.dtype
     return tipo
 
@@ -1608,8 +1610,9 @@ def maybe_cast_to_datetime(
 
         if is_datetime64 or is_datetime64tz:
             dtype = ensure_nanosecond_dtype(dtype)
+            from pandas.core.construction import create_ndarray
 
-            value = np.array(value, copy=False)
+            value = create_ndarray(value, copy=False)
 
             # we have an array of datetime or timedeltas & nulls
             if value.size or not is_dtype_equal(value.dtype, dtype):
@@ -2009,11 +2012,17 @@ def construct_1d_ndarray_preserving_na(
                 values, dtype, copy=copy  # type: ignore[arg-type]
             )
         else:
+            from pandas.core.construction import create_ndarray
+
             # error: Argument "dtype" to "array" has incompatible type
             # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[dtype[Any],
             # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
             # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-            subarr = np.array(values, dtype=dtype, copy=copy)  # type: ignore[arg-type]
+            subarr = create_ndarray(
+                values,
+                dtype=dtype,  # type: ignore[arg-type]
+                copy=copy,
+            )
 
     return subarr
 

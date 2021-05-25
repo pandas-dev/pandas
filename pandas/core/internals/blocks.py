@@ -102,6 +102,7 @@ from pandas.core.base import PandasObject
 import pandas.core.common as com
 import pandas.core.computation.expressions as expressions
 from pandas.core.construction import (
+    create_ndarray,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
@@ -933,7 +934,7 @@ class Block(PandasObject):
             arr_value = value
         else:
             is_ea_value = False
-            arr_value = np.asarray(value)
+            arr_value = create_ndarray(value, copy=False)
 
         if transpose:
             values = values.T

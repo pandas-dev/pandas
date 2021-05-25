@@ -72,7 +72,10 @@ from pandas.core.arrays import (
 from pandas.core.arrays._ranges import generate_regular_range
 from pandas.core.arrays.integer import IntegerArray
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    create_ndarray,
+    extract_array,
+)
 
 from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (
@@ -2016,7 +2019,7 @@ def sequence_to_dt64ns(
         if lib.is_iterator(data) or isinstance(data, (abc.KeysView, abc.ValuesView)):
             # i.e. generator
             data = list(data)
-        data = np.asarray(data)
+        data = create_ndarray(data, copy=False)
         copy = False
     elif isinstance(data, ABCMultiIndex):
         raise TypeError("Cannot create a DatetimeArray from a MultiIndex.")
@@ -2027,7 +2030,7 @@ def sequence_to_dt64ns(
         data = data.to_numpy("int64", na_value=iNaT)
     elif not isinstance(data, (np.ndarray, ExtensionArray)):
         # GH#24539 e.g. xarray, dask object
-        data = np.asarray(data)
+        data = create_ndarray(data)
 
     if isinstance(data, DatetimeArray):
         inferred_freq = data.freq

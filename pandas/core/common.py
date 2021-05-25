@@ -129,7 +129,7 @@ def is_bool_indexer(key: Any) -> bool:
         is_array_like(key) and is_extension_array_dtype(key.dtype)
     ):
         if key.dtype == np.object_:
-            key = np.asarray(key)
+            key = np.asarray(key, dtype=object)
 
             if not lib.is_bool_array(key):
                 na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
@@ -142,8 +142,10 @@ def is_bool_indexer(key: Any) -> bool:
         elif is_bool_dtype(key.dtype):
             return True
     elif isinstance(key, list):
+        from pandas.core.construction import create_ndarray
+
         try:
-            arr = np.asarray(key)
+            arr = create_ndarray(key, copy=False)
             return arr.dtype == np.bool_ and len(arr) == len(key)
         except TypeError:  # pragma: no cover
             return False
@@ -237,7 +239,9 @@ def asarray_tuplesafe(values, dtype: NpDtype | None = None) -> np.ndarray:
     ]:
         return construct_1d_object_array_from_listlike(values)
 
-    result = np.asarray(values, dtype=dtype)
+    from pandas.core.construction import create_ndarray
+
+    result = create_ndarray(values, dtype=dtype, copy=False)
 
     if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)

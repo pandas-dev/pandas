@@ -42,7 +42,10 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.common as com
-from pandas.core.construction import array as pd_array
+from pandas.core.construction import (
+    array as pd_array,
+    create_ndarray,
+)
 from pandas.core.indexers import (
     check_array_indexer,
     is_empty_indexer,
@@ -1708,11 +1711,13 @@ class _iLocIndexer(_LocationIndexer):
         # we need an iterable, with a ndim of at least 1
         # eg. don't pass through np.array(0)
         if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
+            if not hasattr(value, "ndim"):
+                value = create_ndarray(value, copy=False)
 
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif np.ndim(value) == 2:  # FIXME: calls asarray
+            elif value.ndim == 2:
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
@@ -1763,7 +1768,7 @@ class _iLocIndexer(_LocationIndexer):
             for loc in ilocs:
                 self._setitem_single_column(loc, value, pi)
 
-    def _setitem_with_indexer_2d_value(self, indexer, value):
+    def _setitem_with_indexer_2d_value(self, indexer, value: np.ndarray) -> None:
         # We get here with np.ndim(value) == 2, excluding DataFrame,
         #  which goes through _setitem_with_indexer_frame_value
         pi = indexer[0]

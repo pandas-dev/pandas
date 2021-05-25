@@ -23,7 +23,10 @@ from pandas.core import (
 )
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import (
+    create_ndarray,
+    ensure_wrapped_if_datetimelike,
+)
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
@@ -94,12 +97,11 @@ class PandasArray(
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
-        # error: Argument "dtype" to "asarray" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], dtype[floating[_64Bit]], Type[object],
-        # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
-        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
-        # _DTypeDict, Tuple[Any, Any]]]"
-        result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
+        result = create_ndarray(
+            scalars,
+            dtype=dtype,  # type: ignore[arg-type]
+            copy=False,
+        )
         if (
             result.ndim > 1
             and not hasattr(scalars, "dtype")

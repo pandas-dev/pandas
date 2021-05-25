@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.core.common as com
+from pandas.core.construction import create_ndarray
 from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
@@ -152,7 +153,7 @@ class NumericIndex(Index):
             if not isinstance(data, (ABCSeries, list, tuple)):
                 data = list(data)
 
-            data = np.asarray(data, dtype=dtype)
+            data = create_ndarray(data, dtype=dtype, copy=False)
 
         if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
@@ -160,7 +161,7 @@ class NumericIndex(Index):
         dtype = cls._ensure_dtype(dtype)
 
         if copy or not is_dtype_equal(data.dtype, dtype):
-            subarr = np.array(data, dtype=dtype, copy=copy)
+            subarr = create_ndarray(data, dtype=dtype, copy=copy)
             cls._assert_safe_casting(data, subarr)
         else:
             subarr = data
@@ -169,7 +170,7 @@ class NumericIndex(Index):
             # GH#13601, GH#20285, GH#27125
             raise ValueError("Index data must be 1-dimensional")
 
-        subarr = np.asarray(subarr)
+        subarr = create_ndarray(subarr, copy=False)
         return subarr
 
     @classmethod

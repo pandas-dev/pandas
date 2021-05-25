@@ -67,7 +67,10 @@ from pandas.core.arrays import (
 )
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    create_ndarray,
+    extract_array,
+)
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -969,7 +972,7 @@ def sequence_to_td64ns(
         if lib.is_iterator(data) or isinstance(data, (abc.KeysView, abc.ValuesView)):
             # i.e. generator
             data = list(data)
-        data = np.array(data, copy=False)
+        data = create_ndarray(data, copy=False)
     elif isinstance(data, ABCMultiIndex):
         raise TypeError("Cannot create a DatetimeArray from a MultiIndex.")
     else:
@@ -979,7 +982,7 @@ def sequence_to_td64ns(
         data = data.to_numpy("int64", na_value=iNaT)
     elif not isinstance(data, (np.ndarray, ExtensionArray)):
         # GH#24539 e.g. xarray, dask object
-        data = np.asarray(data)
+        data = create_ndarray(data, copy=False)
     elif isinstance(data, ABCCategorical):
         data = data.categories.take(data.codes, fill_value=NaT)._values
         copy = False

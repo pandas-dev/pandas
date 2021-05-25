@@ -3242,6 +3242,7 @@ class TestStringRepTimestamp:
             assert f(NaT) == "NaT"
 
 
+@pytest.mark.filterwarnings("ignore:Promotion of numbers and bools:FutureWarning")
 def test_format_percentiles():
     result = fmt.format_percentiles([0.01999, 0.02001, 0.5, 0.666666, 0.9999])
     expected = ["1.999%", "2.001%", "50%", "66.667%", "99.99%"]
