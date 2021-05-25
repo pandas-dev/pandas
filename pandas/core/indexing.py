@@ -886,25 +886,21 @@ class _LocationIndexer(NDFrameIndexerBase):
         # handle the multi-axis by taking sections and reducing
         # this is iterative
         obj = self.obj
-        axis = 0
-        for key in tup:
+        # GH#41369 Loop in reverse order ensures indexing along columns before rows
+        # which selects only necessary blocks which avoids dtype conversion if possible
+        axis = len(tup) - 1
+        for key in tup[::-1]:
 
             if com.is_null_slice(key):
-                axis += 1
+                axis -= 1
                 continue
 
-            current_ndim = obj.ndim
             obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
-            axis += 1
+            axis -= 1
 
             # if we have a scalar, we are done
             if is_scalar(obj) or not hasattr(obj, "ndim"):
                 break
-
-            # has the dim of the obj changed?
-            # GH 7199
-            if obj.ndim < current_ndim:
-                axis -= 1
 
         return obj
 
