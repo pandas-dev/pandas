@@ -1114,6 +1114,20 @@ class TestiLocBaseIndependent:
         expected = DataFrame({Interval(1, 2): [2, 3]})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("indexing_func", [list, np.array])
+    @pytest.mark.parametrize("rhs_func", [list, np.array])
+    def test_loc_setitem_boolean_list(self, rhs_func, indexing_func):
+        # GH#20438 testing specifically list key, not arraylike
+        ser = Series([0, 1, 2])
+        ser.iloc[indexing_func([True, False, True])] = rhs_func([5, 10])
+        expected = Series([5, 1, 10])
+        tm.assert_series_equal(ser, expected)
+
+        df = DataFrame({"a": [0, 1, 2]})
+        df.iloc[indexing_func([True, False, True])] = rhs_func([[5], [10]])
+        expected = DataFrame({"a": [5, 1, 10]})
+        tm.assert_frame_equal(df, expected)
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
