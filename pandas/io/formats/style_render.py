@@ -573,7 +573,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([['<div></div>', '"A&B"', None]])
         >>> s = df.style.format(
-        ...     '<a href="a.com/{0}">{0}</a>', escape='html', na_rep="NA"
+        ...     '<a href="a.com/{0}">{0}</a>', escape="html", na_rep="NA"
         ...     )
         >>> s.render()
         ...
