@@ -1165,7 +1165,7 @@ class Index(IndexOpsMixin, PandasObject):
             line_break_each_value=self._is_multi,
         )
 
-    def _format_attrs(self) -> list[tuple[str, str | int]]:
+    def _format_attrs(self) -> list[tuple[str_t, str_t | int]]:
         """
         Return a list of tuples of the (attr,formatted_value).
         """
