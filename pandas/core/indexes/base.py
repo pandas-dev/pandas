@@ -813,6 +813,7 @@ class Index(IndexOpsMixin, PandasObject):
             return result
 
         attrs = self._get_attributes_dict()
+        attrs.pop("freq", None)  # For DatetimeIndex/TimedeltaIndex
         return Index(result, **attrs)
 
     @cache_readonly

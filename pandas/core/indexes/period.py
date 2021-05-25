@@ -34,7 +34,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
     is_datetime64_any_dtype,
     is_float,
     is_integer,
@@ -349,42 +348,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     # ------------------------------------------------------------------------
     # Index Methods
-
-    def __array_wrap__(self, result, context=None):
-        """
-        Gets called after a ufunc and other functions.
-
-        Needs additional handling as PeriodIndex stores internal data as int
-        dtype
-
-        Replace this to __numpy_ufunc__ in future version and implement
-        __array_function__ for Indexes
-        """
-        if isinstance(context, tuple) and len(context) > 0:
-            func = context[0]
-            if func is np.add:
-                pass
-            elif func is np.subtract:
-                name = self.name
-                left = context[1][0]
-                right = context[1][1]
-                if isinstance(left, PeriodIndex) and isinstance(right, PeriodIndex):
-                    name = left.name if left.name == right.name else None
-                    return Index(result, name=name)
-                elif isinstance(left, Period) or isinstance(right, Period):
-                    return Index(result, name=name)
-            elif isinstance(func, np.ufunc):
-                if "M->M" not in func.types:
-                    msg = f"ufunc '{func.__name__}' not supported for the PeriodIndex"
-                    # This should be TypeError, but TypeError cannot be raised
-                    # from here because numpy catches.
-                    raise ValueError(msg)
-
-        if is_bool_dtype(result):
-            return result
-        # the result is object dtype array of Period
-        # cannot pass _simple_new as it is
-        return type(self)(result, freq=self.freq, name=self.name)
 
     def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
         """
