@@ -22,6 +22,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;Fixed-Width Text File;:ref:`read_fwf<io.fwf_reader>`
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
+    text;`LaTeX <https://en.wikipedia.org/wiki/LaTeX>`__;;:ref:`Styler.to_latex<io.latex>`
     text;`XML <https://www.w3.org/standards/xml/core>`__;:ref:`read_xml<io.read_xml>`;:ref:`to_xml<io.xml>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
@@ -2830,7 +2831,42 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 .. |lxml| replace:: **lxml**
 .. _lxml: https://lxml.de
 
+.. _io.latex:
 
+LaTeX
+-----
+
+.. versionadded:: 1.3.0
+
+Currently there are no methods to read from LaTeX, only output methods.
+
+Writing to LaTeX files
+''''''''''''''''''''''
+
+.. note::
+
+   DataFrame *and* Styler objects currently have a ``to_latex`` method. We recommend
+   using the `Styler.to_latex() <../reference/api/pandas.io.formats.style.Styler.to_latex.rst>`__ method
+   over `DataFrame.to_latex() <../reference/api/pandas.DataFrame.to_latex.rst>`__ due to the former's greater flexibility with
+   conditional styling, and the latter's possible future deprecation.
+
+Review the documentation for `Styler.to_latex <../reference/api/pandas.io.formats.style.Styler.to_latex.rst>`__,
+which gives examples of conditional styling and explains the operation of its keyword
+arguments.
+
+For simple application the following pattern is sufficient.
+
+.. ipython:: python
+
+   df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["c", "d"])
+   print(df.style.to_latex())
+
+To format values before output, chain the `Styler.format <../reference/api/pandas.io.formats.style.Styler.format.rst>`__
+method.
+
+.. ipython:: python
+
+   print(df.style.format("€ {}").to_latex())
 
 XML
 ---
