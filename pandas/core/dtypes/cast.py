@@ -68,7 +68,6 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
-    is_sparse,
     is_string_dtype,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
@@ -1588,83 +1587,84 @@ def maybe_cast_to_datetime(
     We allow a list *only* when dtype is not None.
     """
     from pandas.core.arrays.datetimes import sequence_to_datetimes
-    from pandas.core.arrays.timedeltas import sequence_to_td64ns
+    from pandas.core.arrays.timedeltas import TimedeltaArray
 
     if not is_list_like(value):
         raise TypeError("value must be listlike")
 
+    if is_timedelta64_dtype(dtype):
+        # TODO: _from_sequence would raise ValueError in cases where
+        #  ensure_nanosecond_dtype raises TypeError
+        dtype = cast(np.dtype, dtype)
+        dtype = ensure_nanosecond_dtype(dtype)
+        res = TimedeltaArray._from_sequence(value, dtype=dtype)
+        return res
+
     if dtype is not None:
         is_datetime64 = is_datetime64_dtype(dtype)
         is_datetime64tz = is_datetime64tz_dtype(dtype)
-        is_timedelta64 = is_timedelta64_dtype(dtype)
 
         vdtype = getattr(value, "dtype", None)
 
-        if is_datetime64 or is_datetime64tz or is_timedelta64:
+        if is_datetime64 or is_datetime64tz:
             dtype = ensure_nanosecond_dtype(dtype)
 
-            if not is_sparse(value):
-                value = np.array(value, copy=False)
+            value = np.array(value, copy=False)
 
-                # we have an array of datetime or timedeltas & nulls
-                if value.size or not is_dtype_equal(value.dtype, dtype):
-                    _disallow_mismatched_datetimelike(value, dtype)
+            # we have an array of datetime or timedeltas & nulls
+            if value.size or not is_dtype_equal(value.dtype, dtype):
+                _disallow_mismatched_datetimelike(value, dtype)
 
-                    try:
-                        if is_datetime64:
-                            dta = sequence_to_datetimes(value, allow_object=False)
-                            # GH 25843: Remove tz information since the dtype
-                            # didn't specify one
+                try:
+                    if is_datetime64:
+                        dta = sequence_to_datetimes(value, allow_object=False)
+                        # GH 25843: Remove tz information since the dtype
+                        # didn't specify one
 
-                            if dta.tz is not None:
-                                warnings.warn(
-                                    "Data is timezone-aware. Converting "
-                                    "timezone-aware data to timezone-naive by "
-                                    "passing dtype='datetime64[ns]' to "
-                                    "DataFrame or Series is deprecated and will "
-                                    "raise in a future version. Use "
-                                    "`pd.Series(values).dt.tz_localize(None)` "
-                                    "instead.",
-                                    FutureWarning,
-                                    stacklevel=8,
-                                )
-                                # equiv: dta.view(dtype)
-                                # Note: NOT equivalent to dta.astype(dtype)
-                                dta = dta.tz_localize(None)
+                        if dta.tz is not None:
+                            warnings.warn(
+                                "Data is timezone-aware. Converting "
+                                "timezone-aware data to timezone-naive by "
+                                "passing dtype='datetime64[ns]' to "
+                                "DataFrame or Series is deprecated and will "
+                                "raise in a future version. Use "
+                                "`pd.Series(values).dt.tz_localize(None)` "
+                                "instead.",
+                                FutureWarning,
+                                stacklevel=8,
+                            )
+                            # equiv: dta.view(dtype)
+                            # Note: NOT equivalent to dta.astype(dtype)
+                            dta = dta.tz_localize(None)
 
-                            value = dta
-                        elif is_datetime64tz:
-                            dtype = cast(DatetimeTZDtype, dtype)
-                            # The string check can be removed once issue #13712
-                            # is solved. String data that is passed with a
-                            # datetime64tz is assumed to be naive which should
-                            # be localized to the timezone.
-                            is_dt_string = is_string_dtype(value.dtype)
-                            dta = sequence_to_datetimes(value, allow_object=False)
-                            if dta.tz is not None:
-                                value = dta.astype(dtype, copy=False)
-                            elif is_dt_string:
-                                # Strings here are naive, so directly localize
-                                # equiv: dta.astype(dtype)  # though deprecated
+                        value = dta
+                    elif is_datetime64tz:
+                        dtype = cast(DatetimeTZDtype, dtype)
+                        # The string check can be removed once issue #13712
+                        # is solved. String data that is passed with a
+                        # datetime64tz is assumed to be naive which should
+                        # be localized to the timezone.
+                        is_dt_string = is_string_dtype(value.dtype)
+                        dta = sequence_to_datetimes(value, allow_object=False)
+                        if dta.tz is not None:
+                            value = dta.astype(dtype, copy=False)
+                        elif is_dt_string:
+                            # Strings here are naive, so directly localize
+                            # equiv: dta.astype(dtype)  # though deprecated
 
-                                value = dta.tz_localize(dtype.tz)
-                            else:
-                                # Numeric values are UTC at this point,
-                                # so localize and convert
-                                # equiv: Series(dta).astype(dtype) # though deprecated
+                            value = dta.tz_localize(dtype.tz)
+                        else:
+                            # Numeric values are UTC at this point,
+                            # so localize and convert
+                            # equiv: Series(dta).astype(dtype) # though deprecated
 
-                                value = dta.tz_localize("UTC").tz_convert(dtype.tz)
-                        elif is_timedelta64:
-                            # if successful, we get a ndarray[td64ns]
-                            value, _ = sequence_to_td64ns(value)
-                    except OutOfBoundsDatetime:
-                        raise
-                    except ValueError:
-                        # TODO(GH#40048): only catch dateutil's ParserError
-                        #  once we can reliably import it in all supported versions
-                        if is_timedelta64:
-                            raise
-                        pass
+                            value = dta.tz_localize("UTC").tz_convert(dtype.tz)
+                except OutOfBoundsDatetime:
+                    raise
+                except ValueError:
+                    # TODO(GH#40048): only catch dateutil's ParserError
+                    #  once we can reliably import it in all supported versions
+                    pass
 
         elif getattr(vdtype, "kind", None) in ["m", "M"]:
             # we are already datetimelike and want to coerce to non-datetimelike;
