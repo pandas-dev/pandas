@@ -141,6 +141,9 @@ properly format HTML and eliminate some inconsistencies (:issue:`39942` :issue:`
 :class:`.Styler` has also been compatible with non-unique index or columns, at least for as many features as are fully compatible, others made only partially compatible (:issue:`41269`).
 One also has greater control of the display through separate sparsification of the index or columns, using the new 'styler' options context (:issue:`41142`).
 
+We have added an extension to allow LaTeX styling as an alternative to CSS styling and a method :meth:`.Styler.to_latex`
+which renders the necessary LaTeX format including built-up styles.
+
 Documentation has also seen major revisions in light of new features (:issue:`39720` :issue:`39317` :issue:`40493`)
 
 .. _whatsnew_130.dataframe_honors_copy_with_dict:
@@ -615,7 +618,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | scipy           | 1.2.0           |         |
 +-----------------+-----------------+---------+
-| sqlalchemy      | 1.2.8           |         |
+| sqlalchemy      | 1.3.0           |    X    |
 +-----------------+-----------------+---------+
 | tabulate        | 0.8.7           |    X    |
 +-----------------+-----------------+---------+
@@ -677,6 +680,48 @@ Deprecations
 - Deprecated special treatment of lists with first element a Categorical in the :class:`DataFrame` constructor; pass as ``pd.DataFrame({col: categorical, ...})`` instead (:issue:`38845`)
 - Deprecated passing arguments as positional (except for ``"method"``) in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (:issue:`41485`)
 - Deprecated passing arguments (apart from ``value``) as positional in :meth:`DataFrame.fillna` and :meth:`Series.fillna` (:issue:`41485`)
+- Deprecated construction of :class:`Series` or :class:`DataFrame` with ``DatetimeTZDtype`` data and ``datetime64[ns]`` dtype.  Use ``Series(data).dt.tz_localize(None)`` instead (:issue:`41555`,:issue:`33401`)
+
+.. _whatsnew_130.deprecations.nuisance_columns:
+
+Deprecated Dropping Nuisance Columns in DataFrame Reductions and DataFrameGroupBy Operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The default of calling a reduction (.min, .max, .sum, ...) on a :class:`DataFrame` with
+``numeric_only=None`` (the default, columns on which the reduction raises ``TypeError``
+are silently ignored and dropped from the result.
+
+This behavior is deprecated. In a future version, the ``TypeError`` will be raised,
+and users will need to select only valid columns before calling the function.
+
+For example:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3, 4], "B": pd.date_range("2016-01-01", periods=4)})
+   df
+
+*Old behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.prod()
+    Out[3]:
+    Out[3]:
+    A    24
+    dtype: int64
+
+*Future behavior*:
+
+.. code-block:: ipython
+
+    In [4]: df.prod()
+    ...
+    TypeError: 'DatetimeArray' does not implement reduction 'prod'
+
+    In [5]: df[["A"]].prod()
+    Out[5]:
+    A    24
+    dtype: int64
 
 .. ---------------------------------------------------------------------------
 
@@ -777,6 +822,8 @@ Conversion
 - Bug in :func:`factorize` where, when given an array with a numeric numpy dtype lower than int64, uint64 and float64, the unique values did not keep their original dtype (:issue:`41132`)
 - Bug in :class:`DataFrame` construction with a dictionary containing an arraylike with ``ExtensionDtype`` and ``copy=True`` failing to make a copy (:issue:`38939`)
 - Bug in :meth:`qcut` raising error when taking ``Float64DType`` as input (:issue:`40730`)
+- Bug in :class:`DataFrame` and :class:`Series` construction with ``datetime64[ns]`` data and ``dtype=object`` resulting in ``datetime`` objects instead of :class:`Timestamp` objects (:issue:`41599`)
+- Bug in :class:`DataFrame` and :class:`Series` construction with ``timedelta64[ns]`` data and ``dtype=object`` resulting in ``np.timedelta64`` objects instead of :class:`Timedelta` objects (:issue:`41599`)
 
 Strings
 ^^^^^^^
@@ -1009,6 +1056,7 @@ Other
 - Bug in :meth:`DataFrame.agg()` not sorting the aggregated axis in the order of the provided aggragation functions when one or more aggregation function fails to produce results (:issue:`33634`)
 - Bug in :meth:`DataFrame.clip` not interpreting missing values as no threshold (:issue:`40420`)
 - Bug in :class:`Series` backed by :class:`DatetimeArray` or :class:`TimedeltaArray` sometimes failing to set the array's ``freq`` to ``None`` (:issue:`41425`)
+- Bug in creating a :class:`Series` from a ``range`` object that does not fit in the bounds of ``int64`` dtype (:issue:`30173`)
 
 .. ---------------------------------------------------------------------------
 

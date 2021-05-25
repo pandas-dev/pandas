@@ -5,7 +5,7 @@ dependencies:
   - python=3.8.*
 
   # tools
-  - pytest>=5.0.1
+  - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
