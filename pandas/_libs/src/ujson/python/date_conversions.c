@@ -8,6 +8,9 @@ The full license is in the LICENSE file, distributed with this software.
 // Conversion routines that are useful for serialization,
 // but which don't interact with JSON objects directly
 
+#include <Python.h>
+#include <datetime.h>
+
 #include "date_conversions.h"
 #include <../../../tslibs/src/datetime/np_datetime.h>
 #include <../../../tslibs/src/datetime/np_datetime_strings.h>
@@ -55,7 +58,7 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT base, size_t *len) {
         return NULL;
     }
 
-    ret_code = make_iso_8601_datetime(&dts, result, *len, base);
+    ret_code = make_iso_8601_datetime(&dts, result, *len, base, -1);
     if (ret_code != 0) {
         PyErr_SetString(PyExc_ValueError,
                         "Could not convert datetime value to string");
@@ -77,8 +80,8 @@ npy_datetime NpyDateTimeToEpoch(npy_datetime dt, NPY_DATETIMEUNIT base) {
 char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
                       size_t *len) {
     npy_datetimestruct dts;
-    int ret;
-
+    int ret, local;
+    int tzoffset = -1;
     ret = convert_pydatetime_to_datetimestruct(obj, &dts);
     if (ret != 0) {
         if (!PyErr_Occurred()) {
@@ -87,11 +90,23 @@ char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
         }
         return NULL;
     }
+    if (PyObject_HasAttrString(obj, "tzinfo")){
+        PyObject *tzinfo = PyObject_GetAttrString(obj, "tzinfo");
+        Py_DECREF(tzinfo);
 
-    *len = (size_t)get_datetime_iso_8601_strlen(0, base);
+        if ((tzinfo != NULL) && (tzinfo != Py_None)){
+            tzoffset = get_tzoffset_from_pytzinfo(tzinfo, &dts);
+        }
+    }
+
+    if (tzoffset == -1){
+        local = 0;
+    } else {
+        local = 1;
+    }
+    *len = (size_t)get_datetime_iso_8601_strlen(local, base);
     char *result = PyObject_Malloc(*len);
-    ret = make_iso_8601_datetime(&dts, result, *len, base);
-
+    ret = make_iso_8601_datetime(&dts, result, *len, base, tzoffset);
     if (ret != 0) {
         PyErr_SetString(PyExc_ValueError,
                         "Could not convert datetime value to string");

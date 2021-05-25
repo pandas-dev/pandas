@@ -578,7 +578,7 @@ int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base) {
 
     if (base >= NPY_FR_h) {
         if (local) {
-            len += 5; /* "+####" or "-####" */
+            len += 6; /* "+##:##" or "-##:##" */
         } else {
             len += 1; /* "Z" */
         }
@@ -601,11 +601,15 @@ int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base) {
  * 'base' restricts the output to that unit. Set 'base' to
  * -1 to auto-detect a base after which all the values are zero.
  *
+ * 'tzoffset' are the minutes of the offset from UTC created by timezones
+ * e.g. 'tzoffset` of -750 with a dts of (2021, 4, 2, 0, 0, 0, 0) would
+ * produce '2021-04-01T11:30:00-12:30
+ *
  *  Returns 0 on success, -1 on failure (for example if the output
  *  string was too short).
  */
 int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
-                           NPY_DATETIMEUNIT base) {
+                           NPY_DATETIMEUNIT base, int tzoffset) {
     char *substr = outstr;
     int sublen = outlen;
     int tmplen;
@@ -638,6 +642,12 @@ int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     substr += tmplen;
     sublen -= tmplen;
 
+    if (tzoffset != -1){
+        npy_datetimestruct dts_local;
+        dts_local = *dts;
+        dts = &dts_local;
+        add_minutes_to_datetimestruct(dts, tzoffset);
+    }
     /* Stop if the unit is years */
     if (base == NPY_FR_Y) {
         if (sublen > 0) {
@@ -883,13 +893,54 @@ int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     sublen -= 3;
 
 add_time_zone:
-    /* UTC "Zulu" time */
-    if (sublen < 1) {
-        goto string_too_short;
+    if (tzoffset != -1) {
+        /* Add the +/- sign */
+        if (sublen < 1) {
+            goto string_too_short;
+        }
+        if (tzoffset < 0) {
+            substr[0] = '-';
+            tzoffset = -tzoffset;
+        }
+        else {
+            substr[0] = '+';
+        }
+        substr += 1;
+        sublen -= 1;
+
+        /* Add the timezone offset */
+        if (sublen < 1 ) {
+            goto string_too_short;
+        }
+        substr[0] = (char)((tzoffset / (10*60)) % 10 + '0');
+        if (sublen < 2 ) {
+            goto string_too_short;
+        }
+        substr[1] = (char)((tzoffset / 60) % 10 + '0');
+        if (sublen < 3 ) {
+            goto string_too_short;
+        }
+        substr[2] = ':';
+        if (sublen < 4) {
+            goto string_too_short;
+        }
+        substr[3] = (char)(((tzoffset % 60) / 10) % 10 + '0');
+        if (sublen < 5 ) {
+            goto string_too_short;
+        }
+        substr[4] = (char)((tzoffset % 60) % 10 + '0');
+        substr += 5;
+        sublen -= 5;
     }
-    substr[0] = 'Z';
-    substr += 1;
-    sublen -= 1;
+        /* UTC "Zulu" time */
+    else {
+        if (sublen < 1) {
+            goto string_too_short;
+        }
+        substr[0] = 'Z';
+        substr += 1;
+        sublen -= 1;
+    }
 
     /* Add a NULL terminator, and return */
     if (sublen > 0) {

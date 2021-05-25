@@ -47,6 +47,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <ultrajson.h>
 #include "date_conversions.h"
 #include "datetime.h"
+#include "../../../tslibs/src/datetime/np_datetime.h"
 
 static PyTypeObject *type_decimal;
 static PyTypeObject *cls_dataframe;
@@ -180,6 +181,8 @@ void *initObjToJSON(void) {
 
     /* Initialise numpy API */
     import_array();
+    /* Initialize pandas datetime API */
+    pandas_pydatetime_import();
     // GH 31463
     return NULL;
 }
@@ -211,6 +214,14 @@ static TypeContext *createTypeContext(void) {
     pc->columnLabelsLen = 0;
 
     return pc;
+}
+
+static PyObject *get_tzinfo(PyObject *obj){
+    if (PyObject_HasAttrString(obj, "tzinfo")){
+        PyObject *tzinfo = PyObject_GetAttrString(obj, "tzinfo");
+        return tzinfo;
+    }
+    return Py_None;
 }
 
 static PyObject *get_values(PyObject *obj) {
@@ -527,7 +538,9 @@ int NpyArr_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
 }
 
 JSOBJ NpyArr_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
-    return GET_TC(tc)->itemValue;
+    JSOBJ ret;
+    ret = GET_TC(tc)->itemValue;
+    return ret;
 }
 
 char *NpyArr_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc,
@@ -1600,7 +1613,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     }
 
 ISITERABLE:
-
+    // tzinfo = get_tzinfo(obj);
+    
     if (PyObject_TypeCheck(obj, cls_index)) {
         if (enc->outputFormat == SPLIT) {
             tc->type = JT_OBJECT;

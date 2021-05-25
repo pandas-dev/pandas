@@ -391,8 +391,8 @@ class TestUltraJSONTests:
 
     def test_encode_time_conversion_pytz(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
-        test = datetime.time(10, 12, 15, 343243, pytz.utc)
-        output = ujson.encode(test)
+        test = datetime.datetime(10, 12, 15, 343243, pytz.timezone('US/Eastern'))
+        output = ujson.encode(test, iso_dates=True, date_unit='us')
         expected = f'"{test.isoformat()}"'
         assert expected == output
 

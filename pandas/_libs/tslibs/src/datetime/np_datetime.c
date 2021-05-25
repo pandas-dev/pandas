@@ -21,12 +21,15 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #endif  // NPY_NO_DEPRECATED_API
 
 #include <Python.h>
+#include <datetime.h>
 
 #include <numpy/arrayobject.h>
 #include <numpy/arrayscalars.h>
 #include <numpy/ndarraytypes.h>
 #include "np_datetime.h"
-
+#define PyDateTime_FromDateAndTimeAndZone(year, month, day, hour, min, sec, usec, tz) \
+    PyDateTimeAPI->DateTime_FromDateAndTime(year, month, day, hour, \
+        min, sec, usec, tz, PyDateTimeAPI->DateTimeType)
 #if PY_MAJOR_VERSION >= 3
 #define PyInt_AsLong PyLong_AsLong
 #endif  // PyInt_AsLong
@@ -40,6 +43,13 @@ const npy_datetimestruct _NS_MAX_DTS = {
 const int days_per_month_table[2][12] = {
     {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
     {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
+
+
+
+void pandas_pydatetime_import(void)
+{
+    PyDateTime_IMPORT;
+}
 
 /*
  * Returns 1 if the given year is a leap year, 0 otherwise.
@@ -763,4 +773,47 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
                             "NumPy timedelta metadata is corrupted with "
                             "invalid base unit");
     }
+}
+
+/*
+ * Calculates the minutes offset from the 1970 epoch.
+ */
+static npy_int64 get_datetimestruct_minutes(const npy_datetimestruct *dts)
+{
+    npy_int64 days = get_datetimestruct_days(dts) * 24 * 60;
+    days += dts->hour * 60;
+    days += dts->min;
+
+    return days;
+}
+
+/*
+ * Gets a tzoffset in minutes by calling the fromutc() function on
+ * the Python datetime.tzinfo object.
+ */
+int get_tzoffset_from_pytzinfo(PyObject *timezone_obj, npy_datetimestruct *dts)
+{
+    PyDateTime_Date *dt;
+    PyDateTime_Delta *tzoffset;
+    npy_datetimestruct loc_dts;
+
+    /* Create a Python datetime to give to the timezone object */
+    dt = PyDateTime_FromDateAndTimeAndZone((int)dts->year, dts->month, dts->day,
+                            dts->hour, dts->min, 0, 0, timezone_obj);
+    if (dt == NULL || !(PyDateTime_Check(dt))) {
+        Py_DECREF(dt);
+        return -1;
+    }
+    tzoffset = PyObject_CallMethod(timezone_obj, "utcoffset", "O", dt);
+    
+    Py_DECREF(dt);
+    if ((tzoffset == Py_None || tzoffset == NULL) || !(PyDelta_Check(tzoffset))){
+        Py_DECREF(tzoffset);
+        return -1;
+    }
+
+    long offset_minutes = (tzoffset->days * 24 * 60) + ((long) tzoffset->seconds / 60);
+    Py_DECREF(tzoffset);
+    return (int) offset_minutes;
+
 }

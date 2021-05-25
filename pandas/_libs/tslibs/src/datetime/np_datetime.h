@@ -33,6 +33,7 @@ extern const npy_datetimestruct _NS_MAX_DTS;
 
 // stuff pandas needs
 // ----------------------------------------------------------------------------
+void pandas_pydatetime_import(void);
 
 int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
                                          npy_datetimestruct *out);
@@ -75,5 +76,10 @@ int cmp_npy_datetimestruct(const npy_datetimestruct *a,
 void
 add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes);
 
+/*
+ * Gets a tzoffset in minutes by calling the fromutc() function on
+ * the Python datetime.tzinfo object.
+ */
+int get_tzoffset_from_pytzinfo(PyObject *timezone_obj, npy_datetimestruct *dts);
 
 #endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_
