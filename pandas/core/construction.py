@@ -745,7 +745,9 @@ def _try_cast(
     except (ValueError, TypeError) as err:
         if dtype is not None and raise_cast_failure:
             raise
-        elif "Cannot cast" in str(err):
+        elif "Cannot cast" in str(err) or "cannot be converted to timedelta64" in str(
+            err
+        ):
             # via _disallow_mismatched_datetimelike
             raise
         else:
