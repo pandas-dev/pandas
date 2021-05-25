@@ -39,6 +39,7 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
     maybe_convert_platform,
+    maybe_infer_to_datetimelike,
     maybe_upcast,
     sanitize_to_nanoseconds,
 )
@@ -546,11 +547,12 @@ def sanitize_array(
         if dtype is not None or len(data) == 0:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
+            # TODO: copy?
             subarr = maybe_convert_platform(data)
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ExtensionArray, ndarray, List[Any]]", variable has type
-            # "ExtensionArray")
-            subarr = maybe_cast_to_datetime(subarr, dtype)  # type: ignore[assignment]
+            if subarr.dtype == object:
+                # Argument 1 to "maybe_infer_to_datetimelike" has incompatible
+                # type "Union[ExtensionArray, ndarray]"; expected "ndarray"
+                subarr = maybe_infer_to_datetimelike(subarr)  # type: ignore[arg-type]
 
     subarr = _sanitize_ndim(subarr, data, dtype, index)
 
@@ -677,22 +679,29 @@ def _try_cast(
     """
     is_ndarray = isinstance(arr, np.ndarray)
 
-    # perf shortcut as this is the most common case
-    # Item "List[Any]" of "Union[List[Any], ndarray]" has no attribute "dtype"
-    if (
-        is_ndarray
-        and arr.dtype != object  # type: ignore[union-attr]
-        and not copy
-        and dtype is None
-    ):
-        # Argument 1 to "sanitize_to_nanoseconds" has incompatible type
-        # "Union[List[Any], ndarray]"; expected "ndarray"
-        return sanitize_to_nanoseconds(arr)  # type: ignore[arg-type]
+    if dtype is None:
+        # perf shortcut as this is the most common case
+        if is_ndarray:
+            arr = cast(np.ndarray, arr)
+            if arr.dtype != object:
+                return sanitize_to_nanoseconds(arr, copy=copy)
 
-    if isinstance(dtype, ExtensionDtype):
+            out = maybe_infer_to_datetimelike(arr)
+            if out is arr and copy:
+                out = out.copy()
+            return out
+
+        else:
+            # i.e. list
+            varr = np.array(arr, copy=False)
+            # filter out cases that we _dont_ want to go through
+            #  maybe_infer_to_datetimelike
+            if varr.dtype != object or varr.size == 0:
+                return varr
+            return maybe_infer_to_datetimelike(varr)
+
+    elif isinstance(dtype, ExtensionDtype):
         # create an extension array from its dtype
-        # DatetimeTZ case needs to go through maybe_cast_to_datetime but
-        # SparseDtype does not
         if isinstance(dtype, DatetimeTZDtype):
             # We can't go through _from_sequence because it handles dt64naive
             #  data differently; _from_sequence treats naive as wall times,
@@ -714,22 +723,12 @@ def _try_cast(
             return subarr
         return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
 
-    elif dtype is None and not is_ndarray:
-        # filter out cases that we _dont_ want to go through maybe_cast_to_datetime
-        varr = np.array(arr, copy=False)
-        if varr.dtype != object or varr.size == 0:
-            return varr
-        # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray, List[Any]]", expected "Union[ExtensionArray, ndarray]")
-        return maybe_cast_to_datetime(varr, None)  # type: ignore[return-value]
-
     try:
         # GH#15832: Check if we are requesting a numeric dtype and
         # that we can convert the data to the requested dtype.
         if is_integer_dtype(dtype):
             # this will raise if we have e.g. floats
 
-            dtype = cast(np.dtype, dtype)
             maybe_cast_to_integer_array(arr, dtype)
             subarr = arr
         else:
@@ -738,7 +737,11 @@ def _try_cast(
                 return subarr
 
         if not isinstance(subarr, ABCExtensionArray):
+            # 4 tests fail if we move this to a try/except/else; see
+            #  test_constructor_compound_dtypes, test_constructor_cast_failure
+            #  test_constructor_dict_cast2, test_loc_setitem_dtype
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
+
     except OutOfBoundsDatetime:
         # in case of out of bound datetime64 -> always raise
         raise
