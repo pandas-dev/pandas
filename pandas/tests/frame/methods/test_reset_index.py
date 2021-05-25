@@ -341,7 +341,7 @@ class TestResetIndex:
         )
         df.index.name = name
 
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             result = df.reset_index()
 
         item = name if name is not None else "index"
@@ -656,4 +656,18 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     )
     expected["c3"] = expected["c3"].astype("datetime64[ns]")
     expected["c1"] = expected["c1"].astype("float64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_reset_index_multiindex_nat():
+    # GH 11479
+    idx = range(3)
+    tstamp = date_range("2015-07-01", freq="D", periods=3)
+    df = DataFrame({"id": idx, "tstamp": tstamp, "a": list("abc")})
+    df.loc[2, "tstamp"] = pd.NaT
+    result = df.set_index(["id", "tstamp"]).reset_index("id")
+    expected = DataFrame(
+        {"id": range(3), "a": list("abc")},
+        index=pd.DatetimeIndex(["2015-07-01", "2015-07-02", "NaT"], name="tstamp"),
+    )
     tm.assert_frame_equal(result, expected)

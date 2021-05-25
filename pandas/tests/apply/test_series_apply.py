@@ -262,7 +262,9 @@ def test_transform_partial_failure(op, request):
     # GH 35964
     if op in ("ffill", "bfill", "pad", "backfill", "shift"):
         request.node.add_marker(
-            pytest.mark.xfail(reason=f"{op} is successful on any dtype")
+            pytest.mark.xfail(
+                raises=AssertionError, reason=f"{op} is successful on any dtype"
+            )
         )
     if op in ("rank", "fillna"):
         pytest.skip(f"{op} doesn't raise TypeError on object")
@@ -441,8 +443,8 @@ def test_non_callable_aggregates(how):
                 ("sum", "abc"),
                 ("max", "c"),
                 ("min", "a"),
-                ("all", "c"),  # see GH12863
-                ("any", "a"),
+                ("all", True),
+                ("any", True),
             ],
         ),
     ),

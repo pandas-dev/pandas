@@ -274,7 +274,7 @@ class TestTesting(Base):
     ]
 
     def test_testing(self):
-        from pandas import testing
+        from pandas import testing  # noqa: PDF015
 
         self.check(testing, self.funcs)
 

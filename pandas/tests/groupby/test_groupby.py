@@ -99,10 +99,7 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
 
     applied = df.groupby("A").apply(max_value)
     result = applied.dtypes
-    expected = Series(
-        [np.dtype("object")] * 2 + [np.dtype("float64")] * 2 + [np.dtype("int64")],
-        index=["A", "B", "C", "D", "value"],
-    )
+    expected = df.dtypes
     tm.assert_series_equal(result, expected)
 
 
@@ -237,17 +234,38 @@ def test_pass_args_kwargs(ts, tsframe):
     tm.assert_series_equal(trans_result, trans_expected)
 
     # DataFrame
-    df_grouped = tsframe.groupby(lambda x: x.month)
-    agg_result = df_grouped.agg(np.percentile, 80, axis=0)
-    apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
-    expected = df_grouped.quantile(0.8)
-    tm.assert_frame_equal(apply_result, expected, check_names=False)
-    tm.assert_frame_equal(agg_result, expected)
+    for as_index in [True, False]:
+        df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
+        agg_result = df_grouped.agg(np.percentile, 80, axis=0)
+        apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
+        expected = df_grouped.quantile(0.8)
+        tm.assert_frame_equal(apply_result, expected, check_names=False)
+        tm.assert_frame_equal(agg_result, expected)
 
-    agg_result = df_grouped.agg(f, q=80)
-    apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
-    tm.assert_frame_equal(agg_result, expected)
-    tm.assert_frame_equal(apply_result, expected, check_names=False)
+        agg_result = df_grouped.agg(f, q=80)
+        apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
+        tm.assert_frame_equal(agg_result, expected)
+        tm.assert_frame_equal(apply_result, expected, check_names=False)
+
+
+@pytest.mark.parametrize("as_index", [True, False])
+def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
+    # go through _aggregate_frame with self.axis == 0 and duplicate columns
+    tsframe.columns = ["A", "B", "A", "C"]
+    gb = tsframe.groupby(lambda x: x.month, as_index=as_index)
+
+    res = gb.agg(np.percentile, 80, axis=0)
+
+    ex_data = {
+        1: tsframe[tsframe.index.month == 1].quantile(0.8),
+        2: tsframe[tsframe.index.month == 2].quantile(0.8),
+    }
+    expected = DataFrame(ex_data).T
+    if not as_index:
+        # TODO: try to get this more consistent?
+        expected.index = Index(range(2))
+
+    tm.assert_frame_equal(res, expected)
 
 
 def test_len():
@@ -302,10 +320,9 @@ def test_with_na_groups(dtype):
         return float(len(x))
 
     agged = grouped.agg(f)
-    expected = Series([4, 2], index=["bar", "foo"])
+    expected = Series([4.0, 2.0], index=["bar", "foo"])
 
-    tm.assert_series_equal(agged, expected, check_dtype=False)
-    assert issubclass(agged.dtype.type, np.dtype(dtype).type)
+    tm.assert_series_equal(agged, expected)
 
 
 def test_indices_concatenation_order():
@@ -1240,7 +1257,7 @@ def test_groupby_keys_same_size_as_index():
     )
     df = DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=index)
     result = df.groupby([Grouper(level=0, freq=freq), "metric"]).mean()
-    expected = df.set_index([df.index, "metric"])
+    expected = df.set_index([df.index, "metric"]).astype(float)
 
     tm.assert_frame_equal(result, expected)
 
@@ -1333,7 +1350,7 @@ def test_groupby_2d_malformed():
     d["ones"] = [1, 1]
     d["label"] = ["l1", "l2"]
     tmp = d.groupby(["group"]).mean()
-    res_values = np.array([[0, 1], [0, 1]], dtype=np.int64)
+    res_values = np.array([[0.0, 1.0], [0.0, 1.0]])
     tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"]))
     tm.assert_numpy_array_equal(tmp.values, res_values)
 
@@ -1640,7 +1657,7 @@ def test_index_label_overlaps_location():
     expected = ser.take([1, 3, 4])
     tm.assert_series_equal(actual, expected)
 
-    # ... and again, with a generic Index of floats
+    #  and again, with a generic Index of floats
     df.index = df.index.astype(float)
     g = df.groupby(list("ababb"))
     actual = g.filter(lambda x: len(x) > 2)
@@ -1728,25 +1745,81 @@ def test_pivot_table_values_key_error():
         [0],
         [0.0],
         ["a"],
-        [Categorical([0])],
+        Categorical([0]),
         [to_datetime(0)],
-        [date_range(0, 1, 1, tz="US/Eastern")],
-        [pd.array([0], dtype="Int64")],
+        date_range(0, 1, 1, tz="US/Eastern"),
+        pd.array([0], dtype="Int64"),
+        pd.array([0], dtype="Float64"),
+        pd.array([False], dtype="boolean"),
     ],
 )
 @pytest.mark.parametrize("method", ["attr", "agg", "apply"])
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "mad", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(columns, keys, values, method, op):
+@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
+def test_empty_groupby(columns, keys, values, method, op, request):
     # GH8093 & GH26411
-
     override_dtype = None
+
+    if isinstance(values, Categorical) and len(keys) == 1 and method == "apply":
+        mark = pytest.mark.xfail(raises=TypeError, match="'str' object is not callable")
+        request.node.add_marker(mark)
+    elif (
+        isinstance(values, Categorical)
+        and len(keys) == 1
+        and op in ["idxmax", "idxmin"]
+    ):
+        mark = pytest.mark.xfail(
+            raises=ValueError, match="attempt to get arg(min|max) of an empty sequence"
+        )
+        request.node.add_marker(mark)
+    elif (
+        isinstance(values, Categorical)
+        and len(keys) == 1
+        and not isinstance(columns, list)
+    ):
+        mark = pytest.mark.xfail(
+            raises=TypeError, match="'Categorical' does not implement"
+        )
+        request.node.add_marker(mark)
+    elif (
+        isinstance(values, Categorical)
+        and len(keys) == 1
+        and op in ["mad", "min", "max", "sum", "prod", "skew"]
+    ):
+        mark = pytest.mark.xfail(
+            raises=AssertionError, match="(DataFrame|Series) are different"
+        )
+        request.node.add_marker(mark)
+    elif (
+        isinstance(values, Categorical)
+        and len(keys) == 2
+        and op in ["min", "max", "sum"]
+        and method != "apply"
+    ):
+        mark = pytest.mark.xfail(
+            raises=AssertionError, match="(DataFrame|Series) are different"
+        )
+        request.node.add_marker(mark)
+    elif (
+        isinstance(values, pd.core.arrays.BooleanArray)
+        and op in ["sum", "prod"]
+        and method != "apply"
+    ):
+        # We expect to get Int64 back for these
+        override_dtype = "Int64"
+
     if isinstance(values[0], bool) and op in ("prod", "sum") and method != "apply":
         # sum/product of bools is an integer
         override_dtype = "int64"
 
-    df = DataFrame([3 * values], columns=list("ABC"))
+    df = DataFrame({"A": values, "B": values, "C": values}, columns=list("ABC"))
+
+    if hasattr(values, "dtype"):
+        # check that we did the construction right
+        assert (df.dtypes == values.dtype).all()
+
     df = df.iloc[:0]
 
     gb = df.groupby(keys)[columns]
@@ -2007,24 +2080,42 @@ def test_dup_labels_output_shape(groupby_func, idx):
 
 def test_groupby_crash_on_nunique(axis):
     # Fix following 30253
+    dti = date_range("2016-01-01", periods=2, name="foo")
     df = DataFrame({("A", "B"): [1, 2], ("A", "C"): [1, 3], ("D", "B"): [0, 0]})
+    df.columns.names = ("bar", "baz")
+    df.index = dti
 
     axis_number = df._get_axis_number(axis)
     if not axis_number:
         df = df.T
 
-    result = df.groupby(axis=axis_number, level=0).nunique()
+    gb = df.groupby(axis=axis_number, level=0)
+    result = gb.nunique()
 
-    expected = DataFrame({"A": [1, 2], "D": [1, 1]})
+    expected = DataFrame({"A": [1, 2], "D": [1, 1]}, index=dti)
+    expected.columns.name = "bar"
     if not axis_number:
         expected = expected.T
 
     tm.assert_frame_equal(result, expected)
 
+    if axis_number == 0:
+        # same thing, but empty columns
+        gb2 = df[[]].groupby(axis=axis_number, level=0)
+        exp = expected[[]]
+    else:
+        # same thing, but empty rows
+        gb2 = df.loc[[]].groupby(axis=axis_number, level=0)
+        # default for empty when we can't infer a dtype is float64
+        exp = expected.loc[[]].astype(np.float64)
+
+    res = gb2.nunique()
+    tm.assert_frame_equal(res, exp)
+
 
 def test_groupby_list_level():
     # GH 9790
-    expected = DataFrame(np.arange(0, 9).reshape(3, 3))
+    expected = DataFrame(np.arange(0, 9).reshape(3, 3), dtype=float)
     result = expected.groupby(level=[0]).mean()
     tm.assert_frame_equal(result, expected)
 
@@ -2175,3 +2266,40 @@ def test_groupby_mean_duplicate_index(rand_series_with_duplicate_datetimeindex):
     result = dups.groupby(level=0).mean()
     expected = dups.groupby(dups.index).mean()
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_all_nan_groups_drop():
+    # GH 15036
+    s = Series([1, 2, 3], [np.nan, np.nan, np.nan])
+    result = s.groupby(s.index).sum()
+    expected = Series([], index=Index([], dtype=np.float64), dtype=np.int64)
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_empty_multi_column():
+    # GH 15106
+    result = DataFrame(data=[], columns=["A", "B", "C"]).groupby(["A", "B"]).sum()
+    expected = DataFrame(
+        [], columns=["C"], index=MultiIndex([[], []], [[], []], names=["A", "B"])
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_filtered_df_std():
+    # GH 16174
+    dicts = [
+        {"filter_col": False, "groupby_col": True, "bool_col": True, "float_col": 10.5},
+        {"filter_col": True, "groupby_col": True, "bool_col": True, "float_col": 20.5},
+        {"filter_col": True, "groupby_col": True, "bool_col": True, "float_col": 30.5},
+    ]
+    df = DataFrame(dicts)
+
+    df_filter = df[df["filter_col"] == True]  # noqa:E712
+    dfgb = df_filter.groupby("groupby_col")
+    result = dfgb.std()
+    expected = DataFrame(
+        [[0.0, 0.0, 7.071068]],
+        columns=["filter_col", "bool_col", "float_col"],
+        index=Index([True], name="groupby_col"),
+    )
+    tm.assert_frame_equal(result, expected)

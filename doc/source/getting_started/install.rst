@@ -195,7 +195,7 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<https://docs.pytest.org/en/latest/>`__ >= 5.0.1 and `Hypothesis
+<https://docs.pytest.org/en/latest/>`__ >= 6.0 and `Hypothesis
 <https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
@@ -234,7 +234,7 @@ Recommended dependencies
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.6.8 or higher.
+  If installed, must be Version 2.7.0 or higher.
 
 * `bottleneck <https://github.com/pydata/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
@@ -358,9 +358,24 @@ PyTables                  3.5.1              HDF5-based reading / writing
 blosc                     1.17.0             Compression for HDF5
 zlib                                         Compression for HDF5
 fastparquet               0.4.0              Parquet reading / writing
-pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
+pyarrow                   0.17.0             Parquet, ORC, and feather reading / writing
 pyreadstat                                   SPSS files (.sav) reading
 ========================= ================== =============================================================
+
+.. _install.warn_orc:
+
+.. warning::
+
+    * If you want to use :func:`~pandas.read_orc`, it is highly recommended to install pyarrow using conda.
+      The following is a summary of the environment in which :func:`~pandas.read_orc` can work.
+
+      ========================= ================== =============================================================
+      System                    Conda              PyPI
+      ========================= ================== =============================================================
+      Linux                     Successful         Failed(pyarrow==3.0 Successful)
+      macOS                     Successful         Failed
+      Windows                   Failed             Failed
+      ========================= ================== =============================================================
 
 Access data in the cloud
 ^^^^^^^^^^^^^^^^^^^^^^^^

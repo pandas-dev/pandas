@@ -201,6 +201,14 @@ class TestSetitemSlices:
         series[::2] = 0
         assert (series[::2] == 0).all()
 
+    def test_setitem_multiindex_slice(self, indexer_sli):
+        # GH 8856
+        mi = MultiIndex.from_product(([0, 1], list("abcde")))
+        result = Series(np.arange(10, dtype=np.int64), mi)
+        indexer_sli(result)[::4] = 100
+        expected = Series([100, 1, 2, 3, 100, 5, 6, 7, 100, 9], mi)
+        tm.assert_series_equal(result, expected)
+
 
 class TestSetitemBooleanMask:
     def test_setitem_boolean(self, string_series):
@@ -276,6 +284,13 @@ class TestSetitemBooleanMask:
         ser[mask] = range(5)
         result = ser
         expected = Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
+        tm.assert_series_equal(result, expected)
+
+    def test_setitem_nan_with_bool(self):
+        # GH 13034
+        result = Series([True, False, True])
+        result[0] = np.nan
+        expected = Series([np.nan, False, True], dtype=object)
         tm.assert_series_equal(result, expected)
 
 
@@ -556,6 +571,9 @@ class SetitemCastingEquivalents:
         indkey = np.array(ilkey)
         self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
 
+        genkey = (x for x in [key])
+        self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
+
     def test_slice_key(self, obj, key, expected, val, indexer_sli, is_inplace):
         if not isinstance(key, slice):
             return
@@ -569,6 +587,9 @@ class SetitemCastingEquivalents:
 
         indkey = np.array(ilkey)
         self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
+
+        genkey = (x for x in indkey)
+        self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
 
     def test_mask_key(self, obj, key, expected, val, indexer_sli):
         # setitem with boolean mask

@@ -390,7 +390,7 @@ class IntervalIndex(ExtensionIndex):
     # --------------------------------------------------------------------
 
     @cache_readonly
-    def _engine(self):
+    def _engine(self) -> IntervalTree:
         left = self._maybe_convert_i8(self.left)
         right = self._maybe_convert_i8(self.right)
         return IntervalTree(left, right, closed=self.closed)
@@ -721,6 +721,7 @@ class IntervalIndex(ExtensionIndex):
         limit: int | None = None,
         tolerance: Any | None = None,
     ) -> np.ndarray:
+        # returned ndarray is np.intp
 
         if isinstance(target, IntervalIndex):
             # equal indexes -> 1:1 positional match
@@ -753,6 +754,7 @@ class IntervalIndex(ExtensionIndex):
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target: Index) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
         target = ensure_index(target)
 
         if isinstance(target, IntervalIndex) and not self._should_compare(target):
@@ -772,6 +774,7 @@ class IntervalIndex(ExtensionIndex):
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     def _get_indexer_pointwise(self, target: Index) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
         """
         pointwise implementation for get_indexer and get_indexer_non_unique.
         """
@@ -822,8 +825,9 @@ class IntervalIndex(ExtensionIndex):
         #  positional in this case
         return self.dtype.subtype.kind in ["m", "M"]
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind):
-        return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
+        return getattr(self, side)._maybe_cast_slice_bound(label, side)
 
     @Appender(Index._convert_list_indexer.__doc__)
     def _convert_list_indexer(self, keyarr):

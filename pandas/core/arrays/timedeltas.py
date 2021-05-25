@@ -135,10 +135,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     # define my properties & methods for delegation
     _other_ops: list[str] = []
     _bool_ops: list[str] = []
-    _object_ops = ["freq"]
-    _field_ops = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops = _field_ops + _object_ops + _bool_ops
-    _datetimelike_methods = [
+    _object_ops: list[str] = ["freq"]
+    _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
         "round",
@@ -234,8 +234,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         if inferred_freq is None and freq is not None:
             type(self)._validate_frequency(self, freq)
 
+    # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
-    def _simple_new(
+    def _simple_new(  # type: ignore[override]
         cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=TD64NS_DTYPE
     ) -> TimedeltaArray:
         assert dtype == TD64NS_DTYPE, dtype
