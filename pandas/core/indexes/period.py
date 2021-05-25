@@ -153,11 +153,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     --------
     >>> idx = pd.PeriodIndex(year=[2000, 2002], quarter=[1, 3])
     >>> idx
-    PeriodIndex(['2000Q1', '2002Q3'], dtype='period[Q-DEC]', freq='Q-DEC')
+    PeriodIndex(['2000Q1', '2002Q3'], dtype='period[Q-DEC]')
     """
 
     _typ = "periodindex"
-    _attributes = ["name", "freq"]
+    _attributes = ["name"]
 
     # define my properties & methods for delegation
     _is_numeric_dtype = False
@@ -636,7 +636,7 @@ def period_range(
     PeriodIndex(['2017-01', '2017-02', '2017-03', '2017-04', '2017-05', '2017-06',
              '2017-07', '2017-08', '2017-09', '2017-10', '2017-11', '2017-12',
              '2018-01'],
-            dtype='period[M]', freq='M')
+            dtype='period[M]')
 
     If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
     endpoints for a ``PeriodIndex`` with frequency matching that of the
@@ -645,7 +645,7 @@ def period_range(
     >>> pd.period_range(start=pd.Period('2017Q1', freq='Q'),
     ...                 end=pd.Period('2017Q2', freq='Q'), freq='M')
     PeriodIndex(['2017-03', '2017-04', '2017-05', '2017-06'],
-                dtype='period[M]', freq='M')
+                dtype='period[M]')
     """
     if com.count_not_none(start, end, periods) != 2:
         raise ValueError(
