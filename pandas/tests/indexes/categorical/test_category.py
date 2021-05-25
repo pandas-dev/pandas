@@ -38,6 +38,11 @@ class TestCategoricalIndex(Base):
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is True
 
+    def test_pickle_compat_construction(self):
+        # Once the deprecation is enforced, we can use the parent class's test
+        with tm.assert_produces_warning(FutureWarning, match="without passing data"):
+            self._index_cls()
+
     def test_insert(self, simple_index):
 
         ci = simple_index
