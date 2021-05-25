@@ -1131,10 +1131,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         group_keys = self.grouper._get_group_keys()
 
         numba_transform_func = numba_.generate_numba_transform_func(
-            tuple(args), kwargs, func, engine_kwargs
+            kwargs, func, engine_kwargs
         )
         result = numba_transform_func(
-            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
+            sorted_data,
+            sorted_index,
+            starts,
+            ends,
+            len(group_keys),
+            len(data.columns),
+            *args,
         )
 
         cache_key = (func, "groupby_transform")
@@ -1157,11 +1163,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
         group_keys = self.grouper._get_group_keys()
 
-        numba_agg_func = numba_.generate_numba_agg_func(
-            tuple(args), kwargs, func, engine_kwargs
-        )
+        numba_agg_func = numba_.generate_numba_agg_func(kwargs, func, engine_kwargs)
         result = numba_agg_func(
-            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
+            sorted_data,
+            sorted_index,
+            starts,
+            ends,
+            len(group_keys),
+            len(data.columns),
+            *args,
         )
 
         cache_key = (func, "groupby_agg")
