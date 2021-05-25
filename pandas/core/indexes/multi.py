@@ -41,6 +41,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 
@@ -295,7 +296,6 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _codes = FrozenList()
     _comparables = ["names"]
-    rename = Index.set_names
 
     sortorder: int | None
 
@@ -3780,7 +3780,7 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
 
-    @doc(Index.isin)
+    # @doc(Index.isin)
     def isin(self, values, level=None) -> np.ndarray:
         if level is None:
             values = MultiIndex.from_tuples(values, names=self.names)._values
@@ -3788,10 +3788,15 @@ class MultiIndex(Index):
         else:
             num = self._get_level_number(level)
             levs = self.get_level_values(num)
-
             if levs.size == 0:
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
+    def set_names(self, names, level=None, inplace: bool = False) -> MultiIndex | None:
+        return super().set_names(names=names, level=level, inplace=inplace)
+
+    rename = set_names
 
     # ---------------------------------------------------------------
     # Arithmetic/Numeric Methods - Disabled
