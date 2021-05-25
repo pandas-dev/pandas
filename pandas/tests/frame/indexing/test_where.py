@@ -763,7 +763,12 @@ def test_where_non_keyword():
     # GH 41523
     s = DataFrame(range(5))
 
-    with tm.assert_produces_warning(FutureWarning):
+    msg = (
+        "In a future version of pandas all arguments of "
+        "DataFrame.where except for the arguments 'cond' "
+        "and 'other' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = s.where(s > 1, 10, False)
     expected = DataFrame([10, 10, 2, 3, 4])
     tm.assert_frame_equal(expected, result)

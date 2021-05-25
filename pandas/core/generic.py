@@ -61,7 +61,6 @@ from pandas.errors import (
     InvalidIndexError,
 )
 from pandas.util._decorators import (
-    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -9074,7 +9073,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self._constructor(new_data)
             return result.__finalize__(self)
 
-    @final
     @doc(
         klass=_shared_doc_kwargs["klass"],
         cond="True",
@@ -9082,7 +9080,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         name="where",
         name_other="mask",
     )
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "cond"])
     def where(
         self,
         cond,
@@ -9223,7 +9220,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "try_cast keyword is deprecated and will be removed in a "
                 "future version",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=4,
             )
 
         return self._where(cond, other, inplace, axis, level, errors=errors)

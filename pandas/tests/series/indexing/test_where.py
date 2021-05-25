@@ -140,15 +140,17 @@ def test_where():
     rs = s2.where(cond[:3], -s2)
     tm.assert_series_equal(rs, expected)
 
-    with tm.assert_produces_warning(FutureWarning):
-        s.where(s > 1, 10, False)
-
 
 def test_where_non_keyword():
     # GH 41523
     s = Series(range(5))
 
-    with tm.assert_produces_warning(FutureWarning):
+    msg = (
+        "In a future version of pandas all arguments of "
+        "Series.where except for the arguments 'cond' "
+        "and 'other' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = s.where(s > 1, 10, False)
     expected = Series([10, 10, 2, 3, 4])
     tm.assert_series_equal(expected, result)
