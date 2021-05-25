@@ -32,6 +32,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -52,7 +53,6 @@ from pandas.io.common import (
 )
 from pandas.io.excel._util import (
     fill_mi_header,
-    find_stack_level,
     get_default_engine,
     get_writer,
     maybe_convert_usecols,
