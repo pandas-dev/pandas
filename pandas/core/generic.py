@@ -9253,7 +9253,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "try_cast keyword is deprecated and will be removed in a "
                 "future version",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=2,
             )
 
         # see gh-21891
