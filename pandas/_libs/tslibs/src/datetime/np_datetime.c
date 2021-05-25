@@ -776,18 +776,6 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
 }
 
 /*
- * Calculates the minutes offset from the 1970 epoch.
- */
-static npy_int64 get_datetimestruct_minutes(const npy_datetimestruct *dts)
-{
-    npy_int64 days = get_datetimestruct_days(dts) * 24 * 60;
-    days += dts->hour * 60;
-    days += dts->min;
-
-    return days;
-}
-
-/*
  * Gets a tzoffset in minutes by calling the fromutc() function on
  * the Python datetime.tzinfo object.
  */

@@ -538,9 +538,7 @@ int NpyArr_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
 }
 
 JSOBJ NpyArr_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
-    JSOBJ ret;
-    ret = GET_TC(tc)->itemValue;
-    return ret;
+    return GET_TC(tc)->itemValue;
 }
 
 char *NpyArr_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc,
