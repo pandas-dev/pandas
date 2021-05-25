@@ -1711,13 +1711,14 @@ class _iLocIndexer(_LocationIndexer):
         # we need an iterable, with a ndim of at least 1
         # eg. don't pass through np.array(0)
         if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
-            if not hasattr(value, "ndim"):
-                value = create_ndarray(value, copy=False)
 
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif value.ndim == 2:
+            elif (hasattr(value, "ndim") and value.ndim == 2) or (
+                not hasattr(value, "ndim")
+                and create_ndarray(value, copy=False).ndim == 2
+            ):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
