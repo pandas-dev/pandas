@@ -17,6 +17,7 @@ from pandas.io.formats.style import (  # isort:skip
 )
 from pandas.io.formats.style_render import (
     _get_level_lengths,
+    _get_trimming_maximums,
     maybe_convert_css_to_tuples,
     non_reducing_slice,
 )
@@ -113,6 +114,14 @@ def test_mi_styler_sparsify_options(mi_styler):
         html2 = mi_styler.render()
 
     assert html1 != html2
+
+
+def test_trimming_maximum():
+    rn, cn = _get_trimming_maximums(100, 100, 100, scaling_factor=0.5)
+    assert (rn, cn) == (12, 6)
+
+    rn, cn = _get_trimming_maximums(1000, 3, 750, scaling_factor=0.5)
+    assert (rn, cn) == (250, 3)
 
 
 def test_render_trimming():
