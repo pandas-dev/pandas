@@ -934,7 +934,7 @@ I/O
 - Bug in :func:`read_csv` and :func:`read_table` misinterpreting arguments when ``sys.setprofile`` had been previously called (:issue:`41069`)
 - Bug in the conversion from pyarrow to pandas (e.g. for reading Parquet) with nullable dtypes and a pyarrow array whose data buffer size is not a multiple of dtype size (:issue:`40896`)
 - Bug in :func:`read_excel` would raise an error when pandas could not determine the file type, even when user specified the ``engine`` argument (:issue:`41225`)
--
+- Bug in :func:`read_clipboard` copying from an excel file shifts values into the wrong column if there are null values in first column (:issue:`41108`)
 
 Period
 ^^^^^^
