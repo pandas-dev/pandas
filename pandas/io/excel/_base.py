@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 import datetime
-import inspect
 from io import BytesIO
 import os
 from textwrap import fill
@@ -33,6 +32,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -245,6 +245,10 @@ convert_float : bool, default True
     Convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally.
+
+    .. deprecated:: 1.3.0
+        convert_float will be removed in a future version
+
 mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
@@ -329,7 +333,7 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 )
 
 
-@deprecate_nonkeyword_arguments(allowed_args=2, version="2.0")
+@deprecate_nonkeyword_arguments(allowed_args=["io", "sheet_name"], version="2.0")
 @Appender(_read_excel_doc)
 def read_excel(
     io,
@@ -355,7 +359,7 @@ def read_excel(
     thousands=None,
     comment=None,
     skipfooter=0,
-    convert_float=True,
+    convert_float=None,
     mangle_dupe_cols=True,
     storage_options: StorageOptions = None,
 ):
@@ -489,10 +493,20 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         thousands=None,
         comment=None,
         skipfooter=0,
-        convert_float=True,
+        convert_float=None,
         mangle_dupe_cols=True,
         **kwds,
     ):
+
+        if convert_float is None:
+            convert_float = True
+        else:
+            stacklevel = find_stack_level()
+            warnings.warn(
+                "convert_float is deprecated and will be removed in a future version",
+                FutureWarning,
+                stacklevel=stacklevel,
+            )
 
         validate_header_arg(header)
 
@@ -1014,16 +1028,21 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return content
 
 
-XLS_SIGNATURE = b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"
+XLS_SIGNATURES = (
+    b"\x09\x00\x04\x00\x07\x00\x10\x00",  # BIFF2
+    b"\x09\x02\x06\x00\x00\x00\x10\x00",  # BIFF3
+    b"\x09\x04\x06\x00\x00\x00\x10\x00",  # BIFF4
+    b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1",  # Compound File Binary
+)
 ZIP_SIGNATURE = b"PK\x03\x04"
-PEEK_SIZE = max(len(XLS_SIGNATURE), len(ZIP_SIGNATURE))
+PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
 
 
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
     content_or_path: FilePathOrBuffer,
     storage_options: StorageOptions = None,
-) -> str:
+) -> str | None:
     """
     Inspect the path or content of an excel file and get its format.
 
@@ -1037,8 +1056,8 @@ def inspect_excel_format(
 
     Returns
     -------
-    str
-        Format of file.
+    str or None
+        Format of file if it can be determined.
 
     Raises
     ------
@@ -1063,10 +1082,10 @@ def inspect_excel_format(
             peek = buf
         stream.seek(0)
 
-        if peek.startswith(XLS_SIGNATURE):
+        if any(peek.startswith(sig) for sig in XLS_SIGNATURES):
             return "xls"
         elif not peek.startswith(ZIP_SIGNATURE):
-            raise ValueError("File is not a recognized excel file")
+            return None
 
         # ZipFile typing is overly-strict
         # https://github.com/python/typeshed/issues/4212
@@ -1174,8 +1193,12 @@ class ExcelFile:
                 ext = inspect_excel_format(
                     content_or_path=path_or_buffer, storage_options=storage_options
                 )
+                if ext is None:
+                    raise ValueError(
+                        "Excel file format cannot be determined, you must specify "
+                        "an engine manually."
+                    )
 
-            # ext will always be valid, otherwise inspect_excel_format would raise
             engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
@@ -1190,22 +1213,14 @@ class ExcelFile:
                         path_or_buffer, storage_options=storage_options
                     )
 
-            if ext != "xls" and xlrd_version >= Version("2"):
+            # Pass through if ext is None, otherwise check if ext valid for xlrd
+            if ext and ext != "xls" and xlrd_version >= Version("2"):
                 raise ValueError(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install openpyxl instead."
                 )
-            elif ext != "xls":
-                caller = inspect.stack()[1]
-                if (
-                    caller.filename.endswith(
-                        os.path.join("pandas", "io", "excel", "_base.py")
-                    )
-                    and caller.function == "read_excel"
-                ):
-                    stacklevel = 4
-                else:
-                    stacklevel = 2
+            elif ext and ext != "xls":
+                stacklevel = find_stack_level()
                 warnings.warn(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install "
@@ -1241,7 +1256,7 @@ class ExcelFile:
         thousands=None,
         comment=None,
         skipfooter=0,
-        convert_float=True,
+        convert_float=None,
         mangle_dupe_cols=True,
         **kwds,
     ):

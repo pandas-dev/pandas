@@ -1352,9 +1352,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame([[0, 2, 0], [0, 5, 0]], columns=mi)
         tm.assert_frame_equal(obj, expected)
 
-        df = df.sort_index(1)
+        df = df.sort_index(axis=1)
         df.loc[:, key] = np.zeros((2, 2), dtype=int)
-        expected = expected.sort_index(1)
+        expected = expected.sort_index(axis=1)
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_uint_drop(self, any_int_dtype):
@@ -2400,7 +2400,7 @@ def test_loc_with_positional_slice_deprecation():
     # GH#31840
     ser = Series(range(4), index=["A", "B", "C", "D"])
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         ser.loc[:3] = 2
 
     expected = Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
@@ -2423,14 +2423,14 @@ def test_loc_slice_disallows_positional():
         with pytest.raises(TypeError, match=msg):
             obj.loc[1:3]
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#31840 deprecated incorrect behavior
             obj.loc[1:3] = 1
 
     with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1]
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         # GH#31840 deprecated incorrect behavior
         df.loc[1:3, 1] = 2
 
@@ -2684,3 +2684,14 @@ class TestLocSeries:
         expected = DataFrame({"A": ["newA", "def"], "B": ["newB", "jkl"]}, dtype=dtype)
 
         tm.assert_frame_equal(df, expected)
+
+    @td.skip_array_manager_invalid_test
+    def test_loc_setitem_dict_timedelta_multiple_set(self):
+        # GH 16309
+        result = DataFrame(columns=["time", "value"])
+        result.loc[1] = {"time": Timedelta(6, unit="s"), "value": "foo"}
+        result.loc[1] = {"time": Timedelta(6, unit="s"), "value": "foo"}
+        expected = DataFrame(
+            [[Timedelta(6, unit="s"), "foo"]], columns=["time", "value"], index=[1]
+        )
+        tm.assert_frame_equal(result, expected)
