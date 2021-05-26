@@ -10286,6 +10286,11 @@ NaN 12.3   33.0
         C        1 days 12:00:00
         Name: 0.5, dtype: object
         """
+
+        data = self._get_numeric_data() if numeric_only else self
+        axis = self._get_axis_number(axis)
+        dtypes = set(data.dtypes)
+
         validate_percentile(q)
 
         if not is_list_like(q):
@@ -10293,11 +10298,14 @@ NaN 12.3   33.0
             res = self.quantile(
                 [q], axis=axis, numeric_only=numeric_only, interpolation=interpolation
             )
-            return res.iloc[0]
+            res = res.iloc[0]
+            # GH#41544
+            if len(dtypes) == 1 and np.dtype("datetime64[ns]") in dtypes:
+                return res.astype("datetime64[ns]")
+            else:
+                return res
 
         q = Index(q, dtype=np.float64)
-        data = self._get_numeric_data() if numeric_only else self
-        axis = self._get_axis_number(axis)
 
         if axis == 1:
             data = data.T
