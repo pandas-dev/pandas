@@ -301,7 +301,7 @@ class ExtensionIndex(Index):
 
     def searchsorted(
         self,
-        value: Scalar,
+        value: ArrayLike | Scalar,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> np.ndarray:

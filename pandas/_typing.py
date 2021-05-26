@@ -92,9 +92,17 @@ PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
 
 # numpy compatible types
-NumpyArrayLike = Union[np.ndarray, Sequence[PythonScalar]]
 NumpyValueArrayLike = Union[PythonScalar, Sequence[PythonScalar]]
-NumpySorter = Union[int, bool, np.ndarray, Sequence[int], Sequence[bool], None]
+NumpySorter = Union[
+    int,
+    np.integer,
+    bool,
+    np.ndarray,
+    Sequence[int],
+    Sequence[np.integer],
+    Sequence[bool],
+    None,
+]
 
 
 # timestamp and timedelta convertible types
