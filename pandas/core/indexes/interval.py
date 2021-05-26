@@ -16,8 +16,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
-
 from pandas._libs import lib
 from pandas._libs.interval import (
     Interval,
@@ -80,7 +78,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
     _index_shared_docs,
-    default_pprint,
     ensure_index,
     maybe_extract_name,
 )
@@ -255,8 +252,6 @@ def _setop(op_name: str):
 @inherit_names(["is_non_overlapping_monotonic", "closed"], IntervalArray, cache=True)
 class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
-    _comparables = ["name"]
-    _attributes = ["name", "closed"]
 
     # annotate properties pinned via inherit_names
     closed: str
@@ -422,12 +417,8 @@ class IntervalIndex(ExtensionIndex):
     def _multiindex(self) -> MultiIndex:
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
-    def __array_wrap__(self, result, context=None):
-        # we don't want the superclass implementation
-        return result
-
     def __reduce__(self):
-        d = {"left": self.left, "right": self.right}
+        d = {"left": self.left, "right": self.right, "closed": self.closed}
         d.update(self._get_attributes_dict())
         return _new_IntervalIndex, (type(self), d), None
 
@@ -919,49 +910,9 @@ class IntervalIndex(ExtensionIndex):
         return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
 
     def _format_data(self, name=None) -> str:
-
         # TODO: integrate with categorical and make generic
         # name argument is unused here; just for compat with base / categorical
-        n = len(self)
-        max_seq_items = min((get_option("display.max_seq_items") or n) // 10, 10)
-
-        formatter = str
-
-        if n == 0:
-            summary = "[]"
-        elif n == 1:
-            first = formatter(self[0])
-            summary = f"[{first}]"
-        elif n == 2:
-            first = formatter(self[0])
-            last = formatter(self[-1])
-            summary = f"[{first}, {last}]"
-        else:
-
-            if n > max_seq_items:
-                n = min(max_seq_items // 2, 10)
-                head = [formatter(x) for x in self[:n]]
-                tail = [formatter(x) for x in self[-n:]]
-                head_joined = ", ".join(head)
-                tail_joined = ", ".join(tail)
-                summary = f"[{head_joined} ... {tail_joined}]"
-            else:
-                tail = [formatter(x) for x in self]
-                joined = ", ".join(tail)
-                summary = f"[{joined}]"
-
-        return summary + "," + self._format_space()
-
-    def _format_attrs(self):
-        attrs = []
-        if self.name is not None:
-            attrs.append(("name", default_pprint(self.name)))
-        attrs.append(("dtype", f"'{self.dtype}'"))
-        return attrs
-
-    def _format_space(self) -> str:
-        space = " " * (len(type(self).__name__) + 1)
-        return f"\n{space}"
+        return self._data._format_data() + "," + self._format_space()
 
     # --------------------------------------------------------------------
     # Set Operations

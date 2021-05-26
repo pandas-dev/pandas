@@ -257,7 +257,8 @@ def test_wrap_agg_out(three_group):
         else:
             return ser.sum()
 
-    result = grouped.aggregate(func)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        result = grouped.aggregate(func)
     exp_grouped = three_group.loc[:, three_group.columns != "C"]
     expected = exp_grouped.groupby(["A", "B"]).aggregate(func)
     tm.assert_frame_equal(result, expected)
@@ -1020,6 +1021,7 @@ class TestLambdaMangling:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="GH-26611. kwargs for multi-agg.")
+    @pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
     def test_with_kwargs(self):
         f1 = lambda x, y, b=1: x.sum() + y + b
         f2 = lambda x, y, b=2: x.sum() + y * b
