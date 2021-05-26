@@ -429,8 +429,7 @@ class TestGetDummies:
         result = get_dummies(**get_dummies_kwargs)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
-    def test_get_dummies_basic_drop_first(self, sparse):
+    def test_get_dummies_basic_drop_first(self, request, sparse):
         # GH12402 Add a new parameter `drop_first` to avoid collinearity
         # Basic case
         s_list = list("abc")
@@ -441,6 +440,8 @@ class TestGetDummies:
 
         result = get_dummies(s_list, drop_first=True, sparse=sparse)
         if sparse:
+            if PY310:
+                request.applymarker(pytest.mark.xfail(reason="Failing on Python 3.10"))
             expected = expected.apply(SparseArray, fill_value=0)
         tm.assert_frame_equal(result, expected)
 

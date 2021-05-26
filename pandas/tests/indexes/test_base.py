@@ -993,8 +993,7 @@ class TestIndex(Base):
         result = index.isin(values)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
-    def test_isin_nan_common_object(self, nulls_fixture, nulls_fixture2):
+    def test_isin_nan_common_object(self, request, nulls_fixture, nulls_fixture2):
         # Test cartesian product of null fixtures and ensure that we don't
         # mangle the various types (save a corner case with PyPy)
 
@@ -1005,6 +1004,8 @@ class TestIndex(Base):
             and math.isnan(nulls_fixture)
             and math.isnan(nulls_fixture2)
         ):
+            if PY310:
+                request.applymarker(pytest.mark.xfail(reason="Failing on Python 3.10"))
             tm.assert_numpy_array_equal(
                 Index(["a", nulls_fixture]).isin([nulls_fixture2]),
                 np.array([False, True]),
