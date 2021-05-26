@@ -923,7 +923,8 @@ def test_wrap_aggregated_output_multindex(mframe):
         else:
             return ser.sum()
 
-    agged2 = df.groupby(keys).aggregate(aggfun)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        agged2 = df.groupby(keys).aggregate(aggfun)
     assert len(agged2.columns) + 1 == len(df.columns)
 
 
@@ -1757,6 +1758,7 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "mad", "min", "max", "sum", "prod", "skew"]
 )
+@pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_empty_groupby(columns, keys, values, method, op, request):
     # GH8093 & GH26411

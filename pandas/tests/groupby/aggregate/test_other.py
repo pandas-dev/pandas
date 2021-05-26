@@ -44,9 +44,16 @@ def test_agg_api():
     def peak_to_peak(arr):
         return arr.max() - arr.min()
 
-    expected = grouped.agg([peak_to_peak])
+    with tm.assert_produces_warning(
+        FutureWarning, match="Dropping invalid", check_stacklevel=False
+    ):
+        expected = grouped.agg([peak_to_peak])
     expected.columns = ["data1", "data2"]
-    result = grouped.agg(peak_to_peak)
+
+    with tm.assert_produces_warning(
+        FutureWarning, match="Dropping invalid", check_stacklevel=False
+    ):
+        result = grouped.agg(peak_to_peak)
     tm.assert_frame_equal(result, expected)
 
 
@@ -294,7 +301,8 @@ def test_agg_item_by_item_raise_typeerror():
         raise TypeError("test")
 
     with pytest.raises(TypeError, match="test"):
-        df.groupby(0).agg(raiseException)
+        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+            df.groupby(0).agg(raiseException)
 
 
 def test_series_agg_multikey():

@@ -30,6 +30,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -1280,6 +1281,14 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 # if this function is invalid for this dtype, we will ignore it.
                 result = self.grouper.agg_series(obj, f)
             except TypeError:
+                warnings.warn(
+                    f"Dropping invalid columns in {type(self).__name__}.agg "
+                    "is deprecated. In a future version, a TypeError will be raised. "
+                    "Before calling .agg, select only columns which should be "
+                    "valid for the aggregating function.",
+                    FutureWarning,
+                    stacklevel=3,
+                )
                 continue
 
             key = base.OutputKey(label=name, position=idx)
@@ -2839,6 +2848,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                         vals, inferences = pre_processing(vals)
                     except TypeError as err:
                         error_msg = str(err)
+                        howstr = how.replace("group_", "")
+                        warnings.warn(
+                            "Dropping invalid columns in "
+                            f"{type(self).__name__}.{howstr} is deprecated. "
+                            "In a future version, a TypeError will be raised. "
+                            f"Before calling .{howstr}, select only columns which "
+                            "should be valid for the function.",
+                            FutureWarning,
+                            stacklevel=3,
+                        )
                         continue
                 vals = vals.astype(cython_dtype, copy=False)
                 if needs_2d:

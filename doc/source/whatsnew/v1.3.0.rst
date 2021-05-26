@@ -726,6 +726,44 @@ For example:
     A    24
     dtype: int64
 
+
+Similarly, when applying a function to :class:`DataFrameGroupBy`, columns on which
+the function raises ``TypeError`` are currently silently ignored and dropped
+from the result.
+
+This behavior is deprecated.  In a future version, the ``TypeError``
+will be raised, and users will need to select only valid columns before calling
+the function.
+
+For example:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3, 4], "B": pd.date_range("2016-01-01", periods=4)})
+   gb = df.groupby([1, 1, 2, 2])
+
+*Old behavior*:
+
+.. code-block:: ipython
+
+    In [4]: gb.prod(numeric_only=False)
+    Out[4]:
+    A
+    1   2
+    2  12
+
+.. code-block:: ipython
+
+    In [5]: gb.prod(numeric_only=False)
+    ...
+    TypeError: datetime64 type does not support prod operations
+
+    In [6]: gb[["A"]].prod(numeric_only=False)
+    Out[6]:
+        A
+    1   2
+    2  12
+
 .. ---------------------------------------------------------------------------
 
 
