@@ -459,7 +459,7 @@ class StylerRenderer:
         thousands: str | None = None,
         escape: str | None = None,
     ) -> StylerRenderer:
-        """
+        r"""
         Format the text display value of cells.
 
         Parameters
@@ -494,8 +494,11 @@ class StylerRenderer:
 
         escape : str, optional
             Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
-            in cell display string with HTML-safe sequences. Escaping is done
-            before ``formatter``.
+            in cell display string with HTML-safe sequences.
+            Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+            ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
+            LaTeX-safe sequences.
+            Escaping is done before ``formatter``.
 
             .. versionadded:: 1.3.0
 
@@ -774,10 +777,13 @@ def _wrap_decimal_thousands(
     return wrapper
 
 
-def _str_escape_html(x):
-    """if escaping html: only use on str, else return input"""
+def _str_escape(x, escape):
+    """if escaping: only use on str, else return input"""
     if isinstance(x, str):
-        return escape_html(x)
+        if escape == "html":
+            return escape_html(x)
+        elif escape == "latex":
+            return _escape_latex(x)
     return x
 
 
@@ -808,8 +814,8 @@ def _maybe_wrap_formatter(
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
     # Replace HTML chars if escaping
-    if escape is not None and "html" in escape:
-        func_1 = lambda x: func_0(_str_escape_html(x))
+    if escape == "html" or escape == "latex":
+        func_1 = lambda x: func_0(_str_escape(x, escape=escape))
     else:
         func_1 = func_0
 
@@ -1190,3 +1196,38 @@ def _parse_latex_options_strip(value: str | int | float, arg: str) -> str:
     For example: 'red /* --wrap */  ' --> 'red'
     """
     return str(value).replace(arg, "").replace("/*", "").replace("*/", "").strip()
+
+
+def _escape_latex(s):
+    r"""
+    Replace the characters ``&``, ``%``, ``$``, ``#``, ``_``, ``{``, ``}``,
+    ``~``, ``^``, and ``\`` in the string with LaTeX-safe sequences.
+
+    Use this if you need to display text that might contain such characters in LaTeX.
+
+    Parameters
+    ----------
+    s : str
+        Input to be escaped
+
+    Return
+    ------
+    str :
+        Escaped string
+    """
+    return (
+        s.replace("\\", "ab2§=§8yz")  # rare string for final conversion: avoid \\ clash
+        .replace("ab2§=§8yz ", "ab2§=§8yz\\space ")  # since \backslash gobbles spaces
+        .replace("&", "\\&")
+        .replace("%", "\\%")
+        .replace("$", "\\$")
+        .replace("#", "\\#")
+        .replace("_", "\\_")
+        .replace("{", "\\{")
+        .replace("}", "\\}")
+        .replace("~ ", "~\\space ")  # since \textasciitilde gobbles spaces
+        .replace("~", "\\textasciitilde ")
+        .replace("^ ", "^\\space ")  # since \textasciicircum gobbles spaces
+        .replace("^", "\\textasciicircum ")
+        .replace("ab2§=§8yz", "\\textbackslash ")
+    )
