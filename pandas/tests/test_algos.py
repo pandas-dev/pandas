@@ -1035,7 +1035,7 @@ class TestIsin:
         result = algos.isin(vals, empty)
         tm.assert_numpy_array_equal(expected, result)
 
-    # @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
     def test_different_nan_objects(self):
         # GH 22119
         comps = np.array(["nan", np.nan * 1j, float("nan")], dtype=object)

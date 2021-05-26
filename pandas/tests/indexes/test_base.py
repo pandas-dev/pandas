@@ -1005,7 +1005,13 @@ class TestIndex(Base):
             and math.isnan(nulls_fixture2)
         ):
             if PY310:
-                request.applymarker(pytest.mark.xfail(reason="Failing on Python 3.10"))
+                if nulls_fixture == float("nan") and nulls_fixture2 in [
+                    np.nan,
+                    float("nan"),
+                ]:
+                    request.applymarker(
+                        pytest.mark.xfail(reason="Failing on Python 3.10")
+                    )
             tm.assert_numpy_array_equal(
                 Index(["a", nulls_fixture]).isin([nulls_fixture2]),
                 np.array([False, True]),

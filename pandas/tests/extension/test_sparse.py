@@ -16,7 +16,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.compat import PY310
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_object_dtype
@@ -176,18 +175,18 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         super().test_transpose(data)
 
     # Inherited tests that fail on Python 3.10 (TODO: remove test once passed)
-    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
-    @pytest.mark.parametrize(
-        "columns",
-        [
-            ["A", "B"],
-            pd.MultiIndex.from_tuples(
-                [("A", "a"), ("A", "b")], names=["outer", "inner"]
-            ),
-        ],
-    )
-    def test_stack(self, data, columns):
-        super().test_stack(data, columns)
+    # @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
+    # @pytest.mark.parametrize(
+    #     "columns",
+    #     [
+    #         ["A", "B"],
+    #         pd.MultiIndex.from_tuples(
+    #             [("A", "a"), ("A", "b")], names=["outer", "inner"]
+    #         ),
+    #     ],
+    # )
+    # def test_stack(self, data, columns):
+    #     super().test_stack(data, columns)
 
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
