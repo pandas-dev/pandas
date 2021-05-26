@@ -218,6 +218,7 @@ Other enhancements
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
 - Add support for parsing ``ISO 8601``-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
+- Add support for making ``ISO 8601``-like timestamps with timezone information in pd.io.json.dumps (:issue:`12997`)
 - Add support for unary operators in :class:`FloatingArray` (:issue:`38749`)
 - :class:`RangeIndex` can now be constructed by passing a ``range`` object directly e.g. ``pd.RangeIndex(range(3))`` (:issue:`12067`)
 - :meth:`round` being enabled for the nullable integer and floating dtypes (:issue:`38844`)
