@@ -82,6 +82,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
+    _is_numeric_dtype = False
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
     freq: BaseOffset | None
@@ -608,6 +609,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     """
 
     _data: DatetimeArray | TimedeltaArray
+    _comparables = ["name", "freq"]
+    _attributes = ["name", "freq"]
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
