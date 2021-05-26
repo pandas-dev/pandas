@@ -55,6 +55,25 @@ def _can_hold_element_patched(obj, element) -> bool:
     return can_hold_element(obj, element)
 
 
+orig_assert_attr_equal = tm.assert_attr_equal
+
+
+def _assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
+    """
+    patch tm.assert_attr_equal so PandasDtype("object") is closed enough to
+    np.dtype("object")
+    """
+    if attr == "dtype":
+        lattr = getattr(left, "dtype", None)
+        rattr = getattr(right, "dtype", None)
+        if isinstance(lattr, PandasDtype) and not isinstance(rattr, PandasDtype):
+            left = left.astype(lattr.numpy_dtype)
+        elif isinstance(rattr, PandasDtype) and not isinstance(lattr, PandasDtype):
+            right = right.astype(rattr.numpy_dtype)
+
+    orig_assert_attr_equal(attr, left, right, obj)
+
+
 @pytest.fixture(params=["float", "object"])
 def dtype(request):
     return PandasDtype(np.dtype(request.param))
@@ -81,6 +100,7 @@ def allow_in_pandas(monkeypatch):
         m.setattr(PandasArray, "_typ", "extension")
         m.setattr(managers, "_extract_array", _extract_array_patched)
         m.setattr(blocks, "can_hold_element", _can_hold_element_patched)
+        m.setattr(tm.asserters, "assert_attr_equal", _assert_attr_equal)
         yield
 
 
