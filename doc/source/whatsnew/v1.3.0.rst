@@ -680,6 +680,7 @@ Deprecations
 - Deprecated using ``usecols`` with out of bounds indices for ``read_csv`` with ``engine="c"`` (:issue:`25623`)
 - Deprecated special treatment of lists with first element a Categorical in the :class:`DataFrame` constructor; pass as ``pd.DataFrame({col: categorical, ...})`` instead (:issue:`38845`)
 - Deprecated passing arguments as positional (except for ``"method"``) in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (:issue:`41485`)
+- Deprecated passing arguments as positional in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.drop_duplicates` (except for ``subset``), :meth:`Series.drop_duplicates`, :meth:`Index.drop_duplicates` and :meth:`MultiIndex.drop_duplicates`(:issue:`41485`)
 - Deprecated passing arguments (apart from ``value``) as positional in :meth:`DataFrame.fillna` and :meth:`Series.fillna` (:issue:`41485`)
 - Deprecated construction of :class:`Series` or :class:`DataFrame` with ``DatetimeTZDtype`` data and ``datetime64[ns]`` dtype.  Use ``Series(data).dt.tz_localize(None)`` instead (:issue:`41555`,:issue:`33401`)
