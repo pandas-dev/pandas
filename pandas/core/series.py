@@ -1308,6 +1308,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self, method="repeat"
         )
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
         Generate a new DataFrame or Series with the index reset.
@@ -3468,6 +3469,7 @@ Keep all original rows and also all original values
         else:
             return result.__finalize__(self, method="sort_values")
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def sort_index(
         self,
         axis=0,
@@ -5288,6 +5290,20 @@ Keep all original rows and also all original values
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_period"
         )
+
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "lower", "upper"]
+    )
+    def clip(
+        self: Series,
+        lower=None,
+        upper=None,
+        axis: Axis | None = None,
+        inplace: bool = False,
+        *args,
+        **kwargs,
+    ) -> Series | None:
+        return super().clip(lower, upper, axis, inplace, *args, **kwargs)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     def interpolate(
