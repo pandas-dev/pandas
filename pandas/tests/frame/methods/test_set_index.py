@@ -704,3 +704,15 @@ class TestSetIndexCustomLabelType:
         tm.assert_index_equal(df.index, idx1)
         df = df.set_index(idx2)
         tm.assert_index_equal(df.index, idx2)
+
+    def test_drop_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame\.set_index "
+            r"except for the argument 'keys' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.set_index("a", True)
+        expected = DataFrame(index=Index([1, 2, 3], name="a"))
+        tm.assert_frame_equal(result, expected)
