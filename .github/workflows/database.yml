@@ -56,10 +56,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Cache conda
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       env:
         CACHE_NUMBER: 0
       with:
@@ -70,7 +72,7 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v2
       with:
         activate-environment: pandas-dev
-        channel-priority: strict
+        channel-priority: flexible
         environment-file: ${{ matrix.ENV_FILE }}
         use-only-tar-bz2: true
 
