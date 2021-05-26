@@ -138,7 +138,6 @@ class StringDtype(ExtensionDtype):
                 f"'construct_from_string' expects a string, got {type(string)}"
             )
         if string == "string":
-            # TODO: use global default
             return cls()
         elif string == "string[python]":
             return cls(storage="python")

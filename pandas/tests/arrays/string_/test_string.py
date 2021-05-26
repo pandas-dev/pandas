@@ -460,8 +460,7 @@ def test_arrow_roundtrip(dtype):
     table = pa.table(df)
     assert table.field("a").type == "string"
     result = table.to_pandas()
-    if not isinstance(dtype, str):
-        assert isinstance(result["a"].dtype, type(dtype))
+    assert isinstance(result["a"].dtype, type(dtype))
     tm.assert_frame_equal(result, df)
     # ensure the missing value is represented by NA and not np.nan or None
     assert result.loc[2, "a"] is pd.NA
