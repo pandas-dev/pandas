@@ -397,7 +397,9 @@ def ensure_dtype_objs(dtype):
         # Designed to support defaultdict
         prepared_dtype = {k: pandas_dtype(dtype[k]) for k in dtype}
         if isinstance(dtype, defaultdict):
-            prepared_dtype = defaultdict(dtype.default_factory, prepared_dtype)
+            type_for_default_factory = pandas_dtype(dtype.default_factory())
+            prepared_default_factory = lambda: type_for_default_factory
+            prepared_dtype = defaultdict(prepared_default_factory, prepared_dtype)
         return prepared_dtype
     elif dtype is not None:
         dtype = pandas_dtype(dtype)
