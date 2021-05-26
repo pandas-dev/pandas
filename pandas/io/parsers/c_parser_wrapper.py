@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 import warnings
 
 import numpy as np
@@ -392,7 +393,12 @@ def ensure_dtype_objs(dtype):
     dtype objects.
     """
     if isinstance(dtype, dict):
-        dtype = {k: pandas_dtype(dtype[k]) for k in dtype}
+        # gh-41574
+        # Designed to support defaultdict
+        prepared_dtype = {k: pandas_dtype(dtype[k]) for k in dtype}
+        if isinstance(dtype, defaultdict):
+            prepared_dtype = defaultdict(dtype.default_factory, prepared_dtype)
+        return prepared_dtype
     elif dtype is not None:
         dtype = pandas_dtype(dtype)
     return dtype

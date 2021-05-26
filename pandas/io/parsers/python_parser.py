@@ -318,6 +318,10 @@ class PythonParser(ParserBase):
                 if isinstance(col, int) and col not in self.orig_names:
                     col = self.orig_names[col]
                 clean[col] = v
+            # gh-41574
+            # Designed to support defaultdict
+            if isinstance(mapping, defaultdict):
+                clean = defaultdict(mapping.default_factory, clean)
             return clean
 
         clean_conv = _clean_mapping(self.converters)
