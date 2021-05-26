@@ -258,7 +258,7 @@ class TestEmptyConcat:
         expected = DataFrame(columns=['a', 'b', 'c']).reset_index(drop=True).astype('int32')
         tm.assert_frame_equal(result, expected)
     
-    def test_concat_empty_dataframe_dtypes(self):
+    def test_concat_empty_dataframe_different_dtypes(self):
         # 39037
         df1 = DataFrame({'a': [1, 2, 3], 'b': ['a', 'b', 'c']})
         df2 = DataFrame({'a': [1, 2, 3]})
