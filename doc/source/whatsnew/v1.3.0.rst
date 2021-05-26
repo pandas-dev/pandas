@@ -919,6 +919,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc.__getitem__` with :class:`MultiIndex` casting to float when at least one column is from has float dtype and we retrieve a scalar (:issue:`41369`)
 - Bug in :meth:`DataFrame.loc` incorrectly matching non-boolean index elements (:issue:`20432`)
 - Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
+- Bug in :meth:`DataFrame.loc` returning :class:`MultiIndex` in wrong order if indexer has duplicates (:issue:`40978`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``TypeError`` when using a str subclass as the column name with a :class:`DatetimeIndex` (:issue:`37366`)
 
 Missing
