@@ -6,7 +6,7 @@ dependencies:
 
   # tools
   - cython>=0.29.21
-  - pytest>=5.0.1
+  - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.21
   - pytest-asyncio>=0.12.0
@@ -20,7 +20,7 @@ dependencies:
   - jinja2
   - jedi<0.18.0
   - lxml
-  - matplotlib <3.3.0
+  - matplotlib<3.3.0
   - moto
   - nomkl
   - numexpr
