@@ -66,6 +66,7 @@ class StylerRenderer:
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     template_html = env.get_template("html.tpl")
+    template_latex = env.get_template("latex.tpl")
 
     def __init__(
         self,
@@ -118,6 +119,23 @@ class StylerRenderer:
         d.update(kwargs)
         return self.template_html.render(**d)
 
+    def _render_latex(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
+        """
+        Render a Styler in latex format
+        """
+        self._compute()
+
+        d = self._translate(sparse_index, sparse_columns, blank="")
+        self._translate_latex(d)
+
+        self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
+        self.template_latex.globals["parse_table"] = _parse_latex_table_styles
+        self.template_latex.globals["parse_cell"] = _parse_latex_cell_styles
+        self.template_latex.globals["parse_header"] = _parse_latex_header_span
+
+        d.update(kwargs)
+        return self.template_latex.render(**d)
+
     def _compute(self):
         """
         Execute the style functions built up in `self._todo`.
@@ -133,7 +151,7 @@ class StylerRenderer:
             r = func(self)(*args, **kwargs)
         return r
 
-    def _translate(self, sparse_index: bool, sparse_cols: bool):
+    def _translate(self, sparse_index: bool, sparse_cols: bool, blank: str = "&nbsp;"):
         """
         Process Styler data and settings into a dict for template rendering.
 
@@ -161,7 +179,7 @@ class StylerRenderer:
 
         DATA_CLASS = "data"
         BLANK_CLASS = "blank"
-        BLANK_VALUE = "&nbsp;"
+        BLANK_VALUE = blank
 
         # construct render dict
         d = {
@@ -394,6 +412,42 @@ class StylerRenderer:
 
             body.append(index_headers + data)
         return body
+
+    def _translate_latex(self, d: dict) -> None:
+        r"""
+        Post-process the default render dict for the LaTeX template format.
+
+        Processing items included are:
+          - Remove hidden columns from the non-headers part of the body.
+          - Place cellstyles directly in td cells rather than use cellstyle_map.
+          - Remove hidden indexes or reinsert missing th elements if part of multiindex
+            or multirow sparsification (so that \multirow and \multicol work correctly).
+        """
+        d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
+        body = []
+        for r, row in enumerate(d["body"]):
+            if self.hidden_index:
+                row_body_headers = []
+            else:
+                row_body_headers = [
+                    {
+                        **col,
+                        "display_value": col["display_value"]
+                        if col["is_visible"]
+                        else "",
+                    }
+                    for col in row
+                    if col["type"] == "th"
+                ]
+
+            row_body_cells = [
+                {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
+                for c, col in enumerate(row)
+                if (col["is_visible"] and col["type"] == "td")
+            ]
+
+            body.append(row_body_headers + row_body_cells)
+        d["body"] = body
 
     def format(
         self,
@@ -996,3 +1050,140 @@ class Tooltips:
             d["table_styles"].extend(self.table_styles)
 
         return d
+
+
+def _parse_latex_table_wrapping(table_styles: CSSStyles, caption: str | None) -> bool:
+    """
+    Indicate whether LaTeX {tabular} should be wrapped with a {table} environment.
+
+    Parses the `table_styles` and detects any selectors which must be included outside
+    of {tabular}, i.e. indicating that wrapping must occur, and therefore return True,
+    or if a caption exists and requires similar.
+    """
+    IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
+    # ignored selectors are included with {tabular} so do not need wrapping
+    return (
+        table_styles is not None
+        and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
+    ) or caption is not None
+
+
+def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | None:
+    """
+    Return the first 'props' 'value' from ``tables_styles`` identified by ``selector``.
+
+    Examples
+    --------
+    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')],
+    ...                 {'selector': 'bar', 'props': [('attr', 'overwritten')]},
+    ...                 {'selector': 'bar', 'props': [('a1', 'baz'), ('a2', 'ignore')]}]
+    >>> _parse_latex_table_styles(table_styles, selector='bar')
+    'baz'
+
+    Notes
+    -----
+    The replacement of "§" with ":" is to avoid the CSS problem where ":" has structural
+    significance and cannot be used in LaTeX labels, but is often required by them.
+    """
+    for style in table_styles[::-1]:  # in reverse for most recently applied style
+        if style["selector"] == selector:
+            return str(style["props"][0][1]).replace("§", ":")
+    return None
+
+
+def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
+    r"""
+    Mutate the ``display_value`` string including LaTeX commands from ``latex_styles``.
+
+    This method builds a recursive latex chain of commands based on the
+    CSSList input, nested around ``display_value``.
+
+    If a CSS style is given as ('<command>', '<options>') this is translated to
+    '\<command><options>{display_value}', and this value is treated as the
+    display value for the next iteration.
+
+    The most recent style forms the inner component, for example for styles:
+    `[('c1', 'o1'), ('c2', 'o2')]` this returns: `\c1o1{\c2o2{display_value}}`
+
+    Sometimes latex commands have to be wrapped with curly braces in different ways:
+    We create some parsing flags to identify the different behaviours:
+
+     - `--rwrap`        : `\<command><options>{<display_value>}`
+     - `--wrap`         : `{\<command><options> <display_value>}`
+     - `--nowrap`       : `\<command><options> <display_value>`
+     - `--lwrap`        : `{\<command><options>} <display_value>`
+     - `--dwrap`        : `{\<command><options>}{<display_value>}`
+
+    For example for styles:
+    `[('c1', 'o1--wrap'), ('c2', 'o2')]` this returns: `{\c1o1 \c2o2{display_value}}
+    """
+    for (command, options) in latex_styles[::-1]:  # in reverse for most recent style
+        formatter = {
+            "--wrap": f"{{\\{command}--to_parse {display_value}}}",
+            "--nowrap": f"\\{command}--to_parse {display_value}",
+            "--lwrap": f"{{\\{command}--to_parse}} {display_value}",
+            "--rwrap": f"\\{command}--to_parse{{{display_value}}}",
+            "--dwrap": f"{{\\{command}--to_parse}}{{{display_value}}}",
+        }
+        display_value = f"\\{command}{options} {display_value}"
+        for arg in ["--nowrap", "--wrap", "--lwrap", "--rwrap", "--dwrap"]:
+            if arg in str(options):
+                display_value = formatter[arg].replace(
+                    "--to_parse", _parse_latex_options_strip(value=options, arg=arg)
+                )
+                break  # only ever one purposeful entry
+    return display_value
+
+
+def _parse_latex_header_span(
+    cell: dict[str, Any], multirow_align: str, multicol_align: str, wrap: bool = False
+) -> str:
+    r"""
+    Refactor the cell `display_value` if a 'colspan' or 'rowspan' attribute is present.
+
+    'rowspan' and 'colspan' do not occur simultaneouly. If they are detected then
+    the `display_value` is altered to a LaTeX `multirow` or `multicol` command
+    respectively, with the appropriate cell-span.
+
+    ``wrap`` is used to enclose the `display_value` in braces which is needed for
+    column headers using an siunitx package.
+
+    Requires the package {multirow}, whereas multicol support is usually built in
+    to the {tabular} environment.
+
+    Examples
+    --------
+    >>> cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
+    >>> _parse_latex_header_span(cell, 't', 'c')
+    '\multicol{3}{c}{text}'
+    """
+    if "attributes" in cell:
+        attrs = cell["attributes"]
+        if 'colspan="' in attrs:
+            colspan = attrs[attrs.find('colspan="') + 9 :]  # len('colspan="') = 9
+            colspan = int(colspan[: colspan.find('"')])
+            return (
+                f"\\multicolumn{{{colspan}}}{{{multicol_align}}}"
+                f"{{{cell['display_value']}}}"
+            )
+        elif 'rowspan="' in attrs:
+            rowspan = attrs[attrs.find('rowspan="') + 9 :]
+            rowspan = int(rowspan[: rowspan.find('"')])
+            return (
+                f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}"
+                f"{{{cell['display_value']}}}"
+            )
+    if wrap:
+        return f"{{{cell['display_value']}}}"
+    else:
+        return cell["display_value"]
+
+
+def _parse_latex_options_strip(value: str | int | float, arg: str) -> str:
+    """
+    Strip a css_value which may have latex wrapping arguments, css comment identifiers,
+    and whitespaces, to a valid string for latex options parsing.
+
+    For example: 'red /* --wrap */  ' --> 'red'
+    """
+    return str(value).replace(arg, "").replace("/*", "").replace("*/", "").strip()
