@@ -1,6 +1,5 @@
 import copy
 import re
-import textwrap
 
 import numpy as np
 import pytest
@@ -1293,21 +1292,6 @@ class TestStyler:
         )
         assert "#T__ .row0 {\n  color: blue;\n}" in s.render()
 
-    def test_colspan_w3(self):
-        # GH 36223
-        df = DataFrame(data=[[1, 2]], columns=[["l0", "l0"], ["l1a", "l1b"]])
-        s = Styler(df, uuid="_", cell_ids=False)
-        assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in s.render()
-
-    def test_rowspan_w3(self):
-        # GH 38533
-        df = DataFrame(data=[[1, 2]], index=[["l0", "l0"], ["l1a", "l1b"]])
-        s = Styler(df, uuid="_", cell_ids=False)
-        assert (
-            '<th id="T___level0_row0" class="row_heading '
-            'level0 row0" rowspan="2">l0</th>' in s.render()
-        )
-
     @pytest.mark.parametrize("len_", [1, 5, 32, 33, 100])
     def test_uuid_len(self, len_):
         # GH 36345
@@ -1327,49 +1311,6 @@ class TestStyler:
         msg = "``uuid_len`` must be an integer in range \\[0, 32\\]."
         with pytest.raises(TypeError, match=msg):
             Styler(df, uuid_len=len_, cell_ids=False).render()
-
-    def test_w3_html_format(self):
-        s = (
-            Styler(
-                DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]),
-                uuid_len=0,
-            )
-            .set_table_styles([{"selector": "th", "props": "att2:v2;"}])
-            .applymap(lambda x: "att1:v1;")
-            .set_table_attributes('class="my-cls1" style="attr3:v3;"')
-            .set_td_classes(DataFrame(["my-cls2"], index=["a"], columns=["A"]))
-            .format("{:.1f}")
-            .set_caption("A comprehensive test")
-        )
-        expected = """<style type="text/css">
-#T__ th {
-  att2: v2;
-}
-#T__row0_col0, #T__row1_col0 {
-  att1: v1;
-}
-</style>
-<table id="T__" class="my-cls1" style="attr3:v3;">
-  <caption>A comprehensive test</caption>
-  <thead>
-    <tr>
-      <th class="blank level0" >&nbsp;</th>
-      <th class="col_heading level0 col0" >A</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th id="T__level0_row0" class="row_heading level0 row0" >a</th>
-      <td id="T__row0_col0" class="data row0 col0 my-cls2" >2.6</td>
-    </tr>
-    <tr>
-      <th id="T__level0_row1" class="row_heading level0 row1" >b</th>
-      <td id="T__row1_col0" class="data row1 col0" >2.7</td>
-    </tr>
-  </tbody>
-</table>
-"""
-        assert expected == s.render()
 
     @pytest.mark.parametrize(
         "slc",
@@ -1457,48 +1398,3 @@ class TestStyler:
         expected = df.loc[slice_]
         result = df.loc[non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
-
-
-def test_block_names():
-    # catch accidental removal of a block
-    expected = {
-        "before_style",
-        "style",
-        "table_styles",
-        "before_cellstyle",
-        "cellstyle",
-        "before_table",
-        "table",
-        "caption",
-        "thead",
-        "tbody",
-        "after_table",
-        "before_head_rows",
-        "head_tr",
-        "after_head_rows",
-        "before_rows",
-        "tr",
-        "after_rows",
-    }
-    result = set(Styler.template_html.blocks)
-    assert result == expected
-
-
-def test_from_custom_template(tmpdir):
-    p = tmpdir.mkdir("templates").join("myhtml.tpl")
-    p.write(
-        textwrap.dedent(
-            """\
-        {% extends "html.tpl" %}
-        {% block table %}
-        <h1>{{ table_title|default("My Table") }}</h1>
-        {{ super() }}
-        {% endblock table %}"""
-        )
-    )
-    result = Styler.from_custom_template(str(tmpdir.join("templates")), "myhtml.tpl")
-    assert issubclass(result, Styler)
-    assert result.env is not Styler.env
-    assert result.template_html is not Styler.template_html
-    styler = result(DataFrame({"A": [1, 2]}))
-    assert styler.render()
