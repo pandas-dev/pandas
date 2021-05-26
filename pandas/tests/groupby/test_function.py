@@ -87,13 +87,15 @@ def test_max_min_object_multiple_columns(using_array_manager):
 
     gb = df.groupby("A")
 
-    result = gb.max(numeric_only=False)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = gb.max(numeric_only=False)
     # "max" is valid for column "C" but not for "B"
     ei = Index([1, 2, 3], name="A")
     expected = DataFrame({"C": ["b", "d", "e"]}, index=ei)
     tm.assert_frame_equal(result, expected)
 
-    result = gb.min(numeric_only=False)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = gb.min(numeric_only=False)
     # "min" is valid for column "C" but not for "B"
     ei = Index([1, 2, 3], name="A")
     expected = DataFrame({"C": ["a", "c", "e"]}, index=ei)
@@ -221,7 +223,10 @@ class TestNumericOnly:
             ],
         )
 
-        result = getattr(gb, method)(numeric_only=False)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Dropping invalid", check_stacklevel=False
+        ):
+            result = getattr(gb, method)(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         expected_columns = expected.columns
@@ -303,10 +308,27 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
-        result = getattr(gb, method)()
+        # cummin, cummax dont have numeric_only kwarg, always use False
+        warn = None
+        if method in ["cummin", "cummax"]:
+            # these dont have numeric_only kwarg, always use False
+            warn = FutureWarning
+        elif method in ["min", "max"]:
+            # these have numeric_only kwarg, but default to False
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+            result = getattr(gb, method)()
+
         tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        result = getattr(gb, method)(numeric_only=False)
+        # GH#41475 deprecated silently ignoring nuisance columns
+        warn = None
+        if len(expected_columns) < len(gb._obj_with_exclusions.columns):
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+            result = getattr(gb, method)(numeric_only=False)
+
         tm.assert_index_equal(result.columns, expected_columns)
 
 
@@ -333,6 +355,7 @@ class TestGroupByNonCythonPaths:
         return gni
 
     # TODO: non-unique columns, as_index=False
+    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_idxmax(self, gb):
         # object dtype so idxmax goes through _aggregate_item_by_item
         # GH#5610
@@ -342,6 +365,7 @@ class TestGroupByNonCythonPaths:
         result = gb.idxmax()
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_idxmin(self, gb):
         # object dtype so idxmax goes through _aggregate_item_by_item
         # GH#5610
@@ -524,6 +548,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
         ("idxmax", {"c_int": [1, 3], "c_float": [0, 2], "c_date": [0, 3]}),
     ],
 )
+@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_idxmin_idxmax_returns_int_types(func, values):
     # GH 25444
     df = DataFrame(
