@@ -556,7 +556,7 @@ Library            Accessor     Classes                              Description
 `pint-pandas`_     ``pint``     ``Series``, ``DataFrame``            Provides units support for numeric Series and DataFrames.
 `composeml`_       ``slice``    ``DataFrame``                        Provides a generator for enhanced data slicing.
 `datatest`_        ``validate`` ``Series``, ``DataFrame``, ``Index`` Provides validation, differences, and acceptance managers.
-`woodwork`_        ``www``      ``Series``, ``DataFrame``            Provides physical, logical, and semantic data typing information for Series and DataFrames.
+`woodwork`_        ``ww``       ``Series``, ``DataFrame``            Provides physical, logical, and semantic data typing information for Series and DataFrames.
 ================== ============ ==================================== ===============================================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
