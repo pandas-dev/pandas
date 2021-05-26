@@ -986,6 +986,8 @@ cdef class TextReader:
             col_dtype = None
             if self.dtype is not None:
                 if isinstance(self.dtype, dict):
+                    # gh-41574
+                    # Designed to support defaultdict
                     try:
                         col_dtype = self.dtype[name]
                     except KeyError:

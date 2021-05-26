@@ -256,6 +256,7 @@ one,two
         assert result[0].dtype == "u1"
         assert result[1].dtype == "O"
 
+        # see gh-41574
         reader = _make_reader(dtype=defaultdict(lambda: "u1", {1: "S1"}))
         result = reader.read()
         assert result[0].dtype == "u1"
