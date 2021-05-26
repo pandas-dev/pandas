@@ -1308,6 +1308,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self, method="repeat"
         )
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
         Generate a new DataFrame or Series with the index reset.
@@ -2057,6 +2058,7 @@ Name: Max Speed, dtype: float64
     def drop_duplicates(self, keep=..., inplace: bool = ...) -> Series | None:
         ...
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def drop_duplicates(self, keep="first", inplace=False) -> Series | None:
         """
         Return Series with duplicate values removed.
@@ -3467,6 +3469,7 @@ Keep all original rows and also all original values
         else:
             return result.__finalize__(self, method="sort_values")
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def sort_index(
         self,
         axis=0,
@@ -5065,10 +5068,7 @@ Keep all original rows and also all original values
                 convert_boolean,
                 convert_floating,
             )
-            try:
-                result = input_series.astype(inferred_dtype)
-            except TypeError:
-                result = input_series.copy()
+            result = input_series.astype(inferred_dtype)
         else:
             result = input_series.copy()
         return result
@@ -5093,6 +5093,7 @@ Keep all original rows and also all original values
     def notnull(self) -> Series:
         return super().notnull()
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(self, axis=0, inplace=False, how=None):
         """
         Return a new Series with missing values removed.
@@ -5310,6 +5311,20 @@ Keep all original rows and also all original values
     ) -> Series | None:
         return super().bfill(axis, inplace, limit, downcast)
 
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "lower", "upper"]
+    )
+    def clip(
+        self: Series,
+        lower=None,
+        upper=None,
+        axis: Axis | None = None,
+        inplace: bool = False,
+        *args,
+        **kwargs,
+    ) -> Series | None:
+        return super().clip(lower, upper, axis, inplace, *args, **kwargs)
+
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     def interpolate(
         self: Series,
@@ -5332,6 +5347,21 @@ Keep all original rows and also all original values
             downcast,
             **kwargs,
         )
+
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "cond", "other"]
+    )
+    def where(
+        self,
+        cond,
+        other=np.nan,
+        inplace=False,
+        axis=None,
+        level=None,
+        errors="raise",
+        try_cast=lib.no_default,
+    ):
+        return super().where(cond, other, inplace, axis, level, errors, try_cast)
 
     # ----------------------------------------------------------------------
     # Add index
