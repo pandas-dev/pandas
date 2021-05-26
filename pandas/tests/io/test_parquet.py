@@ -929,6 +929,17 @@ class TestParquetPyArrow(Base):
         }
         assert result.b.attrs == {}
 
+    @td.skip_if_no("pyarrow")
+    def test_read_write_attrs__invalid(self, pa):
+        df = pd.DataFrame({"a": [1], "b": [1]})
+        df.attrs = {-1: np.array(1)}
+        df.a.attrs = {-1: np.array(1)}
+        df.b.attrs = {}
+        with tm.ensure_clean() as path, pytest.raises(
+            TypeError, match="not JSON serializable"
+        ):
+            df.to_parquet(path)
+
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
