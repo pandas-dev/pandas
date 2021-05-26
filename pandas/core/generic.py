@@ -7371,115 +7371,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 40420
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        lower=...,
-        upper=...,
-        axis: Axis | None = ...,
-        inplace: Literal[False] = ...,
-        *args,
-        **kwargs,
-    ) -> FrameOrSeries:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        lower,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        lower,
-        *,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        *,
-        upper,
-        axis: Axis | None,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        *,
-        upper,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        lower,
-        upper,
-        axis: Axis | None,
-        inplace: Literal[True],
-        *args,
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        lower,
-        upper,
-        *,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        *,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        lower=...,
-        upper=...,
-        axis: Axis | None = ...,
-        inplace: bool_t = ...,
-        *args,
-        **kwargs,
-    ) -> FrameOrSeries | None:
-        ...
-
-    @final
     def clip(
         self: FrameOrSeries,
         lower=None,
@@ -9079,7 +8970,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self._constructor(new_data)
             return result.__finalize__(self)
 
-    @final
     @doc(
         klass=_shared_doc_kwargs["klass"],
         cond="True",
@@ -9227,7 +9117,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "try_cast keyword is deprecated and will be removed in a "
                 "future version",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=4,
             )
 
         return self._where(cond, other, inplace, axis, level, errors=errors)
