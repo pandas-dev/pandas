@@ -2763,11 +2763,20 @@ class TestFromScalar:
         scalar = cls("NaT", "ns")
         dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
 
-        with pytest.raises(TypeError, match="Cannot cast"):
+        msg = "Cannot cast"
+        if cls is np.datetime64:
+            msg = "|".join(
+                [
+                    r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]",
+                    "Cannot cast",
+                ]
+            )
+
+        with pytest.raises(TypeError, match=msg):
             constructor(scalar, dtype=dtype)
 
         scalar = cls(4, "ns")
-        with pytest.raises(TypeError, match="Cannot cast"):
+        with pytest.raises(TypeError, match=msg):
             constructor(scalar, dtype=dtype)
 
     @pytest.mark.parametrize("cls", [datetime, np.datetime64])

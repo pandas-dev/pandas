@@ -94,7 +94,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_box_native,
-    maybe_convert_platform,
     maybe_downcast_to_dtype,
     validate_numeric_casting,
 )
@@ -259,6 +258,8 @@ _numeric_only_doc = """numeric_only : bool or None, default None
 
 _merge_doc = """
 Merge DataFrame or named Series objects with a database-style join.
+
+A named Series object is treated as a DataFrame with a single named column.
 
 The join is done on columns or indexes. If joining columns on
 columns, the DataFrame indexes *will be ignored*. Otherwise if joining indexes
@@ -4498,35 +4499,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         # We should never get here with DataFrame value
         if isinstance(value, Series):
-            value = _reindex_for_setitem(value, self.index)
+            return _reindex_for_setitem(value, self.index)
 
-        elif isinstance(value, ExtensionArray):
-            # Explicitly copy here
-            value = value.copy()
+        if is_list_like(value):
             com.require_length_match(value, self.index)
-
-        elif is_sequence(value):
-            com.require_length_match(value, self.index)
-
-            # turn me into an ndarray
-            if not isinstance(value, (np.ndarray, Index)):
-                if isinstance(value, list) and len(value) > 0:
-                    value = maybe_convert_platform(value)
-                else:
-                    value = com.asarray_tuplesafe(value)
-            elif isinstance(value, Index):
-                value = value.copy(deep=True)._values
-            else:
-                value = value.copy()
-
-            # possibly infer to datetimelike
-            if is_object_dtype(value.dtype):
-                value = sanitize_array(value, None)
-
-        else:
-            value = construct_1d_arraylike_from_scalar(value, len(self), dtype=None)
-
-        return value
+        return sanitize_array(value, self.index, copy=True, allow_2d=True)
 
     @property
     def _series(self):
@@ -6005,6 +5982,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return result
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "subset"])
     def drop_duplicates(
         self,
         subset: Hashable | Sequence[Hashable] | None = None,
@@ -10686,6 +10664,21 @@ NaN 12.3   33.0
             downcast,
             **kwargs,
         )
+
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "cond", "other"]
+    )
+    def where(
+        self,
+        cond,
+        other=np.nan,
+        inplace=False,
+        axis=None,
+        level=None,
+        errors="raise",
+        try_cast=lib.no_default,
+    ):
+        return super().where(cond, other, inplace, axis, level, errors, try_cast)
 
 
 DataFrame._add_numeric_operations()
