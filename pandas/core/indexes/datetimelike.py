@@ -35,7 +35,6 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
     is_categorical_dtype,
     is_dtype_equal,
     is_integer,
@@ -83,6 +82,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
+    _is_numeric_dtype = False
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
     freq: BaseOffset | None
@@ -113,15 +113,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         """
         Gets called after a ufunc and other functions.
         """
-        result = lib.item_from_zerodim(result)
-        if is_bool_dtype(result) or lib.is_scalar(result):
-            return result
-
-        attrs = self._get_attributes_dict()
-        if not is_period_dtype(self.dtype) and attrs["freq"]:
-            # no need to infer if freq is None
-            attrs["freq"] = "infer"
-        return type(self)(result, **attrs)
+        out = super().__array_wrap__(result, context=context)
+        if isinstance(out, DatetimeTimedeltaMixin) and self.freq is not None:
+            out = out._with_freq("infer")
+        return out
 
     # ------------------------------------------------------------------------
 
@@ -614,6 +609,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     """
 
     _data: DatetimeArray | TimedeltaArray
+    _comparables = ["name", "freq"]
+    _attributes = ["name", "freq"]
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
