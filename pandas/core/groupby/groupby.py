@@ -30,6 +30,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -1131,10 +1132,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         group_keys = self.grouper._get_group_keys()
 
         numba_transform_func = numba_.generate_numba_transform_func(
-            tuple(args), kwargs, func, engine_kwargs
+            kwargs, func, engine_kwargs
         )
         result = numba_transform_func(
-            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
+            sorted_data,
+            sorted_index,
+            starts,
+            ends,
+            len(group_keys),
+            len(data.columns),
+            *args,
         )
 
         cache_key = (func, "groupby_transform")
@@ -1157,11 +1164,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
         group_keys = self.grouper._get_group_keys()
 
-        numba_agg_func = numba_.generate_numba_agg_func(
-            tuple(args), kwargs, func, engine_kwargs
-        )
+        numba_agg_func = numba_.generate_numba_agg_func(kwargs, func, engine_kwargs)
         result = numba_agg_func(
-            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
+            sorted_data,
+            sorted_index,
+            starts,
+            ends,
+            len(group_keys),
+            len(data.columns),
+            *args,
         )
 
         cache_key = (func, "groupby_agg")
@@ -1270,6 +1281,14 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 # if this function is invalid for this dtype, we will ignore it.
                 result = self.grouper.agg_series(obj, f)
             except TypeError:
+                warnings.warn(
+                    f"Dropping invalid columns in {type(self).__name__}.agg "
+                    "is deprecated. In a future version, a TypeError will be raised. "
+                    "Before calling .agg, select only columns which should be "
+                    "valid for the aggregating function.",
+                    FutureWarning,
+                    stacklevel=3,
+                )
                 continue
 
             key = base.OutputKey(label=name, position=idx)
@@ -2829,6 +2848,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                         vals, inferences = pre_processing(vals)
                     except TypeError as err:
                         error_msg = str(err)
+                        howstr = how.replace("group_", "")
+                        warnings.warn(
+                            "Dropping invalid columns in "
+                            f"{type(self).__name__}.{howstr} is deprecated. "
+                            "In a future version, a TypeError will be raised. "
+                            f"Before calling .{howstr}, select only columns which "
+                            "should be valid for the function.",
+                            FutureWarning,
+                            stacklevel=3,
+                        )
                         continue
                 vals = vals.astype(cython_dtype, copy=False)
                 if needs_2d:
