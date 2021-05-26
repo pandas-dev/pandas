@@ -1,4 +1,4 @@
-name: sdist Test
+name: sdist
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
 
     - name: Install Pandas From sdist
       run: |
-        pip install pandas/dist/*.gz
+        pip install dist/*.gz
 
     - name: Build Version
       run: |
