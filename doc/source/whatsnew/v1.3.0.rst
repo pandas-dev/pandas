@@ -973,6 +973,7 @@ I/O
 - Bug in :func:`read_orc` always raising ``AttributeError`` (:issue:`40918`)
 - Bug in :func:`read_csv` and :func:`read_table` silently ignoring ``prefix`` if ``names`` and ``prefix`` are defined, now raising ``ValueError`` (:issue:`39123`)
 - Bug in :func:`read_csv` and :func:`read_excel` not respecting dtype for duplicated column name when ``mangle_dupe_cols`` is set to ``True`` (:issue:`35211`)
+- Bug in :func:`read_csv` silently ignoring ``sep`` if ``delimiter`` and ``sep`` are defined, now raising ``ValueError`` (:issue:`39823`)
 - Bug in :func:`read_csv` and :func:`read_table` misinterpreting arguments when ``sys.setprofile`` had been previously called (:issue:`41069`)
 - Bug in the conversion from pyarrow to pandas (e.g. for reading Parquet) with nullable dtypes and a pyarrow array whose data buffer size is not a multiple of dtype size (:issue:`40896`)
 - Bug in :func:`read_excel` would raise an error when pandas could not determine the file type, even when user specified the ``engine`` argument (:issue:`41225`)
