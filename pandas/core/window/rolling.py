@@ -291,6 +291,7 @@ class BaseWindow(SelectionMixin):
 
     def __iter__(self):
         obj = self._create_data(self._selected_obj)
+        obj = obj.set_axis(self._on)
         indexer = self._get_window_indexer()
 
         start, end = indexer.get_window_bounds(

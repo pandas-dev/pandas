@@ -742,7 +742,7 @@ def test_iter_rolling_dataframe(df, expected, window, min_periods):
     ],
 )
 def test_iter_rolling_on_dataframe(expected, window):
-    # GH 11704
+    # GH 11704, 40373
     df = DataFrame(
         {
             "A": [1, 2, 3, 4, 5],
@@ -751,7 +751,9 @@ def test_iter_rolling_on_dataframe(expected, window):
         }
     )
 
-    expected = [DataFrame(values, index=index) for (values, index) in expected]
+    expected = [
+        DataFrame(values, index=df.loc[index, "C"]) for (values, index) in expected
+    ]
     for (expected, actual) in zip(expected, df.rolling(window, on="C")):
         tm.assert_frame_equal(actual, expected)
 
