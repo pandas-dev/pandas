@@ -1087,6 +1087,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if not len(new_mgr) and len(orig):
             # If the original Manager was already empty, no need to raise
             raise DataError("No numeric types to aggregate")
+        if len(new_mgr) < len(data):
+            warnings.warn(
+                f"Dropping invalid columns in {type(self).__name__}.{how} "
+                "is deprecated. In a future version, a TypeError will be raised. "
+                f"Before calling .{how}, select only columns which should be "
+                "valid for the function.",
+                FutureWarning,
+                stacklevel=4,
+            )
 
         return self._wrap_agged_manager(new_mgr)
 
@@ -1283,6 +1292,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_mgr = mgr.grouped_reduce(arr_func, ignore_failures=True)
         res_mgr.set_axis(1, mgr.axes[1])
 
+        if len(res_mgr) < len(mgr):
+            warnings.warn(
+                f"Dropping invalid columns in {type(self).__name__}.{how} "
+                "is deprecated. In a future version, a TypeError will be raised. "
+                f"Before calling .{how}, select only columns which should be "
+                "valid for the transforming function.",
+                FutureWarning,
+                stacklevel=4,
+            )
+
         res_df = self.obj._constructor(res_mgr)
         if self.axis == 1:
             res_df = res_df.T
@@ -1420,7 +1439,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 output[i] = sgb.transform(wrapper)
             except TypeError:
                 # e.g. trying to call nanmean with string values
-                pass
+                warnings.warn(
+                    f"Dropping invalid columns in {type(self).__name__}.transform "
+                    "is deprecated. In a future version, a TypeError will be raised. "
+                    "Before calling .transform, select only columns which should be "
+                    "valid for the transforming function.",
+                    FutureWarning,
+                    stacklevel=5,
+                )
             else:
                 inds.append(i)
 

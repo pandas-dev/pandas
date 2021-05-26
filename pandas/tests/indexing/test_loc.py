@@ -1352,9 +1352,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame([[0, 2, 0], [0, 5, 0]], columns=mi)
         tm.assert_frame_equal(obj, expected)
 
-        df = df.sort_index(1)
+        df = df.sort_index(axis=1)
         df.loc[:, key] = np.zeros((2, 2), dtype=int)
-        expected = expected.sort_index(1)
+        expected = expected.sort_index(axis=1)
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_uint_drop(self, any_int_dtype):
