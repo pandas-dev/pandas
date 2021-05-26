@@ -93,13 +93,10 @@ def test_mask_pos_args_deprecation():
     s = Series(range(5))
     expected = Series([-1, 1, -1, 3, -1])
     cond = s % 2 == 0
-
     msg = (
-        r"In a future version of pandas all arguments of NDFrame.mask except for "
+        r"In a future version of pandas all arguments of Series.mask except for "
         r"the arguments 'cond' and 'other' will be keyword-only"
     )
-
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = s.mask(cond, -1, False)
-
     tm.assert_series_equal(result, expected)

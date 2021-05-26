@@ -61,7 +61,6 @@ from pandas.errors import (
     InvalidIndexError,
 )
 from pandas.util._decorators import (
-    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -9126,9 +9125,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         name="mask",
         name_other="where",
     )
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
     def mask(
         self,
         cond,
@@ -9148,7 +9144,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "try_cast keyword is deprecated and will be removed in a "
                 "future version",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=4,
             )
 
         # see gh-21891
