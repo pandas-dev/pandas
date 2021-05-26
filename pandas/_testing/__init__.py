@@ -30,9 +30,12 @@ from pandas._typing import Dtype
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_float_dtype,
+    is_integer_dtype,
     is_period_dtype,
     is_sequence,
     is_timedelta64_dtype,
+    is_unsigned_integer_dtype,
     pandas_dtype,
 )
 
@@ -300,13 +303,13 @@ def makeNumericIndex(k=10, name=None, *, dtype):
     dtype = pandas_dtype(dtype)
     assert isinstance(dtype, np.dtype)
 
-    if dtype.kind == "i":
-        values = list(range(k))
-    elif dtype.kind == "u":
-        start_num = 2 ** (dtype.itemsize * 8 - 1)
-        values = [start_num + i for i in range(k)]
-    elif dtype.kind == "f":
-        values = sorted(np.random.random_sample(k)) - np.random.random_sample(1)
+    if is_integer_dtype(dtype):
+        values = np.arange(k, dtype=dtype)
+        if is_unsigned_integer_dtype(dtype):
+            values += 2 ** (dtype.itemsize * 8 - 1)
+    elif is_float_dtype(dtype):
+        values = np.random.random_sample(k) - np.random.random_sample(1)
+        values.sort()
         values = values * (10 ** np.random.randint(0, 9))
     else:
         raise NotImplementedError(f"wrong dtype {dtype}")
