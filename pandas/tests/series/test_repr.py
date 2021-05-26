@@ -240,6 +240,15 @@ class TestSeriesRepr:
         )
         assert result == expected
 
+    def test_float_repr_in_frame(self):
+        # GH#35603
+        # check float format when cast to object
+        ser = Series([1.0]).astype(object)
+        expected = (
+            "0    1.0\n"
+            "dtype: object"
+        )
+        assert repr(ser) == expected
 
 class TestCategoricalRepr:
     def test_categorical_repr_unicode(self):
