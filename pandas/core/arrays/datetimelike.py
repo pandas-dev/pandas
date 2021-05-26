@@ -264,7 +264,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         """
         apply box func to passed values
         """
-        return lib.map_infer(values, self._box_func)
+        return lib.map_infer(values, self._box_func, convert=False)
 
     def __iter__(self):
         if self.ndim > 1:
@@ -602,7 +602,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 "will raise in a future version, pass "
                 f"{self._scalar_type.__name__} instead.",
                 FutureWarning,
-                stacklevel=8,
+                # There is no way to hard-code the level since this might be
+                #  reached directly or called from the Index or Block method
+                stacklevel=find_stack_level(),
             )
             fill_value = new_fill
 

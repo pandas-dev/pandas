@@ -141,6 +141,7 @@ class NaTType(datetime):
 
     def __eq__(self, other: Any) -> bool: ...
     def __ne__(self, other: Any) -> bool: ...
+    # https://github.com/python/mypy/issues/9015
     # error: Argument 1 of "__lt__" is incompatible with supertype "date";
     # supertype defines the argument type as "date"
     def __lt__(  # type: ignore[override]
