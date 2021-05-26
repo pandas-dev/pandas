@@ -977,3 +977,10 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
+
+
+def test_getitem_object_index_float_string():
+    # GH 17286
+    s = Series([1] * 4, index=Index(["a", "b", "c", 1.0]))
+    assert s["a"] == 1
+    assert s[1.0] == 1
