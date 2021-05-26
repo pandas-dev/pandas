@@ -1308,6 +1308,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self, method="repeat"
         )
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
         Generate a new DataFrame or Series with the index reset.
