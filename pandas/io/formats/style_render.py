@@ -584,6 +584,17 @@ class StylerRenderer:
         <td .. ><a href="a.com/&#34;A&amp;B&#34;">&#34;A&amp;B&#34;</a></td>
         <td .. >NA</td>
         ...
+
+        Using a ``formatter`` with LaTeX ``escape``.
+
+        >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
+        >>> s = df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
+        \begin{tabular}{ll}
+        {} & {0} \\
+        0 & \textbf{123} \\
+        1 & \textbf{\textasciitilde \space \textasciicircum } \\
+        2 & \textbf{\$\%\#} \\
+        \end{tabular}
         """
         if all(
             (
