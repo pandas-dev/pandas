@@ -5093,6 +5093,7 @@ Keep all original rows and also all original values
     def notnull(self) -> Series:
         return super().notnull()
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(self, axis=0, inplace=False, how=None):
         """
         Return a new Series with missing values removed.
