@@ -142,7 +142,7 @@ properly format HTML and eliminate some inconsistencies (:issue:`39942` :issue:`
 One also has greater control of the display through separate sparsification of the index or columns, using the new 'styler' options context (:issue:`41142`).
 
 We have added an extension to allow LaTeX styling as an alternative to CSS styling and a method :meth:`.Styler.to_latex`
-which renders the necessary LaTeX format including built-up styles.
+which renders the necessary LaTeX format including built-up styles. An additional file io function :meth:`Styler.to_html` has been added for convenience (:issue:`40312`).
 
 Documentation has also seen major revisions in light of new features (:issue:`39720` :issue:`39317` :issue:`40493`)
 
@@ -678,12 +678,16 @@ Deprecations
 - Deprecated setting :attr:`Categorical._codes`, create a new :class:`Categorical` with the desired codes instead (:issue:`40606`)
 - Deprecated behavior of :meth:`DatetimeIndex.union` with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`)
 - Deprecated using ``usecols`` with out of bounds indices for ``read_csv`` with ``engine="c"`` (:issue:`25623`)
+- Deprecated passing arguments as positional in :meth:`DataFrame.clip` and :meth:`Series.clip` (other than ``"upper"`` and ``"lower"``) (:issue:`41485`)
 - Deprecated special treatment of lists with first element a Categorical in the :class:`DataFrame` constructor; pass as ``pd.DataFrame({col: categorical, ...})`` instead (:issue:`38845`)
 - Deprecated passing arguments as positional (except for ``"method"``) in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (:issue:`41485`)
 - Deprecated passing arguments as positional (except for ``"levels"``) in :meth:`MultiIndex.set_levels` (:issue:`41485`)
+- Deprecated passing arguments as positional in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.drop_duplicates` (except for ``subset``), :meth:`Series.drop_duplicates`, :meth:`Index.drop_duplicates` and :meth:`MultiIndex.drop_duplicates`(:issue:`41485`)
 - Deprecated passing arguments (apart from ``value``) as positional in :meth:`DataFrame.fillna` and :meth:`Series.fillna` (:issue:`41485`)
+- Deprecated passing arguments as positional in :meth:`DataFrame.reset_index` (other than ``"level"``) and :meth:`Series.reset_index` (:issue:`41485`)
 - Deprecated construction of :class:`Series` or :class:`DataFrame` with ``DatetimeTZDtype`` data and ``datetime64[ns]`` dtype.  Use ``Series(data).dt.tz_localize(None)`` instead (:issue:`41555`,:issue:`33401`)
+- Deprecated passing arguments as positional in :meth:`DataFrame.where` and :meth:`Series.where` (other than ``"cond"`` and ``"other"``) (:issue:`41485`)
 
 .. _whatsnew_130.deprecations.nuisance_columns:
 
@@ -725,6 +729,44 @@ For example:
     Out[5]:
     A    24
     dtype: int64
+
+
+Similarly, when applying a function to :class:`DataFrameGroupBy`, columns on which
+the function raises ``TypeError`` are currently silently ignored and dropped
+from the result.
+
+This behavior is deprecated.  In a future version, the ``TypeError``
+will be raised, and users will need to select only valid columns before calling
+the function.
+
+For example:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3, 4], "B": pd.date_range("2016-01-01", periods=4)})
+   gb = df.groupby([1, 1, 2, 2])
+
+*Old behavior*:
+
+.. code-block:: ipython
+
+    In [4]: gb.prod(numeric_only=False)
+    Out[4]:
+    A
+    1   2
+    2  12
+
+.. code-block:: ipython
+
+    In [5]: gb.prod(numeric_only=False)
+    ...
+    TypeError: datetime64 type does not support prod operations
+
+    In [6]: gb[["A"]].prod(numeric_only=False)
+    Out[6]:
+        A
+    1   2
+    2  12
 
 .. ---------------------------------------------------------------------------
 
@@ -846,7 +888,7 @@ Interval
 Indexing
 ^^^^^^^^
 
-- Bug in :meth:`Index.union` dropping duplicate ``Index`` values when ``Index`` was not monotonic or ``sort`` was set to ``False`` (:issue:`36289`, :issue:`31326`, :issue:`40862`)
+- Bug in :meth:`Index.union` and :meth:`MultiIndex.union` dropping duplicate ``Index`` values when ``Index`` was not monotonic or ``sort`` was set to ``False`` (:issue:`36289`, :issue:`31326`, :issue:`40862`)
 - Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
 - Bug in :meth:`Series.loc` raising ``ValueError`` when input was filtered with a boolean list and values to set were a list with lower dimension (:issue:`20438`)
 - Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
@@ -880,6 +922,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc.__getitem__` with :class:`MultiIndex` casting to float when at least one column is from has float dtype and we retrieve a scalar (:issue:`41369`)
 - Bug in :meth:`DataFrame.loc` incorrectly matching non-boolean index elements (:issue:`20432`)
 - Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
+- Bug in :meth:`DataFrame.loc` returning :class:`MultiIndex` in wrong order if indexer has duplicates (:issue:`40978`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``TypeError`` when using a str subclass as the column name with a :class:`DatetimeIndex` (:issue:`37366`)
 
 Missing
@@ -931,10 +974,11 @@ I/O
 - Bug in :func:`read_orc` always raising ``AttributeError`` (:issue:`40918`)
 - Bug in :func:`read_csv` and :func:`read_table` silently ignoring ``prefix`` if ``names`` and ``prefix`` are defined, now raising ``ValueError`` (:issue:`39123`)
 - Bug in :func:`read_csv` and :func:`read_excel` not respecting dtype for duplicated column name when ``mangle_dupe_cols`` is set to ``True`` (:issue:`35211`)
+- Bug in :func:`read_csv` silently ignoring ``sep`` if ``delimiter`` and ``sep`` are defined, now raising ``ValueError`` (:issue:`39823`)
 - Bug in :func:`read_csv` and :func:`read_table` misinterpreting arguments when ``sys.setprofile`` had been previously called (:issue:`41069`)
 - Bug in the conversion from pyarrow to pandas (e.g. for reading Parquet) with nullable dtypes and a pyarrow array whose data buffer size is not a multiple of dtype size (:issue:`40896`)
 - Bug in :func:`read_excel` would raise an error when pandas could not determine the file type, even when user specified the ``engine`` argument (:issue:`41225`)
--
+- Bug in :func:`read_clipboard` copying from an excel file shifts values into the wrong column if there are null values in first column (:issue:`41108`)
 
 Period
 ^^^^^^
@@ -994,6 +1038,8 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.__getitem__` with non-unique columns incorrectly returning a malformed :class:`SeriesGroupBy` instead of :class:`DataFrameGroupBy` (:issue:`41427`)
 - Bug in :meth:`DataFrameGroupBy.transform` with non-unique columns incorrectly raising ``AttributeError`` (:issue:`41427`)
 - Bug in :meth:`Resampler.apply` with non-unique columns incorrectly dropping duplicated columns (:issue:`41445`)
+- Bug in :meth:`DataFrame.rolling.__iter__` where ``on`` was not assigned to the index of the resulting objects (:issue:`40373`)
+- Bug in :meth:`DataFrameGroupBy.transform` and :meth:`DataFrameGroupBy.agg` with ``engine="numba"`` where ``*args`` were being cached with the user passed function (:issue:`41647`)
 
 Reshaping
 ^^^^^^^^^
@@ -1057,6 +1103,7 @@ Other
 - Bug in :func:`pandas.testing.assert_index_equal` with ``exact=True`` not raising when comparing :class:`CategoricalIndex` instances with ``Int64Index`` and ``RangeIndex`` categories (:issue:`41263`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
+- Let Pandas compile on z/OS when using `xlc <https://www.ibm.com/products/xl-cpp-compiler-zos>`_ (:issue:`35826`)
 - Bug in :meth:`DataFrame.convert_dtypes` incorrectly raised ValueError when called on an empty DataFrame (:issue:`40393`)
 - Bug in :meth:`DataFrame.agg()` not sorting the aggregated axis in the order of the provided aggragation functions when one or more aggregation function fails to produce results (:issue:`33634`)
 - Bug in :meth:`DataFrame.clip` not interpreting missing values as no threshold (:issue:`40420`)

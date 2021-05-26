@@ -468,6 +468,8 @@ def sanitize_array(
     dtype: DtypeObj | None = None,
     copy: bool = False,
     raise_cast_failure: bool = True,
+    *,
+    allow_2d: bool = False,
 ) -> ArrayLike:
     """
     Sanitize input data to an ndarray or ExtensionArray, copy if specified,
@@ -480,6 +482,8 @@ def sanitize_array(
     dtype : np.dtype, ExtensionDtype, or None, default None
     copy : bool, default False
     raise_cast_failure : bool, default True
+    allow_2d : bool, default False
+        If False, raise if we have a 2D Arraylike.
 
     Returns
     -------
@@ -554,7 +558,7 @@ def sanitize_array(
                 # type "Union[ExtensionArray, ndarray]"; expected "ndarray"
                 subarr = maybe_infer_to_datetimelike(subarr)  # type: ignore[arg-type]
 
-    subarr = _sanitize_ndim(subarr, data, dtype, index)
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
 
     if not (
         isinstance(subarr.dtype, ExtensionDtype) or isinstance(dtype, ExtensionDtype)
@@ -591,7 +595,12 @@ def range_to_ndarray(rng: range) -> np.ndarray:
 
 
 def _sanitize_ndim(
-    result: ArrayLike, data, dtype: DtypeObj | None, index: Index | None
+    result: ArrayLike,
+    data,
+    dtype: DtypeObj | None,
+    index: Index | None,
+    *,
+    allow_2d: bool = False,
 ) -> ArrayLike:
     """
     Ensure we have a 1-dimensional result array.
@@ -605,6 +614,8 @@ def _sanitize_ndim(
 
     elif result.ndim > 1:
         if isinstance(data, np.ndarray):
+            if allow_2d:
+                return result
             raise ValueError("Data must be 1-dimensional")
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
