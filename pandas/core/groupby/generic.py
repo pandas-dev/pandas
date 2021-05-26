@@ -323,7 +323,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return output
 
     def _cython_agg_general(
-        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
     ):
 
         obj = self._selected_obj
@@ -331,7 +331,10 @@ class SeriesGroupBy(GroupBy[Series]):
         data = obj._mgr
 
         if numeric_only and not is_numeric_dtype(obj.dtype):
-            raise DataError("No numeric types to aggregate")
+            # GH#41291 match Series behavior
+            raise NotImplementedError(
+                f"{type(self).__name__}.{how} does not implement numeric_only."
+            )
 
         # This is overkill because it is only called once, but is here to
         #  mirror the array_func used in DataFrameGroupBy._cython_agg_general
@@ -1056,7 +1059,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 yield values
 
     def _cython_agg_general(
-        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
     ) -> DataFrame:
         # Note: we never get here with how="ohlc"; that goes through SeriesGroupBy
 

@@ -1038,6 +1038,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.__getitem__` with non-unique columns incorrectly returning a malformed :class:`SeriesGroupBy` instead of :class:`DataFrameGroupBy` (:issue:`41427`)
 - Bug in :meth:`DataFrameGroupBy.transform` with non-unique columns incorrectly raising ``AttributeError`` (:issue:`41427`)
 - Bug in :meth:`Resampler.apply` with non-unique columns incorrectly dropping duplicated columns (:issue:`41445`)
+- Bug in :meth:`SeriesGroupBy` aggregations incorrectly returning empty :class:`Series` instead of raising ``TypeError`` on aggregations that are invalid for its dtype, e.g. ``.prod`` with ``datetime64[ns]`` dtype (:issue:`41342`)
 - Bug in :meth:`DataFrame.rolling.__iter__` where ``on`` was not assigned to the index of the resulting objects (:issue:`40373`)
 - Bug in :meth:`DataFrameGroupBy.transform` and :meth:`DataFrameGroupBy.agg` with ``engine="numba"`` where ``*args`` were being cached with the user passed function (:issue:`41647`)
 
