@@ -106,32 +106,30 @@ def test_format_clear(styler):
     assert (0, 0) not in styler._display_funcs  # formatter cleared to default
 
 
-def test_format_escape_html():
-    df = DataFrame([['<>&"']])
-    s = Styler(df, uuid_len=0).format("X&{0}>X", escape=None)
-    expected = '<td id="T__row0_col0" class="data row0 col0" >X&<>&">X</td>'
+@pytest.mark.parametrize(
+    "escape, exp",
+    [
+        ("html", "&lt;&gt;&amp;&#34;%$#_{}~^\\~ ^ \\ "),
+        (
+            "latex",
+            '<>\\&"\\%\\$\\#\\_\\{\\}\\textasciitilde \\textasciicircum '
+            "\\textbackslash \\textasciitilde \\space \\textasciicircum \\space "
+            "\\textbackslash \\space ",
+        ),
+    ],
+)
+def test_format_escape_html(escape, exp):
+    chars = '<>&"%$#_{}~^\\~ ^ \\ '
+    df = DataFrame([[chars]])
+
+    s = Styler(df, uuid_len=0).format("&{0}&", escape=None)
+    expected = f'<td id="T__row0_col0" class="data row0 col0" >&{chars}&</td>'
     assert expected in s.render()
 
     # only the value should be escaped before passing to the formatter
-    s = Styler(df, uuid_len=0).format("X&{0}>X", escape="html")
-    ex = '<td id="T__row0_col0" class="data row0 col0" >X&&lt;&gt;&amp;&#34;>X</td>'
-    assert ex in s.render()
-
-
-def test_format_escape_latex():
-    df = DataFrame([["&%$#_{}~^\\~ ^ \\ "]])
-    s = Styler(df, uuid_len=0).format("_{0}_", escape=None)
-    expected = '<td id="T__row0_col0" class="data row0 col0" >_&%$#_{}~^\\~ ^ \\ _</td>'
+    s = Styler(df, uuid_len=0).format("&{0}&", escape=escape)
+    expected = f'<td id="T__row0_col0" class="data row0 col0" >&{exp}&</td>'
     assert expected in s.render()
-
-    # only the value should be escaped before passing to the formatter
-    s = Styler(df, uuid_len=0).format("_{0}_", escape="latex")
-    ex = (
-        '<td id="T__row0_col0" class="data row0 col0" >_\\&\\%\\$\\#\\_\\{\\}'
-        "\\textasciitilde \\textasciicircum \\textbackslash \\textasciitilde \\space "
-        "\\textasciicircum \\space \\textbackslash \\space _</td>"
-    )
-    assert ex in s.render()
 
 
 def test_format_escape_na_rep():
