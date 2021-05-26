@@ -141,6 +141,20 @@ def test_where():
     tm.assert_series_equal(rs, expected)
 
 
+def test_where_non_keyword_deprecation():
+    # GH 41485
+    s = Series(range(5))
+    msg = (
+        "In a future version of pandas all arguments of "
+        "Series.where except for the arguments 'cond' "
+        "and 'other' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.where(s > 1, 10, False)
+    expected = Series([10, 10, 2, 3, 4])
+    tm.assert_series_equal(expected, result)
+
+
 def test_where_error():
     s = Series(np.random.randn(5))
     cond = s > 0
