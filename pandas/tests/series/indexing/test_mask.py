@@ -22,7 +22,7 @@ def test_mask():
     tm.assert_series_equal(rs, rs2)
 
     rs = s.where(~cond, -s)
-    rs2 = s.mask(cond, other=-s)
+    rs2 = s.mask(cond, -s)
     tm.assert_series_equal(rs, rs2)
 
     cond = Series([True, False, False, True, False], index=s.index)
@@ -32,18 +32,18 @@ def test_mask():
     tm.assert_series_equal(rs, rs2)
 
     rs = s2.where(~cond[:3], -s2)
-    rs2 = s2.mask(cond[:3], other=-s2)
+    rs2 = s2.mask(cond[:3], -s2)
     tm.assert_series_equal(rs, rs2)
 
     msg = "Array conditional must be same shape as self"
     with pytest.raises(ValueError, match=msg):
         s.mask(1)
     with pytest.raises(ValueError, match=msg):
-        s.mask(cond[:3].values, other=-s)
+        s.mask(cond[:3].values, -s)
 
     # dtype changes
     s = Series([1, 2, 3, 4])
-    result = s.mask(s > 2, other=np.nan)
+    result = s.mask(s > 2, np.nan)
     expected = Series([1, 2, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
@@ -65,8 +65,8 @@ def test_mask_inplace():
     tm.assert_series_equal(rs, s.mask(cond))
 
     rs = s.copy()
-    rs.mask(cond, other=-s, inplace=True)
-    tm.assert_series_equal(rs, s.mask(cond, other=-s))
+    rs.mask(cond, -s, inplace=True)
+    tm.assert_series_equal(rs, s.mask(cond, -s))
 
 
 def test_mask_stringdtype():
@@ -78,7 +78,7 @@ def test_mask_stringdtype():
     )
     filtered_ser = Series(["this", "that"], index=["id2", "id3"], dtype=StringDtype())
     filter_ser = Series([False, True, True, False])
-    result = ser.mask(filter_ser, other=filtered_ser)
+    result = ser.mask(filter_ser, filtered_ser)
 
     expected = Series(
         [NA, "this", "that", NA],
