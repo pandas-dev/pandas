@@ -326,6 +326,18 @@ class TestFillNA:
             datetime_frame.ffill(), datetime_frame.fillna(method="ffill")
         )
 
+    def test_ffill_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.ffill "
+            r"will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.ffill(0)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
+
     def test_bfill(self, datetime_frame):
         datetime_frame["A"][:5] = np.nan
         datetime_frame["A"][-5:] = np.nan
@@ -333,6 +345,18 @@ class TestFillNA:
         tm.assert_frame_equal(
             datetime_frame.bfill(), datetime_frame.fillna(method="bfill")
         )
+
+    def test_bfill_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.bfill "
+            r"will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.bfill(0)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
 
     def test_frame_pad_backfill_limit(self):
         index = np.arange(10)
