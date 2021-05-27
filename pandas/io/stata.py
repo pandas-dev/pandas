@@ -1761,7 +1761,9 @@ the string values returned are correct."""
         if replacements:
             columns = data.columns
             replacement_df = DataFrame(replacements)
-            replaced = concat([data.drop(replacement_df.columns, 1), replacement_df], 1)
+            replaced = concat(
+                [data.drop(replacement_df.columns, axis=1), replacement_df], 1
+            )
             data = replaced[columns]
         return data
 
