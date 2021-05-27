@@ -12,6 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    name: sdist test
     timeout-minutes: 60
 
     steps:
@@ -46,7 +47,6 @@ jobs:
     - name: Test with pytest
       run: |
         python -c "import pandas; pandas.test(extra_args=['-m not clipboard', '--skip-slow', '--skip-network', '--skip-db', '-n=2'])"
-      continue-on-error: true
 
     - name: Publish test results
       uses: actions/upload-artifact@master
