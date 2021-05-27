@@ -2232,8 +2232,8 @@ class StataWriter(StataParser):
 
     value_labels : dict of dicts
         Dictionary containing columns as keys and dictionaries of column value
-        to labels as values. Labels for a single variable must be 32,000
-        characters or smaller.
+        to labels as values. The combined length of all labels for a single
+        variable must be 32,000 characters or smaller.
 
     Returns
     -------
@@ -3163,8 +3163,8 @@ class StataWriter117(StataWriter):
 
     value_labels : dict of dicts
         Dictionary containing columns as keys and dictionaries of column value
-        to labels as values. Labels for a single variable must be 32,000
-        characters or smaller.
+        to labels as values. The combined length of all labels for a single
+        variable must be 32,000 characters or smaller.
 
     Returns
     -------
@@ -3561,8 +3561,8 @@ class StataWriterUTF8(StataWriter117):
 
     value_labels : dict of dicts
         Dictionary containing columns as keys and dictionaries of column value
-        to labels as values. Labels for a single variable must be 32,000
-        characters or smaller.
+        to labels as values. The combined length of all labels for a single
+        variable must be 32,000 characters or smaller.
 
     Returns
     -------
