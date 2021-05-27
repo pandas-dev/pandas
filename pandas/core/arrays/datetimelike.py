@@ -158,9 +158,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     _is_recognized_dtype: Callable[[DtypeObj], bool]
     _recognized_scalars: tuple[type, ...]
     _ndarray: np.ndarray
-    # Incompatible types in assignment (expression has type "bool", base class
-    # "ExtensionArray" defined the type as "Callable[[ExtensionArray], bool]")
-    _can_hold_na = True  # type: ignore[assignment]
+
+    @cache_readonly
+    def _can_hold_na(self) -> bool:
+        return True
 
     def __init__(self, data, dtype: Dtype | None = None, freq=None, copy=False):
         raise AbstractMethodError(self)

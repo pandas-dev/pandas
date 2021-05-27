@@ -14,9 +14,10 @@ pytestmark = td.skip_array_manager_invalid_test
 class CustomBlock(ExtensionBlock):
 
     _holder = np.ndarray
-    # Incompatible types in assignment (expression has type "bool", base class
-    # "Block" defined the type as "Callable[[Block], bool]")
-    _can_hold_na = False  # type: ignore[assignment,misc]
+
+    @property
+    def _can_hold_na(self) -> bool:
+        return False
 
 
 @pytest.fixture
