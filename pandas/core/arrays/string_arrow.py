@@ -742,7 +742,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
     _str_na_value = ArrowStringDtype.na_value
 
-    def _str_map(self, f, na_value=None, dtype: Dtype | None = None):
+    def _str_map(
+        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+    ):
         # TODO: de-duplicate with StringArray method. This method is moreless copy and
         # paste.
 
