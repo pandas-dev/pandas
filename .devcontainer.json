@@ -4,13 +4,13 @@
 	"name": "pandas",
 	"context": ".",
 	"dockerFile": "Dockerfile",
-
+	"postCreateCommand": "bash container_start.sh",
 	// Use 'settings' to set *default* container specific settings.json values on container create.
 	// You can edit these settings after create using File > Preferences > Settings > Remote.
 	"settings": {
-		"terminal.integrated.shell.linux": "/bin/bash",
+		"terminal.integrated.defaultProfile.linux": "/bin/bash",
 		"python.condaPath": "/opt/conda/bin/conda",
-		"python.pythonPath": "/opt/conda/bin/python",
+		"python.pythonPath": "/workspaces/pandas/.venv/bin/python",
 		"python.formatting.provider": "black",
 		"python.linting.enabled": true,
 		"python.linting.flake8Enabled": true,
@@ -21,10 +21,12 @@
 			"pandas"
 		]
 	},
-
 	// Add the IDs of extensions you want installed when the container is created in the array below.
 	"extensions": [
 		"ms-python.python",
 		"ms-vscode.cpptools"
+	],
+	"runArgs": [
+		"--privileged"
 	]
 }
