@@ -55,6 +55,7 @@ class CSSDict(TypedDict):
 
 
 CSSStyles = List[CSSDict]
+Subset = Union[slice, Sequence, Index]
 
 
 class StylerRenderer:
@@ -65,6 +66,7 @@ class StylerRenderer:
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     template_html = env.get_template("html.tpl")
+    template_latex = env.get_template("latex.tpl")
 
     def __init__(
         self,
@@ -82,8 +84,6 @@ class StylerRenderer:
             data = data.to_frame()
         if not isinstance(data, DataFrame):
             raise TypeError("``data`` must be a Series or DataFrame")
-        if not data.index.is_unique or not data.columns.is_unique:
-            raise ValueError("style is not supported for non-unique indices.")
         self.data: DataFrame = data
         self.index: Index = data.index
         self.columns: Index = data.columns
@@ -108,16 +108,33 @@ class StylerRenderer:
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
 
-    def _render_html(self, **kwargs) -> str:
+    def _render_html(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
         """
         Renders the ``Styler`` including all applied styles to HTML.
         Generates a dict with necessary kwargs passed to jinja2 template.
         """
         self._compute()
         # TODO: namespace all the pandas keys
-        d = self._translate()
+        d = self._translate(sparse_index, sparse_columns)
         d.update(kwargs)
         return self.template_html.render(**d)
+
+    def _render_latex(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
+        """
+        Render a Styler in latex format
+        """
+        self._compute()
+
+        d = self._translate(sparse_index, sparse_columns, blank="")
+        self._translate_latex(d)
+
+        self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
+        self.template_latex.globals["parse_table"] = _parse_latex_table_styles
+        self.template_latex.globals["parse_cell"] = _parse_latex_cell_styles
+        self.template_latex.globals["parse_header"] = _parse_latex_header_span
+
+        d.update(kwargs)
+        return self.template_latex.render(**d)
 
     def _compute(self):
         """
@@ -134,10 +151,27 @@ class StylerRenderer:
             r = func(self)(*args, **kwargs)
         return r
 
-    def _translate(self):
+    def _translate(self, sparse_index: bool, sparse_cols: bool, blank: str = "&nbsp;"):
         """
-        Convert the DataFrame in `self.data` and the attrs from `_build_styles`
-        into a dictionary of {head, body, uuid, cellstyle}.
+        Process Styler data and settings into a dict for template rendering.
+
+        Convert data and settings from ``Styler`` attributes such as ``self.data``,
+        ``self.tooltips`` including applying any methods in ``self._todo``.
+
+        Parameters
+        ----------
+        sparse_index : bool
+            Whether to sparsify the index or print all hierarchical index elements.
+            Upstream defaults are typically to `pandas.options.styler.sparse.index`.
+        sparse_cols : bool
+            Whether to sparsify the columns or print all hierarchical column elements.
+            Upstream defaults are typically to `pandas.options.styler.sparse.columns`.
+
+        Returns
+        -------
+        d : dict
+            The following structure: {uuid, table_styles, caption, head, body,
+            cellstyle, table_attributes}
         """
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
@@ -145,7 +179,7 @@ class StylerRenderer:
 
         DATA_CLASS = "data"
         BLANK_CLASS = "blank"
-        BLANK_VALUE = "&nbsp;"
+        BLANK_VALUE = blank
 
         # construct render dict
         d = {
@@ -155,14 +189,14 @@ class StylerRenderer:
         }
 
         head = self._translate_header(
-            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS
+            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS, sparse_cols
         )
         d.update({"head": head})
 
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS)
+        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS, sparse_index)
         d.update({"body": body})
 
         cellstyle: list[dict[str, CSSList | list[str]]] = [
@@ -187,10 +221,17 @@ class StylerRenderer:
         return d
 
     def _translate_header(
-        self, blank_class, blank_value, index_name_class, col_heading_class
+        self,
+        blank_class: str,
+        blank_value: str,
+        index_name_class: str,
+        col_heading_class: str,
+        sparsify_cols: bool,
     ):
         """
-        Build each <tr> within table <head>, using the structure:
+        Build each <tr> within table <head> as a list
+
+        Using the structure:
              +----------------------------+---------------+---------------------------+
              |  index_blanks ...          | column_name_0 |  column_headers (level_0) |
           1) |       ..                   |       ..      |             ..            |
@@ -198,9 +239,29 @@ class StylerRenderer:
              +----------------------------+---------------+---------------------------+
           2) |  index_names (level_0 to level_n) ...      | column_blanks ...         |
              +----------------------------+---------------+---------------------------+
+
+        Parameters
+        ----------
+        blank_class : str
+            CSS class added to elements within blank sections of the structure.
+        blank_value : str
+            HTML display value given to elements within blank sections of the structure.
+        index_name_class : str
+            CSS class added to elements within the index_names section of the structure.
+        col_heading_class : str
+            CSS class added to elements within the column_names section of structure.
+        sparsify_cols : bool
+            Whether column_headers section will add colspan attributes (>1) to elements.
+
+        Returns
+        -------
+        head : list
+            The associated HTML elements needed for template rendering.
         """
         # for sparsifying a MultiIndex
-        col_lengths = _get_level_lengths(self.columns, self.hidden_columns)
+        col_lengths = _get_level_lengths(
+            self.columns, sparsify_cols, self.hidden_columns
+        )
 
         clabels = self.data.columns.tolist()
         if self.data.columns.nlevels == 1:
@@ -270,18 +331,36 @@ class StylerRenderer:
 
         return head
 
-    def _translate_body(self, data_class, row_heading_class):
+    def _translate_body(
+        self, data_class: str, row_heading_class: str, sparsify_index: bool
+    ):
         """
-        Build each <tr> in table <body> in the following format:
+        Build each <tr> within table <body> as a list
+
+        Use the following structure:
           +--------------------------------------------+---------------------------+
           |  index_header_0    ...    index_header_n   |  data_by_column           |
           +--------------------------------------------+---------------------------+
 
         Also add elements to the cellstyle_map for more efficient grouped elements in
         <style></style> block
+
+        Parameters
+        ----------
+        data_class : str
+            CSS class added to elements within data_by_column sections of the structure.
+        row_heading_class : str
+            CSS class added to elements within the index_header section of structure.
+        sparsify_index : bool
+            Whether index_headers section will add rowspan attributes (>1) to elements.
+
+        Returns
+        -------
+        body : list
+            The associated HTML elements needed for template rendering.
         """
         # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(self.index)
+        idx_lengths = _get_level_lengths(self.index, sparsify_index)
 
         rlabels = self.data.index.tolist()
         if self.data.index.nlevels == 1:
@@ -334,10 +413,46 @@ class StylerRenderer:
             body.append(index_headers + data)
         return body
 
+    def _translate_latex(self, d: dict) -> None:
+        r"""
+        Post-process the default render dict for the LaTeX template format.
+
+        Processing items included are:
+          - Remove hidden columns from the non-headers part of the body.
+          - Place cellstyles directly in td cells rather than use cellstyle_map.
+          - Remove hidden indexes or reinsert missing th elements if part of multiindex
+            or multirow sparsification (so that \multirow and \multicol work correctly).
+        """
+        d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
+        body = []
+        for r, row in enumerate(d["body"]):
+            if self.hidden_index:
+                row_body_headers = []
+            else:
+                row_body_headers = [
+                    {
+                        **col,
+                        "display_value": col["display_value"]
+                        if col["is_visible"]
+                        else "",
+                    }
+                    for col in row
+                    if col["type"] == "th"
+                ]
+
+            row_body_cells = [
+                {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
+                for c, col in enumerate(row)
+                if (col["is_visible"] and col["type"] == "td")
+            ]
+
+            body.append(row_body_headers + row_body_cells)
+        d["body"] = body
+
     def format(
         self,
         formatter: ExtFormatter | None = None,
-        subset: slice | Sequence[Any] | None = None,
+        subset: Subset | None = None,
         na_rep: str | None = None,
         precision: int | None = None,
         decimal: str = ".",
@@ -351,9 +466,10 @@ class StylerRenderer:
         ----------
         formatter : str, callable, dict or None
             Object to define how values are displayed. See notes.
-        subset : IndexSlice
-            An argument to ``DataFrame.loc`` that restricts which elements
-            ``formatter`` is applied to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         na_rep : str, optional
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied.
@@ -481,28 +597,22 @@ class StylerRenderer:
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
 
-        columns = data.columns
         if not isinstance(formatter, dict):
-            formatter = {col: formatter for col in columns}
+            formatter = {col: formatter for col in data.columns}
 
-        for col in columns:
-            try:
-                format_func = formatter[col]
-            except KeyError:
-                format_func = None
-
+        cis = self.columns.get_indexer_for(data.columns)
+        ris = self.index.get_indexer_for(data.index)
+        for ci in cis:
             format_func = _maybe_wrap_formatter(
-                format_func,
+                formatter.get(self.columns[ci]),
                 na_rep=na_rep,
                 precision=precision,
                 decimal=decimal,
                 thousands=thousands,
                 escape=escape,
             )
-
-            for row, value in data[[col]].itertuples():
-                i, j = self.index.get_loc(row), self.columns.get_loc(col)
-                self._display_funcs[(i, j)] = format_func
+            for ri in ris:
+                self._display_funcs[(ri, ci)] = format_func
 
         return self
 
@@ -528,14 +638,26 @@ def _element(
     }
 
 
-def _get_level_lengths(index, hidden_elements=None):
+def _get_level_lengths(
+    index: Index, sparsify: bool, hidden_elements: Sequence[int] | None = None
+):
     """
     Given an index, find the level length for each element.
 
-    Optional argument is a list of index positions which
-    should not be visible.
+    Parameters
+    ----------
+    index : Index
+        Index or columns to determine lengths of each element
+    sparsify : bool
+        Whether to hide or show each distinct element in a MultiIndex
+    hidden_elements : sequence of int
+        Index positions of elements hidden from display in the index affecting
+        length
 
-    Result is a dictionary of (level, initial_position): span
+    Returns
+    -------
+    Dict :
+        Result is a dictionary of (level, initial_position): span
     """
     if isinstance(index, MultiIndex):
         levels = index.format(sparsify=lib.no_default, adjoin=False)
@@ -554,7 +676,7 @@ def _get_level_lengths(index, hidden_elements=None):
 
     for i, lvl in enumerate(levels):
         for j, row in enumerate(lvl):
-            if not get_option("display.multi_sparse"):
+            if not sparsify:
                 lengths[(i, j)] = 1
             elif (row is not lib.no_default) and (j not in hidden_elements):
                 last_label = j
@@ -701,7 +823,7 @@ def _maybe_wrap_formatter(
         return lambda x: na_rep if isna(x) else func_2(x)
 
 
-def non_reducing_slice(slice_):
+def non_reducing_slice(slice_: Subset):
     """
     Ensure that a slice doesn't reduce to a Series or Scalar.
 
@@ -738,7 +860,9 @@ def non_reducing_slice(slice_):
             # slice(a, b, c)
             slice_ = [slice_]  # to tuplize later
     else:
-        slice_ = [part if pred(part) else [part] for part in slice_]
+        # error: Item "slice" of "Union[slice, Sequence[Any]]" has no attribute
+        # "__iter__" (not iterable) -> is specifically list_like in conditional
+        slice_ = [p if pred(p) else [p] for p in slice_]  # type: ignore[union-attr]
     return tuple(slice_)
 
 
@@ -926,3 +1050,140 @@ class Tooltips:
             d["table_styles"].extend(self.table_styles)
 
         return d
+
+
+def _parse_latex_table_wrapping(table_styles: CSSStyles, caption: str | None) -> bool:
+    """
+    Indicate whether LaTeX {tabular} should be wrapped with a {table} environment.
+
+    Parses the `table_styles` and detects any selectors which must be included outside
+    of {tabular}, i.e. indicating that wrapping must occur, and therefore return True,
+    or if a caption exists and requires similar.
+    """
+    IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
+    # ignored selectors are included with {tabular} so do not need wrapping
+    return (
+        table_styles is not None
+        and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
+    ) or caption is not None
+
+
+def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | None:
+    """
+    Return the first 'props' 'value' from ``tables_styles`` identified by ``selector``.
+
+    Examples
+    --------
+    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')],
+    ...                 {'selector': 'bar', 'props': [('attr', 'overwritten')]},
+    ...                 {'selector': 'bar', 'props': [('a1', 'baz'), ('a2', 'ignore')]}]
+    >>> _parse_latex_table_styles(table_styles, selector='bar')
+    'baz'
+
+    Notes
+    -----
+    The replacement of "§" with ":" is to avoid the CSS problem where ":" has structural
+    significance and cannot be used in LaTeX labels, but is often required by them.
+    """
+    for style in table_styles[::-1]:  # in reverse for most recently applied style
+        if style["selector"] == selector:
+            return str(style["props"][0][1]).replace("§", ":")
+    return None
+
+
+def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
+    r"""
+    Mutate the ``display_value`` string including LaTeX commands from ``latex_styles``.
+
+    This method builds a recursive latex chain of commands based on the
+    CSSList input, nested around ``display_value``.
+
+    If a CSS style is given as ('<command>', '<options>') this is translated to
+    '\<command><options>{display_value}', and this value is treated as the
+    display value for the next iteration.
+
+    The most recent style forms the inner component, for example for styles:
+    `[('c1', 'o1'), ('c2', 'o2')]` this returns: `\c1o1{\c2o2{display_value}}`
+
+    Sometimes latex commands have to be wrapped with curly braces in different ways:
+    We create some parsing flags to identify the different behaviours:
+
+     - `--rwrap`        : `\<command><options>{<display_value>}`
+     - `--wrap`         : `{\<command><options> <display_value>}`
+     - `--nowrap`       : `\<command><options> <display_value>`
+     - `--lwrap`        : `{\<command><options>} <display_value>`
+     - `--dwrap`        : `{\<command><options>}{<display_value>}`
+
+    For example for styles:
+    `[('c1', 'o1--wrap'), ('c2', 'o2')]` this returns: `{\c1o1 \c2o2{display_value}}
+    """
+    for (command, options) in latex_styles[::-1]:  # in reverse for most recent style
+        formatter = {
+            "--wrap": f"{{\\{command}--to_parse {display_value}}}",
+            "--nowrap": f"\\{command}--to_parse {display_value}",
+            "--lwrap": f"{{\\{command}--to_parse}} {display_value}",
+            "--rwrap": f"\\{command}--to_parse{{{display_value}}}",
+            "--dwrap": f"{{\\{command}--to_parse}}{{{display_value}}}",
+        }
+        display_value = f"\\{command}{options} {display_value}"
+        for arg in ["--nowrap", "--wrap", "--lwrap", "--rwrap", "--dwrap"]:
+            if arg in str(options):
+                display_value = formatter[arg].replace(
+                    "--to_parse", _parse_latex_options_strip(value=options, arg=arg)
+                )
+                break  # only ever one purposeful entry
+    return display_value
+
+
+def _parse_latex_header_span(
+    cell: dict[str, Any], multirow_align: str, multicol_align: str, wrap: bool = False
+) -> str:
+    r"""
+    Refactor the cell `display_value` if a 'colspan' or 'rowspan' attribute is present.
+
+    'rowspan' and 'colspan' do not occur simultaneouly. If they are detected then
+    the `display_value` is altered to a LaTeX `multirow` or `multicol` command
+    respectively, with the appropriate cell-span.
+
+    ``wrap`` is used to enclose the `display_value` in braces which is needed for
+    column headers using an siunitx package.
+
+    Requires the package {multirow}, whereas multicol support is usually built in
+    to the {tabular} environment.
+
+    Examples
+    --------
+    >>> cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
+    >>> _parse_latex_header_span(cell, 't', 'c')
+    '\multicol{3}{c}{text}'
+    """
+    if "attributes" in cell:
+        attrs = cell["attributes"]
+        if 'colspan="' in attrs:
+            colspan = attrs[attrs.find('colspan="') + 9 :]  # len('colspan="') = 9
+            colspan = int(colspan[: colspan.find('"')])
+            return (
+                f"\\multicolumn{{{colspan}}}{{{multicol_align}}}"
+                f"{{{cell['display_value']}}}"
+            )
+        elif 'rowspan="' in attrs:
+            rowspan = attrs[attrs.find('rowspan="') + 9 :]
+            rowspan = int(rowspan[: rowspan.find('"')])
+            return (
+                f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}"
+                f"{{{cell['display_value']}}}"
+            )
+    if wrap:
+        return f"{{{cell['display_value']}}}"
+    else:
+        return cell["display_value"]
+
+
+def _parse_latex_options_strip(value: str | int | float, arg: str) -> str:
+    """
+    Strip a css_value which may have latex wrapping arguments, css comment identifiers,
+    and whitespaces, to a valid string for latex options parsing.
+
+    For example: 'red /* --wrap */  ' --> 'red'
+    """
+    return str(value).replace(arg, "").replace("/*", "").replace("*/", "").strip()

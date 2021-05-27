@@ -345,7 +345,11 @@ class TestDataFrameJoin:
         # join, see discussion in GH#12219
         columns = ["a", "b", ("a", ""), ("c", "c1")]
         expected = DataFrame(columns=columns, data=[[1, 11, 0, 44], [0, 22, 1, 33]])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "merging between different levels is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            # stacklevel is chosen to be correct for pd.merge, not DataFrame.join
             result = df1.join(df2, on="a")
         tm.assert_frame_equal(result, expected)
 

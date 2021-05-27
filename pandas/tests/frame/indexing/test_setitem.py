@@ -18,6 +18,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
+import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
@@ -791,6 +792,41 @@ class TestDataFrameSetItemSlicing:
         expected = DataFrame(arr)
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("indexer", [tm.setitem, tm.iloc])
+    @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
+    @pytest.mark.parametrize("n", [1, 2, 3])
+    def test_setitem_slice_indexer_broadcasting_rhs(self, n, box, indexer):
+        # GH#40440
+        df = DataFrame([[1, 3, 5]] + [[2, 4, 6]] * n, columns=["a", "b", "c"])
+        indexer(df)[1:] = box([10, 11, 12])
+        expected = DataFrame([[1, 3, 5]] + [[10, 11, 12]] * n, columns=["a", "b", "c"])
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
+    @pytest.mark.parametrize("n", [1, 2, 3])
+    def test_setitem_list_indexer_broadcasting_rhs(self, n, box):
+        # GH#40440
+        df = DataFrame([[1, 3, 5]] + [[2, 4, 6]] * n, columns=["a", "b", "c"])
+        df.iloc[list(range(1, n + 1))] = box([10, 11, 12])
+        expected = DataFrame([[1, 3, 5]] + [[10, 11, 12]] * n, columns=["a", "b", "c"])
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", [tm.setitem, tm.iloc])
+    @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
+    @pytest.mark.parametrize("n", [1, 2, 3])
+    def test_setitem_slice_broadcasting_rhs_mixed_dtypes(self, n, box, indexer):
+        # GH#40440
+        df = DataFrame(
+            [[1, 3, 5], ["x", "y", "z"]] + [[2, 4, 6]] * n, columns=["a", "b", "c"]
+        )
+        indexer(df)[1:] = box([10, 11, 12])
+        expected = DataFrame(
+            [[1, 3, 5]] + [[10, 11, 12]] * (n + 1),
+            columns=["a", "b", "c"],
+            dtype="object",
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetItemCallable:
     def test_setitem_callable(self):
@@ -859,9 +895,11 @@ class TestDataFrameSetItemBooleanMask:
         df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
 
         exp_fancy = exp_multi_row.copy()
-        return_value = exp_fancy["cats"].cat.set_categories(
-            ["a", "b", "c"], inplace=True
-        )
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # issue #37643 inplace kwarg deprecated
+            return_value = exp_fancy["cats"].cat.set_categories(
+                ["a", "b", "c"], inplace=True
+            )
         assert return_value is None
 
         mask = df["cats"] == "c"

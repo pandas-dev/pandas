@@ -20,6 +20,10 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.groupby.generic import (
+    DataFrameGroupBy,
+    SeriesGroupBy,
+)
 from pandas.core.groupby.groupby import DataError
 
 
@@ -242,7 +246,7 @@ def test_transform_bug():
     # transforming on a datetime column
     df = DataFrame({"A": Timestamp("20130101"), "B": np.arange(5)})
     result = df.groupby("A")["B"].transform(lambda x: x.rank(ascending=False))
-    expected = Series(np.arange(5, 0, step=-1), name="B")
+    expected = Series(np.arange(5, 0, step=-1), name="B", dtype="float64")
     tm.assert_series_equal(result, expected)
 
 
@@ -391,23 +395,45 @@ def test_transform_select_columns(df):
     tm.assert_frame_equal(result, expected)
 
 
-def test_transform_exclude_nuisance(df):
+@pytest.mark.parametrize("duplicates", [True, False])
+def test_transform_exclude_nuisance(df, duplicates):
+    # case that goes through _transform_item_by_item
+
+    if duplicates:
+        # make sure we work with duplicate columns GH#41427
+        df.columns = ["A", "C", "C", "D"]
 
     # this also tests orderings in transform between
     # series/frame to make sure it's consistent
     expected = {}
     grouped = df.groupby("A")
-    expected["C"] = grouped["C"].transform(np.mean)
+
+    gbc = grouped["C"]
+    warn = FutureWarning if duplicates else None
+    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        expected["C"] = gbc.transform(np.mean)
+    if duplicates:
+        # squeeze 1-column DataFrame down to Series
+        expected["C"] = expected["C"]["C"]
+
+        assert isinstance(gbc.obj, DataFrame)
+        assert isinstance(gbc, DataFrameGroupBy)
+    else:
+        assert isinstance(gbc, SeriesGroupBy)
+        assert isinstance(gbc.obj, Series)
+
     expected["D"] = grouped["D"].transform(np.mean)
     expected = DataFrame(expected)
-    result = df.groupby("A").transform(np.mean)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        result = df.groupby("A").transform(np.mean)
 
     tm.assert_frame_equal(result, expected)
 
 
 def test_transform_function_aliases(df):
-    result = df.groupby("A").transform("mean")
-    expected = df.groupby("A").transform(np.mean)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        result = df.groupby("A").transform("mean")
+        expected = df.groupby("A").transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby("A")["C"].transform("mean")
@@ -476,7 +502,10 @@ def test_groupby_transform_with_int():
         }
     )
     with np.errstate(all="ignore"):
-        result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+        with tm.assert_produces_warning(
+            FutureWarning, match="Dropping invalid columns"
+        ):
+            result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
     expected = DataFrame(
         {"B": np.nan, "C": Series([-1, 0, 1, -1, 0, 1], dtype="float64")}
     )
@@ -492,15 +521,21 @@ def test_groupby_transform_with_int():
         }
     )
     with np.errstate(all="ignore"):
-        result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
-    expected = DataFrame({"B": np.nan, "C": [-1, 0, 1, -1, 0, 1]})
+        with tm.assert_produces_warning(
+            FutureWarning, match="Dropping invalid columns"
+        ):
+            result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+    expected = DataFrame({"B": np.nan, "C": [-1.0, 0.0, 1.0, -1.0, 0.0, 1.0]})
     tm.assert_frame_equal(result, expected)
 
     # int that needs float conversion
     s = Series([2, 3, 4, 10, 5, -1])
     df = DataFrame({"A": [1, 1, 1, 2, 2, 2], "B": 1, "C": s, "D": "foo"})
     with np.errstate(all="ignore"):
-        result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+        with tm.assert_produces_warning(
+            FutureWarning, match="Dropping invalid columns"
+        ):
+            result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
 
     s1 = s.iloc[0:3]
     s1 = (s1 - s1.mean()) / s1.std()
@@ -509,9 +544,10 @@ def test_groupby_transform_with_int():
     expected = DataFrame({"B": np.nan, "C": concat([s1, s2])})
     tm.assert_frame_equal(result, expected)
 
-    # int downcasting
-    result = df.groupby("A").transform(lambda x: x * 2 / 2)
-    expected = DataFrame({"B": 1, "C": [2, 3, 4, 10, 5, -1]})
+    # int doesn't get downcasted
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        result = df.groupby("A").transform(lambda x: x * 2 / 2)
+    expected = DataFrame({"B": 1.0, "C": [2.0, 3.0, 4.0, 10.0, 5.0, -1.0]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -769,7 +805,11 @@ def test_transform_numeric_ret(cols, exp, comp_func, agg_func, request):
         {"a": date_range("2018-01-01", periods=3), "b": range(3), "c": range(7, 10)}
     )
 
-    result = df.groupby("b")[cols].transform(agg_func)
+    warn = FutureWarning
+    if isinstance(exp, Series) or agg_func != "size":
+        warn = None
+    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        result = df.groupby("b")[cols].transform(agg_func)
 
     if agg_func == "rank":
         exp = exp.astype("float")
@@ -861,7 +901,7 @@ def test_pad_stable_sorting(fill_method):
         y = y[::-1]
 
     df = DataFrame({"x": x, "y": y})
-    expected = df.drop("x", 1)
+    expected = df.drop("x", axis=1)
 
     result = getattr(df.groupby("x"), fill_method)()
 
@@ -1081,7 +1121,12 @@ def test_transform_agg_by_name(request, reduction_func, obj):
 
     args = {"nth": [0], "quantile": [0.5], "corrwith": [obj]}.get(func, [])
 
-    result = g.transform(func, *args)
+    warn = None
+    if isinstance(obj, DataFrame) and func == "size":
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        result = g.transform(func, *args)
 
     # this is the *definition* of a transformation
     tm.assert_index_equal(result.index, obj.index)
