@@ -15,7 +15,8 @@ class CustomBlock(ExtensionBlock):
 
     _holder = np.ndarray
 
-    @property
+    # Cannot override final attribute "_can_hold_na"
+    @property  # type: ignore[misc]
     def _can_hold_na(self) -> bool:
         return False
 
