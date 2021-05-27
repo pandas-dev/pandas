@@ -115,13 +115,13 @@ class StringDtype(ExtensionDtype):
             The type of the name. The storage type will be taking from `string`.
             Valid options and their storage types are
 
-            ========================== ==============
+            ========================== ==============================================
             string                     result storage
-            ========================== ==============
-            ``'string'``               global default
+            ========================== ==============================================
+            ``'string'``               pd.options.mode.string_storage, default python
             ``'string[python]'``       python
             ``'string[pyarrow]'``      pyarrow
-            ========================== =============
+            ========================== ==============================================
 
         Returns
         -------
