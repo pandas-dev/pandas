@@ -32,6 +32,7 @@ jobs:
 
     - name: Build Pandas sdist
       run: |
+        python setup.py build_ext -q -j2
         python setup.py sdist --formats=gztar
 
     - name: Install Pandas From sdist
