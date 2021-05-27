@@ -84,3 +84,16 @@ def test_drop_non_empty_list(data, index, drop_labels):
     ser = Series(data=data, index=index, dtype=dtype)
     with pytest.raises(KeyError, match="not found in axis"):
         ser.drop(drop_labels)
+
+
+def test_drop_pos_args_deprecation():
+    # https://github.com/pandas-dev/pandas/issues/41485
+    ser = Series([1, 2, 3])
+    msg = (
+        r"In a future version of pandas all arguments of Series\.drop "
+        r"except for the argument 'labels' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ser.drop(1, 0)
+    expected = Series([1, 3], index=[0, 2])
+    tm.assert_series_equal(result, expected)
