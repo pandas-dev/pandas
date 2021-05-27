@@ -680,7 +680,6 @@ class TestQuantileExtensionDtype:
                 [],
                 1,
                 "datetime64[ns]",
-                # marks=pytest.mark.xfail(reason="#GH 41544"),
             ),
             ["datetime64[ns]", [pd.NaT, pd.NaT], ["a", "b"], 0, "datetime64[ns]"],
         ],
