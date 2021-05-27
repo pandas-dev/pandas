@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
+    Hashable,
     Iterable,
     Sequence,
     cast,
@@ -114,6 +115,8 @@ parser_defaults = {
 class ParserBase:
     _implicit_index: bool = False
     _first_chunk: bool
+    index_col: int | Sequence[int] | None
+    index_names: list[Hashable] | None
 
     def __init__(self, kwds):
 
@@ -123,7 +126,7 @@ class ParserBase:
 
         self.index_col = kwds.get("index_col", None)
         self.unnamed_cols: set = set()
-        self.index_names: list | None = None
+        self.index_names: list[Hashable] | None = None
         self.col_names = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
@@ -171,8 +174,14 @@ class ParserBase:
             if self.index_col is not None:
                 is_sequence = isinstance(self.index_col, (list, tuple, np.ndarray))
                 if not (
-                    is_sequence
-                    and all(map(is_integer, self.index_col))
+                    # error: Argument 2 to "map" has incompatible type
+                    # "Union[int, Sequence[int]]"; expected "Iterable[int]"
+                    (
+                        is_sequence
+                        and all(
+                            map(is_integer, self.index_col)  # type: ignore[arg-type]
+                        )
+                    )
                     or is_integer(self.index_col)
                 ):
                     raise ValueError(
@@ -287,8 +296,12 @@ class ParserBase:
                 name = self.index_names[i]
             else:
                 name = None
-            j = i if self.index_col is None else self.index_col[i]
-
+            # error: Value of type "Union[int, Sequence[int]]" is not indexable
+            j = (
+                i
+                if self.index_col is None
+                else self.index_col[i]  # type: ignore[index]
+            )
             if is_scalar(self.parse_dates):
                 return (j == self.parse_dates) or (
                     name is not None and name == self.parse_dates
@@ -317,7 +330,9 @@ class ParserBase:
             ic = []
 
         if not isinstance(ic, (list, tuple, np.ndarray)):
-            ic = [ic]
+            # error: List item 0 has incompatible type
+            # "Union[int, Sequence[int]]"; expected "int"
+            ic = [ic]  # type: ignore[list-item]
         sic = set(ic)
 
         # clean the index_names
@@ -333,7 +348,9 @@ class ParserBase:
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
         columns = list(zip(*(extract(r) for r in header)))
-        names = ic + columns
+        # error: No overload variant of "__add__" of "tuple" matches argument
+        # type "List[Any]"
+        names = ic + columns  # type: ignore[operator]
 
         # If we find unnamed columns all in a single
         # level, then our header was too long.
@@ -368,7 +385,12 @@ class ParserBase:
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
             counts: DefaultDict[int | str | tuple, int] = defaultdict(int)
-            is_potential_mi = _is_potential_multi_index(names, self.index_col)
+            # error: Argument 2 to "_is_potential_multi_index" has incompatible
+            # type "Union[int, Sequence[int], None]"; expected
+            # "Union[bool, Sequence[int], None]"
+            is_potential_mi = _is_potential_multi_index(
+                names, self.index_col  # type: ignore[arg-type]
+            )
 
             for i, col in enumerate(names):
                 cur_count = counts[col]
@@ -431,7 +453,11 @@ class ParserBase:
 
         to_remove = []
         index = []
-        for idx in self.index_col:
+        # error: Item "int" of "Union[int, Sequence[int], None]" has no
+        # attribute "__iter__" (not iterable)
+        # error: Item "None" of "Union[int, Sequence[int], None]" has no
+        # attribute "__iter__" (not iterable
+        for idx in self.index_col:  # type: ignore[union-attr]
             i = ix(idx)
             to_remove.append(i)
             index.append(data[i])
@@ -460,7 +486,11 @@ class ParserBase:
 
         to_remove = []
         index = []
-        for idx in self.index_col:
+        # error: Item "int" of "Union[int, Sequence[int], None]" has no
+        # attribute "__iter__" (not iterable)
+        # error: Item "None" of "Union[int, Sequence[int], None]" has no
+        # attribute "__iter__" (not iterable
+        for idx in self.index_col:  # type: ignore[union-attr]
             name = _get_name(idx)
             to_remove.append(name)
             index.append(data[name])

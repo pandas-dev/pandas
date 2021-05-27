@@ -39,10 +39,7 @@ class CParserWrapper(ParserBase):
         self.low_memory = kwds.pop("low_memory", False)
 
         # #2442
-        # error: Cannot determine type of 'index_col'
-        kwds["allow_leading_cols"] = (
-            self.index_col is not False  # type: ignore[has-type]
-        )
+        kwds["allow_leading_cols"] = self.index_col is not False
 
         # GH20529, validate usecol arg before TextReader
         kwds["usecols"] = self.usecols
@@ -71,7 +68,6 @@ class CParserWrapper(ParserBase):
             if len(self._reader.header) > 1:
                 # we have a multi index in the columns
                 # error: Cannot determine type of 'names'
-                # error: Cannot determine type of 'index_names'
                 # error: Cannot determine type of 'col_names'
                 (
                     self.names,  # type: ignore[has-type]
@@ -80,7 +76,7 @@ class CParserWrapper(ParserBase):
                     passed_names,
                 ) = self._extract_multi_indexer_columns(
                     self._reader.header,
-                    self.index_names,  # type: ignore[has-type]
+                    self.index_names,
                     self.col_names,  # type: ignore[has-type]
                     passed_names,
                 )
@@ -149,10 +145,7 @@ class CParserWrapper(ParserBase):
         self.orig_names = self.names  # type: ignore[has-type]
 
         if not self._has_complex_date_col:
-            # error: Cannot determine type of 'index_col'
-            if self._reader.leading_cols == 0 and is_index_col(
-                self.index_col  # type: ignore[has-type]
-            ):
+            if self._reader.leading_cols == 0 and is_index_col(self.index_col):
 
                 self._name_processed = True
                 (
@@ -163,8 +156,7 @@ class CParserWrapper(ParserBase):
                 ) = self._clean_index_names(
                     # error: Cannot determine type of 'names'
                     self.names,  # type: ignore[has-type]
-                    # error: Cannot determine type of 'index_col'
-                    self.index_col,  # type: ignore[has-type]
+                    self.index_col,
                     self.unnamed_cols,
                 )
 
@@ -258,7 +250,8 @@ class CParserWrapper(ParserBase):
                 if self.index_col is None:
                     values = data.pop(i)
                 else:
-                    values = data.pop(self.index_col[i])
+                    # error: Value of type "Union[int, Sequence[int]]" is not indexable
+                    values = data.pop(self.index_col[i])  # type: ignore[index]
 
                 values = self._maybe_parse_dates(values, i, try_parse_dates=True)
                 arrays.append(values)
