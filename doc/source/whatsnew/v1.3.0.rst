@@ -204,6 +204,14 @@ You can use the alias ``"string[pyarrow]"`` as well.
    s = pd.Series(['abc', None, 'def'], dtype="string[pyarrow]")
    s
 
+You can also create a PyArrow backed string array using pandas options.
+
+.. ipython:: python
+
+    with pd.option_context("string_storage", "pyarrow"):
+        s = pd.Series(['abc', None, 'def'], dtype="string")
+    s
+
 The usual string accessor methods work. Where appropriate, the return type
 of the Series or columns of a DataFrame will also have string dtype.
 
