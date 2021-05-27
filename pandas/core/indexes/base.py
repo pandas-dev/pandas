@@ -54,6 +54,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 
@@ -1537,7 +1538,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     names = property(fset=_set_names, fget=_get_names)
 
-    @final
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
     def set_names(self, names, level=None, inplace: bool = False):
         """
         Set Index or MultiIndex name.
@@ -2651,7 +2652,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = super().unique()
         return self._shallow_copy(result)
 
-    @final
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def drop_duplicates(self: _IndexT, keep: str_t | bool = "first") -> _IndexT:
         """
         Return Index with duplicate values removed.

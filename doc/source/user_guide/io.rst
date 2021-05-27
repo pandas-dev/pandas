@@ -1897,7 +1897,7 @@ Writing in ISO date format:
 
    dfd = pd.DataFrame(np.random.randn(5, 2), columns=list("AB"))
    dfd["date"] = pd.Timestamp("20130101")
-   dfd = dfd.sort_index(1, ascending=False)
+   dfd = dfd.sort_index(axis=1, ascending=False)
    json = dfd.to_json(date_format="iso")
    json
 
@@ -3683,15 +3683,6 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
    with pd.ExcelWriter("path_to_file.xlsx") as writer:
        df1.to_excel(writer, sheet_name="Sheet1")
        df2.to_excel(writer, sheet_name="Sheet2")
-
-.. note::
-
-    Wringing a little more performance out of ``read_excel``
-    Internally, Excel stores all numeric data as floats. Because this can
-    produce unexpected behavior when reading in data, pandas defaults to trying
-    to convert integers to floats if it doesn't lose information (``1.0 -->
-    1``).  You can pass ``convert_float=False`` to disable this behavior, which
-    may give a slight performance improvement.
 
 .. _io.excel_writing_buffer:
 

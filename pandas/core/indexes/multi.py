@@ -41,6 +41,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 
@@ -291,7 +292,6 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _codes = FrozenList()
     _comparables = ["names"]
-    rename = Index.set_names
 
     sortorder: int | None
 
@@ -803,6 +803,7 @@ class MultiIndex(Index):
 
         self._reset_cache()
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "levels"])
     def set_levels(
         self, levels, level=None, inplace=None, verify_integrity: bool = True
     ):
@@ -894,7 +895,7 @@ class MultiIndex(Index):
             warnings.warn(
                 "inplace is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
         else:
             inplace = False
@@ -990,6 +991,7 @@ class MultiIndex(Index):
 
         self._reset_cache()
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "codes"])
     def set_codes(self, codes, level=None, inplace=None, verify_integrity: bool = True):
         """
         Set new codes on MultiIndex. Defaults to returning new index.
@@ -1057,7 +1059,7 @@ class MultiIndex(Index):
             warnings.warn(
                 "inplace is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
         else:
             inplace = False
@@ -3428,6 +3430,7 @@ class MultiIndex(Index):
                 new_order = np.arange(n)[indexer]
             elif is_list_like(k):
                 # Generate a map with all level codes as sorted initially
+                k = algos.unique(k)
                 key_order_map = np.ones(len(self.levels[i]), dtype=np.uint64) * len(
                     self.levels[i]
                 )
@@ -3556,14 +3559,20 @@ class MultiIndex(Index):
 
     def _union(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
+        if (
+            any(-1 in code for code in self.codes)
+            and any(-1 in code for code in self.codes)
+            or self.has_duplicates
+            or other.has_duplicates
+        ):
+            # This is only necessary if both sides have nans or one has dups,
+            # fast_unique_multiple is faster
+            result = super()._union(other, sort)
+        else:
+            rvals = other._values.astype(object, copy=False)
+            result = lib.fast_unique_multiple([self._values, rvals], sort=sort)
 
-        # We could get here with CategoricalIndex other
-        rvals = other._values.astype(object, copy=False)
-        uniq_tuples = lib.fast_unique_multiple([self._values, rvals], sort=sort)
-
-        return MultiIndex.from_arrays(
-            zip(*uniq_tuples), sortorder=0, names=result_names
-        )
+        return MultiIndex.from_arrays(zip(*result), sortorder=0, names=result_names)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)
@@ -3576,7 +3585,9 @@ class MultiIndex(Index):
         """
         names = self._maybe_match_names(other)
         if self.names != names:
-            return self.rename(names)
+            # Incompatible return value type (got "Optional[MultiIndex]", expected
+            # "MultiIndex")
+            return self.rename(names)  # type: ignore[return-value]
         return self
 
     def _maybe_match_names(self, other):
@@ -3774,6 +3785,16 @@ class MultiIndex(Index):
             if levs.size == 0:
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
+    def set_names(self, names, level=None, inplace: bool = False) -> MultiIndex | None:
+        return super().set_names(names=names, level=level, inplace=inplace)
+
+    rename = set_names
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def drop_duplicates(self, keep: str | bool = "first") -> MultiIndex:
+        return super().drop_duplicates(keep=keep)
 
     # ---------------------------------------------------------------
     # Arithmetic/Numeric Methods - Disabled
