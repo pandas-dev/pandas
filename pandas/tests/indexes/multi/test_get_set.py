@@ -449,3 +449,25 @@ def test_set_levels_pos_args_deprecation():
         names=["foo", "bar"],
     )
     tm.assert_index_equal(result, expected)
+
+
+def test_set_codes_pos_args_depreciation(idx):
+    # https://github.com/pandas-dev/pandas/issues/41485
+    msg = (
+        r"In a future version of pandas all arguments of MultiIndex.set_codes except "
+        r"for the argument 'codes' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = idx.set_codes([[0, 0, 1, 2, 3, 3], [0, 1, 0, 1, 0, 1]], [0, 1])
+    expected = MultiIndex.from_tuples(
+        [
+            ("foo", "one"),
+            ("foo", "two"),
+            ("bar", "one"),
+            ("baz", "two"),
+            ("qux", "one"),
+            ("qux", "two"),
+        ],
+        names=["first", "second"],
+    )
+    tm.assert_index_equal(result, expected)
