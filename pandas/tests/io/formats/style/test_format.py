@@ -11,6 +11,7 @@ import pandas._testing as tm
 
 pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
+from pandas.io.formats.style_render import _str_escape
 
 
 @pytest.fixture
@@ -253,3 +254,14 @@ def test_format_decimal(formatter, thousands, precision):
         decimal="_", formatter=formatter, thousands=thousands, precision=precision
     )._translate(True, True)
     assert "000_123" in result["body"][0][1]["display_value"]
+
+
+def test_str_escape_error():
+    msg = "`escape` only permitted in {'html', 'latex'}, got "
+    with pytest.raises(ValueError, match=msg):
+        _str_escape("text", "bad_escape")
+
+    with pytest.raises(ValueError, match=msg):
+        _str_escape("text", [])
+
+    _str_escape(2.00, "bad_escape")  # OK since dtype is float

@@ -795,6 +795,10 @@ def _str_escape(x, escape):
             return escape_html(x)
         elif escape == "latex":
             return _escape_latex(x)
+        else:
+            raise ValueError(
+                f"`escape` only permitted in {{'html', 'latex'}}, got {escape}"
+            )
     return x
 
 
@@ -824,8 +828,8 @@ def _maybe_wrap_formatter(
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
-    # Replace HTML chars if escaping
-    if escape == "html" or escape == "latex":
+    # Replace chars if escaping
+    if escape is not None:
         func_1 = lambda x: func_0(_str_escape(x, escape=escape))
     else:
         func_1 = func_0
