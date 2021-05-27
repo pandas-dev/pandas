@@ -4483,6 +4483,7 @@ Keep all original rows and also all original values
     def set_axis(self, labels, axis: Axis = ..., inplace: bool = ...) -> Series | None:
         ...
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
         Examples
