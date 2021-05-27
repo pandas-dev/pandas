@@ -30,7 +30,10 @@ from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
 )
-from pandas.util._decorators import Appender
+from pandas.util._decorators import (
+    Appender,
+    deprecate_nonkeyword_arguments,
+)
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -491,6 +494,9 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
         return parser.read(nrows)
 
 
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["filepath_or_buffer"], stacklevel=3
+)
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
@@ -1297,6 +1303,9 @@ def _refine_defaults_read(
         kwds["sep_override"] = delimiter is None and (
             sep is lib.no_default or sep == delim_default
         )
+
+    if delimiter and (sep is not lib.no_default):
+        raise ValueError("Specified a sep and a delimiter; you can only specify one.")
 
     if names is not lib.no_default and prefix is not lib.no_default:
         raise ValueError("Specified named and prefix; you can only specify one.")
