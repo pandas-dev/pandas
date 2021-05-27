@@ -901,7 +901,7 @@ def test_pad_stable_sorting(fill_method):
         y = y[::-1]
 
     df = DataFrame({"x": x, "y": y})
-    expected = df.drop("x", 1)
+    expected = df.drop("x", axis=1)
 
     result = getattr(df.groupby("x"), fill_method)()
 

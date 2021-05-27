@@ -2456,7 +2456,9 @@ class Categorical(  # type: ignore[misc]
 
     # ------------------------------------------------------------------------
     # String methods interface
-    def _str_map(self, f, na_value=np.nan, dtype=np.dtype("object")):
+    def _str_map(
+        self, f, na_value=np.nan, dtype=np.dtype("object"), convert: bool = True
+    ):
         # Optimization to apply the callable `f` to the categories once
         # and rebuild the result by `take`ing from the result with the codes.
         # Returns the same type as the object-dtype implementation though.

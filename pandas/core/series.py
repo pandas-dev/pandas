@@ -3260,6 +3260,7 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Reindexing, sorting
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def sort_values(
         self,
         axis=0,
@@ -4483,6 +4484,7 @@ Keep all original rows and also all original values
     def set_axis(self, labels, axis: Axis = ..., inplace: bool = ...) -> Series | None:
         ...
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
         Examples
@@ -4522,6 +4524,7 @@ Keep all original rows and also all original values
     def reindex(self, index=None, **kwargs):
         return super().reindex(index=index, **kwargs)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def drop(
         self,
         labels=None,
@@ -5292,6 +5295,26 @@ Keep all original rows and also all original values
             self, method="to_period"
         )
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def ffill(
+        self: Series,
+        axis: None | Axis = None,
+        inplace: bool = False,
+        limit: None | int = None,
+        downcast=None,
+    ) -> Series | None:
+        return super().ffill(axis, inplace, limit, downcast)
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def bfill(
+        self: Series,
+        axis: None | Axis = None,
+        inplace: bool = False,
+        limit: None | int = None,
+        downcast=None,
+    ) -> Series | None:
+        return super().bfill(axis, inplace, limit, downcast)
+
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "lower", "upper"]
     )
@@ -5343,6 +5366,21 @@ Keep all original rows and also all original values
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
+
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "cond", "other"]
+    )
+    def mask(
+        self,
+        cond,
+        other=np.nan,
+        inplace=False,
+        axis=None,
+        level=None,
+        errors="raise",
+        try_cast=lib.no_default,
+    ):
+        return super().mask(cond, other, inplace, axis, level, errors, try_cast)
 
     # ----------------------------------------------------------------------
     # Add index

@@ -4703,6 +4703,7 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
         Examples
@@ -4766,6 +4767,7 @@ class DataFrame(NDFrame, OpsMixin):
         kwargs.pop("labels", None)
         return super().reindex(**kwargs)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def drop(
         self,
         labels=None,
@@ -6221,6 +6223,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Sorting
     # TODO: Just move the sort_values doc here.
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "by"])
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
     # error: Signature of "sort_values" incompatible with supertype "NDFrame"
@@ -10645,6 +10648,26 @@ NaN 12.3   33.0
         self._consolidate_inplace()
         return self._mgr.as_array(transpose=True)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def ffill(
+        self: DataFrame,
+        axis: None | Axis = None,
+        inplace: bool = False,
+        limit: None | int = None,
+        downcast=None,
+    ) -> DataFrame | None:
+        return super().ffill(axis, inplace, limit, downcast)
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def bfill(
+        self: DataFrame,
+        axis: None | Axis = None,
+        inplace: bool = False,
+        limit: None | int = None,
+        downcast=None,
+    ) -> DataFrame | None:
+        return super().bfill(axis, inplace, limit, downcast)
+
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "lower", "upper"]
     )
@@ -10696,6 +10719,21 @@ NaN 12.3   33.0
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
+
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "cond", "other"]
+    )
+    def mask(
+        self,
+        cond,
+        other=np.nan,
+        inplace=False,
+        axis=None,
+        level=None,
+        errors="raise",
+        try_cast=lib.no_default,
+    ):
+        return super().mask(cond, other, inplace, axis, level, errors, try_cast)
 
 
 DataFrame._add_numeric_operations()
