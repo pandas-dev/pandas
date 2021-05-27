@@ -21,6 +21,14 @@ the next person.
 About the pandas documentation
 --------------------------------
 
+As you can see from the top navigation, the documentation is split into five sections:
+
+* **Getting Started:** This is where new pandas users should start. It explains how to get set up, and how to get oriented with pandas.
+* **User Guide:** These are deeper dives into specific pandas features, meant for users with a bit more experience.
+* **API Reference:** These are the pages explaining pandas classes and functions, automatically generated from the docstrings in the code.
+* **Development:** This explains how to contribute to pandas.
+* **Release Notes:** The changes included in each version of pandas.
+
 The documentation is written in **reStructuredText**, which is almost like writing
 in plain English, and built using `Sphinx <https://www.sphinx-doc.org/en/master/>`__. The
 Sphinx Documentation has an excellent `introduction to reST
@@ -88,6 +96,10 @@ Some other important things to know about the docs:
   Every method should be included in a ``toctree`` in one of the documentation files in
   ``doc/source/reference``, else Sphinx
   will emit a warning.
+
+* The "website" is separate from the "docs", and can be found under ``web/``.
+
+* While it's a proper noun, the "pandas" project name is always written lower-case.
 
 .. note::
 
