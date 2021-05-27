@@ -923,7 +923,8 @@ def test_wrap_aggregated_output_multindex(mframe):
         else:
             return ser.sum()
 
-    agged2 = df.groupby(keys).aggregate(aggfun)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        agged2 = df.groupby(keys).aggregate(aggfun)
     assert len(agged2.columns) + 1 == len(df.columns)
 
 
@@ -1757,12 +1758,21 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "mad", "min", "max", "sum", "prod", "skew"]
 )
+@pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_empty_groupby(columns, keys, values, method, op, request):
     # GH8093 & GH26411
     override_dtype = None
 
-    if isinstance(values, Categorical) and len(keys) == 1 and method == "apply":
+    if (
+        isinstance(values, Categorical)
+        and not isinstance(columns, list)
+        and op in ["sum", "prod"]
+        and method != "apply"
+    ):
+        # handled below GH#41291
+        pass
+    elif isinstance(values, Categorical) and len(keys) == 1 and method == "apply":
         mark = pytest.mark.xfail(raises=TypeError, match="'str' object is not callable")
         request.node.add_marker(mark)
     elif (
@@ -1823,11 +1833,36 @@ def test_empty_groupby(columns, keys, values, method, op, request):
     df = df.iloc[:0]
 
     gb = df.groupby(keys)[columns]
-    if method == "attr":
-        result = getattr(gb, op)()
-    else:
-        result = getattr(gb, method)(op)
 
+    def get_result():
+        if method == "attr":
+            return getattr(gb, op)()
+        else:
+            return getattr(gb, method)(op)
+
+    if columns == "C":
+        # i.e. SeriesGroupBy
+        if op in ["prod", "sum"]:
+            # ops that require more than just ordered-ness
+            if method != "apply":
+                # FIXME: apply goes through different code path
+                if df.dtypes[0].kind == "M":
+                    # GH#41291
+                    # datetime64 -> prod and sum are invalid
+                    msg = "datetime64 type does not support"
+                    with pytest.raises(TypeError, match=msg):
+                        get_result()
+
+                    return
+                elif isinstance(values, Categorical):
+                    # GH#41291
+                    msg = "category type does not support"
+                    with pytest.raises(TypeError, match=msg):
+                        get_result()
+
+                    return
+
+    result = get_result()
     expected = df.set_index(keys)[columns]
     if override_dtype is not None:
         expected = expected.astype(override_dtype)
