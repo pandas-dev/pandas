@@ -10285,8 +10285,9 @@ NaN 12.3   33.0
             )
             res = res.iloc[0]
             # GH#41544
-            if len(dtypes) == 1 and np.dtype("datetime64[ns]") in dtypes:
-                return res.astype("datetime64[ns]")
+            if len(dtypes) == 1 and not numeric_only:
+                res_dtype = next(iter(dtypes))
+                return res.astype(res_dtype)
             else:
                 return res
 
