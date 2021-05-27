@@ -733,6 +733,18 @@ def test_read_csv_delimiter_and_sep_no_default(all_parsers):
         parser.read_csv(f, sep=" ", delimiter=".")
 
 
+def test_read_csv_posargs_deprecation(all_parsers):
+    # GH 41485
+    f = StringIO("a,b\n1,2")
+    parser = all_parsers
+    msg = (
+        "In a future version of pandas all arguments of read_csv "
+        "except for the argument 'filepath_or_buffer' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        parser.read_csv(f, " ")
+
+
 @pytest.mark.parametrize("delimiter", [",", "\t"])
 def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
     # GH: 35958
