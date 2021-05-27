@@ -1499,3 +1499,16 @@ class TestExcelFileRead:
         with pytest.raises(ValueError, match="Value must be one of *"):
             with pd.option_context(f"io.excel{read_ext}.reader", "abc"):
                 pass
+
+    def test_ignore_chartsheets(self, request, engine, read_ext):
+        # GH 41448
+        if engine == "odf":
+            pytest.skip("chartsheets do not exist in the ODF format")
+        if engine == "pyxlsb":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="pyxlsb can't distinguish chartsheets from worksheets"
+                )
+            )
+        with pd.ExcelFile("chartsheet" + read_ext) as excel:
+            assert excel.sheet_names == ["Sheet1"]
