@@ -34,7 +34,7 @@ computation.
 Use pandas DataFrames in your [scikit-learn](https://scikit-learn.org/)
 ML pipeline.
 
-### [Featuretools](https://github.com/featuretools/featuretools/)
+### [Featuretools](https://github.com/alteryx/featuretools/)
 
 Featuretools is a Python library for automated feature engineering built
 on top of pandas. It excels at transforming temporal and relational
@@ -42,7 +42,7 @@ datasets into feature matrices for machine learning using reusable
 feature engineering "primitives". Users can contribute their own
 primitives in Python and share them with the rest of the community.
 
-### [Compose](https://github.com/FeatureLabs/compose)
+### [Compose](https://github.com/alteryx/compose)
 
 Compose is a machine learning tool for labeling data and prediction engineering.
 It allows you to structure the labeling process by parameterizing
@@ -386,4 +386,5 @@ authors to coordinate on the namespace.
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
   | [pandas_path](https://github.com/drivendataorg/pandas-path/)         | `path`     | `Index`, `Series`     |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
-  | [composeml](https://github.com/FeatureLabs/compose)                  | `slice`    | `DataFrame`           |
+  | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
+  | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
