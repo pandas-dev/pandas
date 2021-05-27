@@ -247,6 +247,7 @@ class TestSeriesRepr:
         expected = "0    1.0\ndtype: object"
         assert repr(ser) == expected
 
+
 class TestCategoricalRepr:
     def test_categorical_repr_unicode(self):
         # see gh-21002
