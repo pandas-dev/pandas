@@ -9221,7 +9221,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             new_ax = index.shift(periods, freq)
 
-        result = self.set_axis(new_ax, axis)
+        result = self.set_axis(new_ax, axis=axis)
         return result.__finalize__(self, method="shift")
 
     @final

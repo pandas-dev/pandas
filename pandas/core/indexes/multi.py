@@ -292,7 +292,6 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _codes = FrozenList()
     _comparables = ["names"]
-    rename = Index.set_names
 
     sortorder: int | None
 
@@ -3585,7 +3584,9 @@ class MultiIndex(Index):
         """
         names = self._maybe_match_names(other)
         if self.names != names:
-            return self.rename(names)
+            # Incompatible return value type (got "Optional[MultiIndex]", expected
+            # "MultiIndex")
+            return self.rename(names)  # type: ignore[return-value]
         return self
 
     def _maybe_match_names(self, other):
@@ -3783,6 +3784,12 @@ class MultiIndex(Index):
             if levs.size == 0:
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
+    def set_names(self, names, level=None, inplace: bool = False) -> MultiIndex | None:
+        return super().set_names(names=names, level=level, inplace=inplace)
+
+    rename = set_names
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def drop_duplicates(self, keep: str | bool = "first") -> MultiIndex:
