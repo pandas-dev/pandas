@@ -282,12 +282,12 @@ def test_resample_base_with_timedeltaindex():
 
 def test_interpolate_posargs_deprecation():
 
-    df = DataFrame([1.0,np.nan,-2.0,2.0])
+    df = DataFrame([1.0, np.nan, -2.0, 2.0])
 
     msg = (
-            r"In a future version of pandas all arguments of DataFrame\.interpolate "
-            r"except for the argument 'method' will be keyword-only"
-        )
+        r"In a future version of pandas all arguments of DataFrame\.interpolate "
+        r"except for the argument 'method' will be keyword-only"
+    )
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.interpolate(method='linear', limit_direction='forward', axis=0)
