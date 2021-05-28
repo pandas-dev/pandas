@@ -282,7 +282,7 @@ def test_resample_base_with_timedeltaindex():
 
 def test_interpolate_posargs_deprecation():
 
-    df = pd.DataFrame([1.0,np.nan,-2.0,2.0])
+    df = DataFrame([1.0,np.nan,-2.0,2.0])
 
     msg = (
             r"In a future version of pandas all arguments of DataFrame\.interpolate "
@@ -292,5 +292,5 @@ def test_interpolate_posargs_deprecation():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.interpolate(method='linear', limit_direction='forward', axis=0)
 
-    expected = pd.DataFrame([1.0, -0.5, -2.0, 2.0])
+    expected = DataFrame([1.0, -0.5, -2.0, 2.0])
     tm.assert_frame_equal(result, expected)
