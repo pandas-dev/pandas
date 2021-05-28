@@ -513,9 +513,12 @@ class SeriesGroupBy(GroupBy[Series]):
 
         obj = self._selected_obj
 
-        result = self.grouper._cython_operation(
-            "transform", obj._values, how, axis, **kwargs
-        )
+        try:
+            result = self.grouper._cython_operation(
+                "transform", obj._values, how, axis, **kwargs
+            )
+        except NotImplementedError as err:
+            raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
 
         return obj._constructor(result, index=self.obj.index, name=obj.name)
 

@@ -24,7 +24,6 @@ from pandas.core.groupby.generic import (
     DataFrameGroupBy,
     SeriesGroupBy,
 )
-from pandas.core.groupby.groupby import DataError
 
 
 def assert_fp_equal(a, b):
@@ -741,11 +740,21 @@ def test_cython_transform_frame(op, args, targop):
             tm.assert_frame_equal(expected, getattr(gb, op)(*args).sort_index(axis=1))
             # individual columns
             for c in df:
-                if c not in ["float", "int", "float_missing"] and op != "shift":
-                    msg = "No numeric types to aggregate"
-                    with pytest.raises(DataError, match=msg):
+                if (
+                    c not in ["float", "int", "float_missing"]
+                    and op != "shift"
+                    and not (c == "timedelta" and op == "cumsum")
+                ):
+                    msg = "|".join(
+                        [
+                            "does not support .* operations",
+                            ".* is not supported for object dtype",
+                            "is not implemented for this dtype",
+                        ]
+                    )
+                    with pytest.raises(TypeError, match=msg):
                         gb[c].transform(op)
-                    with pytest.raises(DataError, match=msg):
+                    with pytest.raises(TypeError, match=msg):
                         getattr(gb[c], op)()
                 else:
                     expected = gb[c].apply(targop)
