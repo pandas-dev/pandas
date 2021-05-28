@@ -906,13 +906,10 @@ class Index(IndexOpsMixin, PandasObject):
         if is_dtype_equal(self.dtype, dtype):
             return self.copy() if copy else self
 
-        elif is_categorical_dtype(dtype):
-            from pandas.core.indexes.category import CategoricalIndex
-
-            return CategoricalIndex(self, name=self.name, dtype=dtype, copy=copy)
-
-        elif is_extension_array_dtype(dtype):
-            return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
+        elif isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            new_values = cls._from_sequence(self, dtype=dtype, copy=False)
+            return Index(new_values, dtype=dtype, copy=copy, name=self.name)
 
         try:
             casted = self._values.astype(dtype, copy=copy)
