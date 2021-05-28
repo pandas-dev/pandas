@@ -716,9 +716,7 @@ def _try_cast(
             #  while maybe_cast_to_datetime treats it as UTC
             #  see test_maybe_promote_any_numpy_dtype_with_datetimetz
 
-            # error: Incompatible return value type (got "Union[ExtensionArray,
-            # ndarray, List[Any]]", expected "Union[ExtensionArray, ndarray]")
-            return maybe_cast_to_datetime(arr, dtype)  # type: ignore[return-value]
+            return maybe_cast_to_datetime(arr, dtype)
             # TODO: copy?
 
         array_type = dtype.construct_array_type()._from_sequence
