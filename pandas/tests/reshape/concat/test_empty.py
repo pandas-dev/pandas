@@ -255,3 +255,26 @@ class TestEmptyConcat:
         result = concat([df1, df2])
         expected = df1.dtypes
         tm.assert_series_equal(result.dtypes, expected)
+
+    def test_concat_empty_dataframe(self):
+        # 39037
+        df1 = DataFrame(columns=["a", "b"])
+        df2 = DataFrame(columns=["b", "c"])
+        result = concat([df1, df2, df1])
+        expected = DataFrame(columns=["a", "b", "c"])
+        tm.assert_frame_equal(result, expected)
+
+        df3 = DataFrame(columns=["a", "b"])
+        df4 = DataFrame(columns=["b"])
+        result = concat([df3, df4])
+        expected = DataFrame(columns=["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_empty_dataframe_different_dtypes(self):
+        # 39037
+        df1 = DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
+        df2 = DataFrame({"a": [1, 2, 3]})
+
+        result = concat([df1[:0], df2[:0]])
+        assert result["a"].dtype == np.int64
+        assert result["b"].dtype == np.object_
