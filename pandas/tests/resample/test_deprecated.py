@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from io import StringIO
 
 import numpy as np
 import pytest
@@ -282,7 +283,14 @@ def test_resample_base_with_timedeltaindex():
 
 def test_interpolate_posargs_deprecation():
 
-    s = pd.Series([0.0, 1.0, np.nan, 3.0])
+    data = StringIO(
+        """\
+    Values
+    1992-08-27 07:46:48,1
+    1992-08-27 07:46:59,4"""
+    )
+    s = pd.read_csv(data, squeeze=True)
+    s.index = pd.to_datetime(s.index)
 
     msg = (
         r"In a future version of pandas all arguments of DataFrame\.interpolate "
@@ -290,7 +298,17 @@ def test_interpolate_posargs_deprecation():
     )
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.interpolate()
+        result = s.resample("3s").interpolate("linear")
 
-    expected = pd.Series([0.0, 1.0, 2.0, 3.0])
+    data_exp = StringIO(
+        """\
+    Values
+    1992-08-27 07:46:48,1.0
+    1992-08-27 07:46:51,1.0
+    1992-08-27 07:46:54,1.0
+    1992-08-27 07:46:57,1.0"""
+    )
+
+    expected = pd.read_csv(data_exp, squeeze=True)
+    expected.index = pd.to_datetime(expected.index)
     tm.assert_frame_equal(result, expected)

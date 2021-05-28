@@ -34,8 +34,8 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
-    deprecate_nonkeyword_arguments
 )
 
 from pandas.core.dtypes.generic import (
@@ -833,9 +833,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample(method, limit=limit)
 
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "method"]
-    )
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     @doc(NDFrame.interpolate, **_shared_docs_kwargs)
     def interpolate(
         self,
