@@ -256,11 +256,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
 
-    _comparables = ["name", "freqstr"]
-    _attributes = ["name", "freq"]
-
-    _is_numeric_dtype = False
-
     _data: DatetimeArray
     inferred_freq: str | None
     tz: tzinfo | None
