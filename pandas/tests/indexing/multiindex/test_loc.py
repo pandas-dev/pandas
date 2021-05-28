@@ -888,5 +888,5 @@ def test_loc_keyerror_rightmost_key_missing():
         }
     )
     df = df.set_index(["A", "B"])
-    with pytest.raises(KeyError, match="1"):
+    with pytest.raises(KeyError, match="^1$"):
         df.loc[(100, 1)]
