@@ -9856,36 +9856,42 @@ NaN 12.3   33.0
 
             return out
 
-        assert numeric_only is None
-
         data = self
         values = data.values
 
-        try:
-            result = func(values)
+        if numeric_only is None:
 
-        except TypeError:
-            # e.g. in nanops trying to convert strs to float
-
-            data = _get_data()
-            labels = data._get_agg_axis(axis)
-
-            values = data.values
-            with np.errstate(all="ignore"):
+            try:
                 result = func(values)
 
-            # columns have been dropped GH#41480
-            arg_name = "numeric_only"
-            if name in ["all", "any"]:
-                arg_name = "bool_only"
-            warnings.warn(
-                "Dropping of nuisance columns in DataFrame reductions "
-                f"(with '{arg_name}=None') is deprecated; in a future "
-                "version this will raise TypeError.  Select only valid "
-                "columns before calling the reduction.",
-                FutureWarning,
-                stacklevel=5,
-            )
+            except TypeError:
+                # e.g. in nanops trying to convert strs to float
+
+                data = _get_data()
+                labels = data._get_agg_axis(axis)
+
+                values = data.values
+                with np.errstate(all="ignore"):
+                    result = func(values)
+
+                # columns have been dropped GH#41480
+                arg_name = "numeric_only"
+                if name in ["all", "any"]:
+                    arg_name = "bool_only"
+                warnings.warn(
+                    "Dropping of nuisance columns in DataFrame reductions "
+                    f"(with '{arg_name}=None') is deprecated; in a future "
+                    "version this will raise TypeError.  Select only valid "
+                    "columns before calling the reduction.",
+                    FutureWarning,
+                    stacklevel=5,
+                )
+        else:
+            if numeric_only:
+                data = _get_data()
+                labels = data._get_agg_axis(axis)
+                values = data.values
+            result = func(values)
 
         if hasattr(result, "dtype"):
             if filter_type == "bool" and notna(result).all():
