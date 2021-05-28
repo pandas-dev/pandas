@@ -937,6 +937,7 @@ Indexing
 - Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
 - Bug in :meth:`DataFrame.loc` returning :class:`MultiIndex` in wrong order if indexer has duplicates (:issue:`40978`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``TypeError`` when using a str subclass as the column name with a :class:`DatetimeIndex` (:issue:`37366`)
+- Bug in :meth:`PeriodIndex.get_loc` failing to raise ``KeyError`` when given a :class:`Period` with a mismatched ``freq`` (:issue:`41670`)
 
 Missing
 ^^^^^^^
