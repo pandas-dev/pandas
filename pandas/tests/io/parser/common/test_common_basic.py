@@ -803,6 +803,19 @@ def test_encoding_surrogatepass(all_parsers):
             parser.read_csv(path)
 
 
+@pytest.mark.parametrize("on_bad_lines", ["error", "warn"])
+def test_deprecated_bad_lines_warns(all_parsers, csv1, on_bad_lines):
+    # GH 15122
+    parser = all_parsers
+    kwds = {f"{on_bad_lines}_bad_lines": False}
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match=f"The {on_bad_lines}_bad_lines argument has been deprecated "
+        "and will be removed in a future version.\n\n",
+    ):
+        parser.read_csv(csv1, **kwds)
+
+
 def test_malformed_second_line(all_parsers):
     # see GH14782
     parser = all_parsers

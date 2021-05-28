@@ -140,11 +140,7 @@ class TestTextReader:
             reader.read()
 
         reader = TextReader(
-            StringIO(data),
-            delimiter=":",
-            header=None,
-            error_bad_lines=False,
-            warn_bad_lines=False,
+            StringIO(data), delimiter=":", header=None, on_bad_lines=2  # Skip
         )
         result = reader.read()
         expected = {
@@ -155,11 +151,7 @@ class TestTextReader:
         assert_array_dicts_equal(result, expected)
 
         reader = TextReader(
-            StringIO(data),
-            delimiter=":",
-            header=None,
-            error_bad_lines=False,
-            warn_bad_lines=True,
+            StringIO(data), delimiter=":", header=None, on_bad_lines=1  # Warn
         )
         reader.read()
         captured = capsys.readouterr()
