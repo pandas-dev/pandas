@@ -292,5 +292,5 @@ def test_interpolate_posargs_deprecation():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = s.interpolate()
 
-    expected = DataFrame([0.0, 1.0, 2.0, 3.0])
+    expected = pd.Series([0.0, 1.0, 2.0, 3.0])
     tm.assert_frame_equal(result, expected)
