@@ -172,15 +172,10 @@ class ParserBase:
 
             # validate index_col that only contains integers
             if self.index_col is not None:
-                is_sequence = isinstance(self.index_col, (list, tuple, np.ndarray))
                 if not (
-                    # error: Argument 2 to "map" has incompatible type
-                    # "Union[int, Sequence[int]]"; expected "Iterable[int]"
                     (
-                        is_sequence
-                        and all(
-                            map(is_integer, self.index_col)  # type: ignore[arg-type]
-                        )
+                        isinstance(self.index_col, (list, tuple, np.ndarray))
+                        and all(is_integer(x) for x in self.index_col)
                     )
                     or is_integer(self.index_col)
                 ):
