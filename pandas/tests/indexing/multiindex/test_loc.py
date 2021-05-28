@@ -866,3 +866,27 @@ def test_loc_get_scalar_casting_to_float():
     result = df.loc[[(3, 4)], "b"].iloc[0]
     assert result == 2
     assert isinstance(result, np.int64)
+
+
+def test_loc_empty_single_selector_with_names():
+    # GH 19517
+    idx = MultiIndex.from_product([["a", "b"], ["A", "B"]], names=[1, 0])
+    s2 = Series(index=idx, dtype=np.float64)
+    result = s2.loc["a"]
+    expected = Series([np.nan, np.nan], index=Index(["A", "B"], name=0))
+    tm.assert_series_equal(result, expected)
+
+
+def test_loc_keyerror_rightmost_key_missing():
+    # GH 20951
+
+    df = DataFrame(
+        {
+            "A": [100, 100, 200, 200, 300, 300],
+            "B": [10, 10, 20, 21, 31, 33],
+            "C": range(6),
+        }
+    )
+    df = df.set_index(["A", "B"])
+    with pytest.raises(KeyError, match="^1$"):
+        df.loc[(100, 1)]
