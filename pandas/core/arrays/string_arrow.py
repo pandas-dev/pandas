@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable  # noqa: PDF001
 import re
 from typing import (
     TYPE_CHECKING,
@@ -26,6 +27,7 @@ from pandas.compat import (
     pa_version_under3p0,
     pa_version_under4p0,
 )
+from pandas.compat.pyarrow import pa_version_under1p0
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
@@ -52,7 +54,6 @@ from pandas.core.indexers import (
     validate_indices,
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
-from pandas.util.version import Version
 
 try:
     import pyarrow as pa
@@ -62,7 +63,7 @@ else:
     # PyArrow backed StringArrays are available starting at 1.0.0, but this
     # file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
     # and its compute functions existed. GH38801
-    if Version(pa.__version__) >= Version("1.0.0"):
+    if not pa_version_under1p0:
         import pyarrow.compute as pc
 
         ARROW_CMP_FUNCS = {
@@ -232,7 +233,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     def _chk_pyarrow_available(cls) -> None:
         # TODO: maybe update import_optional_dependency to allow a minimum
         # version to be specified rather than use the global minimum
-        if pa is None or Version(pa.__version__) < Version("1.0.0"):
+        if pa is None or pa_version_under1p0:
             msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
             raise ImportError(msg)
 
@@ -741,7 +742,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
     _str_na_value = ArrowStringDtype.na_value
 
-    def _str_map(self, f, na_value=None, dtype: Dtype | None = None):
+    def _str_map(
+        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+    ):
         # TODO: de-duplicate with StringArray method. This method is moreless copy and
         # paste.
 
@@ -820,32 +823,59 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             result[isna(result)] = bool(na)
         return result
 
-    def _str_startswith(self, pat, na=None):
+    def _str_startswith(self, pat: str, na=None):
         if pa_version_under4p0:
             return super()._str_startswith(pat, na)
 
-        result = pc.match_substring_regex(self._data, "^" + re.escape(pat))
-        result = BooleanDtype().__from_arrow__(result)
-        if not isna(na):
-            result[isna(result)] = bool(na)
-        return result
+        pat = "^" + re.escape(pat)
+        return self._str_contains(pat, na=na, regex=True)
 
-    def _str_endswith(self, pat, na=None):
+    def _str_endswith(self, pat: str, na=None):
         if pa_version_under4p0:
             return super()._str_endswith(pat, na)
 
-        result = pc.match_substring_regex(self._data, re.escape(pat) + "$")
-        result = BooleanDtype().__from_arrow__(result)
-        if not isna(na):
-            result[isna(result)] = bool(na)
-        return result
+        pat = re.escape(pat) + "$"
+        return self._str_contains(pat, na=na, regex=True)
+
+    def _str_replace(
+        self,
+        pat: str | re.Pattern,
+        repl: str | Callable,
+        n: int = -1,
+        case: bool = True,
+        flags: int = 0,
+        regex: bool = True,
+    ):
+        if (
+            pa_version_under4p0
+            or isinstance(pat, re.Pattern)
+            or callable(repl)
+            or not case
+            or flags
+        ):
+            return super()._str_replace(pat, repl, n, case, flags, regex)
+
+        func = pc.replace_substring_regex if regex else pc.replace_substring
+        result = func(self._data, pattern=pat, replacement=repl, max_replacements=n)
+        return type(self)(result)
 
     def _str_match(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
     ):
+        if pa_version_under4p0:
+            return super()._str_match(pat, case, flags, na)
+
         if not pat.startswith("^"):
             pat = "^" + pat
         return self._str_contains(pat, case, flags, na, regex=True)
+
+    def _str_fullmatch(self, pat, case: bool = True, flags: int = 0, na: Scalar = None):
+        if pa_version_under4p0:
+            return super()._str_fullmatch(pat, case, flags, na)
+
+        if not pat.endswith("$") or pat.endswith("//$"):
+            pat = pat + "$"
+        return self._str_match(pat, case, flags, na)
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._data)

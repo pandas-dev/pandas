@@ -685,10 +685,17 @@ cdef class TextReader:
                     count = counts.get(name, 0)
 
                     if not self.has_mi_columns and self.mangle_dupe_cols:
-                        while count > 0:
-                            counts[name] = count + 1
-                            name = f'{name}.{count}'
-                            count = counts.get(name, 0)
+                        if count > 0:
+                            while count > 0:
+                                counts[name] = count + 1
+                                name = f'{name}.{count}'
+                                count = counts.get(name, 0)
+                            if (
+                                self.dtype is not None
+                                and self.dtype.get(old_name) is not None
+                                and self.dtype.get(name) is None
+                            ):
+                                self.dtype.update({name: self.dtype.get(old_name)})
 
                     if old_name == '':
                         unnamed_cols.add(name)
@@ -939,6 +946,17 @@ cdef class TextReader:
             raise ParserError(f"Too many columns specified: expected "
                               f"{self.table_width - self.leading_cols} "
                               f"and found {num_cols}")
+
+        if (self.usecols is not None and not callable(self.usecols) and
+                all(isinstance(u, int) for u in self.usecols)):
+            missing_usecols = [col for col in self.usecols if col >= num_cols]
+            if missing_usecols:
+                warnings.warn(
+                    "Defining usecols with out of bounds indices is deprecated "
+                    "and will raise a ParserError in a future version.",
+                    FutureWarning,
+                    stacklevel=6,
+                )
 
         results = {}
         nused = 0

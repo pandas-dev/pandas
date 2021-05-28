@@ -1064,7 +1064,7 @@ def test_nanosecond_resample_error():
     result = r.agg("mean")
 
     exp_indx = date_range(start=pd.to_datetime(exp_start), periods=10, freq="100n")
-    exp = Series(range(len(exp_indx)), index=exp_indx)
+    exp = Series(range(len(exp_indx)), index=exp_indx, dtype=float)
 
     tm.assert_series_equal(result, exp)
 
@@ -1636,15 +1636,15 @@ def test_resample_with_nat():
     index_1s = DatetimeIndex(
         ["1970-01-01 00:00:00", "1970-01-01 00:00:01", "1970-01-01 00:00:02"]
     )
-    frame_1s = DataFrame([3, 7, 11], index=index_1s)
+    frame_1s = DataFrame([3.0, 7.0, 11.0], index=index_1s)
     tm.assert_frame_equal(frame.resample("1s").mean(), frame_1s)
 
     index_2s = DatetimeIndex(["1970-01-01 00:00:00", "1970-01-01 00:00:02"])
-    frame_2s = DataFrame([5, 11], index=index_2s)
+    frame_2s = DataFrame([5.0, 11.0], index=index_2s)
     tm.assert_frame_equal(frame.resample("2s").mean(), frame_2s)
 
     index_3s = DatetimeIndex(["1970-01-01 00:00:00"])
-    frame_3s = DataFrame([7], index=index_3s)
+    frame_3s = DataFrame([7.0], index=index_3s)
     tm.assert_frame_equal(frame.resample("3s").mean(), frame_3s)
 
     tm.assert_frame_equal(frame.resample("60s").mean(), frame_3s)
@@ -1687,7 +1687,7 @@ def test_resample_apply_with_additional_args(series):
 
     # Testing dataframe
     df = DataFrame({"A": 1, "B": 2}, index=date_range("2017", periods=10))
-    result = df.groupby("A").resample("D").agg(f, multiplier)
+    result = df.groupby("A").resample("D").agg(f, multiplier).astype(float)
     expected = df.groupby("A").resample("D").mean().multiply(multiplier)
     # TODO: GH 41137
     expected = expected.astype("float64")
@@ -1748,19 +1748,23 @@ def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last):
     assert result == expected
 
 
-def test_resample_apply_product():
+@pytest.mark.parametrize("duplicates", [True, False])
+def test_resample_apply_product(duplicates):
     # GH 5586
     index = date_range(start="2012-01-31", freq="M", periods=12)
 
     ts = Series(range(12), index=index)
     df = DataFrame({"A": ts, "B": ts + 2})
+    if duplicates:
+        df.columns = ["A", "A"]
+
     result = df.resample("Q").apply(np.product)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
         index=DatetimeIndex(
             ["2012-03-31", "2012-06-30", "2012-09-30", "2012-12-31"], freq="Q-DEC"
         ),
-        columns=["A", "B"],
+        columns=df.columns,
     )
     tm.assert_frame_equal(result, expected)
 

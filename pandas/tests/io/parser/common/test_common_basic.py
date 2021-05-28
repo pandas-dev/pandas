@@ -724,6 +724,27 @@ def test_read_csv_delim_whitespace_non_default_sep(all_parsers, delimiter):
         parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
 
 
+def test_read_csv_delimiter_and_sep_no_default(all_parsers):
+    # GH#39823
+    f = StringIO("a,b\n1,2")
+    parser = all_parsers
+    msg = "Specified a sep and a delimiter; you can only specify one."
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(f, sep=" ", delimiter=".")
+
+
+def test_read_csv_posargs_deprecation(all_parsers):
+    # GH 41485
+    f = StringIO("a,b\n1,2")
+    parser = all_parsers
+    msg = (
+        "In a future version of pandas all arguments of read_csv "
+        "except for the argument 'filepath_or_buffer' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        parser.read_csv(f, " ")
+
+
 @pytest.mark.parametrize("delimiter", [",", "\t"])
 def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
     # GH: 35958
@@ -738,6 +759,18 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
 
     with pytest.raises(ValueError, match=msg):
         parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
+
+
+@pytest.mark.parametrize("func", ["read_csv", "read_table"])
+@pytest.mark.parametrize("prefix", [None, "x"])
+@pytest.mark.parametrize("names", [None, ["a"]])
+def test_names_and_prefix_not_lib_no_default(all_parsers, names, prefix, func):
+    # GH#39123
+    f = StringIO("a,b\n1,2")
+    parser = all_parsers
+    msg = "Specified named and prefix; you can only specify one."
+    with pytest.raises(ValueError, match=msg):
+        getattr(parser, func)(f, names=names, prefix=prefix)
 
 
 def test_dict_keys_as_names(all_parsers):

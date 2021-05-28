@@ -20,6 +20,7 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
+    ArrayLike,
     DtypeArg,
     FilePathOrBuffer,
     StorageOptions,
@@ -29,7 +30,10 @@ from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
 )
-from pandas.util._decorators import Appender
+from pandas.util._decorators import (
+    Appender,
+    deprecate_nonkeyword_arguments,
+)
 
 from pandas.core.dtypes.common import (
     is_file_like,
@@ -471,6 +475,9 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
         return parser.read(nrows)
 
 
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["filepath_or_buffer"], stacklevel=3
+)
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
@@ -485,11 +492,11 @@ def read_csv(
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
-    names=None,
+    names=lib.no_default,
     index_col=None,
     usecols=None,
     squeeze=False,
-    prefix=None,
+    prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
     dtype: Optional[DtypeArg] = None,
@@ -546,7 +553,14 @@ def read_csv(
     del kwds["sep"]
 
     kwds_defaults = _refine_defaults_read(
-        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": ","}
+        dialect,
+        delimiter,
+        delim_whitespace,
+        engine,
+        sep,
+        names,
+        prefix,
+        defaults={"delimiter": ","},
     )
     kwds.update(kwds_defaults)
 
@@ -567,11 +581,11 @@ def read_table(
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
-    names=None,
+    names=lib.no_default,
     index_col=None,
     usecols=None,
     squeeze=False,
-    prefix=None,
+    prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
     dtype: Optional[DtypeArg] = None,
@@ -627,7 +641,14 @@ def read_table(
     del kwds["sep"]
 
     kwds_defaults = _refine_defaults_read(
-        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": "\t"}
+        dialect,
+        delimiter,
+        delim_whitespace,
+        engine,
+        sep,
+        names,
+        prefix,
+        defaults={"delimiter": "\t"},
     )
     kwds.update(kwds_defaults)
 
@@ -1174,6 +1195,8 @@ def _refine_defaults_read(
     delim_whitespace: bool,
     engine: str,
     sep: Union[str, object],
+    names: Union[Optional[ArrayLike], object],
+    prefix: Union[Optional[str], object],
     defaults: Dict[str, Any],
 ):
     """Validate/refine default values of input parameters of read_csv, read_table.
@@ -1199,6 +1222,12 @@ def _refine_defaults_read(
     sep : str or object
         A delimiter provided by the user (str) or a sentinel value, i.e.
         pandas._libs.lib.no_default.
+    names : array-like, optional
+        List of column names to use. If the file contains a header row,
+        then you should explicitly pass ``header=0`` to override the column names.
+        Duplicates in this list are not allowed.
+    prefix : str, optional
+        Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
     defaults: dict
         Default values of input parameters.
 
@@ -1231,6 +1260,15 @@ def _refine_defaults_read(
         kwds["sep_override"] = delimiter is None and (
             sep is lib.no_default or sep == delim_default
         )
+
+    if delimiter and (sep is not lib.no_default):
+        raise ValueError("Specified a sep and a delimiter; you can only specify one.")
+
+    if names is not lib.no_default and prefix is not lib.no_default:
+        raise ValueError("Specified named and prefix; you can only specify one.")
+
+    kwds["names"] = None if names is lib.no_default else names
+    kwds["prefix"] = None if prefix is lib.no_default else prefix
 
     # Alias sep -> delimiter.
     if delimiter is None:

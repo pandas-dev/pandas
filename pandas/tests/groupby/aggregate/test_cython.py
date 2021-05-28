@@ -89,7 +89,6 @@ def test_cython_agg_boolean():
 
 def test_cython_agg_nothing_to_agg():
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
-    msg = "No numeric types to aggregate"
 
     with pytest.raises(NotImplementedError, match="does not implement"):
         frame.groupby("a")["b"].mean(numeric_only=True)
@@ -98,6 +97,8 @@ def test_cython_agg_nothing_to_agg():
         frame.groupby("a")["b"].mean()
 
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
+
+    msg = "No numeric types to aggregate"
     with pytest.raises(DataError, match=msg):
         frame[["b"]].groupby(frame["a"]).mean()
 
@@ -198,9 +199,6 @@ def test_cython_agg_empty_buckets(op, targop, observed):
 
     g = df.groupby(pd.cut(df[0], grps), observed=observed)
     expected = g.agg(lambda x: targop(x))
-    if observed and op not in ("min", "max"):
-        # TODO: GH 41137
-        expected = expected.astype("int64")
     tm.assert_frame_equal(result, expected)
 
 
