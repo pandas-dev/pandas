@@ -1849,7 +1849,11 @@ cdef class StringValidator(Validator):
 
     cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.str_)
-
+    
+    cdef bint is_valid_null(self, object value) except -1:
+        # Override to exclude float('Nan') and complex NaN
+        return value is None or value is C_NA or np.isnan(value)
+        
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
     cdef:
