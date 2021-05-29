@@ -4,7 +4,7 @@ import pandas as pd
 
 from pandas import (
     DataFrame,
-    Series
+    Series,
 )
 
 import pandas._testing as tm
