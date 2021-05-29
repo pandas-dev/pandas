@@ -1,5 +1,5 @@
-{% if parse_wrap(table_styles, caption) %}
-\begin{table}
+{% if environment or parse_wrap(table_styles, caption) %}
+\begin{% raw %}{{% endraw %}{{environment if environment else "table"}}{% raw %}}{% endraw %}
 {%- set position = parse_table(table_styles, 'position') %}
 {%- if position is not none %}
 [{{position}}]
@@ -44,6 +44,7 @@
 \{{bottomrule}}
 {% endif %}
 \end{tabular}
-{% if parse_wrap(table_styles, caption) %}
-\end{table}
+{% if environment or parse_wrap(table_styles, caption) %}
+\end{% raw %}{{% endraw %}{{environment if environment else "table"}}{% raw %}}{% endraw %}
+
 {% endif %}
