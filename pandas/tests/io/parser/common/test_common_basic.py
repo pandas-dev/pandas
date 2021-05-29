@@ -733,6 +733,18 @@ def test_read_csv_delimiter_and_sep_no_default(all_parsers):
         parser.read_csv(f, sep=" ", delimiter=".")
 
 
+def test_read_csv_posargs_deprecation(all_parsers):
+    # GH 41485
+    f = StringIO("a,b\n1,2")
+    parser = all_parsers
+    msg = (
+        "In a future version of pandas all arguments of read_csv "
+        "except for the argument 'filepath_or_buffer' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        parser.read_csv(f, " ")
+
+
 @pytest.mark.parametrize("delimiter", [",", "\t"])
 def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
     # GH: 35958
@@ -789,6 +801,19 @@ def test_encoding_surrogatepass(all_parsers):
         tm.assert_frame_equal(df, expected)
         with pytest.raises(UnicodeDecodeError, match="'utf-8' codec can't decode byte"):
             parser.read_csv(path)
+
+
+@pytest.mark.parametrize("on_bad_lines", ["error", "warn"])
+def test_deprecated_bad_lines_warns(all_parsers, csv1, on_bad_lines):
+    # GH 15122
+    parser = all_parsers
+    kwds = {f"{on_bad_lines}_bad_lines": False}
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match=f"The {on_bad_lines}_bad_lines argument has been deprecated "
+        "and will be removed in a future version.\n\n",
+    ):
+        parser.read_csv(csv1, **kwds)
 
 
 def test_malformed_second_line(all_parsers):

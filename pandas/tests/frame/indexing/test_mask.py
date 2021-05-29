@@ -90,6 +90,19 @@ class TestDataFrameMask:
         result = bools.mask(mask)
         tm.assert_frame_equal(result, expected)
 
+    def test_mask_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": range(5)})
+        expected = DataFrame({"a": [-1, 1, -1, 3, -1]})
+        cond = df % 2 == 0
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.mask except for "
+            r"the arguments 'cond' and 'other' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.mask(cond, -1, False)
+        tm.assert_frame_equal(result, expected)
+
 
 def test_mask_try_cast_deprecated(frame_or_series):
 

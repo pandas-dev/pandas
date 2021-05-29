@@ -4,10 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import (
-    Any,
-    Hashable,
-)
+from typing import Hashable
 import warnings
 
 import numpy as np
@@ -319,24 +316,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return dtype.freq == self.freq
 
     # ------------------------------------------------------------------------
-    # Indexing
-
-    @doc(Index.__contains__)
-    def __contains__(self, key: Any) -> bool:
-        if isinstance(key, Period):
-            if key.freq != self.freq:
-                return False
-            else:
-                return key.ordinal in self._engine
-        else:
-            hash(key)
-            try:
-                self.get_loc(key)
-                return True
-            except KeyError:
-                return False
-
-    # ------------------------------------------------------------------------
     # Index Methods
 
     def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
@@ -471,6 +450,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         elif is_integer(key):
             # Period constructor will cast to string, which we dont want
+            raise KeyError(key)
+        elif isinstance(key, Period) and key.freq != self.freq:
             raise KeyError(key)
 
         try:
