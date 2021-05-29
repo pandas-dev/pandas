@@ -211,7 +211,7 @@ def test_pass_args_kwargs(ts, tsframe):
     def f(x, q=None, axis=0):
         return np.percentile(x, q, axis=axis)
 
-    g = lambda x: np.percentile(x, 80, axis=0)
+    def g(x): return np.percentile(x, 80, axis=0)
 
     # Series
     ts_grouped = ts.groupby(lambda x: x.month)
@@ -455,7 +455,7 @@ def test_frame_groupby_columns(tsframe):
     assert len(aggregated.columns) == 2
 
     # transform
-    tf = lambda x: x - x.mean()
+    def tf(x): return x - x.mean()
     groupedT = tsframe.T.groupby(mapping, axis=0)
     tm.assert_frame_equal(groupedT.transform(tf).T, grouped.transform(tf))
 
@@ -1102,7 +1102,7 @@ def test_seriesgroupby_name_attr(df):
     assert result.count().name == "C"
     assert result.mean().name == "C"
 
-    testFunc = lambda x: np.sum(x) * 2
+    def testFunc(x): return np.sum(x) * 2
     assert result.agg(testFunc).name == "C"
 
 
@@ -1184,7 +1184,7 @@ def test_series_grouper_noncontig_index():
     grouped = values.groupby(labels)
 
     # accessing the index elements causes segfault
-    f = lambda x: len(set(map(id, x.index)))
+    def f(x): return len(set(map(id, x.index)))
     grouped.agg(f)
 
 
@@ -2338,3 +2338,11 @@ def test_groupby_filtered_df_std():
         index=Index([True], name="groupby_col"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_empty_dataset():
+    # 41575
+    df = DataFrame(columns=['A', 'B', 'C'])
+    result = df.groupby('A').B.describe().reset_index(drop=True)
+    expected = Series([], name='B', dtype=np.object_)
+    tm.assert_series_equal(result, expected)
