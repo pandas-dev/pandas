@@ -638,3 +638,20 @@ def test_concat_multiindex_with_empty_rangeindex():
     result = concat([df1, df2])
     expected = DataFrame([[1, 2], [np.nan, np.nan]], columns=mi)
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_posargs_deprecation(all_parsers):
+    # https://github.com/pandas-dev/pandas/issues/41485
+    df = pd.DataFrame([[1,2,3]], index=["a"])
+    df2 = pd.DataFrame([[4,5,6]], index=["b"])
+
+    msg = (
+        "In a future version of pandas all arguments of concat"
+        "except for the argument 'objs' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        concat([df, df2], " ")
+    expected = DataFrame([[1,2,3],[4,5,6]], index=["a","b"])
+    tm.assert_frame_equal(result, expected)
+    
+
