@@ -4,9 +4,7 @@ import pandas as pd
 
 from pandas import (
     DataFrame,
-    Series,
-    date_range,
-    timedelta_range,
+    Series
 )
 
 import pandas._testing as tm
