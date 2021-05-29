@@ -6111,12 +6111,24 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
+        **any**
+
         >>> index = pd.Index([0, 1, 2])
         >>> index.any()
         True
 
         >>> index = pd.Index([0, 0, 0])
         >>> index.any()
+        False
+
+        **all**
+
+        >>> index = pd.Index([1, 2, 3])
+        >>> index.all()
+        True
+
+        >>> index = pd.Index([0, 1, 2])
+        >>> index.all()
         False
         """
         nv.validate_any(args, kwargs)
