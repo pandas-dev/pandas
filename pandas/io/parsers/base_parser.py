@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 import csv
 import datetime
+from enum import Enum
 import itertools
 from typing import (
     Any,
@@ -108,10 +109,16 @@ parser_defaults = {
     "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
+    "on_bad_lines": "error",
 }
 
 
 class ParserBase:
+    class BadLineHandleMethod(Enum):
+        ERROR = 0
+        WARN = 1
+        SKIP = 2
+
     _implicit_index: bool = False
     _first_chunk: bool
 
@@ -203,9 +210,13 @@ class ParserBase:
 
         self.handles: IOHandles | None = None
 
+        # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
+        # Normally, this arg would get pre-processed earlier on
+        self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
+
     def _open_handles(self, src: FilePathOrBuffer, kwds: dict[str, Any]) -> None:
         """
-        Let the readers open IOHanldes after they are done with their potential raises.
+        Let the readers open IOHandles after they are done with their potential raises.
         """
         self.handles = get_handle(
             src,
