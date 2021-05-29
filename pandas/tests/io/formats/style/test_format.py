@@ -11,6 +11,7 @@ import pandas._testing as tm
 
 pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
+from pandas.io.formats.style_render import _str_escape
 
 
 @pytest.fixture
@@ -106,22 +107,36 @@ def test_format_clear(styler):
     assert (0, 0) not in styler._display_funcs  # formatter cleared to default
 
 
-def test_format_escape():
-    df = DataFrame([['<>&"']])
-    s = Styler(df, uuid_len=0).format("X&{0}>X", escape=False)
-    expected = '<td id="T__row0_col0" class="data row0 col0" >X&<>&">X</td>'
+@pytest.mark.parametrize(
+    "escape, exp",
+    [
+        ("html", "&lt;&gt;&amp;&#34;%$#_{}~^\\~ ^ \\ "),
+        (
+            "latex",
+            '<>\\&"\\%\\$\\#\\_\\{\\}\\textasciitilde \\textasciicircum '
+            "\\textbackslash \\textasciitilde \\space \\textasciicircum \\space "
+            "\\textbackslash \\space ",
+        ),
+    ],
+)
+def test_format_escape_html(escape, exp):
+    chars = '<>&"%$#_{}~^\\~ ^ \\ '
+    df = DataFrame([[chars]])
+
+    s = Styler(df, uuid_len=0).format("&{0}&", escape=None)
+    expected = f'<td id="T__row0_col0" class="data row0 col0" >&{chars}&</td>'
     assert expected in s.render()
 
     # only the value should be escaped before passing to the formatter
-    s = Styler(df, uuid_len=0).format("X&{0}>X", escape=True)
-    ex = '<td id="T__row0_col0" class="data row0 col0" >X&&lt;&gt;&amp;&#34;>X</td>'
-    assert ex in s.render()
+    s = Styler(df, uuid_len=0).format("&{0}&", escape=escape)
+    expected = f'<td id="T__row0_col0" class="data row0 col0" >&{exp}&</td>'
+    assert expected in s.render()
 
 
 def test_format_escape_na_rep():
     # tests the na_rep is not escaped
     df = DataFrame([['<>&"', None]])
-    s = Styler(df, uuid_len=0).format("X&{0}>X", escape=True, na_rep="&")
+    s = Styler(df, uuid_len=0).format("X&{0}>X", escape="html", na_rep="&")
     ex = '<td id="T__row0_col0" class="data row0 col0" >X&&lt;&gt;&amp;&#34;>X</td>'
     expected2 = '<td id="T__row0_col1" class="data row0 col1" >&</td>'
     assert ex in s.render()
@@ -130,11 +145,11 @@ def test_format_escape_na_rep():
 
 def test_format_escape_floats(styler):
     # test given formatter for number format is not impacted by escape
-    s = styler.format("{:.1f}", escape=True)
+    s = styler.format("{:.1f}", escape="html")
     for expected in [">0.0<", ">1.0<", ">-1.2<", ">-0.6<"]:
         assert expected in s.render()
     # tests precision of floats is not impacted by escape
-    s = styler.format(precision=1, escape=True)
+    s = styler.format(precision=1, escape="html")
     for expected in [">0<", ">1<", ">-1.2<", ">-0.6<"]:
         assert expected in s.render()
 
@@ -239,3 +254,14 @@ def test_format_decimal(formatter, thousands, precision):
         decimal="_", formatter=formatter, thousands=thousands, precision=precision
     )._translate(True, True)
     assert "000_123" in result["body"][0][1]["display_value"]
+
+
+def test_str_escape_error():
+    msg = "`escape` only permitted in {'html', 'latex'}, got "
+    with pytest.raises(ValueError, match=msg):
+        _str_escape("text", "bad_escape")
+
+    with pytest.raises(ValueError, match=msg):
+        _str_escape("text", [])
+
+    _str_escape(2.00, "bad_escape")  # OK since dtype is float

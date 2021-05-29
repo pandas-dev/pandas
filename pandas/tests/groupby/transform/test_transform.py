@@ -901,7 +901,7 @@ def test_pad_stable_sorting(fill_method):
         y = y[::-1]
 
     df = DataFrame({"x": x, "y": y})
-    expected = df.drop("x", 1)
+    expected = df.drop("x", axis=1)
 
     result = getattr(df.groupby("x"), fill_method)()
 
@@ -1259,3 +1259,11 @@ def test_categorical_and_not_categorical_key(observed):
     tm.assert_series_equal(result, expected)
     expected_explicit = Series([4, 2, 4], name="B")
     tm.assert_series_equal(result, expected_explicit)
+
+
+def test_string_rank_grouping():
+    # GH 19354
+    df = DataFrame({"A": [1, 1, 2], "B": [1, 2, 3]})
+    result = df.groupby("A").transform("rank")
+    expected = DataFrame({"B": [1.0, 2.0, 1.0]})
+    tm.assert_frame_equal(result, expected)
