@@ -824,6 +824,7 @@ def test_malformed_second_line(all_parsers):
     expected = DataFrame({"a": ["b"]})
     tm.assert_frame_equal(result, expected)
 
+
 def test_read_table_posargs_deprecation(all_parsers):
     # https://github.com/pandas-dev/pandas/issues/41485
     f = StringIO("a\tb\n1\t2")

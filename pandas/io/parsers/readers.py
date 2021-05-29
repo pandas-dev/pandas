@@ -591,6 +591,7 @@ def read_csv(
 
     return _read(filepath_or_buffer, kwds)
 
+
 @deprecate_nonkeyword_arguments(
     version=None, allowed_args=["filepath_or_buffer"], stacklevel=3
 )
