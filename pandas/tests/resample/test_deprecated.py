@@ -2,7 +2,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-from io import StringIO
 
 import numpy as np
 import pytest
@@ -282,15 +281,11 @@ def test_resample_base_with_timedeltaindex():
 
 
 def test_interpolate_posargs_deprecation():
-
-    data = StringIO(
-        """\
-    Values
-    1992-08-27 07:46:48,1
-    1992-08-27 07:46:59,4"""
+    # GH 41485
+    df = DataFrame({"ds": ["1992-08-27 07:46:48", "1992-08-27 07:46:59"], "y": [1, 4]})
+    s = Series(
+        df.iloc[:, 1].values.reshape(-1), index=pd.to_datetime(df.iloc[:, 0].values)
     )
-    s = pd.read_csv(data, squeeze=True)
-    s.index = pd.to_datetime(s.index)
 
     msg = (
         r"In a future version of pandas all arguments of DataFrame\.interpolate "
@@ -300,15 +295,19 @@ def test_interpolate_posargs_deprecation():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = s.resample("3s").interpolate("linear")
 
-    data_exp = StringIO(
-        """\
-    Values
-    1992-08-27 07:46:48,1.0
-    1992-08-27 07:46:51,1.0
-    1992-08-27 07:46:54,1.0
-    1992-08-27 07:46:57,1.0"""
+    df = DataFrame(
+        {
+            "ds": [
+                "1992-08-27 07:46:48",
+                "1992-08-27 07:46:51",
+                "1992-08-27 07:46:54",
+                "1992-08-27 07:46:57",
+            ],
+            "y": [1.0, 1.0, 1.0, 1.0],
+        }
+    )
+    expected = Series(
+        df.iloc[:, 1].values.reshape(-1), index=pd.to_datetime(df.iloc[:, 0].values)
     )
 
-    expected = pd.read_csv(data_exp, squeeze=True)
-    expected.index = pd.to_datetime(expected.index)
     tm.assert_frame_equal(result, expected)
