@@ -425,6 +425,7 @@ class Styler(StylerRenderer):
         multirow_align: str = "c",
         multicol_align: str = "r",
         siunitx: bool = False,
+        environment: str = None,
         encoding: str | None = None,
     ):
         r"""
@@ -478,6 +479,10 @@ class Styler(StylerRenderer):
             the left, centrally, or at the right.
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
+        environment : str, optional
+            If given the environment that will replace 'table' in ``\\begin{table}``.
+            If 'longtable' is specified then a custom, more suitable template, will be
+            rendered where the argument ``position_float`` has no effect.
         encoding : str, default "utf-8"
             Character encoding setting.
 
@@ -738,6 +743,7 @@ class Styler(StylerRenderer):
             sparse_columns=sparse_columns,
             multirow_align=multirow_align,
             multicol_align=multicol_align,
+            environment=environment,
         )
 
         return save_to_buffer(latex, buf=buf, encoding=encoding)
