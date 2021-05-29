@@ -13,7 +13,10 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import FrameOrSeriesUnion
+from pandas._typing import (
+    DtypeObj,
+    FrameOrSeriesUnion,
+)
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -34,6 +37,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.base import NoNewAttributesMixin
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -122,7 +126,7 @@ def _map_and_wrap(name, docstring):
     @forbid_nonstring_types(["bytes"], name=name)
     def wrapper(self):
         result = getattr(self._data.array, f"_str_{name}")()
-        return self._wrap_result(result)
+        return self._wrap_result(result, returns_bool=True)
 
     wrapper.__doc__ = docstring
     return wrapper
@@ -209,8 +213,8 @@ class StringMethods(NoNewAttributesMixin):
         # see _libs/lib.pyx for list of inferred types
         allowed_types = ["string", "empty", "bytes", "mixed", "mixed-integer"]
 
-        values = getattr(data, "values", data)  # Series / Index
-        values = getattr(values, "categories", values)  # categorical / normal
+        data = extract_array(data, extract_numpy=True)
+        values = getattr(data, "categories", data)  # categorical / normal
 
         inferred_dtype = lib.infer_dtype(values, skipna=True)
 
@@ -242,6 +246,7 @@ class StringMethods(NoNewAttributesMixin):
         expand: bool | None = None,
         fill_value=np.nan,
         returns_string=True,
+        returns_bool: bool = False,
     ):
         from pandas import (
             Index,
@@ -319,11 +324,18 @@ class StringMethods(NoNewAttributesMixin):
         else:
             index = self._orig.index
             # This is a mess.
-            dtype: str | None
-            if self._is_string and returns_string:
-                dtype = self._orig.dtype
+            dtype: DtypeObj | str | None
+            if self._is_string:
+                if returns_bool:
+                    dtype = "boolean"
+                elif returns_string:
+                    dtype = self._orig.dtype
+                else:
+                    dtype = result.dtype
+            elif returns_bool:
+                dtype = result.dtype  # i.e. bool
             else:
-                dtype = None
+                dtype = getattr(result, "dtype", None)
 
             if expand:
                 cons = self._orig._constructor_expanddim
@@ -331,7 +343,7 @@ class StringMethods(NoNewAttributesMixin):
             else:
                 # Must be a Series
                 cons = self._orig._constructor
-                result = cons(result, name=name, index=index)
+                result = cons(result, name=name, index=index, dtype=dtype)
             result = result.__finalize__(self._orig, method="str")
             if name is not None and result.ndim == 1:
                 # __finalize__ might copy over the original name, but we may
@@ -369,7 +381,7 @@ class StringMethods(NoNewAttributesMixin):
         if isinstance(others, ABCSeries):
             return [others]
         elif isinstance(others, ABCIndex):
-            return [Series(others._values, index=idx)]
+            return [Series(others._values, index=idx, dtype=others.dtype)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
         elif isinstance(others, np.ndarray) and others.ndim == 2:
@@ -547,7 +559,7 @@ class StringMethods(NoNewAttributesMixin):
             sep = ""
 
         if isinstance(self._orig, ABCIndex):
-            data = Series(self._orig, index=self._orig)
+            data = Series(self._orig, index=self._orig, dtype=self._orig.dtype)
         else:  # Series
             data = self._orig
 
@@ -2145,7 +2157,7 @@ class StringMethods(NoNewAttributesMixin):
         dtype: bool
         """
         result = self._data.array._str_startswith(pat, na=na)
-        return self._wrap_result(result, returns_string=False)
+        return self._wrap_result(result, returns_string=False, returns_bool=True)
 
     @forbid_nonstring_types(["bytes"])
     def endswith(self, pat, na=None):
@@ -2202,7 +2214,7 @@ class StringMethods(NoNewAttributesMixin):
         dtype: bool
         """
         result = self._data.array._str_endswith(pat, na=na)
-        return self._wrap_result(result, returns_string=False)
+        return self._wrap_result(result, returns_string=False, returns_bool=True)
 
     @forbid_nonstring_types(["bytes"])
     def findall(self, pat, flags=0):
