@@ -607,9 +607,9 @@ class SeriesGroupBy(GroupBy[Series]):
         filtered : Series
         """
         if isinstance(func, str):
-            def wrapper(x): return getattr(x, func)(*args, **kwargs)
+            wrapper = lambda x: getattr(x, func)(*args, **kwargs)
         else:
-            def wrapper(x): return func(x, *args, **kwargs)
+            wrapper = lambda x: func(x, *args, **kwargs)
 
         # Interpret np.nan as False.
         def true_and_notna(x) -> bool:
@@ -725,7 +725,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if bins is None:
             lab, lev = algorithms.factorize(val, sort=True)
-            def llab(lab, inc): return lab[inc]
+            llab = lambda lab, inc: lab[inc]
         else:
 
             # lab is a Categorical with categories an IntervalIndex
@@ -742,7 +742,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 # "_na_value"
                 fill_value=lev._na_value,  # type: ignore[union-attr]
             )
-            def llab(lab, inc): return lab[inc]._multiindex.codes[-1]
+            llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab.dtype):
             # TODO: should we do this inside II?
@@ -1387,15 +1387,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, str):
-            def fast_path(group): return getattr(group, func)(*args, **kwargs)
+            fast_path = lambda group: getattr(group, func)(*args, **kwargs)
 
-            def slow_path(group): return group.apply(
+            slow_path = lambda group: group.apply(
                 lambda x: getattr(x, func)(*args, **kwargs), axis=self.axis
             )
         else:
-            def fast_path(group): return func(group, *args, **kwargs)
+            fast_path = lambda group: func(group, *args, **kwargs)
 
-            def slow_path(group): return group.apply(
+            slow_path = lambda group: group.apply(
                 lambda x: func(x, *args, **kwargs), axis=self.axis
             )
         return fast_path, slow_path
