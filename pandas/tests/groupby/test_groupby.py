@@ -2342,7 +2342,7 @@ def test_groupby_filtered_df_std():
 
 def test_groupby_empty_dataset():
     # 41575
-    df = DataFrame(columns=['A', 'B', 'C'])
-    result = df.groupby('A').B.describe().reset_index(drop=True)
-    expected = Series([], name='B', dtype=np.object_)
+    df = DataFrame(columns=["A", "B", "C"])
+    result = df.groupby("A").B.describe().reset_index(drop=True)
+    expected = Series([], name="B", dtype=np.object_)
     tm.assert_series_equal(result, expected)
