@@ -47,6 +47,7 @@ doctest_optionflags = [
 filterwarnings = [
   "error:Sparse:FutureWarning",
   "error:The SparseArray:FutureWarning",
+  "ignore:Promotion of numbers:FutureWarning",
 ]
 junit_family = "xunit2"
 markers = [
