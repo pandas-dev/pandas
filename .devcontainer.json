@@ -4,7 +4,7 @@
 	"name": "pandas",
 	"context": ".",
 	"dockerFile": "Dockerfile",
-	"postCreateCommand": "bash container_start.sh",
+	"postCreateCommand": "bash container_create.sh",
 	// Use 'settings' to set *default* container specific settings.json values on container create.
 	// You can edit these settings after create using File > Preferences > Settings > Remote.
 	"settings": {
