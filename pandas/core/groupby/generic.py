@@ -682,7 +682,8 @@ class SeriesGroupBy(GroupBy[Series]):
     @doc(Series.describe)
     def describe(self, **kwargs):
         result = self.apply(lambda x: x.describe(**kwargs))
-        if self.axis == 1 or len(self.groups) == 0:
+        return result.T
+        if self.axis == 1 or (isinstance(result, Series) and len(self.group) == 0):
             return result.T
         return result.unstack()
 
