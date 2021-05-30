@@ -197,7 +197,8 @@ class TestTimedeltas:
         )
         tm.assert_series_equal(actual, expected)
 
-        actual = to_timedelta(Series(["00:00:01", pd.NaT]))
+        with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
+            actual = to_timedelta(Series(["00:00:01", pd.NaT]))
         tm.assert_series_equal(actual, expected)
 
         actual = to_timedelta(np.nan)
