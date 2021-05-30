@@ -1391,6 +1391,12 @@ class TestTypeInference:
         assert lib.is_string_array(
             np.array(["foo", "bar", np.nan], dtype=object), skipna=True
         )
+        assert lib.is_string_array(
+            np.array(["foo", "bar", None], dtype=object), skipna=True
+        )
+        assert not lib.is_string_array(
+            np.array(["foo", "bar", None], dtype=object), skipna=False
+        )
         assert not lib.is_string_array(
             np.array(["foo", "bar", np.nan], dtype=object), skipna=False
         )

@@ -289,8 +289,11 @@ def test_constructor_raises(cls):
     with pytest.raises(ValueError, match=msg):
         cls(np.array([]))
 
+    with pytest.raises(ValueError, match=msg):
+        cls(np.array(["a", pd.NaT], dtype=object))
 
-@pytest.mark.parametrize("na", [np.nan, pd.NaT, None, pd.NA])
+
+@pytest.mark.parametrize("na", [np.nan, None, pd.NA])
 def test_constructor_nan_like(na):
     expected = pd.arrays.StringArray(np.array(["a", pd.NA]))
     tm.assert_extension_array_equal(
