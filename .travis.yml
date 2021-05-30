@@ -45,7 +45,6 @@ before_install:
   - echo "before_install"
   # Use blocking IO on travis.  Ref:  https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
   - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
-  - source ci/travis_process_gbq_encryption.sh
   - export PATH="$HOME/miniconda3/bin:$PATH"
   - df -h
   - pwd
