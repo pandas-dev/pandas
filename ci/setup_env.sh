@@ -33,7 +33,7 @@ wget -q $CONDA_URL -O miniconda.sh
 chmod +x miniconda.sh
 
 MINICONDA_DIR="$HOME/miniconda3"
-rf -rf $MINICONDA_DIR
+rm -rf $MINICONDA_DIR
 ./miniconda.sh -b -p $MINICONDA_DIR
 export PATH=$MINICONDA_DIR/bin:$PATH
 
