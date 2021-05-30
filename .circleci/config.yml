@@ -8,7 +8,8 @@ jobs:
     steps:
       - run: echo "Hello, Arm!"
       - run: uname
-      - run: uname -a
+      - run: uname -m
+      - checkout
       - run: ci/setup_env.sh
       - run: ci/run_tests.sh
 
