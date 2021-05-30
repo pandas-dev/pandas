@@ -5,12 +5,11 @@ jobs:
     machine:
       image: ubuntu-2004:202101-01
     resource_class: arm.medium
+    environment:
+      ENV_FILE: ci/deps/circle-37-arm64.yaml
+      PYTEST_WORKERS: auto
+      PATTERN: "not slow and not network and not clipboard and not arm_slow"
     steps:
       - checkout
-      - run: ENV_FILE="ci/deps/circle-37-arm64.yaml" ci/setup_env.sh
-      - run: PYTEST_WORKERS="auto" PATTERN="not slow and not network and not clipboard and not arm_slow" ci/run_tests.sh
-
-workflows:
-  build:
-    jobs:
-      - test-arm
+      - run: ci/setup_env.sh
+      - run: PATH=$HOME/miniconda3/bin:$PATH ci/run_tests.sh
