@@ -6,6 +6,7 @@ import datetime
 from enum import Enum
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
@@ -69,6 +70,9 @@ from pandas.io.common import (
 )
 from pandas.io.date_converters import generic_parser
 
+if TYPE_CHECKING:
+    from typing import Literal
+
 parser_defaults = {
     "delimiter": None,
     "escapechar": None,
@@ -122,7 +126,7 @@ class ParserBase:
 
     _implicit_index: bool = False
     _first_chunk: bool
-    index_col: int | Sequence[int] | None
+    index_col: int | Sequence[int] | Sequence[str] | Literal[False] | None
     index_names: list[Hashable] | None
 
     def __init__(self, kwds):
@@ -331,14 +335,17 @@ class ParserBase:
         # the names are the tuples of the header that are not the index cols
         # 0 is the name of the index, assuming index_col is a list of column
         # numbers
-        ic = self.index_col
-        if ic is None:
+        index_col = self.index_col
+        if index_col is None:
             ic = []
+        elif not isinstance(index_col, (list, tuple, np.ndarray)):
+            ic = [index_col]
+        else:
+            # Incompatible types in assignment (expression has type
+            # "Union[List[Any], Tuple[Any, ...]]", variable has type
+            # "List[Union[int, Sequence[int], Sequence[str]]]")
+            ic = index_col  # type: ignore[assignment]
 
-        if not isinstance(ic, (list, tuple, np.ndarray)):
-            # error: List item 0 has incompatible type
-            # "Union[int, Sequence[int]]"; expected "int"
-            ic = [ic]  # type: ignore[list-item]
         sic = set(ic)
 
         # clean the index_names
@@ -354,9 +361,7 @@ class ParserBase:
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
         columns = list(zip(*(extract(r) for r in header)))
-        # error: No overload variant of "__add__" of "tuple" matches argument
-        # type "List[Any]"
-        names = ic + columns  # type: ignore[operator]
+        names = ic + columns
 
         # If we find unnamed columns all in a single
         # level, then our header was too long.
