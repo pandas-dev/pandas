@@ -15,7 +15,9 @@ fi
 
 echo "Install Miniconda"
 DEFAULT_CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest"
-if [[ "$(uname)" == 'Linux' ]]; then
+if [[ "$(uname -m)" == 'aarch64' ]]; then
+    CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.5-1/Miniforge3-4.8.5-1-Linux-aarch64.sh"
+elif [[ "$(uname)" == 'Linux' ]]; then
     if [[ "$BITS32" == "yes" ]]; then
         CONDA_URL="$DEFAULT_CONDA_URL-Linux-x86.sh"
     else
@@ -23,8 +25,6 @@ if [[ "$(uname)" == 'Linux' ]]; then
     fi
 elif [[ "$(uname)" == 'Darwin' ]]; then
     CONDA_URL="$DEFAULT_CONDA_URL-MacOSX-x86_64.sh"
-elif [[ "$(uname -m)" == 'aarch64' ]]; then
-    CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.5-1/Miniforge3-4.8.5-1-Linux-aarch64.sh"
 else
   echo "OS $(uname) not supported"
   exit 1
