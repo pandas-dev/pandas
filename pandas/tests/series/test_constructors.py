@@ -712,7 +712,7 @@ class TestSeriesConstructors:
             Series(["a", "b", "c"], dtype=float)
 
     def test_constructor_signed_int_overflow_deprecation(self):
-        # GH#40144 disallow silent overflow
+        # GH#41734 disallow silent overflow
         msg = "Values are too large to be losslessly cast"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             ser = Series([1, 200, 923442], dtype="int8")
