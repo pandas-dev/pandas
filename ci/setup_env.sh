@@ -22,28 +22,25 @@ if [ -d "$MINICONDA_DIR" ]; then
 fi
 
 echo "Install Miniconda"
+DEFAULT_CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest"
 UNAME_OS=$(uname)
 if [[ "$UNAME_OS" == 'Linux' ]]; then
     if [[ "$BITS32" == "yes" ]]; then
-        CONDA_OS="Linux-x86"
+        CONDA_URL="$DEFAULT_CONDA_URL-Linux-x86.sh"
     else
-        CONDA_OS="Linux-x86_64"
+        CONDA_URL="$DEFAULT_CONDA_URL-Linux-x86_64.sh"
     fi
 elif [[ "$UNAME_OS" == 'Darwin' ]]; then
-    CONDA_OS="MacOSX-x86_64"
+    CONDA_URL="$DEFAULT_CONDA_URL-MacOSX-x86_64.sh"
+elif [[ "$UNAME_OS" == 'arm64' ]]; then
+    CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.5-1/Miniforge3-4.8.5-1-Linux-aarch64.sh"
 else
   echo "OS $UNAME_OS not supported"
   exit 1
 fi
 
-if [ "${TRAVIS_CPU_ARCH}" == "arm64" ]; then
-  CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.5-1/Miniforge3-4.8.5-1-Linux-aarch64.sh"
-else
-  CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh"
-fi
 wget -q $CONDA_URL -O miniconda.sh
 chmod +x miniconda.sh
-
 # Installation path is required for ARM64 platform as miniforge script installs in path $HOME/miniforge3.
 ./miniconda.sh -b -p $MINICONDA_DIR
 
