@@ -3980,7 +3980,7 @@ Keep all original rows and also all original values
         else:
             index = self.index.repeat(counts)
 
-        return self._constructor(values, index=index, name=self.name, dtype=object)
+        return self._constructor(values, index=index, name=self.name)
 
     def unstack(self, level=-1, fill_value=None) -> DataFrame:
         """
