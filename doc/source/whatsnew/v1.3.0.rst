@@ -179,19 +179,15 @@ We've enhanced the :class:`StringDtype`, an extension type dedicated to string d
 (:issue:`39908`)
 
 It is now possible to specify a ``storage`` keyword option to :class:`StringDtype`, use
-pandas options or specify the dtype using ``dtype='string[pyarrow]'``
+pandas options or specify the dtype using ``dtype='string[pyarrow]'`` to allow the
+StringArray to be backed by a PyArrow array instead of a NumPy array of Python objects.
+
+The PyArrow backed StringArray requires pyarrow 1.0.0 or greater to be installed.
 
 .. warning::
 
    ``string[pyarrow]`` is currently considered experimental. The implementation
    and parts of the API may change without warning.
-
-The ``'string[pyarrow]'`` extension type solves several issues with NumPy backed arrays:
-
-1.
-2.
-3.
-
 
 .. ipython:: python
 
@@ -212,8 +208,8 @@ You can also create a PyArrow backed string array using pandas options.
         s = pd.Series(['abc', None, 'def'], dtype="string")
     s
 
-The usual string accessor methods work. Where appropriate, the return type
-of the Series or columns of a DataFrame will also have string dtype.
+The usual string accessor methods work. Where appropriate, the return type of the Series
+or columns of a DataFrame will also have string dtype.
 
 .. ipython:: python
 
@@ -226,7 +222,61 @@ String accessor methods returning integers will return a value with :class:`Int6
 
    s.str.count("a")
 
-See :ref:`text.types` for more.
+Some string accessor methods use native PyArrow string kernels operating directly on the
+PyArrow memory, others fallback to converting to a NumPy array of Python objects and
+using the native Python string functions. String methods using Pyarrow kernels are
+generally much more performant.
+
+Some PyArrow string kernels are implemented in later versions of pyarrow that the
+minimum version required to create a PyArrow backed StringArray. In these cases, the
+string accessor will fall back to the Python implementations.
+
+Some string accessor methods accept arguments controlling their behaviour which are not
+supported by the PyArrow kernels. These cases will also fall back to object mode.
+
++--------------------------------+----------+------------------------------------------+
+| Accessor                       | Minimum  | Limitations (otherwise fall back to      |
+| Method                         | PyArrow  | object mode)                             |
+|                                | Version  |                                          |
++================================+==========+==========================================+
+| :meth:`~Series.str.contains`   | 1.0.0    | The ``flags`` argument is not supported. |
+|                                |          | If ``regex=True``, pyarrow 4.0.0 is      |
+|                                |          | required and ``case=False`` is not       |
+|                                |          | supported.                               |
++--------------------------------+----------+------------------------------------------+
+| :meth:`~Series.str.startswith` | 4.0.0    |                                          |
+| :meth:`~Series.str.endswith`   |          |                                          |
++--------------------------------+----------+------------------------------------------+
+| :meth:`~Series.str.replace`    | 4.0.0    | The ``flags`` argument, ``case=False``,  |
+|                                |          | passing a callable for the ``repr``      |
+|                                |          | argument or passing a compiled regex is  |
+|                                |          | not supported.                           |
++--------------------------------+----------+------------------------------------------+
+| :meth:`~Series.str.match`      | 4.0.0    |                                          |
+| :meth:`~Series.str.fullmatch`  |          |                                          |
++--------------------------------+----------+------------------------------------------+
+| :meth:`~Series.str.isalnum`    | 1.0.0    |                                          |
+| :meth:`~Series.str.isalpha`    |          |                                          |
+| :meth:`~Series.str.isdecimal`  |          |                                          |
+| :meth:`~Series.str.isdigit`    |          |                                          |
+| :meth:`~Series.str.islower`    |          |                                          |
+| :meth:`~Series.str.isnumeric`  |          |                                          |
+| :meth:`~Series.str.istitle`    |          |                                          |
+| :meth:`~Series.str.isupper`    |          |                                          |
++--------------------------------+----------+------------------------------------------+
+| :meth:`~Series.str.isspace`    | 2.0.0    |                                          |
++--------------------------------+----------+------------------------------------------+
+| :meth:`~Series.str.len`        | 4.0.0    |                                          |
++--------------------------------+----------+------------------------------------------+
+| :meth:`~Series.str.lower`      | 1.0.0    |                                          |
+| :meth:`~Series.str.upper`      |          |                                          |
++--------------------------------+----------+------------------------------------------+
+| :meth:`~Series.str.strip`      | 4.0.0    |                                          |
+| :meth:`~Series.str.lstrip`     |          |                                          |
+| :meth:`~Series.str.rstrip`     |          |                                          |
++--------------------------------+----------+------------------------------------------+
+
+
 
 Centered Datetime-Like Rolling Windows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
