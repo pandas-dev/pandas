@@ -8,7 +8,7 @@ jobs:
     steps:
       - checkout
       - run: ENV_FILE="ci/deps/circle-37-arm64.yaml" ci/setup_env.sh
-      - run: ci/run_tests.sh
+      - run: PYTEST_WORKERS="auto" PATTERN="not slow and not network and not clipboard and not arm_slow" ci/run_tests.sh
 
 workflows:
   build:
