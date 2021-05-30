@@ -1525,6 +1525,36 @@ class TestSeriesConstructors:
         result = Series(range(5), dtype=dtype)
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_range_overflows(self):
+        # GH#30173 range objects that overflow int64
+        rng = range(2 ** 63, 2 ** 63 + 4)
+        ser = Series(rng)
+        expected = Series(list(rng))
+        tm.assert_series_equal(ser, expected)
+        assert list(ser) == list(rng)
+        assert ser.dtype == np.uint64
+
+        rng2 = range(2 ** 63 + 4, 2 ** 63, -1)
+        ser2 = Series(rng2)
+        expected2 = Series(list(rng2))
+        tm.assert_series_equal(ser2, expected2)
+        assert list(ser2) == list(rng2)
+        assert ser2.dtype == np.uint64
+
+        rng3 = range(-(2 ** 63), -(2 ** 63) - 4, -1)
+        ser3 = Series(rng3)
+        expected3 = Series(list(rng3))
+        tm.assert_series_equal(ser3, expected3)
+        assert list(ser3) == list(rng3)
+        assert ser3.dtype == object
+
+        rng4 = range(2 ** 73, 2 ** 73 + 4)
+        ser4 = Series(rng4)
+        expected4 = Series(list(rng4))
+        tm.assert_series_equal(ser4, expected4)
+        assert list(ser4) == list(rng4)
+        assert ser4.dtype == object
+
     def test_constructor_tz_mixed_data(self):
         # GH 13051
         dt_list = [
@@ -1535,11 +1565,30 @@ class TestSeriesConstructors:
         expected = Series(dt_list, dtype=object)
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
-        # GH#25843
+    @pytest.mark.parametrize("pydt", [True, False])
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture, pydt):
+        # GH#25843, GH#41555, GH#33401
         tz = tz_aware_fixture
-        result = Series([Timestamp("2019", tz=tz)], dtype="datetime64[ns]")
-        expected = Series([Timestamp("2019")])
+        ts = Timestamp("2019", tz=tz)
+        if pydt:
+            ts = ts.to_pydatetime()
+        ts_naive = Timestamp("2019")
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = Series([ts], dtype="datetime64[ns]")
+        expected = Series([ts_naive])
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = Series(np.array([ts], dtype=object), dtype="datetime64[ns]")
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = Series({0: ts}, dtype="datetime64[ns]")
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = Series(ts, index=[0], dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
 
     def test_constructor_datetime64(self):

@@ -22,6 +22,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;Fixed-Width Text File;:ref:`read_fwf<io.fwf_reader>`
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
+    text;`LaTeX <https://en.wikipedia.org/wiki/LaTeX>`__;;:ref:`Styler.to_latex<io.latex>`
     text;`XML <https://www.w3.org/standards/xml/core>`__;:ref:`read_xml<io.read_xml>`;:ref:`to_xml<io.xml>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
@@ -343,15 +344,32 @@ dialect : str or :class:`python:csv.Dialect` instance, default ``None``
 Error handling
 ++++++++++++++
 
-error_bad_lines : boolean, default ``True``
+error_bad_lines : boolean, default ``None``
   Lines with too many fields (e.g. a csv line with too many commas) will by
   default cause an exception to be raised, and no ``DataFrame`` will be
   returned. If ``False``, then these "bad lines" will dropped from the
   ``DataFrame`` that is returned. See :ref:`bad lines <io.bad_lines>`
   below.
-warn_bad_lines : boolean, default ``True``
+
+  .. deprecated:: 1.3
+     The ``on_bad_lines`` parameter should be used instead to specify behavior upon
+     encountering a bad line instead.
+warn_bad_lines : boolean, default ``None``
   If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
   each "bad line" will be output.
+
+  .. deprecated:: 1.3
+     The ``on_bad_lines`` parameter should be used instead to specify behavior upon
+     encountering a bad line instead.
+on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
+    Specifies what to do upon encountering a bad line (a line with too many fields).
+    Allowed values are :
+
+        - 'error', raise an ParserError when a bad line is encountered.
+        - 'warn', print a warning when a bad line is encountered and skip that line.
+        - 'skip', skip bad lines without raising or warning when they are encountered.
+
+    .. versionadded:: 1.3
 
 .. _io.dtypes:
 
@@ -1244,7 +1262,7 @@ You can elect to skip bad lines:
 
 .. code-block:: ipython
 
-    In [29]: pd.read_csv(StringIO(data), error_bad_lines=False)
+    In [29]: pd.read_csv(StringIO(data), on_bad_lines="warn")
     Skipping line 3: expected 3 fields, saw 4
 
     Out[29]:
@@ -1896,7 +1914,7 @@ Writing in ISO date format:
 
    dfd = pd.DataFrame(np.random.randn(5, 2), columns=list("AB"))
    dfd["date"] = pd.Timestamp("20130101")
-   dfd = dfd.sort_index(1, ascending=False)
+   dfd = dfd.sort_index(axis=1, ascending=False)
    json = dfd.to_json(date_format="iso")
    json
 
@@ -2830,7 +2848,42 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 .. |lxml| replace:: **lxml**
 .. _lxml: https://lxml.de
 
+.. _io.latex:
 
+LaTeX
+-----
+
+.. versionadded:: 1.3.0
+
+Currently there are no methods to read from LaTeX, only output methods.
+
+Writing to LaTeX files
+''''''''''''''''''''''
+
+.. note::
+
+   DataFrame *and* Styler objects currently have a ``to_latex`` method. We recommend
+   using the `Styler.to_latex() <../reference/api/pandas.io.formats.style.Styler.to_latex.rst>`__ method
+   over `DataFrame.to_latex() <../reference/api/pandas.DataFrame.to_latex.rst>`__ due to the former's greater flexibility with
+   conditional styling, and the latter's possible future deprecation.
+
+Review the documentation for `Styler.to_latex <../reference/api/pandas.io.formats.style.Styler.to_latex.rst>`__,
+which gives examples of conditional styling and explains the operation of its keyword
+arguments.
+
+For simple application the following pattern is sufficient.
+
+.. ipython:: python
+
+   df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["c", "d"])
+   print(df.style.to_latex())
+
+To format values before output, chain the `Styler.format <../reference/api/pandas.io.formats.style.Styler.format.rst>`__
+method.
+
+.. ipython:: python
+
+   print(df.style.format("€ {}").to_latex())
 
 XML
 ---
@@ -3647,15 +3700,6 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
    with pd.ExcelWriter("path_to_file.xlsx") as writer:
        df1.to_excel(writer, sheet_name="Sheet1")
        df2.to_excel(writer, sheet_name="Sheet2")
-
-.. note::
-
-    Wringing a little more performance out of ``read_excel``
-    Internally, Excel stores all numeric data as floats. Because this can
-    produce unexpected behavior when reading in data, pandas defaults to trying
-    to convert integers to floats if it doesn't lose information (``1.0 -->
-    1``).  You can pass ``convert_float=False`` to disable this behavior, which
-    may give a slight performance improvement.
 
 .. _io.excel_writing_buffer:
 
