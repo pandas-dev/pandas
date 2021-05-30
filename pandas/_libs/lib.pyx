@@ -731,7 +731,10 @@ cpdef ndarray[object] ensure_string_array(
         if isinstance(val, str):
             continue
 
-        if not checknull(val):
+        if not (val is None or val is C_NA or np.isnan(val)):
+            # We don't use checknull, since NaT, Decimal("NaN"), etc. aren't valid
+            # If they are present, they are treated like a regular Python object
+            # and will either cause an exception to be raised or be coerced.
             if coerce =="all" or coerce == "non-null":
                 result[i] = str(val)
             else:
