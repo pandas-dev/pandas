@@ -29,6 +29,7 @@ else
   echo "OS $(uname) not supported"
   exit 1
 fi
+echo "Downloading $CONDA_URL"
 wget -q $CONDA_URL -O miniconda.sh
 chmod +x miniconda.sh
 
