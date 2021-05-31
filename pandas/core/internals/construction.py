@@ -537,9 +537,6 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
         def convert(v):
             if not is_list_like(v) or isinstance(v, ABCDataFrame):
                 return v
-            elif not hasattr(v, "dtype") and not isinstance(v, (list, tuple, range)):
-                # TODO: should we cast these to list?
-                return v
 
             v = extract_array(v, extract_numpy=True)
             res = maybe_convert_platform(v)

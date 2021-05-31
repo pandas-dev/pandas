@@ -60,6 +60,24 @@ class TestReindexSetIndex:
 
         df = df.reset_index()
 
+    def test_setitem_reset_index_dtypes(self):
+        # GH 22060
+        df = DataFrame(columns=["a", "b", "c"]).astype(
+            {"a": "datetime64[ns]", "b": np.int64, "c": np.float64}
+        )
+        df1 = df.set_index(["a"])
+        df1["d"] = []
+        result = df1.reset_index()
+        expected = DataFrame(columns=["a", "b", "c", "d"], index=range(0)).astype(
+            {"a": "datetime64[ns]", "b": np.int64, "c": np.float64, "d": np.float64}
+        )
+        tm.assert_frame_equal(result, expected)
+
+        df2 = df.set_index(["a", "b"])
+        df2["d"] = []
+        result = df2.reset_index()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
