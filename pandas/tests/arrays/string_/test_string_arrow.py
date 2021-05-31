@@ -11,11 +11,15 @@ from pandas.core.arrays.string_ import (
     StringArray,
     StringDtype,
 )
-from pandas.core.arrays.string_arrow import (
-    ArrowStringArray,
+from pandas.core.arrays.string_arrow import ArrowStringArray
+
+skip_if_no_pyarrow = pytest.mark.skipif(
+    pa_version_under1p0,
+    reason="pyarrow>=1.0.0 is required for PyArrow backed StringArray",
 )
 
 
+@skip_if_no_pyarrow
 def test_eq_all_na():
     a = pd.array([pd.NA, pd.NA], dtype=StringDtype("pyarrow"))
     result = a == a
@@ -41,10 +45,7 @@ def test_config_bad_storage_raises():
         pd.options.mode.string_storage = "foo"
 
 
-@pytest.mark.skipif(
-    pa_version_under1p0,
-    reason="pyarrow>=1.0.0 is required for PyArrow backed StringArray",
-)
+@skip_if_no_pyarrow
 @pytest.mark.parametrize("chunked", [True, False])
 @pytest.mark.parametrize("array", ["numpy", "pyarrow"])
 def test_constructor_not_string_type_raises(array, chunked):
@@ -67,6 +68,7 @@ def test_constructor_not_string_type_raises(array, chunked):
         ArrowStringArray(arr)
 
 
+@skip_if_no_pyarrow
 def test_from_sequence_wrong_dtype_raises():
     with pd.option_context("string_storage", "python"):
         ArrowStringArray._from_sequence(["a", None, "c"], dtype="string")
