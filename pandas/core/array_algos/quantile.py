@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from pandas._typing import ArrayLike
-from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_sparse
 from pandas.core.dtypes.missing import (
@@ -38,11 +37,17 @@ def quantile_compat(values: ArrayLike, qs: np.ndarray, interpolation: str) -> Ar
         mask = isna(values)
         return _quantile_with_mask(values, mask, fill_value, qs, interpolation)
     else:
-        try:
-            out = _quantile_ea_compat(values, qs, interpolation)
-        except AbstractMethodError:
+        # In general we don't want to import from arrays here;
+        #  this is temporary pending discussion in GH#41428
+        from pandas.core.arrays import BaseMaskedArray
+
+        if isinstance(values, BaseMaskedArray):
             # e.g. IntegerArray, does not implement _from_factorized
             out = _quantile_ea_fallback(values, qs, interpolation)
+
+        else:
+            out = _quantile_ea_compat(values, qs, interpolation)
+
         return out
 
 
