@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+echo $PATH
+
 # Workaround for pytest-xdist (it collects different tests in the workers if PYTHONHASHSEED is not set)
 # https://github.com/pytest-dev/pytest/issues/920
 # https://github.com/pytest-dev/pytest/issues/1075
