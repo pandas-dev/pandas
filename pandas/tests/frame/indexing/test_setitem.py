@@ -638,6 +638,19 @@ class TestDataFrameSetItem:
         expected = Series([np.uint32, object, object, np.uint8], index=list("abcd"))
         tm.assert_series_equal(result, expected)
 
+    def test_boolean_mask_nullable_int64(self):
+        # GH 28928
+        result = DataFrame({"a": [3, 4], "b": [5, 6]}).astype(
+            {"a": "int64", "b": "Int64"}
+        )
+        mask = Series(False, index=result.index)
+        result.loc[mask, "a"] = result["a"]
+        result.loc[mask, "b"] = result["b"]
+        expected = DataFrame({"a": [3, 4], "b": [5, 6]}).astype(
+            {"a": "int64", "b": "Int64"}
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
