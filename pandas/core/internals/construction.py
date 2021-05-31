@@ -47,10 +47,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
-    ABCIndex,
     ABCSeries,
-    ABCTimedeltaIndex,
 )
 
 from pandas.core import (
@@ -71,7 +68,9 @@ from pandas.core.construction import (
 )
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
+    DatetimeIndex,
     Index,
+    TimedeltaIndex,
     ensure_index,
     get_objs_combined_axis,
     union_indexes,
@@ -101,7 +100,7 @@ if TYPE_CHECKING:
 
 def arrays_to_mgr(
     arrays,
-    arr_names,
+    arr_names: Index,
     index,
     columns,
     *,
@@ -115,8 +114,6 @@ def arrays_to_mgr(
 
     Needs to handle a lot of exceptional cases.
     """
-    arr_names = ensure_index(arr_names)
-
     if verify_integrity:
         # figure out the index, if necessary
         if index is None:
@@ -286,10 +283,12 @@ def ndarray_to_mgr(
 
         if columns is None:
             columns = Index(range(len(values)))
+        else:
+            columns = ensure_index(columns)
 
         return arrays_to_mgr(values, columns, index, columns, dtype=dtype, typ=typ)
 
-    if is_extension_array_dtype(vdtype) and not is_1d_only_ea_dtype(vdtype):
+    elif is_extension_array_dtype(vdtype) and not is_1d_only_ea_dtype(vdtype):
         # i.e. Datetime64TZ
         values = extract_array(values, extract_numpy=True)
         if copy:
@@ -454,7 +453,7 @@ def dict_to_mgr(
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
         # GH#24096 need copy to be deep for datetime64tz case
         # TODO: See if we can avoid these copies
-        arrays = [arr if not isinstance(arr, ABCIndex) else arr._data for arr in arrays]
+        arrays = [arr if not isinstance(arr, Index) else arr._data for arr in arrays]
         arrays = [
             arr if not is_datetime64tz_dtype(arr) else arr.copy() for arr in arrays
         ]
@@ -480,7 +479,7 @@ def nested_data_to_arrays(
     columns: Index | None,
     index: Index | None,
     dtype: DtypeObj | None,
-):
+) -> tuple[list[ArrayLike], Index, Index]:
     """
     Convert a single sequence of arrays to multiple arrays.
     """
@@ -548,7 +547,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
         if is_list_like(values[0]):
             values = np.array([convert(v) for v in values])
         elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
-            # GH#21861
+            # GH#21861 see test_constructor_list_of_lists
             values = np.array([convert(v) for v in values])
         else:
             values = convert(values)
@@ -566,31 +565,30 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index: Index, dtype: DtypeObj | None):
+def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
     oindex = None
     homogenized = []
 
     for val in data:
         if isinstance(val, ABCSeries):
             if dtype is not None:
-                val = val.astype(dtype)
+                val = val.astype(dtype, copy=False)
             if val.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
-            # TODO extract_array should be preferred, but that gives failures for
-            # `extension/test_numpy.py` (extract_array will convert numpy arrays
-            # to PandasArray), see https://github.com/pandas-dev/pandas/issues/40021
-            # val = extract_array(val, extract_numpy=True)
+
             val = val._values
         else:
             if isinstance(val, dict):
                 if oindex is None:
                     oindex = index.astype("O")
 
-                if isinstance(index, (ABCDatetimeIndex, ABCTimedeltaIndex)):
+                if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
+                    # see test_constructor_dict_datetime64_index
                     val = dict_compat(val)
                 else:
+                    # see test_constructor_subclass_dict
                     val = dict(val)
                 val = lib.fast_multiget(val, oindex._values, default=np.nan)
             val = sanitize_array(
@@ -749,6 +747,7 @@ def to_arrays(
     Return list of arrays, columns.
     """
     if isinstance(data, ABCDataFrame):
+        # see test_from_records_with_index_data, test_from_records_bad_index_column
         if columns is not None:
             arrays = [
                 data._ixs(i, axis=1).values
@@ -884,7 +883,7 @@ def _list_of_dict_to_arrays(
 
     # assure that they are of the base dict class and not of derived
     # classes
-    data = [(type(d) is dict) and d or dict(d) for d in data]
+    data = [d if type(d) is dict else dict(d) for d in data]
 
     content = lib.dicts_to_array(data, list(columns))
     return content, columns
