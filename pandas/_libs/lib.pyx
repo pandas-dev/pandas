@@ -731,7 +731,7 @@ cpdef ndarray[object] ensure_string_array(
         if isinstance(val, str):
             continue
 
-        if not (val is None or val is C_NA or val != val):
+        if not (val is None or val is C_NA or val is np.nan):
             # We don't use checknull, since NaT, Decimal("NaN"), etc. aren't valid
             # If they are present, they are treated like a regular Python object
             # and will either cause an exception to be raised or be coerced.
@@ -1853,7 +1853,7 @@ cdef class StringValidator(Validator):
 
     cdef bint is_valid_null(self, object value) except -1:
         # Override to exclude float('Nan') and complex NaN
-        return value is None or value is C_NA or np.isnan(value)
+        return value is None or value is C_NA or value is np.nan
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
