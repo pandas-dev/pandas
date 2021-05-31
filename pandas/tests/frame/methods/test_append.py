@@ -238,3 +238,22 @@ class TestDataFrameAppend:
 
         result = df.append(other)
         assert (result["B"] == index).all()
+
+    @pytest.mark.filterwarnings("ignore:The values in the array:RuntimeWarning")
+    def test_multiindex_column_append_multiple(self):
+        # GH 29699
+        df = DataFrame(
+            [[1, 11], [2, 12], [3, 13]],
+            columns=pd.MultiIndex.from_tuples(
+                [("multi", "col1"), ("multi", "col2")], names=["level1", None]
+            ),
+        )
+        df2 = df.copy()
+        for i in range(1, 10):
+            df[i, "colA"] = 10
+            df = df.append(df2, ignore_index=True)
+            result = df["multi"]
+            expected = DataFrame(
+                {"col1": [1, 2, 3] * (i + 1), "col2": [11, 12, 13] * (i + 1)}
+            )
+            tm.assert_frame_equal(result, expected)

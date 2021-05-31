@@ -502,3 +502,9 @@ class TestDataFrameDrop:
         tm.assert_index_equal(df.columns, Index([], dtype="object"))
         a -= a.mean()
         tm.assert_index_equal(df.columns, Index([], dtype="object"))
+
+    def test_drop_level_missing_label_multiindex(self):
+        # GH 18561
+        df = DataFrame(index=MultiIndex.from_product([range(3), range(3)]))
+        with pytest.raises(KeyError, match="labels \\[5\\] not found in level"):
+            df.drop(5, level=0)
