@@ -35,6 +35,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_string_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna
 
@@ -153,6 +154,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         from pandas.core.arrays.masked import BaseMaskedArray
 
         cls._chk_pyarrow_available()
+
+        if dtype and not (isinstance(dtype, str) and dtype == "string"):
+            dtype = pandas_dtype(dtype)
+            assert isinstance(dtype, StringDtype) and dtype.storage == "pyarrow"
 
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype in ensure_string_array and

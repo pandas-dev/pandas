@@ -295,7 +295,7 @@ class StringArray(PandasArray):
         super().__init__(values, copy=copy)
         # error: Incompatible types in assignment (expression has type "StringDtype",
         # variable has type "PandasDtype")
-        NDArrayBacked.__init__(self, self._ndarray, StringDtype())
+        NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
         if not isinstance(values, type(self)):
             self._validate()
 
@@ -311,8 +311,9 @@ class StringArray(PandasArray):
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
-        if dtype:
-            assert dtype == "string"
+        if dtype and not (isinstance(dtype, str) and dtype == "string"):
+            dtype = pandas_dtype(dtype)
+            assert isinstance(dtype, StringDtype) and dtype.storage == "python"
 
         from pandas.core.arrays.masked import BaseMaskedArray
 
@@ -332,7 +333,7 @@ class StringArray(PandasArray):
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
         new_string_array = cls.__new__(cls)
-        NDArrayBacked.__init__(new_string_array, result, StringDtype())
+        NDArrayBacked.__init__(new_string_array, result, StringDtype(storage="python"))
 
         return new_string_array
 
@@ -501,7 +502,7 @@ class StringArray(PandasArray):
         from pandas.arrays import BooleanArray
 
         if dtype is None:
-            dtype = StringDtype()
+            dtype = StringDtype(storage="python")
         if na_value is None:
             na_value = self.dtype.na_value
 

@@ -8,27 +8,33 @@ import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.0")
 
+from pandas.core.arrays.string_ import (
+    StringArray,
+    StringDtype,
+)
 from pandas.core.arrays.string_arrow import ArrowStringArray
 
 
 def test_eq_all_na():
-    a = pd.array([pd.NA, pd.NA], dtype=pd.StringDtype("pyarrow"))
+    a = pd.array([pd.NA, pd.NA], dtype=StringDtype("pyarrow"))
     result = a == a
     expected = pd.array([pd.NA, pd.NA], dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_config():
-    # python by default
-    assert pd.StringDtype().storage == "python"
-    arr = pd.array(["a", "b"])
-    assert arr.dtype.storage == "python"
+def test_config(string_storage):
+    with pd.option_context("string_storage", string_storage):
+        assert StringDtype().storage == string_storage
+        result = pd.array(["a", "b"])
+        assert result.dtype.storage == string_storage
 
-    with pd.option_context("mode.string_storage", "pyarrow"):
-        assert pd.StringDtype().storage == "pyarrow"
-        arr = pd.array(["a", "b"])
-        assert arr.dtype.storage == "pyarrow"
+    expected = (
+        StringDtype(string_storage).construct_array_type()._from_sequence(["a", "b"])
+    )
+    tm.assert_equal(result, expected)
 
+
+def test_config_bad_storage_raises():
     msg = re.escape("Value must be one of python|pyarrow")
     with pytest.raises(ValueError, match=msg):
         pd.options.mode.string_storage = "foo"
@@ -50,3 +56,51 @@ def test_constructor_not_string_type_raises(array, chunked):
         )
     with pytest.raises(ValueError, match=msg):
         ArrowStringArray(arr)
+
+
+def test_from_sequence_wrong_dtype_raises():
+    with pd.option_context("string_storage", "python"):
+        ArrowStringArray._from_sequence(["a", None, "c"], dtype="string")
+
+    with pd.option_context("string_storage", "pyarrow"):
+        ArrowStringArray._from_sequence(["a", None, "c"], dtype="string")
+
+    with pytest.raises(AssertionError, match=None):
+        ArrowStringArray._from_sequence(["a", None, "c"], dtype="string[python]")
+
+    ArrowStringArray._from_sequence(["a", None, "c"], dtype="string[pyarrow]")
+
+    with pytest.raises(AssertionError, match=None):
+        with pd.option_context("string_storage", "python"):
+            ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
+
+    with pd.option_context("string_storage", "pyarrow"):
+        ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
+
+    with pytest.raises(AssertionError, match=None):
+        ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype("python"))
+
+    ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype("pyarrow"))
+
+    with pd.option_context("string_storage", "python"):
+        StringArray._from_sequence(["a", None, "c"], dtype="string")
+
+    with pd.option_context("string_storage", "pyarrow"):
+        StringArray._from_sequence(["a", None, "c"], dtype="string")
+
+    StringArray._from_sequence(["a", None, "c"], dtype="string[python]")
+
+    with pytest.raises(AssertionError, match=None):
+        StringArray._from_sequence(["a", None, "c"], dtype="string[pyarrow]")
+
+    with pd.option_context("string_storage", "python"):
+        StringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
+
+    with pytest.raises(AssertionError, match=None):
+        with pd.option_context("string_storage", "pyarrow"):
+            StringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
+
+    StringArray._from_sequence(["a", None, "c"], dtype=StringDtype("python"))
+
+    with pytest.raises(AssertionError, match=None):
+        StringArray._from_sequence(["a", None, "c"], dtype=StringDtype("pyarrow"))

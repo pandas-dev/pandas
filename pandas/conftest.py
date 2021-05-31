@@ -1131,6 +1131,22 @@ def nullable_string_dtype(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[
+        "python",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow", min_version="1.0.0")),
+    ]
+)
+def string_storage(request):
+    """
+    Parametrized fixture for pd.options.mode.string_storage.
+
+    * 'python'
+    * 'pyarrow'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.BYTES_DTYPES)
 def bytes_dtype(request):
     """

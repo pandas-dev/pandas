@@ -12,6 +12,7 @@ import pytest
 from pandas._libs.tslibs import iNaT
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     NA,
     Categorical,
@@ -377,7 +378,9 @@ class TestAstypeString:
             # currently no way to parse IntervalArray from a list of strings
         ],
     )
-    def test_astype_string_to_extension_dtype_roundtrip(self, data, dtype, request):
+    def test_astype_string_to_extension_dtype_roundtrip(
+        self, data, dtype, request, string_storage
+    ):
         if dtype == "boolean" or (
             dtype in ("period[M]", "datetime64[ns]", "timedelta64[ns]") and NaT in data
         ):
@@ -385,9 +388,24 @@ class TestAstypeString:
                 reason="TODO StringArray.astype() with missing values #GH40566"
             )
             request.node.add_marker(mark)
+
+        if string_storage == "pyarrow" and dtype in (
+            "category",
+            "datetime64[ns]",
+            "datetime64[ns, US/Eastern]",
+            "UInt16",
+            "period[M]",
+        ):
+            mark = pytest.mark.xfail(
+                reason="TypeError: Cannot interpret ... as a data type"
+            )
+            request.node.add_marker(mark)
+
         # GH-40351
         s = Series(data, dtype=dtype)
-        tm.assert_series_equal(s, s.astype("string").astype(dtype))
+        with pd.option_context("string_storage", string_storage):
+            result = s.astype("string").astype(dtype)
+        tm.assert_series_equal(result, s)
 
 
 class TestAstypeCategorical:
