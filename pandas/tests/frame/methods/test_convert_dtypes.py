@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -10,15 +8,6 @@ import pandas._testing as tm
 class TestConvertDtypes:
     @pytest.mark.parametrize(
         "convert_integer, expected", [(False, np.dtype("int32")), (True, "Int32")]
-    )
-    @pytest.mark.parametrize(
-        "string_storage",
-        [
-            "python",
-            pytest.param(
-                "pyarrow", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-            ),
-        ],
     )
     def test_convert_dtypes(self, convert_integer, expected, string_storage):
         # Specific types are tested in tests/series/test_dtypes.py

@@ -18,8 +18,6 @@ import string
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
@@ -48,14 +46,9 @@ def chunked(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        "python",
-        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow", min_version="1.0.0")),
-    ]
-)
-def dtype(request):
-    return StringDtype(storage=request.param)
+@pytest.fixture
+def dtype(string_storage):
+    return StringDtype(storage=string_storage)
 
 
 @pytest.fixture

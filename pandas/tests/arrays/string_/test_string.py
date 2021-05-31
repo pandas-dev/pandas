@@ -14,30 +14,15 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.string_arrow import ArrowStringArray
 
-skip_if_no_pyarrow = td.skip_if_no("pyarrow", min_version="1.0.0")
+
+@pytest.fixture
+def dtype(string_storage):
+    return pd.StringDtype(storage=string_storage)
 
 
-@pytest.fixture(
-    params=[
-        pd.StringDtype(storage="python"),
-        pytest.param(
-            pd.StringDtype(storage="pyarrow"),
-            marks=skip_if_no_pyarrow,
-        ),
-    ]
-)
-def dtype(request):
-    return request.param
-
-
-@pytest.fixture(
-    params=[
-        pd.arrays.StringArray,
-        pytest.param(ArrowStringArray, marks=skip_if_no_pyarrow),
-    ]
-)
-def cls(request):
-    return request.param
+@pytest.fixture
+def cls(dtype):
+    return dtype.construct_array_type()
 
 
 def test_repr(dtype):
