@@ -31,6 +31,7 @@ from pandas.compat.pyarrow import pa_version_under1p0
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -50,6 +51,7 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
+from pandas.core.arrays.numeric import NumericDtype
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexers import (
     check_array_indexer,
@@ -751,8 +753,13 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
                 return self.copy()
             return self
 
-        elif hasattr(dtype, "__from_arrow__"):
-            return dtype.__from_arrow__(self._data)
+        elif isinstance(dtype, NumericDtype):
+            data = self._data.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
+            return dtype.__from_arrow__(data)
+
+        elif isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(self, dtype=dtype, copy=copy)
 
         return super().astype(dtype, copy)
 
