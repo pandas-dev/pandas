@@ -17,7 +17,6 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -289,9 +288,9 @@ def array(
         IntegerArray,
         IntervalArray,
         PandasArray,
+        PeriodArray,
         StringArray,
         TimedeltaArray,
-        period_array,
     )
 
     if lib.is_scalar(data):
@@ -315,12 +314,8 @@ def array(
     if dtype is None:
         inferred_dtype = lib.infer_dtype(data, skipna=True)
         if inferred_dtype == "period":
-            try:
-                return period_array(data, copy=copy)
-            except IncompatibleFrequency:
-                # We may have a mixture of frequencies.
-                # We choose to return an ndarray, rather than raising.
-                pass
+            return PeriodArray._from_sequence(data, copy=copy)
+
         elif inferred_dtype == "interval":
             try:
                 return IntervalArray(data, copy=copy)
