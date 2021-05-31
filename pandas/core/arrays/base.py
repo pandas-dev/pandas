@@ -540,8 +540,9 @@ class ExtensionArray:
 
         Returns
         -------
-        array : ArrayLike
-            An ExtensionArray if dtype StringDtype or same as that of underlying array.
+        array : np.ndarray or ExtensionArray
+            An ExtensionArray if dtype is StringDtype,
+                              or same as that of underlying array.
             Otherwise a NumPy ndarray with 'dtype' for its dtype.
         """
         from pandas.core.arrays.string_ import StringDtype

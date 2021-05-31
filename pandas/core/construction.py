@@ -620,7 +620,7 @@ def _sanitize_ndim(
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
 
-            result = com.asarray_tuplesafe(data, dtype=object)
+            result = com.asarray_tuplesafe(data, dtype=np.dtype(object))
             cls = dtype.construct_array_type()
             result = cls._from_sequence(result, dtype=dtype)
         else:
