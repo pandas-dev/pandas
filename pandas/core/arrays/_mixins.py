@@ -188,11 +188,16 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> np.ndarray:
-        npvalue: np.ndarray = cast(np.ndarray, self._validate_searchsorted_value(value))
+        npvalue = self._validate_searchsorted_value(value)
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def _validate_searchsorted_value(self, value):
-        return value
+    def _validate_searchsorted_value(self, value: ArrayLike | object) -> np.ndarray:
+        if isinstance(value, ExtensionArray):
+            return value.to_numpy()
+        elif isinstance(value, np.ndarray):
+            return value
+        else:
+            return np.array([value])
 
     @doc(ExtensionArray.shift)
     def shift(self, periods=1, fill_value=None, axis=0):
