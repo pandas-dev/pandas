@@ -592,6 +592,9 @@ def read_csv(
     return _read(filepath_or_buffer, kwds)
 
 
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["filepath_or_buffer"], stacklevel=3
+)
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_table",
