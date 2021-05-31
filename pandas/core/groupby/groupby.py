@@ -2424,12 +2424,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             inference: np.dtype | None = None
             if is_integer_dtype(vals.dtype):
                 if isinstance(vals, ExtensionArray):
-                    out = vals.to_numpy(dtype=float, na_value=np.nan)
+                    out = vals.to_numpy(dtype="float64", na_value=np.nan)
                 else:
                     out = vals
                 inference = np.dtype(np.int64)
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
-                out = vals.to_numpy(dtype=float, na_value=np.nan)
+                out = vals.to_numpy(dtype="float64", na_value=np.nan)
             elif is_datetime64_dtype(vals.dtype):
                 inference = np.dtype("datetime64[ns]")
                 out = np.asarray(vals).astype(float)

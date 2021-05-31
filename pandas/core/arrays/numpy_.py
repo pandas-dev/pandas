@@ -367,10 +367,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Additional Methods
 
-    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
-    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
-    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
-    def to_numpy(  # type: ignore[override]
+    def to_numpy(
         self,
         dtype: NpDtype | None = None,
         copy: bool = False,

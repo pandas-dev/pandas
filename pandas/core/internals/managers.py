@@ -24,6 +24,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     DtypeObj,
+    NpDtype,
     Shape,
     type_t,
 )
@@ -1385,7 +1386,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     def as_array(
         self,
         transpose: bool = False,
-        dtype: Dtype | None = None,
+        dtype: NpDtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -1396,7 +1397,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         ----------
         transpose : bool, default False
             If True, transpose the return array.
-        dtype : object, default None
+        dtype : str or numpy.dtype, optional
             Data type of the return array.
         copy : bool, default False
             If True then guarantee that a copy is returned. A value of
@@ -1430,12 +1431,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 arr = np.asarray(blk.get_values())
                 if dtype:
-                    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
-                    # incompatible type "Union[ExtensionDtype, str, dtype[Any],
-                    # Type[object]]"; expected "Union[dtype[Any], None, type,
-                    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-                    # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-                    arr = arr.astype(dtype, copy=False)  # type: ignore[arg-type]
+                    arr = arr.astype(dtype, copy=False)
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
             # The underlying data was copied within _interleave
@@ -1468,12 +1464,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         elif is_dtype_equal(dtype, str):
             dtype = np.dtype("object")
 
-        # error: Argument "dtype" to "empty" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
-        # Tuple[Any, Any]]]"
-        result = np.empty(self.shape, dtype=dtype)  # type: ignore[arg-type]
+        dtype = cast(np.dtype, dtype)
+
+        result = np.empty(self.shape, dtype=dtype)
 
         itemmask = np.zeros(self.shape[0])
 
@@ -1488,10 +1481,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     dtype=dtype, na_value=na_value
                 )
             else:
-                # error: Argument 1 to "get_values" of "Block" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
-                arr = blk.get_values(dtype)  # type: ignore[arg-type]
+                arr = blk.get_values(dtype)
             result[rl.indexer] = arr
             itemmask[rl.indexer] = 1
 
