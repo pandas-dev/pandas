@@ -3,16 +3,17 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under1p0
+
 import pandas as pd
 import pandas._testing as tm
-
-pa = pytest.importorskip("pyarrow", minversion="1.0.0")
-
 from pandas.core.arrays.string_ import (
     StringArray,
     StringDtype,
 )
-from pandas.core.arrays.string_arrow import ArrowStringArray
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+)
 
 
 def test_eq_all_na():
@@ -40,9 +41,17 @@ def test_config_bad_storage_raises():
         pd.options.mode.string_storage = "foo"
 
 
+@pytest.mark.skipif(
+    pa_version_under1p0,
+    reason="pyarrow>=1.0.0 is required for PyArrow backed StringArray",
+)
 @pytest.mark.parametrize("chunked", [True, False])
-@pytest.mark.parametrize("array", [np, pa])
+@pytest.mark.parametrize("array", ["numpy", "pyarrow"])
 def test_constructor_not_string_type_raises(array, chunked):
+    import pyarrow as pa
+
+    array = pa if array == "pyarrow" else np
+
     arr = array.array([1, 2, 3])
     if chunked:
         if array is np:
@@ -104,3 +113,20 @@ def test_from_sequence_wrong_dtype_raises():
 
     with pytest.raises(AssertionError, match=None):
         StringArray._from_sequence(["a", None, "c"], dtype=StringDtype("pyarrow"))
+
+
+@pytest.mark.skipif(
+    not pa_version_under1p0,
+    reason="pyarrow is installed",
+)
+def test_pyarrow_not_installed_raises():
+    msg = re.escape("pyarrow>=1.0.0 is required for PyArrow backed StringArray")
+
+    with pytest.raises(ImportError, match=msg):
+        StringDtype(storage="pyarrow")
+
+    with pytest.raises(ImportError, match=msg):
+        ArrowStringArray([])
+
+    with pytest.raises(ImportError, match=msg):
+        ArrowStringArray._from_sequence(["a", None, "b"])

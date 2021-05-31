@@ -12,7 +12,6 @@ import pytest
 from pandas._libs.tslibs import iNaT
 import pandas.util._test_decorators as td
 
-import pandas as pd
 from pandas import (
     NA,
     Categorical,
@@ -379,7 +378,7 @@ class TestAstypeString:
         ],
     )
     def test_astype_string_to_extension_dtype_roundtrip(
-        self, data, dtype, request, string_storage
+        self, data, dtype, request, nullable_string_dtype
     ):
         if dtype == "boolean" or (
             dtype in ("period[M]", "datetime64[ns]", "timedelta64[ns]") and NaT in data
@@ -389,22 +388,9 @@ class TestAstypeString:
             )
             request.node.add_marker(mark)
 
-        if string_storage == "pyarrow" and dtype in (
-            "category",
-            "datetime64[ns]",
-            "datetime64[ns, US/Eastern]",
-            "UInt16",
-            "period[M]",
-        ):
-            mark = pytest.mark.xfail(
-                reason="TypeError: Cannot interpret ... as a data type"
-            )
-            request.node.add_marker(mark)
-
         # GH-40351
         s = Series(data, dtype=dtype)
-        with pd.option_context("string_storage", string_storage):
-            result = s.astype("string").astype(dtype)
+        result = s.astype(nullable_string_dtype).astype(dtype)
         tm.assert_series_equal(result, s)
 
 
