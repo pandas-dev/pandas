@@ -1579,7 +1579,7 @@ def maybe_infer_to_datetimelike(
 
 def maybe_cast_to_datetime(
     value: ExtensionArray | np.ndarray | list, dtype: DtypeObj | None
-) -> ExtensionArray | np.ndarray | list:
+) -> ExtensionArray | np.ndarray:
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
@@ -1657,6 +1657,22 @@ def maybe_cast_to_datetime(
                             # Numeric values are UTC at this point,
                             # so localize and convert
                             # equiv: Series(dta).astype(dtype) # though deprecated
+                            if getattr(vdtype, "kind", None) == "M":
+                                # GH#24559, GH#33401 deprecate behavior inconsistent
+                                #  with DatetimeArray/DatetimeIndex
+                                warnings.warn(
+                                    "In a future version, constructing a Series "
+                                    "from datetime64[ns] data and a "
+                                    "DatetimeTZDtype will interpret the data "
+                                    "as wall-times instead of "
+                                    "UTC times, matching the behavior of "
+                                    "DatetimeIndex. To treat the data as UTC "
+                                    "times, use pd.Series(data).dt"
+                                    ".tz_localize('UTC').tz_convert(dtype.tz) "
+                                    "or pd.Series(data.view('int64'), dtype=dtype)",
+                                    FutureWarning,
+                                    stacklevel=5,
+                                )
 
                             value = dta.tz_localize("UTC").tz_convert(dtype.tz)
                 except OutOfBoundsDatetime:
@@ -1689,7 +1705,8 @@ def maybe_cast_to_datetime(
             "maybe_cast_to_datetime allows a list *only* if dtype is not None"
         )
 
-    return value
+    # at this point we have converted or raised in all cases where we had a list
+    return cast(ArrayLike, value)
 
 
 def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarray:

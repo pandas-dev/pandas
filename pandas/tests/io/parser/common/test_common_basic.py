@@ -803,6 +803,19 @@ def test_encoding_surrogatepass(all_parsers):
             parser.read_csv(path)
 
 
+@pytest.mark.parametrize("on_bad_lines", ["error", "warn"])
+def test_deprecated_bad_lines_warns(all_parsers, csv1, on_bad_lines):
+    # GH 15122
+    parser = all_parsers
+    kwds = {f"{on_bad_lines}_bad_lines": False}
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match=f"The {on_bad_lines}_bad_lines argument has been deprecated "
+        "and will be removed in a future version.\n\n",
+    ):
+        parser.read_csv(csv1, **kwds)
+
+
 def test_malformed_second_line(all_parsers):
     # see GH14782
     parser = all_parsers
@@ -810,3 +823,15 @@ def test_malformed_second_line(all_parsers):
     result = parser.read_csv(StringIO(data), skip_blank_lines=False, header=1)
     expected = DataFrame({"a": ["b"]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_table_posargs_deprecation(all_parsers):
+    # https://github.com/pandas-dev/pandas/issues/41485
+    data = StringIO("a\tb\n1\t2")
+    parser = all_parsers
+    msg = (
+        "In a future version of pandas all arguments of read_table "
+        "except for the argument 'filepath_or_buffer' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        parser.read_table(data, " ")
