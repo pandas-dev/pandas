@@ -379,7 +379,9 @@ class TestAstypeString:
             # currently no way to parse IntervalArray from a list of strings
         ],
     )
-    def test_astype_string_to_extension_dtype_roundtrip(self, data, dtype, request):
+    def test_astype_string_to_extension_dtype_roundtrip(
+        self, data, dtype, request, nullable_string_dtype
+    ):
         if dtype == "boolean" or (
             dtype in ("period[M]", "datetime64[ns]", "timedelta64[ns]") and NaT in data
         ):
@@ -389,7 +391,8 @@ class TestAstypeString:
             request.node.add_marker(mark)
         # GH-40351
         s = Series(data, dtype=dtype)
-        tm.assert_series_equal(s, s.astype("string").astype(dtype))
+        result = s.astype(nullable_string_dtype).astype(dtype)
+        tm.assert_series_equal(result, s)
 
 
 class TestAstypeCategorical:

@@ -31,14 +31,17 @@ from pandas.compat import (
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
+    is_dtype_equal,
     is_integer,
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
@@ -48,6 +51,7 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
+from pandas.core.arrays.numeric import NumericDtype
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexers import (
     check_array_indexer,
@@ -285,10 +289,14 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         """
         # TODO: copy argument is ignored
 
-        if na_value is lib.no_default:
-            na_value = self._dtype.na_value
-        result = self._data.__array__(dtype=dtype)
-        result[isna(result)] = na_value
+        result = np.array(self._data, dtype=dtype)
+        if self._data.null_count > 0:
+            if na_value is lib.no_default:
+                if dtype and np.issubdtype(dtype, np.floating):
+                    return result
+                na_value = self._dtype.na_value
+            mask = self.isna()
+            result[mask] = na_value
         return result
 
     def __len__(self) -> int:
@@ -731,6 +739,24 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         index = Index(type(self)(values)).astype(object)
 
         return Series(counts, index=index).astype("Int64")
+
+    def astype(self, dtype, copy=True):
+        dtype = pandas_dtype(dtype)
+
+        if is_dtype_equal(dtype, self.dtype):
+            if copy:
+                return self.copy()
+            return self
+
+        elif isinstance(dtype, NumericDtype):
+            data = self._data.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
+            return dtype.__from_arrow__(data)
+
+        elif isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(self, dtype=dtype, copy=copy)
+
+        return super().astype(dtype, copy)
 
     # ------------------------------------------------------------------------
     # String methods interface
