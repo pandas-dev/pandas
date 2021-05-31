@@ -550,21 +550,27 @@ class TestQuantileExtensionDtype:
             ),
             pd.period_range("2016-01-01", periods=9, freq="D"),
             pd.date_range("2016-01-01", periods=9, tz="US/Pacific"),
-            pytest.param(
-                pd.array(np.arange(9), dtype="Int64"),
-                marks=pytest.mark.xfail(reason="doesn't implement from_factorized"),
-            ),
-            pytest.param(
-                pd.array(np.arange(9), dtype="Float64"),
-                marks=pytest.mark.xfail(reason="doesn't implement from_factorized"),
-            ),
+            pd.array(np.arange(9), dtype="Int64"),
+            pd.array(np.arange(9), dtype="Float64"),
         ],
         ids=lambda x: str(x.dtype),
     )
     def index(self, request):
+        # NB: not actually an Index object
         idx = request.param
         idx.name = "A"
         return idx
+
+    @pytest.fixture
+    def obj(self, index, frame_or_series):
+        # bc index is not always an Index (yet), we need to re-patch .name
+        obj = frame_or_series(index).copy()
+
+        if frame_or_series is Series:
+            obj.name = "A"
+        else:
+            obj.columns = ["A"]
+        return obj
 
     def compute_quantile(self, obj, qs):
         if isinstance(obj, Series):
@@ -573,8 +579,7 @@ class TestQuantileExtensionDtype:
             result = obj.quantile(qs, numeric_only=False)
         return result
 
-    def test_quantile_ea(self, index, frame_or_series):
-        obj = frame_or_series(index).copy()
+    def test_quantile_ea(self, obj, index):
 
         # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
@@ -585,13 +590,14 @@ class TestQuantileExtensionDtype:
         result = self.compute_quantile(obj, qs)
 
         # expected here assumes len(index) == 9
-        expected = Series([index[4], index[0], index[-1]], index=qs, name="A")
-        expected = frame_or_series(expected)
+        expected = Series(
+            [index[4], index[0], index[-1]], dtype=index.dtype, index=qs, name="A"
+        )
+        expected = type(obj)(expected)
 
         tm.assert_equal(result, expected)
 
-    def test_quantile_ea_with_na(self, index, frame_or_series):
-        obj = frame_or_series(index).copy()
+    def test_quantile_ea_with_na(self, obj, index):
 
         obj.iloc[0] = index._na_value
         obj.iloc[-1] = index._na_value
@@ -605,15 +611,15 @@ class TestQuantileExtensionDtype:
         result = self.compute_quantile(obj, qs)
 
         # expected here assumes len(index) == 9
-        expected = Series([index[4], index[1], index[-2]], index=qs, name="A")
-        expected = frame_or_series(expected)
+        expected = Series(
+            [index[4], index[1], index[-2]], dtype=index.dtype, index=qs, name="A"
+        )
+        expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 
     # TODO: filtering can be removed after GH#39763 is fixed
     @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
-    def test_quantile_ea_all_na(self, index, frame_or_series):
-
-        obj = frame_or_series(index).copy()
+    def test_quantile_ea_all_na(self, obj, index, frame_or_series):
 
         obj.iloc[:] = index._na_value
 
@@ -630,13 +636,12 @@ class TestQuantileExtensionDtype:
         result = self.compute_quantile(obj, qs)
 
         expected = index.take([-1, -1, -1], allow_fill=True, fill_value=index._na_value)
-        expected = Series(expected, index=qs)
-        expected = frame_or_series(expected)
+        expected = Series(expected, index=qs, name="A")
+        expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 
-    def test_quantile_ea_scalar(self, index, frame_or_series):
+    def test_quantile_ea_scalar(self, obj, index):
         # scalar qs
-        obj = frame_or_series(index).copy()
 
         # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
@@ -646,8 +651,8 @@ class TestQuantileExtensionDtype:
         qs = 0.5
         result = self.compute_quantile(obj, qs)
 
-        expected = Series({"A": index[4]}, name=0.5)
-        if frame_or_series is Series:
+        expected = Series({"A": index[4]}, dtype=index.dtype, name=0.5)
+        if isinstance(obj, Series):
             expected = expected["A"]
             assert result == expected
         else:
