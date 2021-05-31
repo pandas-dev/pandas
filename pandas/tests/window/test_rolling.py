@@ -1411,3 +1411,11 @@ def test_rolling_sum_all_nan_window_floating_artifacts():
     result = df.rolling(3, min_periods=0).sum()
     expected = DataFrame([0.002, 0.010, 0.015, 0.013, 0.005, 0.0])
     tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_zero_window():
+    # GH 22719
+    s = Series(range(1))
+    result = s.rolling(0).min()
+    expected = Series([np.nan])
+    tm.assert_series_equal(result, expected)
