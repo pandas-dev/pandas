@@ -412,8 +412,8 @@ class TestClassConstructors(ConstructorTests):
         with pytest.raises(TypeError, match=msg):
             constructor(5)
 
-        # not an interval
-        msg = "type <class 'numpy.int64'> with value 0 is not an interval"
+        # not an interval; 'numpy.int*' bc int32 on 32bit/windows builds
+        msg = "type <class 'numpy.int*'> with value 0 is not an interval"
         with pytest.raises(TypeError, match=msg):
             constructor([0, 1])
 
