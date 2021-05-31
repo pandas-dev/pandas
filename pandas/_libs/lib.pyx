@@ -291,7 +291,7 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays, sort: bool = True) -> list:
+def fast_unique_multiple(list arrays, sort: bool = True):
     """
     Generate a list of unique values from a list of arrays.
 
