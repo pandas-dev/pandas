@@ -702,7 +702,7 @@ Deprecations
 - Deprecated passing arguments as positional in :meth:`DataFrame.where` and :meth:`Series.where` (other than ``"cond"`` and ``"other"``) (:issue:`41485`)
 - Deprecated passing arguments as positional (other than ``filepath_or_buffer``) in :func:`read_csv` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.drop` (other than ``"labels"``) and :meth:`Series.drop` (:issue:`41485`)
--
+- Deprecated passing arguments as positional (other than ``filepath_or_buffer``) in :func:`read_table` (:issue:`41485`)
 
 
 .. _whatsnew_130.deprecations.nuisance_columns:
