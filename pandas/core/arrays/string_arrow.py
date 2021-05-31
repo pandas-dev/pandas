@@ -81,7 +81,7 @@ else:
 if TYPE_CHECKING:
     from pandas import Series
 
-ArrowStringScalarOrNAT = Union[str, libmissing.NA]
+ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
 @register_extension_dtype
