@@ -118,14 +118,14 @@ Styler Improvements
 We provided some focused development on :class:`.Styler`, including altering methods
 to accept more universal CSS language for arguments, such as ``'color:red;'`` instead of
 ``[('color', 'red')]`` (:issue:`39564`). This is also added to the built-in methods
-to allow custom CSS highlighting instead of default background coloring (:issue:`40242`).
-Enhancements to other built-in methods include extending the :meth:`.Styler.background_gradient`
-method to shade elements based on a given gradient map and not be restricted only to
+now allowing custom CSS highlighting instead of the default background coloring (:issue:`40242`).
+Enhancements to other built-in methods include extending :meth:`.Styler.background_gradient`
+to shade elements based on a given gradient map and not be restricted only to
 values in the DataFrame (:issue:`39930`, :issue:`22727`, :issue:`28901`). Additional
 built-in methods such as :meth:`.Styler.highlight_between`, :meth:`.Styler.highlight_quantile`
 and :meth:`.Styler.text_gradient` have been added (:issue:`39821`, :issue:`40926`, :issue:`41098`).
 
-The :meth:`.Styler.apply` method now consistently accepts functions with ``ndarray`` output to
+The :meth:`.Styler.apply` method now consistently accepts functions that return an ``ndarray`` to
 allow more flexible development of UDFs when ``axis`` is ``None``, ``0``, or ``1`` (:issue:`39393`).
 
 :meth:`.Styler.set_tooltips` is a new method that allows adding hover tooltips to
@@ -141,12 +141,12 @@ precision, and perform HTML escaping (:issue:`40437`, :issue:`40134`). There hav
 properly format HTML and eliminate some inconsistencies (:issue:`39942`, :issue:`40356`, :issue:`39807`, :issue:`39889`, :issue:`39627`).
 
 Many features of the :class:`.Styler` class are now either partially or fully usable on a DataFrame with a non-unique indexes or columns (:issue:`41269`).
-One also has greater control of the display through separate sparsification of the index or columns using the :ref:`new 'styler' options context <options.available>` (:issue:`41142`).
+One also has greater control of the display through separate sparsification of the index or columns using the :ref:`new styler options context <options.available>` (:issue:`41142`).
 
 We have added an extension to allow LaTeX styling as an alternative to CSS styling and the method :meth:`.Styler.to_latex`
 that renders the necessary LaTeX format including built-up styles. An additional file IO function :meth:`.Styler.to_html` has been added for convenience (:issue:`40312`).
 
-The :ref:`Styler documentation <../user_guide/style.ipynb>`_ has also seen major revisions in light of new features (:issue:`39720`, :issue:`39317`, :issue:`40493`).
+The `Styler documentation <../user_guide/style.ipynb>`_ has also seen major revisions in light of the new features (:issue:`39720`, :issue:`39317`, :issue:`40493`).
 
 .. _whatsnew_130.dataframe_honors_copy_with_dict:
 
