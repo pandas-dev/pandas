@@ -327,11 +327,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
         """
-        # Use cast as we know we will get back a DatetimeLikeArray
-        result = cast(DatetimeLikeArrayT, super().__getitem__(key))
+        # Use cast as we know we will get back a DatetimeLikeArray or DTScalar
+        result = cast(
+            Union[DatetimeLikeArrayT, DTScalarOrNaT], super().__getitem__(key)
+        )
         if lib.is_scalar(result):
             return result
-
+        else:
+            # At this point we know the result is an array.
+            result = cast(DatetimeLikeArrayT, result)
         result._freq = self._get_getitem_freq(key)
         return result
 

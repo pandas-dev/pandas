@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Sequence,
+    Union,
     cast,
     overload,
 )
@@ -79,6 +80,8 @@ else:
 
 if TYPE_CHECKING:
     from pandas import Series
+
+ArrowStringScalarOrNAT = Union[str, libmissing.NA]
 
 
 @register_extension_dtype
@@ -344,7 +347,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         )
 
     @overload
-    def __getitem__(self, item: int | np.integer) -> str:
+    def __getitem__(self, item: int | np.integer) -> ArrowStringScalarOrNAT:
         ...
 
     @overload
@@ -355,7 +358,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
     def __getitem__(
         self: ArrowStringArray, item: PositionalIndexer
-    ) -> ArrowStringArray | str:
+    ) -> ArrowStringArray | ArrowStringScalarOrNAT:
         """Select a subset of self.
 
         Parameters
