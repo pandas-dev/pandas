@@ -896,7 +896,7 @@ class TestSeriesReductions:
 
         # Alternative types, with implicit 'object' dtype.
         s = Series(["abc", True])
-        assert "abc" == s.any()  # 'abc' || True => 'abc'
+        assert s.any()
 
     @pytest.mark.parametrize("klass", [Index, Series])
     def test_numpy_all_any(self, klass):
@@ -913,7 +913,7 @@ class TestSeriesReductions:
         s2 = Series([np.nan, False])
         assert s1.all(skipna=False)  # nan && True => True
         assert s1.all(skipna=True)
-        assert np.isnan(s2.any(skipna=False))  # nan || False => nan
+        assert s2.any(skipna=False)
         assert not s2.any(skipna=True)
 
         # Check level.
@@ -940,6 +940,29 @@ class TestSeriesReductions:
         msg = "Series.all does not implement numeric_only."
         with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True)
+
+    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_any_all_object_dtype(self, bool_agg_func, skipna):
+        # GH#12863
+        ser = Series(["a", "b", "c", "d", "e"], dtype=object)
+        result = getattr(ser, bool_agg_func)(skipna=skipna)
+        expected = True
+
+        assert result == expected
+
+    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+    @pytest.mark.parametrize(
+        "data", [[False, None], [None, False], [False, np.nan], [np.nan, False]]
+    )
+    def test_any_all_object_dtype_missing(self, data, bool_agg_func):
+        # GH#27709
+        ser = Series(data)
+        result = getattr(ser, bool_agg_func)(skipna=False)
+
+        # None is treated is False, but np.nan is treated as True
+        expected = bool_agg_func == "any" and None not in data
+        assert result == expected
 
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])

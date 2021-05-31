@@ -161,7 +161,7 @@ def test_agg_grouping_is_list_tuple(ts):
     df = tm.makeTimeDataFrame()
 
     grouped = df.groupby(lambda x: x.year)
-    grouper = grouped.grouper.groupings[0].grouper
+    grouper = grouped.grouper.groupings[0].grouping_vector
     grouped.grouper.groupings[0] = Grouping(ts.index, list(grouper))
 
     result = grouped.agg(np.mean)
@@ -234,11 +234,10 @@ def test_aggregate_item_by_item(df):
     K = len(result.columns)
 
     # GH5782
-    # odd comparisons can result here, so cast to make easy
-    exp = Series(np.array([foo] * K), index=list("BCD"), dtype=np.float64, name="foo")
+    exp = Series(np.array([foo] * K), index=list("BCD"), name="foo")
     tm.assert_series_equal(result.xs("foo"), exp)
 
-    exp = Series(np.array([bar] * K), index=list("BCD"), dtype=np.float64, name="bar")
+    exp = Series(np.array([bar] * K), index=list("BCD"), name="bar")
     tm.assert_almost_equal(result.xs("bar"), exp)
 
     def aggfun(ser):
@@ -258,7 +257,8 @@ def test_wrap_agg_out(three_group):
         else:
             return ser.sum()
 
-    result = grouped.aggregate(func)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        result = grouped.aggregate(func)
     exp_grouped = three_group.loc[:, three_group.columns != "C"]
     expected = exp_grouped.groupby(["A", "B"]).aggregate(func)
     tm.assert_frame_equal(result, expected)
@@ -442,6 +442,57 @@ def test_bool_agg_dtype(op):
     assert is_integer_dtype(result)
 
 
+@pytest.mark.parametrize(
+    "keys, agg_index",
+    [
+        (["a"], Index([1], name="a")),
+        (["a", "b"], MultiIndex([[1], [2]], [[0], [0]], names=["a", "b"])),
+    ],
+)
+@pytest.mark.parametrize(
+    "input_dtype", ["bool", "int32", "int64", "float32", "float64"]
+)
+@pytest.mark.parametrize(
+    "result_dtype", ["bool", "int32", "int64", "float32", "float64"]
+)
+@pytest.mark.parametrize("method", ["apply", "aggregate", "transform"])
+def test_callable_result_dtype_frame(
+    keys, agg_index, input_dtype, result_dtype, method
+):
+    # GH 21240
+    df = DataFrame({"a": [1], "b": [2], "c": [True]})
+    df["c"] = df["c"].astype(input_dtype)
+    op = getattr(df.groupby(keys)[["c"]], method)
+    result = op(lambda x: x.astype(result_dtype).iloc[0])
+    expected_index = pd.RangeIndex(0, 1) if method == "transform" else agg_index
+    expected = DataFrame({"c": [df["c"].iloc[0]]}, index=expected_index).astype(
+        result_dtype
+    )
+    if method == "apply":
+        expected.columns.names = [0]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "keys, agg_index",
+    [
+        (["a"], Index([1], name="a")),
+        (["a", "b"], MultiIndex([[1], [2]], [[0], [0]], names=["a", "b"])),
+    ],
+)
+@pytest.mark.parametrize("input", [True, 1, 1.0])
+@pytest.mark.parametrize("dtype", [bool, int, float])
+@pytest.mark.parametrize("method", ["apply", "aggregate", "transform"])
+def test_callable_result_dtype_series(keys, agg_index, input, dtype, method):
+    # GH 21240
+    df = DataFrame({"a": [1], "b": [2], "c": [input]})
+    op = getattr(df.groupby(keys)["c"], method)
+    result = op(lambda x: x.astype(dtype).iloc[0])
+    expected_index = pd.RangeIndex(0, 1) if method == "transform" else agg_index
+    expected = Series([df["c"].iloc[0]], index=expected_index, name="c").astype(dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_order_aggregate_multiple_funcs():
     # GH 25692
     df = DataFrame({"A": [1, 1, 2, 2], "B": [1, 2, 3, 4]})
@@ -462,7 +513,9 @@ def test_uint64_type_handling(dtype, how):
     expected = df.groupby("y").agg({"x": how})
     df.x = df.x.astype(dtype)
     result = df.groupby("y").agg({"x": how})
-    result.x = result.x.astype(np.int64)
+    if how not in ("mean", "median"):
+        # mean and median always result in floats
+        result.x = result.x.astype(np.int64)
     tm.assert_frame_equal(result, expected, check_exact=True)
 
 
@@ -849,7 +902,11 @@ def test_multiindex_custom_func(func):
     data = [[1, 4, 2], [5, 7, 1]]
     df = DataFrame(data, columns=MultiIndex.from_arrays([[1, 1, 2], [3, 4, 3]]))
     result = df.groupby(np.array([0, 1])).agg(func)
-    expected_dict = {(1, 3): {0: 1, 1: 5}, (1, 4): {0: 4, 1: 7}, (2, 3): {0: 2, 1: 1}}
+    expected_dict = {
+        (1, 3): {0: 1.0, 1: 5.0},
+        (1, 4): {0: 4.0, 1: 7.0},
+        (2, 3): {0: 2.0, 1: 1.0},
+    }
     expected = DataFrame(expected_dict)
     tm.assert_frame_equal(result, expected)
 
@@ -964,6 +1021,7 @@ class TestLambdaMangling:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="GH-26611. kwargs for multi-agg.")
+    @pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
     def test_with_kwargs(self):
         f1 = lambda x, y, b=1: x.sum() + y + b
         f2 = lambda x, y, b=2: x.sum() + y * b
@@ -1105,6 +1163,11 @@ def test_groupby_single_agg_cat_cols(grp_col_dict, exp_data):
 
     expected_df = DataFrame(data=exp_data, index=cat_index)
 
+    if "cat_ord" in expected_df:
+        # ordered categorical columns should be preserved
+        dtype = input_df["cat_ord"].dtype
+        expected_df["cat_ord"] = expected_df["cat_ord"].astype(dtype)
+
     tm.assert_frame_equal(result_df, expected_df)
 
 
@@ -1149,6 +1212,10 @@ def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
     multi_index = MultiIndex.from_tuples(tuple(multi_index_list))
 
     expected_df = DataFrame(data=exp_data, columns=multi_index, index=cat_index)
+    for col in expected_df.columns:
+        if isinstance(col, tuple) and "cat_ord" in col:
+            # ordered categorical should be preserved
+            expected_df[col] = expected_df[col].astype(input_df["cat_ord"].dtype)
 
     tm.assert_frame_equal(result_df, expected_df)
 

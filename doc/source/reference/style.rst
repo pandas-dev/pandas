@@ -24,6 +24,7 @@ Styler properties
 
    Styler.env
    Styler.template_html
+   Styler.template_latex
    Styler.loader
 
 Style application
@@ -55,6 +56,7 @@ Builtin styles
    Styler.highlight_min
    Styler.highlight_between
    Styler.background_gradient
+   Styler.text_gradient
    Styler.bar
 
 Style export and import
@@ -66,3 +68,4 @@ Style export and import
    Styler.export
    Styler.use
    Styler.to_excel
+   Styler.to_latex

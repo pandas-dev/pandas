@@ -56,18 +56,24 @@ include "hashtable_class_helper.pxi"
 include "hashtable_func_helper.pxi"
 
 cdef class Factorizer:
-    cdef public:
-        PyObjectHashTable table
-        ObjectVector uniques
+    cdef readonly:
         Py_ssize_t count
 
-    def __init__(self, size_hint: int):
-        self.table = PyObjectHashTable(size_hint)
-        self.uniques = ObjectVector()
+    def __cinit__(self, size_hint: int):
         self.count = 0
 
     def get_count(self) -> int:
         return self.count
+
+
+cdef class ObjectFactorizer(Factorizer):
+    cdef public:
+        PyObjectHashTable table
+        ObjectVector uniques
+
+    def __cinit__(self, size_hint: int):
+        self.table = PyObjectHashTable(size_hint)
+        self.uniques = ObjectVector()
 
     def factorize(
         self, ndarray[object] values, sort=False, na_sentinel=-1, na_value=None
@@ -105,24 +111,15 @@ cdef class Factorizer:
         self.count = len(self.uniques)
         return labels
 
-    def unique(self, ndarray[object] values):
-        # just for fun
-        return self.table.unique(values)
 
-
-cdef class Int64Factorizer:
+cdef class Int64Factorizer(Factorizer):
     cdef public:
         Int64HashTable table
         Int64Vector uniques
-        Py_ssize_t count
 
-    def __init__(self, size_hint: int):
+    def __cinit__(self, size_hint: int):
         self.table = Int64HashTable(size_hint)
         self.uniques = Int64Vector()
-        self.count = 0
-
-    def get_count(self) -> int:
-        return self.count
 
     def factorize(self, const int64_t[:] values, sort=False,
                   na_sentinel=-1, na_value=None) -> np.ndarray:
@@ -163,7 +160,7 @@ cdef class Int64Factorizer:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def unique_label_indices(const int64_t[:] labels):
+def unique_label_indices(const int64_t[:] labels) -> ndarray:
     """
     Indices of the first occurrences of the unique labels
     *excluding* -1. equivalent to:

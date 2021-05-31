@@ -40,7 +40,6 @@ def is_integer(val: object) -> bool: ...
 def is_float(val: object) -> bool: ...
 
 def is_interval_array(values: np.ndarray) -> bool: ...
-def is_period_array(values: np.ndarray) -> bool: ...
 def is_datetime64_array(values: np.ndarray) -> bool: ...
 def is_timedelta_or_timedelta64_array(values: np.ndarray) -> bool: ...
 def is_datetime_with_singletz_array(values: np.ndarray) -> bool: ...
@@ -67,59 +66,81 @@ def map_infer(
 @overload  # both convert_datetime and convert_to_nullable_integer False -> np.ndarray
 def maybe_convert_objects(
     objects: np.ndarray,  # np.ndarray[object]
+    *,
     try_float: bool = ...,
     safe: bool = ...,
     convert_datetime: Literal[False] = ...,
     convert_timedelta: bool = ...,
+    convert_period: Literal[False] = ...,
     convert_to_nullable_integer: Literal[False] = ...,
 ) -> np.ndarray: ...
 
 @overload
 def maybe_convert_objects(
     objects: np.ndarray,  # np.ndarray[object]
-    try_float: bool = ...,
-    safe: bool = ...,
-    convert_datetime: Literal[False] = False,
-    convert_timedelta: bool = ...,
-    convert_to_nullable_integer: Literal[True] = ...,
-) -> ArrayLike: ...
-
-@overload
-def maybe_convert_objects(
-    objects: np.ndarray,  # np.ndarray[object]
-    try_float: bool = ...,
-    safe: bool = ...,
-    convert_datetime: Literal[True] = ...,
-    convert_timedelta: bool = ...,
-    convert_to_nullable_integer: Literal[False] = ...,
-) -> ArrayLike: ...
-
-@overload
-def maybe_convert_objects(
-    objects: np.ndarray,  # np.ndarray[object]
-    try_float: bool = ...,
-    safe: bool = ...,
-    convert_datetime: Literal[True] = ...,
-    convert_timedelta: bool = ...,
-    convert_to_nullable_integer: Literal[True] = ...,
-) -> ArrayLike: ...
-
-@overload
-def maybe_convert_objects(
-    objects: np.ndarray,  # np.ndarray[object]
+    *,
     try_float: bool = ...,
     safe: bool = ...,
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
+    convert_period: bool = ...,
+    convert_to_nullable_integer: Literal[True] = ...,
+) -> ArrayLike: ...
+
+@overload
+def maybe_convert_objects(
+    objects: np.ndarray,  # np.ndarray[object]
+    *,
+    try_float: bool = ...,
+    safe: bool = ...,
+    convert_datetime: Literal[True] = ...,
+    convert_timedelta: bool = ...,
+    convert_period: bool = ...,
     convert_to_nullable_integer: bool = ...,
 ) -> ArrayLike: ...
 
+@overload
+def maybe_convert_objects(
+    objects: np.ndarray,  # np.ndarray[object]
+    *,
+    try_float: bool = ...,
+    safe: bool = ...,
+    convert_datetime: bool = ...,
+    convert_timedelta: bool = ...,
+    convert_period: Literal[True] = ...,
+    convert_to_nullable_integer: bool = ...,
+) -> ArrayLike: ...
+
+@overload
+def maybe_convert_objects(
+    objects: np.ndarray,  # np.ndarray[object]
+    *,
+    try_float: bool = ...,
+    safe: bool = ...,
+    convert_datetime: bool = ...,
+    convert_timedelta: bool = ...,
+    convert_period: bool = ...,
+    convert_to_nullable_integer: bool = ...,
+) -> ArrayLike: ...
+
+@overload
 def maybe_convert_numeric(
     values: np.ndarray,  # np.ndarray[object]
     na_values: set,
     convert_empty: bool = True,
     coerce_numeric: bool = False,
-) -> np.ndarray: ...
+    convert_to_masked_nullable: Literal[False] = ...,
+) -> tuple[np.ndarray, None]: ...
+
+@overload
+def maybe_convert_numeric(
+    values: np.ndarray,  # np.ndarray[object]
+    na_values: set,
+    convert_empty: bool = True,
+    coerce_numeric: bool = False,
+    *,
+    convert_to_masked_nullable: Literal[True],
+) -> tuple[np.ndarray, np.ndarray]: ...
 
 # TODO: restrict `arr`?
 def ensure_string_array(
