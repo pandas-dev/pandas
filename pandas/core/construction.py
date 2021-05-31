@@ -17,10 +17,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._libs.tslibs import (
-    IncompatibleFrequency,
-    OutOfBoundsDatetime,
-)
+from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -719,9 +716,7 @@ def _try_cast(
             #  while maybe_cast_to_datetime treats it as UTC
             #  see test_maybe_promote_any_numpy_dtype_with_datetimetz
 
-            # error: Incompatible return value type (got "Union[ExtensionArray,
-            # ndarray, List[Any]]", expected "Union[ExtensionArray, ndarray]")
-            return maybe_cast_to_datetime(arr, dtype)  # type: ignore[return-value]
+            return maybe_cast_to_datetime(arr, dtype)
             # TODO: copy?
 
         array_type = dtype.construct_array_type()._from_sequence
@@ -734,6 +729,9 @@ def _try_cast(
             return subarr
         return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
 
+    elif dtype.kind in ["m", "M"]:
+        return maybe_cast_to_datetime(arr, dtype)
+
     try:
         # GH#15832: Check if we are requesting a numeric dtype and
         # that we can convert the data to the requested dtype.
@@ -743,9 +741,7 @@ def _try_cast(
             maybe_cast_to_integer_array(arr, dtype)
             subarr = arr
         else:
-            subarr = maybe_cast_to_datetime(arr, dtype)
-            if dtype is not None and dtype.kind == "M":
-                return subarr
+            subarr = arr
 
         if not isinstance(subarr, ABCExtensionArray):
             # 4 tests fail if we move this to a try/except/else; see
@@ -753,16 +749,8 @@ def _try_cast(
             #  test_constructor_dict_cast2, test_loc_setitem_dtype
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
 
-    except OutOfBoundsDatetime:
-        # in case of out of bound datetime64 -> always raise
-        raise
-    except (ValueError, TypeError) as err:
-        if dtype is not None and raise_cast_failure:
-            raise
-        elif "Cannot cast" in str(err) or "cannot be converted to timedelta64" in str(
-            err
-        ):
-            # via _disallow_mismatched_datetimelike
+    except (ValueError, TypeError):
+        if raise_cast_failure:
             raise
         else:
             subarr = np.array(arr, dtype=object, copy=copy)
