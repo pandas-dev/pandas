@@ -1452,7 +1452,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 sp_values, self.sp_index, SparseDtype(sp_values.dtype, fill_value)
             )
 
-        result = getattr(ufunc, method)(*[np.asarray(x) for x in inputs], **kwargs)
+        result = getattr(ufunc, method)(*(np.asarray(x) for x in inputs), **kwargs)
         if out:
             if len(out) == 1:
                 out = out[0]

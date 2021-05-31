@@ -149,7 +149,7 @@ def fill_binop(left, right, fill_value):
 
 
 def align_method_SERIES(left: Series, right, align_asobject: bool = False):
-    """ align lhs and rhs Series """
+    """align lhs and rhs Series"""
     # ToDo: Different from align_method_FRAME, list, tuple and ndarray
     # are not coerced here
     # because Series has inconsistencies described in #13637

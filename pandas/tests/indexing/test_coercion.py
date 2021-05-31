@@ -79,7 +79,7 @@ class TestSetitemCoercion(CoercionBase):
     def _assert_setitem_series_conversion(
         self, original_series, loc_value, expected_series, expected_dtype
     ):
-        """ test series value's coercion triggered by assignment """
+        """test series value's coercion triggered by assignment"""
         temp = original_series.copy()
         temp[1] = loc_value
         tm.assert_series_equal(temp, expected_series)
@@ -270,7 +270,7 @@ class TestSetitemCoercion(CoercionBase):
     def _assert_setitem_index_conversion(
         self, original_series, loc_key, expected_index, expected_dtype
     ):
-        """ test index's coercion triggered by assign key """
+        """test index's coercion triggered by assign key"""
         temp = original_series.copy()
         temp[loc_key] = 5
         exp = pd.Series([1, 2, 3, 4, 5], index=expected_index)
@@ -364,7 +364,7 @@ class TestInsertIndexCoercion(CoercionBase):
     method = "insert"
 
     def _assert_insert_conversion(self, original, value, expected, expected_dtype):
-        """ test coercion triggered by insert """
+        """test coercion triggered by insert"""
         target = original.copy()
         res = target.insert(1, value)
         tm.assert_index_equal(res, expected)
@@ -552,7 +552,7 @@ class TestWhereCoercion(CoercionBase):
     def _assert_where_conversion(
         self, original, cond, values, expected, expected_dtype
     ):
-        """ test coercion triggered by where """
+        """test coercion triggered by where"""
         target = original.copy()
         res = target.where(cond, values)
         tm.assert_equal(res, expected)
@@ -866,7 +866,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
         raise NotImplementedError
 
     def _assert_fillna_conversion(self, original, value, expected, expected_dtype):
-        """ test coercion triggered by fillna """
+        """test coercion triggered by fillna"""
         target = original.copy()
         res = target.fillna(value)
         tm.assert_equal(res, expected)

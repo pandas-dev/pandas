@@ -35,7 +35,7 @@ from pandas.io.common import (
 
 
 def get_engine(engine: str) -> BaseImpl:
-    """ return our implementation """
+    """return our implementation"""
     if engine == "auto":
         engine = get_option("io.parquet.engine")
 

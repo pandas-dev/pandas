@@ -73,7 +73,7 @@ def _evaluate_standard(op, op_str, a, b):
 
 
 def _can_use_numexpr(op, op_str, a, b, dtype_check):
-    """ return a boolean if we WILL be using numexpr """
+    """return a boolean if we WILL be using numexpr"""
     if op_str is not None:
 
         # required min elements (otherwise we are adding overhead)
