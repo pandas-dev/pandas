@@ -123,9 +123,8 @@ def maybe_convert_platform(
         arr = values
 
     if arr.dtype == object:
-        # error: Argument 1 to "maybe_convert_objects" has incompatible type
-        # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-        arr = lib.maybe_convert_objects(arr)  # type: ignore[arg-type]
+        arr = cast(np.ndarray, arr)
+        arr = lib.maybe_convert_objects(arr)
 
     return arr
 
@@ -1249,13 +1248,12 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
             return values.copy()
         return values
 
-    if isinstance(values, ABCExtensionArray):
+    if not isinstance(values, np.ndarray):
+        # i.e. ExtensionArray
         values = values.astype(dtype, copy=copy)
 
     else:
-        # error: Argument 1 to "astype_nansafe" has incompatible type "ExtensionArray";
-        # expected "ndarray"
-        values = astype_nansafe(values, dtype, copy=copy)  # type: ignore[arg-type]
+        values = astype_nansafe(values, dtype, copy=copy)
 
     # in pandas we don't store numpy str dtypes, so convert to object
     if isinstance(dtype, np.dtype) and issubclass(values.dtype.type, str):
@@ -1579,7 +1577,7 @@ def maybe_infer_to_datetimelike(
 
 def maybe_cast_to_datetime(
     value: ExtensionArray | np.ndarray | list, dtype: DtypeObj | None
-) -> ExtensionArray | np.ndarray | list:
+) -> ExtensionArray | np.ndarray:
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
@@ -1657,6 +1655,22 @@ def maybe_cast_to_datetime(
                             # Numeric values are UTC at this point,
                             # so localize and convert
                             # equiv: Series(dta).astype(dtype) # though deprecated
+                            if getattr(vdtype, "kind", None) == "M":
+                                # GH#24559, GH#33401 deprecate behavior inconsistent
+                                #  with DatetimeArray/DatetimeIndex
+                                warnings.warn(
+                                    "In a future version, constructing a Series "
+                                    "from datetime64[ns] data and a "
+                                    "DatetimeTZDtype will interpret the data "
+                                    "as wall-times instead of "
+                                    "UTC times, matching the behavior of "
+                                    "DatetimeIndex. To treat the data as UTC "
+                                    "times, use pd.Series(data).dt"
+                                    ".tz_localize('UTC').tz_convert(dtype.tz) "
+                                    "or pd.Series(data.view('int64'), dtype=dtype)",
+                                    FutureWarning,
+                                    stacklevel=5,
+                                )
 
                             value = dta.tz_localize("UTC").tz_convert(dtype.tz)
                 except OutOfBoundsDatetime:
@@ -1689,7 +1703,8 @@ def maybe_cast_to_datetime(
             "maybe_cast_to_datetime allows a list *only* if dtype is not None"
         )
 
-    return value
+    # at this point we have converted or raised in all cases where we had a list
+    return cast(ArrayLike, value)
 
 
 def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarray:
@@ -1958,7 +1973,7 @@ def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
 
 
 def construct_1d_ndarray_preserving_na(
-    values: Sequence, dtype: DtypeObj | None = None, copy: bool = False
+    values: Sequence, dtype: np.dtype | None = None, copy: bool = False
 ) -> np.ndarray:
     """
     Construct a new ndarray, coercing `values` to `dtype`, preserving NA.
@@ -2003,17 +2018,9 @@ def construct_1d_ndarray_preserving_na(
             and isinstance(values, np.ndarray)
             and values.dtype.kind == "f"
         ):
-            # Argument 2 to "astype_float_to_int_nansafe" has incompatible
-            # type "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
-            return astype_float_to_int_nansafe(
-                values, dtype, copy=copy  # type: ignore[arg-type]
-            )
+            return astype_float_to_int_nansafe(values, dtype, copy=copy)
         else:
-            # error: Argument "dtype" to "array" has incompatible type
-            # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[dtype[Any],
-            # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
-            # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-            subarr = np.array(values, dtype=dtype, copy=copy)  # type: ignore[arg-type]
+            subarr = np.array(values, dtype=dtype, copy=copy)
 
     return subarr
 
