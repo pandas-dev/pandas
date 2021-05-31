@@ -148,9 +148,3 @@ else
    echo "not using dbs on non-linux Travis builds or Azure Pipelines"
 fi
 echo "done"
-
-
-echo "PATH"
-echo $PATH
-echo "which pytest"
-which pytest
