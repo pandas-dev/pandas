@@ -23,11 +23,11 @@ from pandas._typing import (
     type_t,
 )
 from pandas.compat import (
+    pa_version_under1p0,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
 )
-from pandas.compat.pyarrow import pa_version_under1p0
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
@@ -55,29 +55,31 @@ from pandas.core.indexers import (
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-try:
+# PyArrow backed StringArrays are available starting at 1.0.0, but this
+# file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
+# and its compute functions existed. GH38801
+if not pa_version_under1p0:
     import pyarrow as pa
-except ImportError:
-    pa = None
-else:
-    # PyArrow backed StringArrays are available starting at 1.0.0, but this
-    # file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
-    # and its compute functions existed. GH38801
-    if not pa_version_under1p0:
-        import pyarrow.compute as pc
+    import pyarrow.compute as pc
 
-        ARROW_CMP_FUNCS = {
-            "eq": pc.equal,
-            "ne": pc.not_equal,
-            "lt": pc.less,
-            "gt": pc.greater,
-            "le": pc.less_equal,
-            "ge": pc.greater_equal,
-        }
+    ARROW_CMP_FUNCS = {
+        "eq": pc.equal,
+        "ne": pc.not_equal,
+        "lt": pc.less,
+        "gt": pc.greater,
+        "le": pc.less_equal,
+        "ge": pc.greater_equal,
+    }
 
 
 if TYPE_CHECKING:
     from pandas import Series
+
+
+def _chk_pyarrow_available() -> None:
+    if pa_version_under1p0:
+        msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
+        raise ImportError(msg)
 
 
 @register_extension_dtype
@@ -111,6 +113,9 @@ class ArrowStringDtype(StringDtype):
 
     #: StringDtype.na_value uses pandas.NA
     na_value = libmissing.NA
+
+    def __init__(self):
+        _chk_pyarrow_available()
 
     @property
     def type(self) -> type[str]:
@@ -213,10 +218,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     Length: 4, dtype: arrow_string
     """
 
-    _dtype = ArrowStringDtype()
-
     def __init__(self, values):
-        self._chk_pyarrow_available()
+        self._dtype = ArrowStringDtype()
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
         elif isinstance(values, pa.ChunkedArray):
@@ -230,18 +233,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             )
 
     @classmethod
-    def _chk_pyarrow_available(cls) -> None:
-        # TODO: maybe update import_optional_dependency to allow a minimum
-        # version to be specified rather than use the global minimum
-        if pa is None or pa_version_under1p0:
-            msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
-            raise ImportError(msg)
-
-    @classmethod
     def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
         from pandas.core.arrays.masked import BaseMaskedArray
 
-        cls._chk_pyarrow_available()
+        _chk_pyarrow_available()
 
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype in ensure_string_array and
