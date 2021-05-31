@@ -15,6 +15,7 @@ from pandas._typing import (
     FrameOrSeriesUnion,
     TimedeltaConvertibleTypes,
 )
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -41,6 +42,10 @@ from pandas.core.window.indexers import (
     GroupbyIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_ewma_func
+from pandas.core.window.online import (
+    EWMeanState,
+    generate_online_numba_ewma_func,
+)
 from pandas.core.window.rolling import (
     BaseWindow,
     BaseWindowGroupby,
@@ -337,6 +342,24 @@ class ExponentialMovingWindow(BaseWindow):
         Return an indexer class that will compute the window start and end bounds
         """
         return ExponentialMovingWindowIndexer()
+
+    def online(self, engine="numba", engine_kwargs=None):
+        import_optional_dependency("numba")
+        return OnlineExponentialMovingWindow(
+            obj=self.obj,
+            com=self.com,
+            span=self.span,
+            halflife=self.halflife,
+            alpha=self.alpha,
+            min_periods=self.min_periods,
+            adjust=self.adjust,
+            ignore_na=self.ignore_na,
+            axis=self.axis,
+            times=self.times,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            selection=self._selection,
+        )
 
     @doc(
         _shared_docs["aggregate"],
@@ -655,3 +678,89 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             window_indexer=ExponentialMovingWindowIndexer,
         )
         return window_indexer
+
+
+class OnlineExponentialMovingWindow(ExponentialMovingWindow):
+    def __init__(
+        self,
+        obj: FrameOrSeries,
+        com: float | None = None,
+        span: float | None = None,
+        halflife: float | TimedeltaConvertibleTypes | None = None,
+        alpha: float | None = None,
+        min_periods: int = 0,
+        adjust: bool = True,
+        ignore_na: bool = False,
+        axis: Axis = 0,
+        times: str | np.ndarray | FrameOrSeries | None = None,
+        engine: str = "numba",
+        engine_kwargs: dict[str, bool] | None = None,
+        *,
+        selection=None,
+    ):
+        super().__init__(
+            obj=obj,
+            com=com,
+            span=span,
+            halflife=halflife,
+            alpha=alpha,
+            min_periods=min_periods,
+            adjust=adjust,
+            ignore_na=ignore_na,
+            axis=axis,
+            times=times,
+            selection=selection,
+        )
+        self._mean = EWMeanState(self._com, self.adjust, self.ignore_na)
+        self.engine = engine
+        self.engine_kwargs = engine_kwargs
+
+    def reset(self):
+        """
+        Reset the state captured by `update` calls.
+        """
+        self._mean.reset()
+
+    def aggregate(self, func, *args, **kwargs):
+        return NotImplementedError
+
+    def std(self, bias: bool = False, *args, **kwargs):
+        return NotImplementedError
+
+    def corr(
+        self,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
+        **kwargs,
+    ):
+        return NotImplementedError
+
+    def cov(
+        self,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
+        bias: bool = False,
+        **kwargs,
+    ):
+        return NotImplementedError
+
+    def var(self, bias: bool = False, *args, **kwargs):
+        return NotImplementedError
+
+    def mean(self, engine=None, engine_kwargs=None, update=None, update_deltas=None):
+        if update is not None:
+            if self._mean.last_ewm is None:
+                raise ValueError(
+                    "Must call mean with update=None first before passing update"
+                )
+            obj = np.concatenate(([self._mean.last_ewm], update.to_numpy()))
+            result_from = 1
+        else:
+            obj = self._selected_obj.to_numpy()
+            result_from = 0
+        if update_deltas is None:
+            update_deltas = np.ones(max(len(obj) - 1, 0), dtype=np.float64)
+        ewma_func = generate_online_numba_ewma_func(engine_kwargs)
+        result = self._mean.run_ewm(obj, update_deltas, self.min_periods, ewma_func)
+        result = self._selected_obj._constructor(result)
+        return result.iloc[result_from:]
