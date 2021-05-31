@@ -1165,6 +1165,8 @@ def interval_range(
     if periods is not None:
         periods += 1
 
+    breaks: np.ndarray | TimedeltaIndex | DatetimeIndex
+
     if is_number(endpoint):
         # force consistency between start/end/freq (lower end if freq skips it)
         if com.all_not_none(start, end, freq):
@@ -1190,16 +1192,8 @@ def interval_range(
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
-            # error: Incompatible types in assignment (expression has type
-            # "DatetimeIndex", variable has type "ndarray")
-            breaks = date_range(  # type: ignore[assignment]
-                start=start, end=end, periods=periods, freq=freq
-            )
+            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
         else:
-            # error: Incompatible types in assignment (expression has type
-            # "TimedeltaIndex", variable has type "ndarray")
-            breaks = timedelta_range(  # type: ignore[assignment]
-                start=start, end=end, periods=periods, freq=freq
-            )
+            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)
