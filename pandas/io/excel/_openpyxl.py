@@ -66,8 +66,7 @@ class OpenpyxlWriter(ExcelWriter):
                 # 
                 self.book = Workbook(write_only=True)
             except ImportError:
-                print("Warning: lxml is not installed, creating workbook with write_only disabled.")
-                print("Memory usage may be considerably higher.")
+                print("Warning: lxml is not installed, creating workbook with write_only disabled. Memory usage may be much higher.")
                 # Create workbook object with default optimized_write=True.
                 self.book = Workbook()
 
