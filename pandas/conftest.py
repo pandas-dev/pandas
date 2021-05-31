@@ -41,11 +41,17 @@ import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.indexes.api import Index, MultiIndex
 
+# Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
+suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
+    "ignore:Promotion of numbers and bools:FutureWarning"
+)
 
 # ----------------------------------------------------------------
 # Configuration / Settings
 # ----------------------------------------------------------------
 # pytest
+
+
 def pytest_configure(config):
     # Register marks to avoid warnings in pandas.test()
     # sync with setup.cfg
@@ -94,6 +100,11 @@ def pytest_runtest_setup(item):
         "--run-high-memory"
     ):
         pytest.skip("skipping high memory test since --run-high-memory was not set")
+
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        item.add_marker(suppress_npdev_promotion_warning)
 
 
 # Hypothesis
