@@ -89,7 +89,7 @@ class TestDataFrameDrop:
         with pytest.raises(KeyError, match=msg):
             df.drop(["g"])
         with pytest.raises(KeyError, match=msg):
-            df.drop(["g"], 1)
+            df.drop(["g"], axis=1)
 
         # errors = 'ignore'
         dropped = df.drop(["g"], errors="ignore")
@@ -123,11 +123,11 @@ class TestDataFrameDrop:
         with pytest.raises(KeyError, match=r"\[5\] not found in axis"):
             simple.drop(5)
         with pytest.raises(KeyError, match=r"\['C'\] not found in axis"):
-            simple.drop("C", 1)
+            simple.drop("C", axis=1)
         with pytest.raises(KeyError, match=r"\[5\] not found in axis"):
             simple.drop([1, 5])
         with pytest.raises(KeyError, match=r"\['C'\] not found in axis"):
-            simple.drop(["A", "C"], 1)
+            simple.drop(["A", "C"], axis=1)
 
         # errors = 'ignore'
         tm.assert_frame_equal(simple.drop(5, errors="ignore"), simple)
@@ -201,7 +201,7 @@ class TestDataFrameDrop:
         res2 = df.drop(index="a")
         tm.assert_frame_equal(res1, res2)
 
-        res1 = df.drop("d", 1)
+        res1 = df.drop("d", axis=1)
         res2 = df.drop(columns="d")
         tm.assert_frame_equal(res1, res2)
 
@@ -482,6 +482,18 @@ class TestDataFrameDrop:
         result = df2.drop("C", axis=1)
         tm.assert_frame_equal(result, expected)
 
+    def test_drop_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame\.drop "
+            r"except for the argument 'labels' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.drop("a", 1)
+        expected = DataFrame(index=[0, 1, 2])
+        tm.assert_frame_equal(result, expected)
+
     def test_drop_inplace_no_leftover_column_reference(self):
         # GH 13934
         df = DataFrame({"a": [1, 2, 3]})
@@ -490,3 +502,9 @@ class TestDataFrameDrop:
         tm.assert_index_equal(df.columns, Index([], dtype="object"))
         a -= a.mean()
         tm.assert_index_equal(df.columns, Index([], dtype="object"))
+
+    def test_drop_level_missing_label_multiindex(self):
+        # GH 18561
+        df = DataFrame(index=MultiIndex.from_product([range(3), range(3)]))
+        with pytest.raises(KeyError, match="labels \\[5\\] not found in level"):
+            df.drop(5, level=0)

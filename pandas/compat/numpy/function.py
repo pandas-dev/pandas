@@ -22,10 +22,7 @@ from typing import (
     Union,
 )
 
-from numpy import (
-    __version__,
-    ndarray,
-)
+from numpy import ndarray
 
 from pandas._libs.lib import (
     is_bool,
@@ -37,8 +34,6 @@ from pandas.util._validators import (
     validate_args_and_kwargs,
     validate_kwargs,
 )
-
-from pandas.util.version import Version
 
 
 class CompatValidator:
@@ -128,10 +123,7 @@ ARGSORT_DEFAULTS: Dict[str, Optional[Union[int, str]]] = {}
 ARGSORT_DEFAULTS["axis"] = -1
 ARGSORT_DEFAULTS["kind"] = "quicksort"
 ARGSORT_DEFAULTS["order"] = None
-
-if Version(__version__) >= Version("1.17.0"):
-    # GH-26361. NumPy added radix sort and changed default to None.
-    ARGSORT_DEFAULTS["kind"] = None
+ARGSORT_DEFAULTS["kind"] = None
 
 
 validate_argsort = CompatValidator(

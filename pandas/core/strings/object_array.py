@@ -32,7 +32,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         # For typing, _str_map relies on the object being sized.
         raise NotImplementedError
 
-    def _str_map(self, f, na_value=None, dtype: Dtype | None = None):
+    def _str_map(
+        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+    ):
         """
         Map a callable over valid element of the array.
 
@@ -47,6 +49,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             for object-dtype and Categorical and ``pd.NA`` for StringArray.
         dtype : Dtype, optional
             The dtype of the result array.
+        convert : bool, default True
+            Whether to call `maybe_convert_objects` on the resulting ndarray
         """
         if dtype is None:
             dtype = np.dtype("object")
@@ -60,9 +64,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         arr = np.asarray(self, dtype=object)
         mask = isna(arr)
-        convert = not np.all(mask)
+        map_convert = convert and not np.all(mask)
         try:
-            result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
+            result = lib.map_infer_mask(arr, f, mask.view(np.uint8), map_convert)
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.
             # The user may want to be warned by this, instead of getting NaN
@@ -88,7 +92,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             return result
         if na_value is not np.nan:
             np.putmask(result, mask, na_value)
-            if result.dtype == object:
+            if convert and result.dtype == object:
                 result = lib.maybe_convert_objects(result)
         return result
 
@@ -145,10 +149,10 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             # add case flag, if provided
             flags |= re.IGNORECASE
 
-        if regex and (
-            isinstance(pat, re.Pattern) or len(pat) > 1 or flags or callable(repl)
-        ):
+        if regex or flags or callable(repl):
             if not isinstance(pat, re.Pattern):
+                if regex is False:
+                    pat = re.escape(pat)
                 pat = re.compile(pat, flags=flags)
 
             n = n if n >= 0 else 0
@@ -410,3 +414,28 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_rstrip(self, to_strip=None):
         return self._str_map(lambda x: x.rstrip(to_strip))
+
+    def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
+        regex = re.compile(pat, flags=flags)
+        na_value = self._str_na_value
+
+        if not expand:
+
+            def g(x):
+                m = regex.search(x)
+                return m.groups()[0] if m else na_value
+
+            return self._str_map(g, convert=False)
+
+        empty_row = [na_value] * regex.groups
+
+        def f(x):
+            if not isinstance(x, str):
+                return empty_row
+            m = regex.search(x)
+            if m:
+                return [na_value if item is None else item for item in m.groups()]
+            else:
+                return empty_row
+
+        return [f(val) for val in np.asarray(self)]
