@@ -61,7 +61,7 @@ def test_custom_grouper(index):
     g.ohlc()  # doesn't use _cython_agg_general
     funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
-        g._cython_agg_general(f)
+        g._cython_agg_general(f, alt=None, numeric_only=True)
 
     b = Grouper(freq=Minute(5), closed="right", label="right")
     g = s.groupby(b)
@@ -69,7 +69,7 @@ def test_custom_grouper(index):
     g.ohlc()  # doesn't use _cython_agg_general
     funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
-        g._cython_agg_general(f)
+        g._cython_agg_general(f, alt=None, numeric_only=True)
 
     assert g.ngroups == 2593
     assert notna(g.mean()).all()
@@ -417,7 +417,7 @@ def test_resample_frame_basic():
     # check all cython functions work
     funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
-        g._cython_agg_general(f)
+        g._cython_agg_general(f, alt=None, numeric_only=True)
 
     result = df.resample("A").mean()
     tm.assert_series_equal(result["A"], df["A"].resample("A").mean())
@@ -1064,7 +1064,7 @@ def test_nanosecond_resample_error():
     result = r.agg("mean")
 
     exp_indx = date_range(start=pd.to_datetime(exp_start), periods=10, freq="100n")
-    exp = Series(range(len(exp_indx)), index=exp_indx)
+    exp = Series(range(len(exp_indx)), index=exp_indx, dtype=float)
 
     tm.assert_series_equal(result, exp)
 
@@ -1636,15 +1636,15 @@ def test_resample_with_nat():
     index_1s = DatetimeIndex(
         ["1970-01-01 00:00:00", "1970-01-01 00:00:01", "1970-01-01 00:00:02"]
     )
-    frame_1s = DataFrame([3, 7, 11], index=index_1s)
+    frame_1s = DataFrame([3.0, 7.0, 11.0], index=index_1s)
     tm.assert_frame_equal(frame.resample("1s").mean(), frame_1s)
 
     index_2s = DatetimeIndex(["1970-01-01 00:00:00", "1970-01-01 00:00:02"])
-    frame_2s = DataFrame([5, 11], index=index_2s)
+    frame_2s = DataFrame([5.0, 11.0], index=index_2s)
     tm.assert_frame_equal(frame.resample("2s").mean(), frame_2s)
 
     index_3s = DatetimeIndex(["1970-01-01 00:00:00"])
-    frame_3s = DataFrame([7], index=index_3s)
+    frame_3s = DataFrame([7.0], index=index_3s)
     tm.assert_frame_equal(frame.resample("3s").mean(), frame_3s)
 
     tm.assert_frame_equal(frame.resample("60s").mean(), frame_3s)
@@ -1687,7 +1687,7 @@ def test_resample_apply_with_additional_args(series):
 
     # Testing dataframe
     df = DataFrame({"A": 1, "B": 2}, index=date_range("2017", periods=10))
-    result = df.groupby("A").resample("D").agg(f, multiplier)
+    result = df.groupby("A").resample("D").agg(f, multiplier).astype(float)
     expected = df.groupby("A").resample("D").mean().multiply(multiplier)
     # TODO: GH 41137
     expected = expected.astype("float64")

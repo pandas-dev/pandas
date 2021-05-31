@@ -3,7 +3,11 @@ from collections import abc
 import numpy as np
 import pytest
 
-from pandas.compat import PY310
+
+from pandas.compat import (
+    is_numpy_dev,
+    PY310,
+)
 
 from pandas import (
     CategoricalDtype,
@@ -173,26 +177,28 @@ class TestDataFrameToRecords:
                 ),
             ),
             # Pass in a type instance.
-            (
-                pytest.param(
-                    {"column_dtypes": str},
-                    np.rec.array(
-                        [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
-                        dtype=[("index", "<i8"), ("A", "<U"), ("B", "<U"), ("C", "<U")],
-                    ),
-                    marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10"),
-                )
+            pytest.param(
+                {"column_dtypes": str},
+                np.rec.array(
+                    [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
+                    dtype=[("index", "<i8"), ("A", "<U"), ("B", "<U"), ("C", "<U")],
+                ),
+                marks=pytest.mark.xfail(
+                    is_numpy_dev,
+                    reason="https://github.com/numpy/numpy/issues/19078",
+                ),
             ),
             # Pass in a dtype instance.
-            (
-                pytest.param(
-                    {"column_dtypes": np.dtype("unicode")},
-                    np.rec.array(
-                        [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
-                        dtype=[("index", "<i8"), ("A", "<U"), ("B", "<U"), ("C", "<U")],
-                    ),
-                    marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10"),
-                )
+            pytest.param(
+                {"column_dtypes": np.dtype("unicode")},
+                np.rec.array(
+                    [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
+                    dtype=[("index", "<i8"), ("A", "<U"), ("B", "<U"), ("C", "<U")],
+                ),
+                marks=pytest.mark.xfail(
+                    is_numpy_dev,
+                    reason="https://github.com/numpy/numpy/issues/19078",
+                ),
             ),
             # Pass in a dictionary (name-only).
             (
