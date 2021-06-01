@@ -37,7 +37,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.base import NoNewAttributesMixin
-from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -213,7 +212,11 @@ class StringMethods(NoNewAttributesMixin):
         # see _libs/lib.pyx for list of inferred types
         allowed_types = ["string", "empty", "bytes", "mixed", "mixed-integer"]
 
-        data = extract_array(data, extract_numpy=True)
+        # TODO: avoid kludge for tests.extension.test_numpy
+        from pandas.core.internals.managers import _extract_array
+
+        data = _extract_array(data)
+
         values = getattr(data, "categories", data)  # categorical / normal
 
         inferred_dtype = lib.infer_dtype(values, skipna=True)
