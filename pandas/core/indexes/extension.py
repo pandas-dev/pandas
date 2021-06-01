@@ -18,6 +18,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
     find_common_type,
@@ -365,11 +366,17 @@ class ExtensionIndex(Index):
                 return self
             return self.copy()
 
-        if isinstance(dtype, np.dtype) and dtype.kind == "M" and dtype != "M8[ns]":
+        if (
+            isinstance(self.dtype, np.dtype)
+            and isinstance(dtype, np.dtype)
+            and dtype.kind == "M"
+            and dtype != "M8[ns]"
+        ):
             # For now Datetime supports this by unwrapping ndarray, but DTI doesn't
-            raise TypeError(f"Cannot cast {type(self._data).__name__} to dtype")
+            raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
 
-        new_values = self._data.astype(dtype, copy=copy)
+        with rewrite_exception(type(self._data).__name__, type(self).__name__):
+            new_values = self._data.astype(dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the
         #  _data.astype call above
