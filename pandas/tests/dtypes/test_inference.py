@@ -691,6 +691,18 @@ class TestInference:
         exp = np.array(["NaT", "NaT"], dtype="datetime64[ns]")
         tm.assert_numpy_array_equal(out, exp)
 
+    def test_maybe_convert_objects_dtype_if_all_nat_invalid(self):
+        # we accept datetime64[ns], timedelta64[ns], and EADtype
+        arr = np.array([pd.NaT, pd.NaT], dtype=object)
+
+        with pytest.raises(ValueError, match="int64"):
+            lib.maybe_convert_objects(
+                arr,
+                convert_datetime=True,
+                convert_timedelta=True,
+                dtype_if_all_nat=np.dtype("int64"),
+            )
+
     @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
     def test_maybe_convert_objects_datetime_overflow_safe(self, dtype):
         stamp = datetime(2363, 10, 4)  # Enterprise-D launch date
