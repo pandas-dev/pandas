@@ -21,6 +21,7 @@ from pandas._config import get_option
 
 from pandas._typing import (
     Axis,
+    FilePathOrBuffer,
     FrameOrSeries,
     FrameOrSeriesUnion,
     IndexLabel,
@@ -30,6 +31,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 import pandas as pd
+from pandas import RangeIndex
 from pandas.api.types import is_list_like
 from pandas.core import generic
 import pandas.core.common as com
@@ -38,6 +40,8 @@ from pandas.core.frame import (
     Series,
 )
 from pandas.core.generic import NDFrame
+
+from pandas.io.formats.format import save_to_buffer
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
@@ -70,7 +74,7 @@ def _mpl(func: Callable):
 
 
 class Styler(StylerRenderer):
-    """
+    r"""
     Helps style a DataFrame or Series according to the data with HTML and CSS.
 
     Parameters
@@ -115,9 +119,12 @@ class Styler(StylerRenderer):
 
         .. versionadded:: 1.3.0
 
-    escape : bool, default False
-        Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
-        strings with HTML-safe sequences.
+    escape : str, optional
+        Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+        in cell display string with HTML-safe sequences.
+        Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+        ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
+        LaTeX-safe sequences.
 
         ... versionadded:: 1.3.0
 
@@ -175,7 +182,7 @@ class Styler(StylerRenderer):
         uuid_len: int = 5,
         decimal: str = ".",
         thousands: str | None = None,
-        escape: bool = False,
+        escape: str | None = None,
     ):
         super().__init__(
             data=data,
@@ -401,6 +408,406 @@ class Styler(StylerRenderer):
             startcol=startcol,
             freeze_panes=freeze_panes,
             engine=engine,
+        )
+
+    def to_latex(
+        self,
+        buf: FilePathOrBuffer[str] | None = None,
+        *,
+        column_format: str | None = None,
+        position: str | None = None,
+        position_float: str | None = None,
+        hrules: bool = False,
+        label: str | None = None,
+        caption: str | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
+        multirow_align: str = "c",
+        multicol_align: str = "r",
+        siunitx: bool = False,
+        encoding: str | None = None,
+    ):
+        r"""
+        Write Styler to a file, buffer or string in LaTeX format.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        buf : str, Path, or StringIO-like, optional, default None
+            Buffer to write to. If ``None``, the output is returned as a string.
+        column_format : str, optional
+            The LaTeX column specification placed in location:
+
+            \\begin{tabular}{<column_format>}
+
+            Defaults to 'l' for index and
+            non-numeric data columns, and, for numeric data columns,
+            to 'r' by default, or 'S' if ``siunitx`` is ``True``.
+        position : str, optional
+            The LaTeX positional argument (e.g. 'h!') for tables, placed in location:
+
+            \\begin{table}[<position>]
+        position_float : {"centering", "raggedleft", "raggedright"}, optional
+            The LaTeX float command placed in location:
+
+            \\begin{table}[<position>]
+
+            \\<position_float>
+        hrules : bool, default False
+            Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
+            {booktabs} LaTeX package.
+        label : str, optional
+            The LaTeX label included as: \\label{<label>}.
+            This is used with \\ref{<label>} in the main .tex file.
+        caption : str, optional
+            The LaTeX table caption included as: \\caption{<caption>}.
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.columns`` value.
+        multirow_align : {"c", "t", "b"}
+            If sparsifying hierarchical MultiIndexes whether to align text centrally,
+            at the top or bottom.
+        multicol_align : {"r", "c", "l"}
+            If sparsifying hierarchical MultiIndex columns whether to align text at
+            the left, centrally, or at the right.
+        siunitx : bool, default False
+            Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
+        encoding : str, default "utf-8"
+            Character encoding setting.
+
+        Returns
+        -------
+        str or None
+            If `buf` is None, returns the result as a string. Otherwise returns `None`.
+
+        See Also
+        --------
+        Styler.format: Format the text display value of cells.
+
+        Notes
+        -----
+        **Latex Packages**
+
+        For the following features we recommend the following LaTeX inclusions:
+
+        ===================== ==========================================================
+        Feature               Inclusion
+        ===================== ==========================================================
+        sparse columns        none: included within default {tabular} environment
+        sparse rows           \\usepackage{multirow}
+        hrules                \\usepackage{booktabs}
+        colors                \\usepackage[table]{xcolor}
+        siunitx               \\usepackage{siunitx}
+        bold (with siunitx)   | \\usepackage{etoolbox}
+                              | \\robustify\\bfseries
+                              | \\sisetup{detect-all = true}  *(within {document})*
+        italic (with siunitx) | \\usepackage{etoolbox}
+                              | \\robustify\\itshape
+                              | \\sisetup{detect-all = true}  *(within {document})*
+        ===================== ==========================================================
+
+        **Cell Styles**
+
+        LaTeX styling can only be rendered if the accompanying styling functions have
+        been constructed with appropriate LaTeX commands. All styling
+        functionality is built around the concept of a CSS ``(<attribute>, <value>)``
+        pair (see `Table Visualization <../../user_guide/style.ipynb>`_), and this
+        should be replaced by a LaTeX
+        ``(<command>, <options>)`` approach. Each cell will be styled individually
+        using nested LaTeX commands with their accompanied options.
+
+        For example the following code will highlight and bold a cell in HTML-CSS:
+
+        >>> df = pd.DataFrame([[1,2], [3,4]])
+        >>> s = df.style.highlight_max(axis=None,
+        ...                            props='background-color:red; font-weight:bold;')
+        >>> s.render()
+
+        The equivalent using LaTeX only commands is the following:
+
+        >>> s = df.style.highlight_max(axis=None,
+        ...                            props='cellcolor:{red}; bfseries: ;')
+        >>> s.to_latex()
+
+        Internally these structured LaTeX ``(<command>, <options>)`` pairs
+        are translated to the
+        ``display_value`` with the default structure:
+        ``\<command><options> <display_value>``.
+        Where there are multiple commands the latter is nested recursively, so that
+        the above example highlighed cell is rendered as
+        ``\cellcolor{red} \bfseries 4``.
+
+        Occasionally this format does not suit the applied command, or
+        combination of LaTeX packages that is in use, so additional flags can be
+        added to the ``<options>``, within the tuple, to result in different
+        positions of required braces (the **default** being the same as ``--nowrap``):
+
+        =================================== ============================================
+        Tuple Format                           Output Structure
+        =================================== ============================================
+        (<command>,<options>)               \\<command><options> <display_value>
+        (<command>,<options> ``--nowrap``)  \\<command><options> <display_value>
+        (<command>,<options> ``--rwrap``)   \\<command><options>{<display_value>}
+        (<command>,<options> ``--wrap``)    {\\<command><options> <display_value>}
+        (<command>,<options> ``--lwrap``)   {\\<command><options>} <display_value>
+        (<command>,<options> ``--dwrap``)   {\\<command><options>}{<display_value>}
+        =================================== ============================================
+
+        For example the `textbf` command for font-weight
+        should always be used with `--rwrap` so ``('textbf', '--rwrap')`` will render a
+        working cell, wrapped with braces, as ``\textbf{<display_value>}``.
+
+        A more comprehensive example is as follows:
+
+        >>> df = pd.DataFrame([[1, 2.2, "dogs"], [3, 4.4, "cats"], [2, 6.6, "cows"]],
+        ...                   index=["ix1", "ix2", "ix3"],
+        ...                   columns=["Integers", "Floats", "Strings"])
+        >>> s = df.style.highlight_max(
+        ...     props='cellcolor:[HTML]{FFFF00}; color:{red};'
+        ...           'textit:--rwrap; textbf:--rwrap;'
+        ... )
+        >>> s.to_latex()
+
+        .. figure:: ../../_static/style/latex_1.png
+
+        **Table Styles**
+
+        Internally Styler uses its ``table_styles`` object to parse the
+        ``column_format``, ``position``, ``position_float``, and ``label``
+        input arguments. These arguments are added to table styles in the format:
+
+        .. code-block:: python
+
+            set_table_styles([
+                {"selector": "column_format", "props": f":{column_format};"},
+                {"selector": "position", "props": f":{position};"},
+                {"selector": "position_float", "props": f":{position_float};"},
+                {"selector": "label", "props": f":{{{label.replace(':','§')}}};"}
+            ], overwrite=False)
+
+        Exception is made for the ``hrules`` argument which, in fact, controls all three
+        commands: ``toprule``, ``bottomrule`` and ``midrule`` simultaneously. Instead of
+        setting ``hrules`` to ``True``, it is also possible to set each
+        individual rule definition, by manually setting the ``table_styles``,
+        for example below we set a regular ``toprule``, set an ``hline`` for
+        ``bottomrule`` and exclude the ``midrule``:
+
+        .. code-block:: python
+
+            set_table_styles([
+                {'selector': 'toprule', 'props': ':toprule;'},
+                {'selector': 'bottomrule', 'props': ':hline;'},
+            ], overwrite=False)
+
+        If other ``commands`` are added to table styles they will be detected, and
+        positioned immediately above the '\\begin{tabular}' command. For example to
+        add odd and even row coloring, from the {colortbl} package, in format
+        ``\rowcolors{1}{pink}{red}``, use:
+
+        .. code-block:: python
+
+            set_table_styles([
+                {'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}
+            ], overwrite=False)
+
+        A more comprehensive example using these arguments is as follows:
+
+        >>> df.columns = pd.MultiIndex.from_tuples([
+        ...     ("Numeric", "Integers"),
+        ...     ("Numeric", "Floats"),
+        ...     ("Non-Numeric", "Strings")
+        ... ])
+        >>> df.index = pd.MultiIndex.from_tuples([
+        ...     ("L0", "ix1"), ("L0", "ix2"), ("L1", "ix3")
+        ... ])
+        >>> s = df.style.highlight_max(
+        ...     props='cellcolor:[HTML]{FFFF00}; color:{red}; itshape:; bfseries:;'
+        ... )
+        >>> s.to_latex(
+        ...     column_format="rrrrr", position="h", position_float="centering",
+        ...     hrules=True, label="table:5", caption="Styled LaTeX Table",
+        ...     multirow_align="t", multicol_align="r"
+        ... )
+
+        .. figure:: ../../_static/style/latex_2.png
+
+        **Formatting**
+
+        To format values :meth:`Styler.format` should be used prior to calling
+        `Styler.to_latex`, as well as other methods such as :meth:`Styler.hide_index`
+        or :meth:`Styler.hide_columns`, for example:
+
+        >>> s.clear()
+        >>> s.table_styles = []
+        >>> s.caption = None
+        >>> s.format({
+        ...    ("Numeric", "Integers"): '\${}',
+        ...    ("Numeric", "Floats"): '{:.3f}',
+        ...    ("Non-Numeric", "Strings"): str.upper
+        ... })
+        >>> s.to_latex()
+        \begin{tabular}{llrrl}
+        {} & {} & \multicolumn{2}{r}{Numeric} & {Non-Numeric} \\
+        {} & {} & {Integers} & {Floats} & {Strings} \\
+        \multirow[c]{2}{*}{L0} & ix1 & \\$1 & 2.200 & DOGS \\
+         & ix2 & \$3 & 4.400 & CATS \\
+        L1 & ix3 & \$2 & 6.600 & COWS \\
+        \end{tabular}
+        """
+        table_selectors = (
+            [style["selector"] for style in self.table_styles]
+            if self.table_styles is not None
+            else []
+        )
+
+        if column_format is not None:
+            # add more recent setting to table_styles
+            self.set_table_styles(
+                [{"selector": "column_format", "props": f":{column_format}"}],
+                overwrite=False,
+            )
+        elif "column_format" in table_selectors:
+            pass  # adopt what has been previously set in table_styles
+        else:
+            # create a default: set float, complex, int cols to 'r' ('S'), index to 'l'
+            _original_columns = self.data.columns
+            self.data.columns = RangeIndex(stop=len(self.data.columns))
+            numeric_cols = self.data._get_numeric_data().columns.to_list()
+            self.data.columns = _original_columns
+            column_format = "" if self.hidden_index else "l" * self.data.index.nlevels
+            for ci, _ in enumerate(self.data.columns):
+                if ci not in self.hidden_columns:
+                    column_format += (
+                        ("r" if not siunitx else "S") if ci in numeric_cols else "l"
+                    )
+            self.set_table_styles(
+                [{"selector": "column_format", "props": f":{column_format}"}],
+                overwrite=False,
+            )
+
+        if position:
+            self.set_table_styles(
+                [{"selector": "position", "props": f":{position}"}],
+                overwrite=False,
+            )
+
+        if position_float:
+            if position_float not in ["raggedright", "raggedleft", "centering"]:
+                raise ValueError(
+                    f"`position_float` should be one of "
+                    f"'raggedright', 'raggedleft', 'centering', "
+                    f"got: '{position_float}'"
+                )
+            self.set_table_styles(
+                [{"selector": "position_float", "props": f":{position_float}"}],
+                overwrite=False,
+            )
+
+        if hrules:
+            self.set_table_styles(
+                [
+                    {"selector": "toprule", "props": ":toprule"},
+                    {"selector": "midrule", "props": ":midrule"},
+                    {"selector": "bottomrule", "props": ":bottomrule"},
+                ],
+                overwrite=False,
+            )
+
+        if label:
+            self.set_table_styles(
+                [{"selector": "label", "props": f":{{{label.replace(':', '§')}}}"}],
+                overwrite=False,
+            )
+
+        if caption:
+            self.set_caption(caption)
+
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+
+        latex = self._render_latex(
+            sparse_index=sparse_index,
+            sparse_columns=sparse_columns,
+            multirow_align=multirow_align,
+            multicol_align=multicol_align,
+        )
+
+        return save_to_buffer(latex, buf=buf, encoding=encoding)
+
+    def to_html(
+        self,
+        buf: FilePathOrBuffer[str] | None = None,
+        *,
+        table_uuid: str | None = None,
+        table_attributes: str | None = None,
+        encoding: str | None = None,
+        doctype_html: bool = False,
+        exclude_styles: bool = False,
+    ):
+        """
+        Write Styler to a file, buffer or string in HTML-CSS format.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        buf : str, Path, or StringIO-like, optional, default None
+            Buffer to write to. If ``None``, the output is returned as a string.
+        table_uuid: str, optional
+            Id attribute assigned to the <table> HTML element in the format:
+
+            ``<table id="T_<table_uuid>" ..>``
+
+            If not given uses Styler's initially assigned value.
+        table_attributes: str, optional
+            Attributes to assign within the `<table>` HTML element in the format:
+
+            ``<table .. <table_attributes> >``
+
+            If not given defaults to Styler's preexisting value.
+        encoding : str, optional
+            Character encoding setting for file output, and HTML meta tags,
+            defaults to "utf-8" if None.
+        doctype_html : bool, default False
+            Whether to output a fully structured HTML file including all
+            HTML elements, or just the core ``<style>`` and ``<table>`` elements.
+        exclude_styles : bool, default False
+            Whether to include the ``<style>`` element and all associated element
+            ``class`` and ``id`` identifiers, or solely the ``<table>`` element without
+            styling identifiers.
+
+        Returns
+        -------
+        str or None
+            If `buf` is None, returns the result as a string. Otherwise returns `None`.
+
+        See Also
+        --------
+        DataFrame.to_html: Write a DataFrame to a file, buffer or string in HTML format.
+        """
+        if table_uuid:
+            self.set_uuid(table_uuid)
+
+        if table_attributes:
+            self.set_table_attributes(table_attributes)
+
+        # Build HTML string..
+        html = self.render(
+            exclude_styles=exclude_styles,
+            encoding=encoding if encoding else "utf-8",
+            doctype_html=doctype_html,
+        )
+
+        return save_to_buffer(
+            html, buf=buf, encoding=(encoding if buf is not None else None)
         )
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
@@ -1134,6 +1541,13 @@ class Styler(StylerRenderer):
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
+    @doc(
+        name="background",
+        alt="text",
+        image_prefix="bg",
+        axis="{0 or 'index', 1 or 'columns', None}",
+        text_threshold="",
+    )
     def background_gradient(
         self,
         cmap="PuBu",
@@ -1147,9 +1561,9 @@ class Styler(StylerRenderer):
         gmap: Sequence | None = None,
     ) -> Styler:
         """
-        Color the background in a gradient style.
+        Color the {name} in a gradient style.
 
-        The background color is determined according
+        The {name} color is determined according
         to the data in each column, row or frame, or by a given
         gradient map. Requires matplotlib.
 
@@ -1165,7 +1579,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
+        axis : {axis}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
@@ -1174,6 +1588,7 @@ class Styler(StylerRenderer):
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
         text_color_threshold : float or int
+            {text_threshold}
             Luminance threshold for determining text color in [0, 1]. Facilitates text
             visibility across varying background colors. All text is dark if 0, and
             light if 1, defaults to 0.408.
@@ -1193,7 +1608,7 @@ class Styler(StylerRenderer):
             .. versionadded:: 1.0.0
 
         gmap : array-like, optional
-            Gradient map for determining the background colors. If not supplied
+            Gradient map for determining the {name} colors. If not supplied
             will use the underlying data from rows, columns or frame. If given as an
             ndarray or list-like must be an identical shape to the underlying data
             considering ``axis`` and ``subset``. If given as DataFrame or Series must
@@ -1206,6 +1621,10 @@ class Styler(StylerRenderer):
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.{alt}_gradient: Color the {alt} in a gradient style.
 
         Notes
         -----
@@ -1224,52 +1643,50 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({
-        ...          'City': ['Stockholm', 'Oslo', 'Copenhagen'],
-        ...          'Temp (c)': [21.6, 22.4, 24.5],
-        ...          'Rain (mm)': [5.0, 13.3, 0.0],
-        ...          'Wind (m/s)': [3.2, 3.1, 6.7]
-        ... })
+        >>> df = pd.DataFrame(columns=["City", "Temp (c)", "Rain (mm)", "Wind (m/s)"],
+        ...                   data=[["Stockholm", 21.6, 5.0, 3.2],
+        ...                         ["Oslo", 22.4, 13.3, 3.1],
+        ...                         ["Copenhagen", 24.5, 0.0, 6.7]])
 
         Shading the values column-wise, with ``axis=0``, preselecting numeric columns
 
-        >>> df.style.background_gradient(axis=0)
+        >>> df.style.{name}_gradient(axis=0)
 
-        .. figure:: ../../_static/style/bg_ax0.png
+        .. figure:: ../../_static/style/{image_prefix}_ax0.png
 
         Shading all values collectively using ``axis=None``
 
-        >>> df.style.background_gradient(axis=None)
+        >>> df.style.{name}_gradient(axis=None)
 
-        .. figure:: ../../_static/style/bg_axNone.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone.png
 
         Compress the color map from the both ``low`` and ``high`` ends
 
-        >>> df.style.background_gradient(axis=None, low=0.75, high=1.0)
+        >>> df.style.{name}_gradient(axis=None, low=0.75, high=1.0)
 
-        .. figure:: ../../_static/style/bg_axNone_lowhigh.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone_lowhigh.png
 
         Manually setting ``vmin`` and ``vmax`` gradient thresholds
 
-        >>> df.style.background_gradient(axis=None, vmin=6.7, vmax=21.6)
+        >>> df.style.{name}_gradient(axis=None, vmin=6.7, vmax=21.6)
 
-        .. figure:: ../../_static/style/bg_axNone_vminvmax.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone_vminvmax.png
 
         Setting a ``gmap`` and applying to all columns with another ``cmap``
 
-        >>> df.style.background_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
+        >>> df.style.{name}_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
 
-        .. figure:: ../../_static/style/bg_gmap.png
+        .. figure:: ../../_static/style/{image_prefix}_gmap.png
 
         Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to
         explicitly state ``subset`` to match the ``gmap`` shape
 
         >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
-        >>> df.style.background_gradient(axis=None, gmap=gmap,
+        >>> df.style.{name}_gradient(axis=None, gmap=gmap,
         ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
         ... )
 
-        .. figure:: ../../_static/style/bg_axNone_gmap.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
         if subset is None and gmap is None:
             subset = self.data.select_dtypes(include=np.number).columns
@@ -1287,6 +1704,41 @@ class Styler(StylerRenderer):
             gmap=gmap,
         )
         return self
+
+    @doc(
+        background_gradient,
+        name="text",
+        alt="background",
+        image_prefix="tg",
+        axis="{0 or 'index', 1 or 'columns', None}",
+        text_threshold="This argument is ignored (only used in `background_gradient`).",
+    )
+    def text_gradient(
+        self,
+        cmap="PuBu",
+        low: float = 0,
+        high: float = 0,
+        axis: Axis | None = 0,
+        subset: Subset | None = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
+        gmap: Sequence | None = None,
+    ) -> Styler:
+        if subset is None and gmap is None:
+            subset = self.data.select_dtypes(include=np.number).columns
+
+        return self.apply(
+            _background_gradient,
+            cmap=cmap,
+            subset=subset,
+            axis=axis,
+            low=low,
+            high=high,
+            vmin=vmin,
+            vmax=vmax,
+            gmap=gmap,
+            text_only=True,
+        )
 
     def set_properties(self, subset: Subset | None = None, **kwargs) -> Styler:
         """
@@ -1996,6 +2448,7 @@ def _background_gradient(
     vmin: float | None = None,
     vmax: float | None = None,
     gmap: Sequence | np.ndarray | FrameOrSeries | None = None,
+    text_only: bool = False,
 ):
     """
     Color background in a range according to the data or a gradient map
@@ -2035,16 +2488,19 @@ def _background_gradient(
             )
             return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
-        def css(rgba) -> str:
-            dark = relative_luminance(rgba) < text_color_threshold
-            text_color = "#f1f1f1" if dark else "#000000"
-            return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
+        def css(rgba, text_only) -> str:
+            if not text_only:
+                dark = relative_luminance(rgba) < text_color_threshold
+                text_color = "#f1f1f1" if dark else "#000000"
+                return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
+            else:
+                return f"color: {colors.rgb2hex(rgba)};"
 
         if data.ndim == 1:
-            return [css(rgba) for rgba in rgbas]
+            return [css(rgba, text_only) for rgba in rgbas]
         else:
             return DataFrame(
-                [[css(rgba) for rgba in row] for row in rgbas],
+                [[css(rgba, text_only) for rgba in row] for row in rgbas],
                 index=data.index,
                 columns=data.columns,
             )

@@ -1094,7 +1094,21 @@ class TestSeriesConstructors:
         result = Series(ser.dt.tz_convert("UTC"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
-        result = Series(ser.values, dtype=ser.dtype)
+        msg = "will interpret the data as wall-times"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # deprecate behavior inconsistent with DatetimeIndex GH#33401
+            result = Series(ser.values, dtype=ser.dtype)
+        tm.assert_series_equal(result, ser)
+
+        with tm.assert_produces_warning(None):
+            # one suggested alternative to the deprecated usage
+            middle = Series(ser.values).dt.tz_localize("UTC")
+            result = middle.dt.tz_convert(ser.dtype.tz)
+        tm.assert_series_equal(result, ser)
+
+        with tm.assert_produces_warning(None):
+            # the other suggested alternative to the deprecated usage
+            result = Series(ser.values.view("int64"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
     @pytest.mark.parametrize(
@@ -1524,6 +1538,36 @@ class TestSeriesConstructors:
         expected = Series([0, 1, 2, 3, 4], dtype=dtype or "int64")
         result = Series(range(5), dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_range_overflows(self):
+        # GH#30173 range objects that overflow int64
+        rng = range(2 ** 63, 2 ** 63 + 4)
+        ser = Series(rng)
+        expected = Series(list(rng))
+        tm.assert_series_equal(ser, expected)
+        assert list(ser) == list(rng)
+        assert ser.dtype == np.uint64
+
+        rng2 = range(2 ** 63 + 4, 2 ** 63, -1)
+        ser2 = Series(rng2)
+        expected2 = Series(list(rng2))
+        tm.assert_series_equal(ser2, expected2)
+        assert list(ser2) == list(rng2)
+        assert ser2.dtype == np.uint64
+
+        rng3 = range(-(2 ** 63), -(2 ** 63) - 4, -1)
+        ser3 = Series(rng3)
+        expected3 = Series(list(rng3))
+        tm.assert_series_equal(ser3, expected3)
+        assert list(ser3) == list(rng3)
+        assert ser3.dtype == object
+
+        rng4 = range(2 ** 73, 2 ** 73 + 4)
+        ser4 = Series(rng4)
+        expected4 = Series(list(rng4))
+        tm.assert_series_equal(ser4, expected4)
+        assert list(ser4) == list(rng4)
+        assert ser4.dtype == object
 
     def test_constructor_tz_mixed_data(self):
         # GH 13051
