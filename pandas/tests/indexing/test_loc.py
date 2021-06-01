@@ -284,7 +284,12 @@ class TestLoc2:
         df.loc[:, cols] = df.loc[:, cols].astype("float32")
 
         expected = DataFrame(
-            {"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]}, dtype="float32"
+            {
+                "id": ["A"],
+                "a": np.array([1.2], dtype="float32"),
+                "b": np.array([0.0], dtype="float32"),
+                "c": np.array([-2.5], dtype="float32"),
+            }
         )  # id is inferred as object
 
         tm.assert_frame_equal(df, expected)

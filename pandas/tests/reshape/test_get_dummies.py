@@ -272,8 +272,9 @@ class TestGetDummies:
                 "from_A_a": [1, 0, 1],
                 "from_A_b": [0, 1, 0],
             },
-            dtype=np.uint8,
         )
+        cols = expected.columns
+        expected[cols[1:]] = expected[cols[1:]].astype(np.uint8)
         expected[["C"]] = df[["C"]]
         if sparse:
             cols = ["from_A_a", "from_A_b"]

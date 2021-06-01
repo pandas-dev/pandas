@@ -207,7 +207,9 @@ class TestDataFrameConstructors:
         assert float_string_frame["foo"].dtype == np.object_
 
     def test_constructor_cast_failure(self):
-        foo = DataFrame({"a": ["a", "b", "c"]}, dtype=np.float64)
+        msg = "either all columns will be cast to that dtype, or a TypeError will"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            foo = DataFrame({"a": ["a", "b", "c"]}, dtype=np.float64)
         assert foo["a"].dtype == object
 
         # GH 3010, constructing with odd arrays
@@ -683,7 +685,10 @@ class TestDataFrameConstructors:
             "A": dict(zip(range(20), tm.makeStringIndex(20))),
             "B": dict(zip(range(15), np.random.randn(15))),
         }
-        frame = DataFrame(test_data, dtype=float)
+        msg = "either all columns will be cast to that dtype, or a TypeError will"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            frame = DataFrame(test_data, dtype=float)
+
         assert len(frame) == 20
         assert frame["A"].dtype == np.object_
         assert frame["B"].dtype == np.float64
