@@ -305,27 +305,30 @@ def test_groupby_resample_interpolate():
         .resample("1D")
         .interpolate(method="linear")
     )
-    expected_ind = pd.MultiIndex.from_tuples(
-        [
-            (50, "2018-01-07"),
-            (50, Timestamp("2018-01-08")),
-            (50, Timestamp("2018-01-09")),
-            (50, Timestamp("2018-01-10")),
-            (50, Timestamp("2018-01-11")),
-            (50, Timestamp("2018-01-12")),
-            (50, Timestamp("2018-01-13")),
-            (50, Timestamp("2018-01-14")),
-            (50, Timestamp("2018-01-15")),
-            (50, Timestamp("2018-01-16")),
-            (50, Timestamp("2018-01-17")),
-            (50, Timestamp("2018-01-18")),
-            (50, Timestamp("2018-01-19")),
-            (50, Timestamp("2018-01-20")),
-            (50, Timestamp("2018-01-21")),
-            (60, Timestamp("2018-01-14")),
-        ],
-        names=["volume", "week_starting"],
-    )
+
+    msg = "containing strings is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected_ind = pd.MultiIndex.from_tuples(
+            [
+                (50, "2018-01-07"),
+                (50, Timestamp("2018-01-08")),
+                (50, Timestamp("2018-01-09")),
+                (50, Timestamp("2018-01-10")),
+                (50, Timestamp("2018-01-11")),
+                (50, Timestamp("2018-01-12")),
+                (50, Timestamp("2018-01-13")),
+                (50, Timestamp("2018-01-14")),
+                (50, Timestamp("2018-01-15")),
+                (50, Timestamp("2018-01-16")),
+                (50, Timestamp("2018-01-17")),
+                (50, Timestamp("2018-01-18")),
+                (50, Timestamp("2018-01-19")),
+                (50, Timestamp("2018-01-20")),
+                (50, Timestamp("2018-01-21")),
+                (60, Timestamp("2018-01-14")),
+            ],
+            names=["volume", "week_starting"],
+        )
     expected = DataFrame(
         data={
             "price": [
