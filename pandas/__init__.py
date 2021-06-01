@@ -1,11 +1,5 @@
 # flake8: noqa
 
-import locale
-locale.setlocale(locale.LC_ALL, 'C.UTF-8')
-
-import locale
-locale.setlocale(locale.LC_ALL, 'C.UTF-8')
-
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
