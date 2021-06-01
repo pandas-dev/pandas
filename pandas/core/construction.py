@@ -12,12 +12,12 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -289,9 +289,9 @@ def array(
         IntegerArray,
         IntervalArray,
         PandasArray,
+        PeriodArray,
         StringArray,
         TimedeltaArray,
-        period_array,
     )
 
     if lib.is_scalar(data):
@@ -315,12 +315,8 @@ def array(
     if dtype is None:
         inferred_dtype = lib.infer_dtype(data, skipna=True)
         if inferred_dtype == "period":
-            try:
-                return period_array(data, copy=copy)
-            except IncompatibleFrequency:
-                # We may have a mixture of frequencies.
-                # We choose to return an ndarray, rather than raising.
-                pass
+            return PeriodArray._from_sequence(data, copy=copy)
+
         elif inferred_dtype == "interval":
             try:
                 return IntervalArray(data, copy=copy)
@@ -750,6 +746,17 @@ def _try_cast(
         if raise_cast_failure:
             raise
         else:
+            # we only get here with raise_cast_failure False, which means
+            #  called via the DataFrame constructor
+            # GH#24435
+            warnings.warn(
+                f"Could not cast to {dtype}, falling back to object. This "
+                "behavior is deprecated. In a future version, when a dtype is "
+                "passed to 'DataFrame', either all columns will be cast to that "
+                "dtype, or a TypeError will be raised",
+                FutureWarning,
+                stacklevel=7,
+            )
             subarr = np.array(arr, dtype=object, copy=copy)
     return subarr
 
