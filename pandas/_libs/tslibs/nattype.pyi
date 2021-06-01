@@ -114,31 +114,26 @@ class NaTType(datetime):
     # inject Period properties
     @property
     def qyear(self) -> float: ...
-
     def __eq__(self, other: Any) -> bool: ...
     def __ne__(self, other: Any) -> bool: ...
     # https://github.com/python/mypy/issues/9015
     # error: Argument 1 of "__lt__" is incompatible with supertype "date";
     # supertype defines the argument type as "date"
     def __lt__(  # type: ignore[override]
-        self,
-        other: datetime | timedelta | Period | np.datetime64 | np.timedelta64
+        self, other: datetime | timedelta | Period | np.datetime64 | np.timedelta64
     ) -> bool: ...
     # error: Argument 1 of "__le__" is incompatible with supertype "date";
     # supertype defines the argument type as "date"
     def __le__(  # type: ignore[override]
-        self,
-        other: datetime | timedelta | Period | np.datetime64 | np.timedelta64
+        self, other: datetime | timedelta | Period | np.datetime64 | np.timedelta64
     ) -> bool: ...
     # error: Argument 1 of "__gt__" is incompatible with supertype "date";
     # supertype defines the argument type as "date"
     def __gt__(  # type: ignore[override]
-        self,
-        other: datetime | timedelta | Period | np.datetime64 | np.timedelta64
+        self, other: datetime | timedelta | Period | np.datetime64 | np.timedelta64
     ) -> bool: ...
     # error: Argument 1 of "__ge__" is incompatible with supertype "date";
     # supertype defines the argument type as "date"
     def __ge__(  # type: ignore[override]
-        self,
-        other: datetime | timedelta | Period | np.datetime64 | np.timedelta64
+        self, other: datetime | timedelta | Period | np.datetime64 | np.timedelta64
     ) -> bool: ...
