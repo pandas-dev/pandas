@@ -770,7 +770,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         else:
             return left
 
-    def _union(self: _T, other: _T, sort) -> _T:
+    def _union(self, other, sort):
         # We are called by `union`, which is responsible for this validation
         assert isinstance(other, type(self))
         assert self.dtype == other.dtype
