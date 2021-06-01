@@ -7,7 +7,6 @@ from typing import (
     Sequence,
 )
 
-# TODO: replace with `importlib.metadata` when python_requires >= 3.8.
 import pkg_resources
 
 from pandas._config import get_option
@@ -1731,7 +1730,7 @@ class PlotAccessor(PandasObject):
 _backends: dict[str, types.ModuleType] = {}
 
 
-def _load_backend(backend: str):
+def _load_backend(backend: str) -> types.ModuleType:
     """
     Load a pandas plotting backend.
 
@@ -1746,13 +1745,11 @@ def _load_backend(backend: str):
     types.ModuleType
         The imported backend.
     """
-    module: types.ModuleType | None = None
-
     if backend == "matplotlib":
         # Because matplotlib is an optional dependency and first-party backend,
         # we need to attempt an import here to raise an ImportError if needed.
         try:
-            module = __import__("pandas.plotting._matplotlib")
+            module = importlib.import_module("pandas.plotting._matplotlib")
         except ImportError:
             raise ImportError(
                 "matplotlib is required for plotting when the "
@@ -1760,22 +1757,27 @@ def _load_backend(backend: str):
             ) from None
         return module
 
+    found_backend = False
+
     for entry_point in pkg_resources.iter_entry_points("pandas_plotting_backends"):
-        if entry_point.name == backend:
+        found_backend = entry_point.name == backend
+        if found_backend:
             module = entry_point.load()
 
-    if module is None:
+    if not found_backend:
         # Fall back to unregistered, module name approach.
         try:
             module = importlib.import_module(backend)
+            found_backend = True
         except ImportError:
             # We re-raise later on.
             pass
 
-    if hasattr(module, "plot"):
-        # Validate that the interface is implemented when the option is set,
-        # rather than at plot time.
-        return module
+    if found_backend:
+        if hasattr(module, "plot"):
+            # Validate that the interface is implemented when the option is set,
+            # rather than at plot time.
+            return module
 
     raise ValueError(
         f"Could not find plotting backend '{backend}'. Ensure that you've "
