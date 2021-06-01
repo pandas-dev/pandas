@@ -2036,7 +2036,7 @@ def construct_1d_ndarray_preserving_na(
 
 def maybe_cast_to_integer_array(
     arr: list | np.ndarray, dtype: np.dtype, copy: bool = False
-):
+) -> np.ndarray:
     """
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.
@@ -2106,6 +2106,20 @@ def maybe_cast_to_integer_array(
 
     if is_float_dtype(arr.dtype) or is_object_dtype(arr.dtype):
         raise ValueError("Trying to coerce float values to integers")
+
+    if casted.dtype < arr.dtype:
+        # GH#41734 e.g. [1, 200, 923442] and dtype="int8" -> overflows
+        warnings.warn(
+            f"Values are too large to be losslessly cast to {dtype}. "
+            "In a future version this will raise OverflowError. To retain the "
+            f"old behavior, use pd.Series(values).astype({dtype})",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return casted
+
+    # No known cases that get here, but raising explicitly to cover our bases.
+    raise ValueError(f"values cannot be losslessly cast to {dtype}")
 
 
 def convert_scalar_for_putitemlike(scalar: Scalar, dtype: np.dtype) -> Scalar:

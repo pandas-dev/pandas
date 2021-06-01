@@ -698,6 +698,7 @@ Deprecations
 - Deprecated passing arguments (apart from ``value``) as positional in :meth:`DataFrame.fillna` and :meth:`Series.fillna` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.reset_index` (other than ``"level"``) and :meth:`Series.reset_index` (:issue:`41485`)
 - Deprecated construction of :class:`Series` or :class:`DataFrame` with ``DatetimeTZDtype`` data and ``datetime64[ns]`` dtype.  Use ``Series(data).dt.tz_localize(None)`` instead (:issue:`41555`,:issue:`33401`)
+- Deprecated behavior of :class:`Series` construction with large-integer values and small-integer dtype silently overflowing; use ``Series(data).astype(dtype)`` instead (:issue:`41734`)
 - Deprecated inference of ``timedelta64[ns]``, ``datetime64[ns]``, or ``DatetimeTZDtype`` dtypes in :class:`Series` construction when data containing strings is passed and no ``dtype`` is passed (:issue:`33558`)
 - In a future version, constructing :class:`Series` or :class:`DataFrame` with ``datetime64[ns]`` data and ``DatetimeTZDtype`` will treat the data as wall-times instead of as UTC times (matching DatetimeIndex behavior). To treat the data as UTC times, use ``pd.Series(data).dt.tz_localize("UTC").dt.tz_convert(dtype.tz)`` or ``pd.Series(data.view("int64"), dtype=dtype)`` (:issue:`33401`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.set_axis` and :meth:`Series.set_axis` (other than ``"labels"``) (:issue:`41485`)
