@@ -17,7 +17,6 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -289,9 +288,9 @@ def array(
         IntegerArray,
         IntervalArray,
         PandasArray,
+        PeriodArray,
         StringArray,
         TimedeltaArray,
-        period_array,
     )
 
     if lib.is_scalar(data):
@@ -315,12 +314,8 @@ def array(
     if dtype is None:
         inferred_dtype = lib.infer_dtype(data, skipna=True)
         if inferred_dtype == "period":
-            try:
-                return period_array(data, copy=copy)
-            except IncompatibleFrequency:
-                # We may have a mixture of frequencies.
-                # We choose to return an ndarray, rather than raising.
-                pass
+            return PeriodArray._from_sequence(data, copy=copy)
+
         elif inferred_dtype == "interval":
             try:
                 return IntervalArray(data, copy=copy)
@@ -551,9 +546,8 @@ def sanitize_array(
             # TODO: copy?
             subarr = maybe_convert_platform(data)
             if subarr.dtype == object:
-                # Argument 1 to "maybe_infer_to_datetimelike" has incompatible
-                # type "Union[ExtensionArray, ndarray]"; expected "ndarray"
-                subarr = maybe_infer_to_datetimelike(subarr)  # type: ignore[arg-type]
+                subarr = cast(np.ndarray, subarr)
+                subarr = maybe_infer_to_datetimelike(subarr)
 
     subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
 
@@ -617,9 +611,7 @@ def _sanitize_ndim(
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
 
-            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
-            # "Type[object]"; expected "Union[str, dtype[Any], None]"
-            result = com.asarray_tuplesafe(data, dtype=object)  # type: ignore[arg-type]
+            result = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
             cls = dtype.construct_array_type()
             result = cls._from_sequence(result, dtype=dtype)
         else:
