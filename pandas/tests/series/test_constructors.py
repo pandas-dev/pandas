@@ -711,6 +711,21 @@ class TestSeriesConstructors:
         with pytest.raises(ValueError, match=msg):
             Series(["a", "b", "c"], dtype=float)
 
+    def test_constructor_signed_int_overflow_deprecation(self):
+        # GH#41734 disallow silent overflow
+        msg = "Values are too large to be losslessly cast"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([1, 200, 923442], dtype="int8")
+
+        expected = Series([1, -56, 50], dtype="int8")
+        tm.assert_series_equal(ser, expected)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([1, 200, 923442], dtype="uint8")
+
+        expected = Series([1, 200, 50], dtype="uint8")
+        tm.assert_series_equal(ser, expected)
+
     def test_constructor_unsigned_dtype_overflow(self, uint_dtype):
         # see gh-15832
         msg = "Trying to coerce negative values to unsigned integers"
