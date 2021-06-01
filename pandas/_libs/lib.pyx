@@ -1461,7 +1461,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     for i in range(n):
         val = values[i]
 
-        # do not use is_nul_datetimelike to keep
+        # do not use is_null_datetimelike to keep
         # np.datetime64('nat') and np.timedelta64('nat')
         if val is None or util.is_nan(val):
             pass
