@@ -1494,6 +1494,7 @@ def test_minmax_extensionarray(method, numeric_only):
     )
     tm.assert_series_equal(result, expected)
 
+
 def test_prod_sum_min_count_mixed_object():
     # https://github.com/pandas-dev/pandas/issues/41074
     df = DataFrame([1, "a", True])
