@@ -764,6 +764,28 @@ def test_loc_getitem_index_differently_ordered_slice_none():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("indexer", [[1, 2, 7, 6, 2, 3, 8, 7], [1, 2, 7, 6, 3, 8]])
+def test_loc_getitem_index_differently_ordered_slice_none_duplicates(indexer):
+    # GH#40978
+    df = DataFrame(
+        [1] * 8,
+        index=MultiIndex.from_tuples(
+            [(1, 1), (1, 2), (1, 7), (1, 6), (2, 2), (2, 3), (2, 8), (2, 7)]
+        ),
+        columns=["a"],
+    )
+    result = df.loc[(slice(None), indexer), :]
+    expected = DataFrame(
+        [1] * 8,
+        index=[[1, 1, 2, 1, 2, 1, 2, 2], [1, 2, 2, 7, 7, 6, 3, 8]],
+        columns=["a"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.loc[df.index.isin(indexer, level=1), :]
+    tm.assert_frame_equal(result, df)
+
+
 def test_loc_getitem_drops_levels_for_one_row_dataframe():
     # GH#10521
     mi = MultiIndex.from_arrays([["x"], ["y"], ["z"]], names=["a", "b", "c"])
@@ -801,3 +823,70 @@ def test_mi_partial_indexing_list_raises():
     frame.columns.names = ["state", "color"]
     with pytest.raises(KeyError, match="\\[2\\] not in index"):
         frame.loc[["b", 2], "Colorado"]
+
+
+def test_mi_indexing_list_nonexistent_raises():
+    # GH 15452
+    s = Series(range(4), index=MultiIndex.from_product([[1, 2], ["a", "b"]]))
+    with pytest.raises(KeyError, match="\\['not' 'found'\\] not in index"):
+        s.loc[["not", "found"]]
+
+
+def test_mi_add_cell_missing_row_non_unique():
+    # GH 16018
+    result = DataFrame(
+        [[1, 2, 5, 6], [3, 4, 7, 8]],
+        index=["a", "a"],
+        columns=MultiIndex.from_product([[1, 2], ["A", "B"]]),
+    )
+    result.loc["c"] = -1
+    result.loc["c", (1, "A")] = 3
+    result.loc["d", (1, "A")] = 3
+    expected = DataFrame(
+        [
+            [1.0, 2.0, 5.0, 6.0],
+            [3.0, 4.0, 7.0, 8.0],
+            [3.0, -1.0, -1, -1],
+            [3.0, np.nan, np.nan, np.nan],
+        ],
+        index=["a", "a", "c", "d"],
+        columns=MultiIndex.from_product([[1, 2], ["A", "B"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_get_scalar_casting_to_float():
+    # GH#41369
+    df = DataFrame(
+        {"a": 1.0, "b": 2}, index=MultiIndex.from_arrays([[3], [4]], names=["c", "d"])
+    )
+    result = df.loc[(3, 4), "b"]
+    assert result == 2
+    assert isinstance(result, np.int64)
+    result = df.loc[[(3, 4)], "b"].iloc[0]
+    assert result == 2
+    assert isinstance(result, np.int64)
+
+
+def test_loc_empty_single_selector_with_names():
+    # GH 19517
+    idx = MultiIndex.from_product([["a", "b"], ["A", "B"]], names=[1, 0])
+    s2 = Series(index=idx, dtype=np.float64)
+    result = s2.loc["a"]
+    expected = Series([np.nan, np.nan], index=Index(["A", "B"], name=0))
+    tm.assert_series_equal(result, expected)
+
+
+def test_loc_keyerror_rightmost_key_missing():
+    # GH 20951
+
+    df = DataFrame(
+        {
+            "A": [100, 100, 200, 200, 300, 300],
+            "B": [10, 10, 20, 21, 31, 33],
+            "C": range(6),
+        }
+    )
+    df = df.set_index(["A", "B"])
+    with pytest.raises(KeyError, match="^1$"):
+        df.loc[(100, 1)]
