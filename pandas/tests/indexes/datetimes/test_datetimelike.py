@@ -32,9 +32,6 @@ class TestDatetimeIndex(DatetimeLike):
     def test_shift(self):
         pass  # handled in test_ops
 
-    def test_pickle_compat_construction(self):
-        pass
-
     def test_intersection(self):
         pass  # handled in test_setops
 

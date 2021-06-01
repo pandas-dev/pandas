@@ -250,7 +250,7 @@ def cut(
             raise ValueError("Cannot cut empty array")
 
         rng = (nanops.nanmin(x), nanops.nanmax(x))
-        mn, mx = [mi + 0.0 for mi in rng]
+        mn, mx = (mi + 0.0 for mi in rng)
 
         if np.isinf(mn) or np.isinf(mx):
             # GH 24314

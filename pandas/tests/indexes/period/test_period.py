@@ -35,8 +35,9 @@ class TestPeriodIndex(DatetimeLike):
     def index(self, request):
         return request.param
 
+    @pytest.mark.xfail(reason="Goes through a generate_range path")
     def test_pickle_compat_construction(self):
-        pass
+        super().test_pickle_compat_construction()
 
     @pytest.mark.parametrize("freq", ["D", "M", "A"])
     def test_pickle_round_trip(self, freq):

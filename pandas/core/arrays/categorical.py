@@ -439,12 +439,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                         "explicitly specify the categories order "
                         "by passing in a categories argument."
                     ) from err
-            except ValueError as err:
-
-                # TODO(EA2D)
-                raise NotImplementedError(
-                    "> 1 ndim Categorical are not supported at this time"
-                ) from err
 
             # we're inferring from values
             dtype = CategoricalDtype(categories, dtype.ordered)
@@ -2453,7 +2447,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------------
     # String methods interface
-    def _str_map(self, f, na_value=np.nan, dtype=np.dtype("object")):
+    def _str_map(
+        self, f, na_value=np.nan, dtype=np.dtype("object"), convert: bool = True
+    ):
         # Optimization to apply the callable `f` to the categories once
         # and rebuild the result by `take`ing from the result with the codes.
         # Returns the same type as the object-dtype implementation though.
