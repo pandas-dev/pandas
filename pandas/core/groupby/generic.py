@@ -323,7 +323,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return output
 
     def _cython_agg_general(
-        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
     ):
 
         obj = self._selected_obj
@@ -331,7 +331,10 @@ class SeriesGroupBy(GroupBy[Series]):
         data = obj._mgr
 
         if numeric_only and not is_numeric_dtype(obj.dtype):
-            raise DataError("No numeric types to aggregate")
+            # GH#41291 match Series behavior
+            raise NotImplementedError(
+                f"{type(self).__name__}.{how} does not implement numeric_only."
+            )
 
         # This is overkill because it is only called once, but is here to
         #  mirror the array_func used in DataFrameGroupBy._cython_agg_general
@@ -538,9 +541,6 @@ class SeriesGroupBy(GroupBy[Series]):
             # this setattr is needed for test_transform_lambda_with_datetimetz
             object.__setattr__(group, "name", name)
             res = func(group, *args, **kwargs)
-
-            if isinstance(res, (DataFrame, Series)):
-                res = res._values
 
             results.append(klass(res, index=group.index))
 
@@ -777,11 +777,7 @@ class SeriesGroupBy(GroupBy[Series]):
         # multi-index components
         codes = self.grouper.reconstructed_codes
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        # error: List item 0 has incompatible type "Union[ndarray, Any]";
-        # expected "Index"
-        levels = [ping.group_index for ping in self.grouper.groupings] + [
-            lev  # type: ignore[list-item]
-        ]
+        levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
         names = self.grouper.names + [self.obj.name]
 
         if dropna:
@@ -1065,7 +1061,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 yield values
 
     def _cython_agg_general(
-        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
     ) -> DataFrame:
         # Note: we never get here with how="ohlc"; that goes through SeriesGroupBy
 
@@ -1096,6 +1092,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if not len(new_mgr) and len(orig):
             # If the original Manager was already empty, no need to raise
             raise DataError("No numeric types to aggregate")
+        if len(new_mgr) < len(data):
+            warnings.warn(
+                f"Dropping invalid columns in {type(self).__name__}.{how} "
+                "is deprecated. In a future version, a TypeError will be raised. "
+                f"Before calling .{how}, select only columns which should be "
+                "valid for the function.",
+                FutureWarning,
+                stacklevel=4,
+            )
 
         return self._wrap_agged_manager(new_mgr)
 
@@ -1114,8 +1119,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             # we get here in a number of test_multilevel tests
             for name in self.indices:
-                data = self.get_group(name, obj=obj)
-                fres = func(data, *args, **kwargs)
+                grp_df = self.get_group(name, obj=obj)
+                fres = func(grp_df, *args, **kwargs)
                 result[name] = fres
 
         result_index = self.grouper.result_index
@@ -1257,11 +1262,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             columns = key_index
             stacked_values = stacked_values.T
 
+        if stacked_values.dtype == object:
+            # We'll have the DataFrame constructor do inference
+            stacked_values = stacked_values.tolist()
         result = self.obj._constructor(stacked_values, index=index, columns=columns)
-
-        # if we have date/time like in the original, then coerce dates
-        # as we are stacking can easily have object dtypes here
-        result = result._convert(datetime=True)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -1292,6 +1296,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  we would have to do shape gymnastics for ArrayManager compat
         res_mgr = mgr.grouped_reduce(arr_func, ignore_failures=True)
         res_mgr.set_axis(1, mgr.axes[1])
+
+        if len(res_mgr) < len(mgr):
+            warnings.warn(
+                f"Dropping invalid columns in {type(self).__name__}.{how} "
+                "is deprecated. In a future version, a TypeError will be raised. "
+                f"Before calling .{how}, select only columns which should be "
+                "valid for the transforming function.",
+                FutureWarning,
+                stacklevel=4,
+            )
 
         res_df = self.obj._constructor(res_mgr)
         if self.axis == 1:
@@ -1430,7 +1444,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 output[i] = sgb.transform(wrapper)
             except TypeError:
                 # e.g. trying to call nanmean with string values
-                pass
+                warnings.warn(
+                    f"Dropping invalid columns in {type(self).__name__}.transform "
+                    "is deprecated. In a future version, a TypeError will be raised. "
+                    "Before calling .transform, select only columns which should be "
+                    "valid for the transforming function.",
+                    FutureWarning,
+                    stacklevel=5,
+                )
             else:
                 inds.append(i)
 
