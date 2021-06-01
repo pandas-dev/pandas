@@ -110,43 +110,36 @@ both XPath 1.0 and XSLT 1.0 are available. (:issue:`27554`)
 
 For more, see :ref:`io.xml` in the user guide on IO tools.
 
-.. _whatsnew_130.styler_upgrades:
+.. _whatsnew_130.styler_enhancements:
 
-Styler Improvements
+Styler enhancements
 ^^^^^^^^^^^^^^^^^^^
 
-We provided some focused development on :class:`.Styler`, including altering methods
-to accept more universal CSS language for arguments, such as ``'color:red;'`` instead of
-``[('color', 'red')]`` (:issue:`39564`). This is also added to the built-in methods
-now allowing custom CSS highlighting instead of the default background coloring (:issue:`40242`).
-Enhancements to other built-in methods include extending :meth:`.Styler.background_gradient`
-to shade elements based on a given gradient map and not be restricted only to
-values in the DataFrame (:issue:`39930`, :issue:`22727`, :issue:`28901`). Additional
-built-in methods such as :meth:`.Styler.highlight_between`, :meth:`.Styler.highlight_quantile`
-and :meth:`.Styler.text_gradient` have been added (:issue:`39821`, :issue:`40926`, :issue:`41098`).
+We provided some focused development on :class:`.Styler`. See also the `Styler documentation <../user_guide/style.ipynb>`_
+which has also been revised and improved(:issue:`39720`, :issue:`39317`, :issue:`40493`).
 
-The :meth:`.Styler.apply` method now consistently accepts functions that return an ``ndarray`` to
-allow more flexible development of UDFs when ``axis`` is ``None``, ``0``, or ``1`` (:issue:`39393`).
+ - The method :meth:`.Styler.set_table_styles` can now accept more natural CSS language for arguments, such as ``'color:red;'`` instead of ``[('color', 'red')]`` (:issue:`39563`)
+ - The methods :meth:`.Styler.highlight_null`, :meth:`.Styler.highlight_min`, and :meth:`.Styler.highlight_max` now allow custom CSS highlighting instead of the default background coloring (:issue:`40242`)
+ - Extended :meth:`.Styler.background_gradient` to shade elements based on a given gradient map and not be restricted to values in the DataFrame (:issue:`22727`, :issue:`28901`)
+ - Added the method :meth:`.Styler.highlight_between` (:issue:`39821`)
+ - Added the method :meth:`.Styler.highlight_quantile` (:issue:`40926`)
+ - Added the method :meth:`.Styler.text_gradient` (:issue:`41098`)
+ - The :meth:`.Styler.apply` method now consistently accepts functions that return an ``ndarray`` to allow more flexible development of UDFs when ``axis`` is ``None``, ``0``, or ``1`` (:issue:`39359`)
+ - Added the method :meth:`.Styler.set_tooltips` allowing hover tooltips; this can be used enhance interactive displays (:issue:`21266`)
+ - The method :meth:`.Styler.set_td_classes` is now as performant as :meth:`.Styler.apply` and :meth:`.Styler.applymap`, and more so in some cases (:issue:`40453`)
+ - Considerably improved performance of HTML render times and now matches :meth:`DataFrame.to_html` (:issue:`39952`, :issue:`40425`)
+ - Added the parameter ``escape`` to the method :meth:`.Styler.format` to escape data before it is passed to the formatter (:issue:`40388`)
+ - Added the parameter ``precision`` to the method :meth:`.Styler.format` to control the display of floating point numbers (:issue:`40134`)
+ - Fixed bug in the method :meth:`.Styler.set_table_styles` where multiple elements in CSS-selectors of the ``table_styles`` argument were not correctly added (:issue:`34061`)
+ - Fixed bug in :class:`.Styler` where copying the output from Jupyter dropped the top left cell and misaligned headers (:issue:`12147`)
+ - Fixed bug in :class:`.Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
+ - Fixed bug in :meth:`.Styler.background_gradient` where the text-color was not determined correctly (:issue:`39888`)
+ - :class:`.Styler` rendered HTML output now follows the `w3 HTML Style Guide <https://www.w3schools.com/html/html5_syntax.asp>`_ (:issue:`39626`)
+ - Many features of the :class:`.Styler` class are now either partially or fully usable on a DataFrame with a non-unique indexes or columns (:issue:`41143`)
+ - One has greater control of the display through separate sparsification of the index or columns using the :ref:`new styler options <options.available>`, which are also usable via :func:`option_context` (:issue:`41142`)
+ - Added the method :meth:`.Styler.to_latex` (:issue:`21673`)
+ - Added the method :meth:`.Styler.to_html` (:issue:`13379`)
 
-:meth:`.Styler.set_tooltips` is a new method that allows adding hover tooltips to
-enhance interactive displays (:issue:`35643`). :meth:`.Styler.set_td_classes`, which was recently
-introduced in v1.2.0 (:issue:`36159`) to allow adding specific CSS classes to data cells, has
-been made as performant as :meth:`.Styler.apply` and :meth:`.Styler.applymap` (:issue:`40453`),
-if not more performant in some cases. The overall performance of HTML
-render times has been considerably improved to
-match :meth:`DataFrame.to_html` (:issue:`39952`, :issue:`37792`, :issue:`40425`).
-
-The :meth:`.Styler.format` has been improved to easily format missing data,
-precision, and perform HTML escaping (:issue:`40437`, :issue:`40134`). There have been numerous other bug fixes to
-properly format HTML and eliminate some inconsistencies (:issue:`39942`, :issue:`40356`, :issue:`39807`, :issue:`39889`, :issue:`39627`).
-
-Many features of the :class:`.Styler` class are now either partially or fully usable on a DataFrame with a non-unique indexes or columns (:issue:`41269`).
-One also has greater control of the display through separate sparsification of the index or columns using the :ref:`new styler options context <options.available>` (:issue:`41142`).
-
-We have added an extension to allow LaTeX styling as an alternative to CSS styling and the method :meth:`.Styler.to_latex`
-that renders the necessary LaTeX format including built-up styles. An additional file IO function :meth:`.Styler.to_html` has been added for convenience (:issue:`40312`).
-
-The `Styler documentation <../user_guide/style.ipynb>`_ has also seen major revisions in light of the new features (:issue:`39720`, :issue:`39317`, :issue:`40493`).
 
 .. _whatsnew_130.dataframe_honors_copy_with_dict:
 
