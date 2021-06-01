@@ -83,6 +83,7 @@ def assert_invalid_comparison(left, right, box):
             "Invalid comparison between",
             "Cannot compare type",
             "not supported between",
+            "could not be promoted",
             "invalid type promotion",
             (
                 # GH#36706 npdev 1.20.0 2020-09-28
