@@ -187,6 +187,16 @@ class TestTimedeltas:
         result = Series([to_timedelta("00:00:01")])
         tm.assert_series_equal(result, expected)
 
+    def test_to_timedelta_inference_without_warning(self):
+        # GH#41731 inference produces a warning in the Series constructor,
+        #  but _not_ in to_timedelta
+        vals = ["00:00:01", pd.NaT]
+        with tm.assert_produces_warning(None):
+            result = to_timedelta(vals)
+
+        expected = TimedeltaIndex([pd.Timedelta(seconds=1), pd.NaT])
+        tm.assert_index_equal(result, expected)
+
     def test_to_timedelta_on_missing_values(self):
         # GH5438
         timedelta_NaT = np.timedelta64("NaT")
