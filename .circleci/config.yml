@@ -10,7 +10,7 @@ jobs:
       PYTEST_WORKERS: auto
       PATTERN: "not slow and not network and not clipboard and not arm_slow"
     steps:
-      - checkout
+      - run: echo "CircleCI is working"
 
 workflows:
   test:
