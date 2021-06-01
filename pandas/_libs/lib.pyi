@@ -153,7 +153,7 @@ def ensure_string_array(
 
 def infer_datetimelike_array(
     arr: np.ndarray  # np.ndarray[object]
-) -> str: ...
+) -> tuple[str, bool]: ...
 
 def astype_intsafe(
     arr: np.ndarray,  # np.ndarray[object]
