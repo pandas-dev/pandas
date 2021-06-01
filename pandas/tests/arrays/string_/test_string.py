@@ -3,6 +3,8 @@ This module tests the functionality of StringArray and ArrowStringArray.
 Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 """
 
+import re
+
 import numpy as np
 import pytest
 
@@ -325,12 +327,19 @@ def test_from_sequence_no_mutate(copy, cls, request):
     tm.assert_numpy_array_equal(nan_arr, expected)
 
 
-def test_astype_int(dtype, request):
-    if dtype == "arrow_string":
-        reason = "Cannot interpret 'Int64Dtype()' as a data type"
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
-        request.node.add_marker(mark)
+def test_astype_int(dtype):
+    arr = pd.array(["1", "2", "3"], dtype=dtype)
+    result = arr.astype("int64")
+    expected = np.array([1, 2, 3], dtype="int64")
+    tm.assert_numpy_array_equal(result, expected)
 
+    arr = pd.array(["1", pd.NA, "3"], dtype=dtype)
+    msg = re.escape("int() argument must be a string, a bytes-like object or a number")
+    with pytest.raises(TypeError, match=msg):
+        arr.astype("int64")
+
+
+def test_astype_nullable_int(dtype):
     arr = pd.array(["1", pd.NA, "3"], dtype=dtype)
 
     result = arr.astype("Int64")
@@ -338,19 +347,9 @@ def test_astype_int(dtype, request):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_astype_float(dtype, any_float_allowed_nullable_dtype, request):
+def test_astype_float(dtype, any_float_allowed_nullable_dtype):
     # Don't compare arrays (37974)
-
-    if dtype == "arrow_string":
-        if any_float_allowed_nullable_dtype in {"Float32", "Float64"}:
-            reason = "Cannot interpret 'Float32Dtype()' as a data type"
-        else:
-            reason = "float() argument must be a string or a number, not 'NAType'"
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
-        request.node.add_marker(mark)
-
     ser = pd.Series(["1.1", pd.NA, "3.3"], dtype=dtype)
-
     result = ser.astype(any_float_allowed_nullable_dtype)
     expected = pd.Series([1.1, np.nan, 3.3], dtype=any_float_allowed_nullable_dtype)
     tm.assert_series_equal(result, expected)
