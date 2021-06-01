@@ -5,6 +5,7 @@ from operator import (
     le,
     lt,
 )
+import re
 import textwrap
 from typing import (
     Callable,
@@ -625,19 +626,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         intervals: list[Interval] = []
         for string in data:
-            try:
-                # Find the first parenthesis and assume it is the start of the interval
-                start = string.index("(")
-                # Find the first closing square bracket and assume it is the end
-                end = string.rindex("]")
-            except ValueError:
+
+            # Try to match "(left, right]" where 'left' and 'right' are breaks.
+            breaks_match = re.match(r"\(.*,.*]", string)
+            # Raise ValueError if no match was found.
+            if breaks_match is None:
                 raise ValueError(
                     "Could not find opening '(' and closing ']' "
                     f"brackets in string: '{string}'"
                 )
 
             # Extract that part and try to split based on a comma and a space.
-            breaks = string[start + 1 : end].split(", ", 1)
+            breaks = breaks_match.string[1:-1].split(", ", 1)
 
             if len(breaks) != 2:
                 raise ValueError(
