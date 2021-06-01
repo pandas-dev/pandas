@@ -8544,8 +8544,6 @@ NaN 12.3   33.0
             result_in_dict = relabel_result(result, func, columns, order)
             result = DataFrame(result_in_dict, index=columns)
 
-        if isinstance(result, DataFrame):
-            result = result.squeeze()
             
         return result
 
