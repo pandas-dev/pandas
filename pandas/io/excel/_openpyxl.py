@@ -65,7 +65,8 @@ class OpenpyxlWriter(ExcelWriter):
                 # Sheets are not automatically created in the workbook
                 self.book = Workbook(write_only=True)
             except ImportError:
-                print("Warning: lxml is not installed, creating workbook with write_only disabled. Memory usage may be much higher.")
+                print("Warning: lxml is not installed")
+                print("Memory usage may be much higher.")
                 self.book = Workbook()
 
                 if self.book.worksheets:
