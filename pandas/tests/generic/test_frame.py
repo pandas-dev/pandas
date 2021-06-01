@@ -126,7 +126,7 @@ class TestDataFrame(Generic):
             for name in self._metadata:
                 if method == "concat":
                     value = "+".join(
-                        [getattr(o, name) for o in other.objs if getattr(o, name, None)]
+                        getattr(o, name) for o in other.objs if getattr(o, name, None)
                     )
                     object.__setattr__(self, name, value)
                 else:

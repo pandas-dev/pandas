@@ -1,19 +1,16 @@
+from __future__ import annotations
+
 from collections import defaultdict
 import csv
 import datetime
+from enum import Enum
 import itertools
 from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
     Iterable,
-    List,
-    Optional,
     Sequence,
-    Set,
-    Tuple,
-    Union,
     cast,
 )
 import warnings
@@ -112,22 +109,28 @@ parser_defaults = {
     "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
+    "on_bad_lines": "error",
 }
 
 
 class ParserBase:
+    class BadLineHandleMethod(Enum):
+        ERROR = 0
+        WARN = 1
+        SKIP = 2
+
     _implicit_index: bool = False
     _first_chunk: bool
 
     def __init__(self, kwds):
 
         self.names = kwds.get("names")
-        self.orig_names: Optional[List] = None
+        self.orig_names: list | None = None
         self.prefix = kwds.pop("prefix", None)
 
         self.index_col = kwds.get("index_col", None)
-        self.unnamed_cols: Set = set()
-        self.index_names: Optional[List] = None
+        self.unnamed_cols: set = set()
+        self.index_names: list | None = None
         self.col_names = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
@@ -205,11 +208,15 @@ class ParserBase:
 
         self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
 
-        self.handles: Optional[IOHandles] = None
+        self.handles: IOHandles | None = None
 
-    def _open_handles(self, src: FilePathOrBuffer, kwds: Dict[str, Any]) -> None:
+        # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
+        # Normally, this arg would get pre-processed earlier on
+        self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
+
+    def _open_handles(self, src: FilePathOrBuffer, kwds: dict[str, Any]) -> None:
         """
-        Let the readers open IOHanldes after they are done with their potential raises.
+        Let the readers open IOHandles after they are done with their potential raises.
         """
         self.handles = get_handle(
             src,
@@ -221,7 +228,7 @@ class ParserBase:
             errors=kwds.get("encoding_errors", "strict"),
         )
 
-    def _validate_parse_dates_presence(self, columns: List[str]) -> None:
+    def _validate_parse_dates_presence(self, columns: list[str]) -> None:
         """
         Check if parse_dates are in columns.
 
@@ -371,7 +378,7 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts: DefaultDict[Union[int, str, Tuple], int] = defaultdict(int)
+            counts: DefaultDict[int | str | tuple, int] = defaultdict(int)
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -596,8 +603,8 @@ class ParserBase:
 
     @final
     def _set_noconvert_dtype_columns(
-        self, col_indices: List[int], names: List[Union[int, str, Tuple]]
-    ) -> Set[int]:
+        self, col_indices: list[int], names: list[int | str | tuple]
+    ) -> set[int]:
         """
         Set the columns that should not undergo dtype conversions.
 
@@ -615,7 +622,7 @@ class ParserBase:
         -------
         A set of integers containing the positions of the columns not to convert.
         """
-        usecols: Optional[Union[List[int], List[str]]]
+        usecols: list[int] | list[str] | None
         noconvert_columns = set()
         if self.usecols_dtype == "integer":
             # A set of integers will be converted to a list in
@@ -900,7 +907,7 @@ class ParserBase:
             return [None] * len(index_col), columns, index_col
 
         cp_cols = list(columns)
-        index_names: List[Optional[Union[int, str]]] = []
+        index_names: list[str | int | None] = []
 
         # don't mutate
         index_col = list(index_col)
@@ -926,7 +933,7 @@ class ParserBase:
         return index_names, columns, index_col
 
     def _get_empty_meta(
-        self, columns, index_col, index_names, dtype: Optional[DtypeArg] = None
+        self, columns, index_col, index_names, dtype: DtypeArg | None = None
     ):
         columns = list(columns)
 
@@ -1150,7 +1157,7 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
 
 
 def _is_potential_multi_index(
-    columns, index_col: Optional[Union[bool, Sequence[int]]] = None
+    columns, index_col: bool | Sequence[int] | None = None
 ) -> bool:
     """
     Check whether or not the `columns` parameter

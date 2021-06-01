@@ -2479,3 +2479,11 @@ def test_merge_string_float_column_result():
         [[9, 10, 1, 2], [11, 12, 3, 4]], columns=pd.Index(["x", "y", "a", 114.0])
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_mergeerror_on_left_index_mismatched_dtypes():
+    # GH 22449
+    df_1 = DataFrame(data=["X"], columns=["C"], index=[22])
+    df_2 = DataFrame(data=["X"], columns=["C"], index=[999])
+    with pytest.raises(MergeError, match="Can only pass argument"):
+        merge(df_1, df_2, on=["C"], left_index=True)

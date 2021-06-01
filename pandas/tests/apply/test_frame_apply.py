@@ -1209,7 +1209,10 @@ def test_nuiscance_columns():
     )
     tm.assert_frame_equal(result, expected)
 
-    result = df.agg("sum")
+    with tm.assert_produces_warning(
+        FutureWarning, match="Select only valid", check_stacklevel=False
+    ):
+        result = df.agg("sum")
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
@@ -1426,8 +1429,9 @@ def test_apply_datetime_tz_issue():
 @pytest.mark.parametrize("method", ["min", "max", "sum"])
 def test_consistency_of_aggregates_of_columns_with_missing_values(df, method):
     # GH 16832
-    none_in_first_column_result = getattr(df[["A", "B"]], method)()
-    none_in_second_column_result = getattr(df[["B", "A"]], method)()
+    with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
+        none_in_first_column_result = getattr(df[["A", "B"]], method)()
+        none_in_second_column_result = getattr(df[["B", "A"]], method)()
 
     tm.assert_series_equal(none_in_first_column_result, none_in_second_column_result)
 

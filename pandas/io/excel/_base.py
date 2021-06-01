@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 import datetime
-import inspect
 from io import BytesIO
 import os
 from textwrap import fill
@@ -33,6 +32,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -245,6 +245,10 @@ convert_float : bool, default True
     Convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally.
+
+    .. deprecated:: 1.3.0
+        convert_float will be removed in a future version
+
 mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
@@ -355,7 +359,7 @@ def read_excel(
     thousands=None,
     comment=None,
     skipfooter=0,
-    convert_float=True,
+    convert_float=None,
     mangle_dupe_cols=True,
     storage_options: StorageOptions = None,
 ):
@@ -489,10 +493,20 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         thousands=None,
         comment=None,
         skipfooter=0,
-        convert_float=True,
+        convert_float=None,
         mangle_dupe_cols=True,
         **kwds,
     ):
+
+        if convert_float is None:
+            convert_float = True
+        else:
+            stacklevel = find_stack_level()
+            warnings.warn(
+                "convert_float is deprecated and will be removed in a future version",
+                FutureWarning,
+                stacklevel=stacklevel,
+            )
 
         validate_header_arg(header)
 
@@ -1206,16 +1220,7 @@ class ExcelFile:
                     f"only the xls format is supported. Install openpyxl instead."
                 )
             elif ext and ext != "xls":
-                caller = inspect.stack()[1]
-                if (
-                    caller.filename.endswith(
-                        os.path.join("pandas", "io", "excel", "_base.py")
-                    )
-                    and caller.function == "read_excel"
-                ):
-                    stacklevel = 4
-                else:
-                    stacklevel = 2
+                stacklevel = find_stack_level()
                 warnings.warn(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install "
@@ -1251,7 +1256,7 @@ class ExcelFile:
         thousands=None,
         comment=None,
         skipfooter=0,
-        convert_float=True,
+        convert_float=None,
         mangle_dupe_cols=True,
         **kwds,
     ):
