@@ -927,6 +927,9 @@ def test_from_strings():
         parsed_index = IntervalIndex.from_strings(string)
         assert np.array_equal(parsed_index, expected)
 
+
+def test_from_strings_errors():
+    """Validate the error messages from the IntervalIndex.from_strings method."""
     # Create invalid interval indices (to make sure it fails correctly)
     wrong_indices = [
         ("('hello', 'there']", r"Could not parse string as Interval"),
