@@ -728,6 +728,15 @@ class DataFrame(NDFrame, OpsMixin):
             if index is None or columns is None:
                 raise ValueError("DataFrame constructor not properly called!")
 
+            # Argument 1 to "ensure_index" has incompatible type "Collection[Any]";
+            # expected "Union[Union[Union[ExtensionArray, ndarray],
+            # Index, Series], Sequence[Any]]"
+            index = ensure_index(index)  # type: ignore[arg-type]
+            # Argument 1 to "ensure_index" has incompatible type "Collection[Any]";
+            # expected "Union[Union[Union[ExtensionArray, ndarray],
+            # Index, Series], Sequence[Any]]"
+            columns = ensure_index(columns)  # type: ignore[arg-type]
+
             if not dtype:
                 dtype, _ = infer_dtype_from_scalar(data, pandas_dtype=True)
 
@@ -2325,6 +2334,7 @@ class DataFrame(NDFrame, OpsMixin):
             dtype = pandas_dtype(dtype)
 
         manager = get_option("mode.data_manager")
+        columns = ensure_index(columns)
         mgr = arrays_to_mgr(
             arrays,
             columns,

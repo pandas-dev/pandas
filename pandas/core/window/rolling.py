@@ -472,6 +472,8 @@ class BaseWindow(SelectionMixin):
             other = target
             # only default unset
             pairwise = True if pairwise is None else pairwise
+        elif not isinstance(other, (ABCDataFrame, ABCSeries)):
+            raise ValueError("other must be a DataFrame or Series")
 
         return flex_binary_moment(target, other, func, pairwise=bool(pairwise))
 
