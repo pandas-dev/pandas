@@ -2088,7 +2088,13 @@ def maybe_cast_to_integer_array(
     if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
         raise OverflowError("Trying to coerce negative values to unsigned integers")
 
-    if is_float_dtype(arr.dtype) or is_object_dtype(arr.dtype):
+    if is_float_dtype(arr.dtype):
+        if not np.isfinite(arr).all():
+            raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer"
+            )
+        raise ValueError("Trying to coerce float values to integers")
+    if is_object_dtype(arr.dtype):
         raise ValueError("Trying to coerce float values to integers")
 
 

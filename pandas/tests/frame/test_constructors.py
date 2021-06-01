@@ -2479,6 +2479,27 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
 
+class TestDataFrameConstructorWithDtypeCoercion:
+    def test_floating_values_integer_dtype(self):
+        # GH#40110 make DataFrame behavior with arraylike floating data and
+        #  inty dtype match Series behavior
+
+        arr = np.random.randn(10, 5)
+
+        msg = "if they cannot be cast losslessly"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            DataFrame(arr, dtype="i8")
+
+        with tm.assert_produces_warning(None):
+            # if they can be cast losslessly, no warning
+            DataFrame(arr.round(), dtype="i8")
+
+        # with NaNs, we already have the correct behavior, so no warning
+        arr[0, 0] = np.nan
+        with tm.assert_produces_warning(None):
+            DataFrame(arr, dtype="i8")
+
+
 class TestDataFrameConstructorWithDatetimeTZ:
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
     def test_construction_preserves_tzaware_dtypes(self, tz):
