@@ -1,5 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
+import re
 
 from dateutil.tz import tzlocal
 import numpy as np
@@ -783,34 +784,35 @@ class TestDataFrameAnalytics:
         assert len(axis1) == 0
 
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
-    def test_sum_prod_nanops(self, method, unit):
+    @pytest.mark.parametrize("numeric_only", [None, True, False])
+    def test_sum_prod_nanops(self, method, unit, numeric_only):
         idx = ["a", "b", "c"]
         df = DataFrame({"a": [unit, unit], "b": [unit, np.nan], "c": [np.nan, np.nan]})
         # The default
-        result = getattr(df, method)
+        result = getattr(df, method)(numeric_only=numeric_only)
         expected = Series([unit, unit, unit], index=idx, dtype="float64")
 
         # min_count=1
-        result = getattr(df, method)(min_count=1)
+        result = getattr(df, method)(numeric_only=numeric_only, min_count=1)
         expected = Series([unit, unit, np.nan], index=idx)
         tm.assert_series_equal(result, expected)
 
         # min_count=0
-        result = getattr(df, method)(min_count=0)
+        result = getattr(df, method)(numeric_only=numeric_only, min_count=0)
         expected = Series([unit, unit, unit], index=idx, dtype="float64")
         tm.assert_series_equal(result, expected)
 
-        result = getattr(df.iloc[1:], method)(min_count=1)
+        result = getattr(df.iloc[1:], method)(numeric_only=numeric_only, min_count=1)
         expected = Series([unit, np.nan, np.nan], index=idx)
         tm.assert_series_equal(result, expected)
 
         # min_count > 1
         df = DataFrame({"A": [unit] * 10, "B": [unit] * 5 + [np.nan] * 5})
-        result = getattr(df, method)(min_count=5)
+        result = getattr(df, method)(numeric_only=numeric_only, min_count=5)
         expected = Series(result, index=["A", "B"])
         tm.assert_series_equal(result, expected)
 
-        result = getattr(df, method)(min_count=6)
+        result = getattr(df, method)(numeric_only=numeric_only, min_count=6)
         expected = Series(result, index=["A", "B"])
         tm.assert_series_equal(result, expected)
 
@@ -1491,3 +1493,16 @@ def test_minmax_extensionarray(method, numeric_only):
         [getattr(int64_info, method)], index=Index(["Int64"], dtype="object")
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_prod_sum_min_count_mixed_object():
+    # https://github.com/pandas-dev/pandas/issues/41074
+    df = DataFrame([1, "a", True])
+
+    result = df.prod(axis=0, min_count=1, numeric_only=False)
+    expected = Series(["a"])
+    tm.assert_series_equal(result, expected)
+
+    msg = re.escape("unsupported operand type(s) for +: 'int' and 'str'")
+    with pytest.raises(TypeError, match=msg):
+        df.sum(axis=0, min_count=1, numeric_only=False)
