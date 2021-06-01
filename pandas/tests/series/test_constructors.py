@@ -1717,6 +1717,14 @@ class TestSeriesConstructors:
         result = result.reindex(index=expected.index)
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_dict_multiindex_reindex_flat(self):
+        # construction involves reindexing with a MultiIndex corner case
+        data = {("i", "i"): 0, ("i", "j"): 1, ("j", "i"): 2, "j": np.nan}
+        expected = Series(data)
+
+        result = Series(expected[:-1].to_dict(), index=expected.index)
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_dict_timedelta_index(self):
         # GH #12169 : Resample category data with timedelta index
         # construct Series from dict as data and TimedeltaIndex as index
