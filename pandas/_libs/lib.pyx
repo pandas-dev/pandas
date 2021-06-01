@@ -2029,11 +2029,6 @@ cdef bint is_period_array(ndarray[object] values):
     return True
 
 
-cdef class IntervalValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
-        return is_interval(value)
-
-
 cpdef bint is_interval_array(ndarray values):
     """
     Is this an ndarray of Interval (or np.nan) with a single dtype?
@@ -2084,7 +2079,7 @@ cpdef bint is_interval_array(ndarray values):
             return False
 
     if closed is None:
-        # we saw all-NaTs, no actual Intervals
+        # we saw all-NAs, no actual Intervals
         return False
     return True
 
