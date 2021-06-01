@@ -728,6 +728,15 @@ class DataFrame(NDFrame, OpsMixin):
             if index is None or columns is None:
                 raise ValueError("DataFrame constructor not properly called!")
 
+            # Argument 1 to "ensure_index" has incompatible type "Collection[Any]";
+            # expected "Union[Union[Union[ExtensionArray, ndarray],
+            # Index, Series], Sequence[Any]]"
+            index = ensure_index(index)  # type: ignore[arg-type]
+            # Argument 1 to "ensure_index" has incompatible type "Collection[Any]";
+            # expected "Union[Union[Union[ExtensionArray, ndarray],
+            # Index, Series], Sequence[Any]]"
+            columns = ensure_index(columns)  # type: ignore[arg-type]
+
             if not dtype:
                 dtype, _ = infer_dtype_from_scalar(data, pandas_dtype=True)
 
@@ -2325,6 +2334,7 @@ class DataFrame(NDFrame, OpsMixin):
             dtype = pandas_dtype(dtype)
 
         manager = get_option("mode.data_manager")
+        columns = ensure_index(columns)
         mgr = arrays_to_mgr(
             arrays,
             columns,
@@ -4703,6 +4713,7 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
         Examples
@@ -4766,6 +4777,7 @@ class DataFrame(NDFrame, OpsMixin):
         kwargs.pop("labels", None)
         return super().reindex(**kwargs)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def drop(
         self,
         labels=None,
@@ -10717,6 +10729,21 @@ NaN 12.3   33.0
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
+
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "cond", "other"]
+    )
+    def mask(
+        self,
+        cond,
+        other=np.nan,
+        inplace=False,
+        axis=None,
+        level=None,
+        errors="raise",
+        try_cast=lib.no_default,
+    ):
+        return super().mask(cond, other, inplace, axis, level, errors, try_cast)
 
 
 DataFrame._add_numeric_operations()

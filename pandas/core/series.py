@@ -4483,6 +4483,7 @@ Keep all original rows and also all original values
     def set_axis(self, labels, axis: Axis = ..., inplace: bool = ...) -> Series | None:
         ...
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
         Examples
@@ -4522,6 +4523,7 @@ Keep all original rows and also all original values
     def reindex(self, index=None, **kwargs):
         return super().reindex(index=index, **kwargs)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def drop(
         self,
         labels=None,
@@ -5363,6 +5365,21 @@ Keep all original rows and also all original values
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
+
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "cond", "other"]
+    )
+    def mask(
+        self,
+        cond,
+        other=np.nan,
+        inplace=False,
+        axis=None,
+        level=None,
+        errors="raise",
+        try_cast=lib.no_default,
+    ):
+        return super().mask(cond, other, inplace, axis, level, errors, try_cast)
 
     # ----------------------------------------------------------------------
     # Add index
