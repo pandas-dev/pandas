@@ -908,45 +908,35 @@ class TestIntervalIndex:
 
 def test_from_strings():
     """Test the IntervalIndex.from_strings class method."""
-    # Create some float IntervalIndex string representations.
-    indices = ["(0.0, 0.5]", "(0.5, 1.0]"]
-
-    # Create some datetime-like string representations
-    datetime_indices = ["(2015-07-01, 2016-08-01]", "(2016-08-01, 2018-09-01]"]
-
-    index = IntervalIndex.from_strings(indices)
-    dt_index = IntervalIndex.from_strings(datetime_indices)
-
-    assert index[0].left == 0.0
-    assert index[1].right == 1.0
-
-    assert dt_index[0].left.year == 2015
-    assert dt_index[1].right.month == 9
+    # Create (expected, string_repr) tuples for test-cases.
+    test_cases = [
+        (
+            IntervalIndex.from_breaks([0.0, 0.5, 1.0]),
+            ["(0.0, 0.5]", "(0.5, 1.0]"],
+        ),
+        (IntervalIndex.from_breaks([0, 5, 10]), ["(0, 5]", "(5, 10]"]),
+        (
+            IntervalIndex.from_breaks(
+                [Timestamp(2015, 7, 1), Timestamp(2016, 8, 1), Timestamp(2018, 9, 1)]
+            ),
+            ["(2015-07-01, 2016-08-01]", "(2016-08-01, 2018-09-01]"],
+        ),
+    ]
+    # Validate each test case.
+    for expected, string in test_cases:
+        parsed_index = IntervalIndex.from_strings(string)
+        assert np.array_equal(parsed_index, expected)
 
     # Create invalid interval indices (to make sure it fails correctly)
     wrong_indices = [
-        "('hello', 'there']",
-        "(0.1,0.1)",
-        "(0.0,0.5]",
+        ("('hello', 'there']", r"Could not parse string as Interval"),
+        ("(0.1,0.1)", r"Could not find opening '\(' and closing ']'"),
+        ("(0.0,0.5]", r"Delimiter ', ' .* not found"),
     ]
-
-    # Make sure that the wrong indices raise the appropriate error
-    try:
-        IntervalIndex.from_strings([wrong_indices[0]])
-    except ValueError as exception:
-        if "Could not parse string as Interval" not in str(exception):
-            raise exception
-    try:
-        IntervalIndex.from_strings([wrong_indices[1]])
-    except ValueError as exception:
-        if "Could not find opening '('" not in str(exception):
-            raise exception
-
-    try:
-        IntervalIndex.from_strings([wrong_indices[2]])
-    except ValueError as exception:
-        if "Delimiter ', ' (comma + space) not found" not in str(exception):
-            raise exception
+    # Validate that all cases raise ValueErrors with the correct message
+    for string, error in wrong_indices:
+        with pytest.raises(ValueError, match=error):
+            IntervalIndex.from_strings([string])
 
 
 def test_dir():

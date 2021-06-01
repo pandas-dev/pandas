@@ -609,9 +609,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 """\
         Examples
         --------
-        >>> pd.IntervalIndex.from_strings(["(0.0, 1.0]", "(1.0, 2.0]"])
-        IntervalIndex([(0.0, 1.0], (1.0, 2.0]],
-                       dtype='interval[float64, right]')
+        >>> pd.IntervalIndex.from_strings(["(0, 1]", "(1, 2]"])
+        IntervalIndex([(0, 1], (1, 2]],
+                       dtype='interval[int64, right]')
         """
             ),
         }
@@ -636,7 +636,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     f"brackets in string: '{string}'"
                 )
 
-            # Extract that part and try to split based on a comma and a space.
+            # Try to split 'left' and 'right' based on a comma and a space.
             breaks = breaks_match.string[1:-1].split(", ", 1)
 
             if len(breaks) != 2:
@@ -644,9 +644,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     f"Delimiter ', ' (comma + space) not found in string: {string}"
                 )
 
-            conversions: list[Callable] = [float, to_datetime, to_timedelta]
+            conversions: list[Callable] = [int, float, to_datetime, to_timedelta]
             # Try to parse the breaks first as floats, then datetime, then timedelta.
-            for conversion in conversions:
+            for i, conversion in enumerate(conversions):
+                # Check if all breaks can be parsed as integers.
+                if i == 0 and not all(b.isdigit() for b in breaks):
+                    continue
                 try:
                     interval = Interval(*map(conversion, breaks))
                     break
