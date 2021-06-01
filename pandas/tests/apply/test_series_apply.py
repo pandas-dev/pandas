@@ -115,6 +115,27 @@ def test_series_map_box_timestamps():
     ser.apply(func)
 
 
+def test_series_map_stringdtype():
+    # map test on StringDType, GH#40823
+    df1 = DataFrame(
+        {"col1": [pd.NA, "foo", "bar"]},
+        index=["id1", "id2", "id3"],
+        dtype=pd.StringDtype(),
+    )
+
+    df2 = DataFrame({"id": ["id4", "id2", "id1"]}, dtype=pd.StringDtype())
+
+    df2["col1"] = df2["id"].map(df1["col1"])
+
+    result = df2
+    expected = DataFrame(
+        {"id": ["id4", "id2", "id1"], "col1": [pd.NA, "foo", pd.NA]},
+        dtype=pd.StringDtype(),
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_apply_box():
     # ufunc will not be boxed. Same test cases as the test_map_box
     vals = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]
