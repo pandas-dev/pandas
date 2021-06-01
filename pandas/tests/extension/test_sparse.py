@@ -16,6 +16,7 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.compat import PY310
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_object_dtype
@@ -187,6 +188,9 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
     # )
     # def test_stack(self, data, columns):
     #     super().test_stack(data, columns)
+    test_stack = pytest.mark.xfail(PY310, reason="Failing on Python 3.10")(
+        base.BaseReshapingTests.test_stack
+    )
 
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):

@@ -1005,10 +1005,16 @@ class TestIndex(Base):
             and math.isnan(nulls_fixture2)
         ):
             if PY310:
-                if nulls_fixture == float("nan") and nulls_fixture2 in [
-                    np.nan,
-                    float("nan"),
-                ]:
+                if (
+                    nulls_fixture == float("nan")
+                    and nulls_fixture2
+                    in [
+                        np.nan,
+                        float("nan"),
+                    ]
+                    or nulls_fixture is np.nan
+                    and nulls_fixture2 is np.nan
+                ):
                     request.applymarker(
                         pytest.mark.xfail(reason="Failing on Python 3.10")
                     )

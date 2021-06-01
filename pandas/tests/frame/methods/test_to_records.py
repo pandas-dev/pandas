@@ -3,11 +3,7 @@ from collections import abc
 import numpy as np
 import pytest
 
-
-from pandas.compat import (
-    is_numpy_dev,
-    PY310,
-)
+from pandas.compat import is_numpy_dev
 
 from pandas import (
     CategoricalDtype,
