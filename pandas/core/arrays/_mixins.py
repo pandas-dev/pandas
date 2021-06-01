@@ -18,6 +18,7 @@ from pandas._typing import (
     F,
     NumpySorter,
     PositionalIndexer2D,
+    PythonScalar,
     Shape,
     type_t,
 )
@@ -191,13 +192,17 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         npvalue = self._validate_searchsorted_value(value)
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def _validate_searchsorted_value(self, value: ArrayLike | object) -> np.ndarray:
+    def _validate_searchsorted_value(
+        self, value: ArrayLike | object
+    ) -> np.ndarray | PythonScalar:
         if isinstance(value, ExtensionArray):
             return value.to_numpy()
         elif isinstance(value, np.ndarray):
             return value
         else:
-            return np.array([value])
+            # While we also can support DatetimeLikeScalar, numpy.searchsorted
+            # does not accept that as an argument
+            return cast(PythonScalar, value)
 
     @doc(ExtensionArray.shift)
     def shift(self, periods=1, fill_value=None, axis=0):
