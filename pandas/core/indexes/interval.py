@@ -424,12 +424,6 @@ class IntervalIndex(ExtensionIndex):
         d.update(self._get_attributes_dict())
         return _new_IntervalIndex, (type(self), d), None
 
-    @Appender(Index.astype.__doc__)
-    def astype(self, dtype, copy: bool = True):
-        with rewrite_exception("IntervalArray", type(self).__name__):
-            new_values = self._values.astype(dtype, copy=copy)
-        return Index(new_values, dtype=new_values.dtype, name=self.name)
-
     @property
     def inferred_type(self) -> str:
         """Return a string of the type inferred from the values"""
@@ -1169,6 +1163,8 @@ def interval_range(
     if periods is not None:
         periods += 1
 
+    breaks: np.ndarray | TimedeltaIndex | DatetimeIndex
+
     if is_number(endpoint):
         # force consistency between start/end/freq (lower end if freq skips it)
         if com.all_not_none(start, end, freq):
@@ -1194,16 +1190,8 @@ def interval_range(
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
-            # error: Incompatible types in assignment (expression has type
-            # "DatetimeIndex", variable has type "ndarray")
-            breaks = date_range(  # type: ignore[assignment]
-                start=start, end=end, periods=periods, freq=freq
-            )
+            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
         else:
-            # error: Incompatible types in assignment (expression has type
-            # "TimedeltaIndex", variable has type "ndarray")
-            breaks = timedelta_range(  # type: ignore[assignment]
-                start=start, end=end, periods=periods, freq=freq
-            )
+            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)

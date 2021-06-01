@@ -442,12 +442,6 @@ class Categorical(  # type: ignore[misc]
                         "explicitly specify the categories order "
                         "by passing in a categories argument."
                     ) from err
-            except ValueError as err:
-
-                # TODO(EA2D)
-                raise NotImplementedError(
-                    "> 1 ndim Categorical are not supported at this time"
-                ) from err
 
             # we're inferring from values
             dtype = CategoricalDtype(categories, dtype.ordered)
