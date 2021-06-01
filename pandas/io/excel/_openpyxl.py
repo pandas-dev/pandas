@@ -76,7 +76,7 @@ class OpenpyxlWriter(ExcelWriter):
         """
         Save workbook to disk.
         """
-        # TODO: Should this handle errors from write_only mode, given that the book can be saved only once?
+        # TODO: Handle errors from saving more than once
         self.book.save(self.handles.handle) 
         if "r+" in self.mode and not isinstance(self.handles.handle, mmap.mmap):
             # truncate file to the written content
