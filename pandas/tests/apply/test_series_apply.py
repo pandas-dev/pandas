@@ -117,23 +117,16 @@ def test_series_map_box_timestamps():
 
 def test_series_map_stringdtype():
     # map test on StringDType, GH#40823
-    df1 = DataFrame(
-        {"col1": [pd.NA, "foo", "bar"]},
+    ser1 = Series(
+        data=["cat", "dog", "rabbit"],
         index=["id1", "id2", "id3"],
         dtype=pd.StringDtype(),
     )
+    ser2 = Series(data=["id3", "id2", "id1", "id7000"], dtype=pd.StringDtype())
+    result = ser2.map(ser1)
+    expected = Series(data=["rabbit", "dog", "cat", pd.NA], dtype=pd.StringDtype())
 
-    df2 = DataFrame({"id": ["id4", "id2", "id1"]}, dtype=pd.StringDtype())
-
-    df2["col1"] = df2["id"].map(df1["col1"])
-
-    result = df2
-    expected = DataFrame(
-        {"id": ["id4", "id2", "id1"], "col1": [pd.NA, "foo", pd.NA]},
-        dtype=pd.StringDtype(),
-    )
-
-    tm.assert_frame_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_apply_box():
