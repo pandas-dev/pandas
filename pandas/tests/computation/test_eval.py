@@ -1,4 +1,3 @@
-from distutils.version import LooseVersion
 from functools import reduce
 from itertools import product
 import operator
@@ -12,10 +11,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    is_platform_windows,
-    np_version_under1p17,
-)
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
@@ -34,7 +29,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.computation import pytables
-from pandas.core.computation.check import NUMEXPR_VERSION
 from pandas.core.computation.engines import (
     ENGINES,
     NumExprClobberingError,
@@ -80,20 +74,8 @@ def parser(request):
     return request.param
 
 
-@pytest.fixture
-def ne_lt_2_6_9():
-    if NUMEXPR_INSTALLED and NUMEXPR_VERSION >= LooseVersion("2.6.9"):
-        pytest.skip("numexpr is >= 2.6.9")
-    return "numexpr"
-
-
 def _get_unary_fns_for_ne():
-    if NUMEXPR_INSTALLED:
-        if NUMEXPR_VERSION >= LooseVersion("2.6.9"):
-            return list(_unary_math_ops)
-        else:
-            return [x for x in _unary_math_ops if x not in ["floor", "ceil"]]
-    return []
+    return list(_unary_math_ops) if NUMEXPR_INSTALLED else []
 
 
 @pytest.fixture(params=_get_unary_fns_for_ne())
@@ -220,22 +202,6 @@ class TestEvalNumexprPandas:
 
     @pytest.mark.parametrize("op", _good_arith_ops)
     def test_binary_arith_ops(self, op, lhs, rhs, request):
-
-        if (
-            op == "/"
-            and isinstance(lhs, DataFrame)
-            and isinstance(rhs, DataFrame)
-            and not lhs.isna().any().any()
-            and rhs.shape == (10, 5)
-            and np_version_under1p17
-            and is_platform_windows()
-            and compat.PY38
-        ):
-            mark = pytest.mark.xfail(
-                reason="GH#37328 floating point precision on Windows builds"
-            )
-            request.node.add_marker(mark)
-
         self.check_binary_arith_op(lhs, op, rhs)
 
     def test_modulus(self, lhs, rhs):
@@ -1785,13 +1751,6 @@ class TestMathPythonPython:
         with np.errstate(all="ignore"):
             expect = getattr(np, fn)(a)
         tm.assert_series_equal(got, expect, check_names=False)
-
-    @pytest.mark.parametrize("fn", ["floor", "ceil"])
-    def test_floor_and_ceil_functions_raise_error(self, ne_lt_2_6_9, fn):
-        msg = f'"{fn}" is not a supported function'
-        with pytest.raises(ValueError, match=msg):
-            expr = f"{fn}(100)"
-            self.eval(expr)
 
     @pytest.mark.parametrize("fn", _binary_math_ops)
     def test_binary_functions(self, fn):

@@ -633,7 +633,7 @@ even if some categories are not present in the data:
         data=[[1, 2, 3], [4, 5, 6]],
         columns=pd.MultiIndex.from_arrays([["A", "B", "B"], columns]),
     )
-    df.sum(axis=1, level=1)
+    df.groupby(axis=1, level=1).sum()
 
 Groupby will also show "unused" categories:
 
@@ -954,6 +954,7 @@ categorical (categories and ordering). So if you read back the CSV file you have
 relevant columns back to ``category`` and assign the right categories and categories ordering.
 
 .. ipython:: python
+    :okwarning:
 
     import io
 

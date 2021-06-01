@@ -32,7 +32,6 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import maybe_convert_platform
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -87,7 +86,7 @@ from pandas.core.ops import (
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
-_interval_shared_docs = {}
+_interval_shared_docs: dict[str, str] = {}
 
 _shared_docs_kwargs = {
     "klass": "IntervalArray",
@@ -1517,7 +1516,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left=new_left, right=new_right)
 
     @Appender(_extension_array_shared_docs["repeat"] % _shared_docs_kwargs)
-    def repeat(self: IntervalArrayT, repeats: int, axis=None) -> IntervalArrayT:
+    def repeat(
+        self: IntervalArrayT,
+        repeats: int | Sequence[int],
+        axis: int | None = None,
+    ) -> IntervalArrayT:
         nv.validate_repeat((), {"axis": axis})
         left_repeat = self.left.repeat(repeats)
         right_repeat = self.right.repeat(repeats)
@@ -1646,4 +1649,6 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
     else:
         values = extract_array(values, extract_numpy=True)
 
-    return maybe_convert_platform(values)
+    if not hasattr(values, "dtype"):
+        return np.asarray(values)
+    return values

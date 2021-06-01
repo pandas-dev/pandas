@@ -1275,7 +1275,9 @@ class GenericArrayFormatter:
             float_format = get_option("display.float_format")
             if float_format is None:
                 precision = get_option("display.precision")
-                float_format = lambda x: f"{x: .{precision:d}f}"
+                float_format = lambda x: _trim_zeros_single_float(
+                    f"{x: .{precision:d}f}"
+                )
         else:
             float_format = self.float_format
 
@@ -1316,7 +1318,6 @@ class GenericArrayFormatter:
                 "ExtensionArray formatting should use ExtensionArrayFormatter"
             )
         inferred = lib.map_infer(vals, is_float)
-        inferred = cast(np.ndarray, inferred)
         is_float_type = (
             inferred
             # vals may have 2 or more dimensions
@@ -1331,7 +1332,7 @@ class GenericArrayFormatter:
             if not is_float_type[i] and leading_space:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
-                fmt_values.append(_trim_zeros_single_float(float_format(v)))
+                fmt_values.append(float_format(v))
             else:
                 if leading_space is False:
                     # False specifically, so that the default is
@@ -1663,19 +1664,9 @@ def format_percentiles(
     ).astype(int)
     prec = max(1, prec)
     out = np.empty_like(percentiles, dtype=object)
-    # error: No overload variant of "__getitem__" of "list" matches argument type
-    # "Union[bool_, ndarray]"
-    out[int_idx] = (
-        percentiles[int_idx].astype(int).astype(str)  # type: ignore[call-overload]
-    )
+    out[int_idx] = percentiles[int_idx].astype(int).astype(str)
 
-    # error: Item "float" of "Union[Any, float, str]" has no attribute "round"
-    # error: Item "str" of "Union[Any, float, str]" has no attribute "round"
-    # error: Invalid index type "Union[bool_, Any]" for "Union[ndarray, List[Union[int,
-    # float]], List[float], List[Union[str, float]]]"; expected type "int"
-    out[~int_idx] = (
-        percentiles[~int_idx].round(prec).astype(str)  # type: ignore[union-attr,index]
-    )
+    out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
     return [i + "%" for i in out]
 
 

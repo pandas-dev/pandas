@@ -10,6 +10,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Series,
+    StringDtype,
     Timestamp,
     date_range,
     isna,
@@ -709,3 +710,64 @@ def test_where_copies_with_noop(frame_or_series):
     where_res *= 2
 
     tm.assert_equal(result, expected)
+
+
+def test_where_string_dtype(frame_or_series):
+    # GH40824
+    obj = frame_or_series(
+        ["a", "b", "c", "d"], index=["id1", "id2", "id3", "id4"], dtype=StringDtype()
+    )
+    filtered_obj = frame_or_series(
+        ["b", "c"], index=["id2", "id3"], dtype=StringDtype()
+    )
+    filter_ser = Series([False, True, True, False])
+
+    result = obj.where(filter_ser, filtered_obj)
+    expected = frame_or_series(
+        [pd.NA, "b", "c", pd.NA],
+        index=["id1", "id2", "id3", "id4"],
+        dtype=StringDtype(),
+    )
+    tm.assert_equal(result, expected)
+
+
+def test_where_bool_comparison():
+    # GH 10336
+    df_mask = DataFrame(
+        {"AAA": [True] * 4, "BBB": [False] * 4, "CCC": [True, False, True, False]}
+    )
+    result = df_mask.where(df_mask == False)  # noqa:E712
+    expected = DataFrame(
+        {
+            "AAA": np.array([np.nan] * 4, dtype=object),
+            "BBB": [False] * 4,
+            "CCC": [np.nan, False, np.nan, False],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_where_none_nan_coerce():
+    # GH 15613
+    expected = DataFrame(
+        {
+            "A": [Timestamp("20130101"), pd.NaT, Timestamp("20130103")],
+            "B": [1, 2, np.nan],
+        }
+    )
+    result = expected.where(expected.notnull(), None)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_where_non_keyword_deprecation():
+    # GH 41485
+    s = DataFrame(range(5))
+    msg = (
+        "In a future version of pandas all arguments of "
+        "DataFrame.where except for the arguments 'cond' "
+        "and 'other' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.where(s > 1, 10, False)
+    expected = DataFrame([10, 10, 2, 3, 4])
+    tm.assert_frame_equal(expected, result)

@@ -23,6 +23,7 @@ from pandas.core import (
 )
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
@@ -63,6 +64,7 @@ class PandasArray(
     _typ = "npy_extension"
     __array_priority__ = 1000
     _ndarray: np.ndarray
+    _dtype: PandasDtype
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -82,8 +84,8 @@ class PandasArray(
         if copy:
             values = values.copy()
 
-        self._ndarray = values
-        self._dtype = PandasDtype(values.dtype)
+        dtype = PandasDtype(values.dtype)
+        super().__init__(values, dtype)
 
     @classmethod
     def _from_sequence(
@@ -394,7 +396,9 @@ class PandasArray(
         if isinstance(other, PandasArray):
             other = other._ndarray
 
+        other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
         pd_op = ops.get_array_op(op)
+        other = ensure_wrapped_if_datetimelike(other)
         with np.errstate(all="ignore"):
             result = pd_op(self._ndarray, other)
 
