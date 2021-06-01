@@ -62,12 +62,10 @@ class OpenpyxlWriter(ExcelWriter):
 
         else:
             try:
-                # Sheets are not automatically created in the workbook with write_only, which is good for this case
-                # 
+                # Sheets are not automatically created in the workbook
                 self.book = Workbook(write_only=True)
             except ImportError:
                 print("Warning: lxml is not installed, creating workbook with write_only disabled. Memory usage may be much higher.")
-                # Create workbook object with default optimized_write=True.
                 self.book = Workbook()
 
                 if self.book.worksheets:
@@ -77,6 +75,7 @@ class OpenpyxlWriter(ExcelWriter):
         """
         Save workbook to disk.
         """
+        # TODO: Should this handle errors from write_only mode, given that the book can be saved only once?
         self.book.save(self.handles.handle) 
         if "r+" in self.mode and not isinstance(self.handles.handle, mmap.mmap):
             # truncate file to the written content
