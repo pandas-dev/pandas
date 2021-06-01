@@ -510,11 +510,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Descriptive Properties
 
     def _box_func(self, x) -> Timestamp | NaTType:
-        with warnings.catch_warnings():
-            # filter out warnings about Timestamp.freq
-            warnings.filterwarnings("ignore", category=FutureWarning)
-
-            return Timestamp(x, freq=self.freq, tz=self.tz)
+        ts = Timestamp(x, tz=self.tz)
+        if ts is not NaT:
+            # GH#41586
+            # do this instead of passing to the constructor to avoid FutureWarning
+            ts._set_freq(self.freq)
+        return ts
 
     @property
     # error: Return type "Union[dtype, DatetimeTZDtype]" of "dtype"

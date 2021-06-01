@@ -27,3 +27,4 @@ cdef class _Timestamp(ABCTimestamp):
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1
     cpdef void _set_freq(self, freq)
+    cpdef bint _needs_field_deprecation_warning(_Timestamp self, freq)
