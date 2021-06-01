@@ -6,6 +6,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Iterable,
+    Sequence,
     cast,
 )
 import warnings
@@ -763,8 +765,8 @@ class Block(PandasObject):
     @final
     def _replace_list(
         self,
-        src_list: list[Any],
-        dest_list: list[Any],
+        src_list: Iterable[Any],
+        dest_list: Sequence[Any],
         inplace: bool = False,
         regex: bool = False,
     ) -> list[Block]:
@@ -778,6 +780,14 @@ class Block(PandasObject):
             # We likely got here by tiling value inside NDFrame.replace,
             #  so un-tile here
             return self.replace(src_list, dest_list[0], inplace, regex)
+
+        # https://github.com/pandas-dev/pandas/issues/40371
+        # the following pairs check code caused a regression so we catch that case here
+        # until the issue is fixed properly in can_hold_element
+
+        # error: "Iterable[Any]" has no attribute "tolist"
+        if hasattr(src_list, "tolist"):
+            src_list = src_list.tolist()  # type: ignore[attr-defined]
 
         # Exclude anything that we know we won't contain
         pairs = [
