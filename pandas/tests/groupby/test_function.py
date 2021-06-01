@@ -1206,3 +1206,10 @@ def test_groupby_sum_below_mincount_nullable_integer():
     result = grouped.sum(min_count=2)
     expected = DataFrame({"b": [pd.NA] * 3, "c": [pd.NA] * 3}, dtype="Int64", index=idx)
     tm.assert_frame_equal(result, expected)
+
+def test_groupby_empty_dataset():
+    # 41575
+    df = DataFrame(columns=["A", "B", "C"])
+    result = df.groupby("A").B.describe().reset_index(drop=True)
+    expected = Series([], name="B", dtype=np.object_)
+    tm.assert_series_equal(result, expected)
