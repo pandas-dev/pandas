@@ -62,7 +62,7 @@ jobs:
           ENV_FILE: ci/deps/azure-38-numpydev.yaml
           CONDA_PY: "38"
           PATTERN: "not slow and not network"
-          TEST_ARGS: "-W error"
+          TEST_ARGS: "-W error -W \"ignore:Promotion of numbers and bools:FutureWarning\""
           PANDAS_TESTING_MODE: "deprecate"
           EXTRA_APT: "xsel"
 

@@ -79,6 +79,7 @@ class TestFrameComparisons:
                 msgs = [
                     r"Invalid comparison between dtype=datetime64\[ns\] and ndarray",
                     "invalid type promotion",
+                    "could not be promoted",
                     (
                         # npdev 1.20.0
                         r"The DTypes <class 'numpy.dtype\[.*\]'> and "
