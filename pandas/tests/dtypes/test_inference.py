@@ -1169,7 +1169,7 @@ class TestTypeInference:
         ],
     )
     def test_infer_datetimelike_array_datetime(self, data):
-        assert lib.infer_datetimelike_array(data) == "datetime"
+        assert lib.infer_datetimelike_array(data) == ("datetime", False)
 
     @pytest.mark.parametrize(
         "data",
@@ -1181,11 +1181,11 @@ class TestTypeInference:
         ],
     )
     def test_infer_datetimelike_array_timedelta(self, data):
-        assert lib.infer_datetimelike_array(data) == "timedelta"
+        assert lib.infer_datetimelike_array(data) == ("timedelta", False)
 
     def test_infer_datetimelike_array_date(self):
         arr = [date(2017, 6, 12), date(2017, 3, 11)]
-        assert lib.infer_datetimelike_array(arr) == "date"
+        assert lib.infer_datetimelike_array(arr) == ("date", False)
 
     @pytest.mark.parametrize(
         "data",
@@ -1200,7 +1200,7 @@ class TestTypeInference:
         ],
     )
     def test_infer_datetimelike_array_mixed(self, data):
-        assert lib.infer_datetimelike_array(data) == "mixed"
+        assert lib.infer_datetimelike_array(data)[0] == "mixed"
 
     @pytest.mark.parametrize(
         "first, expected",
@@ -1218,7 +1218,7 @@ class TestTypeInference:
     @pytest.mark.parametrize("second", [None, np.nan])
     def test_infer_datetimelike_array_nan_nat_like(self, first, second, expected):
         first.append(second)
-        assert lib.infer_datetimelike_array(first) == expected
+        assert lib.infer_datetimelike_array(first) == (expected, False)
 
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])

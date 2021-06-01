@@ -679,6 +679,7 @@ class TestSeriesDatetimeValues:
             [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],
         ],
     )
+    @pytest.mark.filterwarnings("ignore:Inferring datetime64:FutureWarning")
     def test_isocalendar(self, input_series, expected_output):
         result = pd.to_datetime(Series(input_series)).dt.isocalendar()
         expected_frame = DataFrame(

@@ -1543,7 +1543,7 @@ def maybe_infer_to_datetimelike(
         else:
             return td_values.reshape(shape)
 
-    inferred_type = lib.infer_datetimelike_array(ensure_object(v))
+    inferred_type, seen_str = lib.infer_datetimelike_array(ensure_object(v))
 
     if inferred_type == "datetime":
         # error: Incompatible types in assignment (expression has type "ExtensionArray",
@@ -1572,6 +1572,15 @@ def maybe_infer_to_datetimelike(
                 # "ExtensionArray", variable has type "Union[ndarray, List[Any]]")
                 value = try_datetime(v)  # type: ignore[assignment]
 
+    if value.dtype.kind in ["m", "M"] and seen_str:
+        warnings.warn(
+            f"Inferring {value.dtype} from data containing strings is deprecated "
+            "and will be removed in a future version. To retain the old behavior "
+            "explicitly pass Series(data, dtype={value.dtype})",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        # return v.reshape(shape)
     return value
 
 
