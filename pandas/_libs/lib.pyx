@@ -1187,6 +1187,7 @@ cdef class Seen:
         bint timedelta_       # seen_timedelta
         bint datetimetz_      # seen_datetimetz
         bint period_          # seen_period
+        bint interval_        # seen_interval
 
     def __cinit__(self, bint coerce_numeric=False):
         """
@@ -1212,6 +1213,7 @@ cdef class Seen:
         self.timedelta_ = False
         self.datetimetz_ = False
         self.period_ = False
+        self.interval_ = False
         self.coerce_numeric = coerce_numeric
 
     cdef inline bint check_uint64_conflict(self) except -1:
@@ -1461,7 +1463,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     for i in range(n):
         val = values[i]
 
-        # do not use is_nul_datetimelike to keep
+        # do not use is_null_datetimelike to keep
         # np.datetime64('nat') and np.timedelta64('nat')
         if val is None or util.is_nan(val):
             pass
@@ -2031,16 +2033,58 @@ cdef bint is_period_array(ndarray[object] values):
     return True
 
 
-cdef class IntervalValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
-        return is_interval(value)
-
-
 cpdef bint is_interval_array(ndarray values):
+    """
+    Is this an ndarray of Interval (or np.nan) with a single dtype?
+    """
     cdef:
-        IntervalValidator validator = IntervalValidator(len(values),
-                                                        skipna=True)
-    return validator.validate(values)
+        Py_ssize_t i, n = len(values)
+        str closed = None
+        bint numeric = False
+        bint dt64 = False
+        bint td64 = False
+        object val
+
+    if len(values) == 0:
+        return False
+
+    for val in values:
+        if is_interval(val):
+            if closed is None:
+                closed = val.closed
+                numeric = (
+                    util.is_float_object(val.left)
+                    or util.is_integer_object(val.left)
+                )
+                td64 = is_timedelta(val.left)
+                dt64 = PyDateTime_Check(val.left)
+            elif val.closed != closed:
+                # mismatched closedness
+                return False
+            elif numeric:
+                if not (
+                        util.is_float_object(val.left)
+                        or util.is_integer_object(val.left)
+                    ):
+                    # i.e. datetime64 or timedelta64
+                    return False
+            elif td64:
+                if not is_timedelta(val.left):
+                    return False
+            elif dt64:
+                if not PyDateTime_Check(val.left):
+                    return False
+            else:
+                raise ValueError(val)
+        elif util.is_nan(val) or val is None:
+            pass
+        else:
+            return False
+
+    if closed is None:
+        # we saw all-NAs, no actual Intervals
+        return False
+    return True
 
 
 @cython.boundscheck(False)
@@ -2277,6 +2321,7 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint convert_datetime=False,
                           bint convert_timedelta=False,
                           bint convert_period=False,
+                          bint convert_interval=False,
                           bint convert_to_nullable_integer=False) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
@@ -2300,6 +2345,9 @@ def maybe_convert_objects(ndarray[object] objects,
     convert_period : bool, default False
         If an array-like object contains only (homogeneous-freq) Period values
         or NaT, whether to convert and return a PeriodArray.
+    convert_interval : bool, default False
+        If an array-like object contains only Interval objects (with matching
+        dtypes and closedness) or NaN, whether to convert to IntervalArray.
     convert_to_nullable_integer : bool, default False
         If an array-like object contains only integer values (and NaN) is
         encountered, whether to convert and return an IntegerArray.
@@ -2430,6 +2478,13 @@ def maybe_convert_objects(ndarray[object] objects,
             except (ValueError, TypeError):
                 seen.object_ = True
                 break
+        elif is_interval(val):
+            if convert_interval:
+                seen.interval_ = True
+                break
+            else:
+                seen.object_ = True
+                break
         else:
             seen.object_ = True
             break
@@ -2451,6 +2506,17 @@ def maybe_convert_objects(ndarray[object] objects,
 
             # unbox to PeriodArray
             return pi._data
+        seen.object_ = True
+
+    if seen.interval_:
+        if is_interval_array(objects):
+            from pandas import IntervalIndex
+            ii = IntervalIndex(objects)
+
+            # unbox to IntervalArray
+            return ii._data
+
+        seen.object_ = True
 
     if not seen.object_:
         result = None
