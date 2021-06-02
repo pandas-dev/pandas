@@ -66,28 +66,15 @@ from pandas.core.indexes.api import (
     MultiIndex,
 )
 
+# Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
+suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
+    "ignore:Promotion of numbers and bools:FutureWarning"
+)
 
 # ----------------------------------------------------------------
 # Configuration / Settings
 # ----------------------------------------------------------------
 # pytest
-def pytest_configure(config):
-    # Register marks to avoid warnings in pandas.test()
-    # sync with setup.cfg
-    config.addinivalue_line("markers", "single: mark a test as single cpu only")
-    config.addinivalue_line("markers", "slow: mark a test as slow")
-    config.addinivalue_line("markers", "network: mark a test as network")
-    config.addinivalue_line(
-        "markers", "db: tests requiring a database (mysql or postgres)"
-    )
-    config.addinivalue_line("markers", "high_memory: mark a test as a high-memory only")
-    config.addinivalue_line("markers", "clipboard: mark a pd.read_clipboard test")
-    config.addinivalue_line(
-        "markers", "arm_slow: mark a test as slow for arm64 architecture"
-    )
-    config.addinivalue_line(
-        "markers", "arraymanager: mark a test to run with ArrayManager enabled"
-    )
 
 
 def pytest_addoption(parser):
@@ -129,6 +116,8 @@ def pytest_collection_modifyitems(items):
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
+
+        item.add_marker(suppress_npdev_promotion_warning)
 
 
 # Hypothesis
@@ -1168,6 +1157,27 @@ def object_dtype(request):
     * object
     * 'object'
     """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        "object",
+        "string",
+        pytest.param(
+            "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+        ),
+    ]
+)
+def any_string_dtype(request):
+    """
+    Parametrized fixture for string dtypes.
+    * 'object'
+    * 'string'
+    * 'arrow_string'
+    """
+    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
     return request.param
 
 

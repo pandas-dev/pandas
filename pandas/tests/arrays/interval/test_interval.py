@@ -165,7 +165,7 @@ def test_repr():
 # Arrow interaction
 
 
-pyarrow_skip = td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+pyarrow_skip = td.skip_if_no("pyarrow")
 
 
 @pyarrow_skip
@@ -270,6 +270,13 @@ def test_arrow_table_roundtrip(breaks):
     result = table2.to_pandas()
     expected = pd.concat([df, df], ignore_index=True)
     tm.assert_frame_equal(result, expected)
+
+    # GH-41040
+    table = pa.table(
+        [pa.chunked_array([], type=table.column(0).type)], schema=table.schema
+    )
+    result = table.to_pandas()
+    tm.assert_frame_equal(result, expected[0:0])
 
 
 @pyarrow_skip

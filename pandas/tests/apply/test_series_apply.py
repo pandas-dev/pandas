@@ -262,7 +262,9 @@ def test_transform_partial_failure(op, request):
     # GH 35964
     if op in ("ffill", "bfill", "pad", "backfill", "shift"):
         request.node.add_marker(
-            pytest.mark.xfail(reason=f"{op} is successful on any dtype")
+            pytest.mark.xfail(
+                raises=AssertionError, reason=f"{op} is successful on any dtype"
+            )
         )
     if op in ("rank", "fillna"):
         pytest.skip(f"{op} doesn't raise TypeError on object")
@@ -441,8 +443,8 @@ def test_non_callable_aggregates(how):
                 ("sum", "abc"),
                 ("max", "c"),
                 ("min", "a"),
-                ("all", "c"),  # see GH12863
-                ("any", "a"),
+                ("all", True),
+                ("any", True),
             ],
         ),
     ),
@@ -857,7 +859,9 @@ def test_apply_to_timedelta():
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
     a = pd.to_timedelta(list_of_strings)  # noqa
-    b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
+    with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
+        ser = Series(list_of_strings)
+    b = ser.apply(pd.to_timedelta)  # noqa
     # Can't compare until apply on a Series gives the correct dtype
     # assert_series_equal(a, b)
 

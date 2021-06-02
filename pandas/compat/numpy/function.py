@@ -15,7 +15,6 @@ This module provides a set of commonly used default arguments for functions and
 methods that are spread throughout the codebase. This module will make it
 easier to adjust to future upstream changes in the analogous numpy signatures.
 """
-from distutils.version import LooseVersion
 from typing import (
     Any,
     Dict,
@@ -23,10 +22,7 @@ from typing import (
     Union,
 )
 
-from numpy import (
-    __version__,
-    ndarray,
-)
+from numpy import ndarray
 
 from pandas._libs.lib import (
     is_bool,
@@ -127,10 +123,7 @@ ARGSORT_DEFAULTS: Dict[str, Optional[Union[int, str]]] = {}
 ARGSORT_DEFAULTS["axis"] = -1
 ARGSORT_DEFAULTS["kind"] = "quicksort"
 ARGSORT_DEFAULTS["order"] = None
-
-if LooseVersion(__version__) >= LooseVersion("1.17.0"):
-    # GH-26361. NumPy added radix sort and changed default to None.
-    ARGSORT_DEFAULTS["kind"] = None
+ARGSORT_DEFAULTS["kind"] = None
 
 
 validate_argsort = CompatValidator(

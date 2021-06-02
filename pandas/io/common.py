@@ -618,7 +618,12 @@ def get_handle(
 
     # memory mapping needs to be the first step
     handle, memory_map, handles = _maybe_memory_map(
-        handle, memory_map, ioargs.encoding, ioargs.mode, errors
+        handle,
+        memory_map,
+        ioargs.encoding,
+        ioargs.mode,
+        errors,
+        ioargs.compression["method"] not in _compression_to_extension,
     )
 
     is_path = isinstance(handle, str)
@@ -820,7 +825,18 @@ class _MMapWrapper(abc.Iterator):
 
     """
 
-    def __init__(self, f: IO):
+    def __init__(
+        self,
+        f: IO,
+        encoding: str = "utf-8",
+        errors: str = "strict",
+        decode: bool = True,
+    ):
+        self.encoding = encoding
+        self.errors = errors
+        self.decoder = codecs.getincrementaldecoder(encoding)(errors=errors)
+        self.decode = decode
+
         self.attributes = {}
         for attribute in ("seekable", "readable", "writeable"):
             if not hasattr(f, attribute):
@@ -836,19 +852,30 @@ class _MMapWrapper(abc.Iterator):
     def __iter__(self) -> _MMapWrapper:
         return self
 
+    def read(self, size: int = -1) -> str | bytes:
+        # CSV c-engine uses read instead of iterating
+        content: bytes = self.mmap.read(size)
+        if self.decode:
+            # memory mapping is applied before compression. Encoding should
+            # be applied to the de-compressed data.
+            return content.decode(self.encoding, errors=self.errors)
+        return content
+
     def __next__(self) -> str:
         newbytes = self.mmap.readline()
 
         # readline returns bytes, not str, but Python's CSV reader
         # expects str, so convert the output to str before continuing
-        newline = newbytes.decode("utf-8")
+        newline = self.decoder.decode(newbytes)
 
         # mmap doesn't raise if reading past the allocated
         # data but instead returns an empty string, so raise
         # if that is returned
         if newline == "":
             raise StopIteration
-        return newline
+
+        # IncrementalDecoder seems to push newline to the next line
+        return newline.lstrip("\n")
 
 
 def _maybe_memory_map(
@@ -857,6 +884,7 @@ def _maybe_memory_map(
     encoding: str,
     mode: str,
     errors: str | None,
+    decode: bool,
 ) -> tuple[FileOrBuffer, bool, list[Buffer]]:
     """Try to memory map file/buffer."""
     handles: list[Buffer] = []
@@ -877,7 +905,10 @@ def _maybe_memory_map(
     try:
         # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
         # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
-        wrapped = cast(mmap.mmap, _MMapWrapper(handle))  # type: ignore[arg-type]
+        wrapped = cast(
+            mmap.mmap,
+            _MMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
+        )
         handle.close()
         handles.remove(handle)
         handles.append(wrapped)

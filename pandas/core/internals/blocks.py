@@ -6,6 +6,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Iterable,
+    Sequence,
     cast,
 )
 import warnings
@@ -42,11 +44,14 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
+    is_1d_only_ea_dtype,
+    is_1d_only_ea_obj,
     is_categorical_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
     is_sparse,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -225,14 +230,6 @@ class Block(PandasObject):
         return self.values  # type: ignore[return-value]
 
     @final
-    def get_block_values_for_json(self) -> np.ndarray:
-        """
-        This is used in the JSON C code.
-        """
-        # TODO(EA2D): reshape will be unnecessary with 2D EAs
-        return np.asarray(self.values).reshape(self.shape)
-
-    @final
     @cache_readonly
     def fill_value(self):
         # Used in reindex_indexer
@@ -269,7 +266,7 @@ class Block(PandasObject):
         if placement is None:
             placement = self._mgr_locs
 
-        if values.dtype.kind == "m":
+        if values.dtype.kind in ["m", "M"]:
             # TODO: remove this once fastparquet has stopped relying on it
             values = ensure_wrapped_if_datetimelike(values)
 
@@ -398,7 +395,7 @@ class Block(PandasObject):
                 return []
             raise
 
-        if np.ndim(result) == 0:
+        if self.values.ndim == 1:
             # TODO(EA2D): special case not needed with 2D EAs
             res_values = np.array([[result]])
         else:
@@ -415,7 +412,11 @@ class Block(PandasObject):
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
             nbs = []
             for i, loc in enumerate(self._mgr_locs):
-                vals = result[i]
+                if not is_1d_only_ea_obj(result):
+                    vals = result[i : i + 1]
+                else:
+                    vals = result[i]
+
                 block = self.make_block(values=vals, placement=loc)
                 nbs.append(block)
             return nbs
@@ -764,8 +765,8 @@ class Block(PandasObject):
     @final
     def _replace_list(
         self,
-        src_list: list[Any],
-        dest_list: list[Any],
+        src_list: Iterable[Any],
+        dest_list: Sequence[Any],
         inplace: bool = False,
         regex: bool = False,
     ) -> list[Block]:
@@ -780,6 +781,14 @@ class Block(PandasObject):
             #  so un-tile here
             return self.replace(src_list, dest_list[0], inplace, regex)
 
+        # https://github.com/pandas-dev/pandas/issues/40371
+        # the following pairs check code caused a regression so we catch that case here
+        # until the issue is fixed properly in can_hold_element
+
+        # error: "Iterable[Any]" has no attribute "tolist"
+        if hasattr(src_list, "tolist"):
+            src_list = src_list.tolist()  # type: ignore[attr-defined]
+
         # Exclude anything that we know we won't contain
         pairs = [
             (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
@@ -790,7 +799,7 @@ class Block(PandasObject):
 
         src_len = len(pairs) - 1
 
-        if values.dtype == _dtype_obj:
+        if is_string_dtype(values):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             mask = ~isna(values)
@@ -972,12 +981,7 @@ class Block(PandasObject):
             values[indexer] = value
 
         elif is_ea_value:
-            # GH#38952
-            if values.ndim == 1:
-                values[indexer] = value
-            else:
-                # TODO(EA2D): special case not needed with 2D EA
-                values[indexer] = value.to_numpy(values.dtype).reshape(-1, 1)
+            values[indexer] = value
 
         else:
             # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
@@ -1322,7 +1326,6 @@ class Block(PandasObject):
         assert is_list_like(qs)  # caller is responsible for this
 
         result = quantile_compat(self.values, np.asarray(qs._values), interpolation)
-
         return new_block(result, placement=self._mgr_locs, ndim=2)
 
 
@@ -1670,23 +1673,19 @@ class NumericBlock(NumpyBlock):
     is_numeric = True
 
 
-class NDArrayBackedExtensionBlock(EABackedBlock):
+class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock):
     """
     Block backed by an NDArrayBackedExtensionArray
     """
 
     values: NDArrayBackedExtensionArray
+    getitem_block_index = libinternals.NDArrayBackedBlock.getitem_block_index
 
     @property
     def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
-
-    def iget(self, key):
-        # GH#31649 we need to wrap scalars in Timestamp/Timedelta
-        # TODO(EA2D): this can be removed if we ever have 2D EA
-        return self.values.reshape(self.shape)[key]
 
     def setitem(self, indexer, value):
         if not self._can_hold_element(value):
@@ -1707,24 +1706,21 @@ class NDArrayBackedExtensionBlock(EABackedBlock):
         if not self._can_hold_element(new):
             return self.astype(object).putmask(mask, new)
 
-        # TODO(EA2D): reshape unnecessary with 2D EAs
-        arr = self.values.reshape(self.shape)
+        arr = self.values
         arr.T.putmask(mask, new)
         return [self]
 
     def where(self, other, cond, errors="raise") -> list[Block]:
         # TODO(EA2D): reshape unnecessary with 2D EAs
-        arr = self.values.reshape(self.shape)
+        arr = self.values
 
         cond = extract_bool_array(cond)
 
         try:
             res_values = arr.T.where(cond, other).T
         except (ValueError, TypeError):
-            return super().where(other, cond, errors=errors)
+            return Block.where(self, other, cond, errors=errors)
 
-        # TODO(EA2D): reshape not needed with 2D EAs
-        res_values = res_values.reshape(self.values.shape)
         nb = self.make_block_same_class(res_values)
         return [nb]
 
@@ -1748,15 +1744,13 @@ class NDArrayBackedExtensionBlock(EABackedBlock):
         The arguments here are mimicking shift so they are called correctly
         by apply.
         """
-        # TODO(EA2D): reshape not necessary with 2D EAs
-        values = self.values.reshape(self.shape)
+        values = self.values
 
         new_values = values - values.shift(n, axis=axis)
         return [self.make_block(new_values)]
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> list[Block]:
-        # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
-        values = self.values.reshape(self.shape)
+        values = self.values
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
         return [self.make_block_same_class(new_values)]
 
@@ -1776,7 +1770,7 @@ class NDArrayBackedExtensionBlock(EABackedBlock):
         return [self.make_block_same_class(values=new_values)]
 
 
-class DatetimeLikeBlock(libinternals.Block, NDArrayBackedExtensionBlock):
+class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     """Block for datetime64[ns], timedelta64[ns]."""
 
     __slots__ = ()
@@ -1784,23 +1778,15 @@ class DatetimeLikeBlock(libinternals.Block, NDArrayBackedExtensionBlock):
     values: DatetimeArray | TimedeltaArray
 
 
-class DatetimeTZBlock(ExtensionBlock, NDArrayBackedExtensionBlock):
+class DatetimeTZBlock(DatetimeLikeBlock):
     """ implement a datetime64 block with a tz attribute """
 
     values: DatetimeArray
 
     __slots__ = ()
     is_extension = True
-    is_numeric = False
-
-    diff = NDArrayBackedExtensionBlock.diff
-    where = NDArrayBackedExtensionBlock.where
-    putmask = NDArrayBackedExtensionBlock.putmask
-    fillna = NDArrayBackedExtensionBlock.fillna
-
-    get_values = NDArrayBackedExtensionBlock.get_values
-
-    is_view = NDArrayBackedExtensionBlock.is_view
+    _validate_ndim = True
+    _can_consolidate = False
 
 
 class ObjectBlock(NumpyBlock):
@@ -1883,6 +1869,10 @@ def maybe_coerce_values(values) -> ArrayLike:
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
 
+    if isinstance(values, (DatetimeArray, TimedeltaArray)) and values.freq is not None:
+        # freq is only stored in DatetimeIndex/TimedeltaIndex, not in Series/DataFrame
+        values = values._with_freq(None)
+
     return values
 
 
@@ -1912,7 +1902,9 @@ def get_block_type(values, dtype: Dtype | None = None):
         cls = ExtensionBlock
     elif isinstance(dtype, CategoricalDtype):
         cls = CategoricalBlock
-    elif vtype is Timestamp:
+    # error: Non-overlapping identity check (left operand type: "Type[generic]",
+    # right operand type: "Type[Timestamp]")
+    elif vtype is Timestamp:  # type: ignore[comparison-overlap]
         cls = DatetimeTZBlock
     elif isinstance(dtype, ExtensionDtype):
         # Note: need to be sure PandasArray is unwrapped before we get here
@@ -1967,7 +1959,7 @@ def check_ndim(values, placement: BlockPlacement, ndim: int):
             f"values.ndim > ndim [{values.ndim} > {ndim}]"
         )
 
-    elif isinstance(values.dtype, np.dtype):
+    elif not is_1d_only_ea_dtype(values.dtype):
         # TODO(EA2D): special case not needed with 2D EAs
         if values.ndim != ndim:
             raise ValueError(
@@ -1981,7 +1973,7 @@ def check_ndim(values, placement: BlockPlacement, ndim: int):
             )
     elif ndim == 2 and len(placement) != 1:
         # TODO(EA2D): special case unnecessary with 2D EAs
-        raise AssertionError("block.size != values.size")
+        raise ValueError("need to split")
 
 
 def extract_pandas_array(
@@ -2026,8 +2018,9 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     """
     Reshape if possible to have values.ndim == ndim.
     """
+
     if values.ndim < ndim:
-        if not is_extension_array_dtype(values.dtype):
+        if not is_1d_only_ea_dtype(values.dtype):
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
