@@ -813,6 +813,22 @@ class TestInference:
         result = lib.maybe_convert_objects(arr, convert_datetime=True)
         tm.assert_numpy_array_equal(result, arr)
 
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            pd.IntervalIndex.from_breaks(range(5), closed="both"),
+            pd.period_range("2016-01-01", periods=3, freq="D"),
+        ],
+    )
+    def test_maybe_convert_objects_ea(self, idx):
+
+        result = lib.maybe_convert_objects(
+            np.array(idx, dtype=object),
+            convert_period=True,
+            convert_interval=True,
+        )
+        tm.assert_extension_array_equal(result, idx._data)
+
 
 class TestTypeInference:
 
