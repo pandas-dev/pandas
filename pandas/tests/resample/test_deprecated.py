@@ -287,7 +287,13 @@ def test_interpolate_posargs_deprecation():
         df.iloc[:, 1].values.reshape(-1), index=pd.to_datetime(df.iloc[:, 0].values)
     )
 
-    result = s.resample("3s").interpolate("linear")
+    msg = (
+        r"In a future version of pandas all arguments of Resampler\.interpolate "
+        r"except for the argument 'method' will be keyword-only"
+    )
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.resample("3S").interpolate("linear", 0)
 
     df = DataFrame(
         {
