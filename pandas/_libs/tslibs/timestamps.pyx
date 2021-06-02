@@ -123,7 +123,7 @@ cdef inline object create_timestamp_from_ts(int64_t value,
                                  dts.day, dts.hour, dts.min,
                                  dts.sec, dts.us, tz, fold=fold)
     ts_base.value = value
-    ts_base.freq = freq
+    ts_base._freq = freq
     ts_base.nanosecond = dts.ps // 1000
 
     return ts_base
@@ -156,10 +156,19 @@ cdef class _Timestamp(ABCTimestamp):
     dayofyear = _Timestamp.day_of_year
 
     cpdef void _set_freq(self, freq):
-        # set the .freq attribute without going through the constructor,
+        # set the ._freq attribute without going through the constructor,
         #  which would issue a warning
         # Caller is responsible for validation
-        self.freq = freq
+        self._freq = freq
+
+    @property
+    def freq(self):
+        warnings.warn(
+            "Timestamp.freq is deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return self._freq
 
     def __hash__(_Timestamp self):
         if self.nanosecond:
@@ -271,7 +280,7 @@ cdef class _Timestamp(ABCTimestamp):
             nanos = delta_to_nanoseconds(other)
             result = type(self)(self.value + nanos, tz=self.tzinfo)
             if result is not NaT:
-                result._set_freq(self.freq)  # avoid warning in constructor
+                result._set_freq(self._freq)  # avoid warning in constructor
             return result
 
         elif is_integer_object(other):
@@ -379,7 +388,7 @@ cdef class _Timestamp(ABCTimestamp):
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get('startingMonth', kwds.get('month', 12))
-            freqstr = self.freqstr
+            freqstr = self._freqstr
         else:
             month_kw = 12
             freqstr = None
@@ -396,7 +405,7 @@ cdef class _Timestamp(ABCTimestamp):
         if freq is not None:
             kwds = freq.kwds
             month_kw = kwds.get("startingMonth", kwds.get("month", 12))
-            freqstr = self.freqstr
+            freqstr = self._freqstr
             if month_kw != 12:
                 return True
             if freqstr.startswith("B"):
@@ -418,17 +427,17 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_month_start
         True
         """
-        if self.freq is None:
+        if self._freq is None:
             # fast-path for non-business frequencies
             return self.day == 1
-        if self._needs_field_deprecation_warning(self.freq):
+        if self._needs_field_deprecation_warning(self._freq):
             warnings.warn(
                 "Timestamp.freq is deprecated and will be removed in a future version. "
                 "When you have a freq, use freq.is_month_start(timestamp) instead",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=1,
             )
-        return self._get_start_end_field("is_month_start", self.freq)
+        return self._get_start_end_field("is_month_start", self._freq)
 
     @property
     def is_month_end(self) -> bool:
@@ -445,17 +454,17 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_month_end
         True
         """
-        if self.freq is None:
+        if self._freq is None:
             # fast-path for non-business frequencies
             return self.day == self.days_in_month
-        if self._needs_field_deprecation_warning(self.freq):
+        if self._needs_field_deprecation_warning(self._freq):
             warnings.warn(
                 "Timestamp.freq is deprecated and will be removed in a future version. "
                 "When you have a freq, use freq.is_month_end(timestamp) instead",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=1,
             )
-        return self._get_start_end_field("is_month_end", self.freq)
+        return self._get_start_end_field("is_month_end", self._freq)
 
     @property
     def is_quarter_start(self) -> bool:
@@ -472,17 +481,17 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_quarter_start
         True
         """
-        if self.freq is None:
+        if self._freq is None:
             # fast-path for non-business frequencies
             return self.day == 1 and self.month % 3 == 1
-        if self._needs_field_deprecation_warning(self.freq):
+        if self._needs_field_deprecation_warning(self._freq):
             warnings.warn(
                 "Timestamp.freq is deprecated and will be removed in a future version. "
                 "When you have a freq, use freq.is_quarter_start(timestamp) instead",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=1,
             )
-        return self._get_start_end_field("is_quarter_start", self.freq)
+        return self._get_start_end_field("is_quarter_start", self._freq)
 
     @property
     def is_quarter_end(self) -> bool:
@@ -499,17 +508,17 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_quarter_end
         True
         """
-        if self.freq is None:
+        if self._freq is None:
             # fast-path for non-business frequencies
             return (self.month % 3) == 0 and self.day == self.days_in_month
-        if self._needs_field_deprecation_warning(self.freq):
+        if self._needs_field_deprecation_warning(self._freq):
             warnings.warn(
                 "Timestamp.freq is deprecated and will be removed in a future version. "
                 "When you have a freq, use freq.is_quarter_end(timestamp) instead",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=1,
             )
-        return self._get_start_end_field("is_quarter_end", self.freq)
+        return self._get_start_end_field("is_quarter_end", self._freq)
 
     @property
     def is_year_start(self) -> bool:
@@ -526,17 +535,17 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_year_start
         True
         """
-        if self.freq is None:
+        if self._freq is None:
             # fast-path for non-business frequencies
             return self.day == self.month == 1
-        if self._needs_field_deprecation_warning(self.freq):
+        if self._needs_field_deprecation_warning(self._freq):
             warnings.warn(
                 "Timestamp.freq is deprecated and will be removed in a future version. "
                 "When you have a freq, use freq.is_year_start(timestamp) instead",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=1,
             )
-        return self._get_start_end_field("is_year_start", self.freq)
+        return self._get_start_end_field("is_year_start", self._freq)
 
     @property
     def is_year_end(self) -> bool:
@@ -553,17 +562,17 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_year_end
         True
         """
-        if self.freq is None:
+        if self._freq is None:
             # fast-path for non-business frequencies
             return self.month == 12 and self.day == 31
-        if self._needs_field_deprecation_warning(self.freq):
+        if self._needs_field_deprecation_warning(self._freq):
             warnings.warn(
                 "Timestamp.freq is deprecated and will be removed in a future version. "
                 "When you have a freq, use freq.is_year_end(timestamp) instead",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=1,
             )
-        return self._get_start_end_field("is_year_end", self.freq)
+        return self._get_start_end_field("is_year_end", self._freq)
 
     cdef _get_date_name_field(self, str field, object locale):
         cdef:
@@ -736,11 +745,11 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __setstate__(self, state):
         self.value = state[0]
-        self.freq = state[1]
+        self._freq = state[1]
         self.tzinfo = state[2]
 
     def __reduce__(self):
-        object_state = self.value, self.freq, self.tzinfo
+        object_state = self.value, self._freq, self.tzinfo
         return (Timestamp, object_state)
 
     # -----------------------------------------------------------------
@@ -782,7 +791,7 @@ cdef class _Timestamp(ABCTimestamp):
             pass
 
         tz = f", tz='{zone}'" if zone is not None else ""
-        freq = "" if self.freq is None else f", freq='{self.freqstr}'"
+        freq = "" if self._freq is None else f", freq='{self._freqstr}'"
 
         return f"Timestamp('{stamp}'{tz}{freq})"
 
@@ -940,7 +949,7 @@ cdef class _Timestamp(ABCTimestamp):
             )
 
         if freq is None:
-            freq = self.freq
+            freq = self._freq
             warnings.warn(
                 "In a future version, calling 'Timestamp.to_period()' without "
                 "passing a 'freq' will raise an exception.",
@@ -1345,7 +1354,7 @@ class Timestamp(_Timestamp):
 
         if freq is None:
             # GH 22311: Try to extract the frequency of a given Timestamp input
-            freq = getattr(ts_input, 'freq', None)
+            freq = getattr(ts_input, '_freq', None)
         else:
             warnings.warn(
                 "The 'freq' argument in Timestamp is deprecated and will be "
@@ -1628,11 +1637,20 @@ timedelta}, default 'raise'
         )
 
     @property
+    def _freqstr(self):
+        return getattr(self._freq, "freqstr", self._freq)
+
+    @property
     def freqstr(self):
         """
         Return the total number of days in the month.
         """
-        return getattr(self.freq, 'freqstr', self.freq)
+        warnings.warn(
+            "Timestamp.freqstr is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return self._freqstr
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
@@ -1725,7 +1743,7 @@ default 'raise'
                                               nonexistent=nonexistent)
             out = Timestamp(value, tz=tz)
             if out is not NaT:
-                out._set_freq(self.freq)  # avoid warning in constructor
+                out._set_freq(self._freq)  # avoid warning in constructor
             return out
         else:
             if tz is None:
@@ -1733,7 +1751,7 @@ default 'raise'
                 value = tz_convert_from_utc_single(self.value, self.tz)
                 out = Timestamp(value, tz=tz)
                 if out is not NaT:
-                    out._set_freq(self.freq)  # avoid warning in constructor
+                    out._set_freq(self._freq)  # avoid warning in constructor
                 return out
             else:
                 raise TypeError(
@@ -1791,7 +1809,7 @@ default 'raise'
             # Same UTC timestamp, different time zone
             out = Timestamp(self.value, tz=tz)
             if out is not NaT:
-                out._set_freq(self.freq)  # avoid warning in constructor
+                out._set_freq(self._freq)  # avoid warning in constructor
             return out
 
     astimezone = tz_convert
@@ -1925,7 +1943,7 @@ default 'raise'
         if value != NPY_NAT:
             check_dts_bounds(&dts)
 
-        return create_timestamp_from_ts(value, dts, tzobj, self.freq, fold)
+        return create_timestamp_from_ts(value, dts, tzobj, self._freq, fold)
 
     def to_julian_date(self) -> np.float64:
         """

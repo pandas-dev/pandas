@@ -81,11 +81,16 @@ class TestDatetimeIndexOps:
         idx = tm.makeDateIndex(100)
 
         msg = "The 'freq' argument in Timestamp is deprecated"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
-            assert idx.freq == Timestamp(idx[-1], idx.freq).freq
-            assert idx.freqstr == Timestamp(idx[-1], idx.freq).freqstr
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ts = Timestamp(idx[-1], idx.freq)
+
+        msg2 = "Timestamp.freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            assert idx.freq == ts.freq
+
+        msg3 = "Timestamp.freqstr is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg3):
+            assert idx.freqstr == ts.freqstr
 
     # ----------------------------------------------------------------
     # DatetimeIndex.round

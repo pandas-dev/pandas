@@ -16,7 +16,7 @@ cdef object create_timestamp_from_ts(int64_t value,
 cdef class _Timestamp(ABCTimestamp):
     cdef readonly:
         int64_t value, nanosecond
-        object freq
+        object _freq
 
     cdef bint _get_start_end_field(self, str field, freq)
     cdef _get_date_name_field(self, str field, object locale)

@@ -50,6 +50,7 @@ class TestResetIndex:
         df = result.set_index("foo")
         tm.assert_index_equal(df.index, idx)
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_reset_index_tz(self, tz_aware_fixture):
         # GH 3950
         # reset_index with single level
@@ -421,6 +422,7 @@ class TestResetIndex:
         result = df2.rename_axis([("c", "ii")]).reset_index(col_level=1, col_fill="C")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_reset_index_datetime(self, tz_naive_fixture):
         # GH#3950
         tz = tz_naive_fixture

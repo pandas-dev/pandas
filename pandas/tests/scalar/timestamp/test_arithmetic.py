@@ -16,6 +16,10 @@ from pandas._libs.tslibs import (
 
 import pandas._testing as tm
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Timestamp.freq is deprecated:FutureWarning"
+)
+
 
 class TestTimestampArithmetic:
     def test_overflow_offset(self):

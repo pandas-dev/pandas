@@ -35,6 +35,31 @@ from pandas.tseries import offsets
 
 
 class TestTimestampProperties:
+    def test_freq_deprecation(self):
+        # GH#41586
+        msg = "The 'freq' argument in Timestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # warning issued at construction
+            ts = Timestamp("2021-06-01", freq="D")
+            ts2 = Timestamp("2021-06-01", freq="B")
+
+        msg = "Timestamp.freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # warning issued at attribute lookup
+            ts.freq
+
+        for per in ["month", "quarter", "year"]:
+            for side in ["start", "end"]:
+                attr = f"is_{per}_{side}"
+
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    getattr(ts2, attr)
+
+                # is_(month|quarter|year)_(start|end) does _not_ issue a warning
+                #  with freq="D" bc the result will be unaffected by the deprecation
+                with tm.assert_produces_warning(None):
+                    getattr(ts, attr)
+
     @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
     @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_properties_business(self):
@@ -410,10 +435,10 @@ class TestTimestamp:
         # GH25241
         with tm.assert_produces_warning(FutureWarning, match="freq"):
             t1 = Timestamp("2019-01-01 10:00", freq="H")
-        assert t1.tz_localize(tz=tz_naive_fixture).freq == t1.freq
+            assert t1.tz_localize(tz=tz_naive_fixture).freq == t1.freq
         with tm.assert_produces_warning(FutureWarning, match="freq"):
             t2 = Timestamp("2019-01-02 12:00", tz="UTC", freq="T")
-        assert t2.tz_convert(tz="UTC").freq == t2.freq
+            assert t2.tz_convert(tz="UTC").freq == t2.freq
 
 
 class TestTimestampNsOperations:

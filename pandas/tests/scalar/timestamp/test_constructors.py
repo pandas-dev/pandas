@@ -290,6 +290,7 @@ class TestTimestampConstructors:
             == repr(Timestamp("2015-11-12 01:02:03.999999"))
         )
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is:FutureWarning")
     @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
     def test_constructor_fromordinal(self):
         base = datetime(2000, 1, 1)
