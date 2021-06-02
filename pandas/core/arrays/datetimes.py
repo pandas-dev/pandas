@@ -511,7 +511,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     def _box_func(self, x) -> Timestamp | NaTType:
         ts = Timestamp(x, tz=self.tz)
-        if ts is not NaT:
+        # Non-overlapping identity check (left operand type: "Timestamp",
+        # right operand type: "NaTType")
+        if ts is not NaT:  # type: ignore[comparison-overlap]
             # GH#41586
             # do this instead of passing to the constructor to avoid FutureWarning
             ts._set_freq(self.freq)
