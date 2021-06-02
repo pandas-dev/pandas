@@ -128,8 +128,9 @@ def test_groupby_aggregation_multi_level_column():
         columns=MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 0), ("B", 1)]),
     )
 
-    result = df.groupby(level=1, axis=1).sum()
-    expected = DataFrame({0: [2.0, 1, 1, 1], 1: [1, 0, 1, 1]})
+    gb = df.groupby(level=1, axis=1)
+    result = gb.sum(numeric_only=False)
+    expected = DataFrame({0: [2.0, True, True, True], 1: [1, 0, 1, 1]})
 
     tm.assert_frame_equal(result, expected)
 

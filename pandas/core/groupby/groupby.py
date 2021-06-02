@@ -1339,20 +1339,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         with group_selection_context(self):
             # try a cython aggregation if we can
-            result = None
-            try:
-                result = self._cython_agg_general(
-                    how=alias,
-                    alt=npfunc,
-                    numeric_only=numeric_only,
-                    min_count=min_count,
-                )
-            except DataError:
-                pass
-
-            # apply a non-cython aggregation
-            if result is None:
-                result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+            result = self._cython_agg_general(
+                how=alias,
+                alt=npfunc,
+                numeric_only=numeric_only,
+                min_count=min_count,
+            )
             return result.__finalize__(self.obj, method="groupby")
 
     def _agg_py_fallback(
