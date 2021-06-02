@@ -84,6 +84,10 @@ from pandas._libs.util cimport (
 )
 
 from pandas._libs.tslib import array_to_datetime
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 from pandas._libs.tslibs.period import Period
 
 from pandas._libs.missing cimport (
@@ -1652,7 +1656,8 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
     # convert *every* string array
     if len(objs):
         try:
-            array_to_datetime(objs, errors="raise")
+            # require_iso8601 as in maybe_infer_to_datetimelike
+            array_to_datetime(objs, errors="raise", require_iso8601=True)
             return "datetime", seen_str
         except (ValueError, TypeError):
             pass
@@ -2334,7 +2339,8 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint convert_timedelta=False,
                           bint convert_period=False,
                           bint convert_interval=False,
-                          bint convert_to_nullable_integer=False) -> "ArrayLike":
+                          bint convert_to_nullable_integer=False,
+                          object dtype_if_all_nat=None) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
 
@@ -2363,6 +2369,8 @@ def maybe_convert_objects(ndarray[object] objects,
     convert_to_nullable_integer : bool, default False
         If an array-like object contains only integer values (and NaN) is
         encountered, whether to convert and return an IntegerArray.
+    dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
+        Dtype to cast to if we have all-NaT.
 
     Returns
     -------
@@ -2431,8 +2439,12 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.float_ = True
         elif is_timedelta(val):
             if convert_timedelta:
-                itimedeltas[i] = convert_to_timedelta64(val, "ns").view("i8")
                 seen.timedelta_ = True
+                try:
+                    itimedeltas[i] = convert_to_timedelta64(val, "ns").view("i8")
+                except OutOfBoundsTimedelta:
+                    seen.object_ = True
+                    break
             else:
                 seen.object_ = True
                 break
@@ -2469,8 +2481,12 @@ def maybe_convert_objects(ndarray[object] objects,
                     break
                 else:
                     seen.datetime_ = True
-                    idatetimes[i] = convert_to_tsobject(
-                        val, None, None, 0, 0).value
+                    try:
+                        idatetimes[i] = convert_to_tsobject(
+                            val, None, None, 0, 0).value
+                    except OutOfBoundsDatetime:
+                        seen.object_ = True
+                        break
             else:
                 seen.object_ = True
                 break
@@ -2558,8 +2574,13 @@ def maybe_convert_objects(ndarray[object] objects,
                     elif seen.nat_:
                         if not seen.numeric_:
                             if convert_datetime and convert_timedelta:
-                                # TODO: array full of NaT ambiguity resolve here needed
-                                pass
+                                dtype = dtype_if_all_nat
+                                if dtype is not None:
+                                    # otherwise we keep object dtype
+                                    result = _infer_all_nats(
+                                        dtype, datetimes, timedeltas
+                                    )
+
                             elif convert_datetime:
                                 result = datetimes
                             elif convert_timedelta:
@@ -2598,8 +2619,13 @@ def maybe_convert_objects(ndarray[object] objects,
                     elif seen.nat_:
                         if not seen.numeric_:
                             if convert_datetime and convert_timedelta:
-                                # TODO: array full of NaT ambiguity resolve here needed
-                                pass
+                                dtype = dtype_if_all_nat
+                                if dtype is not None:
+                                    # otherwise we keep object dtype
+                                    result = _infer_all_nats(
+                                        dtype, datetimes, timedeltas
+                                    )
+
                             elif convert_datetime:
                                 result = datetimes
                             elif convert_timedelta:
@@ -2628,6 +2654,26 @@ def maybe_convert_objects(ndarray[object] objects,
             return result
 
     return objects
+
+
+cdef _infer_all_nats(dtype, ndarray datetimes, ndarray timedeltas):
+    """
+    If we have all-NaT values, cast these to the given dtype.
+    """
+    if isinstance(dtype, np.dtype):
+        if dtype == "M8[ns]":
+            result = datetimes
+        elif dtype == "m8[ns]":
+            result = timedeltas
+        else:
+            raise ValueError(dtype)
+    else:
+        # ExtensionDtype
+        cls = dtype.construct_array_type()
+        i8vals = np.empty(len(datetimes), dtype="i8")
+        i8vals.fill(NPY_NAT)
+        result = cls(i8vals, dtype=dtype)
+    return result
 
 
 class NoDefault(Enum):
