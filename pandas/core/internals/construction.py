@@ -27,7 +27,6 @@ from pandas.errors import IntCastingNaNError
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
-    dict_compat,
     maybe_cast_to_datetime,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
@@ -61,6 +60,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.construction import (
+    create_series_with_explicit_dtype,
     ensure_wrapped_if_datetimelike,
     extract_array,
     range_to_ndarray,
@@ -68,9 +68,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
-    DatetimeIndex,
     Index,
-    TimedeltaIndex,
     ensure_index,
     get_objs_combined_axis,
     union_indexes,
@@ -566,7 +564,6 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
 
 
 def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
-    oindex = None
     homogenized = []
 
     for val in data:
@@ -581,16 +578,10 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
             val = val._values
         else:
             if isinstance(val, dict):
-                if oindex is None:
-                    oindex = index.astype("O")
+                # see test_constructor_subclass_dict
+                #  test_constructor_dict_datetime64_index
+                val = create_series_with_explicit_dtype(val, index=index)._values
 
-                if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-                    # see test_constructor_dict_datetime64_index
-                    val = dict_compat(val)
-                else:
-                    # see test_constructor_subclass_dict
-                    val = dict(val)
-                val = lib.fast_multiget(val, oindex._values, default=np.nan)
             val = sanitize_array(
                 val, index, dtype=dtype, copy=False, raise_cast_failure=False
             )
