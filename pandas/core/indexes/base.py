@@ -776,6 +776,7 @@ class Index(IndexOpsMixin, PandasObject):
         target_values = self._get_engine_target()
         return self._engine_type(lambda: target_values, len(self))
 
+    @final
     @cache_readonly
     def _dir_additions_for_owner(self) -> set[str_t]:
         """
@@ -906,13 +907,10 @@ class Index(IndexOpsMixin, PandasObject):
         if is_dtype_equal(self.dtype, dtype):
             return self.copy() if copy else self
 
-        elif is_categorical_dtype(dtype):
-            from pandas.core.indexes.category import CategoricalIndex
-
-            return CategoricalIndex(self, name=self.name, dtype=dtype, copy=copy)
-
-        elif is_extension_array_dtype(dtype):
-            return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
+        elif isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            new_values = cls._from_sequence(self, dtype=dtype, copy=False)
+            return Index(new_values, dtype=dtype, copy=copy, name=self.name)
 
         try:
             casted = self._values.astype(dtype, copy=copy)
@@ -6212,6 +6210,7 @@ class Index(IndexOpsMixin, PandasObject):
         # See GH#27775, GH#27384 for history/reasoning in how this is defined.
         return (len(self),)
 
+    @final
     def _deprecated_arg(self, value, name: str_t, methodname: str_t) -> None:
         """
         Issue a FutureWarning if the arg/kwarg is not no_default.
@@ -6444,12 +6443,8 @@ def _maybe_cast_data_without_dtype(subarr: np.ndarray) -> ArrayLike:
         return data
 
     elif inferred == "interval":
-        try:
-            ia_data = IntervalArray._from_sequence(subarr, copy=False)
-            return ia_data
-        except (ValueError, TypeError):
-            # GH27172: mixed closed Intervals --> object dtype
-            pass
+        ia_data = IntervalArray._from_sequence(subarr, copy=False)
+        return ia_data
     elif inferred == "boolean":
         # don't support boolean explicitly ATM
         pass
@@ -6468,11 +6463,8 @@ def _maybe_cast_data_without_dtype(subarr: np.ndarray) -> ArrayLike:
             tda = TimedeltaArray._from_sequence(subarr, copy=False)
             return tda
         elif inferred == "period":
-            try:
-                parr = PeriodArray._from_sequence(subarr)
-                return parr
-            except IncompatibleFrequency:
-                pass
+            parr = PeriodArray._from_sequence(subarr)
+            return parr
 
     return subarr
 

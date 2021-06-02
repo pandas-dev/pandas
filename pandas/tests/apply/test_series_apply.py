@@ -859,7 +859,9 @@ def test_apply_to_timedelta():
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
     a = pd.to_timedelta(list_of_strings)  # noqa
-    b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
+    with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
+        ser = Series(list_of_strings)
+    b = ser.apply(pd.to_timedelta)  # noqa
     # Can't compare until apply on a Series gives the correct dtype
     # assert_series_equal(a, b)
 
