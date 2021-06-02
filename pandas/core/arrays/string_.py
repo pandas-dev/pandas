@@ -70,6 +70,11 @@ class StringDtype(ExtensionDtype):
        In particular, StringDtype.na_value may change to no longer be
        ``numpy.nan``.
 
+    Parameters
+    ----------
+    storage : {"python", "pyarrow"}, optional
+        If not given, the value of ``pd.options.mode.string_storage``.
+
     Attributes
     ----------
     None
@@ -82,6 +87,9 @@ class StringDtype(ExtensionDtype):
     --------
     >>> pd.StringDtype()
     string[python]
+
+    >>> pd.StringDtype(storage="pyarrow")
+    string[pyarrow]
     """
 
     name = "string"
