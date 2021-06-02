@@ -528,6 +528,7 @@ def sanitize_array(
                     # GH#40110 until the deprecation is enforced, we _dont_
                     #  ignore the dtype for DataFrame, and _do_ cast even though
                     #  it is lossy.
+                    dtype = cast(np.dtype, dtype)
                     return np.array(data, dtype=dtype, copy=copy)
                 subarr = np.array(data, copy=copy)
         else:

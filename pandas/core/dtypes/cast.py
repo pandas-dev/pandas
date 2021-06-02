@@ -2133,7 +2133,7 @@ def maybe_cast_to_integer_array(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        return
+        return casted
 
     # No known cases that get here, but raising explicitly to cover our bases.
     raise ValueError(f"values cannot be losslessly cast to {dtype}")
