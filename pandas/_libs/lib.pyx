@@ -1187,6 +1187,7 @@ cdef class Seen:
         bint timedelta_       # seen_timedelta
         bint datetimetz_      # seen_datetimetz
         bint period_          # seen_period
+        bint interval_        # seen_interval
 
     def __cinit__(self, bint coerce_numeric=False):
         """
@@ -1212,6 +1213,7 @@ cdef class Seen:
         self.timedelta_ = False
         self.datetimetz_ = False
         self.period_ = False
+        self.interval_ = False
         self.coerce_numeric = coerce_numeric
 
     cdef inline bint check_uint64_conflict(self) except -1:
@@ -2035,7 +2037,6 @@ cpdef bint is_interval_array(ndarray values):
     """
     Is this an ndarray of Interval (or np.nan) with a single dtype?
     """
-
     cdef:
         Py_ssize_t i, n = len(values)
         str closed = None
@@ -2320,6 +2321,7 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint convert_datetime=False,
                           bint convert_timedelta=False,
                           bint convert_period=False,
+                          bint convert_interval=False,
                           bint convert_to_nullable_integer=False) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
@@ -2343,6 +2345,9 @@ def maybe_convert_objects(ndarray[object] objects,
     convert_period : bool, default False
         If an array-like object contains only (homogeneous-freq) Period values
         or NaT, whether to convert and return a PeriodArray.
+    convert_interval : bool, default False
+        If an array-like object contains only Interval objects (with matching
+        dtypes and closedness) or NaN, whether to convert to IntervalArray.
     convert_to_nullable_integer : bool, default False
         If an array-like object contains only integer values (and NaN) is
         encountered, whether to convert and return an IntegerArray.
@@ -2473,6 +2478,13 @@ def maybe_convert_objects(ndarray[object] objects,
             except (ValueError, TypeError):
                 seen.object_ = True
                 break
+        elif is_interval(val):
+            if convert_interval:
+                seen.interval_ = True
+                break
+            else:
+                seen.object_ = True
+                break
         else:
             seen.object_ = True
             break
@@ -2494,6 +2506,17 @@ def maybe_convert_objects(ndarray[object] objects,
 
             # unbox to PeriodArray
             return pi._data
+        seen.object_ = True
+
+    if seen.interval_:
+        if is_interval_array(objects):
+            from pandas import IntervalIndex
+            ii = IntervalIndex(objects)
+
+            # unbox to IntervalArray
+            return ii._data
+
+        seen.object_ = True
 
     if not seen.object_:
         result = None
