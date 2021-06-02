@@ -3771,7 +3771,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return result
 
         if axis == 1:
-            if drop_level:
+            if drop_level or not is_scalar(key):
                 return self[key]
             index = self.columns
         else:

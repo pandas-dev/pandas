@@ -358,3 +358,11 @@ class TestXSWithMultiIndex:
         df.iloc[0, 0] = 2
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
+
+    def test_xs_list_indexer_droplevel_false(self):
+        # GH#41760
+        mi = MultiIndex.from_tuples([("x", "y", "a"), ("x", "z", "b"), ("v", "w", "c")])
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
+        expected = df.copy()
+        result = df.xs(["x", "v"], drop_level=False, axis=1)
+        tm.assert_frame_equal(result, expected)
