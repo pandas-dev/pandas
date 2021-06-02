@@ -185,7 +185,7 @@ def maybe_indices_to_slice(
 ) -> slice | np.ndarray: ...  # np.ndarray[np.uint8]
 
 def clean_index_list(obj: list) -> tuple[
-    list | np.ndarray,  # np.ndarray[object] | np.ndarray[np.int64]
+    list | np.ndarray,  # np.ndarray[object | np.int64 | np.uint64]
     bool,
 ]: ...
 

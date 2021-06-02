@@ -747,10 +747,14 @@ def clean_index_list(obj: list):
         object val
         bint all_arrays = True
 
+    # First check if we have a list of arraylikes, in which case we will
+    #  pass them to MultiIndex.from_arrays
     for i in range(n):
         val = obj[i]
         if not (isinstance(val, list) or
                 util.is_array(val) or hasattr(val, '_data')):
+            # TODO: EA?
+            # exclude tuples, frozensets as they may be contained in an Index
             all_arrays = False
             break
 
@@ -762,11 +766,21 @@ def clean_index_list(obj: list):
     if inferred in ['string', 'bytes', 'mixed', 'mixed-integer']:
         return np.asarray(obj, dtype=object), 0
     elif inferred in ['integer']:
-        # TODO: we infer an integer but it *could* be a uint64
-        try:
-            return np.asarray(obj, dtype='int64'), 0
-        except OverflowError:
-            return np.asarray(obj, dtype='object'), 0
+        # we infer an integer but it *could* be a uint64
+
+        arr = np.asarray(obj)
+        if arr.dtype.kind not in ["i", "u"]:
+            # eg [0, uint64max] gets cast to float64,
+            #  but then we know we have either uint64 or object
+            if (arr < 0).any():
+                # TODO: similar to maybe_cast_to_integer_array
+                return np.asarray(obj, dtype="object"), 0
+
+            # GH#35481
+            guess = np.asarray(obj, dtype="uint64")
+            return guess, 0
+
+        return arr, 0
 
     return np.asarray(obj), 0
 
@@ -1552,9 +1566,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     for i in range(n):
         val = values[i]
-        if (util.is_integer_object(val) and
-                not util.is_timedelta64_object(val) and
-                not util.is_datetime64_object(val)):
+        if util.is_integer_object(val):
             return "mixed-integer"
 
     return "mixed"
