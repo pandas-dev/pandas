@@ -785,7 +785,7 @@ class TestUnique:
         result = pd.unique(a)
         expected = np.array([np.nan])
         tm.assert_numpy_array_equal(result, expected)
-    
+
     # Flaky on Python 3.10 -> Don't make strict
     @pytest.mark.xfail(PY310, reason="Failing on Python 3.10", strict=False)
     def test_first_nan_kept(self):
@@ -992,7 +992,7 @@ class TestIsin:
         tm.assert_numpy_array_equal(algos.isin([a], [a]), np.array([True]))
         # different objects -> False
         tm.assert_numpy_array_equal(algos.isin([a], [b]), np.array([False]))
-    
+
     # Flaky on Python 3.10 -> Don't make strict
     @pytest.mark.xfail(PY310, reason="Failing on Python 3.10", strict=False)
     def test_different_nans(self):

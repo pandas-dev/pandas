@@ -13,6 +13,8 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+from copy import deepcopy
+
 import numpy as np
 import pytest
 
@@ -189,7 +191,7 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
     # def test_stack(self, data, columns):
     #     super().test_stack(data, columns)
     test_stack = pytest.mark.xfail(PY310, reason="Failing on Python 3.10")(
-        base.BaseReshapingTests.test_stack
+        deepcopy(base.BaseReshapingTests.test_stack)
     )
 
 

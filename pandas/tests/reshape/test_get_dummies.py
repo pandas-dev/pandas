@@ -443,9 +443,6 @@ class TestGetDummies:
         result = get_dummies(s_list, drop_first=True, sparse=sparse)
         if sparse:
             expected = expected.apply(SparseArray, fill_value=0)
-        else:
-            if PY310:
-                request.applymarker()
         tm.assert_frame_equal(result, expected)
 
         result = get_dummies(s_series, drop_first=True, sparse=sparse)
@@ -474,13 +471,17 @@ class TestGetDummies:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
-    def test_get_dummies_basic_drop_first_NA(self, sparse):
+    def test_get_dummies_basic_drop_first_NA(self, request, sparse):
         # Test NA handling together with drop_first
         s_NA = ["a", "b", np.nan]
         res = get_dummies(s_NA, drop_first=True, sparse=sparse)
         exp = DataFrame({"b": [0, 1, 0]}, dtype=np.uint8)
         if sparse:
             exp = exp.apply(SparseArray, fill_value=0)
+        else:
+            request.applymarker(
+                pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
+            )
 
         tm.assert_frame_equal(res, exp)
 
