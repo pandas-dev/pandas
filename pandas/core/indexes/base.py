@@ -2962,14 +2962,7 @@ class Index(IndexOpsMixin, PandasObject):
                     stacklevel=2,
                 )
 
-            dtype = find_common_type([self.dtype, other.dtype], strict_uint64=True)
-            # Right now, we treat union(float, [u]int) a bit special.
-            # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
-            # Now it's:
-            # * float | [u]int -> float
-            # * uint64 | signed int  -> object
-            # We may change union(float | [u]int) to go to object.
-
+            dtype = self._find_common_type_compat(other)
             left = self.astype(dtype, copy=False)
             right = other.astype(dtype, copy=False)
             return left.union(right, sort=sort)
@@ -5403,6 +5396,19 @@ class Index(IndexOpsMixin, PandasObject):
             return IntervalDtype(np.float64, closed=self.closed)
 
         target_dtype, _ = infer_dtype_from(target, pandas_dtype=True)
+
+        # special case: if either is uint64 and other dtype is signed int, return object
+        # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
+        # Now it's:
+        # * float | [u]int -> float
+        # * uint64 | signed int  -> object
+        # We may change union(float | [u]int) to go to object.
+        if self.dtype == "uint64" or target_dtype == "uint64":
+            if is_signed_integer_dtype(self.dtype) or is_signed_integer_dtype(
+                target_dtype
+            ):
+                return np.dtype("object")
+
         dtype = find_common_type([self.dtype, target_dtype])
         if dtype.kind in ["i", "u"]:
             # TODO: what about reversed with self being categorical?
