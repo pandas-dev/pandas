@@ -115,3 +115,14 @@ def test_reindex_empty_with_level(values):
     expected_indexer = np.array([], dtype=result_indexer.dtype)
     tm.assert_index_equal(result, expected)
     tm.assert_numpy_array_equal(result_indexer, expected_indexer)
+
+
+def test_reindex_not_all_tuples():
+    keys = [("i", "i"), ("i", "j"), ("j", "i"), "j"]
+    mi = MultiIndex.from_tuples(keys[:-1])
+    idx = Index(keys)
+    res, indexer = mi.reindex(idx)
+
+    tm.assert_index_equal(res, idx)
+    expected = np.array([0, 1, 2, -1], dtype=np.intp)
+    tm.assert_numpy_array_equal(indexer, expected)
