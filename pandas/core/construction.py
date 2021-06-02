@@ -289,8 +289,8 @@ def array(
         IntegerArray,
         IntervalArray,
         PandasArray,
-        PythonStringArray,
         PeriodArray,
+        PythonStringArray,
         TimedeltaArray,
     )
 
