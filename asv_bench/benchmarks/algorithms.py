@@ -23,7 +23,7 @@ class Factorize:
             "int",
             "uint",
             "float",
-            "string",
+            "object",
             "datetime64[ns]",
             "datetime64[ns, tz]",
             "Int64",
@@ -47,7 +47,7 @@ class Factorize:
             "int": pd.Int64Index(np.arange(N)),
             "uint": pd.UInt64Index(np.arange(N)),
             "float": pd.Float64Index(np.random.randn(N)),
-            "string": string_index,
+            "object": string_index,
             "datetime64[ns]": pd.date_range("2011-01-01", freq="H", periods=N),
             "datetime64[ns, tz]": pd.date_range(
                 "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
