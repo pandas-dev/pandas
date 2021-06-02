@@ -222,61 +222,7 @@ String accessor methods returning integers will return a value with :class:`Int6
 
    s.str.count("a")
 
-Some string accessor methods use native PyArrow string kernels operating directly on the
-PyArrow memory, others fallback to converting to a NumPy array of Python objects and
-using the native Python string functions. String methods using Pyarrow kernels are
-generally much more performant.
-
-Some PyArrow string kernels are implemented in later versions of pyarrow that the
-minimum version required to create a PyArrow backed StringArray. In these cases, the
-string accessor will fall back to the Python implementations.
-
-Some string accessor methods accept arguments controlling their behaviour which are not
-supported by the PyArrow kernels. These cases will also fall back to object mode.
-
-+--------------------------------+----------+------------------------------------------+
-| Accessor                       | Minimum  | Limitations (otherwise fall back to      |
-| Method                         | PyArrow  | object mode)                             |
-|                                | Version  |                                          |
-+================================+==========+==========================================+
-| :meth:`~Series.str.contains`   | 1.0.0    | The ``flags`` argument is not supported. |
-|                                |          | If ``regex=True``, pyarrow 4.0.0 is      |
-|                                |          | required and ``case=False`` is not       |
-|                                |          | supported.                               |
-+--------------------------------+----------+------------------------------------------+
-| :meth:`~Series.str.startswith` | 4.0.0    |                                          |
-| :meth:`~Series.str.endswith`   |          |                                          |
-+--------------------------------+----------+------------------------------------------+
-| :meth:`~Series.str.replace`    | 4.0.0    | The ``flags`` argument, ``case=False``,  |
-|                                |          | passing a callable for the ``repr``      |
-|                                |          | argument or passing a compiled regex is  |
-|                                |          | not supported.                           |
-+--------------------------------+----------+------------------------------------------+
-| :meth:`~Series.str.match`      | 4.0.0    |                                          |
-| :meth:`~Series.str.fullmatch`  |          |                                          |
-+--------------------------------+----------+------------------------------------------+
-| :meth:`~Series.str.isalnum`    | 1.0.0    |                                          |
-| :meth:`~Series.str.isalpha`    |          |                                          |
-| :meth:`~Series.str.isdecimal`  |          |                                          |
-| :meth:`~Series.str.isdigit`    |          |                                          |
-| :meth:`~Series.str.islower`    |          |                                          |
-| :meth:`~Series.str.isnumeric`  |          |                                          |
-| :meth:`~Series.str.istitle`    |          |                                          |
-| :meth:`~Series.str.isupper`    |          |                                          |
-+--------------------------------+----------+------------------------------------------+
-| :meth:`~Series.str.isspace`    | 2.0.0    |                                          |
-+--------------------------------+----------+------------------------------------------+
-| :meth:`~Series.str.len`        | 4.0.0    |                                          |
-+--------------------------------+----------+------------------------------------------+
-| :meth:`~Series.str.lower`      | 1.0.0    |                                          |
-| :meth:`~Series.str.upper`      |          |                                          |
-+--------------------------------+----------+------------------------------------------+
-| :meth:`~Series.str.strip`      | 4.0.0    |                                          |
-| :meth:`~Series.str.lstrip`     |          |                                          |
-| :meth:`~Series.str.rstrip`     |          |                                          |
-+--------------------------------+----------+------------------------------------------+
-
-
+See :ref:`text.types` for more.
 
 Centered Datetime-Like Rolling Windows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
