@@ -1120,7 +1120,6 @@ def string_dtype(request):
 
 @pytest.fixture(
     params=[
-        "string",
         "string[python]",
         pytest.param(
             "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
@@ -1131,7 +1130,6 @@ def nullable_string_dtype(request):
     """
     Parametrized fixture for string dtypes.
 
-    * 'string'
     * 'string[python]'
     * 'string[pyarrow]'
     """
@@ -1179,7 +1177,6 @@ def object_dtype(request):
 @pytest.fixture(
     params=[
         "object",
-        "string",
         "string[python]",
         pytest.param(
             "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
@@ -1190,7 +1187,6 @@ def any_string_dtype(request):
     """
     Parametrized fixture for string dtypes.
     * 'object'
-    * 'string'
     * 'string[python]'
     * 'string[pyarrow]'
     """

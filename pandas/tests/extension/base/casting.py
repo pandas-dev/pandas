@@ -48,7 +48,6 @@ class BaseCastingTests(BaseExtensionTests):
     @pytest.mark.parametrize(
         "nullable_string_dtype",
         [
-            "string",
             "string[python]",
             pytest.param(
                 "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")

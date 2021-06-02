@@ -249,7 +249,6 @@ class TestAstype:
     @pytest.mark.parametrize(
         "data, dtype",
         [
-            (["x", "y", "z"], "string"),
             (["x", "y", "z"], "string[python]"),
             pytest.param(
                 ["x", "y", "z"],
@@ -387,7 +386,6 @@ class TestAstypeString:
                 reason="TODO StringArray.astype() with missing values #GH40566"
             )
             request.node.add_marker(mark)
-
         # GH-40351
         s = Series(data, dtype=dtype)
         result = s.astype(nullable_string_dtype).astype(dtype)

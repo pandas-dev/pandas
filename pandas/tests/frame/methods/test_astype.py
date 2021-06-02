@@ -584,7 +584,6 @@ class TestAstype:
     @pytest.mark.parametrize(
         "data, dtype",
         [
-            (["x", "y", "z"], "string"),
             (["x", "y", "z"], "string[python]"),
             pytest.param(
                 ["x", "y", "z"],

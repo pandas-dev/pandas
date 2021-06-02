@@ -86,7 +86,6 @@ class TestUpdate:
     @pytest.mark.parametrize(
         "data, other, expected, dtype",
         [
-            (["a", None], [None, "b"], ["a", "b"], "string"),
             (["a", None], [None, "b"], ["a", "b"], "string[python]"),
             pytest.param(
                 ["a", None],
