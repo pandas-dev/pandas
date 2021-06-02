@@ -368,7 +368,7 @@ class ExtensionDtype:
             return None
 
     @property
-    def can_hold_na(self) -> bool:
+    def _can_hold_na(self) -> bool:
         """
         Can arrays of this dtype hold NA values?
         """

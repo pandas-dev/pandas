@@ -780,22 +780,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
     return dtype, val
 
 
-def dict_compat(d: dict[Scalar, Scalar]) -> dict[Scalar, Scalar]:
-    """
-    Convert datetimelike-keyed dicts to a Timestamp-keyed dict.
-
-    Parameters
-    ----------
-    d: dict-like object
-
-    Returns
-    -------
-    dict
-
-    """
-    return {maybe_box_datetimelike(key): value for key, value in d.items()}
-
-
 def infer_dtype_from_array(
     arr, pandas_dtype: bool = False
 ) -> tuple[DtypeObj, ArrayLike]:
@@ -1543,7 +1527,7 @@ def maybe_infer_to_datetimelike(
         else:
             return td_values.reshape(shape)
 
-    inferred_type = lib.infer_datetimelike_array(ensure_object(v))
+    inferred_type, seen_str = lib.infer_datetimelike_array(ensure_object(v))
 
     if inferred_type == "datetime":
         # error: Incompatible types in assignment (expression has type "ExtensionArray",
@@ -1572,6 +1556,15 @@ def maybe_infer_to_datetimelike(
                 # "ExtensionArray", variable has type "Union[ndarray, List[Any]]")
                 value = try_datetime(v)  # type: ignore[assignment]
 
+    if value.dtype.kind in ["m", "M"] and seen_str:
+        warnings.warn(
+            f"Inferring {value.dtype} from data containing strings is deprecated "
+            "and will be removed in a future version. To retain the old behavior "
+            "explicitly pass Series(data, dtype={value.dtype})",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        # return v.reshape(shape)
     return value
 
 
@@ -2027,7 +2020,7 @@ def construct_1d_ndarray_preserving_na(
 
 def maybe_cast_to_integer_array(
     arr: list | np.ndarray, dtype: np.dtype, copy: bool = False
-):
+) -> np.ndarray:
     """
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.
@@ -2097,6 +2090,20 @@ def maybe_cast_to_integer_array(
 
     if is_float_dtype(arr.dtype) or is_object_dtype(arr.dtype):
         raise ValueError("Trying to coerce float values to integers")
+
+    if casted.dtype < arr.dtype:
+        # GH#41734 e.g. [1, 200, 923442] and dtype="int8" -> overflows
+        warnings.warn(
+            f"Values are too large to be losslessly cast to {dtype}. "
+            "In a future version this will raise OverflowError. To retain the "
+            f"old behavior, use pd.Series(values).astype({dtype})",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return casted
+
+    # No known cases that get here, but raising explicitly to cover our bases.
+    raise ValueError(f"values cannot be losslessly cast to {dtype}")
 
 
 def convert_scalar_for_putitemlike(scalar: Scalar, dtype: np.dtype) -> Scalar:

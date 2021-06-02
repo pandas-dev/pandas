@@ -1276,7 +1276,7 @@ class ExtensionArray:
     # of objects
     @cache_readonly
     def _can_hold_na(self) -> bool:
-        return self.dtype.can_hold_na
+        return self.dtype._can_hold_na
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         """
