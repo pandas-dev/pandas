@@ -673,7 +673,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     # ------------------------------------------------------------------------
     # String methods interface
 
-    _str_na_value = StringDtype.na_value
+    # error: Cannot determine type of 'na_value'
+    _str_na_value = StringDtype.na_value  # type: ignore[has-type]
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
