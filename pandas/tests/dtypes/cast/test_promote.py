@@ -3,6 +3,7 @@ These test the method maybe_promote from core/dtypes/cast.py
 """
 
 import datetime
+from decimal import Decimal
 
 import numpy as np
 import pytest
@@ -102,7 +103,7 @@ def _assert_match(result_fill_value, expected_fill_value):
 
     if hasattr(result_fill_value, "dtype"):
         # Compare types in a way that is robust to platform-specific
-        #  idiosyncracies where e.g. sometimes we get "ulonglong" as an alias
+        #  idiosyncrasies where e.g. sometimes we get "ulonglong" as an alias
         #  for "uint64" or "intc" as an alias for "int32"
         assert result_fill_value.dtype.kind == expected_fill_value.dtype.kind
         assert result_fill_value.dtype.itemsize == expected_fill_value.dtype.itemsize
@@ -405,11 +406,13 @@ def test_maybe_promote_any_with_datetime64(
         exp_val_for_scalar = fill_value
 
     warn = None
+    msg = "Using a `date` object for fill_value"
     if type(fill_value) is datetime.date and dtype.kind == "M":
         # Casting date to dt64 is deprecated
         warn = FutureWarning
 
-    with tm.assert_produces_warning(warn, check_stacklevel=False):
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        # stacklevel is chosen to make sense when called from higher-level functions
         _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
@@ -538,7 +541,20 @@ def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype_reduced, nulls_fi
     fill_value = nulls_fixture
     dtype = np.dtype(any_numpy_dtype_reduced)
 
-    if is_integer_dtype(dtype) and fill_value is not NaT:
+    if isinstance(fill_value, Decimal):
+        # Subject to change, but ATM (When Decimal(NAN) is being added to nulls_fixture)
+        #  this is the existing behavior in maybe_promote,
+        #  hinges on is_valid_na_for_dtype
+        if dtype.kind in ["i", "u", "f", "c"]:
+            if dtype.kind in ["i", "u"]:
+                expected_dtype = np.dtype(np.float64)
+            else:
+                expected_dtype = dtype
+            exp_val_for_scalar = np.nan
+        else:
+            expected_dtype = np.dtype(object)
+            exp_val_for_scalar = fill_value
+    elif is_integer_dtype(dtype) and fill_value is not NaT:
         # integer + other missing value (np.nan / None) casts to float
         expected_dtype = np.float64
         exp_val_for_scalar = np.nan

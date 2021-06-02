@@ -74,10 +74,14 @@ class StringFormatter:
 
         return strcols
 
+    @property
+    def _adjusted_tr_col_num(self) -> int:
+        return self.fmt.tr_col_num + 1 if self.fmt.index else self.fmt.tr_col_num
+
     def _insert_dot_separator_horizontal(
         self, strcols: List[List[str]], index_length: int
     ) -> List[List[str]]:
-        strcols.insert(self.fmt.tr_col_num + 1, [" ..."] * index_length)
+        strcols.insert(self._adjusted_tr_col_num, [" ..."] * index_length)
         return strcols
 
     def _insert_dot_separator_vertical(
@@ -89,7 +93,7 @@ class StringFormatter:
             cwidth = self.adj.len(col[row_num])
 
             if self.fmt.is_truncated_horizontally:
-                is_dot_col = ix == self.fmt.tr_col_num + 1
+                is_dot_col = ix == self._adjusted_tr_col_num
             else:
                 is_dot_col = False
 
@@ -98,7 +102,7 @@ class StringFormatter:
             else:
                 dots = ".."
 
-            if ix == 0:
+            if ix == 0 and self.fmt.index:
                 dot_mode = "left"
             elif is_dot_col:
                 cwidth = 4
@@ -117,7 +121,13 @@ class StringFormatter:
 
         if self.fmt.index:
             idx = strcols.pop(0)
-            lwidth -= np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
+            # error: Argument 1 to "__call__" of "_NumberOp" has incompatible type
+            # "None"; expected "Union[int, float, complex, number, bool_]"
+            # error: Incompatible types in assignment (expression has type "number",
+            # variable has type "Optional[int]")
+            lwidth -= (  # type: ignore[assignment,arg-type]
+                np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
+            )
 
         col_widths = [
             np.array([self.adj.len(x) for x in col]).max() if len(col) > 0 else 0
@@ -125,7 +135,9 @@ class StringFormatter:
         ]
 
         assert lwidth is not None
-        col_bins = _binify(col_widths, lwidth)
+        # error: Argument 1 to "_binify" has incompatible type "List[object]"; expected
+        # "List[int]"
+        col_bins = _binify(col_widths, lwidth)  # type: ignore[arg-type]
         nbins = len(col_bins)
 
         if self.fmt.is_truncated_vertically:

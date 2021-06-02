@@ -465,7 +465,7 @@ class TestDatetimeIndexTimezones:
         idx = date_range(start="2014-06-01", end="2014-08-30", freq="15T")
         tz = tz_aware_fixture
         localized = idx.tz_localize(tz)
-        # cant localize a tz-aware object
+        # can't localize a tz-aware object
         with pytest.raises(
             TypeError, match="Already tz-aware, use tz_convert to convert"
         ):
@@ -1146,7 +1146,10 @@ class TestDatetimeIndexTimezones:
 
         rng2 = date_range("2012-11-15 12:00:00", periods=6, freq="H", tz="US/Eastern")
 
-        result = rng.union(rng2)
+        with tm.assert_produces_warning(FutureWarning):
+            # # GH#39328 will cast both to UTC
+            result = rng.union(rng2)
+
         expected = rng.astype("O").union(rng2.astype("O"))
         tm.assert_index_equal(result, expected)
         assert result[0].tz.zone == "US/Central"

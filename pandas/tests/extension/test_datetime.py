@@ -97,7 +97,10 @@ class TestDatetimeDtype(BaseDatetimeTests, base.BaseDtypeTests):
 
 
 class TestConstructors(BaseDatetimeTests, base.BaseConstructorsTests):
-    pass
+    def test_series_constructor(self, data):
+        # Series construction drops any .freq attr
+        data = data._with_freq(None)
+        super().test_series_constructor(data)
 
 
 class TestGetitem(BaseDatetimeTests, base.BaseGetitemTests):
@@ -234,4 +237,8 @@ class TestGroupby(BaseDatetimeTests, base.BaseGroupbyTests):
 
 
 class TestPrinting(BaseDatetimeTests, base.BasePrintingTests):
+    pass
+
+
+class Test2DCompat(BaseDatetimeTests, base.Dim2CompatTests):
     pass

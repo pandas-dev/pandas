@@ -195,45 +195,6 @@ class TestDataFrameNonuniqueIndexes:
         df["that"] = 1
         check(df, expected)
 
-    def test_column_dups_drop(self):
-
-        # drop buggy GH 6240
-        df = DataFrame(
-            {
-                "A": np.random.randn(5),
-                "B": np.random.randn(5),
-                "C": np.random.randn(5),
-                "D": ["a", "b", "c", "d", "e"],
-            }
-        )
-
-        expected = df.take([0, 1, 1], axis=1)
-        df2 = df.take([2, 0, 1, 2, 1], axis=1)
-        result = df2.drop("C", axis=1)
-        tm.assert_frame_equal(result, expected)
-
-    def test_column_dups_dropna(self):
-        # dropna
-        df = DataFrame(
-            {
-                "A": np.random.randn(5),
-                "B": np.random.randn(5),
-                "C": np.random.randn(5),
-                "D": ["a", "b", "c", "d", "e"],
-            }
-        )
-        df.iloc[2, [0, 1, 2]] = np.nan
-        df.iloc[0, 0] = np.nan
-        df.iloc[1, 1] = np.nan
-        df.iloc[:, 3] = np.nan
-        expected = df.dropna(subset=["A", "B", "C"], how="all")
-        expected.columns = ["A", "A", "B", "C"]
-
-        df.columns = ["A", "A", "B", "C"]
-
-        result = df.dropna(subset=["A", "C"], how="all")
-        tm.assert_frame_equal(result, expected)
-
     def test_dup_columns_comparisons(self):
         # equality
         df1 = DataFrame([[1, 2], [2, np.nan], [3, 4], [4, 4]], columns=["A", "B"])
@@ -330,7 +291,7 @@ class TestDataFrameNonuniqueIndexes:
         expected = DataFrame([[1, 2, "foo", "bar"]], columns=["a", "a.1", "a.2", "a.3"])
         tm.assert_frame_equal(df, expected)
 
-    def test_dups_across_blocks(self):
+    def test_dups_across_blocks(self, using_array_manager):
         # dups across blocks
         df_float = DataFrame(np.random.randn(10, 3), dtype="float64")
         df_int = DataFrame(np.random.randn(10, 3), dtype="int64")
@@ -341,8 +302,9 @@ class TestDataFrameNonuniqueIndexes:
         )
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
-        assert len(df._mgr.blknos) == len(df.columns)
-        assert len(df._mgr.blklocs) == len(df.columns)
+        if not using_array_manager:
+            assert len(df._mgr.blknos) == len(df.columns)
+            assert len(df._mgr.blklocs) == len(df.columns)
 
         # testing iloc
         for i in range(len(df.columns)):

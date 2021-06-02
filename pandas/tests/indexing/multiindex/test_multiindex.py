@@ -75,7 +75,7 @@ class TestMultiIndexBasic:
 
         dti = pd.to_datetime(["20190101", "20190101", "20190102"])
         idx = Index(["a", "a", "c"])
-        mi = pd.MultiIndex.from_arrays([dti, idx], names=["index1", "index2"])
+        mi = MultiIndex.from_arrays([dti, idx], names=["index1", "index2"])
 
         df = DataFrame({"c1": [1, 2, 3], "c2": [np.nan, np.nan, np.nan]}, index=mi)
 

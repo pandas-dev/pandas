@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -419,7 +417,7 @@ class TestJoin:
         other_df = DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
         other_df.set_index("a", inplace=True)
         # GH 9455, 12219
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning):
             result = merge(new_df, other_df, left_index=True, right_index=True)
         assert ("b", "mean") in result
         assert "b" in result
@@ -553,7 +551,6 @@ class TestJoin:
         )
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_mixed_type_join_with_suffix(self):
         # GH #916
         df = DataFrame(np.random.randn(20, 6), columns=["a", "b", "c", "d", "e", "f"])
@@ -632,7 +629,8 @@ class TestJoin:
         dta = x.merge(y, left_index=True, right_index=True).merge(
             z, left_index=True, right_index=True, how="outer"
         )
-        dta = dta.merge(w, left_index=True, right_index=True)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            dta = dta.merge(w, left_index=True, right_index=True)
         expected = concat([x, y, z, w], axis=1)
         expected.columns = ["x_x", "y_x", "x_y", "y_y", "x_x", "y_x", "x_y", "y_y"]
         tm.assert_frame_equal(dta, expected)
@@ -836,15 +834,13 @@ def test_join_cross(input_col, output_cols):
 def test_join_multiindex_one_level(join_type):
     # GH#36909
     left = DataFrame(
-        data={"c": 3}, index=pd.MultiIndex.from_tuples([(1, 2)], names=("a", "b"))
+        data={"c": 3}, index=MultiIndex.from_tuples([(1, 2)], names=("a", "b"))
     )
-    right = DataFrame(
-        data={"d": 4}, index=pd.MultiIndex.from_tuples([(2,)], names=("b",))
-    )
+    right = DataFrame(data={"d": 4}, index=MultiIndex.from_tuples([(2,)], names=("b",)))
     result = left.join(right, how=join_type)
     expected = DataFrame(
         {"c": [3], "d": [4]},
-        index=pd.MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
+        index=MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
     )
     tm.assert_frame_equal(result, expected)
 

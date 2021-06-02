@@ -178,11 +178,15 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     if is_integer_object(delta):
         return delta
     if PyDelta_Check(delta):
-        return (
-            delta.days * 24 * 60 * 60 * 1_000_000
-            + delta.seconds * 1_000_000
-            + delta.microseconds
-        ) * 1000
+        try:
+            return (
+                delta.days * 24 * 60 * 60 * 1_000_000
+                + delta.seconds * 1_000_000
+                + delta.microseconds
+            ) * 1000
+        except OverflowError as err:
+            from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta
+            raise OutOfBoundsTimedelta(*err.args) from err
 
     raise TypeError(type(delta))
 
@@ -246,7 +250,7 @@ cdef object ensure_td64ns(object ts):
             td64_value = td64_value * mult
         except OverflowError as err:
             from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta
-            raise OutOfBoundsTimedelta(ts)
+            raise OutOfBoundsTimedelta(ts) from err
 
         return np.timedelta64(td64_value, "ns")
 
@@ -307,10 +311,16 @@ cdef convert_to_timedelta64(object ts, str unit):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def array_to_timedelta64(ndarray[object] values, str unit=None, str errors="raise"):
+def array_to_timedelta64(
+    ndarray[object] values, str unit=None, str errors="raise"
+) -> ndarray:
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
+
+    Returns
+    -------
+    np.ndarray[timedelta64ns]
     """
 
     cdef:
@@ -347,9 +357,13 @@ def array_to_timedelta64(ndarray[object] values, str unit=None, str errors="rais
         for i in range(n):
             try:
                 result[i] = convert_to_timedelta64(values[i], parsed_unit)
-            except ValueError:
+            except ValueError as err:
                 if errors == 'coerce':
                     result[i] = NPY_NAT
+                elif "unit abbreviation w/o a number" in str(err):
+                    # re-raise with more pertinent message
+                    msg = f"Could not convert '{values[i]}' to NumPy timedelta"
+                    raise ValueError(msg) from err
                 else:
                     raise
 
@@ -532,7 +546,7 @@ cdef inline int64_t timedelta_as_neg(int64_t value, bint neg):
     Parameters
     ----------
     value : int64_t of the timedelta value
-    neg : boolean if the a negative value
+    neg : bool if the a negative value
     """
     if neg:
         return -value

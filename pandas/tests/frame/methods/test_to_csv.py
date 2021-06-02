@@ -773,10 +773,7 @@ class TestDataFrameToCSV:
             [df_float, df_int, df_bool, df_object, df_dt], axis=1, ignore_index=True
         )
 
-        cols = []
-        for i in range(5):
-            cols.extend([0, 1, 2])
-        df.columns = cols
+        df.columns = [0, 1, 2] * 5
 
         with tm.ensure_clean() as filename:
             df.to_csv(filename)
@@ -1333,3 +1330,14 @@ class TestDataFrameToCSV:
 
         result = buf.getvalue()
         assert "2000-01-01" in result
+
+    def test_to_csv_na_quoting(self):
+        # GH 15891
+        # Normalize carriage return for Windows OS
+        result = (
+            DataFrame([None, None])
+            .to_csv(None, header=False, index=False, na_rep="")
+            .replace("\r\n", "\n")
+        )
+        expected = '""\n""\n'
+        assert result == expected
