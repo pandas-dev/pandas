@@ -1326,6 +1326,9 @@ class TestMinMax:
     data_neg = plain_data * (-1)
     data_NaN = SparseArray(np.array([0, 1, 2, np.nan, 4]))
     data_all_NaN = SparseArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan]))
+    data_NA_filled = SparseArray(
+        np.array([np.nan, np.nan, np.nan, np.nan, np.nan]), fill_value=5
+    )
 
     @pytest.mark.parametrize(
         "raw_data,max_expected,min_expected",
@@ -1334,6 +1337,7 @@ class TestMinMax:
             (data_neg, [0], [-4]),
             (data_NaN, [4], [0]),
             (data_all_NaN, [np.nan], [np.nan]),
+            (data_NA_filled, [5], [5]),
         ],
     )
     def test_maxmin(self, raw_data, max_expected, min_expected):

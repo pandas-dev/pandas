@@ -1397,7 +1397,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         # This condition returns a nan if there are no valid values in the array.
         if self.size > 0 and self._valid_sp_values.size == 0:
-            return np.nan
+            return self.fill_value
         else:
             return np.nanmax(self, axis)
 
@@ -1406,7 +1406,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         # This condition returns a nan if there are no valid values in the array.
         if self.size > 0 and self._valid_sp_values.size == 0:
-            return np.nan
+            return self.fill_value
         else:
             return np.nanmin(self, axis)
 
