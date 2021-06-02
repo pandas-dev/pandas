@@ -29,12 +29,17 @@ class OpenpyxlWriter(ExcelWriter):
     engine = "openpyxl"
     supported_extensions = (".xlsx", ".xlsm")
 
+    # Because this is used a few times in the class,
+    # it's declared as a variable
+    # Maybe move to within __init__?
+
     def __init__(
         self,
         path,
         engine=None,
         date_format=None,
         datetime_format=None,
+        write_only=True,
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
@@ -51,6 +56,9 @@ class OpenpyxlWriter(ExcelWriter):
             engine_kwargs=engine_kwargs,
         )
 
+        from openpyxl import LXML
+        self.LXML_EXISTS = True if (LXML is True) else False
+
         # ExcelWriter replaced "a" by "r+" to allow us to first read the excel file from
         # the file and later write to it
         if "r+" in self.mode:  # Load from existing workbook
@@ -61,12 +69,26 @@ class OpenpyxlWriter(ExcelWriter):
             self.sheets = {name: self.book[name] for name in self.book.sheetnames}
 
         else:
-            try:
+            if self.LXML_EXISTS:
                 # Sheets are not automatically created in the workbook
                 self.book = Workbook(write_only=True)
-            except ImportError:
-                print("Warning: lxml is not installed")
-                print("Memory usage may be much higher.")
+            else:
+
+                import warnings
+                """
+                This would ideally be in the ImportWarning category,
+                but ImportWarnings are ignored by default in Python.
+
+                Not sure it's worth changing the default filter
+                when we can just use the Warning category instead.
+                """
+
+                warnings.warn(
+                    "lxml is not installed"
+                    "Memory usage may be much higher",
+                    Warning,
+                    stacklevel=2
+                )
                 self.book = Workbook()
 
                 if self.book.worksheets:
@@ -76,8 +98,8 @@ class OpenpyxlWriter(ExcelWriter):
         """
         Save workbook to disk.
         """
-        # TODO: Handle errors from saving more than once
-        self.book.save(self.handles.handle) 
+
+        self.book.save(self.handles.handle)
         if "r+" in self.mode and not isinstance(self.handles.handle, mmap.mmap):
             # truncate file to the written content
             self.handles.handle.truncate()
@@ -416,6 +438,17 @@ class OpenpyxlWriter(ExcelWriter):
 
         return Protection(**protection_dict)
 
+    @staticmethod
+    def _convert_to_excel_format(row, col):
+        col_name = ""
+
+        while col > 0:
+            mod = (col - 1) % 26
+            col_name = str(chr(65 + mod)) + col_name
+            col = (col - mod) // 26
+
+        return "%s%d" % (col_name, row)
+
     def write_cells(
         self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
     ):
@@ -454,52 +487,123 @@ class OpenpyxlWriter(ExcelWriter):
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )
 
-        for cell in cells:
-            xcell = wks.cell(
-                row=startrow + cell.row + 1, column=startcol + cell.col + 1
-            )
-            xcell.value, fmt = self._value_with_fmt(cell.val)
-            if fmt:
-                xcell.number_format = fmt
+        if self.book.write_only and self.LXML_EXISTS:
 
-            style_kwargs: dict[str, Serialisable] | None = {}
-            if cell.style:
-                key = str(cell.style)
-                style_kwargs = _style_cache.get(key)
-                if style_kwargs is None:
-                    style_kwargs = self._convert_to_style_kwargs(cell.style)
-                    _style_cache[key] = style_kwargs
+            from openpyxl.cell import WriteOnlyCell
 
-            if style_kwargs:
-                for k, v in style_kwargs.items():
-                    setattr(xcell, k, v)
+            for cell in cells:
+                xval, fmt = self._value_with_fmt(cell.val)
+                xcell = WriteOnlyCell(wks, value=xval)
 
-            if cell.mergestart is not None and cell.mergeend is not None:
+                if fmt:
+                    xcell.number_format = fmt
 
-                wks.merge_cells(
-                    start_row=startrow + cell.row + 1,
-                    start_column=startcol + cell.col + 1,
-                    end_column=startcol + cell.mergeend + 1,
-                    end_row=startrow + cell.mergestart + 1,
-                )
+                if cell.style:
+                    key = str(cell.style)
+                    style_kwargs = _style_cache.get(key)
+                    if style_kwargs is None:
+                        style_kwargs = self._convert_to_style_kwargs(cell.style)
+                        _style_cache[key] = style_kwargs
 
-                # When cells are merged only the top-left cell is preserved
-                # The behaviour of the other cells in a merged range is
-                # undefined
+                # This is primarily the issue. Setting cell attributes arbitrarily.
+                # Might not actually be an issue, as long as we set THEN append
                 if style_kwargs:
-                    first_row = startrow + cell.row + 1
-                    last_row = startrow + cell.mergestart + 1
-                    first_col = startcol + cell.col + 1
-                    last_col = startcol + cell.mergeend + 1
+                    for k, v in style_kwargs.items():
+                        setattr(xcell, k, v)
 
-                    for row in range(first_row, last_row + 1):
-                        for col in range(first_col, last_col + 1):
-                            if row == first_row and col == first_col:
-                                # Ignore first cell. It is already handled.
-                                continue
-                            xcell = wks.cell(column=col, row=row)
-                            for k, v in style_kwargs.items():
-                                setattr(xcell, k, v)
+                """
+
+                The way that merged cells work in write_only worksheets is as follows:
+
+                You append the data you want first, then you append the merge over it.
+                It must be in excel notation (e.g. "A1:C1") rather than by index
+                (e.g. 11:14)
+
+                I think creating a helper function to turn the indexes into excel
+                notation could be useful
+
+                """
+                if cell.mergestart is not None and cell.mergeend is not None:
+
+                    wks.merged_cells.ranges.append(
+                        "%s:%s" % (
+                            self._convert_to_excel_format(
+                                row=startrow + cell.row + 1,
+                                col=startcol + cell.col + 1),
+
+                            self._convert_to_excel_format(
+                                row=startrow + cell.mergestart + 1,
+                                col=startcol + cell.mergeend + 1
+                            )
+                        )
+                    )
+
+                    # When cells are merged only the top-left cell is preserved
+                    # The behaviour of the other cells in a merged range is
+                    # undefined
+                    if style_kwargs:
+                        first_row = startrow + cell.row + 1
+                        last_row = startrow + cell.mergestart + 1
+                        first_col = startcol + cell.col + 1
+                        last_col = startcol + cell.mergeend + 1
+
+                        for row in range(first_row, last_row + 1):
+                            for col in range(first_col, last_col + 1):
+                                if row == first_row and col == first_col:
+                                    # Ignore first cell. It is already handled.
+                                    continue
+                                xcell = wks.cell(column=col, row=row)
+                                for k, v in style_kwargs.items():
+                                    setattr(xcell, k, v)
+
+                wks.append([xcell])
+        else:
+            for cell in cells:
+                xcell = wks.cell(
+                    row=startrow + cell.row + 1, column=startcol + cell.col + 1
+                )
+                xcell.value, fmt = self._value_with_fmt(cell.val)
+                if fmt:
+                    xcell.number_format = fmt
+
+                style_kwargs: dict[str, Serialisable] | None = {}
+                if cell.style:
+                    key = str(cell.style)
+                    style_kwargs = _style_cache.get(key)
+                    if style_kwargs is None:
+                        style_kwargs = self._convert_to_style_kwargs(cell.style)
+                        _style_cache[key] = style_kwargs
+
+                if style_kwargs:
+                    for k, v in style_kwargs.items():
+                        setattr(xcell, k, v)
+
+                if cell.mergestart is not None and cell.mergeend is not None:
+
+                    wks.merge_cells(
+                        start_row=startrow + cell.row + 1,
+                        start_column=startcol + cell.col + 1,
+                        end_column=startcol + cell.mergeend + 1,
+                        end_row=startrow + cell.mergestart + 1,
+                    )
+
+                    # When cells are merged only the top-left cell is preserved
+                    # The behaviour of the other cells in a merged range is
+                    # undefined
+                    if style_kwargs:
+                        first_row = startrow + cell.row + 1
+                        last_row = startrow + cell.mergestart + 1
+                        first_col = startcol + cell.col + 1
+                        last_col = startcol + cell.mergeend + 1
+
+                        for row in range(first_row, last_row + 1):
+                            for col in range(first_col, last_col + 1):
+                                if row == first_row and col == first_col:
+                                    # Ignore first cell. It is already handled.
+                                    continue
+                                xcell = wks.cell(column=col, row=row)
+                                for k, v in style_kwargs.items():
+                                    setattr(xcell, k, v)
 
 
 class OpenpyxlReader(BaseExcelReader):
