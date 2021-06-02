@@ -2104,7 +2104,6 @@ def sequence_to_dt64ns(
         result = data.view(DT64NS_DTYPE)
 
     if copy:
-        # TODO: should this be deepcopy?
         result = result.copy()
 
     assert isinstance(result, np.ndarray), type(result)

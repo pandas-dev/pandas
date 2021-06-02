@@ -1266,14 +1266,14 @@ class SelectNSeries(SelectN):
             return dropped.sort_values(ascending=ascending).head(n)
 
         # fast method
-        arr, pandas_dtype = _ensure_data(dropped.values)
+        arr, new_dtype = _ensure_data(dropped.values)
         if method == "nlargest":
             arr = -arr
-            if is_integer_dtype(pandas_dtype):
+            if is_integer_dtype(new_dtype):
                 # GH 21426: ensure reverse ordering at boundaries
                 arr -= 1
 
-            elif is_bool_dtype(pandas_dtype):
+            elif is_bool_dtype(new_dtype):
                 # GH 26154: ensure False is smaller than True
                 arr = 1 - (-arr)
 

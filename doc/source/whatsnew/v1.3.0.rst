@@ -643,6 +643,7 @@ Other API changes
 - Partially initialized :class:`CategoricalDtype` (i.e. those with ``categories=None`` objects will no longer compare as equal to fully initialized dtype objects.
 - Accessing ``_constructor_expanddim`` on a :class:`DataFrame` and ``_constructor_sliced`` on a :class:`Series` now raise an ``AttributeError``. Previously a ``NotImplementedError`` was raised (:issue:`38782`)
 - Added new ``engine`` and ``**engine_kwargs`` parameters to :meth:`DataFrame.to_sql` to support other future "SQL engines". Currently we still only use ``SQLAlchemy`` under the hood, but more engines are planned to be supported such as ``turbodbc`` (:issue:`36893`)
+- Removed redundant ``freq`` from :class:`PeriodIndex` string representation (:issue:`41653`)
 
 Build
 =====
