@@ -47,7 +47,10 @@ from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
 from pandas.core.arrays.numeric import NumericDtype
-from pandas.core.arrays.string_ import StringDtype
+from pandas.core.arrays.string_ import (
+    BaseStringArray,
+    StringDtype,
+)
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
@@ -86,7 +89,7 @@ def _chk_pyarrow_available() -> None:
 # fallback for the ones that pyarrow doesn't yet support
 
 
-class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
+class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 

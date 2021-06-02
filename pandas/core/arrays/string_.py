@@ -43,6 +43,7 @@ from pandas.core.arrays import (
     IntegerArray,
     PandasArray,
 )
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
@@ -51,8 +52,6 @@ from pandas.core.missing import isna
 
 if TYPE_CHECKING:
     import pyarrow
-
-    from pandas.core.arrays.string_arrow import ArrowStringArray
 
 
 @register_extension_dtype
@@ -172,7 +171,7 @@ class StringDtype(ExtensionDtype):
     # "ExtensionDtype"
     def construct_array_type(  # type: ignore[override]
         self,
-    ) -> type_t[StringArray | ArrowStringArray]:
+    ) -> type_t[BaseStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -195,7 +194,7 @@ class StringDtype(ExtensionDtype):
 
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
-    ) -> StringArray | ArrowStringArray:
+    ) -> BaseStringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
@@ -225,7 +224,11 @@ class StringDtype(ExtensionDtype):
             return StringArray(np.array([], dtype="object"))
 
 
-class StringArray(PandasArray):
+class BaseStringArray(ExtensionArray):
+    pass
+
+
+class StringArray(BaseStringArray, PandasArray):
     """
     Extension array for string data.
 
