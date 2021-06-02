@@ -318,12 +318,7 @@ def array(
             return PeriodArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "interval":
-            try:
-                return IntervalArray(data, copy=copy)
-            except ValueError:
-                # We may have a mixture of `closed` here.
-                # We choose to return an ndarray, rather than raising.
-                pass
+            return IntervalArray(data, copy=copy)
 
         elif inferred_dtype.startswith("datetime"):
             # datetime, datetime64
