@@ -84,6 +84,8 @@ class StringDtype(ExtensionDtype):
     string[python]
     """
 
+    name = "string"
+
     #: StringDtype.na_value uses pandas.NA
     na_value = libmissing.NA
     _metadata = ("storage",)
@@ -101,10 +103,6 @@ class StringDtype(ExtensionDtype):
             )
 
         self.storage = storage
-
-    @property
-    def name(self):
-        return f"string[{self.storage}]"
 
     @property
     def type(self) -> type[str]:
@@ -182,6 +180,9 @@ class StringDtype(ExtensionDtype):
             return ArrowStringArray
 
     def __repr__(self):
+        return f"string[{self.storage}]"
+
+    def __str__(self):
         return self.name
 
     def __from_arrow__(
@@ -268,7 +269,7 @@ class StringArray(PandasArray):
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
     <StringArray>
     ['This is', 'some text', <NA>, 'data.']
-    Length: 4, dtype: string[python]
+    Length: 4, dtype: string
 
     Unlike arrays instantiated with ``dtype="object"``, ``StringArray``
     will convert the values to strings.
@@ -280,7 +281,7 @@ class StringArray(PandasArray):
     >>> pd.array(['1', 1], dtype="string")
     <StringArray>
     ['1', '1']
-    Length: 2, dtype: string[python]
+    Length: 2, dtype: string
 
     However, instantiating StringArrays directly with non-strings will raise an error.
 

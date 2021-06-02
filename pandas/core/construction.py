@@ -239,7 +239,7 @@ def array(
     >>> pd.array(["a", None, "c"])
     <StringArray>
     ['a', <NA>, 'c']
-    Length: 3, dtype: string[python]
+    Length: 3, dtype: string
 
     >>> with pd.option_context("string_storage", "pyarrow"):
     ...     arr = pd.array(["a", None, "c"])
@@ -247,7 +247,7 @@ def array(
     >>> arr
     <ArrowStringArray>
     ['a', <NA>, 'c']
-    Length: 3, dtype: string[pyarrow]
+    Length: 3, dtype: string
 
     >>> pd.array([pd.Period('2000', freq="D"), pd.Period("2000", freq="D")])
     <PeriodArray>

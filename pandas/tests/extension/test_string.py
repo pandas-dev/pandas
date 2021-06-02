@@ -94,7 +94,9 @@ def data_for_grouping(dtype, chunked):
 
 
 class TestDtype(base.BaseDtypeTests):
-    pass
+    def test_eq_with_str(self, dtype):
+        assert dtype == f"string[{dtype.storage}]"
+        super().test_eq_with_str(dtype)
 
 
 class TestInterface(base.BaseInterfaceTests):
@@ -106,7 +108,9 @@ class TestInterface(base.BaseInterfaceTests):
 
 
 class TestConstructors(base.BaseConstructorsTests):
-    pass
+    def test_from_dtype(self, data):
+        # base test uses string representation of dtype
+        pass
 
 
 class TestReshaping(base.BaseReshapingTests):
