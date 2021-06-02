@@ -5397,7 +5397,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         target_dtype, _ = infer_dtype_from(target, pandas_dtype=True)
 
-        # special case: if either is uint64 and other dtype is signed int, return object
+        # special case: if one dtype is uint64 and the other a signed int, return object
         # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
         # Now it's:
         # * float | [u]int -> float
