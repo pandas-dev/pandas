@@ -125,7 +125,7 @@ def array(
         ============================== =======================================
 
         The ExtensionArray created when the scalar type is :class:`str` is determined by
-        pd.options.mode.string_storage if the dtype is not explicitly given.
+        ``pd.options.mode.string_storage`` if the dtype is not explicitly given.
 
         For all other cases, NumPy's usual inference rules will be used.
 

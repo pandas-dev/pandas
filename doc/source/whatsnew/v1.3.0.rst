@@ -178,7 +178,7 @@ PyArrow backed string data type
 We've enhanced the :class:`StringDtype`, an extension type dedicated to string data.
 (:issue:`39908`)
 
-It is now possible to specify a ``storage`` keyword option to :class:`StringDtype`, use
+It is now possible to specify a ``storage`` keyword option to :class:`StringDtype`. Use
 pandas options or specify the dtype using ``dtype='string[pyarrow]'`` to allow the
 StringArray to be backed by a PyArrow array instead of a NumPy array of Python objects.
 
