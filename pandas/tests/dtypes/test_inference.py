@@ -1169,7 +1169,7 @@ class TestTypeInference:
         ],
     )
     def test_infer_datetimelike_array_datetime(self, data):
-        assert lib.infer_datetimelike_array(data) == "datetime"
+        assert lib.infer_datetimelike_array(data) == ("datetime", False)
 
     @pytest.mark.parametrize(
         "data",
@@ -1181,11 +1181,11 @@ class TestTypeInference:
         ],
     )
     def test_infer_datetimelike_array_timedelta(self, data):
-        assert lib.infer_datetimelike_array(data) == "timedelta"
+        assert lib.infer_datetimelike_array(data) == ("timedelta", False)
 
     def test_infer_datetimelike_array_date(self):
         arr = [date(2017, 6, 12), date(2017, 3, 11)]
-        assert lib.infer_datetimelike_array(arr) == "date"
+        assert lib.infer_datetimelike_array(arr) == ("date", False)
 
     @pytest.mark.parametrize(
         "data",
@@ -1200,7 +1200,7 @@ class TestTypeInference:
         ],
     )
     def test_infer_datetimelike_array_mixed(self, data):
-        assert lib.infer_datetimelike_array(data) == "mixed"
+        assert lib.infer_datetimelike_array(data)[0] == "mixed"
 
     @pytest.mark.parametrize(
         "first, expected",
@@ -1218,7 +1218,7 @@ class TestTypeInference:
     @pytest.mark.parametrize("second", [None, np.nan])
     def test_infer_datetimelike_array_nan_nat_like(self, first, second, expected):
         first.append(second)
-        assert lib.infer_datetimelike_array(first) == expected
+        assert lib.infer_datetimelike_array(first) == (expected, False)
 
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])
@@ -1458,16 +1458,53 @@ class TestTypeInference:
         result = lib.infer_dtype(Series(arr), skipna=True)
         assert result == "categorical"
 
-    def test_interval(self):
+    @pytest.mark.parametrize("asobject", [True, False])
+    def test_interval(self, asobject):
         idx = pd.IntervalIndex.from_breaks(range(5), closed="both")
+        if asobject:
+            idx = idx.astype(object)
+
         inferred = lib.infer_dtype(idx, skipna=False)
         assert inferred == "interval"
 
         inferred = lib.infer_dtype(idx._data, skipna=False)
         assert inferred == "interval"
 
-        inferred = lib.infer_dtype(Series(idx), skipna=False)
+        inferred = lib.infer_dtype(Series(idx, dtype=idx.dtype), skipna=False)
         assert inferred == "interval"
+
+    @pytest.mark.parametrize("value", [Timestamp(0), Timedelta(0), 0, 0.0])
+    def test_interval_mismatched_closed(self, value):
+
+        first = Interval(value, value, closed="left")
+        second = Interval(value, value, closed="right")
+
+        # if closed match, we should infer "interval"
+        arr = np.array([first, first], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "interval"
+
+        # if closed dont match, we should _not_ get "interval"
+        arr2 = np.array([first, second], dtype=object)
+        assert lib.infer_dtype(arr2, skipna=False) == "mixed"
+
+    def test_interval_mismatched_subtype(self):
+        first = Interval(0, 1, closed="left")
+        second = Interval(Timestamp(0), Timestamp(1), closed="left")
+        third = Interval(Timedelta(0), Timedelta(1), closed="left")
+
+        arr = np.array([first, second])
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        arr = np.array([second, third])
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        arr = np.array([first, third])
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        # float vs int subdtype are compatible
+        flt_interval = Interval(1.5, 2.5, closed="left")
+        arr = np.array([first, flt_interval], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "interval"
 
     @pytest.mark.parametrize("klass", [pd.array, Series])
     @pytest.mark.parametrize("skipna", [True, False])

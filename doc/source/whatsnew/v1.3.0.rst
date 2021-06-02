@@ -341,7 +341,7 @@ Other enhancements
 - Add keyword ``sort`` to :func:`pivot_table` to allow non-sorting of the result (:issue:`39143`)
 - Add keyword ``dropna`` to :meth:`DataFrame.value_counts` to allow counting rows that include ``NA`` values (:issue:`41325`)
 - :meth:`Series.replace` will now cast results to ``PeriodDtype`` where possible instead of ``object`` dtype (:issue:`41526`)
-- Improved error message in ``corr` and ``cov`` methods on :class:`.Rolling`, :class:`.Expanding`, and :class:`.ExponentialMovingWindow` when ``other`` is not a :class:`DataFrame` or :class:`Series` (:issue:`41741`)
+- Improved error message in ``corr`` and ``cov`` methods on :class:`.Rolling`, :class:`.Expanding`, and :class:`.ExponentialMovingWindow` when ``other`` is not a :class:`DataFrame` or :class:`Series` (:issue:`41741`)
 
 .. ---------------------------------------------------------------------------
 
@@ -751,6 +751,7 @@ Other API changes
 - Partially initialized :class:`CategoricalDtype` (i.e. those with ``categories=None`` objects will no longer compare as equal to fully initialized dtype objects.
 - Accessing ``_constructor_expanddim`` on a :class:`DataFrame` and ``_constructor_sliced`` on a :class:`Series` now raise an ``AttributeError``. Previously a ``NotImplementedError`` was raised (:issue:`38782`)
 - Added new ``engine`` and ``**engine_kwargs`` parameters to :meth:`DataFrame.to_sql` to support other future "SQL engines". Currently we still only use ``SQLAlchemy`` under the hood, but more engines are planned to be supported such as ``turbodbc`` (:issue:`36893`)
+- Removed redundant ``freq`` from :class:`PeriodIndex` string representation (:issue:`41653`)
 
 Build
 =====
@@ -794,6 +795,7 @@ Deprecations
 - Deprecated passing arguments (apart from ``cond`` and ``other``) as positional in :meth:`DataFrame.mask` and :meth:`Series.mask` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.clip` and :meth:`Series.clip` (other than ``"upper"`` and ``"lower"``) (:issue:`41485`)
 - Deprecated special treatment of lists with first element a Categorical in the :class:`DataFrame` constructor; pass as ``pd.DataFrame({col: categorical, ...})`` instead (:issue:`38845`)
+- Deprecated behavior of :class:`DataFrame` constructor when a ``dtype`` is passed and the data cannot be cast to that dtype. In a future version, this will raise instead of being silently ignored (:issue:`24435`)
 - Deprecated passing arguments as positional (except for ``"method"``) in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, and :meth:`Series.bfill` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.sort_values` (other than ``"by"``) and :meth:`Series.sort_values` (:issue:`41485`)
@@ -805,6 +807,8 @@ Deprecations
 - Deprecated passing arguments (apart from ``value``) as positional in :meth:`DataFrame.fillna` and :meth:`Series.fillna` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.reset_index` (other than ``"level"``) and :meth:`Series.reset_index` (:issue:`41485`)
 - Deprecated construction of :class:`Series` or :class:`DataFrame` with ``DatetimeTZDtype`` data and ``datetime64[ns]`` dtype.  Use ``Series(data).dt.tz_localize(None)`` instead (:issue:`41555`,:issue:`33401`)
+- Deprecated behavior of :class:`Series` construction with large-integer values and small-integer dtype silently overflowing; use ``Series(data).astype(dtype)`` instead (:issue:`41734`)
+- Deprecated inference of ``timedelta64[ns]``, ``datetime64[ns]``, or ``DatetimeTZDtype`` dtypes in :class:`Series` construction when data containing strings is passed and no ``dtype`` is passed (:issue:`33558`)
 - In a future version, constructing :class:`Series` or :class:`DataFrame` with ``datetime64[ns]`` data and ``DatetimeTZDtype`` will treat the data as wall-times instead of as UTC times (matching DatetimeIndex behavior). To treat the data as UTC times, use ``pd.Series(data).dt.tz_localize("UTC").dt.tz_convert(dtype.tz)`` or ``pd.Series(data.view("int64"), dtype=dtype)`` (:issue:`33401`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.set_axis` and :meth:`Series.set_axis` (other than ``"labels"``) (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.where` and :meth:`Series.where` (other than ``"cond"`` and ``"other"``) (:issue:`41485`)
@@ -1067,6 +1071,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when :class:`MultiIndex` containing ``NaN`` even when they are differently ordered (:issue:`38439`)
 - Bug in :meth:`MultiIndex.intersection` always returning empty when intersecting with :class:`CategoricalIndex` (:issue:`38653`)
 - Bug in :meth:`MultiIndex.reindex` raising ``ValueError`` with empty MultiIndex and indexing only a specific level (:issue:`41170`)
+- Bug in :meth:`MultiIndex.reindex` raising ``TypeError`` when reindexing against a flat :class:`Index` (:issue:`41707`)
 
 I/O
 ^^^
@@ -1181,6 +1186,7 @@ Reshaping
 - Bug in :meth:`DataFrame.sort_values` not reshaping index correctly after sorting on columns, when ``ignore_index=True`` (:issue:`39464`)
 - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``ExtensionDtype`` dtypes (:issue:`39454`)
 - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``datetime64`` and ``timedelta64`` dtypes (:issue:`39574`)
+- Bug in :meth:`DataFrame.append` with a :class:`DataFrame` with a :class:`MultiIndex` and appending a :class:`Series` whose :class:`Index` is not a :class:`MultiIndex` (:issue:`41707`)
 - Bug in :meth:`DataFrame.pivot_table` returning a ``MultiIndex`` for a single value when operating on and empty ``DataFrame`` (:issue:`13483`)
 - Allow :class:`Index` to be passed to the :func:`numpy.all` function (:issue:`40180`)
 - Bug in :meth:`DataFrame.stack` not preserving ``CategoricalDtype`` in a ``MultiIndex`` (:issue:`36991`)
@@ -1235,6 +1241,7 @@ Other
 - Bug in :meth:`DataFrame.clip` not interpreting missing values as no threshold (:issue:`40420`)
 - Bug in :class:`Series` backed by :class:`DatetimeArray` or :class:`TimedeltaArray` sometimes failing to set the array's ``freq`` to ``None`` (:issue:`41425`)
 - Bug in creating a :class:`Series` from a ``range`` object that does not fit in the bounds of ``int64`` dtype (:issue:`30173`)
+- Bug in creating a :class:`Series` from a ``dict`` with all-tuple keys and an :class:`Index` that requires reindexing (:issue:`41707`)
 
 .. ---------------------------------------------------------------------------
 
