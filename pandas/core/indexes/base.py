@@ -6443,12 +6443,8 @@ def _maybe_cast_data_without_dtype(subarr: np.ndarray) -> ArrayLike:
         return data
 
     elif inferred == "interval":
-        try:
-            ia_data = IntervalArray._from_sequence(subarr, copy=False)
-            return ia_data
-        except (ValueError, TypeError):
-            # GH27172: mixed closed Intervals --> object dtype
-            pass
+        ia_data = IntervalArray._from_sequence(subarr, copy=False)
+        return ia_data
     elif inferred == "boolean":
         # don't support boolean explicitly ATM
         pass
