@@ -2968,7 +2968,7 @@ class Index(IndexOpsMixin, PandasObject):
             # Now it's:
             # * float | [u]int -> float
             # * uint64 | signed int  -> object
-            # We may change union(float  [u]int) to go to object.
+            # We may change union(float | [u]int) to go to object.
 
             left = self.astype(dtype, copy=False)
             right = other.astype(dtype, copy=False)
