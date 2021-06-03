@@ -347,6 +347,36 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._from_backing_data(res_values)
 
     # ------------------------------------------------------------------------
+    # Index compat methods
+
+    def insert(
+        self: NDArrayBackedExtensionArrayT, loc: int, item
+    ) -> NDArrayBackedExtensionArrayT:
+        """
+        Make new ExtensionArray inserting new item at location. Follows
+        Python list.append semantics for negative values.
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+
+        Returns
+        -------
+        type(self)
+        """
+        code = self._validate_scalar(item)
+
+        new_vals = np.concatenate(
+            (
+                self._ndarray[:loc],
+                np.asarray([code], dtype=self._ndarray.dtype),
+                self._ndarray[loc:],
+            )
+        )
+        return self._from_backing_data(new_vals)
+
+    # ------------------------------------------------------------------------
     # Additional array methods
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
