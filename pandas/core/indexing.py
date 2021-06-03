@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -1297,6 +1298,16 @@ class _LocIndexer(_LocationIndexer):
             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
 
         self._validate_read_indexer(keyarr, indexer, axis)
+
+        if needs_i8_conversion(ax.dtype):
+            keyarr = ax.take(indexer)
+            if isinstance(key, list) or (
+                isinstance(key, type(ax)) and key.freq is None
+            ):
+                # DTI/TDI.take can infer a freq in some cases when we dont want one
+                if keyarr.dtype.kind in ["m", "M"]:
+                    keyarr = keyarr._with_freq(None)
+
         return keyarr, indexer
 
     def _validate_read_indexer(self, key, indexer, axis: int):
