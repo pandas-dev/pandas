@@ -5018,7 +5018,7 @@ Keep all original rows and also all original values
         else:
             raise ValueError(
                 "Inclusive has to be either string of 'both','left', 'right', "
-                "or 'neither', or a boolean value"
+                "or 'neither'"
             )
 
         return lmask & rmask
